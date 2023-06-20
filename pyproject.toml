@@ -7,6 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+langchain = "^0.0.206"
+llama-index = "^0.6.29"
+uvicorn = "^0.22.0"
+django = "^4.2.2"
 
 
 [build-system]
