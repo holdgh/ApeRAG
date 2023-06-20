@@ -1,0 +1,9 @@
+.gitignore
+.dockerignore
+
+scripts/
+docs/
+examples/
+tests/
+*.md
+*.pyc
