@@ -9,7 +9,7 @@ import sys
 import requests
 import torch
 
-from pilot.configs.model_config import LOGDIR
+from configs.model_config import LOGDIR
 
 server_error_msg = (
     "**NETWORK ERROR DUE TO HIGH TRAFFIC. PLEASE REGENERATE OR REFRESH THIS PAGE.**"

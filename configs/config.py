@@ -4,11 +4,10 @@
 import os
 from typing import List
 
-import nltk
 from auto_gpt_plugin_template import AutoGPTPluginTemplate
 
-from pilot.singleton import Singleton
-from pilot.common.sql_database import Database
+from utils.singleton import Singleton
+from common.sql_database import Database
 
 
 class Config(metaclass=Singleton):
