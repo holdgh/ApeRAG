@@ -19,6 +19,7 @@ pydantic = "^1.10.9"
 requests = "^2.31.0"
 sqlalchemy = "^2.0.16"
 sqlparse = "^0.4.4"
+llama-hub = "^0.0.3"
 
 
 [build-system]
