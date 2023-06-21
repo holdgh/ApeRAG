@@ -22,6 +22,7 @@ sqlparse = "^0.4.4"
 llama-hub = "^0.0.3"
 auto-gpt-plugin-template = "^0.0.3"
 nltk = "^3.8.1"
+pymysql = "^1.0.3"
 
 
 [build-system]
