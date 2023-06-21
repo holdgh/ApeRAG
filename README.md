@@ -29,4 +29,4 @@ poetry build
 
 * run the server
 ```bash
-poetry run start
+poetry run llmserver
