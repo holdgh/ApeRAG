@@ -12,8 +12,8 @@ from transformers import (
     LlamaTokenizer,
     BitsAndBytesConfig,
 )
-from pilot.configs.model_config import DEVICE
-from pilot.configs.config import Config
+from configs.model_config import DEVICE
+from configs.config import Config
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,

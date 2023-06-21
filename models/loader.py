@@ -7,12 +7,12 @@ from typing import Optional
 
 import torch
 
-from pilot.configs.model_config import DEVICE
-from pilot.model.adapter import get_llm_model_adapter
-from pilot.model.compression import compress_module
-from pilot.model.llm.monkey_patch import replace_llama_attn_with_non_inplace_operations
-from pilot.singleton import Singleton
-from pilot.utils import get_gpu_memory
+from configs.model_config import DEVICE
+from models.adapter import get_llm_model_adapter
+from models.compression import compress_module
+from models.llm.monkey_patch import replace_llama_attn_with_non_inplace_operations
+from utils.singleton import Singleton
+from utils.utils import get_gpu_memory
 
 
 def raise_warning_for_incompatible_cpu_offloading_configuration(
