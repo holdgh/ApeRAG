@@ -3,7 +3,7 @@
 
 import json
 import requests
-from pilot.configs.config import Config
+from configs.config import Config
 
 CFG = Config()
 
