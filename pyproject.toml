@@ -21,3 +21,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "server.main:start"
+
+[plugins]
+[plugins.pypi_mirror]
+url = "https://mirrors.aliyun.com/pypi/simple/"
