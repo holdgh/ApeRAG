@@ -30,6 +30,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "server.main:start"
+llmserver = "server.llmserver:main"
 
 [[tool.poetry.source]]
 name = "aliyun"
