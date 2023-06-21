@@ -179,6 +179,8 @@ def embeddings(prompt_request: EmbeddingRequest):
     output = worker.get_embeddings(params["prompt"])
     return {"response": [float(x) for x in output]}
 
+def start():
+    uvicorn.run(app, host="0.0.0.0", port=CFG.MODEL_PORT, log_level="info")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=CFG.MODEL_PORT, log_level="info")
+    start()
