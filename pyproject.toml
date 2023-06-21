@@ -13,6 +13,7 @@ llama-index = "^0.6.29"
 uvicorn = "^0.22.0"
 django = "^4.2.2"
 fastapi = "^0.97.0"
+transformers = "^4.30.2"
 
 
 [build-system]

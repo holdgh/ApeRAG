@@ -10,7 +10,7 @@ from langchain.embeddings.base import Embeddings
 from langchain.llms.base import LLM
 from pydantic import BaseModel
 
-from pilot.configs.config import Config
+from configs.config import Config
 
 CFG = Config()
 

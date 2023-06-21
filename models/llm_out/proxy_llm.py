@@ -4,7 +4,6 @@
 import json
 import requests
 from pilot.configs.config import Config
-from pilot.conversation import ROLE_ASSISTANT, ROLE_USER
 
 CFG = Config()
 

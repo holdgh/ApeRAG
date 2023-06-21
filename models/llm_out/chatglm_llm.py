@@ -4,8 +4,6 @@ import copy
 
 import torch
 
-from pilot.conversation import ROLE_ASSISTANT, ROLE_USER
-
 
 @torch.inference_mode()
 def chatglm_generate_stream(
