@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A LLM based tool to support Text2SQL, Chatbot, KubeBlocks pilot and troubleshooting"
 authors = ["nayutah <dullboy@apecloud.com>"]
 readme = "README.md"
+packages = [{include = "server"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -11,8 +12,12 @@ langchain = "^0.0.206"
 llama-index = "^0.6.29"
 uvicorn = "^0.22.0"
 django = "^4.2.2"
+fastapi = "^0.97.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+start = "server.main:start"
