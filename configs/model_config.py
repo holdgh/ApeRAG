@@ -6,20 +6,19 @@ import os
 import nltk
 import torch
 
-ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-MODEL_PATH = os.path.join(ROOT_PATH, "models")
-PILOT_PATH = os.path.join(ROOT_PATH, "pilot")
-VECTORE_PATH = os.path.join(PILOT_PATH, "vector_store")
+ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RESOURCES_PATH = os.path.join(ROOT_PATH, "resources")
+VECTORE_PATH = os.path.join(RESOURCES_PATH, "vector_store")
+MODEL_PATH = os.path.join(RESOURCES_PATH, "models")
 LOGDIR = os.path.join(ROOT_PATH, "logs")
-DATASETS_DIR = os.path.join(PILOT_PATH, "datasets")
-DATA_DIR = os.path.join(PILOT_PATH, "data")
-nltk.data.path = [os.path.join(PILOT_PATH, "nltk_data")] + nltk.data.path
+DATASETS_DIR = os.path.join(RESOURCES_PATH, "datasets")
+DATA_DIR = os.path.join(RESOURCES_PATH, "data")
+nltk.data.path = [os.path.join(RESOURCES_PATH, "nltk_data")] + nltk.data.path
 PLUGINS_DIR = os.path.join(ROOT_PATH, "plugins")
-FONT_DIR = os.path.join(PILOT_PATH, "fonts")
 
 current_directory = os.getcwd()
 
-new_directory = PILOT_PATH
+new_directory = RESOURCES_PATH
 os.chdir(new_directory)
 
 DEVICE = (
