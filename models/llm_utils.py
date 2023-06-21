@@ -8,9 +8,8 @@ import transformers
 
 from typing import List, Optional
 
-from pilot.configs.config import Config
-from pilot.model.base import Message
-from pilot.server.llmserver import generate_output
+from configs.config import Config
+from models.base import Message
 
 
 def create_chat_completion(
