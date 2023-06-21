@@ -20,6 +20,8 @@ requests = "^2.31.0"
 sqlalchemy = "^2.0.16"
 sqlparse = "^0.4.4"
 llama-hub = "^0.0.3"
+auto-gpt-plugin-template = "^0.0.3"
+nltk = "^3.8.1"
 
 
 [build-system]
@@ -28,6 +30,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "server.main:start"
+llmserver = "server.llmserver:main"
 
 [[tool.poetry.source]]
 name = "aliyun"
