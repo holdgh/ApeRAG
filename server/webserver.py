@@ -118,7 +118,10 @@ def raw_text2sql(question):
     response = requests.post("%s/generate" % CFG.MODEL_SERVER, json=input).text
     return json.loads(response)["response"]
 
-demo = gr.Interface(fn=llama_index_text2sql, inputs="text", outputs="text")
-# demo = gr.Interface(fn=raw_text2sql, inputs="text", outputs="text")
+def start():
+    demo = gr.Interface(fn=llama_index_text2sql, inputs="text", outputs="text")
+    # demo = gr.Interface(fn=raw_text2sql, inputs="text", outputs="text")
+    demo.launch()
 
-demo.launch()
+if __name__ == "__main__":
+    start()
