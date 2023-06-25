@@ -90,7 +90,7 @@ def llama_index_text2sql(question):
         print("table: " + name)
         tables.append(str(name))
     sql_database = SQLDatabase(engine, include_tables=tables)
-    service_context = ServiceContext.from_defaults()
+    service_context = ServiceContext.from_defaults(llm=CustomLLM())
     index = SQLStructStoreIndex(
         service_context=service_context,
         sql_database=sql_database,
