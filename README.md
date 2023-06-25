@@ -25,8 +25,9 @@ poetry install
 * build project
 ```bash
 poetry build
-
+```
 
 * run the server
 ```bash
 poetry run llmserver
+```

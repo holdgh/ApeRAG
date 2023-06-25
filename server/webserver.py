@@ -1,6 +1,7 @@
 import json
 import gradio as gr
 import requests
+import openai
 from configs.config import Config
 from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, select, column, insert
 from typing import Optional, List, Mapping, Any
@@ -39,7 +40,6 @@ CFG = Config()
 class CustomLLM(LLM):
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-        prompt_length = len(prompt)
         input = {
             "prompt": prompt,
             "temperature": 0,
@@ -47,7 +47,7 @@ class CustomLLM(LLM):
             "model": "gptj-6b",
             "stop": "\nSQLResult:"
         }
-        response = TextRequestsWrapper().post("http://localhost:8000/generate", input)
+        response = TextRequestsWrapper().post("%s/generate" % CFG.MODEL_SERVER, input)
         return response
 
     @property
@@ -82,7 +82,7 @@ def prepare_data(engine):
 
 
 def llama_index_text2sql(question):
-    engine = create_engine("mysql+pymysql://root:aa123456@127.0.0.1:3306/%s" % CFG.LOCAL_DB_DATABASE)
+    engine = create_engine("sqlite:///:memory:")
     prepare_data(engine)
     table_names = CFG.local_db.get_usable_table_names()
     tables = []
@@ -90,7 +90,7 @@ def llama_index_text2sql(question):
         print("table: " + name)
         tables.append(str(name))
     sql_database = SQLDatabase(engine, include_tables=tables)
-    service_context = ServiceContext.from_defaults(llm=CustomLLM())
+    service_context = ServiceContext.from_defaults()
     index = SQLStructStoreIndex(
         service_context=service_context,
         sql_database=sql_database,
@@ -118,10 +118,27 @@ def raw_text2sql(question):
     response = requests.post("%s/generate" % CFG.MODEL_SERVER, json=input).text
     return json.loads(response)["response"]
 
+
 def start():
-    demo = gr.Interface(fn=llama_index_text2sql, inputs="text", outputs="text")
-    # demo = gr.Interface(fn=raw_text2sql, inputs="text", outputs="text")
+    with gr.Blocks() as demo:
+        chatbot = gr.Chatbot()
+        msg = gr.Textbox()
+        clear = gr.ClearButton([msg, chatbot])
+
+        def user(user_message, history):
+            return gr.update(value="", interactive=False), history + [[user_message, None]]
+
+        def bot(history):
+            history[-1][1] = llama_index_text2sql(history[-1][0])
+
+        response = msg.submit(user, [msg, chatbot], [msg, chatbot], queue=False).then(
+            bot, chatbot, chatbot
+        )
+        response.then(lambda: gr.update(interactive=True), None, [msg], queue=False)
+
+    demo.queue()
     demo.launch()
+
 
 if __name__ == "__main__":
     start()
