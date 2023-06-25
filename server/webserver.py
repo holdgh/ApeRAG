@@ -38,6 +38,9 @@ def greet(question):
     }
     return requests.post("http://localhost:8000/generate", json=input).text
 
-demo = gr.Interface(fn=greet, inputs="text", outputs="text")
+def start():
+    demo = gr.Interface(fn=greet, inputs="text", outputs="text")
+    demo.launch()   
 
-demo.launch()   
+if __name__ == "__main__":
+    start()
