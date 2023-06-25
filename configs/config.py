@@ -118,6 +118,7 @@ class Config(metaclass=Singleton):
         self.LOCAL_DB_PORT = int(os.getenv("LOCAL_DB_PORT", 3306))
         self.LOCAL_DB_USER = os.getenv("LOCAL_DB_USER", "root")
         self.LOCAL_DB_PASSWORD = os.getenv("LOCAL_DB_PASSWORD", "aa123456")
+        self.LOCAL_DB_DATABASE = os.getenv("LOCAL_DB_DATABASE", "test")
 
         ### TODO Adapt to multiple types of libraries
         self.local_db = Database.from_uri(
@@ -128,7 +129,9 @@ class Config(metaclass=Singleton):
             + "@"
             + self.LOCAL_DB_HOST
             + ":"
-            + str(self.LOCAL_DB_PORT),
+            + str(self.LOCAL_DB_PORT)
+            + "/"
+            + str(self.LOCAL_DB_DATABASE),
             engine_args={"pool_size": 10, "pool_recycle": 3600, "echo": True},
         )
 
