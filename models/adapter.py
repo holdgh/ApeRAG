@@ -198,6 +198,7 @@ class GPT4AllAdapter(BaseLLMAdaper):
         else:
             path, file = os.path.split(model_path)
             model = gpt4all.GPT4All(model_path=path, model_name=file)
+            model.model.set_thread_count(8)
         return model, None
 
 
