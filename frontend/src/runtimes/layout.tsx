@@ -1,9 +1,9 @@
 import ChildrenRender from '@/components/ChildrenRender';
 import auth0 from '@/utils/auth0';
 import { LoginOutlined, LogoutOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Divider, Tooltip, theme } from 'antd';
-import type { InitialStateType } from './getInitialState';
 import { Link } from '@umijs/max';
+import { Button, Tooltip } from 'antd';
+import type { InitialStateType } from './getInitialState';
 
 let hasInit = localStorage.getItem('sidebarCollapsed') !== 'true';
 export const layout = ({
@@ -52,10 +52,10 @@ export const layout = ({
       return (
         <Link to="/collections/new">
           <Button block type="primary" icon={<PlusOutlined />}>
-            { initialState?.collapsed ? '' : 'Create a collection' }
+            {initialState?.collapsed ? '' : 'Create a collection'}
           </Button>
         </Link>
-      )
+      );
     },
     avatarProps: {
       src: initialState?.user?.picture,

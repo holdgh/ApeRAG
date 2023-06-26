@@ -1,10 +1,4 @@
-import {
-  EyeOutlined,
-  MessageOutlined,
-  PlusOutlined,
-  SnippetsOutlined,
-  VideoCameraOutlined,
-} from '@ant-design/icons';
+import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, useModel } from '@umijs/max';
 import {
@@ -78,7 +72,13 @@ export default () => {
                     />
                   </Space>
                 </Card>
-                <Row style={{ textAlign: 'center',  width: "70%", margin: "0 auto" }}>
+                <Row
+                  style={{
+                    textAlign: 'center',
+                    width: '70%',
+                    margin: '0 auto',
+                  }}
+                >
                   <Col span={12}>
                     <Link to="/">
                       <Button
@@ -91,9 +91,7 @@ export default () => {
                   </Col>
                   <Col span={12}>
                     <Link to={`/collections/${collection.id}/documents`}>
-                      <Button
-                        style={{ width: 120, display: 'inline-block' }}
-                      >
+                      <Button style={{ width: 120, display: 'inline-block' }}>
                         View
                       </Button>
                     </Link>

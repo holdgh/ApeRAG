@@ -1,6 +1,6 @@
 import { Collection } from '@/models/collection';
 import { ReadCollection } from '@/services/collections';
-import { MessageOutlined, SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, Outlet, history, useParams } from '@umijs/max';
 import { Button, Space, Typography } from 'antd';
@@ -29,21 +29,25 @@ export default () => {
   return (
     <PageContainer
       ghost
-      title={<Space>
-        {collection?.type === 'Document' ? (
-          <SnippetsOutlined style={{ fontSize: 24 }} />
-        ) : null}
-        {collection?.type === 'Multimedia' ? (
-          <VideoCameraOutlined style={{ fontSize: 24 }} />
-        ) : null}
-        {collection?.title}
-      </Space>}
-      content={<Typography.Text type="secondary">{collection?.description}</Typography.Text>}
+      title={
+        <Space>
+          {collection?.type === 'Document' ? (
+            <SnippetsOutlined style={{ fontSize: 24 }} />
+          ) : null}
+          {collection?.type === 'Multimedia' ? (
+            <VideoCameraOutlined style={{ fontSize: 24 }} />
+          ) : null}
+          {collection?.title}
+        </Space>
+      }
+      content={
+        <Typography.Text type="secondary">
+          {collection?.description}
+        </Typography.Text>
+      }
       extra={[
         <Link to="/chat" key="1">
-          <Button>
-            Chat
-          </Button>
+          <Button>Chat</Button>
         </Link>,
       ]}
       tabList={[
