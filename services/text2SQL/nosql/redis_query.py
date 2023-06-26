@@ -47,7 +47,6 @@ class Redis(Nosql):
     def text_to_query(self, text):
         keys = self.conn.keys()
         schema = {k: self.conn.type(k) for k in keys}
-        print(schema)
 
         response_str, _ = self.llm_predict.predict(
             self.prompt,
@@ -58,4 +57,3 @@ class Redis(Nosql):
 
     def execute_query(self, query):
         return self.conn.execute_command(query)
-
