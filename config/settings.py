@@ -123,6 +123,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "frontend/build",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -130,3 +133,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_ENABLED = env.bool("AUTH_ENABLED", default=True)
+
+# Load Auth0 application settings into memory
+AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat.jp.auth0.com")
+AUTH0_CLIENT_ID = env.str("AUTH0_CLIENT_ID", default="")

@@ -2,18 +2,12 @@ from typing import List
 from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
-from ninja.security import HttpBearer
 from ninja.files import UploadedFile
 from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat
 from django.core.files.base import ContentFile
 from config.settings import AUTH_ENABLED
-
-
-class GlobalAuth(HttpBearer):
-    def authenticate(self, request, token):
-        if token == "supersecret":
-            return token
+from .auth.validator import GlobalAuth
 
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if AUTH_ENABLED else None)
