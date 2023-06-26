@@ -1,5 +1,5 @@
 import { GetCollections } from '@/services/collections';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export type Collection = {
   id: number;
@@ -17,11 +17,8 @@ export default () => {
     setCollections(data);
   };
 
-  useEffect(() => {
-    getCollections();
-  }, []);
-
   return {
     collections,
+    getCollections,
   };
 };

@@ -1,12 +1,12 @@
 import auth0 from '@/utils/auth0';
 import { UserOutlined } from '@ant-design/icons';
-import { Outlet, useModel } from '@umijs/max';
+import { Outlet } from '@umijs/max';
 import { Button, Card, Space, Typography } from 'antd';
 
-export default (): React.ReactNode => {
-  const { initialState } = useModel('@@initialState');
-  const user = initialState?.user;
+import { getUser } from '@/models/user';
 
+export default (): React.ReactNode => {
+  const user = getUser();
   if (!user) {
     return (
       <Card
