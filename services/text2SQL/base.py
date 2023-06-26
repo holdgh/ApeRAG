@@ -99,11 +99,11 @@ class SQLBase:
         :param sample_rows: the rows number sample from the table
         :return: schema
         """
-        scheme = self.db.get_table_info_no_throw()
+        schema = self.db.get_table_info_no_throw()
         tables = self.db.get_usable_table_names()
         if sample_rows != 0:
             self.db._sample_rows_in_table_info = sample_rows
-            scheme.lstrip('\n')
+            schema.lstrip('\n')
             meta_tables = [
                 tbl
                 for tbl in self.db._metadata.sorted_tables
@@ -111,7 +111,7 @@ class SQLBase:
                    and not (self.dialect == "sqlite" and tbl.name.startswith("sqlite_"))
             ]
             for table in meta_tables:
-                scheme += f"\nhere are some example rows data in table \"{table}\" to help you understand the table struct:" + f"\n{self.db._get_sample_rows(table)}\n"
+                schema += f"\nhere are some example rows data in table \"{table}\" to help you understand the table struct:" + f"\n{self.db._get_sample_rows(table)}\n"
         # more database info could add here
 
-        return scheme
+        return schema
