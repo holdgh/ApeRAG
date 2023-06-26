@@ -2,8 +2,8 @@
   "private": true,
   "author": "sailwebs <sailwebs@apecloud.com>",
   "scripts": {
-    "build": "max build",
-    "dev": "PORT=8001 max dev",
+    "build": "yarn install && max build",
+    "dev": "max dev",
     "format": "prettier --cache --write .",
     "postinstall": "max setup",
     "prepare": "cd ../ && husky install frontend/.husky",

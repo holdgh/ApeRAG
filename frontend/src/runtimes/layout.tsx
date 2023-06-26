@@ -1,4 +1,5 @@
 import ChildrenRender from '@/components/ChildrenRender';
+import { getUser } from '@/models/user';
 import auth0 from '@/utils/auth0';
 import { LoginOutlined, LogoutOutlined, PlusOutlined } from '@ant-design/icons';
 import { Link } from '@umijs/max';
@@ -15,6 +16,7 @@ export const layout = ({
 }) => {
   const logo = 'https://opendbms.com/client/favicon.ico';
   const title = 'KubeChat';
+  const user = getUser();
   return {
     logo,
     title,
@@ -58,14 +60,14 @@ export const layout = ({
       );
     },
     avatarProps: {
-      src: initialState?.user?.picture,
-      title: initialState?.user?.nickname || 'unkown',
+      src: user?.picture,
+      title: user?.nickname || 'unkown',
       size: 'small',
     },
     actionsRender: (props: any) => {
       if (props.isMobile) return [];
       return [
-        initialState?.user ? (
+        user ? (
           <Tooltip title="logout">
             <LoginOutlined
               key="logout"

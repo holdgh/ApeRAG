@@ -6,9 +6,19 @@ export default defineConfig({
   model: {},
   initialState: {},
   publicPath: process.env.publicPath || '/',
+  outputPath: './build',
   request: {},
   layout: {},
-  favicons: ['https://opendbms.com/client/favicon.ico'],
+  favicons: ['https://cdn.kubeblocks.com/img/apecloud/favicon.ico'],
+  metas: [{ name: 'viewport', content: 'width=device-width,initial-scale=1' }],
+  cssLoaderModules: {
+    exportLocalsConvention: 'camelCase',
+    localIdentName: '[path][name]__[local]--[hash:base64:5]',
+  },
+  codeSplitting: {
+    jsStrategy: 'depPerChunk',
+    jsStrategyOptions: {},
+  },
   define: {
     HOSTNAME: process.env.HOSTNAME || 'http://localhost:8001',
     AUTH0_DOMAIN: process.env.AUTH0_DOMAIN || '',
@@ -70,4 +80,16 @@ export default defineConfig({
     },
   ],
   npmClient: 'yarn',
+  chainWebpack: (config) => {
+    config.output.chunkFilename('[contenthash:16].js').end();
+    config
+      .plugin('mini-css-extract-plugin')
+      .tap(() => [
+        {
+          chunkFilename: '[contenthash:16].css',
+          ignoreOrder: true,
+        },
+      ])
+      .end();
+  },
 });

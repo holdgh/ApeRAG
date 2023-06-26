@@ -1,6 +1,10 @@
 import CheckedCard from '@/components/CheckedCard';
 import { CreateCollection } from '@/services/collections';
-import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import {
+  DatabaseOutlined,
+  SnippetsOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { App, Button, Card, Form, Input } from 'antd';
@@ -64,6 +68,12 @@ export default () => {
                   label: 'Multimedia',
                   value: 'Multimedia',
                   description: 'Use audio or video as a collection.',
+                },
+                {
+                  icon: <DatabaseOutlined />,
+                  label: 'Database',
+                  value: 'Database',
+                  description: 'Use database as a collection.',
                 },
               ]}
             />
