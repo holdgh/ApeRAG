@@ -40,9 +40,7 @@ class SQLDataBase(LangchainSQLDatabase):
         return cls(create_engine(database_uri, **_engine_args), **kwargs)
 
     def set_sample_rows(self, nums: int):
-        print(self._sample_rows_in_table_info)
         self._sample_rows_in_table_info = nums
-        print(self._sample_rows_in_table_info)
 
     def get_table_columns(self, table_name: str) -> List[Any]:
         """Get table columns."""
