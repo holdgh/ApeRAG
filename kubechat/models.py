@@ -48,6 +48,7 @@ class Document(models.Model):
 class Chat(models.Model):
     name = models.CharField(max_length=64)
     user = models.BigIntegerField()
+    history = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField()
