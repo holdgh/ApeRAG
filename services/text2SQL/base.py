@@ -1,116 +1,117 @@
-from langchain.sql_database import SQLDatabase as LangchainSQLDatabase
-from sqlalchemy import MetaData, create_engine, insert, text
-from sqlalchemy.engine import Engine
-from typing import Any, Dict, List, Tuple, Optional
-from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
+import logging
+import sys
 
-# more information about Dialect https://docs.sqlalchemy.org/en/20/dialects/#included-dialects
-Dialect = ["mysql","postgresql","sqlite","oracle","mssql"]
+from typing import Optional
+from langchain import OpenAI
+from langchain.llms import GPT4All
+from llama_index import LangchainEmbedding, SQLDatabase, Prompt, LLMPredictor
+from llama_index.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_TMPL
+from llama_index.prompts.prompt_type import PromptType
+from sqlalchemy import create_engine
 
-#
-class SQLDataBase(LangchainSQLDatabase):
-    """SQL Database.
+logger = logging.getLogger(__name__)
+local_llm_path = "/Users/alal/KubeChat/ggml-gpt4all-j-v1.3-groovy.bin"
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
-       Wrapper around SQLDatabase object from langchain.
-       See `langchain documentation <https://tinyurl.com/4we5ku8j>`_ for more details:
-       Do not
+Dialect = ["mysql", "postgresql", "sqlite", "oracle", "mssql"]
+Driver = {"mysql":"+pymysql","postgresql":""}
 
-       Args:
-           *args: Arguments to pass to langchain SQLDatabase.
-           **kwargs: Keyword arguments to pass to langchain SQLDatabase.
+class SQLBase:
+    def __init__(self, user, pw,
+                 database_name: str,
+                 host: Optional[str] = "localhost",
+                 port: Optional[str] = None,
+                 dialect: Optional[str] = "mysql",
+                 islocal: Optional[bool] = False,
+                 embed_model: Optional[LangchainEmbedding] = None,
+                 prompt_text: Optional[str] = DEFAULT_TEXT_TO_SQL_TMPL):
+        self.dialect = dialect
+        self.user = user
+        self.pw = pw
+        self.target_database = database_name
+        self.host = host
+        self.port = port
+        self._self_check()
+        self.engineUrl = self._generate_db_url()
+        self.prompt_text = prompt_text
+        self.db = None
 
-       """
+        self.embed_model = None
+        self.islocal = False
+        if islocal is True:
+            self.islocal = True
+            self.llm = GPT4All(model=local_llm_path, n_ctx=512)
+        else:
+            self.llm = OpenAI(temperature=0, model_name="text-davinci-003", max_tokens=-1)
+        if embed_model is not None:
+            self.embed_model = embed_model
 
-    @property
-    def engine(self) -> Engine:
-        """Return SQL Alchemy engine."""
-        return self._engine
+    def _generate_db_url(self) -> str:
+        if self.port is not None:
+            return f"{self.dialect}{Driver[self.dialect]}://{self.user}:{self.pw}@{self.host}:{self.port}/{self.target_database}"
+        else:
+            return f"{self.dialect}{Driver[self.dialect]}://{self.user}:{self.pw}@{self.host}/{self.target_database}"
 
-    @property
-    def metadata_obj(self) -> MetaData:
-        """Return SQL Alchemy metadata."""
-        return self._metadata
+    def _self_check(self):
+        if not isinstance(self.user, str):
+            raise TypeError("user must be a string")
+        if not isinstance(self.pw, str):
+            raise TypeError("password must be a string")
+        if not isinstance(self.host, str):
+            raise TypeError("host must be a string")
+        if self.port is not None and not isinstance(self.port, str):
+            raise TypeError("port must be a string")
+        if not isinstance(self.target_database, str):
+            raise TypeError("database_name must be a string")
+        if not isinstance(self.dialect, str):
+            raise TypeError("database_name must be a string")
 
-    @classmethod
-    def from_uri(
-            cls, database_uri: str, engine_args: Optional[dict] = None, **kwargs: Any
-    ) -> "SQLDataBase":
-        """Construct a SQLAlchemy engine from URI."""
-        _engine_args = engine_args or {}
-        return cls(create_engine(database_uri, **_engine_args), **kwargs)
+    def _connect(self):
+        self.db = SQLDatabase(create_engine(self.engineUrl), sample_rows_in_table_info=0)
 
-    def set_sample_rows(self, nums: int):
-        self._sample_rows_in_table_info = nums
+    def custom_prompt(self, prompt_text: str):
+        self.prompt_text = prompt_text
+        if not isinstance(self.prompt_text, str):
+            raise TypeError("prompt_text must be a string")
 
-    def get_table_columns(self, table_name: str) -> List[Any]:
-        """Get table columns."""
-        return self._inspector.get_columns(table_name)
+    def custom_embedding(self, embed_model: Optional[LangchainEmbedding] = None):
+        self.embed_model = embed_model
 
-    def get_single_table_info(self, table_name: str) -> str:
-        """Get table info for a single table."""
-        # same logic as table_info, but with specific table names
-        template = (
-            "Table '{table_name}' has columns: {columns} "
-            "and foreign keys: {foreign_keys}."
+    def query(self, query_str: str, sample_rows: Optional[int] = 3) -> str:
+        self._connect()
+        prompt = Prompt(
+            self.prompt_text,
+            stop_token="\nSQLResult:",
+            prompt_type=PromptType.TEXT_TO_SQL,
         )
-        columns = []
-        for column in self._inspector.get_columns(table_name):
-            columns.append(f"{column['name']} ({str(column['type'])})")
-        column_str = ", ".join(columns)
-        foreign_keys = []
-        for foreign_key in self._inspector.get_foreign_keys(table_name):
-            foreign_keys.append(
-                f"{foreign_key['constrained_columns']} -> "
-                f"{foreign_key['referred_table']}.{foreign_key['referred_columns']}"
-            )
-        foreign_key_str = ", ".join(foreign_keys)
-        table_str = template.format(
-            table_name=table_name, columns=column_str, foreign_keys=foreign_key_str
-        )
-        return table_str
+        # schema
+        schema = self.generate_sql_schema(sample_rows)
+        llm_predictor = LLMPredictor(llm=self.llm)
+        logger.info(f"> prompt format: {prompt.format(schema=schema, dialect=self.dialect, query_str=query_str)}")
+        response, _ = llm_predictor.predict(prompt=prompt, query_str=query_str, schema=schema,
+                                            dialect=self.dialect)
+        return response
 
-    def insert_into_table(self, table_name: str, data: dict) -> None:
-        """Insert data into a table."""
-        table = self._metadata.tables[table_name]
-        stmt = insert(table).values(**data)
-        with self._engine.connect() as connection:
-            connection.execute(stmt)
-            connection.commit()
-
-    def run_sql(self, command: str) -> Tuple[str, Dict]:
-        """Execute a SQL statement and return a string representing the results.
-
-        If the statement returns rows, a string of the results is returned.
-        If the statement returns no rows, an empty string is returned.
+    def generate_sql_schema(self, sample_rows: int) -> str:
         """
-        return self._run_with_no_throw(command)
-
-    def _run_with_no_throw(self, command: str) -> Tuple[str, Dict]:
-        try:
-            with self._engine.connect() as connection:
-                cursor = connection.execute(text(command))
-                if cursor.returns_rows:
-                    result = cursor.fetchall()
-                    return str(result), {"result": result}
-        except SQLAlchemyError as e:
-            return "", {}
-
-    def generate_sql_context(self, sample_rows: int) -> str:
-        scheme = self.get_table_info_no_throw()
-        tables = self.get_usable_table_names()
-        meta_tables = [
-            tbl
-            for tbl in self._metadata.sorted_tables
-            if tbl.name in set(tables)
-               and not (self.dialect == "sqlite" and tbl.name.startswith("sqlite_"))
-        ]
-        self.set_sample_rows(sample_rows)
-        for table in meta_tables:
-            scheme += f"\nhere are some example rows data in {table} to help you understand the table struct:" + f"\n{self._get_sample_rows(table)}\n"
-
+        generate the schema info from db
+        :param sample_rows: the rows number sample from the table
+        :return: schema
+        """
+        scheme = self.db.get_table_info_no_throw()
+        tables = self.db.get_usable_table_names()
+        if sample_rows != 0:
+            self.db._sample_rows_in_table_info = sample_rows
+            scheme.lstrip('\n')
+            meta_tables = [
+                tbl
+                for tbl in self.db._metadata.sorted_tables
+                if tbl.name in set(tables)
+                   and not (self.dialect == "sqlite" and tbl.name.startswith("sqlite_"))
+            ]
+            for table in meta_tables:
+                scheme += f"\nhere are some example rows data in table \"{table}\" to help you understand the table struct:" + f"\n{self.db._get_sample_rows(table)}\n"
         # more database info could add here
 
         return scheme
-
-#
-# class NoSQLTemplate():
