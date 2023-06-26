@@ -59,10 +59,3 @@ class Redis(Nosql):
     def execute_query(self, query):
         return self.conn.execute_command(query)
 
-
-if __name__ == "__main__":
-    r = Redis("127.0.0.1", 6379)
-    r.connect()
-    q = r.text_to_query("Get all keys and values for bd")
-    print(q)
-    print(r.execute_query(q))
