@@ -15,9 +15,10 @@ from llama_index import SQLStructStoreIndex, ServiceContext, Prompt, \
     LangchainEmbedding, LLMPredictor
 from llama_index.indices.struct_store import SQLContextContainerBuilder
 from sqlalchemy import create_engine
+from utils.prompt import DefaultSQLPromptTemplate
 
 local_llm_path = "/Users/alal/KubeChat/ggml-gpt4all-j-v1.3-groovy.bin"
-os.environ["OPENAI_API_KEY"] = "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"
+
 os.environ["http_proxy"] = "http://127.0.0.1:7890"
 os.environ["https_proxy"] = "http://127.0.0.1:7890"
 
@@ -64,9 +65,7 @@ class PostgreSQL:
             raise TypeError("database_name must be a string")
 
     def _connect(self):
-        # try:
         self.db = SQLDataBase(create_engine(self.engineUrl), sample_rows_in_table_info=0)
-        # except  as e:
 
     def custom_prompt(self, prompt_text: str):
         self.prompt_text = prompt_text
@@ -83,19 +82,12 @@ class PostgreSQL:
             stop_token="\nSQLResult:",
             prompt_type=PromptType.TEXT_TO_SQL,
         )
-        # llm_predictor = LLMPredictor(llm=llm)
-        # response_str, _ = llm_predictor.predict(prompt,
-        #                                         query_str=query_str,
-        #                                         schema=self.db.generate_sql_context(sample_rows),
-        #                                         dialect=self.dialect)
 
         if isinstance(self.llm, LLM):
             # for local LLM
             sc = ServiceContext.from_defaults(llm=self.llm, embed_model=self.embed_model)
-
             context_builder = SQLContextContainerBuilder(sql_database=self.db,
                                                          context_str=self.db.generate_sql_context(sample_rows))
-
             # index
             index = SQLStructStoreIndex(
                 service_context=sc,
@@ -107,10 +99,7 @@ class PostgreSQL:
             response = query_engine.query(query_str)
             return response.extra_info["sql_query"]
         else:
-            # sc = ServiceContext.from_defaults(llm=self.llm, embed_model=self.embed_model)
-            # context_builder = SQLContextContainerBuilder(sql_database=self.db,
-            #                                              context_str=self.db.generate_sql_context(sample_rows))
-            # # index
+            # for OpenAPI
             index = SQLStructStoreIndex(
                 [],
                 sql_database=self.db,
@@ -121,8 +110,7 @@ class PostgreSQL:
 
 
 if __name__ == '__main__':
-    llm = OpenAI()
-    # llmLocal = GPT4All(model=local_llm_path)
-    pg = PostgreSQL(user="postgres", pw="", database_name="postgres", llm=llm)
+    openAI = OpenAI()
+    pg = PostgreSQL(user="postgres", pw="", database_name="postgres",llm=OpenAI)
     response = pg.query("how old is Mary?")
     # print(response, len(response))
