@@ -6,9 +6,9 @@ from django.http import HttpResponse
 from ninja import Router
 from ninja import NinjaAPI
 
-api = NinjaAPI()
+api = NinjaAPI(version="1.0.0")
 
-@api.put("/collections")
+@api.post("/collections")
 def create_collection(request):
     return {}
 
@@ -16,40 +16,40 @@ def create_collection(request):
 def list_collections(request):
     return {}
 
-@api.post("/collections/{collection_id}")
-def update_collection(request):
+@api.put("/collections/{collection_id}")
+def update_collection(request, collection_id):
     return {}
 
 @api.delete("/collections/{collection_id}")
-def delete_collection(request):
+def delete_collection(request, collection_id):
     return {}
 
-@api.put("/collections/{collection_id}/documents")
-def add_document(request):
+@api.post("/collections/{collection_id}/documents")
+def add_document(request, collection_id):
     return {}
 
 @api.get("/collections/{collection_id}/documents")
-def list_documents(request):
+def list_documents(request, collection_id):
     return {}
 
-@api.post("/collections/{collection_id}/documents/{document_id}")
-def update_document(request):
+@api.put("/collections/{collection_id}/documents/{document_id}")
+def update_document(request, collection_id, document_id):
     return {}
 
-@api.delete("/collections/{collection_id}/documents/{collection_id}")
-def delete_document(request):
+@api.delete("/collections/{collection_id}/documents/{document_id}")
+def delete_document(request, collection_id, document_id):
     return {}
 
-@api.put("/collections/{collection_id}/chats")
-def add_chat(request):
+@api.post("/collections/{collection_id}/chats")
+def add_chat(request, collection_id):
     return {}
 
 @api.get("/collections/{collection_id}/chats")
-def list_chats(request):
+def list_chats(request, collection_id):
     return {}
 
 @api.delete("/collections/{collection_id}/chats/{chat_id}")
-def delete_chat(request):
+def delete_chat(request, collection_id, chat_id):
     return {}
 
 def index(request):
