@@ -1,11 +1,14 @@
 from django.db import models
 
-# Create your models here.
+
+def user_document_path(instance, filename):
+    return "documents/user-{0}/collection-{1}/{2}".format(instance.user.id, instance.collection.id, filename)
 
 
 class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
     ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
 
 class CollectionType(models.TextChoices):
@@ -14,48 +17,46 @@ class CollectionType(models.TextChoices):
 
 
 class DocumentStatus(models.TextChoices):
+    RUNNING = "RUNNING"
     COMPLETE = "COMPLETE"
     FAILED = "FAILED"
-
-
-class DocumentType(models.TextChoices):
-    PDF = "pdf"
-    WORD = "word"
-    MARKDOWN = "markdown"
+    DELETED = "DELETED"
 
 
 class Collection(models.Model):
     title = models.CharField(max_length=256)
     description = models.TextField()
-    user = models.BigIntegerField()
+    user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=CollectionStatus.choices)
     type = models.CharField(max_length=16, choices=CollectionType.choices)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField()
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
 
 
 class Document(models.Model):
     name = models.CharField(max_length=64)
-    user = models.BigIntegerField()
-    type = models.CharField(max_length=16, choices=DocumentType.choices)
+    user = models.CharField(max_length=256)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE
+    )
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)
     size = models.BigIntegerField()
+    file = models.FileField(upload_to=user_document_path)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_deleted = models.DateTimeField()
 
 
 class Chat(models.Model):
     name = models.CharField(max_length=64)
-    user = models.BigIntegerField()
+    user = models.CharField(max_length=256)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE
+    )
     history = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField()
-
-
-class User(models.Model):
-    name = models.CharField(max_length=256)
 
 
 class Settings(models.Model):

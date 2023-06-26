@@ -1,3 +1,7 @@
+from .models import Collection, Document, Chat
 from django.contrib import admin
 
-# Register your models here.
+
+admin.site.register(Collection)
+admin.site.register(Document)
+admin.site.register(Chat)
