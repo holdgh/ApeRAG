@@ -94,6 +94,11 @@ export default {
       data: documents,
     });
   },
+  'POST /api/v1/collections/:collectionId/documents': (req: any, res: any) => {
+    res.json({
+      data: documents[0],
+    });
+  },
   'DELETE /api/v1/collections/:collectionId/documents/:documentId': (
     req: any,
     res: any,

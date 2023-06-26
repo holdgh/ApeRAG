@@ -1,8 +1,9 @@
 import ChildrenRender from '@/components/ChildrenRender';
 import auth0 from '@/utils/auth0';
-import { LoginOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { LoginOutlined, LogoutOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Divider, Tooltip, theme } from 'antd';
 import type { InitialStateType } from './getInitialState';
+import { Link } from '@umijs/max';
 
 let hasInit = localStorage.getItem('sidebarCollapsed') !== 'true';
 export const layout = ({
@@ -21,7 +22,7 @@ export const layout = ({
       locale: false,
     },
     disableMobile: true,
-    collapsed: initialState.collapsed,
+    collapsed: initialState?.collapsed,
     onCollapse: (collapsed: boolean) => {
       if (!hasInit) {
         hasInit = true;
@@ -46,6 +47,15 @@ export const layout = ({
           © 2023 ApeCloud PTE. Ltd.
         </div>
       );
+    },
+    menuExtraRender: () => {
+      return (
+        <Link to="/collections/new">
+          <Button block type="primary" icon={<PlusOutlined />}>
+            { initialState?.collapsed ? '' : 'Create a collection' }
+          </Button>
+        </Link>
+      )
     },
     avatarProps: {
       src: initialState?.user?.picture,

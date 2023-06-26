@@ -1,4 +1,6 @@
 import {
+  EyeOutlined,
+  MessageOutlined,
   PlusOutlined,
   SnippetsOutlined,
   VideoCameraOutlined,
@@ -9,6 +11,7 @@ import {
   Button,
   Card,
   Col,
+  Divider,
   Row,
   Space,
   Statistic,
@@ -19,20 +22,11 @@ import {
 export default () => {
   const { collections } = useModel('collection');
   const cardBodyStyle = {
-    height: 290,
+    height: 260,
   };
   const { token } = theme.useToken();
   return (
-    <PageContainer
-      ghost
-      extra={[
-        <Link key={1} to="/collections/new">
-          <Button type="primary" icon={<PlusOutlined />}>
-            Create a Collection
-          </Button>
-        </Link>,
-      ]}
-    >
+    <PageContainer ghost>
       <Row gutter={[30, 30]}>
         {collections.map((collection, key) => {
           return (
@@ -41,10 +35,10 @@ export default () => {
                 <Typography.Title level={4}>
                   <Space>
                     {collection.type === 'Document' ? (
-                      <SnippetsOutlined style={{ fontSize: 24 }} />
+                      <SnippetsOutlined style={{ fontSize: 18 }} />
                     ) : null}
                     {collection.type === 'Multimedia' ? (
-                      <VideoCameraOutlined style={{ fontSize: 24 }} />
+                      <VideoCameraOutlined style={{ fontSize: 18 }} />
                     ) : null}
                     {collection.title}
                   </Space>
@@ -55,41 +49,41 @@ export default () => {
                 >
                   {collection.description}
                 </Typography.Text>
-                <br />
-                <br />
-                <Space
-                  style={{ justifyContent: 'space-around', width: '100%' }}
-                >
-                  <Statistic
-                    title="Status"
-                    value={collection.status}
-                    valueStyle={{
-                      fontSize: 16,
-                      color:
-                        collection.status === 'Active'
-                          ? token.colorSuccess
-                          : token.colorWarning,
-                    }}
-                  />
-                  <Statistic
-                    title="Type"
-                    value={collection.type}
-                    valueStyle={{ fontSize: 16 }}
-                  />
-                  <Statistic
-                    title="Documents"
-                    value={12}
-                    valueStyle={{ fontSize: 16 }}
-                  />
-                </Space>
-                <br />
-                <br />
-                <Row style={{ textAlign: 'center' }}>
+                <Card bordered={false}>
+                  <Space
+                    style={{ justifyContent: 'space-around', width: '100%' }}
+                  >
+                    <Statistic
+                      title="Status"
+                      value={collection.status}
+                      valueStyle={{
+                        fontSize: 16,
+                        color:
+                          collection.status === 'Active'
+                            ? token.colorText
+                            : token.colorWarning,
+                      }}
+                    />
+                    <Divider type="vertical" style={{ height: 30 }} />
+                    <Statistic
+                      title="Type"
+                      value={collection.type}
+                      valueStyle={{ fontSize: 16 }}
+                    />
+                    <Divider type="vertical" style={{ height: 30 }} />
+                    <Statistic
+                      title="Documents"
+                      value={12}
+                      valueStyle={{ fontSize: 16 }}
+                    />
+                  </Space>
+                </Card>
+                <Row style={{ textAlign: 'center',  width: "70%", margin: "0 auto" }}>
                   <Col span={12}>
                     <Link to="/">
                       <Button
                         type="primary"
-                        style={{ width: 150, display: 'inline-block' }}
+                        style={{ width: 120, display: 'inline-block' }}
                       >
                         Chat
                       </Button>
@@ -97,7 +91,9 @@ export default () => {
                   </Col>
                   <Col span={12}>
                     <Link to={`/collections/${collection.id}/documents`}>
-                      <Button style={{ width: 150, display: 'inline-block' }}>
+                      <Button
+                        style={{ width: 120, display: 'inline-block' }}
+                      >
                         View
                       </Button>
                     </Link>

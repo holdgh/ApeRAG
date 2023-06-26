@@ -1,7 +1,7 @@
 export type Document = {
   id: number;
   name: string;
-  status: 'Active' | 'InActive';
+  status: 'Complate' | 'Failed';
   size: string;
   updatedAt: string;
 };

@@ -17,11 +17,13 @@ import {
   Modal,
   Space,
   Table,
+  Tag,
   Typography,
   Upload,
   UploadProps,
 } from 'antd';
 import { ColumnsType } from 'antd/es/table';
+import moment from 'moment';
 import { useEffect, useState } from 'react';
 
 export default () => {
@@ -29,7 +31,7 @@ export default () => {
   const [documents, setDocuments] = useState<Document[] | undefined>();
   const [uploadVisible, setUploadVisible] = useState<boolean>(false);
   const { collectionId } = useParams();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const dataSource = documents?.filter((d) =>
     new RegExp(searchKey || '').test(d.name),
   );
@@ -60,20 +62,43 @@ export default () => {
       title: 'Type',
       dataIndex: 'type',
       render: (_value, record) => {
-        return record.name?.replace(/.*\./, '').toUpperCase();
+        return (
+          <Typography.Text type="secondary">
+            {record.name?.replace(/.*\./, '').toUpperCase()}
+          </Typography.Text>
+        );
       },
     },
     {
       title: 'Size',
       dataIndex: 'size',
+      render: (_value, record) => {
+        return (
+          <Typography.Text type="secondary">{record.size}</Typography.Text>
+        );
+      },
     },
     {
       title: 'Status',
       dataIndex: 'status',
+      render: (_value, record) => {
+        return (
+          <Tag color={record.status === 'Failed' ? 'error' : 'default'}>
+            {record.status}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Last Updated',
       dataIndex: 'updatedAt',
+      render: (_value, record) => {
+        return (
+          <Typography.Text type="secondary">
+            {moment(new Date(record.updatedAt)).fromNow()}
+          </Typography.Text>
+        );
+      },
     },
     {
       title: 'Actions',
@@ -97,19 +122,14 @@ export default () => {
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: true,
-    action: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
-    data: {
-      a: 1,
-      b: 2,
-      c: 3,
-    },
+    action: `/api/v1/collections/${collectionId}/documents`,
+    data: {},
     onChange(info) {
       const { status } = info.file;
-      if (status !== 'uploading') {
-        console.log(info.file, info.fileList);
-      }
       if (status === 'done') {
+        getDocuments();
       } else if (status === 'error') {
+        message.error('upload error');
       }
     },
   };
@@ -130,7 +150,7 @@ export default () => {
           }}
         />
         <Space>
-          <Button>Merge</Button>
+          <Button disabled>Merge</Button>
           <Button
             type="primary"
             onClick={() => {

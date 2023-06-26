@@ -3,12 +3,12 @@
   "author": "sailwebs <sailwebs@apecloud.com>",
   "scripts": {
     "build": "max build",
-    "dev": "max dev",
+    "dev": "PORT=8001 max dev",
     "format": "prettier --cache --write .",
     "postinstall": "max setup",
     "prepare": "cd ../ && husky install frontend/.husky",
     "setup": "max setup",
-    "start": "PORT=8001 npm run dev"
+    "start": "npm run dev"
   },
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
@@ -16,7 +16,8 @@
     "@auth0/auth0-spa-js": "^2.0.8",
     "@umijs/max": "^4.0.71",
     "antd": "^5.6.3",
-    "classnames": "^2.3.2"
+    "classnames": "^2.3.2",
+    "moment": "^2.29.4"
   },
   "devDependencies": {
     "@types/react": "^18.0.33",

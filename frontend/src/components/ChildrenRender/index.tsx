@@ -10,8 +10,9 @@ export default (): React.ReactNode => {
   if (!user) {
     return (
       <Card
-        bodyStyle={{ padding: '150px 0', textAlign: 'center' }}
         bordered={false}
+        bodyStyle={{ padding: '100px 0', textAlign: 'center' }}
+        style={{ marginTop: 120 }}
       >
         <Space size="large" direction="vertical">
           <UserOutlined style={{ fontSize: 50 }} />
@@ -41,8 +42,9 @@ export default (): React.ReactNode => {
   if (!user.email_verified) {
     return (
       <Card
-        bodyStyle={{ padding: '150px 0', textAlign: 'center' }}
         bordered={false}
+        bodyStyle={{ padding: '100px 0', textAlign: 'center' }}
+        style={{ marginTop: 120 }}
       >
         <Space size="large" direction="vertical">
           <UserOutlined style={{ fontSize: 50 }} />
