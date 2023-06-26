@@ -5,7 +5,7 @@ from ninja import NinjaAPI, Schema, File
 from ninja.security import HttpBearer
 from ninja.files import UploadedFile
 from .models import Collection, CollectionStatus, \
-    Document, DocumentStatus
+    Document, DocumentStatus, Chat
 from django.core.files.base import ContentFile
 from config.settings import AUTH_ENABLED
 
@@ -50,6 +50,14 @@ def query_document(user, collection_id: str, document_id: str):
 
 def query_documents(user, collection_id: str):
     return Document.objects.exclude(status=DocumentStatus.DELETED).filter(user=user, collection_id=collection_id)
+
+
+def query_chat(user, collection_id: str, chat_id: str):
+    return Chat.objects.exclude(status=DocumentStatus.DELETED).get(user=user, collection_id=collection_id, pk=chat_id)
+
+
+def query_chats(user, collection_id: str):
+    return Chat.objects.exclude(status=DocumentStatus.DELETED).get(user=user, collection_id=collection_id)
 
 
 def success(data):
