@@ -60,7 +60,7 @@ class SQLBase:
             raise TypeError("password must be a string")
         if not isinstance(self.host, str):
             raise TypeError("host must be a string")
-        if self.port is not None and isinstance(self.port, str):
+        if self.port is not None and not isinstance(self.port, str):
             raise TypeError("port must be a string")
         if not isinstance(self.target_database, str):
             raise TypeError("database_name must be a string")
