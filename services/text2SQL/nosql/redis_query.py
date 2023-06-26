@@ -53,7 +53,7 @@ class Redis(Nosql):
             query_str=text,
             schema=schema,
         )
-        return response_str
+        return response_str.strip()
 
     def execute_query(self, query):
         return self.conn.execute_command(query)
