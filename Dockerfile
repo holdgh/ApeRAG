@@ -70,13 +70,10 @@ EXPOSE 8000
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 
-CMD ["/app/scripts/start-django.sh"]
-
 
 # `production` image used for runtime
 FROM python-base as production
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
-COPY ./app /app/
+COPY . /app/
 WORKDIR /app
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
-CMD ["/app/scripts/start-django.sh"]

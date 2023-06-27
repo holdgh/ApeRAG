@@ -27,7 +27,7 @@ class DocumentIn(Schema):
 
 def get_user_from_token(request):
     # TODO parse user from auth0 token
-    return None if getattr(request, "auth", None) is None else request.auth
+    return request.META.get("X-USER-ID", None)
 
 
 def query_collection(user, collection_id: str):
