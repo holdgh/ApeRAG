@@ -1,0 +1,38 @@
+.chat-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  transition-duration: 0.15s;
+  left: 257px;
+
+  &.collapsed {
+    left: 65px;
+  }
+}
+
+.header {
+  text-align: center;
+  padding: 12px;
+  height: 55px;
+  overflow: hidden;
+}
+
+.content {
+  position: absolute;
+  top: 55px;
+  bottom: 74px;
+  left: 0;
+  right: 0;
+  overflow: auto;
+  padding: 24px;
+}
+
+.footer {
+  position: absolute;
+  padding: 12px;
+  height: 74px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
