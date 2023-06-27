@@ -2,7 +2,7 @@ from django.db import models
 
 
 def user_document_path(instance, filename):
-    return "documents/user-{0}/collection-{1}/{2}".format(instance.user.id, instance.collection.id, filename)
+    return "documents/user-{0}/collection-{1}/{2}".format(instance.user, instance.collection.id, filename)
 
 
 class CollectionStatus(models.TextChoices):
@@ -65,7 +65,7 @@ class Document(models.Model):
     file = models.FileField(upload_to=user_document_path)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField()
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     def view(self):
         return {
@@ -87,7 +87,7 @@ class Chat(models.Model):
     history = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField()
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     def view(self):
         return {

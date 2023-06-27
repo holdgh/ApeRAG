@@ -1,3 +1,5 @@
+import json
+from datetime import datetime
 from typing import List
 from typing import Optional
 from http import HTTPStatus
@@ -24,6 +26,10 @@ class CollectionIn(Schema):
 class DocumentIn(Schema):
     name: str
     type: str
+
+
+class ChatIn(Schema):
+    history: Optional[List]
 
 
 def get_user(request):
@@ -73,11 +79,11 @@ def fail(code, message):
 def create_collection(request, collection: CollectionIn):
     user = get_user(request)
     instance = Collection(
+        user=user,
+        type=collection.type,
+        status=CollectionStatus.INACTIVE,
         title=collection.title,
         description=collection.description,
-        type=collection.type,
-        user=user,
-        status=CollectionStatus.INACTIVE,
     )
     if collection.config is not None:
         instance.config = collection.config
@@ -123,26 +129,27 @@ def delete_collection(request, collection_id):
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.status = CollectionStatus.DELETED
+    instance.gmt_deleted = datetime.now()
     instance.save()
     return success(instance.view())
 
 
 @api.post("/collections/{collection_id}/documents")
-def add_document(request, collection_id, files: List[UploadedFile] = File(...)):
+def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
     user = get_user(request)
-    collection_instance = query_collection(user, collection_id)
-    if collection_instance is None:
+    collection = query_collection(user, collection_id)
+    if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
     response = []
-    for file in files:
-        data = file.read()
-        size = len(data)
+    for item in file:
         document_instance = Document(
-            size=size,
-            collection=collection_instance,
-            file=ContentFile(data, file.name),
+            user=user,
+            name=item.name,
             status=DocumentStatus.PENDING,
+            size=item.size,
+            collection=collection,
+            file=ContentFile(item.read(), item.name),
         )
         document_instance.save()
         response.append(document_instance.view())
@@ -181,6 +188,7 @@ def delete_document(request, collection_id, document_id):
     if document is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
     document.status = DocumentStatus.DELETED
+    document.gmt_deleted = datetime.now()
     document.save()
     return success(document.view())
 
@@ -209,6 +217,15 @@ def list_chats(request, collection_id):
     return success(response)
 
 
+@api.put("/collections/{collection_id}/chats/{chat_id}")
+def update_chat(request, collection_id, chat_id, chat: ChatIn):
+    user = get_user(request)
+    instance = query_chat(user, collection_id, chat_id)
+    instance.history = json.dumps(chat.history)
+    instance.save()
+    return success(instance.view())
+
+
 @api.get("/collections/{collection_id}/chats/{chat_id}")
 def get_chat(request, collection_id, chat_id):
     user = get_user(request)
@@ -223,6 +240,7 @@ def delete_chat(request, collection_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.status = ChatStatus.DELETED
+    chat.gmt_deleted = datetime.now()
     chat.save()
     return success(chat.view())
 
