@@ -1,12 +1,15 @@
 import { GetCollections } from '@/services/collections';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export type Collection = {
   id: number;
   title: string;
-  status: 'Active' | 'InActive';
-  type: 'Document' | 'Multimedia';
+  status: 'INACTIVE' | 'ACTIVE' | 'DELETED';
+  type: 'document' | 'multimedia' | 'database';
   description: string;
+  gmt_created: string;
+  gmt_updated: string;
+  gmt_deleted: string;
 };
 
 export default () => {
@@ -17,11 +20,8 @@ export default () => {
     setCollections(data);
   };
 
-  useEffect(() => {
-    getCollections();
-  }, []);
-
   return {
     collections,
+    getCollections,
   };
 };

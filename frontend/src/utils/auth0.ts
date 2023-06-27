@@ -4,7 +4,7 @@ const auth0 = new Auth0Client({
   domain: AUTH0_DOMAIN,
   clientId: AUTH0_CLIENT_ID,
   authorizationParams: {
-    redirect_uri: HOSTNAME,
+    redirect_uri: ASSETS_ENDPOINT,
   },
 });
 

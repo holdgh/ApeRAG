@@ -12,13 +12,19 @@ import {
   Typography,
   theme,
 } from 'antd';
+import { useEffect } from 'react';
 
 export default () => {
-  const { collections } = useModel('collection');
+  const { collections, getCollections } = useModel('collection');
   const cardBodyStyle = {
     height: 260,
   };
   const { token } = theme.useToken();
+
+  useEffect(() => {
+    getCollections();
+  }, []);
+
   return (
     <PageContainer ghost>
       <Row gutter={[30, 30]}>
@@ -28,10 +34,10 @@ export default () => {
               <Card bodyStyle={cardBodyStyle} bordered={false}>
                 <Typography.Title level={4}>
                   <Space>
-                    {collection.type === 'Document' ? (
+                    {collection.type === 'document' ? (
                       <SnippetsOutlined style={{ fontSize: 18 }} />
                     ) : null}
-                    {collection.type === 'Multimedia' ? (
+                    {collection.type === 'multimedia' ? (
                       <VideoCameraOutlined style={{ fontSize: 18 }} />
                     ) : null}
                     {collection.title}
@@ -53,7 +59,7 @@ export default () => {
                       valueStyle={{
                         fontSize: 16,
                         color:
-                          collection.status === 'Active'
+                          collection.status === 'ACTIVE'
                             ? token.colorText
                             : token.colorWarning,
                       }}

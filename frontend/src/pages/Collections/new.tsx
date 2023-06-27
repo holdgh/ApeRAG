@@ -1,6 +1,10 @@
 import CheckedCard from '@/components/CheckedCard';
 import { CreateCollection } from '@/services/collections';
-import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import {
+  DatabaseOutlined,
+  SnippetsOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { App, Button, Card, Form, Input } from 'antd';
@@ -18,7 +22,7 @@ export default () => {
   };
 
   useEffect(() => {
-    form.setFieldValue('type', 'Document');
+    form.setFieldValue('type', 'document');
   }, []);
 
   return (
@@ -55,15 +59,21 @@ export default () => {
                 {
                   icon: <SnippetsOutlined />,
                   label: 'Document',
-                  value: 'Document',
+                  value: 'document',
                   description:
                     'Use docx, pptx, csv, pdf, or md as a collection.',
                 },
                 {
                   icon: <VideoCameraOutlined />,
                   label: 'Multimedia',
-                  value: 'Multimedia',
+                  value: 'multimedia',
                   description: 'Use audio or video as a collection.',
+                },
+                {
+                  icon: <DatabaseOutlined />,
+                  label: 'Database',
+                  value: 'database',
+                  description: 'Use database as a collection.',
                 },
               ]}
             />
