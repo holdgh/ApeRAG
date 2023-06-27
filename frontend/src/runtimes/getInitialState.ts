@@ -8,6 +8,7 @@ export type InitialStateType = {
 export async function getInitialState(): Promise<InitialStateType> {
   const user = await auth0.getIdTokenClaims();
   if (!user) await auth0.loginWithRedirect();
+
   setUser(user);
 
   return {

@@ -1,4 +1,4 @@
-import { Collection } from '@/models/collection';
+import type { Collection } from '@/models/collection';
 import { request } from '@umijs/max';
 
 export const GetCollections = (): Promise<{

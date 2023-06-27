@@ -1,10 +1,14 @@
+import type { Collection } from './collection';
+
 export type Document = {
   id: number;
   name: string;
-  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED';
-  size: string;
-  gmt_created: string;
-  gmt_deleted: string;
+  user: string;
+  collection: Collection;
+  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED' | 'PENDING';
+  size: number;
+  created: string;
+  updated: string;
 };
 
 export default () => {};

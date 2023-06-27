@@ -21,13 +21,10 @@ services:
       - .env
     ports:
       - "8000:8000"
-    command: /start
+    command: /app/scripts/start-django.sh
 
   postgres:
-    build:
-      context: .
-      dockerfile: ./compose/production/postgres/Dockerfile
-    image: kubechat_production_postgres
+    image: postgres:14
     container_name: kubechat_postgres
     volumes:
       - kubechat_postgres_data:/var/lib/postgresql/data
@@ -46,7 +43,7 @@ services:
 
   celeryworker:
     <<: *django
-    image: kubechat_celeryworker
+    image: kubechat_django
     container_name: kubechat_celeryworker
     depends_on:
       - redis
@@ -55,22 +52,22 @@ services:
     volumes:
       - .:/app:z
     ports: []
-    command: /start-celeryworker
+    command: /app/scripts/start-celery-worker.sh
 
   celerybeat:
     <<: *django
-    image: kubechat_celerybeat
+    image: kubechat_django
     container_name: kubechat_celerybeat
     depends_on:
       - redis
       - postgres
     ports: []
-    command: /start-celerybeat
+    command: /app/scripts/start-celery-celerybeat.sh
 
   flower:
     <<: *django
-    image: kubechat_flower
+    image: kubechat_django
     container_name: kubechat_flower
     ports:
       - "5555:5555"
-    command: /start-flower
+    command: /app/scripts/start-celery-flower.sh

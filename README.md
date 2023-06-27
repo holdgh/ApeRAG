@@ -27,7 +27,22 @@ poetry install
 poetry build
 ```
 
-* run the server
+* run the backend server
 ```bash
-poetry run llmserver
+make run-backend
 ```
+
+* run the frontend server
+```bash
+make run-frontend
+```
+
+
+# TODO
+
+* [ ] 支持批量上传文件
+* [ ] 静态文件服务器和API服务器分离，支持跨域
+* [ ] 支持数据库类型Collection
+* [ ] 支持切换LLM
+* [ ] Collection支持多个Chat
+* [ ] websocket auth0认证

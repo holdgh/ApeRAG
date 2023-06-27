@@ -1,6 +1,6 @@
 from config import celery
 
-@celery.task
-def add_document(document_id):
-    pass
 
+@celery.app.task
+def add_document(collection_id):
+    pass
