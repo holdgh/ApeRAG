@@ -14,6 +14,7 @@ class CollectionStatus(models.TextChoices):
 class CollectionType(models.TextChoices):
     DOCUMENT = "document"
     MULTIMEDIA = "multimedia"
+    DATABASE = "database"
 
 
 class DocumentStatus(models.TextChoices):
@@ -29,6 +30,7 @@ class Collection(models.Model):
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=CollectionStatus.choices)
     type = models.CharField(max_length=16, choices=CollectionType.choices)
+    config = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)

@@ -17,6 +17,7 @@ class CollectionIn(Schema):
     title: str
     type: str
     description: str
+    config: str
 
 
 class DocumentIn(Schema):
@@ -75,6 +76,7 @@ def create_collection(request, collection: CollectionIn):
         title=collection.title,
         description=collection.description,
         type=collection.type,
+        config=collection.config,
         status=CollectionStatus.INACTIVE,
     )
     if user is not None:
