@@ -8,5 +8,5 @@ class VectorStoreConnector(ABC):
     def __init__(self, ctx: Dict[str, Any], **kwargs: Any) -> None:
         self.ctx = ctx
         self.client = None
-        self.embeddings : BaseEmbedding = None
+        self.embedding : BaseEmbedding = None
         self.store : VectorStore = None
