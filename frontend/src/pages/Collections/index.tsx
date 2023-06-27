@@ -29,7 +29,11 @@ export default () => {
                 <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"
-                  style={{ height: 45, overflow: 'hidden', display: 'block' }}
+                  style={{
+                    maxHeight: 45,
+                    overflow: 'hidden',
+                    display: 'block',
+                  }}
                 >
                   {collection.description}
                 </Typography.Text>

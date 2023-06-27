@@ -1,32 +1,26 @@
-import { Chat } from '@/models/chat';
+import type { Chat } from '@/models/chat';
 import { CreateCollectionChat, GetCollectionChats } from '@/services/chats';
 import { useModel } from '@umijs/max';
-import { Button, Input, Space, Tooltip, Typography, theme } from 'antd';
+import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-// import { useEffect } from 'react';
-
-import CollectionTitle from '@/components/CollectionTitle';
-import { ClearOutlined, SendOutlined } from '@ant-design/icons';
-import classNames from 'classnames';
+import Content from './content';
+import Footer from './footer';
+import Header from './header';
 import styles from './index.less';
-import Item from './item';
 
 export default () => {
+  const [loading, setLoading] = useState<boolean>(false);
   const [chat, setChat] = useState<Chat | undefined>();
   const { currentCollection } = useModel('collection');
   const { initialState } = useModel('@@initialState');
-
-  const { token } = theme.useToken();
 
   const createChat = async () => {
     if (!currentCollection) return;
     await CreateCollectionChat(currentCollection?.id);
   };
-
   const getChats = async () => {
     if (!currentCollection) return;
-
     const { data } = await GetCollectionChats(currentCollection?.id);
     const item = _.first(data);
     if (item) {
@@ -36,6 +30,21 @@ export default () => {
       await getChats();
     }
   };
+
+  const onSubmit = (msg: string) => {
+    if (!chat) return;
+    const data = chat.history || [];
+    setChat({
+      ...chat,
+      history: data.concat({
+        role: 'human',
+        message: msg,
+      }),
+    });
+    setTimeout(() => setLoading(true), 900);
+  };
+
+  const onClear = () => {};
 
   useEffect(() => {
     if (currentCollection) {
@@ -50,52 +59,9 @@ export default () => {
         [styles.collapsed]: initialState?.collapsed,
       })}
     >
-      <div
-        className={styles.header}
-        style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}
-      >
-        <CollectionTitle collection={chat?.collection} />
-      </div>
-      <div className={styles.content}>
-        {chat?.history.map((item, key) => (
-          <Item key={key} />
-        ))}
-      </div>
-      <div
-        className={styles.footer}
-        style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
-      >
-        <Input
-          suffix={
-            <Space>
-              <Tooltip title="Clear">
-                <Button
-                  type="text"
-                  icon={
-                    <Typography.Text type="secondary">
-                      <ClearOutlined />
-                    </Typography.Text>
-                  }
-                ></Button>
-              </Tooltip>
-              <Tooltip title="Send">
-                <Button
-                  type="text"
-                  icon={
-                    <Typography.Text style={{ color: token.colorPrimary }}>
-                      <SendOutlined />
-                    </Typography.Text>
-                  }
-                ></Button>
-              </Tooltip>
-            </Space>
-          }
-          autoFocus
-          size="large"
-          bordered={false}
-          placeholder="Enter your question here..."
-        />
-      </div>
+      <Header chat={chat} />
+      <Content chat={chat} loading={loading} />
+      <Footer loading={loading} onSubmit={onSubmit} onClear={onClear} />
     </div>
   );
 };

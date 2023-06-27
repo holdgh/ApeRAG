@@ -101,6 +101,7 @@ export default () => {
 
   return {
     collections,
+    currentCollection,
 
     getCollections,
     getCollection,
@@ -108,7 +109,6 @@ export default () => {
     createColection,
     updateCollection,
 
-    currentCollection,
     setCurrentCollection,
   };
 };
