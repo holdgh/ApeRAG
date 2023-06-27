@@ -12,23 +12,17 @@ import {
   Typography,
   theme,
 } from 'antd';
-import { useEffect } from 'react';
 
 export default () => {
-  const { collections, getCollections } = useModel('collection');
+  const { collections } = useModel('collection');
   const cardBodyStyle = {
     height: 260,
   };
   const { token } = theme.useToken();
-
-  useEffect(() => {
-    getCollections();
-  }, []);
-
   return (
     <PageContainer ghost>
       <Row gutter={[30, 30]}>
-        {collections.map((collection, key) => {
+        {collections?.map((collection, key) => {
           return (
             <Col key={key} span={12}>
               <Card bodyStyle={cardBodyStyle} bordered={false}>
