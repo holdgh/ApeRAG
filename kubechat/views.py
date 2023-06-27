@@ -7,11 +7,12 @@ from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
 from .models import Collection, CollectionStatus, \
-    Document, DocumentStatus, Chat, ChatStatus
+    Document, DocumentStatus, Chat, ChatStatus, \
+    VerifyWay, DatabaseTypes
 from django.core.files.base import ContentFile
 from config.settings import AUTH_ENABLED
 from .auth.validator import GlobalAuth
-
+from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if AUTH_ENABLED else None)
 
@@ -30,6 +31,19 @@ class DocumentIn(Schema):
 
 class ChatIn(Schema):
     history: Optional[List]
+
+
+class ConnectionInfo(Schema):
+    db_type: DatabaseTypes
+    host: str
+    port: Optional[str]
+    db_name: Optional[str]
+    username: Optional[str]
+    password: Optional[str]
+    verify: VerifyWay
+    ca_cert: Optional[str]
+    client_key: Optional[str]
+    client_cert: Optional[str]
 
 
 def get_user(request):
@@ -73,6 +87,45 @@ def fail(code, message):
         "code": code,
         "message": message,
     }
+
+
+def new_client(db_type, host, port):
+    if db_type == DatabaseTypes.REDIS:
+        return redis_query.Redis(host=host, port=port)
+    elif db_type == DatabaseTypes.MONGO:
+        # TODO:mongo collections
+        return mongo_query.Mongo(host=host, port=port, collection="")
+    elif db_type == DatabaseTypes.CLICKHOUSE:
+        return clickhouse_query.Clickhouse(host=host, port=port)
+    elif db_type == DatabaseTypes.ELASTICSEARCH:
+        return
+    else:
+        # TODO:new sql Database
+        return
+
+
+@api.get("/collections/test_connection")
+def test_connection(request, connection: ConnectionInfo):
+    verify = (connection.verify != VerifyWay.PREFERRED)
+    host = connection.host
+    db_type = connection.db_type
+
+    if db_type == "" or db_type not in DatabaseTypes:
+        return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
+    if host == "":
+        return fail(HTTPStatus.NOT_FOUND, "host not found")
+
+    client = new_client(db_type, host, connection.port)
+
+    if not client.connect(
+            verify,
+            connection.ca_cert,
+            connection.client_key,
+            connection.client_cert,
+    ):
+        return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
+
+    return success("successfully connected")
 
 
 @api.post("/collections")
