@@ -34,10 +34,10 @@ export default () => {
               <Card bodyStyle={cardBodyStyle} bordered={false}>
                 <Typography.Title level={4}>
                   <Space>
-                    {collection.type === 'Document' ? (
+                    {collection.type === 'document' ? (
                       <SnippetsOutlined style={{ fontSize: 18 }} />
                     ) : null}
-                    {collection.type === 'Multimedia' ? (
+                    {collection.type === 'multimedia' ? (
                       <VideoCameraOutlined style={{ fontSize: 18 }} />
                     ) : null}
                     {collection.title}
@@ -59,7 +59,7 @@ export default () => {
                       valueStyle={{
                         fontSize: 16,
                         color:
-                          collection.status === 'Active'
+                          collection.status === 'ACTIVE'
                             ? token.colorText
                             : token.colorWarning,
                       }}

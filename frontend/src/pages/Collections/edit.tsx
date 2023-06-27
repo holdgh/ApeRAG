@@ -71,19 +71,19 @@ export default () => {
               {
                 icon: <SnippetsOutlined />,
                 label: 'Document',
-                value: 'Document',
+                value: 'document',
                 description: 'Use docx, pptx, csv, pdf, or md as a collection.',
               },
               {
                 icon: <VideoCameraOutlined />,
                 label: 'Multimedia',
-                value: 'Multimedia',
+                value: 'multimedia',
                 description: 'Use audio or video as a collection.',
               },
               {
                 icon: <DatabaseOutlined />,
                 label: 'Database',
-                value: 'Database',
+                value: 'database',
                 description: 'Use database as a collection.',
               },
             ]}

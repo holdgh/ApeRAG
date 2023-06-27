@@ -71,5 +71,16 @@ export default (): React.ReactNode => {
     );
   }
 
+  // return (
+  //   <TransitionGroup component={null}>
+  //     <CSSTransition key={history.location.pathname} classNames="fade" timeout={5000}>
+  //       <div style={{ position: 'relative' }}>
+  //         <div style={{ position: 'absolute', width: '100%' }}>
+  //           <Outlet />
+  //         </div>
+  //       </div>
+  //     </CSSTransition>
+  //   </TransitionGroup>
+  // );
   return <Outlet />;
 };
