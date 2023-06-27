@@ -26,7 +26,7 @@ class DocumentIn(Schema):
     type: str
 
 
-def get_user_from_token(request):
+def get_user(request):
     return request.META.get("X-USER-ID", None)
 
 
@@ -71,7 +71,7 @@ def fail(code, message):
 
 @api.post("/collections")
 def create_collection(request, collection: CollectionIn):
-    user = get_user_from_token(request)
+    user = get_user(request)
     instance = Collection(
         title=collection.title,
         description=collection.description,
@@ -88,7 +88,7 @@ def create_collection(request, collection: CollectionIn):
 
 @api.get("/collections")
 def list_collections(request):
-    user = get_user_from_token(request)
+    user = get_user(request)
     instances = query_collections(user)
     response = []
     for instance in instances:
@@ -108,7 +108,7 @@ def list_collections(request):
 
 @api.get("/collections/{collection_id}")
 def get_collection(request, collection_id):
-    user = get_user_from_token(request)
+    user = get_user(request)
     instance = query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -126,7 +126,7 @@ def get_collection(request, collection_id):
 
 @api.put("/collections/{collection_id}")
 def update_collection(request, collection_id, collection: CollectionIn):
-    user = get_user_from_token(request)
+    user = get_user(request)
     instance = query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -138,7 +138,7 @@ def update_collection(request, collection_id, collection: CollectionIn):
 
 @api.delete("/collections/{collection_id}")
 def delete_collection(request, collection_id):
-    user = get_user_from_token(request)
+    user = get_user(request)
     instance = query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -149,7 +149,7 @@ def delete_collection(request, collection_id):
 
 @api.post("/collections/{collection_id}/documents")
 def add_document(request, collection_id, files: List[UploadedFile] = File(...)):
-    user = get_user_from_token(request)
+    user = get_user(request)
     collection_instance = query_collection(user, collection_id)
     if collection_instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -175,7 +175,7 @@ def add_document(request, collection_id, files: List[UploadedFile] = File(...)):
 
 @api.get("/collections/{collection_id}/documents")
 def list_documents(request, collection_id):
-    user = get_user_from_token(request)
+    user = get_user(request)
     collection_instance = query_collection(user, collection_id)
     if collection_instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -196,7 +196,7 @@ def list_documents(request, collection_id):
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
 def update_document(request, collection_id, document_id, file: UploadedFile = File(...)):
-    user = get_user_from_token(request)
+    user = get_user(request)
     collection_instance = query_collection(user, collection_id)
     if collection_instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -216,7 +216,7 @@ def update_document(request, collection_id, document_id, file: UploadedFile = Fi
 
 @api.delete("/collections/{collection_id}/documents/{document_id}")
 def delete_document(request, collection_id, document_id):
-    user = get_user_from_token(request)
+    user = get_user(request)
     collection_instance = query_collection(user, collection_id)
     if collection_instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
@@ -247,11 +247,6 @@ def get_chat(request, collection_id, chat_id):
 @api.delete("/collections/{collection_id}/chats/{chat_id}")
 def delete_chat(request, collection_id, chat_id):
     return {}
-
-
-@api.get("/bearer")
-def bearer(request):
-    return {"token": request.auth}
 
 
 def index(request):
