@@ -35,5 +35,4 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
                 **kwargs,
             )
 
-        self.embedding = ctx.get("embedding", google.GoogleUnivSentEncoderEmbedding)
         self.store = QdrantVectorStore(client=self.client, collection_name=self.collection_name)
