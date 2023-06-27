@@ -52,9 +52,19 @@ class Mongo(Nosql):
                 'ssl_keyfile': ssl_keyfile,  # 客户端私钥路径
                 # 其他可选参数
             }
-            self.conn = MongoClient("mongodb://" + self.host + ':' + self.port, **ssl_options)
+            try:
+                self.conn = MongoClient("mongodb://" + self.host + ':' + self.port, **ssl_options)
+                return True
+            except Exception as e:
+                print("Failed to connect to MongoDB:", str(e))
+                return False
         else:
-            self.conn = MongoClient("mongodb://" + self.host + ':' + self.port)
+            try:
+                self.conn = MongoClient("mongodb://" + self.host + ':' + self.port)
+                return True
+            except Exception as e:
+                print("Failed to connect to MongoDB:", str(e))
+                return False
 
     def text_to_query(self, text):
         # Connect to the MongoDB database and collection
