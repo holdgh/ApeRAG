@@ -1,24 +1,21 @@
 import CheckedCard from '@/components/CheckedCard';
-import { CreateCollection } from '@/services/collections';
 import {
   DatabaseOutlined,
   SnippetsOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
-import { history } from '@umijs/max';
-import { App, Button, Card, Form, Input } from 'antd';
+import { useModel } from '@umijs/max';
+import { Button, Card, Form, Input } from 'antd';
 import { useEffect } from 'react';
 
 export default () => {
   const [form] = Form.useForm();
-  const { message } = App.useApp();
+  const { createColection } = useModel("collection")
 
   const onFinish = async () => {
     const values = await form.getFieldsValue();
-    const { data } = await CreateCollection(values);
-    if (data.id) message.success('create success');
-    history.push(`/collections/${data.id}/documents`);
+    createColection(values);
   };
 
   useEffect(() => {

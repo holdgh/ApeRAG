@@ -1,41 +1,33 @@
 import CheckedCard from '@/components/CheckedCard';
-import { Collection } from '@/models/collection';
-import { ReadCollection, UpdateCollection } from '@/services/collections';
 import {
   DatabaseOutlined,
   SnippetsOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import { useModel } from '@umijs/max';
 import { useParams } from '@umijs/max';
-import { App, Button, Card, Form, Input } from 'antd';
-import { useEffect, useState } from 'react';
+import { Button, Card, Form, Input } from 'antd';
+import { useEffect } from 'react';
 
 export default () => {
-  const [collection, setCollection] = useState<Collection>();
   const [form] = Form.useForm();
   const { collectionId } = useParams();
-  const { message } = App.useApp();
+  const { getCollection, updateCollection } = useModel("collection");
 
-  const getCollection = async () => {
-    if (!collectionId) return;
-    const { data } = await ReadCollection(collectionId);
-    setCollection(data);
-    form.setFieldsValue(data);
-  };
+  const collection = getCollection(collectionId);
 
   const onFinish = async () => {
     if (!collectionId) return;
     const values = await form.getFieldsValue();
-    const { data } = await UpdateCollection(collectionId, {
+    updateCollection(collectionId, {
       ...collection,
       ...values,
     });
-    if (data.id) message.success('update success');
   };
 
   useEffect(() => {
-    getCollection();
-  }, []);
+    form.setFieldsValue(collection)
+  }, [collection])
 
   return (
     <Card bordered={false}>

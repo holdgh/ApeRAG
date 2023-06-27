@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 const collections = [
   {
     id: 1,
@@ -37,29 +39,29 @@ const documents = [
     id: 1,
     name: 'Kubeblocks user manual(1/4).pdf',
     status: 'COMPLETE',
-    size: '15kb',
-    updatedAt: '1687744191291',
+    size: 85,
+    updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
   {
     id: 2,
     name: 'Kubeblocks user manual(2/4).pdf',
     status: 'FAILED',
-    size: '15kb',
-    updatedAt: '1687744191291',
+    size: 85,
+    updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
   {
     id: 3,
     name: 'Kubeblocks user manual(3/4).pdf',
     status: 'FAILED',
-    size: '15kb',
-    updatedAt: '1687744191291',
+    size: 85,
+    updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
   {
     id: 4,
     name: 'Kubeblocks user manual(4/4).pdf',
     status: 'COMPLETE',
-    size: '15kb',
-    updatedAt: '1687744191291',
+    size: 85,
+    updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
 ];
 const chats = [
@@ -87,7 +89,7 @@ export default {
   'POST /api/v1/collections': (req: any, res: any) => {
     res.json({
       data: {
-        id: 2,
+        id: _.random(10, 1000),
         status: 'InActive',
         ...req.body,
       },
@@ -95,7 +97,7 @@ export default {
   },
   'GET /api/v1/collections/:collectionId': (req: any, res: any) => {
     res.json({
-      data: collections.find((c) => c.id === parseInt(req.params.collectionId)),
+      data: {...collections[0], id: req.params.collectionId},
     });
   },
   'PUT /api/v1/collections/:collectionId': (req: any, res: any) => {

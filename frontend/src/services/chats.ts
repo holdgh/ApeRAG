@@ -33,6 +33,6 @@ export const DeleteCollectionChat = (
   chatId: number | string,
 ): Promise<{ code: string; data: string | number; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
-    method: 'post',
+    method: 'delete',
   });
 };

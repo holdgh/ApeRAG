@@ -5,11 +5,10 @@ export type Document = {
   name: string;
   user: string;
   collection: Collection;
-  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED';
-  size: string;
-  file: string;
-  gmt_created: string;
-  gmt_deleted: string;
+  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED' | 'PENDING';
+  size: number;
+  created: string;
+  updated: string;
 };
 
 export default () => {};
