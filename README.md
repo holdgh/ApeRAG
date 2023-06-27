@@ -27,9 +27,14 @@ poetry install
 poetry build
 ```
 
-* run the server
+* run the backend server
 ```bash
-poetry run llmserver
+make run-backend
+```
+
+* run the frontend server
+```bash
+make run-frontend
 ```
 
 
@@ -40,3 +45,4 @@ poetry run llmserver
 * [ ] 支持数据库类型Collection
 * [ ] 支持切换LLM
 * [ ] Collection支持多个Chat
+* [ ] websocket auth0认证

@@ -2,6 +2,7 @@ from django.db import models
 
 
 def user_document_path(instance, filename):
+    instance.user.replace("|", "-")
     return "documents/user-{0}/collection-{1}/{2}".format(instance.user, instance.collection.id, filename)
 
 
