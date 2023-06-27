@@ -1,6 +1,6 @@
 import CollectionTitle from '@/components/CollectionTitle';
 import { PageContainer } from '@ant-design/pro-components';
-import { Link, useModel } from '@umijs/max';
+import { Link, history, useModel } from '@umijs/max';
 import {
   Button,
   Card,
@@ -14,7 +14,7 @@ import {
 } from 'antd';
 
 export default () => {
-  const { collections } = useModel('collection');
+  const { collections, setCurrentCollection } = useModel('collection');
   const cardBodyStyle = {
     height: 260,
   };
@@ -70,14 +70,16 @@ export default () => {
                   }}
                 >
                   <Col span={12}>
-                    <Link to="/">
-                      <Button
-                        type="primary"
-                        style={{ width: 120, display: 'inline-block' }}
-                      >
-                        Chat
-                      </Button>
-                    </Link>
+                    <Button
+                      type="primary"
+                      style={{ width: 120, display: 'inline-block' }}
+                      onClick={() => {
+                        setCurrentCollection(collection);
+                        history.push('/chat');
+                      }}
+                    >
+                      Chat
+                    </Button>
                   </Col>
                   <Col span={12}>
                     <Link to={`/collections/${collection.id}/documents`}>

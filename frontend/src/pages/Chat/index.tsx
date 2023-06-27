@@ -26,6 +26,7 @@ export default () => {
 
   const getChats = async () => {
     if (!currentCollection) return;
+
     const { data } = await GetCollectionChats(currentCollection?.id);
     const item = _.first(data);
     if (item) {
