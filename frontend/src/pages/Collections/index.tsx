@@ -1,5 +1,4 @@
 import CollectionTitle from '@/components/CollectionTitle';
-import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, useModel } from '@umijs/max';
 import {

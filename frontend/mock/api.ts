@@ -66,15 +66,18 @@ const chats = [
   {
     id: 1,
     collection: collections[0],
-    history: [{
-      role: 'human',
-      message: 'Hi'
-    }, {
-      role: 'robot',
-      message: 'Hi'
-    }]
-  }
-]
+    history: [
+      {
+        role: 'human',
+        message: 'Hi',
+      },
+      {
+        role: 'robot',
+        message: 'Hi',
+      },
+    ],
+  },
+];
 
 export default {
   // collections

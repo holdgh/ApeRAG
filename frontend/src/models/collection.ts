@@ -20,7 +20,7 @@ export default () => {
   const [collections, setCollections] = useState<Collection[]>();
   const [currentCollection, _setCurrentCollection] = useState<Collection>();
   const user = getUser();
-  
+
   const getCollections = async (
     force: boolean | undefined = true,
   ): Promise<Collection[] | undefined> => {

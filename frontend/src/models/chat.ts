@@ -1,12 +1,12 @@
 import type { Collection } from './collection';
 
 export type ChatHistory = {
-  role: 'robot' | 'human',
-  message: string,
-}
+  role: 'robot' | 'human';
+  message: string;
+};
 
 export type Chat = {
-  id: number,
+  id: number;
   name: string;
   user: string;
   collection: Collection;

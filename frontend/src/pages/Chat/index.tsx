@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react';
 // import { useEffect } from 'react';
 
 import CollectionTitle from '@/components/CollectionTitle';
-import styles from './index.less';
 import { ClearOutlined, SendOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
+import styles from './index.less';
+import Item from './item';
 
 export default () => {
   const [chat, setChat] = useState<Chat | undefined>();
@@ -34,7 +35,7 @@ export default () => {
       await getChats();
     }
   };
-  
+
   useEffect(() => {
     if (currentCollection) {
       getChats();
@@ -55,27 +56,43 @@ export default () => {
         <CollectionTitle collection={chat?.collection} />
       </div>
       <div className={styles.content}>
-
+        {chat?.history.map((item, key) => (
+          <Item key={key} />
+        ))}
       </div>
       <div
         className={styles.footer}
         style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
       >
         <Input
-          suffix={(
+          suffix={
             <Space>
               <Tooltip title="Clear">
-                <Button type="text" icon={<Typography.Text type="secondary"><ClearOutlined /></Typography.Text>}></Button>
+                <Button
+                  type="text"
+                  icon={
+                    <Typography.Text type="secondary">
+                      <ClearOutlined />
+                    </Typography.Text>
+                  }
+                ></Button>
               </Tooltip>
               <Tooltip title="Send">
-                <Button type="text" icon={<Typography.Text style={{ color: token.colorPrimary }}><SendOutlined /></Typography.Text>}></Button>
+                <Button
+                  type="text"
+                  icon={
+                    <Typography.Text style={{ color: token.colorPrimary }}>
+                      <SendOutlined />
+                    </Typography.Text>
+                  }
+                ></Button>
               </Tooltip>
             </Space>
-          )}
+          }
           autoFocus
           size="large"
           bordered={false}
-          placeholder='Enter your question here...'
+          placeholder="Enter your question here..."
         />
       </div>
     </div>

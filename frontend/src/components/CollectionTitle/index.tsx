@@ -1,5 +1,9 @@
 import { Collection } from '@/models/collection';
-import { DatabaseOutlined, SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import {
+  DatabaseOutlined,
+  SnippetsOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
 import { Space, Typography } from 'antd';
 
 export default ({ collection }: { collection?: Collection }) => {

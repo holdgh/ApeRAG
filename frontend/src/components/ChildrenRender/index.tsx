@@ -5,7 +5,7 @@ import {
   PlusOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Link, Outlet, useModel, history } from '@umijs/max';
+import { Link, Outlet, history, useModel } from '@umijs/max';
 import { Button, Card, CardProps, Result } from 'antd';
 import { useEffect } from 'react';
 
@@ -20,11 +20,13 @@ export default (): React.ReactNode => {
   };
 
   useEffect(() => {
-    if(user) getCollections();
-  }, [])
+    if (user) getCollections();
+  }, []);
 
   const whitelist = ['/collections/new'];
-  const ignore = (new RegExp(`^(${whitelist.join("|")})`)).test(history.location.pathname)
+  const ignore = new RegExp(`^(${whitelist.join('|')})`).test(
+    history.location.pathname,
+  );
 
   if (!user) {
     return (
@@ -74,7 +76,7 @@ export default (): React.ReactNode => {
     );
   }
 
-  if(collections === undefined) return null;
+  if (collections === undefined) return null;
 
   if (collections.length === 0 && !ignore) {
     return (
