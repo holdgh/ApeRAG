@@ -1,4 +1,5 @@
 from typing import List
+from typing import Optional
 from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
@@ -16,8 +17,8 @@ api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if AUTH_ENABLED else None)
 class CollectionIn(Schema):
     title: str
     type: str
-    description: str
-    config: str
+    description: Optional[str]
+    config: Optional[str]
 
 
 class DocumentIn(Schema):
@@ -26,7 +27,6 @@ class DocumentIn(Schema):
 
 
 def get_user_from_token(request):
-    # TODO parse user from auth0 token
     return request.META.get("X-USER-ID", None)
 
 
@@ -76,9 +76,10 @@ def create_collection(request, collection: CollectionIn):
         title=collection.title,
         description=collection.description,
         type=collection.type,
-        config=collection.config,
         status=CollectionStatus.INACTIVE,
     )
+    if collection.config is not None:
+        instance.config = collection.config
     if user is not None:
         instance.user = user
     instance.save()
@@ -161,7 +162,7 @@ def add_document(request, collection_id, files: List[UploadedFile] = File(...)):
             size=size,
             collection=collection_instance,
             file=ContentFile(data, file.name),
-            status=DocumentStatus.RUNNING,
+            status=DocumentStatus.PENDING,
         )
         document_instance.save()
         response.append(
@@ -207,6 +208,7 @@ def update_document(request, collection_id, document_id, file: UploadedFile = Fi
     data = file.read()
     document.file = data
     document.size = len(data)
+    document.status = DocumentStatus.PENDING
     document.save()
 
     return success({"id": document_id})

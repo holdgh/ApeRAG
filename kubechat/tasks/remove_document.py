@@ -1,6 +1,6 @@
 from config import celery
 
 
-@celery.task
+@celery.app.task
 def remove_document(document_id):
     pass

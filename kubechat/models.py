@@ -18,6 +18,7 @@ class CollectionType(models.TextChoices):
 
 
 class DocumentStatus(models.TextChoices):
+    PENDING = "PENDING"
     RUNNING = "RUNNING"
     COMPLETE = "COMPLETE"
     FAILED = "FAILED"

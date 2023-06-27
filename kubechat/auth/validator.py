@@ -1,9 +1,4 @@
-import json
-import traceback
-
-import jwt
 import config.settings as settings
-from urllib.request import urlopen
 from ninja.security import HttpBearer
 from auth0.authentication.token_verifier import TokenVerifier, AsymmetricSignatureVerifier
 
@@ -16,8 +11,6 @@ class AuthError(Exception):
 
 class GlobalAuth(HttpBearer):
     def authenticate(self, request, token):
-        token = self.get_token_auth_header(request)
-
         # After authenticating
         jwks_url = 'https://{}/.well-known/jwks.json'.format(settings.AUTH0_DOMAIN)
         issuer = 'https://{}/'.format(settings.AUTH0_DOMAIN)
@@ -26,32 +19,4 @@ class GlobalAuth(HttpBearer):
         tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID)
         payload = tv.verify(token)
         request.META["X-USER-ID"] = payload["sub"]
-
-    @classmethod
-    def get_token_auth_header(cls, request):
-        """Obtains the Access Token from the Authorization Header
-        """
-        auth = request.headers.get("Authorization", None)
-        if not auth:
-            raise AuthError({"code": "authorization_header_missing",
-                             "description":
-                                 "Authorization header is expected"}, 401)
-
-        parts = auth.split()
-
-        if parts[0].lower() != "bearer":
-            raise AuthError({"code": "invalid_header",
-                             "description":
-                                 "Authorization header must start with"
-                                 " Bearer"}, 401)
-        elif len(parts) == 1:
-            raise AuthError({"code": "invalid_header",
-                             "description": "Token not found"}, 401)
-        elif len(parts) > 2:
-            raise AuthError({"code": "invalid_header",
-                             "description":
-                                 "Authorization header must be"
-                                 " Bearer token"}, 401)
-
-        token = parts[1]
         return token

@@ -1,6 +1,7 @@
 from config import celery
+from ..models import Collection, CollectionStatus, Document, DocumentStatus
 
-@celery.task
-def add_document(document_id):
+
+@celery.app.task
+def add_document(collection_id):
     pass
-
