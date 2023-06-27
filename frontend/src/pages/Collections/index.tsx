@@ -1,3 +1,4 @@
+import CollectionTitle from '@/components/CollectionTitle';
 import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, useModel } from '@umijs/max';
@@ -26,17 +27,7 @@ export default () => {
           return (
             <Col key={key} span={12}>
               <Card bodyStyle={cardBodyStyle} bordered={false}>
-                <Typography.Title level={4}>
-                  <Space>
-                    {collection.type === 'document' ? (
-                      <SnippetsOutlined style={{ fontSize: 18 }} />
-                    ) : null}
-                    {collection.type === 'multimedia' ? (
-                      <VideoCameraOutlined style={{ fontSize: 18 }} />
-                    ) : null}
-                    {collection.title}
-                  </Space>
-                </Typography.Title>
+                <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"
                   style={{ height: 45, overflow: 'hidden', display: 'block' }}

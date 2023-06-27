@@ -18,18 +18,20 @@ export const GetCollectionChat = (
   });
 };
 
-export const CreateCollectionChats = (
+export const CreateCollectionChat = (
   collectionId: number | string,
-): Promise<{ code: string; data: Chat[]; message?: string }> => {
+  data?: Chat,
+): Promise<{ code: string; data: Chat; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats`, {
     method: 'post',
+    data,
   });
 };
 
 export const DeleteCollectionChat = (
   collectionId: number | string,
   chatId: number | string,
-): Promise<{ code: string; data: Chat[]; message?: string }> => {
+): Promise<{ code: string; data: string | number; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
     method: 'post',
   });

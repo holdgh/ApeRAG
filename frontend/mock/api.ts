@@ -62,6 +62,19 @@ const documents = [
     updatedAt: '1687744191291',
   },
 ];
+const chats = [
+  {
+    id: 1,
+    collection: collections[0],
+    history: [{
+      role: 'human',
+      message: 'Hi'
+    }, {
+      role: 'robot',
+      message: 'Hi'
+    }]
+  }
+]
 
 export default {
   // collections
@@ -105,6 +118,18 @@ export default {
   ) => {
     res.json({
       data: req.params.documentId,
+    });
+  },
+
+  // chats
+  'GET /api/v1/collections/:collectionId/chats': (req: any, res: any) => {
+    res.json({
+      data: chats,
+    });
+  },
+  'POST /api/v1/collections/:collectionId/chats': (req: any, res: any) => {
+    res.json({
+      data: chats[0],
     });
   },
 };
