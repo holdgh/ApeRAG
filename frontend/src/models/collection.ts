@@ -1,8 +1,12 @@
-import { CreateCollection, GetCollections, UpdateCollection } from '@/services/collections';
-import _ from 'lodash';
-import { useEffect, useState } from 'react';
+import {
+  CreateCollection,
+  GetCollections,
+  UpdateCollection,
+} from '@/services/collections';
 import { history } from '@umijs/max';
 import { App } from 'antd';
+import _ from 'lodash';
+import { useEffect, useState } from 'react';
 
 export type Collection = {
   id: number;
@@ -28,10 +32,8 @@ export default () => {
     setCollections(data);
   };
 
-  const getCollection = (
-    id?: string | number,
-  ): Collection | undefined => {
-    if(!id) return;
+  const getCollection = (id?: string | number): Collection | undefined => {
+    if (!id) return;
     return collections?.find((c) => String(c.id) === String(id));
   };
 
@@ -44,21 +46,29 @@ export default () => {
     } else {
       message.error('create error');
     }
-  }
+  };
 
-  const updateCollection = async (collectionId: string | number, params: Collection) => {
+  const updateCollection = async (
+    collectionId: string | number,
+    params: Collection,
+  ) => {
     const { data } = await UpdateCollection(collectionId, params);
     if (data.id) {
       message.success('update success');
-      const index = collections?.findIndex(c => String(c.id) === String(collectionId));
-      if(index !== -1 && index !== undefined && collections?.length) {
-        const items = _.update(collections, index, (origin) => ({ ...origin, ...data}));
+      const index = collections?.findIndex(
+        (c) => String(c.id) === String(collectionId),
+      );
+      if (index !== -1 && index !== undefined && collections?.length) {
+        const items = _.update(collections, index, (origin) => ({
+          ...origin,
+          ...data,
+        }));
         setCollections(items);
       }
     } else {
       message.error('update error');
     }
-  }
+  };
 
   const setCurrentCollection = async (collection?: Collection) => {
     if (collection) {
@@ -71,7 +81,7 @@ export default () => {
   };
 
   useEffect(() => {
-    if(collections === undefined) return;
+    if (collections === undefined) return;
 
     const localCollection = localStorage.getItem('collection');
     let current: Collection | undefined;
@@ -80,7 +90,9 @@ export default () => {
         current = JSON.parse(localCollection);
       } catch (err) {}
     }
-    const isExsited = collections!== undefined && collections.find((c) => c.id === current?.id);
+    const isExsited =
+      collections !== undefined &&
+      collections.find((c) => c.id === current?.id);
     if (!isExsited) {
       current = _.first(collections);
     }

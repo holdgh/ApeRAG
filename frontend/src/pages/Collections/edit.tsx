@@ -4,15 +4,14 @@ import {
   SnippetsOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
-import { useModel } from '@umijs/max';
-import { useParams } from '@umijs/max';
+import { useModel, useParams } from '@umijs/max';
 import { Button, Card, Form, Input } from 'antd';
 import { useEffect } from 'react';
 
 export default () => {
   const [form] = Form.useForm();
   const { collectionId } = useParams();
-  const { getCollection, updateCollection } = useModel("collection");
+  const { getCollection, updateCollection } = useModel('collection');
 
   const collection = getCollection(collectionId);
 
@@ -26,8 +25,8 @@ export default () => {
   };
 
   useEffect(() => {
-    form.setFieldsValue(collection)
-  }, [collection])
+    form.setFieldsValue(collection);
+  }, [collection]);
 
   return (
     <Card bordered={false}>

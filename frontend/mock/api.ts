@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _ from 'lodash';
 
 const collections = [
   {
@@ -97,7 +97,7 @@ export default {
   },
   'GET /api/v1/collections/:collectionId': (req: any, res: any) => {
     res.json({
-      data: {...collections[0], id: req.params.collectionId},
+      data: { ...collections[0], id: req.params.collectionId },
     });
   },
   'PUT /api/v1/collections/:collectionId': (req: any, res: any) => {

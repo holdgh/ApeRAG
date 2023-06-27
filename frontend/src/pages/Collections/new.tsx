@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 
 export default () => {
   const [form] = Form.useForm();
-  const { createColection } = useModel("collection")
+  const { createColection } = useModel('collection');
 
   const onFinish = async () => {
     const values = await form.getFieldsValue();
