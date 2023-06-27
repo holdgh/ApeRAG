@@ -1,4 +1,5 @@
 import type { Document } from '@/models/document';
+import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,
   GetCollectionDocuments,
@@ -32,6 +33,8 @@ export default () => {
   const [uploadVisible, setUploadVisible] = useState<boolean>(false);
   const { collectionId } = useParams();
   const { modal, message } = App.useApp();
+  const user = getUser();
+
   const dataSource = documents?.filter((d) =>
     new RegExp(searchKey || '').test(d.name),
   );
@@ -123,6 +126,9 @@ export default () => {
     multiple: true,
     action: `/api/v1/collections/${collectionId}/documents`,
     data: {},
+    headers: {
+      Authorization: 'Bearer ' + user?.__raw,
+    },
     onChange(info) {
       const { status } = info.file;
       if (status === 'done') {

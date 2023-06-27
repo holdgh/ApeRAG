@@ -1,15 +1,15 @@
 import type { Collection } from './collection';
 
-export type Document = {
-  id: number;
+export type Chat = {
   name: string;
   user: string;
   collection: Collection;
-  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED';
-  size: string;
-  file: string;
+  history: string;
   gmt_created: string;
+  gmt_updated: string;
   gmt_deleted: string;
 };
 
-export default () => {};
+export default () => {
+  return {};
+};

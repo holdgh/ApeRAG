@@ -1,12 +1,9 @@
-import NoCollections from '@/components/NoCollections';
 import { PageContainer } from '@ant-design/pro-components';
+import { useModel } from '@umijs/max';
+// import { useEffect } from 'react';
 
-const HomePage: React.FC = () => {
-  return (
-    <PageContainer ghost title={false}>
-      <NoCollections />
-    </PageContainer>
-  );
+export default () => {
+  const { currentCollection } = useModel('collection');
+
+  return <PageContainer ghost></PageContainer>;
 };
-
-export default HomePage;
