@@ -1,7 +1,12 @@
 import ChildrenRender from '@/components/ChildrenRender';
 import { getUser } from '@/models/user';
 import auth0 from '@/utils/auth0';
-import { LoginOutlined, LogoutOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  LoginOutlined,
+  LogoutOutlined,
+  PlusOutlined,
+  QuestionCircleOutlined,
+} from '@ant-design/icons';
 import { Link } from '@umijs/max';
 import { Button, Tooltip } from 'antd';
 import type { InitialStateType } from './getInitialState';
@@ -38,14 +43,22 @@ export const layout = ({
       bgLayout: '#0A0A0A',
       sider: {
         colorMenuBackground: '#202027',
-        colorBgMenuItemSelected: '#0A0A0A',
+      },
+      header: {
+        colorBgMenuItemHover: 'red',
       },
       pageContainer: {},
     },
     menuFooterRender: () => {
       if (initialState?.collapsed) return;
       return (
-        <div style={{ fontSize: 12, textAlign: 'center' }}>
+        <div
+          style={{
+            fontSize: 12,
+            textAlign: 'center',
+            color: 'rgba(255, 255, 255, 0.15)',
+          }}
+        >
           © 2023 ApeCloud PTE. Ltd.
         </div>
       );
@@ -62,15 +75,18 @@ export const layout = ({
     avatarProps: {
       src: user?.picture,
       title: user?.nickname || 'unkown',
-      size: 'small',
     },
     actionsRender: (props: any) => {
       if (props.isMobile) return [];
       return [
+        <Tooltip title="Documents" key="docs">
+          <QuestionCircleOutlined style={{ color: '#FFF' }} />
+        </Tooltip>,
         user ? (
           <Tooltip title="logout">
             <LoginOutlined
               key="logout"
+              style={{ color: '#FFF' }}
               onClick={() => {
                 auth0.logout();
               }}
@@ -80,6 +96,7 @@ export const layout = ({
           <Tooltip title="login">
             <LogoutOutlined
               key="login"
+              style={{ color: '#FFF' }}
               onClick={() => {
                 auth0.loginWithRedirect();
               }}
@@ -89,16 +106,5 @@ export const layout = ({
       ];
     },
     childrenRender: ChildrenRender,
-    // menuHeaderRender: (logo) => {
-    //   return (
-    //     <Space style={{ justifyContent: "space-between", width: "100%" }}>
-    //       <Space>
-    //         { logo }
-    //         { title }
-    //       </Space>
-    //       <Button type="primary" icon={<PlusOutlined />} />
-    //     </Space>
-    //   )
-    // }
   };
 };

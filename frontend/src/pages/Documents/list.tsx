@@ -83,19 +83,18 @@ export default () => {
       dataIndex: 'status',
       render: (_value, record) => {
         return (
-          <Tag color={record.status === 'Failed' ? 'error' : 'default'}>
+          <Tag color={record.status === 'FAILED' ? 'error' : 'default'}>
             {record.status}
           </Tag>
         );
       },
     },
     {
-      title: 'Last Updated',
-      dataIndex: 'updatedAt',
+      title: 'Created At',
       render: (_value, record) => {
         return (
           <Typography.Text type="secondary">
-            {moment(new Date(record.updatedAt)).fromNow()}
+            {moment(new Date(record.gmt_created)).fromNow()}
           </Typography.Text>
         );
       },

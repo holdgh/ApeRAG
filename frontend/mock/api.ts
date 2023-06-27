@@ -2,32 +2,32 @@ const collections = [
   {
     id: 1,
     title: 'Kubeblocks user manual',
-    status: 'Active',
-    type: 'Document',
+    status: 'ACTIVE',
+    type: 'document',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
   {
     id: 2,
     title: 'Sealos user manual',
-    status: 'InActive',
-    type: 'Document',
+    status: 'INACTIVE',
+    type: 'document',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
   {
     id: 3,
     title: 'Kubeblocks user manual',
-    status: 'Active',
-    type: 'Document',
+    status: 'ACTIVE',
+    type: 'document',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
   {
     id: 4,
     title: 'Sealos user manual',
-    status: 'InActive',
-    type: 'Multimedia',
+    status: 'INACTIVE',
+    type: 'multimedia',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
@@ -36,28 +36,28 @@ const documents = [
   {
     id: 1,
     name: 'Kubeblocks user manual(1/4).pdf',
-    status: 'Complate',
+    status: 'COMPLETE',
     size: '15kb',
     updatedAt: '1687744191291',
   },
   {
     id: 2,
     name: 'Kubeblocks user manual(2/4).pdf',
-    status: 'Failed',
+    status: 'FAILED',
     size: '15kb',
     updatedAt: '1687744191291',
   },
   {
     id: 3,
     name: 'Kubeblocks user manual(3/4).pdf',
-    status: 'Failed',
+    status: 'FAILED',
     size: '15kb',
     updatedAt: '1687744191291',
   },
   {
     id: 4,
     name: 'Kubeblocks user manual(4/4).pdf',
-    status: 'Complate',
+    status: 'COMPLETE',
     size: '15kb',
     updatedAt: '1687744191291',
   },
@@ -71,7 +71,7 @@ export default {
   'POST /api/v1/collections': (req: any, res: any) => {
     res.json({
       data: {
-        id: 8,
+        id: 2,
         status: 'InActive',
         ...req.body,
       },

@@ -1,9 +1,10 @@
 export type Document = {
   id: number;
   name: string;
-  status: 'Complate' | 'Failed';
+  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED';
   size: string;
-  updatedAt: string;
+  gmt_created: string;
+  gmt_deleted: string;
 };
 
 export default () => {};
