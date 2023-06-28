@@ -20,6 +20,7 @@ export default () => {
   const [chatSocket, setChatSocket] = useState<WebSocket>();
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('Closed');
   const [messageStatus, setMessageStatus] = useState<MessageStatus>('normal');
+  const [pingTimer, setPingTimer] = useState<NodeJS.Timer>();
   const { currentCollection } = useModel('collection');
   const { initialState } = useModel('@@initialState');
   const user = getUser();
@@ -33,6 +34,7 @@ export default () => {
     const { data } = await GetCollectionChat(currentCollection.id, id);
     setChat(data);
   };
+
   const getChats = async () => {
     if (!currentCollection) return;
     const { data } = await GetCollectionChats(currentCollection?.id);
@@ -46,7 +48,7 @@ export default () => {
   };
 
   const createWebSocket = async () => {
-    if (!currentCollection || !chat) return;
+    if (!currentCollection || !chat || chatSocket) return;
     const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
     const host = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     const prefix = `${protocol}://${host}`;
@@ -55,6 +57,14 @@ export default () => {
     setSocketStatus('Connecting');
     socket.onopen = () => {
       setSocketStatus('Connected');
+      const pingMsg: Message = {
+        type: 'ping',
+      };
+      const timer = setInterval(
+        () => socket.send(JSON.stringify(pingMsg)),
+        5000,
+      );
+      setPingTimer(timer);
     };
     socket.onclose = () => {
       setSocketStatus('Closed');
@@ -116,10 +126,17 @@ export default () => {
   };
 
   useEffect(() => {
-    return () => {
-      chatSocket?.close();
-    };
+    return () => chatSocket?.close();
   }, [chatSocket]);
+
+  useEffect(() => {
+    return () => clearInterval(pingTimer);
+  }, [pingTimer]);
+
+  useEffect(() => {
+    if (socketStatus !== 'Closed') return;
+    clearInterval(pingTimer);
+  }, [socketStatus]);
 
   useEffect(() => {
     getChats();
