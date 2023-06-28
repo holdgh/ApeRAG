@@ -65,12 +65,12 @@ export default () => {
                 value: 'document',
                 description: 'Use docx, pptx, csv, pdf, or md as a collection.',
               },
-              {
-                icon: <VideoCameraOutlined />,
-                label: 'Multimedia',
-                value: 'multimedia',
-                description: 'Use audio or video as a collection.',
-              },
+              // {
+              //   icon: <VideoCameraOutlined />,
+              //   label: 'Multimedia',
+              //   value: 'multimedia',
+              //   description: 'Use audio or video as a collection.',
+              // },
               {
                 icon: <DatabaseOutlined />,
                 label: 'Database',

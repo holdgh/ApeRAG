@@ -22,14 +22,14 @@ export default ({ chat, messageStatus }: Props) => {
 
   return (
     <div id="chart-content" className={styles.content}>
-      {chat?.history?.map((item, key) => (
-        <Message key={key} status="normal" item={item} />
-      ))}
-
-      {messageStatus !== 'normal' ? (
-        <Message status={messageStatus} item={{ role: 'ai', data: '' }} />
-      ) : null}
-
+      <div className={styles.wrap}>
+        {chat?.history?.map((item, key) => (
+          <Message key={key} status="normal" item={item} />
+        ))}
+        {messageStatus !== 'normal' ? (
+          <Message status={messageStatus} item={{ role: 'ai', data: '' }} />
+        ) : null}
+      </div>
       <ScrollElement name="bottom"></ScrollElement>
     </div>
   );

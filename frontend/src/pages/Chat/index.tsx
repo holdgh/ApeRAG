@@ -119,12 +119,12 @@ export default () => {
       data,
       timestamp,
     };
-    
+
     setChat((state) => {
       if (state) {
         return {
           ...state,
-          history: (state.history || []).concat(msg)
+          history: (state.history || []).concat(msg),
         };
       }
     });

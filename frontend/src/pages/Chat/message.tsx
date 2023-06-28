@@ -22,11 +22,11 @@ export default ({
   const { token } = theme.useToken();
 
   const AiAvatar = (
-    <Avatar size={50}>
+    <Avatar size={50} style={{ minWidth: 50 }}>
       <RobotOutlined />
     </Avatar>
   );
-  const HummanAvatar = <Avatar size={50} src={user?.picture} />;
+  const HummanAvatar = <Avatar style={{ minWidth: 50 }} size={50} src={user?.picture} />;
   const MarkdownElement = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}

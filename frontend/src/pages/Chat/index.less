@@ -1,3 +1,10 @@
+@maxWidth: 980px;
+.layout() {
+  max-width: @maxWidth;
+  margin: 0 auto;
+  width: 100%;
+}
+
 .chat-container {
   position: fixed;
   top: 0;
@@ -5,6 +12,9 @@
   bottom: 0;
   transition-duration: 0.15s;
   left: 257px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   &.collapsed {
     left: 65px;
@@ -28,66 +38,69 @@
   }
 
   .content {
-    position: absolute;
-    top: 55px;
-    bottom: 116px;
-    left: 0;
-    right: 0;
+    flex: 1; 
     overflow: auto;
     padding: 24px;
     transition-duration: 0.15s;
 
-    .message-container {
-      display: flex;
-      margin-bottom: 24px;
+    .wrap {
+      .layout();
 
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      &.ai {
-        flex-direction: row;
-      }
-
-      &.human {
-        flex-direction: row-reverse;
-      }
-
-      .message {
-        padding: 10px 20px;
-        border-radius: 4px;
-        max-width: 70%;
-        margin: 0 20px;
-        min-width: 25%;
-
-        &.loading {
-          width: 60%;
+      .message-container {
+        display: flex;
+        margin-bottom: 24px;
+  
+        &:last-child {
+          margin-bottom: 0;
         }
-
-        &.error {
-          width: 60%;
+  
+        &.ai {
+          flex-direction: row;
         }
+  
+        &.human {
+          flex-direction: row-reverse;
+        }
+  
+        .message {
+          padding: 10px 20px;
+          border-radius: 4px;
+          max-width: 80%;
+          margin: 0 20px;
+          min-width: 30%;
 
-        img {
-          max-width: 100%;
+          &.loading {
+            width: 60%;
+          }
+  
+          &.error {
+            width: 60%;
+          }
+  
+          img {
+            max-width: 100%;
+          }
         }
       }
     }
   }
 
   .footer {
-    position: absolute;
-    padding: 12px;
-    height: 116px;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    padding: 12px 12px 24px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    .layout();
 
-    .toolbar {
-      position: absolute;
-      right: 20px;
-      bottom: 20px;
-      z-index: 100;
+    .input {
+      flex: 1;
+      margin: 0 8px;
+      resize: none;
+      border-radius: 20px;
+      padding: 7px 20px;
     }
   }
 }
