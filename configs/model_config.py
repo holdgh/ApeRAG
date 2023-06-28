@@ -45,6 +45,7 @@ LLM_MODEL_CONFIG = {
     # TODO Support baichuan-7b
     # "baichuan-7b" : os.path.join(MODEL_PATH, "baichuan-7b"),
     "gptj-6b": os.path.join(MODEL_PATH, "ggml-gpt4all-j-v1.3-groovy.bin"),
+    "gptl-13b": os.path.join(MODEL_PATH, "ggml-gpt4all-l13b-snoozy.bin"),
     "proxyllm": "proxyllm",
 }
 

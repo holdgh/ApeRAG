@@ -14,6 +14,47 @@ from configs.config import Config
 
 
 #CFG = Config()
+'''
+REFINE_TEMPLATE = (
+    "### System:\n"
+    "You are an artificial assistant that gives facts based answers.\n"
+    "You strive to answer concisely.\n"
+    "When you're done responding, create and append a terse review to the answer.\n"
+    "In your review, you review the response to fact check it and point out any inaccuracies.\n"
+    "Be analytical and critical in your review, and very importantly, don't repeat parts of your answer.\n"
+    "### Human:\n"
+    "The original question is as follows: {query_str}\n"
+    "We have provided an existing answer: {existing_answer}\n"
+    "We have the opportunity to refine the existing answer "
+    "(only if needed) with some more context below.\n"
+    "------------\n"
+    "{context_msg}\n"
+    "------------\n"
+    "Given the new context, refine the original answer to better \n"
+    "answer the question. \n"
+    "If the context isn't useful, return the original answer.\n"
+    "### Assistant :\n"
+)'''
+
+REFINE_TEMPLATE = (
+    "### System:\n"
+    "You are an artificial assistant that gives facts based answers.\n"
+    "You strive to refine and synthesize the provided existing answers and context message.\n"
+    "In your review, you review the response to fact check it and point out any inaccuracies.\n"
+    "Be analytical and critical in your review, and very importantly, don't repeat parts of your answer.\n"
+    "### Human:\n"
+    "The original question is as follows: {query_str}\n"
+    "We have provided an existing answer: {existing_answer}\n"
+    "We have the opportunity to refine the existing answer "
+    "(only if needed) with some more context below.\n"
+    "------------\n"
+    "{context_msg}\n"
+    "------------\n"
+    "Given the new context, refine the original answer to better \n"
+    "answer the question. \n"
+    "If the context isn't useful, return the original answer.\n"
+    "### Assistant :\n"
+)
 
 
 def test_local_path_embedding():
@@ -44,6 +85,7 @@ def test_local_path_embedding_query(query: str):
 def test_local_llm_qa(query: str):
     ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
+
     embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
     vector = embedding.get_query_embedding(query)
     client = cast(QdrantClient, adaptor.connector.client)
@@ -65,9 +107,8 @@ def test_local_llm_qa(query: str):
     if len(answer_text) > 1600:
         answer_text = answer_text[:1900]
 
-
-    context_msg = "about database and workflows, or other topics"
-    prompt = PromptTemplate.from_template(DEFAULT_REFINE_PROMPT_TMPL)
+    context_msg = "database, workflow, system"
+    prompt = PromptTemplate.from_template(REFINE_TEMPLATE)
     prompt_str = prompt.format(query_str=query, existing_answer=answer_text, context_msg=context_msg)
 
     #prompt = PromptTemplate.from_template(DEFAULT_TEXT_QA_PROMPT_TMPL)
