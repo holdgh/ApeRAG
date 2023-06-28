@@ -5,11 +5,12 @@ export type MessageStatus = 'loading' | 'error' | 'normal';
 
 export type Message = {
   type?: 'ping' | 'pong' | 'message';
-  data?: string;
-  timestamp?: string;
-  references?: any[];
+  role?: 'ai' | 'human';
   code?: '200' | '500';
+  data?: string;
   error?: string;
+  timestamp?: string;
+  references?: string;
 };
 
 export type Chat = {
@@ -17,16 +18,9 @@ export type Chat = {
   name: string;
   user: string;
   collection: Collection;
-  history: ChatHistory[];
+  history: Message[];
   created: string;
   updated: string;
-};
-
-export type ChatHistory = {
-  role: 'robot' | 'human';
-  message: string;
-  timestamp?: string;
-  references?: any[];
 };
 
 export default () => {

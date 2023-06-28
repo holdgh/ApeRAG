@@ -133,32 +133,44 @@ export default {
         ),
         history: [
           {
+            type: 'message',
             role: 'human',
-            message: `what is kubeblocks?`,
+            timestamp: "1687936930307",
+            data: `what is kubeblocks?`,
           },
           {
-            role: 'robot',
-            message: String(
+            role: 'ai',
+            type: 'message',
+            timestamp: "1687936930307",
+            data: String(
               fs.readFileSync(path.join(__dirname, './example_markdown.md')),
             ),
           },
           {
             role: 'human',
-            message: `describe cluster with kbcli...`,
+            type: 'message',
+            timestamp: "1687936930307",
+            data: `describe cluster with kbcli...`,
           },
           {
-            role: 'robot',
-            message: String(
+            role: 'ai',
+            type: 'message',
+            timestamp: "1687936930307",
+            data: String(
               fs.readFileSync(path.join(__dirname, './example_kbcli.md')),
             ),
           },
           {
             role: 'human',
-            message: `sql example...`,
+            type: 'message',
+            timestamp: "1687936930307",
+            data: `sql example...`,
           },
           {
-            role: 'robot',
-            message: String(
+            role: 'ai',
+            type: 'message',
+            timestamp: "1687936930307",
+            data: String(
               fs.readFileSync(path.join(__dirname, './example_sql.md')),
             ),
           },

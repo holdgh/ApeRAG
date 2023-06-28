@@ -82,8 +82,8 @@ export default () => {
         setChat({
           ...chat,
           history: (chat.history || []).concat({
-            role: 'robot',
-            message: msg.data,
+            role: 'ai',
+            data: msg.data,
           }),
         });
         setMessageStatus('normal');
@@ -109,17 +109,19 @@ export default () => {
 
   const onSubmit = (data: string) => {
     if (!chat) return;
+    const timestamp = String(new Date().getTime());
     setChat({
       ...chat,
       history: (chat.history || []).concat({
         role: 'human',
-        message: data,
+        data,
+        timestamp,
       }),
     });
     const msg: Message = {
       type: 'message',
       data,
-      timestamp: String(new Date().getTime()),
+      timestamp,
     };
     chatSocket?.send(JSON.stringify(msg));
     setTimeout(() => setMessageStatus('loading'), 550);
