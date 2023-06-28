@@ -1,17 +1,18 @@
 import { getUser } from '@/models/user';
-import auth0 from '@/utils/auth0';
 import {
   FileTextOutlined,
   PlusOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, history, useModel } from '@umijs/max';
-import { Button, Card, CardProps, Result } from 'antd';
+import { Button, Card, CardProps, Result, theme } from 'antd';
 import { useEffect } from 'react';
+import PageLoading from '../PageLoading';
 
 export default (): React.ReactNode => {
   const { collections, getCollections } = useModel('collection');
   const user = getUser();
+  const { token } = theme.useToken();
 
   const cardProps: CardProps = {
     bordered: false,
@@ -30,25 +31,19 @@ export default (): React.ReactNode => {
 
   if (!user) {
     return (
-      <Card {...cardProps}>
-        <Result
-          icon={<UserOutlined />}
-          title="Before accessing the system, you need to register an account and log in."
-          subTitle="Click the button below to login."
-          extra={[
-            <Button
-              size="large"
-              type="primary"
-              key="login"
-              onClick={() => {
-                auth0.loginWithRedirect();
-              }}
-            >
-              Login
-            </Button>,
-          ]}
-        />
-      </Card>
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
+          background: token.colorBgBase,
+          zIndex: 100,
+        }}
+      >
+        <PageLoading message="login..." />
+      </div>
     );
   }
 

@@ -16,9 +16,8 @@ export type Collection = {
   type: 'document' | 'multimedia' | 'database';
   config: string;
   description: string;
-  gmt_created: string;
-  gmt_updated: string;
-  gmt_deleted: string;
+  created: string;
+  updated: string;
 };
 
 export default () => {
@@ -82,7 +81,6 @@ export default () => {
 
   useEffect(() => {
     if (collections === undefined) return;
-
     const localCollection = localStorage.getItem('collection');
     let current: Collection | undefined;
     if (localCollection) {
@@ -90,9 +88,7 @@ export default () => {
         current = JSON.parse(localCollection);
       } catch (err) {}
     }
-    const isExsited =
-      collections !== undefined &&
-      collections.find((c) => c.id === current?.id);
+    const isExsited = !!collections.find((c) => c.id === current?.id);
     if (!isExsited) {
       current = _.first(collections);
     }
@@ -102,13 +98,10 @@ export default () => {
   return {
     collections,
     currentCollection,
-
     getCollections,
     getCollection,
-
     createColection,
     updateCollection,
-
     setCurrentCollection,
   };
 };

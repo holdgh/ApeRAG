@@ -43,13 +43,13 @@ class Redis(Nosql):
 
     def connect(
             self,
-            verify: Optional[bool],
-            ca_cert: Optional[str],
-            client_key: Optional[str],
-            client_cert: Optional[str],
+            verify: Optional[bool] = False,
+            ca_cert: Optional[str] = "",
+            client_key: Optional[str] = "",
+            client_cert: Optional[str] = "",
     ):
         kwargs = {
-            "ssl_ca_cert": ca_cert,
+            "ssl_ca_certs": ca_cert,
             "ssl_keyfile": client_key,
             "ssl_certfile": client_cert,
         }
