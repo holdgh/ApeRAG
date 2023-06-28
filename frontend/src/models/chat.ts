@@ -1,5 +1,7 @@
 import type { Collection } from './collection';
 
+export type ChatSocketStatus = 'Closed' | 'Connected' | 'Connecting';
+
 export type ChatHistory = {
   role: 'robot' | 'human';
   message: string;

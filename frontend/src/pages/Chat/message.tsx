@@ -45,7 +45,7 @@ export default ({
   );
 
   const skeletonElement = (
-    <Skeleton style={{ marginTop: 16 }} active paragraph={{ rows: 2 }} />
+    <Skeleton style={{ marginTop: 16 }} active paragraph={{ rows: 3 }} />
   );
 
   return (

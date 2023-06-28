@@ -44,9 +44,7 @@ export const layout = ({
       sider: {
         colorMenuBackground: '#202027',
       },
-      header: {
-        colorBgMenuItemHover: 'red',
-      },
+      header: {},
       pageContainer: {},
     },
     menuFooterRender: () => {

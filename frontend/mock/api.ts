@@ -177,4 +177,18 @@ export default {
       },
     });
   },
+  'PUT /api/v1/collections/:collectionId/chats/:chatId': (
+    req: any,
+    res: any,
+  ) => {
+    res.json({
+      data: {
+        id: parseInt(req.params.chatId),
+        collection: collections.find(
+          (c) => String(c.id) === req.params.collectionId,
+        ),
+        history: [],
+      },
+    });
+  },
 };

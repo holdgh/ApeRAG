@@ -28,8 +28,8 @@ export default () => {
       extra={[
         <Button
           key={1}
-          onClick={() => {
-            setCurrentCollection(collection);
+          onClick={async () => {
+            await setCurrentCollection(collection);
             history.push('/chat');
           }}
         >

@@ -1,15 +1,22 @@
-import { ClearOutlined, SendOutlined } from '@ant-design/icons';
+import { ChatSocketStatus } from '@/models/chat';
+import {
+  ClearOutlined,
+  LoadingOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
 import { Button, Input, Space, Tooltip, Typography, theme } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
 type Props = {
+  status: ChatSocketStatus;
   loading: boolean;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
 
 export default ({
+  status = 'Closed',
   loading = false,
   onClear = () => {},
   onSubmit = () => {},
@@ -22,13 +29,15 @@ export default ({
     setMessage(undefined);
   };
 
+  // const disabled = loading || status !== 'Connected';
+  const disabled = false;
   return (
     <div
       className={styles.footer}
       style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
     >
       <Input
-        disabled={loading}
+        disabled={disabled}
         value={message}
         onChange={(e) => setMessage(e.currentTarget.value)}
         onPressEnter={() => _onSubmit()}
@@ -37,7 +46,6 @@ export default ({
             <Tooltip title="Clear">
               <Button
                 type="text"
-                disabled={loading}
                 onClick={() => onClear()}
                 icon={
                   <Typography.Text type="secondary">
@@ -49,12 +57,16 @@ export default ({
             <Tooltip title="Send">
               <Button
                 type="text"
-                disabled={loading}
+                disabled={disabled}
                 onClick={() => _onSubmit()}
                 icon={
-                  <Typography.Text style={{ color: token.colorPrimary }}>
-                    <SendOutlined />
-                  </Typography.Text>
+                  disabled ? (
+                    <LoadingOutlined />
+                  ) : (
+                    <Typography.Text style={{ color: token.colorPrimary }}>
+                      <SendOutlined />
+                    </Typography.Text>
+                  )
                 }
               ></Button>
             </Tooltip>

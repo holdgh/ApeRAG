@@ -20,6 +20,7 @@ export default defineConfig({
     jsStrategyOptions: {},
   },
   define: {
+    API_ENDPOINT: process.env.API_ENDPOINT || 'http://localhost:8000',
     ASSETS_ENDPOINT: process.env.ASSETS_ENDPOINT || 'http://localhost:8001',
     AUTH0_DOMAIN: process.env.AUTH0_DOMAIN || '',
     AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID || '',
