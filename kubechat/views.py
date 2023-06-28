@@ -15,7 +15,8 @@ from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus, \
     VerifyWay, DatabaseTypes
 from django.core.files.base import ContentFile
-from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query
+from .auth.validator import GlobalAuth
+from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query, elasticsearch_query
 
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
@@ -59,7 +60,7 @@ def new_client(db_type, host, port):
     elif db_type == DatabaseTypes.CLICKHOUSE:
         return clickhouse_query.Clickhouse(host=host, port=port)
     elif db_type == DatabaseTypes.ELASTICSEARCH:
-        return
+        return elasticsearch_query.ElasticsearchClient(host=host, port=port)
     else:
         # TODO:new sql Database
         return
