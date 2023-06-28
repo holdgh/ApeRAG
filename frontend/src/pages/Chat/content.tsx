@@ -32,7 +32,7 @@ export default ({ chat, messageStatus }: Props) => {
           <CSSTransition timeout={500} classNames="animate-item">
             <Message
               status={messageStatus}
-              item={{ role: 'ai', message: '' }}
+              item={{ role: 'ai', data: '' }}
             />
           </CSSTransition>
         ) : null}
