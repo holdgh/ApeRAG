@@ -9,7 +9,7 @@ export type Message = {
   code?: '200' | '500';
   data?: string;
   error?: string;
-  timestamp?: string;
+  timestamp?: number;
   references?: string;
 };
 
