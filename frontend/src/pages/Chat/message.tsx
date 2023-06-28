@@ -1,4 +1,4 @@
-import { ChatHistory, MessageStatus } from '@/models/chat';
+import { Message, MessageStatus } from '@/models/chat';
 import { getUser } from '@/models/user';
 import { RobotOutlined } from '@ant-design/icons';
 import { Avatar, Skeleton, Typography, theme } from 'antd';
@@ -15,13 +15,13 @@ export default ({
   item,
   status = 'normal',
 }: {
-  item: ChatHistory;
+  item: Message;
   status: MessageStatus;
 }) => {
   const user = getUser();
   const { token } = theme.useToken();
 
-  const RobotAvatar = (
+  const AiAvatar = (
     <Avatar size={40}>
       <RobotOutlined />
     </Avatar>
@@ -46,7 +46,7 @@ export default ({
         },
       }}
     >
-      {item.message}
+      {item.data}
     </ReactMarkdown>
   );
   const LoadingElement = (
@@ -55,13 +55,13 @@ export default ({
   const ErrorElement = (
     <Typography.Text type="danger">response error</Typography.Text>
   );
-  const MessageElement = item.role === 'robot' ? MarkdownElement : item.message;
-  const AvatarElement = item.role === 'robot' ? RobotAvatar : HummanAvatar;
+  const MessageElement = item.role === 'ai' ? MarkdownElement : item.data;
+  const AvatarElement = item.role === 'ai' ? AiAvatar : HummanAvatar;
   return (
     <div
       className={classNames({
         [styles.messageContainer]: true,
-        [styles.robot]: item.role === 'robot',
+        [styles.ai]: item.role === 'ai',
         [styles.human]: item.role === 'human',
       })}
     >
