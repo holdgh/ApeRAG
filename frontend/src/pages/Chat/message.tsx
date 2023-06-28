@@ -1,7 +1,7 @@
-import { ChatHistory } from '@/models/chat';
+import { ChatHistory, MessageStatus } from '@/models/chat';
 import { getUser } from '@/models/user';
 import { RobotOutlined } from '@ant-design/icons';
-import { Avatar, Skeleton, theme } from 'antd';
+import { Avatar, Skeleton, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -13,15 +13,21 @@ import styles from './index.less';
 
 export default ({
   item,
-  loading = false,
+  status = 'normal',
 }: {
   item: ChatHistory;
-  loading: boolean;
+  status: MessageStatus;
 }) => {
   const user = getUser();
   const { token } = theme.useToken();
 
-  const markdownElement = (
+  const RobotAvatar = (
+    <Avatar size={40}>
+      <RobotOutlined />
+    </Avatar>
+  );
+  const HummanAvatar = <Avatar size={40} src={user?.picture} />;
+  const MarkdownElement = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       rehypePlugins={[rehypeRaw]}
@@ -43,11 +49,14 @@ export default ({
       {item.message}
     </ReactMarkdown>
   );
-
-  const skeletonElement = (
+  const LoadingElement = (
     <Skeleton style={{ marginTop: 16 }} active paragraph={{ rows: 3 }} />
   );
-
+  const ErrorElement = (
+    <Typography.Text type="danger">response error</Typography.Text>
+  );
+  const MessageElement = item.role === 'robot' ? MarkdownElement : item.message;
+  const AvatarElement = item.role === 'robot' ? RobotAvatar : HummanAvatar;
   return (
     <div
       className={classNames({
@@ -56,17 +65,12 @@ export default ({
         [styles.human]: item.role === 'human',
       })}
     >
-      {item.role === 'robot' ? (
-        <Avatar size={40}>
-          <RobotOutlined />
-        </Avatar>
-      ) : (
-        <Avatar size={40} src={user?.picture} />
-      )}
+      {AvatarElement}
       <div
         className={classNames({
           [styles.message]: true,
-          [styles.loading]: loading,
+          [styles.loading]: status === 'loading',
+          [styles.error]: status === 'error',
         })}
         style={{
           background:
@@ -75,11 +79,9 @@ export default ({
               : token.colorBgContainerDisabled,
         }}
       >
-        {loading
-          ? skeletonElement
-          : item.role === 'robot'
-          ? markdownElement
-          : item.message}
+        {status === 'normal' ? MessageElement : null}
+        {status === 'loading' ? LoadingElement : null}
+        {status === 'error' ? ErrorElement : null}
       </div>
     </div>
   );
