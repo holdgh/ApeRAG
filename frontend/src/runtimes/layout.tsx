@@ -28,7 +28,7 @@ export const layout = ({
     menu: {
       locale: false,
     },
-    disableMobile: true,
+    disableMobile: false,
     collapsed: initialState?.collapsed,
     onCollapse: (collapsed: boolean) => {
       if (!hasInit) {

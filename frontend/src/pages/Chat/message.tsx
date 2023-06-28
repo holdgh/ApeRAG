@@ -1,12 +1,13 @@
 import { Message, MessageStatus } from '@/models/chat';
 import { getUser } from '@/models/user';
 import { RobotOutlined } from '@ant-design/icons';
-import { Avatar, Skeleton, Typography, theme } from 'antd';
+import { Avatar, Skeleton, Space, Tag, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import dark from 'react-syntax-highlighter/dist/esm/styles/prism/vs-dark';
 
+import moment from 'moment';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
@@ -21,12 +22,22 @@ export default ({
   const user = getUser();
   const { token } = theme.useToken();
 
-  const AiAvatar = (
-    <Avatar size={50} style={{ minWidth: 50 }}>
-      <RobotOutlined />
-    </Avatar>
-  );
-  const HummanAvatar = <Avatar style={{ minWidth: 50 }} size={50} src={user?.picture} />;
+  const msgBgColor =
+    item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
+
+  const renderAvatar = () => {
+    const size = 42;
+    const AiAvatar = (
+      <Avatar size={size} style={{ minWidth: size }}>
+        <RobotOutlined />
+      </Avatar>
+    );
+    const HummanAvatar = (
+      <Avatar style={{ minWidth: size }} size={size} src={user?.picture} />
+    );
+    return item.role === 'ai' ? AiAvatar : HummanAvatar;
+  }
+
   const MarkdownElement = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -55,7 +66,17 @@ export default ({
   const ErrorElement = (
     <Typography.Text type="danger">response error</Typography.Text>
   );
-  const AvatarElement = item.role === 'ai' ? AiAvatar : HummanAvatar;
+  
+  const MessageInfoElement = (
+    <Space
+      className={styles.messageInfo}
+      style={{ color: token.colorTextDisabled }}
+      align={item.role === 'human' ? 'start' : 'end'}
+    >
+      <span>{moment(item.timestamp).format('llll')}</span>
+      <span>{item.references ? <Tag>{item.references}</Tag> : null}</span>
+    </Space>
+  );
 
   return (
     <div
@@ -65,23 +86,23 @@ export default ({
         [styles.human]: item.role === 'human',
       })}
     >
-      {AvatarElement}
+      {renderAvatar()}
       <div
         className={classNames({
           [styles.message]: true,
           [styles.loading]: status === 'loading',
           [styles.error]: status === 'error',
         })}
-        style={{
-          background:
-            item.role === 'human'
-              ? token.colorPrimary
-              : token.colorBgContainerDisabled,
-        }}
       >
-        {status === 'normal' ? MarkdownElement : null}
-        {status === 'loading' ? LoadingElement : null}
-        {status === 'error' ? ErrorElement : null}
+        <div
+          className={styles.messageContent}
+          style={{ background: msgBgColor }}
+        >
+          {status === 'normal' ? MarkdownElement : null}
+          {status === 'loading' ? LoadingElement : null}
+          {status === 'error' ? ErrorElement : null}
+        </div>
+        {MessageInfoElement}
       </div>
     </div>
   );

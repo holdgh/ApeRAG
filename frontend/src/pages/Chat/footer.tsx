@@ -1,10 +1,10 @@
 import { MessageStatus, SocketStatus } from '@/models/chat';
 import {
+  ArrowRightOutlined,
   ClearOutlined,
   LoadingOutlined,
-  SendOutlined,
 } from '@ant-design/icons';
-import { Button, Input, Typography, theme } from 'antd';
+import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
@@ -22,7 +22,6 @@ export default ({
   onSubmit = () => {},
 }: Props) => {
   const [message, setMessage] = useState<string>('');
-  const { token } = theme.useToken();
   const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
   // const disabled = false;
 
@@ -31,44 +30,42 @@ export default ({
     if (message && !reg.test(message) && !disabled) {
       onSubmit(message);
       setMessage('');
-    };
+    }
   };
-  
+
   return (
     <div className={styles.footer}>
-      <Button
-        type="text"
-        size="large"
-        onClick={() => onClear()}
-        icon={<ClearOutlined />}
-      />
-      <Input.TextArea
-        className={styles.input}
-        value={message}
-        size="large"
-        onChange={(e) => setMessage(e.currentTarget.value)}
-        onPressEnter={(e) => {
-          if (!e.shiftKey) _onSubmit();
-        }}
-        autoFocus
-        autoSize
-        placeholder="enter your question here..."
-      />
-      <Button
-        type="text"
-        size="large"
-        disabled={disabled}
-        onClick={() => _onSubmit()}
-        icon={
-          disabled ? (
-            <LoadingOutlined />
-          ) : (
-            <Typography.Text style={{ color: token.colorPrimary }}>
-              <SendOutlined />
-            </Typography.Text>
-          )
-        }
-      />
+      <div className={styles.wrap}>
+        <Button
+          type="text"
+          size="large"
+          onClick={() => onClear()}
+          icon={<ClearOutlined />}
+          shape="circle"
+        />
+        <Input.TextArea
+          className={styles.input}
+          value={message}
+          onChange={(e) => setMessage(e.currentTarget.value)}
+          onPressEnter={(e) => {
+            if (!e.shiftKey) {
+              _onSubmit();
+              e.preventDefault();
+            }
+          }}
+          autoFocus
+          autoSize={{ maxRows: 6 }}
+          placeholder="Enter your question here..."
+        />
+        <Button
+          type="primary"
+          size="large"
+          onClick={() => _onSubmit()}
+          shape="circle"
+          loading={disabled}
+          icon={<ArrowRightOutlined />}
+        />
+      </div>
     </div>
   );
 };

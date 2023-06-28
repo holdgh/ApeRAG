@@ -1,9 +1,5 @@
 import CheckedCard from '@/components/CheckedCard';
-import {
-  DatabaseOutlined,
-  SnippetsOutlined,
-  VideoCameraOutlined,
-} from '@ant-design/icons';
+import { DatabaseOutlined, SnippetsOutlined } from '@ant-design/icons';
 import { useModel, useParams } from '@umijs/max';
 import { Button, Card, Form, Input } from 'antd';
 import { useEffect } from 'react';
