@@ -28,6 +28,7 @@ poetry build
 ```
 
 * run the backend server
+
 ```bash
 make run-backend
 ```
@@ -53,7 +54,7 @@ make run-frontend
 
 # TODO
 
-* [ ] 支持批量上传文件
+* [ ] 前端支持批量上传文件
 * [ ] 静态文件服务器和API服务器分离，支持跨域
 * [ ] 支持数据库类型Collection
 * [ ] 支持切换LLM
@@ -63,3 +64,6 @@ make run-frontend
 * [ ] 错误和异常处理优化
 * [ ] 抽象Memory接口
 * [ ] pyproject依赖优化，各种向量数据库和数据库的依赖改为可选
+* [ ] 补充API测试用例
+* [ ] 支持chat bot
+* [ ] 源数据库替换为PG
