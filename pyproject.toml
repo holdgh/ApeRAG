@@ -42,6 +42,7 @@ docx2txt = "^0.8"
 redis = "^4.6.0"
 pymongo = "^4.4.0"
 elasticsearch = "^8.8.0"
+weaviate-client = "^3.21.0"
 
 [build-system]
 requires = ["poetry-core"]

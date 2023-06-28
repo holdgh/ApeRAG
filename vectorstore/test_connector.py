@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance,VectorParams
 from qdrant_client.http.exceptions import UnexpectedResponse
 from chromadb import Client as ChromaClient
+from weaviate import Client as WeaviateClient
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from pymilvus import (
     connections,
@@ -54,5 +55,12 @@ def test_chroma_connector():
 
     print(c.connector.client.get_collection(name="test"))
 
+def test_weaviate_connector():
+    ctx = {"url": "http://localhost:8080"}
+    c = VectorStoreConnectorAdaptor("weaviate", ctx)
+    client = cast(WeaviateClient, c.connector.client)
+
+    print(c.connector.client.schema.get())
+    
 if __name__ == "__main__":
-    test_chroma_connector()
+    test_weaviate_connector()
