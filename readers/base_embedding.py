@@ -66,7 +66,6 @@ class DocumentBaseEmbedding(ABC):
         self.connector = vector_store_adaptor.connector
         self.client = vector_store_adaptor.connector.client
 
-    @abstractmethod
     def embed_query(self, query: str) -> List[float]:
         query = query.replace("\n", " ")
         return self.embedding.get_query_embedding(query)

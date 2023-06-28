@@ -4,7 +4,15 @@ import {
   LoadingOutlined,
   SendOutlined,
 } from '@ant-design/icons';
-import { Button, Input, Space, Tooltip, Typography, theme } from 'antd';
+import {
+  Button,
+  Divider,
+  Input,
+  Space,
+  Tooltip,
+  Typography,
+  theme,
+} from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
@@ -25,58 +33,66 @@ export default ({
   const { token } = theme.useToken();
 
   const _onSubmit = () => {
-    if (message) onSubmit(message);
+    const reg = new RegExp(/^\n+$/);
+    if (message && !reg.test(message)) onSubmit(message);
     setMessage(undefined);
   };
 
-  // const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
-  const disabled = false;
+  const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
+  // const disabled = false;
   return (
     <div
       className={styles.footer}
       style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
     >
-      <Input
+      <Input.TextArea
         disabled={disabled}
         value={message}
         onChange={(e) => setMessage(e.currentTarget.value)}
-        onPressEnter={() => _onSubmit()}
-        suffix={
-          <Space>
-            <Tooltip title="Clear">
-              <Button
-                type="text"
-                onClick={() => onClear()}
-                icon={
-                  <Typography.Text type="secondary">
-                    <ClearOutlined />
-                  </Typography.Text>
-                }
-              ></Button>
-            </Tooltip>
-            <Tooltip title="Send">
-              <Button
-                type="text"
-                disabled={disabled}
-                onClick={() => _onSubmit()}
-                icon={
-                  disabled ? (
-                    <LoadingOutlined />
-                  ) : (
-                    <Typography.Text style={{ color: token.colorPrimary }}>
-                      <SendOutlined />
-                    </Typography.Text>
-                  )
-                }
-              ></Button>
-            </Tooltip>
-          </Space>
-        }
+        onPressEnter={(e) => {
+          if (e.ctrlKey || e.shiftKey) _onSubmit();
+        }}
         autoFocus
         size="large"
         bordered={false}
-        placeholder="Enter your question here..."
+        placeholder="enter your question here, press `enter + ctrl` or `enter + shift` to send a message."
+        rows={3}
+        style={{
+          resize: 'none',
+          width: '100%',
+        }}
       />
+
+      <Space className={styles.toolbar}>
+        <Tooltip title="clear history">
+          <Button
+            type="text"
+            size="large"
+            onClick={() => onClear()}
+            icon={
+              <Typography.Text type="secondary">
+                <ClearOutlined />
+              </Typography.Text>
+            }
+          />
+        </Tooltip>
+        <Divider type="vertical" />
+        <Button
+          type="text"
+          size="large"
+          disabled={disabled}
+          onClick={() => _onSubmit()}
+          icon={
+            disabled ? (
+              <LoadingOutlined />
+            ) : (
+              <Typography.Text style={{ color: token.colorPrimary }}>
+                <SendOutlined />
+              </Typography.Text>
+            )
+          }
+        />
+      </Space>
     </div>
   );
 };

@@ -6,7 +6,7 @@ import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
 from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
 from langchain.memory import RedisChatMessageHistory
-from langchain.schema import BaseMessage, HumanMessage, AIMessage
+from langchain.schema import HumanMessage, AIMessage
 
 
 logger = logging.getLogger(__name__)

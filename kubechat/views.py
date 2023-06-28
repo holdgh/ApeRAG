@@ -35,10 +35,6 @@ class DocumentIn(Schema):
     type: str
 
 
-class ChatIn(Schema):
-    history: Optional[str]
-
-
 class ConnectionInfo(Schema):
     db_type: DatabaseTypes
     host: str
@@ -235,7 +231,7 @@ def list_chats(request, collection_id):
 
 
 @api.put("/collections/{collection_id}/chats/{chat_id}")
-def update_chat(request, collection_id, chat_id, chat: ChatIn):
+def update_chat(request, collection_id, chat_id):
     user = get_user(request)
     instance = query_chat(user, collection_id, chat_id)
     if instance is None:
