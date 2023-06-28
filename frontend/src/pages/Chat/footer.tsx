@@ -4,15 +4,7 @@ import {
   LoadingOutlined,
   SendOutlined,
 } from '@ant-design/icons';
-import {
-  Button,
-  Divider,
-  Input,
-  Space,
-  Tooltip,
-  Typography,
-  theme,
-} from 'antd';
+import { Button, Input, Typography, theme } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
@@ -29,70 +21,54 @@ export default ({
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
-  const [message, setMessage] = useState<string>();
+  const [message, setMessage] = useState<string>('');
   const { token } = theme.useToken();
+  const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
+  // const disabled = false;
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);
-    if (message && !reg.test(message)) onSubmit(message);
-    setMessage(undefined);
+    if (message && !reg.test(message) && !disabled) {
+      onSubmit(message);
+      setMessage('');
+    };
   };
-
-  const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
-  // const disabled = false;
+  
   return (
-    <div
-      className={styles.footer}
-      style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
-    >
+    <div className={styles.footer}>
+      <Button
+        type="text"
+        size="large"
+        onClick={() => onClear()}
+        icon={<ClearOutlined />}
+      />
       <Input.TextArea
-        disabled={disabled}
+        className={styles.input}
         value={message}
+        size="large"
         onChange={(e) => setMessage(e.currentTarget.value)}
         onPressEnter={(e) => {
-          if (e.ctrlKey || e.shiftKey) _onSubmit();
+          if (!e.shiftKey) _onSubmit();
         }}
         autoFocus
-        size="large"
-        bordered={false}
-        placeholder="enter your question here, press `enter + ctrl` or `enter + shift` to send a message."
-        rows={3}
-        style={{
-          resize: 'none',
-          width: '100%',
-        }}
+        autoSize
+        placeholder="enter your question here..."
       />
-
-      <Space className={styles.toolbar}>
-        <Tooltip title="clear history">
-          <Button
-            type="text"
-            size="large"
-            onClick={() => onClear()}
-            icon={
-              <Typography.Text type="secondary">
-                <ClearOutlined />
-              </Typography.Text>
-            }
-          />
-        </Tooltip>
-        <Divider type="vertical" />
-        <Button
-          type="text"
-          size="large"
-          disabled={disabled}
-          onClick={() => _onSubmit()}
-          icon={
-            disabled ? (
-              <LoadingOutlined />
-            ) : (
-              <Typography.Text style={{ color: token.colorPrimary }}>
-                <SendOutlined />
-              </Typography.Text>
-            )
-          }
-        />
-      </Space>
+      <Button
+        type="text"
+        size="large"
+        disabled={disabled}
+        onClick={() => _onSubmit()}
+        icon={
+          disabled ? (
+            <LoadingOutlined />
+          ) : (
+            <Typography.Text style={{ color: token.colorPrimary }}>
+              <SendOutlined />
+            </Typography.Text>
+          )
+        }
+      />
     </div>
   );
 };
