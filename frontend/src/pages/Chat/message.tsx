@@ -22,11 +22,11 @@ export default ({
   const { token } = theme.useToken();
 
   const AiAvatar = (
-    <Avatar size={40}>
+    <Avatar size={50}>
       <RobotOutlined />
     </Avatar>
   );
-  const HummanAvatar = <Avatar size={40} src={user?.picture} />;
+  const HummanAvatar = <Avatar size={50} src={user?.picture} />;
   const MarkdownElement = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -55,7 +55,6 @@ export default ({
   const ErrorElement = (
     <Typography.Text type="danger">response error</Typography.Text>
   );
-  const MessageElement = item.role === 'ai' ? MarkdownElement : item.data;
   const AvatarElement = item.role === 'ai' ? AiAvatar : HummanAvatar;
   return (
     <div
@@ -79,7 +78,7 @@ export default ({
               : token.colorBgContainerDisabled,
         }}
       >
-        {status === 'normal' ? MessageElement : null}
+        {status === 'normal' ? MarkdownElement : null}
         {status === 'loading' ? LoadingElement : null}
         {status === 'error' ? ErrorElement : null}
       </div>

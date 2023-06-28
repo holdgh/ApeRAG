@@ -54,7 +54,11 @@ export default () => {
     const prefix = `${protocol}://${host}`;
     const path = `/api/v1/collections/${currentCollection.id}/chats/${chat.id}/connect`;
     const socket = new WebSocket(prefix + path, user?.__raw);
+
     setSocketStatus('Connecting');
+    setChatSocket(socket);
+
+    // socket.onerror = (e) => console.log(e);
     socket.onopen = () => {
       setSocketStatus('Connected');
       const pingMsg: Message = {
@@ -69,7 +73,6 @@ export default () => {
     socket.onclose = () => {
       setSocketStatus('Closed');
     };
-    // socket.onerror = (e) => console.log(e);
     socket.onmessage = (e) => {
       let msg: Message = {};
       try {
@@ -82,14 +85,14 @@ export default () => {
         setChat({
           ...chat,
           history: (chat.history || []).concat({
+            ...msg,
             role: 'ai',
-            data: msg.data,
           }),
         });
         setMessageStatus('normal');
       }
     };
-    setChatSocket(socket);
+    
   };
 
   const onClear = async () => {
@@ -110,21 +113,18 @@ export default () => {
   const onSubmit = (data: string) => {
     if (!chat) return;
     const timestamp = String(new Date().getTime());
-    setChat({
-      ...chat,
-      history: (chat.history || []).concat({
-        role: 'human',
-        data,
-        timestamp,
-      }),
-    });
     const msg: Message = {
       type: 'message',
+      role: 'human',
       data,
       timestamp,
-    };
+    }
+    setChat({
+      ...chat,
+      history: (chat.history || []).concat(msg),
+    });
     chatSocket?.send(JSON.stringify(msg));
-    setTimeout(() => setMessageStatus('loading'), 550);
+    setMessageStatus('loading');
   };
 
   useEffect(() => {
