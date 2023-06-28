@@ -50,12 +50,13 @@ export default ({
     </ReactMarkdown>
   );
   const LoadingElement = (
-    <Skeleton style={{ marginTop: 16 }} active paragraph={{ rows: 3 }} />
+    <Skeleton style={{ marginTop: 16 }} active paragraph={{ rows: 0 }} />
   );
   const ErrorElement = (
     <Typography.Text type="danger">response error</Typography.Text>
   );
   const AvatarElement = item.role === 'ai' ? AiAvatar : HummanAvatar;
+
   return (
     <div
       className={classNames({
