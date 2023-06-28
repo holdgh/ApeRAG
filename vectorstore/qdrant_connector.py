@@ -19,6 +19,7 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         self.https = ctx.get("https", False)
         self.timeout = ctx.get("timeout", 300)
         self.vector_size = ctx.get("vector_size", 1536)
+        self.distance = ctx.get("distance", "Cosine")
 
         if self.url == ":memory:":
             self.client = qdrant_client.QdrantClient(":memory:")
@@ -36,4 +37,4 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         self.store = QdrantVectorStore(
             client=self.client,
             collection_name=self.collection_name,
-            vectors_config=VectorParams(size=self.vector_size, distance=Distance.COSINE))
+            vectors_config=VectorParams(size=self.vector_size, distance=self.distance))

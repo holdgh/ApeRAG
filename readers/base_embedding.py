@@ -15,7 +15,7 @@ from llama_index import (
 )
 
 
-def set_embedding_model(embedding_config) -> {LangchainEmbedding, int}:
+def get_embedding_model(embedding_config: Dict[str, Any]) -> {LangchainEmbedding, int}:
     type = embedding_config["model_type"]
     embedding_model = None
     vector_size = 0
@@ -52,9 +52,9 @@ class DocumentBaseEmbedding(ABC):
         self.uri_path = uri_path
         self.connector = vector_store_adaptor.connector
         self.embedding_config = embedding_config
-        embedding, vector_size = set_embedding_model(embedding_config)
+        embedding, vector_size = get_embedding_model(embedding_config)
 
-        self.embedding = embedding
+        self.embedding : LangchainEmbedding = embedding
         self.vector_size = vector_size
         self.client = vector_store_adaptor.connector.client
 
@@ -65,3 +65,8 @@ class DocumentBaseEmbedding(ABC):
     def set_vector_store_adaptor(self, vector_store_adaptor: VectorStoreConnectorAdaptor):
         self.connector = vector_store_adaptor.connector
         self.client = vector_store_adaptor.connector.client
+
+    @abstractmethod
+    def embed_query(self, query: str) -> List[float]:
+        query = query.replace("\n", " ")
+        return self.embedding.get_query_embedding(query)
