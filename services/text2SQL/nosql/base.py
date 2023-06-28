@@ -1,6 +1,7 @@
 from langchain import OpenAI
 from llama_index.langchain_helpers.chain_wrapper import LLMPredictor
 from abc import abstractmethod
+from typing import Optional
 
 
 class Nosql:
@@ -14,7 +15,13 @@ class Nosql:
         self.prompt = prompt
 
     @abstractmethod
-    def connect(self):
+    def connect(
+            self,
+            verify: Optional[bool],
+            ca_cert: Optional[str],
+            client_key: Optional[str],
+            client_cert: Optional[str],
+    ) -> bool:
         pass
 
     @abstractmethod

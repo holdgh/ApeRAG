@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 
 from typing import Optional
@@ -7,15 +8,26 @@ from langchain.llms import GPT4All
 from llama_index import LangchainEmbedding, SQLDatabase, Prompt, LLMPredictor
 from llama_index.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_TMPL
 from llama_index.prompts.prompt_type import PromptType
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 local_llm_path = "/Users/alal/KubeChat/ggml-gpt4all-j-v1.3-groovy.bin"
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 Dialect = ["mysql", "postgresql", "sqlite", "oracle", "mssql"]
-Driver = {"mysql":"+pymysql","postgresql":""}
+Driver = {"mysql": "+pymysql", "postgresql": ""}
+
+
+def filter_sql(output: str) -> str:
+    pattern = r'\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b.*\b(FROM|JOIN|INTO)\b'
+    match = re.search(pattern, output, re.IGNORECASE)
+    if match:
+        return match.group(0)
+    else:
+        return None
+
 
 class SQLBase:
     def __init__(self, user, pw,
@@ -28,7 +40,7 @@ class SQLBase:
                  prompt_text: Optional[str] = DEFAULT_TEXT_TO_SQL_TMPL):
         self.dialect = dialect
         self.user = user
-        self.pw = pw
+        self.pw = urllib.parse.quote_plus(pw)
         self.target_database = database_name
         self.host = host
         self.port = port
@@ -67,8 +79,16 @@ class SQLBase:
         if not isinstance(self.dialect, str):
             raise TypeError("database_name must be a string")
 
-    def _connect(self):
-        self.db = SQLDatabase(create_engine(self.engineUrl), sample_rows_in_table_info=0)
+    def _connect(self) -> bool:
+        try:
+            self.db = SQLDatabase(create_engine(self.engineUrl), sample_rows_in_table_info=0)
+            with self.db.engine.connect() as connection:
+                _ = connection.execute(text("select 1"))
+                # print(f"Connect Success ")
+                return True
+        except Exception as e:
+            print(f"Connect failed: str{e}")
+            return False
 
     def custom_prompt(self, prompt_text: str):
         self.prompt_text = prompt_text
@@ -79,7 +99,8 @@ class SQLBase:
         self.embed_model = embed_model
 
     def query(self, query_str: str, sample_rows: Optional[int] = 3) -> str:
-        self._connect()
+        if not self._connect():
+            return ""
         prompt = Prompt(
             self.prompt_text,
             stop_token="\nSQLResult:",
@@ -91,7 +112,7 @@ class SQLBase:
         logger.info(f"> prompt format: {prompt.format(schema=schema, dialect=self.dialect, query_str=query_str)}")
         response, _ = llm_predictor.predict(prompt=prompt, query_str=query_str, schema=schema,
                                             dialect=self.dialect)
-        return response
+        return filter_sql(response)
 
     def generate_sql_schema(self, sample_rows: int) -> str:
         """

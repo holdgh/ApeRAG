@@ -12,7 +12,7 @@ export const GetCollectionChats = (
 export const GetCollectionChat = (
   collectionId: number | string,
   chatId: number | string,
-): Promise<{ code: string; data: Chat[]; message?: string }> => {
+): Promise<{ code: string; data: Chat; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
     method: 'get',
   });
@@ -24,6 +24,17 @@ export const CreateCollectionChat = (
 ): Promise<{ code: string; data: Chat; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats`, {
     method: 'post',
+    data,
+  });
+};
+
+export const UpdateCollectionChat = (
+  collectionId: number | string,
+  chatId: number | string,
+  data?: Chat,
+): Promise<{ code: string; data: Chat; message?: string }> => {
+  return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
+    method: 'put',
     data,
   });
 };

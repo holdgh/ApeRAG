@@ -31,6 +31,23 @@ class ChatStatus(models.TextChoices):
     DELETED = "DELETED"
 
 
+class VerifyWay(models.TextChoices):
+    PREFERRED = "preferred"
+    CAONLY = "ca_only"
+    FULL = "full"
+
+
+class DatabaseTypes(models.TextChoices):
+    MYSQL = "mysql"
+    POSTGRESQL = "postgresql"
+    SQLITE = "sqlite"
+    ORACLE = "oracle"
+    REDIS = "redis"
+    MONGO = "mongo"
+    CLICKHOUSE = "clickhouse"
+    ELASTICSEARCH = "elasticsearch"
+
+
 class Collection(models.Model):
     title = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)

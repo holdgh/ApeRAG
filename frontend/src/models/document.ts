@@ -5,7 +5,7 @@ export type Document = {
   name: string;
   user: string;
   collection: Collection;
-  status: 'RUNNING' | 'COMPLETE' | 'FAILED' | 'DELETED' | 'PENDING';
+  status: 'PENDING' | 'RUNNING' | 'FAILED' | 'COMPLETE' | 'DELETED';
   size: number;
   created: string;
   updated: string;

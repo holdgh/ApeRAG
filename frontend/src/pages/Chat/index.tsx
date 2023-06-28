@@ -1,47 +1,133 @@
-import { Chat } from '@/models/chat';
-import { CreateCollectionChat, GetCollectionChats } from '@/services/chats';
+import type { Chat, Message, MessageStatus, SocketStatus } from '@/models/chat';
+import { getUser } from '@/models/user';
+import {
+  CreateCollectionChat,
+  GetCollectionChat,
+  GetCollectionChats,
+  UpdateCollectionChat,
+} from '@/services/chats';
 import { useModel } from '@umijs/max';
-import { Button, Input, Space, Tooltip, Typography, theme } from 'antd';
+import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-// import { useEffect } from 'react';
-
-import CollectionTitle from '@/components/CollectionTitle';
-import { ClearOutlined, SendOutlined } from '@ant-design/icons';
-import classNames from 'classnames';
+import Content from './content';
+import Footer from './footer';
+import Header from './header';
 import styles from './index.less';
-import Item from './item';
 
 export default () => {
   const [chat, setChat] = useState<Chat | undefined>();
+  const [chatSocket, setChatSocket] = useState<WebSocket>();
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>('Closed');
+  const [messageStatus, setMessageStatus] = useState<MessageStatus>('normal');
   const { currentCollection } = useModel('collection');
   const { initialState } = useModel('@@initialState');
-
-  const { token } = theme.useToken();
+  const user = getUser();
 
   const createChat = async () => {
     if (!currentCollection) return;
     await CreateCollectionChat(currentCollection?.id);
   };
-
+  const getChat = async (id: number) => {
+    if (!currentCollection) return;
+    const { data } = await GetCollectionChat(currentCollection.id, id);
+    setChat(data);
+  };
   const getChats = async () => {
     if (!currentCollection) return;
-
     const { data } = await GetCollectionChats(currentCollection?.id);
     const item = _.first(data);
     if (item) {
-      setChat(item);
+      getChat(item.id);
     } else {
       await createChat();
       await getChats();
     }
   };
 
-  useEffect(() => {
-    if (currentCollection) {
-      getChats();
+  const createWebSocket = async () => {
+    if (!currentCollection || !chat) return;
+    const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
+    const host = API_ENDPOINT.replace(/^(http|https):\/\//, '');
+    const prefix = `${protocol}://${host}`;
+    const path = `/api/v1/collections/${currentCollection.id}/chats/${chat.id}/connect`;
+    const socket = new WebSocket(prefix + path, user?.__raw);
+    setSocketStatus('Connecting');
+    socket.onopen = () => {
+      setSocketStatus('Connected');
+    };
+    socket.onclose = () => {
+      setSocketStatus('Closed');
+    };
+    // socket.onerror = (e) => console.log(e);
+    socket.onmessage = (e) => {
+      let msg: Message = {};
+      try {
+        msg = JSON.parse(e.data);
+      } catch (err) {}
+
+      if (msg.error) {
+        setMessageStatus('error');
+      } else if (msg.type === 'message' && msg.data) {
+        setChat({
+          ...chat,
+          history: (chat.history || []).concat({
+            role: 'robot',
+            message: msg.data,
+          }),
+        });
+        setMessageStatus('normal');
+      }
+    };
+    setChatSocket(socket);
+  };
+
+  const onClear = async () => {
+    if (!currentCollection || !chat) return;
+    const { data } = await UpdateCollectionChat(
+      currentCollection?.id,
+      chat?.id,
+      {
+        ...chat,
+        history: [],
+      },
+    );
+    if (data.id) {
+      setChat(data);
     }
+  };
+
+  const onSubmit = (data: string) => {
+    if (!chat) return;
+    setChat({
+      ...chat,
+      history: (chat.history || []).concat({
+        role: 'human',
+        message: data,
+      }),
+    });
+    const msg: Message = {
+      type: 'message',
+      data,
+      timestamps: String(new Date().getTime()),
+    };
+    chatSocket?.send(JSON.stringify(msg));
+    setTimeout(() => setMessageStatus('loading'), 550);
+  };
+
+  useEffect(() => {
+    return () => {
+      chatSocket?.close();
+    };
+  }, [chatSocket]);
+
+  useEffect(() => {
+    getChats();
   }, [currentCollection]);
+
+  useEffect(() => {
+    createWebSocket();
+  }, [chat]);
 
   return (
     <div
@@ -50,52 +136,14 @@ export default () => {
         [styles.collapsed]: initialState?.collapsed,
       })}
     >
-      <div
-        className={styles.header}
-        style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}
-      >
-        <CollectionTitle collection={chat?.collection} />
-      </div>
-      <div className={styles.content}>
-        {chat?.history.map((item, key) => (
-          <Item key={key} />
-        ))}
-      </div>
-      <div
-        className={styles.footer}
-        style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
-      >
-        <Input
-          suffix={
-            <Space>
-              <Tooltip title="Clear">
-                <Button
-                  type="text"
-                  icon={
-                    <Typography.Text type="secondary">
-                      <ClearOutlined />
-                    </Typography.Text>
-                  }
-                ></Button>
-              </Tooltip>
-              <Tooltip title="Send">
-                <Button
-                  type="text"
-                  icon={
-                    <Typography.Text style={{ color: token.colorPrimary }}>
-                      <SendOutlined />
-                    </Typography.Text>
-                  }
-                ></Button>
-              </Tooltip>
-            </Space>
-          }
-          autoFocus
-          size="large"
-          bordered={false}
-          placeholder="Enter your question here..."
-        />
-      </div>
+      <Header chat={chat} />
+      <Content chat={chat} messageStatus={messageStatus} />
+      <Footer
+        socketStatus={socketStatus}
+        messageStatus={messageStatus}
+        onSubmit={onSubmit}
+        onClear={onClear}
+      />
     </div>
   );
 };

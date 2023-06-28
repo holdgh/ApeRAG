@@ -29,7 +29,12 @@ export default () => {
                 <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"
-                  style={{ height: 45, overflow: 'hidden', display: 'block' }}
+                  style={{
+                    maxHeight: 45,
+                    minHeight: 25,
+                    overflow: 'hidden',
+                    display: 'block',
+                  }}
                 >
                   {collection.description}
                 </Typography.Text>
@@ -62,33 +67,25 @@ export default () => {
                     />
                   </Space>
                 </Card>
-                <Row
-                  style={{
-                    textAlign: 'center',
-                    width: '70%',
-                    margin: '0 auto',
-                  }}
-                >
-                  <Col span={12}>
+                <div style={{ textAlign: 'center' }}>
+                  <Space size="large">
                     <Button
                       type="primary"
                       style={{ width: 120, display: 'inline-block' }}
-                      onClick={() => {
-                        setCurrentCollection(collection);
+                      onClick={async () => {
+                        await setCurrentCollection(collection);
                         history.push('/chat');
                       }}
                     >
                       Chat
                     </Button>
-                  </Col>
-                  <Col span={12}>
                     <Link to={`/collections/${collection.id}/documents`}>
                       <Button style={{ width: 120, display: 'inline-block' }}>
                         View
                       </Button>
                     </Link>
-                  </Col>
-                </Row>
+                  </Space>
+                </div>
               </Card>
             </Col>
           );

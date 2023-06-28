@@ -1,4 +1,6 @@
+import fs from 'fs';
 import _ from 'lodash';
+import path from 'path';
 
 const collections = [
   {
@@ -6,8 +8,7 @@ const collections = [
     title: 'Kubeblocks user manual',
     status: 'ACTIVE',
     type: 'document',
-    description:
-      'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
+    description: 'This collection is designed to provided documents',
   },
   {
     id: 2,
@@ -64,22 +65,6 @@ const documents = [
     updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
 ];
-const chats = [
-  {
-    id: 1,
-    collection: collections[0],
-    history: [
-      {
-        role: 'human',
-        message: 'Hi',
-      },
-      {
-        role: 'robot',
-        message: 'Hi',
-      },
-    ],
-  },
-];
 
 export default {
   // collections
@@ -129,12 +114,81 @@ export default {
   // chats
   'GET /api/v1/collections/:collectionId/chats': (req: any, res: any) => {
     res.json({
-      data: chats,
+      data: [
+        {
+          id: _.random(1, 1000),
+        },
+      ],
+    });
+  },
+  'GET /api/v1/collections/:collectionId/chats/:chatId': (
+    req: any,
+    res: any,
+  ) => {
+    res.json({
+      data: {
+        id: req.params.chatId,
+        collection: collections.find(
+          (c) => String(c.id) === req.params.collectionId,
+        ),
+        history: [
+          {
+            role: 'human',
+            message: `what is kubeblocks?`,
+          },
+          {
+            role: 'robot',
+            message: String(
+              fs.readFileSync(path.join(__dirname, './example_markdown.md')),
+            ),
+          },
+          {
+            role: 'human',
+            message: `describe cluster with kbcli...`,
+          },
+          {
+            role: 'robot',
+            message: String(
+              fs.readFileSync(path.join(__dirname, './example_kbcli.md')),
+            ),
+          },
+          {
+            role: 'human',
+            message: `sql example...`,
+          },
+          {
+            role: 'robot',
+            message: String(
+              fs.readFileSync(path.join(__dirname, './example_sql.md')),
+            ),
+          },
+        ],
+      },
     });
   },
   'POST /api/v1/collections/:collectionId/chats': (req: any, res: any) => {
     res.json({
-      data: chats[0],
+      data: {
+        id: _.random(1, 1000),
+        collection: collections.find(
+          (c) => String(c.id) === req.params.collectionId,
+        ),
+        history: [],
+      },
+    });
+  },
+  'PUT /api/v1/collections/:collectionId/chats/:chatId': (
+    req: any,
+    res: any,
+  ) => {
+    res.json({
+      data: {
+        id: parseInt(req.params.chatId),
+        collection: collections.find(
+          (c) => String(c.id) === req.params.collectionId,
+        ),
+        history: [],
+      },
     });
   },
 };
