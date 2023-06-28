@@ -56,6 +56,22 @@ REFINE_TEMPLATE = (
     "### Assistant :\n"
 )
 
+VICUNA_REFINE_TEMPLATE = (
+    "### Human:\n"
+    "The original question is as follows: {query_str}\n"
+    "We have provided an existing answer: {existing_answer}\n"
+    "We have the opportunity to refine the existing answer "
+    "(only if needed) with some more context below.\n"
+    "Given the new context, refine and synthesize the original answer to better \n"
+    "answer the question. Make sure that the refine answer is less than 200 words. \n"
+    "### Assistant :\n"
+)
+
+VICUNA_QA_TEMPLATE = (
+    "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n"
+    "### Instruction:\n{instruction}\n\n### Response:"
+)
+
 
 def test_local_path_embedding():
     ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
@@ -108,8 +124,8 @@ def test_local_llm_qa(query: str):
         answer_text = answer_text[:1900]
 
     context_msg = "database, workflow, system"
-    prompt = PromptTemplate.from_template(REFINE_TEMPLATE)
-    prompt_str = prompt.format(query_str=query, existing_answer=answer_text, context_msg=context_msg)
+    prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
+    prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
 
     #prompt = PromptTemplate.from_template(DEFAULT_TEXT_QA_PROMPT_TMPL)
     #prompt_str = prompt.format(query_str=query, context_str=context_msg)
@@ -124,7 +140,7 @@ def test_local_llm_qa(query: str):
     print("prompt ", prompt_str)
     print(len(prompt_str))
 
-    llm_server = "http://127.0.0.1:8000"
+    llm_server = "http://47.98.164.173:8000"
     response = requests.post("%s/generate" % llm_server, json=input).text
     r = json.loads(response)["response"]
     print(r)
