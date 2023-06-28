@@ -82,17 +82,17 @@ export default () => {
       if (msg.error) {
         setMessageStatus('error');
       } else if (msg.type === 'message' && msg.data) {
-        setChat({
-          ...chat,
-          history: (chat.history || []).concat({
-            ...msg,
-            role: 'ai',
-          }),
+        setChat((state) => {
+          if (state) {
+            return {
+              ...state,
+              history: (state.history || []).concat({ ...msg, role: 'ai' }),
+            };
+          }
         });
         setMessageStatus('normal');
       }
     };
-    
   };
 
   const onClear = async () => {
@@ -110,21 +110,26 @@ export default () => {
     }
   };
 
-  const onSubmit = (data: string) => {
+  const onSubmit = async (data: string) => {
     if (!chat) return;
-    const timestamp = String(new Date().getTime());
+    const timestamp = new Date().getTime();
     const msg: Message = {
       type: 'message',
       role: 'human',
       data,
       timestamp,
-    }
-    setChat({
-      ...chat,
-      history: (chat.history || []).concat(msg),
+    };
+
+    setChat((state) => {
+      if (state) {
+        return {
+          ...state,
+          history: (state.history || []).concat(msg),
+        };
+      }
     });
-    chatSocket?.send(JSON.stringify(msg));
     setMessageStatus('loading');
+    chatSocket?.send(JSON.stringify(msg));
   };
 
   useEffect(() => {
@@ -155,7 +160,7 @@ export default () => {
         [styles.collapsed]: initialState?.collapsed,
       })}
     >
-      <Header chat={chat} />
+      <Header />
       <Content chat={chat} messageStatus={messageStatus} />
       <Footer
         socketStatus={socketStatus}

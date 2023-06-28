@@ -7,6 +7,8 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
+from kubechat.tasks.add_index import add_index_for_document
+from kubechat.auth.validator import GlobalAuth
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, query_chats
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
@@ -163,6 +165,7 @@ def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
         )
         document_instance.save()
         response.append(document_instance.view())
+    add_index_for_document.delay(document_instance.id)
     return success(response)
 
 

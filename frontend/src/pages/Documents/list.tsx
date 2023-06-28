@@ -49,8 +49,8 @@ export default () => {
     modal.confirm({
       title: 'Comfirm',
       content: `delete ${record.name}?`,
-      onOk: () => {
-        DeleteCollectionDocument(collectionId, record.id);
+      onOk: async () => {
+        await DeleteCollectionDocument(collectionId, record.id);
         getDocuments();
       },
     });

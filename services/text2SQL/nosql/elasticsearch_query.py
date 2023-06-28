@@ -1,6 +1,6 @@
 from elasticsearch import Elasticsearch
 from typing import Optional
-from base import Nosql
+from .base import Nosql
 from llama_index.prompts.base import Prompt
 import os
 import json
