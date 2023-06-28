@@ -160,7 +160,7 @@ export default () => {
         [styles.collapsed]: initialState?.collapsed,
       })}
     >
-      <Header chat={chat} />
+      <Header />
       <Content chat={chat} messageStatus={messageStatus} />
       <Footer
         socketStatus={socketStatus}
