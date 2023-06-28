@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
-from llama_index.vector_stores import qdrant
-from llama_index.embeddings import google
 from llama_index.vector_stores.qdrant import QdrantVectorStore
-from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
 import qdrant_client
+from qdrant_client.models import Distance,VectorParams
 from vectorstore.base import VectorStoreConnector
 
 
@@ -35,4 +33,7 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
                 **kwargs,
             )
 
-        self.store = QdrantVectorStore(client=self.client, collection_name=self.collection_name)
+        self.store = QdrantVectorStore(
+            client=self.client,
+            collection_name=self.collection_name,
+            vectors_config=VectorParams(size=self.vector_size, distance=Distance.COSINE))

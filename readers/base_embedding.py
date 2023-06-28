@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
-from llama_index.embeddings import base
-from llama_index.embeddings import openai
-from llama_index.vector_stores import qdrant
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings, HuggingFaceInstructEmbeddings
 from langchain.embeddings.openai import OpenAIEmbeddings

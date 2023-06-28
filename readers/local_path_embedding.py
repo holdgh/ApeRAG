@@ -8,7 +8,6 @@ from llama_index.vector_stores import qdrant
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
-from llama_index.readers.base import BaseReader
 from llama_index.vector_stores.types import NodeWithEmbedding
 from llama_index.data_structs.node import Node, DocumentRelationship
 
@@ -30,6 +29,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
     def load_data(self):
         end = False
         embedding = self.embedding
+        count = 0
 
         while not end:
             docs, file_name = self.reader.load_data()
@@ -48,6 +48,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                         relationships={DocumentRelationship.SOURCE: f"{file_name}"}),
                     embedding=vector))
 
-            print("processing file ", file_name)
+            count = count + 1
+            print(f"processed {count} files, current fiile is {file_name} ")
             self.connector.store.add(nodes)
 

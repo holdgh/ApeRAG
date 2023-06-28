@@ -1,6 +1,5 @@
 """Simple reader that reads files of different formats from a directory."""
 import logging
-from pathlib import Path
 from typing import Callable, Dict, Generator, List, Optional, Type
 
 from llama_index.readers.base import BaseReader
