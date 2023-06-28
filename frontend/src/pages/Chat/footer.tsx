@@ -29,8 +29,7 @@ export default ({
     setMessage(undefined);
   };
 
-  // const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
-  const disabled = false;
+  const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
   return (
     <div
       className={styles.footer}

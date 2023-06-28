@@ -82,8 +82,8 @@ export default () => {
         setChat({
           ...chat,
           history: (chat.history || []).concat({
+            ...msg,
             role: 'ai',
-            data: msg.data,
           }),
         });
         setMessageStatus('normal');
@@ -113,7 +113,6 @@ export default () => {
     setChat({
       ...chat,
       history: (chat.history || []).concat({
-        role: 'human',
         data,
         timestamp,
       }),
@@ -124,7 +123,7 @@ export default () => {
       timestamp,
     };
     chatSocket?.send(JSON.stringify(msg));
-    setTimeout(() => setMessageStatus('loading'), 550);
+    setMessageStatus('loading');
   };
 
   useEffect(() => {
