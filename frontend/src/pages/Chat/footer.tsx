@@ -1,4 +1,4 @@
-import { ChatSocketStatus } from '@/models/chat';
+import { MessageStatus, SocketStatus } from '@/models/chat';
 import {
   ClearOutlined,
   LoadingOutlined,
@@ -9,15 +9,15 @@ import { useState } from 'react';
 import styles from './index.less';
 
 type Props = {
-  status: ChatSocketStatus;
-  loading: boolean;
+  socketStatus: SocketStatus;
+  messageStatus: MessageStatus;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
 
 export default ({
-  status = 'Closed',
-  loading = false,
+  socketStatus,
+  messageStatus,
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
@@ -29,7 +29,7 @@ export default ({
     setMessage(undefined);
   };
 
-  // const disabled = loading || status !== 'Connected';
+  // const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
   const disabled = false;
   return (
     <div

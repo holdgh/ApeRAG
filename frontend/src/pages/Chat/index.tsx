@@ -1,7 +1,8 @@
-import type { Chat, ChatSocketStatus } from '@/models/chat';
+import type { Chat, Message, MessageStatus, SocketStatus } from '@/models/chat';
 import { getUser } from '@/models/user';
 import {
   CreateCollectionChat,
+  GetCollectionChat,
   GetCollectionChats,
   UpdateCollectionChat,
 } from '@/services/chats';
@@ -14,19 +15,11 @@ import Footer from './footer';
 import Header from './header';
 import styles from './index.less';
 
-type Message = {
-  type?: 'ping' | 'message';
-  data?: string;
-  timestamps?: string;
-  references?: any[];
-};
-
 export default () => {
-  const [loading, setLoading] = useState<boolean>(false);
   const [chat, setChat] = useState<Chat | undefined>();
   const [chatSocket, setChatSocket] = useState<WebSocket>();
-  const [chatSocketStatus, setChatSocketStatus] =
-    useState<ChatSocketStatus>('Closed');
+  const [socketStatus, setSocketStatus] = useState<SocketStatus>('Closed');
+  const [messageStatus, setMessageStatus] = useState<MessageStatus>('normal');
   const { currentCollection } = useModel('collection');
   const { initialState } = useModel('@@initialState');
   const user = getUser();
@@ -35,12 +28,17 @@ export default () => {
     if (!currentCollection) return;
     await CreateCollectionChat(currentCollection?.id);
   };
+  const getChat = async (id: number) => {
+    if (!currentCollection) return;
+    const { data } = await GetCollectionChat(currentCollection.id, id);
+    setChat(data);
+  };
   const getChats = async () => {
     if (!currentCollection) return;
     const { data } = await GetCollectionChats(currentCollection?.id);
     const item = _.first(data);
     if (item) {
-      setChat(item);
+      getChat(item.id);
     } else {
       await createChat();
       await getChats();
@@ -54,31 +52,31 @@ export default () => {
     const prefix = `${protocol}://${host}`;
     const path = `/api/v1/collections/${currentCollection.id}/chats/${chat.id}/connect`;
     const socket = new WebSocket(prefix + path, user?.__raw);
-    setChatSocketStatus('Connecting');
+    setSocketStatus('Connecting');
     socket.onopen = () => {
-      setChatSocketStatus('Connected');
+      setSocketStatus('Connected');
     };
     socket.onclose = () => {
-      setChatSocketStatus('Closed');
+      setSocketStatus('Closed');
     };
     // socket.onerror = (e) => console.log(e);
     socket.onmessage = (e) => {
-      const data = chat.history || [];
-      let msg: Message;
+      let msg: Message = {};
       try {
         msg = JSON.parse(e.data);
-      } catch (err) {
-        msg = {};
-      }
-      if (msg.type === 'message' && msg.data) {
+      } catch (err) {}
+
+      if (msg.error) {
+        setMessageStatus('error');
+      } else if (msg.type === 'message' && msg.data) {
         setChat({
           ...chat,
-          history: data.concat({
+          history: (chat.history || []).concat({
             role: 'robot',
             message: msg.data,
           }),
         });
-        setLoading(false);
+        setMessageStatus('normal');
       }
     };
     setChatSocket(socket);
@@ -114,7 +112,7 @@ export default () => {
       timestamps: String(new Date().getTime()),
     };
     chatSocket?.send(JSON.stringify(msg));
-    setTimeout(() => setLoading(true), 550);
+    setTimeout(() => setMessageStatus('loading'), 550);
   };
 
   useEffect(() => {
@@ -139,10 +137,10 @@ export default () => {
       })}
     >
       <Header chat={chat} />
-      <Content chat={chat} loading={loading} />
+      <Content chat={chat} messageStatus={messageStatus} />
       <Footer
-        status={chatSocketStatus}
-        loading={loading}
+        socketStatus={socketStatus}
+        messageStatus={messageStatus}
         onSubmit={onSubmit}
         onClear={onClear}
       />
