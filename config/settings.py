@@ -212,3 +212,5 @@ MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 # Memory backend
 
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://redis:6379/1")
+
+VECTOR_DB_TYPE = "qdrant"
