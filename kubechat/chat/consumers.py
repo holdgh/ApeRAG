@@ -6,6 +6,7 @@ import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
 from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
 from langchain.memory import RedisChatMessageHistory
+from langchain.schema import BaseMessage, HumanMessage, AIMessage
 
 
 logger = logging.getLogger(__name__)
@@ -29,13 +30,11 @@ class KubeChatConsumer(WebsocketConsumer):
         from kubechat.models import CollectionType, CollectionStatus
         from kubechat.utils.db import query_collection, query_chat
 
-        user = self.scope["user"]
+        user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         collection = query_collection(user, collection_id)
         if collection is None:
             raise Exception("Collection not found")
-        if collection.status != CollectionStatus.ACTIVE:
-            raise Exception("Collection not active")
 
         chat = query_chat(user, collection_id, chat_id)
         if chat is None:
@@ -47,8 +46,8 @@ class KubeChatConsumer(WebsocketConsumer):
         else:
             self.index = init_index(collection_id)
 
-        logger.info(f"Connect to collection: {collection_id}")
-        self.accept()
+        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
+        self.accept(subprotocol=(None, headers))
 
     def disconnect(self, close_code):
         pass
@@ -78,17 +77,17 @@ class KubeChatConsumer(WebsocketConsumer):
             return json.dumps({"type": "pong", "timestamp": now_unix_milliseconds()})
 
         # save user message to history
-        self.history.add_user_message(text_data)
+        self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
 
-        response_txt, references = self.predict(data["message"])
+        response_txt, references = self.predict(data["data"])
 
         response = self.success_response(response_txt, references)
 
         # save bot message to history
-        self.history.add_ai_message(response)
+        self.history.add_message(AIMessage(content=response, additional_kwargs={"role": "ai"}))
 
         # response to user
-        self.send(response)
+        self.send(text_data=response)
 
     @staticmethod
     def success_response(message, references=None):
@@ -114,6 +113,14 @@ class KubeChatConsumer(WebsocketConsumer):
 
 
 class KubeChatEchoConsumer(KubeChatConsumer):
+    def connect(self):
+        collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
+        self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
+        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
+        self.accept(subprotocol=(None, headers))
+
+    def disconnect(self, close_code):
+        print("disconnect: " + str(close_code))
 
     def predict(self, query):
         return query, ""

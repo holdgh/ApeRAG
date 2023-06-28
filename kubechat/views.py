@@ -251,8 +251,13 @@ def get_chat(request, collection_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
-    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
-    return success(chat.view(history.messages))
+    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
+    messages = []
+    for message in history.messages:
+        item = json.loads(message.content)
+        item["role"] = message.additional_kwargs["role"]
+        messages.append(item)
+    return success(chat.view(messages))
 
 
 @api.delete("/collections/{collection_id}/chats/{chat_id}")

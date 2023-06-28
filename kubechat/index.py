@@ -33,7 +33,7 @@ class CustomLLM(LLM):
 
 def init_index(collection_id: str | int) -> VectorStoreIndex:
     # Retrieve the Collection object
-    collection = Collection.objects.aget(id=collection_id)
+    collection = Collection.objects.get(id=collection_id)
     logger.info(f"init index for collection {collection_id}")
 
     if collection.status == CollectionStatus.ACTIVE:

@@ -1,5 +1,4 @@
 import config.settings as settings
-from urllib.parse import parse_qsl
 from ninja.security import HttpBearer
 from auth0.authentication.token_verifier import TokenVerifier, AsymmetricSignatureVerifier
 from channels.middleware import BaseMiddleware
@@ -28,13 +27,12 @@ class GlobalAuth(HttpBearer):
 
 
 class TokenAuthMiddleware(BaseMiddleware):
-    def __init__(self, app, inner):
-        # Store the ASGI application we were passed
-        super().__init__(inner)
+    def __init__(self, app):
         self.app = app
 
     def __call__(self, scope, receive, send):
         headers = dict(scope['headers'])
-        token = headers['Sec-Websocket-Protocol']
-        scope["user"] = get_user_from_token(token)
+        token = headers[b'sec-websocket-protocol'].decode("ascii")
+        scope["Sec-Websocket-Protocol"] = token
+        scope["X-USER-ID"] = get_user_from_token(token)
         return self.app(scope, receive, send)

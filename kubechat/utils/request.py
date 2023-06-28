@@ -7,14 +7,14 @@ def get_user(request):
 
 def success(data):
     return {
-        "code": HTTPStatus.OK,
+        "code": "%d" % HTTPStatus.OK,
         "data": data,
     }
 
 
 def fail(code, message):
     return {
-        "code": code,
+        "code": "%d" % code,
         "message": message,
     }
 

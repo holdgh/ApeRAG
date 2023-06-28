@@ -61,7 +61,7 @@ class Collection(models.Model):
 
     def view(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "title": self.title,
             "description": self.description,
             "status": self.status,
@@ -87,7 +87,7 @@ class Document(models.Model):
 
     def view(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "name": self.name,
             "status": self.status,
             "size": self.size,
@@ -108,11 +108,13 @@ class Chat(models.Model):
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
-    def view(self, history=""):
+    def view(self, messages=None):
+        if messages is None:
+            messages = []
         return {
-            "id": self.id,
+            "id": str(self.id),
             "summary": self.summary,
-            "history": history,
+            "history": messages,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
         }
