@@ -7,3 +7,6 @@ examples/
 tests/
 *.md
 *.pyc
+
+frontend/node_modules
+resources/

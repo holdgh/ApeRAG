@@ -1,4 +1,5 @@
 import json
+import config.settings as settings
 from datetime import datetime
 from typing import List
 from typing import Optional
@@ -6,14 +7,15 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
-from .models import Collection, CollectionStatus, \
+from kubechat.models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus
 from django.core.files.base import ContentFile
-from config.settings import AUTH_ENABLED
-from .auth.validator import GlobalAuth
+from kubechat.auth.validator import GlobalAuth
+from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, query_chats
+from kubechat.utils.request import get_user, success, fail
+from langchain.memory import RedisChatMessageHistory
 
-
-api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if AUTH_ENABLED else None)
+api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
 
 
 class CollectionIn(Schema):
@@ -29,50 +31,7 @@ class DocumentIn(Schema):
 
 
 class ChatIn(Schema):
-    history: Optional[List]
-
-
-def get_user(request):
-    return request.META.get("X-USER-ID", "")
-
-
-def query_collection(user, collection_id: str):
-    return Collection.objects.exclude(status=CollectionStatus.DELETED).get(user=user, pk=collection_id)
-
-
-def query_collections(user):
-    return Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user)
-
-
-def query_document(user, collection_id: str, document_id: str):
-    return Document.objects.exclude(status=DocumentStatus.DELETED).get(user=user, collection_id=collection_id,
-                                                                       pk=document_id)
-
-
-def query_documents(user, collection_id: str):
-    return Document.objects.exclude(status=DocumentStatus.DELETED).filter(user=user, collection_id=collection_id)
-
-
-def query_chat(user, collection_id: str, chat_id: str):
-    return Chat.objects.exclude(status=DocumentStatus.DELETED).get(user=user, collection_id=collection_id, pk=chat_id)
-
-
-def query_chats(user, collection_id: str):
-    return Chat.objects.exclude(status=DocumentStatus.DELETED).get(user=user, collection_id=collection_id)
-
-
-def success(data):
-    return {
-        "code": HTTPStatus.OK,
-        "data": data,
-    }
-
-
-def fail(code, message):
-    return {
-        "code": code,
-        "message": message,
-    }
+    history: Optional[str]
 
 
 @api.post("/collections")
@@ -221,8 +180,12 @@ def list_chats(request, collection_id):
 def update_chat(request, collection_id, chat_id, chat: ChatIn):
     user = get_user(request)
     instance = query_chat(user, collection_id, chat_id)
-    instance.history = json.dumps(chat.history)
+    if instance is None:
+        return fail(HTTPStatus.NOT_FOUND, "Chat not found")
+    instance.summary = ""
     instance.save()
+    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history.clear()
     return success(instance.view())
 
 
@@ -230,7 +193,11 @@ def update_chat(request, collection_id, chat_id, chat: ChatIn):
 def get_chat(request, collection_id, chat_id):
     user = get_user(request)
     chat = query_chat(user, collection_id, chat_id)
-    return success(chat.view())
+    if chat is None:
+        return fail(HTTPStatus.NOT_FOUND, "Chat not found")
+
+    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    return success(chat.view(history.messages))
 
 
 @api.delete("/collections/{collection_id}/chats/{chat_id}")
@@ -242,6 +209,8 @@ def delete_chat(request, collection_id, chat_id):
     chat.status = ChatStatus.DELETED
     chat.gmt_deleted = datetime.now()
     chat.save()
+    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history.clear()
     return success(chat.view())
 
 

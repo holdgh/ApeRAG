@@ -46,3 +46,6 @@ make run-frontend
 * [ ] 支持切换LLM
 * [ ] Collection支持多个Chat
 * [ ] websocket auth0认证
+* [ ] 异步优化
+* [ ] 错误和异常处理优化
+* [ ] 抽象Memory接口
