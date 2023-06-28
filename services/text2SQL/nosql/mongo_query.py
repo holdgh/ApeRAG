@@ -43,27 +43,29 @@ class Mongo(Nosql):
         self.db = db
         self.collection = collection
 
-    def connect(self, ssl_enable=False, ssl_ca_certs='', ssl_certfile='', ssl_keyfile=''):
-        if ssl_enable:
-            ssl_options = {
-                'ssl': True,
-                'ssl_ca_certs': ssl_ca_certs,  # CA证书路径
-                'ssl_certfile': ssl_certfile,  # 客户端SSL证书路径
-                'ssl_keyfile': ssl_keyfile,  # 客户端私钥路径
-                # 其他可选参数
-            }
+    def connect(
+            self,
+            verify: Optional[bool],
+            ca_cert: Optional[str],
+            client_key: Optional[str],
+            client_cert: Optional[str],):
+        kwargs = {
+            'ssl': verify,
+            "ssl_ca_cert": ca_cert,
+            "ssl_keyfile": client_key,
+            "ssl_certfile": client_cert,
+        }
+        if verify:
             try:
-                self.conn = MongoClient("mongodb://" + self.host + ':' + self.port, **ssl_options)
+                self.conn = MongoClient("mongodb://" + self.host + ':' + self.port, **kwargs)
                 return True
             except Exception as e:
-                print("Failed to connect to MongoDB:", str(e))
                 return False
         else:
             try:
                 self.conn = MongoClient("mongodb://" + self.host + ':' + self.port)
                 return True
             except Exception as e:
-                print("Failed to connect to MongoDB:", str(e))
                 return False
 
     def text_to_query(self, text):
