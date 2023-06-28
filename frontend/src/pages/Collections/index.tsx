@@ -1,6 +1,6 @@
-import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import CollectionTitle from '@/components/CollectionTitle';
 import { PageContainer } from '@ant-design/pro-components';
-import { Link, useModel } from '@umijs/max';
+import { Link, history, useModel } from '@umijs/max';
 import {
   Button,
   Card,
@@ -14,7 +14,7 @@ import {
 } from 'antd';
 
 export default () => {
-  const { collections } = useModel('collection');
+  const { collections, setCurrentCollection } = useModel('collection');
   const cardBodyStyle = {
     height: 260,
   };
@@ -26,20 +26,15 @@ export default () => {
           return (
             <Col key={key} span={12}>
               <Card bodyStyle={cardBodyStyle} bordered={false}>
-                <Typography.Title level={4}>
-                  <Space>
-                    {collection.type === 'document' ? (
-                      <SnippetsOutlined style={{ fontSize: 18 }} />
-                    ) : null}
-                    {collection.type === 'multimedia' ? (
-                      <VideoCameraOutlined style={{ fontSize: 18 }} />
-                    ) : null}
-                    {collection.title}
-                  </Space>
-                </Typography.Title>
+                <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"
-                  style={{ height: 45, overflow: 'hidden', display: 'block' }}
+                  style={{
+                    maxHeight: 45,
+                    minHeight: 25,
+                    overflow: 'hidden',
+                    display: 'block',
+                  }}
                 >
                   {collection.description}
                 </Typography.Text>
@@ -72,31 +67,25 @@ export default () => {
                     />
                   </Space>
                 </Card>
-                <Row
-                  style={{
-                    textAlign: 'center',
-                    width: '70%',
-                    margin: '0 auto',
-                  }}
-                >
-                  <Col span={12}>
-                    <Link to="/">
-                      <Button
-                        type="primary"
-                        style={{ width: 120, display: 'inline-block' }}
-                      >
-                        Chat
-                      </Button>
-                    </Link>
-                  </Col>
-                  <Col span={12}>
+                <div style={{ textAlign: 'center' }}>
+                  <Space size="large">
+                    <Button
+                      type="primary"
+                      style={{ width: 120, display: 'inline-block' }}
+                      onClick={async () => {
+                        await setCurrentCollection(collection);
+                        history.push('/chat');
+                      }}
+                    >
+                      Chat
+                    </Button>
                     <Link to={`/collections/${collection.id}/documents`}>
                       <Button style={{ width: 120, display: 'inline-block' }}>
                         View
                       </Button>
                     </Link>
-                  </Col>
-                </Row>
+                  </Space>
+                </div>
               </Card>
             </Col>
           );

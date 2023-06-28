@@ -1,4 +1,10 @@
-import { GetCollections, ReadCollection } from '@/services/collections';
+import {
+  CreateCollection,
+  GetCollections,
+  UpdateCollection,
+} from '@/services/collections';
+import { history } from '@umijs/max';
+import { App } from 'antd';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
 
@@ -19,32 +25,52 @@ export default () => {
   const [collections, setCollections] = useState<Collection[]>();
   const [currentCollection, _setCurrentCollection] = useState<Collection>();
 
-  const getCollections = async (
-    force: boolean | undefined = true,
-  ): Promise<Collection[] | undefined> => {
-    if (force || !collections?.length) {
-      const { data } = await GetCollections();
-      setCollections(data);
-      return data;
+  const { message } = App.useApp();
+
+  const getCollections = async () => {
+    const { data } = await GetCollections();
+    setCollections(data);
+  };
+
+  const getCollection = (id?: string | number): Collection | undefined => {
+    if (!id) return;
+    return collections?.find((c) => String(c.id) === String(id));
+  };
+
+  const createColection = async (params: Collection) => {
+    const { data } = await CreateCollection(params);
+    if (data.id) {
+      message.success('create success');
+      setCollections(collections?.concat(data));
+      history.push(`/collections/${data.id}/documents`);
     } else {
-      return collections;
+      message.error('create error');
     }
   };
 
-  const getCollection = async (
-    id: string | number,
-    force: boolean | undefined = true,
-  ): Promise<Collection | undefined> => {
-    if (force) {
-      const data = await getCollections();
-      return data?.find((c) => String(c.id) === String(id));
+  const updateCollection = async (
+    collectionId: string | number,
+    params: Collection,
+  ) => {
+    const { data } = await UpdateCollection(collectionId, params);
+    if (data.id) {
+      message.success('update success');
+      const index = collections?.findIndex(
+        (c) => String(c.id) === String(collectionId),
+      );
+      if (index !== -1 && index !== undefined && collections?.length) {
+        const items = _.update(collections, index, (origin) => ({
+          ...origin,
+          ...data,
+        }));
+        setCollections(items);
+      }
     } else {
-      const { data } = await ReadCollection(id);
-      return data;
+      message.error('update error');
     }
   };
 
-  const setCurrentCollection = (collection?: Collection) => {
+  const setCurrentCollection = async (collection?: Collection) => {
     if (collection) {
       localStorage.setItem('collection', JSON.stringify(collection));
       _setCurrentCollection(collection);
@@ -55,6 +81,8 @@ export default () => {
   };
 
   useEffect(() => {
+    if (collections === undefined) return;
+
     const localCollection = localStorage.getItem('collection');
     let current: Collection | undefined;
     if (localCollection) {
@@ -62,7 +90,9 @@ export default () => {
         current = JSON.parse(localCollection);
       } catch (err) {}
     }
-    const isExsited = !!collections?.find((c) => c.id === current?.id);
+    const isExsited =
+      collections !== undefined &&
+      collections.find((c) => c.id === current?.id);
     if (!isExsited) {
       current = _.first(collections);
     }
@@ -71,11 +101,14 @@ export default () => {
 
   return {
     collections,
+    currentCollection,
 
     getCollections,
     getCollection,
 
-    currentCollection,
+    createColection,
+    updateCollection,
+
     setCurrentCollection,
   };
 };

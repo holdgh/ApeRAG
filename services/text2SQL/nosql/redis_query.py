@@ -4,23 +4,23 @@ from services.text2SQL.nosql.base import Nosql
 from llama_index.prompts.base import Prompt
 
 _REDIS_PROMPT_TPL = (
-            "Given an input question, first create a syntactically correct redis "
-            "query to run, then look at the results of the query and return the answer."
-            "You can order the results by a relevant column to return the most "
-            "interesting examples in the database.\n"
-            "Pay attention to use only the keys that you can see in the schema "
-            "description. "
-            "Be careful to not query for keys that do not exist. "
-            "Use the following format:\n"
-            "Question: Question here\n"
-            "Query: Query to run\n"
-            "Result: Result of the Query\n"
-            "Answer: Final answer here\n"
-            "Only use the keys with its type listed below.\n"
-            "{schema}\n"
-            "Question: {query_str}\n"
-            "Query: "
-        )
+    "Given an input question, first create a syntactically correct redis "
+    "query to run, then look at the results of the query and return the answer."
+    "You can order the results by a relevant column to return the most "
+    "interesting examples in the database.\n"
+    "Pay attention to use only the keys that you can see in the schema "
+    "description. "
+    "Be careful to not query for keys that do not exist. "
+    "Use the following format:\n"
+    "Question: Question here\n"
+    "Query: Query to run\n"
+    "Result: Result of the Query\n"
+    "Answer: Final answer here\n"
+    "Only use the keys with its type listed below.\n"
+    "{schema}\n"
+    "Question: {query_str}\n"
+    "Query: "
+)
 
 _DEFAULT_PROMPT = Prompt(
     _REDIS_PROMPT_TPL,
@@ -31,18 +31,43 @@ _DEFAULT_PROMPT = Prompt(
 
 class Redis(Nosql):
     def __init__(
-        self,
-        host,
-        port,
-        pwd: Optional[str] = None,
-        db: Optional[int] = 0,
-        prompt: Optional[Prompt] = _DEFAULT_PROMPT
+            self,
+            host,
+            port,
+            pwd: Optional[str] = None,
+            db: Optional[int] = 0,
+            prompt: Optional[Prompt] = _DEFAULT_PROMPT
     ):
         super().__init__(host, port, pwd, prompt)
         self.db = db
 
-    def connect(self):
-        self.conn = RedisClient(host=self.host, port=self.port, db=self.db, password=self.pwd, decode_responses=True)
+    def connect(
+            self,
+            verify: Optional[bool],
+            ca_cert: Optional[str],
+            client_key: Optional[str],
+            client_cert: Optional[str],
+    ):
+        kwargs = {
+            "ssl_ca_cert": ca_cert,
+            "ssl_keyfile": client_key,
+            "ssl_certfile": client_cert,
+        }
+        self.conn = RedisClient(
+            host=self.host,
+            port=self.port,
+            db=self.db,
+            ssl=verify,
+            password=self.pwd,
+            decode_responses=True,
+            **kwargs,
+        )
+
+        try:
+            connected = self.conn.ping()
+        except ConnectionError:
+            connected = False
+        return connected
 
     def text_to_query(self, text):
         keys = self.conn.keys()

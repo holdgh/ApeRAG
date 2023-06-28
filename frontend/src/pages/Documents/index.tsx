@@ -1,54 +1,40 @@
-import { Collection } from '@/models/collection';
-import { ReadCollection } from '@/services/collections';
-import { SnippetsOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import CollectionTitle from '@/components/CollectionTitle';
 import { PageContainer } from '@ant-design/pro-components';
-import { Link, Outlet, history, useParams } from '@umijs/max';
-import { Button, Space, Typography } from 'antd';
+import { Outlet, history, useModel, useParams } from '@umijs/max';
+import { Button, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 
 export default () => {
-  const [collection, setCollection] = useState<Collection>();
+  const { getCollection, setCurrentCollection } = useModel('collection');
   const { collectionId } = useParams();
   const key = history.location.pathname.replace(/.*\//, '');
   const [tabActiveKey, setTabActiveKey] = useState<string>(key);
-
-  const getCollection = async () => {
-    if (!collectionId) return;
-    const { data } = await ReadCollection(collectionId);
-    setCollection(data);
-  };
 
   useEffect(() => {
     setTabActiveKey(key);
   }, [key]);
 
-  useEffect(() => {
-    getCollection();
-  }, []);
+  const collection = getCollection(collectionId);
 
   return (
     <PageContainer
       ghost
-      title={
-        <Space>
-          {collection?.type === 'Document' ? (
-            <SnippetsOutlined style={{ fontSize: 24 }} />
-          ) : null}
-          {collection?.type === 'Multimedia' ? (
-            <VideoCameraOutlined style={{ fontSize: 24 }} />
-          ) : null}
-          {collection?.title}
-        </Space>
-      }
+      title={<CollectionTitle collection={collection} />}
       content={
         <Typography.Text type="secondary">
           {collection?.description}
         </Typography.Text>
       }
       extra={[
-        <Link to="/chat" key="1">
-          <Button>Chat</Button>
-        </Link>,
+        <Button
+          key={1}
+          onClick={async () => {
+            await setCurrentCollection(collection);
+            history.push('/chat');
+          }}
+        >
+          Chat
+        </Button>,
       ]}
       tabList={[
         {

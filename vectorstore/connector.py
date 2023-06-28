@@ -4,6 +4,8 @@ from llama_index.embeddings import base
 from llama_index.embeddings import openai
 from llama_index.vector_stores.registry import VectorStoreType
 from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
+
+from vectorstore.milvus_connector import MilvusVectorStoreConnector
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
 from vectorstore.base import VectorStoreConnector
 import qdrant_client
@@ -15,7 +17,7 @@ VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorSt
     VectorStoreType.QDRANT: QdrantVectorStoreConnector,
     # VectorStoreType.LANCEDB: LanceDBVectorStoreConnector,
     # VectorStoreType.SUPABASE: SupabaseVectorStoreConnector,
-    # VectorStoreType.MILVUS: MilvusVectorStoreConnector,
+    VectorStoreType.MILVUS: MilvusVectorStoreConnector,
     # VectorStoreType.PINECONE: PineconeVectorStoreConnector,
     # VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
     # VectorStoreType.FAISS: FaissVectorStoreConnector,

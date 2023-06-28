@@ -27,9 +27,27 @@ poetry install
 poetry build
 ```
 
-* run the server
+* run the backend server
 ```bash
-poetry run llmserver
+make run-backend
+```
+
+* run the frontend server
+
+put the .env file to /path/to/frontend/.env
+
+```
+AUTH0_DOMAIN=kubechat.jp.auth0.com
+AUTH0_CLIENT_ID=G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2
+ASSETS_ENDPOINT=http://localhost:8001
+API_ENDPOINT=http://127.0.0.1:8000
+PORT=8001
+PUBLIC_PATH=/
+DATA_MOCK=true
+```
+
+```bash
+make run-frontend
 ```
 
 
@@ -40,3 +58,4 @@ poetry run llmserver
 * [ ] 支持数据库类型Collection
 * [ ] 支持切换LLM
 * [ ] Collection支持多个Chat
+* [ ] websocket auth0认证
