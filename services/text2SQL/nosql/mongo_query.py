@@ -45,10 +45,10 @@ class Mongo(Nosql):
 
     def connect(
             self,
-            verify: Optional[bool],
-            ca_cert: Optional[str],
-            client_key: Optional[str],
-            client_cert: Optional[str],):
+            verify: Optional[bool] = False,
+            ca_cert: Optional[str] = '',
+            client_key: Optional[str] = '',
+            client_cert: Optional[str] = ''):
         kwargs = {
             'ssl': verify,
             "ssl_ca_cert": ca_cert,
