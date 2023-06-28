@@ -7,7 +7,6 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
-from kubechat.auth.validator import GlobalAuth
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, query_chats
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
@@ -32,10 +31,6 @@ class CollectionIn(Schema):
 class DocumentIn(Schema):
     name: str
     type: str
-
-
-class ChatIn(Schema):
-    history: Optional[str]
 
 
 class ConnectionInfo(Schema):
@@ -233,7 +228,7 @@ def list_chats(request, collection_id):
 
 
 @api.put("/collections/{collection_id}/chats/{chat_id}")
-def update_chat(request, collection_id, chat_id, chat: ChatIn):
+def update_chat(request, collection_id, chat_id):
     user = get_user(request)
     instance = query_chat(user, collection_id, chat_id)
     if instance is None:
