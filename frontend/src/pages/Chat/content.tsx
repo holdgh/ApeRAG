@@ -24,12 +24,12 @@ export default ({ chat, loading = false }: Props) => {
     <div id="chart-content" className={styles.content}>
       <TransitionGroup>
         {chat?.history?.map((item, key) => (
-          <CSSTransition key={key} timeout={800} classNames="animate-item">
+          <CSSTransition key={key} timeout={500} classNames="animate-item">
             <Message loading={false} item={item} />
           </CSSTransition>
         ))}
         {loading ? (
-          <CSSTransition timeout={800} classNames="animate-item">
+          <CSSTransition timeout={500} classNames="animate-item">
             <Message loading={true} item={{ role: 'robot', message: '' }} />
           </CSSTransition>
         ) : null}

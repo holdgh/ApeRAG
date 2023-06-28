@@ -8,6 +8,15 @@
 
   &.collapsed {
     left: 65px;
+
+    .header {
+      height: 47px;
+      padding: 8px;
+    }
+
+    .content {
+      top: 47px;
+    }
   }
 
   .header {
@@ -15,6 +24,7 @@
     padding: 12px;
     height: 55px;
     overflow: hidden;
+    transition-duration: 0.15s;
   }
 
   .content {
@@ -25,6 +35,7 @@
     right: 0;
     overflow: auto;
     padding: 24px;
+    transition-duration: 0.15s;
 
     .message-container {
       display: flex;
