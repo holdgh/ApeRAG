@@ -13,7 +13,7 @@ export default ({ chat, messageStatus }: Props) => {
   useEffect(() => {
     if (chat) {
       scroller.scrollTo('bottom', {
-        containerId: 'chart-content',
+        containerId: 'chat-content',
         smooth: true,
         duration: 100,
       });
@@ -21,7 +21,7 @@ export default ({ chat, messageStatus }: Props) => {
   }, [chat, messageStatus]);
 
   return (
-    <div id="chart-content" className={styles.content}>
+    <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>
         {chat?.history?.map((item, key) => (
           <Message key={key} status="normal" item={item} />
@@ -29,8 +29,8 @@ export default ({ chat, messageStatus }: Props) => {
         {messageStatus !== 'normal' ? (
           <Message status={messageStatus} item={{ role: 'ai', data: '' }} />
         ) : null}
+        <ScrollElement name="bottom"></ScrollElement>
       </div>
-      <ScrollElement name="bottom"></ScrollElement>
     </div>
   );
 };

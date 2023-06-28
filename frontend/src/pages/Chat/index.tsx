@@ -6,6 +6,7 @@ import {
   GetCollectionChats,
   UpdateCollectionChat,
 } from '@/services/chats';
+import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import classNames from 'classnames';
 import _ from 'lodash';
@@ -154,20 +155,28 @@ export default () => {
   }, [chat]);
 
   return (
-    <div
-      className={classNames({
-        [styles.chatContainer]: true,
-        [styles.collapsed]: initialState?.collapsed,
-      })}
-    >
-      <Header />
-      <Content chat={chat} messageStatus={messageStatus} />
-      <Footer
-        socketStatus={socketStatus}
-        messageStatus={messageStatus}
-        onSubmit={onSubmit}
-        onClear={onClear}
-      />
-    </div>
+    <RouteContext.Consumer>
+      {(value: RouteContextType) => {
+        const { isMobile } = value;
+        return (
+          <div
+            className={classNames({
+              [styles.container]: true,
+              [styles.collapsed]: initialState?.collapsed,
+              [styles.mobile]: isMobile,
+            })}
+          >
+            <Header />
+            <Content chat={chat} messageStatus={messageStatus} />
+            <Footer
+              socketStatus={socketStatus}
+              messageStatus={messageStatus}
+              onSubmit={onSubmit}
+              onClear={onClear}
+            />
+          </div>
+        );
+      }}
+    </RouteContext.Consumer>
   );
 };
