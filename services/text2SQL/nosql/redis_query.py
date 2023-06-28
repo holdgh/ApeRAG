@@ -1,7 +1,10 @@
+import func_timeout
+from func_timeout import func_set_timeout
 from redis.client import Redis as RedisClient
 from typing import Optional
-from services.text2SQL.nosql.base import Nosql
+from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
+from langchain.llms.base import BaseLLM
 
 _REDIS_PROMPT_TPL = (
     "Given an input question, first create a syntactically correct redis "
@@ -29,24 +32,26 @@ _DEFAULT_PROMPT = Prompt(
 )
 
 
-class Redis(Nosql):
+class Redis(DataBase):
     def __init__(
             self,
             host,
-            port,
+            user: Optional[str] = None,
             pwd: Optional[str] = None,
+            port: Optional[int] = 6379,
             db: Optional[int] = 0,
-            prompt: Optional[Prompt] = _DEFAULT_PROMPT
+            prompt: Optional[Prompt] = _DEFAULT_PROMPT,
+            llm: Optional[BaseLLM] = None,
     ):
-        super().__init__(host, port, pwd, prompt)
+        super().__init__(host, port, user, pwd, prompt, "redis", llm)
         self.db = db
 
     def connect(
             self,
             verify: Optional[bool] = False,
-            ca_cert: Optional[str] = "",
-            client_key: Optional[str] = "",
-            client_cert: Optional[str] = "",
+            ca_cert: Optional[str] = None,
+            client_key: Optional[str] = None,
+            client_cert: Optional[str] = None,
     ):
         kwargs = {
             "ssl_ca_certs": ca_cert,
@@ -63,10 +68,15 @@ class Redis(Nosql):
             **kwargs,
         )
 
+        @func_set_timeout(2)
+        def ping():
+            return self.conn.ping()
+
         try:
-            connected = self.conn.ping()
-        except ConnectionError:
+            connected = ping()
+        except (ConnectionError, func_timeout.exceptions.FunctionTimedOut):
             connected = False
+
         return connected
 
     def text_to_query(self, text):
