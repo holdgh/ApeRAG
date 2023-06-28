@@ -109,7 +109,7 @@ export default () => {
     const msg: Message = {
       type: 'message',
       data,
-      timestamps: String(new Date().getTime()),
+      timestamp: String(new Date().getTime()),
     };
     chatSocket?.send(JSON.stringify(msg));
     setTimeout(() => setMessageStatus('loading'), 550);

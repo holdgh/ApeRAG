@@ -6,7 +6,7 @@ export type MessageStatus = 'loading' | 'error' | 'normal';
 export type Message = {
   type?: 'ping' | 'pong' | 'message';
   data?: string;
-  timestamps?: string;
+  timestamp?: string;
   references?: any[];
   code?: '200' | '500';
   error?: string;
@@ -25,7 +25,7 @@ export type Chat = {
 export type ChatHistory = {
   role: 'robot' | 'human';
   message: string;
-  timestamps?: string;
+  timestamp?: string;
   references?: any[];
 };
 
