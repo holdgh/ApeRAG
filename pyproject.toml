@@ -38,6 +38,7 @@ pypdf = "^3.11.0"
 clickhouse-connect = "^0.6.4"
 chromadb = "^0.3.26"
 daphne = "^4.0.0"
+docx2txt = "^0.8"
 
 [build-system]
 requires = ["poetry-core"]
