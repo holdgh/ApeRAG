@@ -18,9 +18,8 @@ export type Chat = {
   user: string;
   collection: Collection;
   history: ChatHistory[];
-  gmt_created: string;
-  gmt_updated: string;
-  gmt_deleted: string;
+  created: string;
+  updated: string;
 };
 
 export type ChatHistory = {

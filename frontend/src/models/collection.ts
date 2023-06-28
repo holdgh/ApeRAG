@@ -16,9 +16,8 @@ export type Collection = {
   type: 'document' | 'multimedia' | 'database';
   config: string;
   description: string;
-  gmt_created: string;
-  gmt_updated: string;
-  gmt_deleted: string;
+  created: string;
+  updated: string;
 };
 
 export default () => {
