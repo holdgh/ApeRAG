@@ -51,7 +51,7 @@ def add_index_for_document(document_id) -> bool:
     document.status = status.RUNNING
     document.save()
     try:
-        loader = LocalPathEmbedding(input_dir=document.file.name, embedding_config={"model_type": "huggingface"},
+        loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
                                     vector_store_adaptor=vector_db_connector)
         loader.load_data()
     except Exception as e:
