@@ -43,6 +43,7 @@ redis = "^4.6.0"
 pymongo = "^4.4.0"
 elasticsearch = "^8.8.0"
 weaviate-client = "^3.21.0"
+arrow = "^1.2.3"
 
 [build-system]
 requires = ["poetry-core"]
