@@ -1,6 +1,6 @@
 from elasticsearch import Elasticsearch
 from typing import Optional
-from .base import Nosql
+from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
 import os
 import json
@@ -34,7 +34,7 @@ _DEFAULT_PROMPT = Prompt(
 )
 
 
-class ElasticsearchClient(Nosql):
+class ElasticsearchClient(DataBase):
     def __init__(
             self,
             host,
