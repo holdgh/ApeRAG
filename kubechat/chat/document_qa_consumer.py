@@ -1,3 +1,6 @@
+import time
+import string
+import random
 import json
 import logging
 import requests
@@ -136,15 +139,18 @@ class DocumentQAConsumer(WebsocketConsumer):
         })
 
 
-class DocumentSizeConsumer(DocumentQAConsumer):
+class RandomConsumer(DocumentQAConsumer):
     def connect(self):
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
+        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope.get("Sec-Websocket-Protocol")}
         self.accept(subprotocol=(None, headers))
 
     def disconnect(self, close_code):
         print("disconnect: " + str(close_code))
 
     def predict(self, query):
-        return f"{query} {len(query)}", ""
+        for i in range(0, 100):
+            yield ''.join(random.choices(string.ascii_lowercase, k=random.randint(3, 10)))
+            # mock the thinking time
+            time.sleep(random.uniform(0.1, 1))
