@@ -2,7 +2,7 @@ import json
 import config.settings as settings
 from datetime import datetime
 from typing import List
-from typing import Optional
+from typing import Optional, Dict, Type
 from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
@@ -14,13 +14,25 @@ from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
 from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus, \
-    VerifyWay, DatabaseTypes
+    VerifyWay
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
 from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query, elasticsearch_query
-
+from services.text2SQL.sql.sql import SQLBase
+from services.text2SQL.base import DataBase
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
+
+DEFAULT_DATABASE_TYPE_CLS: Dict[str, Type[DataBase]] = {
+    "mysql": SQLBase,
+    "postgresql": SQLBase,
+    "sqlite": SQLBase,
+    "oracle": SQLBase,
+    "redis": redis_query.Redis,
+    "mongo": mongo_query.Mongo,
+    "clickhouse": clickhouse_query.Clickhouse,
+    "elasticsearch": elasticsearch_query.ElasticsearchClient,
+}
 
 
 class CollectionIn(Schema):
@@ -36,9 +48,9 @@ class DocumentIn(Schema):
 
 
 class ConnectionInfo(Schema):
-    db_type: DatabaseTypes
+    db_type: str
     host: str
-    port: Optional[str]
+    port: Optional[int]
     db_name: Optional[str]
     username: Optional[str]
     password: Optional[str]
@@ -48,33 +60,25 @@ class ConnectionInfo(Schema):
     client_cert: Optional[str]
 
 
-def new_client(db_type, host, port):
-    if db_type == DatabaseTypes.REDIS:
-        return redis_query.Redis(host=host, port=port)
-    elif db_type == DatabaseTypes.MONGO:
-        # TODO:mongo collections
-        return mongo_query.Mongo(host=host, port=port, collection="")
-    elif db_type == DatabaseTypes.CLICKHOUSE:
-        return clickhouse_query.Clickhouse(host=host, port=port)
-    elif db_type == DatabaseTypes.ELASTICSEARCH:
-        return elasticsearch_query.ElasticsearchClient(host=host, port=port)
-    else:
-        # TODO:new sql Database
-        return
-
-
-@api.get("/collections/test_connection")
-def test_connection(request, connection: ConnectionInfo):
+@api.post("/collections/test_connection")
+def connection_test(request, connection: ConnectionInfo):
     verify = (connection.verify != VerifyWay.PREFERRED)
     host = connection.host
     db_type = connection.db_type
 
-    if db_type == "" or db_type not in DatabaseTypes:
+    if db_type == "" or db_type not in DEFAULT_DATABASE_TYPE_CLS.keys():
         return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
     if host == "":
         return fail(HTTPStatus.NOT_FOUND, "host not found")
 
-    client = new_client(db_type, host, connection.port)
+    new_client = DEFAULT_DATABASE_TYPE_CLS[db_type]
+    client = new_client(
+        host=host,
+        user=connection.username,
+        pwd=connection.password,
+        port=connection.port,
+        db_type=connection.db_type,
+    )
 
     if not client.connect(
             verify,
