@@ -1,7 +1,7 @@
 import unittest
-from services.text2SQL.nosql.redis_query import Redis
-from services.text2SQL.nosql.clickhouse_query import Clickhouse
-from services.text2SQL.nosql.mongo_query import Mongo
+from redis_query import Redis
+from clickhouse_query import Clickhouse
+from mongo_query import Mongo
 
 
 class TestRedis(unittest.TestCase):
