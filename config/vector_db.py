@@ -4,9 +4,10 @@ from vectorstore.connector import VectorStoreConnectorAdaptor
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
 
 
-def get_local_vector_db_connector(db_type: str) -> VectorStoreConnectorAdaptor:
+def get_local_vector_db_connector(db_type: str, collection: str) -> VectorStoreConnectorAdaptor:
     # todo: specify the collection for different user
-    return VectorStoreConnectorAdaptor(db_type, ctx={"url": "http://localhost", "port": 6333, "collection": "test"})
+    # one person one collection
+    return VectorStoreConnectorAdaptor(db_type, ctx={"url": "http://localhost", "port": 6333, "collection": collection})
 
 
-vector_db_connector = get_local_vector_db_connector(VECTOR_DB_TYPE)
+# vector_db_connector = get_local_vector_db_connector(VECTOR_DB_TYPE)

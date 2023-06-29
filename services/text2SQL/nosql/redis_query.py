@@ -1,7 +1,12 @@
+import logging
+from func_timeout import func_set_timeout
 from redis.client import Redis as RedisClient
 from typing import Optional
-from services.text2SQL.nosql.base import Nosql
+from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
+from langchain.llms.base import BaseLLM
+
+logger = logging.getLogger(__name__)
 
 _REDIS_PROMPT_TPL = (
     "Given an input question, first create a syntactically correct redis "
@@ -29,44 +34,53 @@ _DEFAULT_PROMPT = Prompt(
 )
 
 
-class Redis(Nosql):
+class Redis(DataBase):
     def __init__(
             self,
             host,
-            port,
+            user: Optional[str] = None,
             pwd: Optional[str] = None,
+            port: Optional[int] = 6379,
             db: Optional[int] = 0,
-            prompt: Optional[Prompt] = _DEFAULT_PROMPT
+            prompt: Optional[Prompt] = _DEFAULT_PROMPT,
+            llm: Optional[BaseLLM] = None,
+            db_type: Optional[str] = "redis",
     ):
-        super().__init__(host, port, pwd, prompt)
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
 
     def connect(
             self,
             verify: Optional[bool] = False,
-            ca_cert: Optional[str] = "",
-            client_key: Optional[str] = "",
-            client_cert: Optional[str] = "",
+            ca_cert: Optional[str] = None,
+            client_key: Optional[str] = None,
+            client_cert: Optional[str] = None,
     ):
         kwargs = {
             "ssl_ca_certs": ca_cert,
             "ssl_keyfile": client_key,
             "ssl_certfile": client_cert,
         }
-        self.conn = RedisClient(
-            host=self.host,
-            port=self.port,
-            db=self.db,
-            ssl=verify,
-            password=self.pwd,
-            decode_responses=True,
-            **kwargs,
-        )
+
+        @func_set_timeout(2)
+        def ping():
+            self.conn = RedisClient(
+                host=self.host,
+                port=self.port,
+                db=self.db,
+                ssl=verify,
+                password=self.pwd,
+                decode_responses=True,
+                **kwargs,
+            )
+            return self.conn.ping()
 
         try:
-            connected = self.conn.ping()
-        except ConnectionError:
+            connected = ping()
+        except BaseException as e:
             connected = False
+            logger.warning("connect to redis failed, err={}".format(e))
+
         return connected
 
     def text_to_query(self, text):

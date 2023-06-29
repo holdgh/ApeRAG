@@ -96,7 +96,7 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
                 reader_cls = DEFAULT_FILE_READER_CLS[input_file.suffix]
                 self.file_extractor[input_file.suffix] = reader_cls()
             reader = self.file_extractor[input_file.suffix]
-            docs = reader.load_data(input_file, extra_info=metadata)
+            docs = reader.load_data(input_file, metadata=metadata) # metadata for llama_index 0.6.35
             documents.extend(docs)
 
         return documents, input_file

@@ -1,7 +1,12 @@
+import logging
+from func_timeout import func_set_timeout
 from pymongo import MongoClient
 from typing import Optional
-from services.text2SQL.nosql.base import Nosql
+from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
+from langchain.llms.base import BaseLLM
+
+logger = logging.getLogger(__name__)
 
 _MONGODB_PROMPT_TPL = (
     "You are now an expert on mongodb，Given an input question, first create a syntactically correct MONGODB "
@@ -29,44 +34,53 @@ _DEFAULT_PROMPT = Prompt(
 )
 
 
-class Mongo(Nosql):
+class Mongo(DataBase):
     def __init__(
             self,
             host,
-            port,
-            collection,
-            pwd: Optional[str] = None,
-            db: Optional[str] = '',
-            prompt: Optional[Prompt] = _DEFAULT_PROMPT
+            user: Optional[str] = None,
+            pwd: Optional[str] = "",
+            port: Optional[int] = 27017,
+            db: Optional[str] = None,
+            collection: Optional[str] = None,
+            prompt: Optional[Prompt] = _DEFAULT_PROMPT,
+            llm: Optional[BaseLLM] = None,
+            db_type: Optional[str] = "mongo",
     ):
-        super().__init__(host, port, pwd, prompt)
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
         self.collection = collection
 
     def connect(
             self,
             verify: Optional[bool] = False,
-            ca_cert: Optional[str] = '',
-            client_key: Optional[str] = '',
-            client_cert: Optional[str] = ''):
+            ca_cert: Optional[str] = None,
+            client_key: Optional[str] = None,
+            client_cert: Optional[str] = None
+    ):
         kwargs = {
+            'directConnection': True,
             'ssl': verify,
-            "ssl_ca_cert": ca_cert,
-            "ssl_keyfile": client_key,
-            "ssl_certfile": client_cert,
+            "tlsCAFile": ca_cert,
+            "tlsCertificateKeyFile": client_key,
         }
-        if verify:
-            try:
-                self.conn = MongoClient("mongodb://" + self.host + ':' + self.port, **kwargs)
-                return True
-            except Exception as e:
-                return False
-        else:
-            try:
-                self.conn = MongoClient("mongodb://" + self.host + ':' + self.port)
-                return True
-            except Exception as e:
-                return False
+
+        @func_set_timeout(2)
+        def ping():
+            if self.user is not None:
+                self.conn = MongoClient("mongodb://" + self.user + ':' + self.pwd +
+                                        '@' + self.host + ':' + str(self.port), **kwargs)
+            else:
+                self.conn = MongoClient("mongodb://" + self.host + ':' + str(self.port), **kwargs)
+            return self.conn.admin.command("ping")
+
+        try:
+            connected = ping()
+        except BaseException as e:
+            connected = False
+            logger.warning("connect to mongo failed, err={}".format(e))
+
+        return connected
 
     def text_to_query(self, text):
         # Connect to the MongoDB database and collection
