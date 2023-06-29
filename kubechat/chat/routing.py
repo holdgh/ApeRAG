@@ -2,7 +2,8 @@ from django.urls import re_path
 from kubechat.utils.utils import extract_collection_and_chat_id
 from asgiref.sync import sync_to_async
 
-from . import consumers
+from document_qa_consumer import DocumentSizeConsumer, DocumentQAConsumer
+from text_2_sql_consumer import Text2SQLConsumer
 
 
 async def collection_consumer_router(scope, receive, send):
@@ -20,9 +21,9 @@ async def collection_consumer_router(scope, receive, send):
         raise Exception("Chat not found")
 
     if collection.type == CollectionType.DOCUMENT:
-        return await consumers.DocumentSizeConsumer.as_asgi()(scope, receive, send)
+        return await DocumentSizeConsumer.as_asgi()(scope, receive, send)
     elif collection.type == CollectionType.DATABASE:
-        return await consumers.Text2SQLConsumer.as_asgi()(scope, receive, send)
+        return await Text2SQLConsumer.as_asgi()(scope, receive, send)
     else:
         raise Exception("Invalid collection type")
 

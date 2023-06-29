@@ -12,17 +12,6 @@ from langchain.schema import HumanMessage, AIMessage
 logger = logging.getLogger(__name__)
 
 
-class EchoConsumer(WebsocketConsumer):
-    def connect(self):
-        self.accept()
-
-    def disconnect(self, close_code):
-        pass
-
-    def receive(self, text_data, **kwargs):
-        self.send(text_data=text_data)
-
-
 class DocumentQAConsumer(WebsocketConsumer):
 
     def connect(self):
@@ -124,25 +113,3 @@ class DocumentSizeConsumer(DocumentQAConsumer):
 
     def predict(self, query):
         return f"{query} {len(query)}", ""
-
-
-class Text2SQLConsumer(WebsocketConsumer):
-    def connect(self):
-        self.accept()
-
-    def disconnect(self, close_code):
-        pass
-
-    def receive(self, text_data, **kwargs):
-        self.send(text_data=text_data)
-
-
-class ChatBotConsumer(WebsocketConsumer):
-    def connect(self):
-        self.accept()
-
-    def disconnect(self, close_code):
-        pass
-
-    def receive(self, text_data, **kwargs):
-        self.send(text_data=text_data)
