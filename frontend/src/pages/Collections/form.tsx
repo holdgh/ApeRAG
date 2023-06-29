@@ -1,14 +1,24 @@
 import CheckedCard from '@/components/CheckedCard';
+import CollectionConfig from '@/components/CollectionConfig';
+import { CollectionType } from '@/models/collection';
 import { DatabaseOutlined, SnippetsOutlined } from '@ant-design/icons';
 import { Button, Form, FormInstance, Input } from 'antd';
+import { useEffect, useState } from 'react';
 
 type Props = {
-  type: "add" | "edit";
+  action: 'add' | 'edit';
+  type: CollectionType;
   onFinish: () => void;
   form: FormInstance;
 };
 
-export default ({ onFinish, form, type }: Props) => {
+export default ({ onFinish, form, action, type }: Props) => {
+  const [collectionType, setCollectionType] = useState<CollectionType>();
+
+  useEffect(() => {
+    setCollectionType(type);
+  }, [type]);
+
   return (
     <Form onFinish={onFinish} size="large" form={form} layout="vertical">
       <Form.Item
@@ -17,7 +27,7 @@ export default ({ onFinish, form, type }: Props) => {
         rules={[
           {
             required: true,
-            message: 'title is required.',
+            message: 'Title is required.',
           },
         ]}
       >
@@ -32,12 +42,13 @@ export default ({ onFinish, form, type }: Props) => {
         rules={[
           {
             required: true,
-            message: 'type is required.',
+            message: 'Type is required.',
           },
         ]}
       >
         <CheckedCard
-          disabled={type === 'edit'}
+          disabled={action === 'edit'}
+          onChange={(v) => setCollectionType(v as CollectionType)}
           options={[
             {
               icon: <SnippetsOutlined />,
@@ -55,9 +66,23 @@ export default ({ onFinish, form, type }: Props) => {
         />
       </Form.Item>
 
+      {collectionType === 'database' ? (
+        <Form.Item
+          name="config"
+          rules={[
+            {
+              required: true,
+              message: 'Database connection is required.',
+            },
+          ]}
+        >
+          <CollectionConfig />
+        </Form.Item>
+      ) : null}
+
       <Form.Item>
         <Button type="primary" htmlType="submit">
-          { type === "add" ? "Create" : "Update" }
+          {action === 'add' ? 'Create' : 'Update'}
         </Button>
       </Form.Item>
     </Form>

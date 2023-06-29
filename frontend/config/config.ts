@@ -35,6 +35,10 @@ export default defineConfig({
       changeOrigin: true,
     },
   },
+  locale: {
+    default: 'en-US',
+    antd: true,
+  },
   routes: [
     {
       path: '/',

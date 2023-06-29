@@ -31,6 +31,7 @@ const collections = [
     title: 'Sealos user manual',
     status: 'INACTIVE',
     type: 'database',
+    // config: '{"host": "asd"}',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
@@ -70,6 +71,12 @@ export default {
   // collections
   'GET /api/v1/collections': (req: any, res: any) => {
     res.json({ data: collections });
+  },
+  'POST /api/v1/collections/test_connection': (req: any, res: any) => {
+    res.json({ data: Boolean(_.random(1)) });
+  },
+  'POST /api/v1/collections/ca/upload': (req: any, res: any) => {
+    res.json({ data: String((new Date()).getTime()) });
   },
   'POST /api/v1/collections': (req: any, res: any) => {
     res.json({

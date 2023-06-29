@@ -57,12 +57,6 @@ export default ({
           onClick={() => {
             onClick(option);
           }}
-          style={{
-            borderColor:
-              currentValue === option.value
-                ? token.colorPrimary
-                : token.colorBorder,
-          }}
         >
           <Space className={styles.row}>
             <Space size="large">

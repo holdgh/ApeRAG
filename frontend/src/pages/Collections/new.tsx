@@ -20,7 +20,7 @@ export default () => {
   return (
     <PageContainer ghost>
       <Card bordered={false}>
-        <CollectionForm onFinish={onFinish} form={form} type="add" />
+        <CollectionForm onFinish={onFinish} form={form} type="document" action="add" />
       </Card>
     </PageContainer>
   );
