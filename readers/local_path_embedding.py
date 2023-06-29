@@ -9,7 +9,8 @@ from vectorstore.connector import VectorStoreConnectorAdaptor
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from llama_index.vector_stores.types import NodeWithEmbedding
-from llama_index.data_structs.node import Node, DocumentRelationship
+from llama_index.data_structs.data_structs import Node
+from llama_index.schema import RelatedNodeType
 
 
 class LocalPathEmbedding(DocumentBaseEmbedding):
@@ -45,10 +46,10 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     node=Node(
                         text=doc.text,
                         doc_id=doc.doc_id,
-                        relationships={DocumentRelationship.SOURCE: f"{file_name}"}),
+                        relationships={RelatedNodeType.SOURCE: f"{file_name}"}),
                     embedding=vector))
 
             count = count + 1
-            print(f"processed {count} files, current fiile is {file_name} ")
+            print(f"processed {count} files, current file is {file_name} ")
             self.connector.store.add(nodes)
 
