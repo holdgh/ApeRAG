@@ -23,7 +23,7 @@ class EchoConsumer(WebsocketConsumer):
         self.send(text_data=text_data)
 
 
-class KubeChatConsumer(WebsocketConsumer):
+class DocumentQAConsumer(WebsocketConsumer):
 
     def connect(self):
         from kubechat.index import init_index
@@ -112,7 +112,7 @@ class KubeChatConsumer(WebsocketConsumer):
         })
 
 
-class KubeChatEchoConsumer(KubeChatConsumer):
+class DocumentSizeConsumer(DocumentQAConsumer):
     def connect(self):
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
@@ -123,4 +123,26 @@ class KubeChatEchoConsumer(KubeChatConsumer):
         print("disconnect: " + str(close_code))
 
     def predict(self, query):
-        return query, ""
+        return f"{query} {len(query)}", ""
+
+
+class Text2SQLConsumer(WebsocketConsumer):
+    def connect(self):
+        self.accept()
+
+    def disconnect(self, close_code):
+        pass
+
+    def receive(self, text_data, **kwargs):
+        self.send(text_data=text_data)
+
+
+class ChatBotConsumer(WebsocketConsumer):
+    def connect(self):
+        self.accept()
+
+    def disconnect(self, close_code):
+        pass
+
+    def receive(self, text_data, **kwargs):
+        self.send(text_data=text_data)
