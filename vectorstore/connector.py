@@ -9,7 +9,7 @@ from vectorstore.milvus_connector import MilvusVectorStoreConnector
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
 from vectorstore.chroma_connector import ChromaVectorStoreConnector
 from vectorstore.weaviate_connector import WeaviateVectorStoreConnector
-from vectorstore.opensearch_connector import OpensearchVectorStoreConnector
+#from vectorstore.opensearch_connector import OpensearchVectorStoreConnector
 from vectorstore.base import VectorStoreConnector
 import qdrant_client
 
@@ -22,7 +22,7 @@ VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorSt
     # VectorStoreType.SUPABASE: SupabaseVectorStoreConnector,
     VectorStoreType.MILVUS: MilvusVectorStoreConnector,
     # VectorStoreType.PINECONE: PineconeVectorStoreConnector,
-    VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
+    #VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
     # VectorStoreType.FAISS: FaissVectorStoreConnector,
     VectorStoreType.CHROMA: ChromaVectorStoreConnector,
     # VectorStoreType.CHATGPT_PLUGIN: ChatGPTRetrievalPluginClientConnector,

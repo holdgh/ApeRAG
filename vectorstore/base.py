@@ -4,7 +4,9 @@ from llama_index.vector_stores.types import VectorStore
 from llama_index.embeddings.base import BaseEmbedding
 from query.query import (
     QueryWithEmbedding,
-    QueryResult
+    QueryResult,
+    DocumentMetadataFilter,
+    DocumentChunk
 )
 
 
@@ -18,3 +20,4 @@ class VectorStoreConnector(ABC):
     @abstractmethod
     def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass
+

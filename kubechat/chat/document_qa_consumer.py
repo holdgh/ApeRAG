@@ -12,22 +12,10 @@ from langchain.schema import HumanMessage, AIMessage
 logger = logging.getLogger(__name__)
 
 
-class EchoConsumer(WebsocketConsumer):
-    def connect(self):
-        self.accept()
-
-    def disconnect(self, close_code):
-        pass
-
-    def receive(self, text_data, **kwargs):
-        self.send(text_data=text_data)
-
-
-class KubeChatConsumer(WebsocketConsumer):
+class DocumentQAConsumer(WebsocketConsumer):
 
     def connect(self):
         from kubechat.index import init_index
-        from kubechat.models import CollectionType, CollectionStatus
         from kubechat.utils.db import query_collection, query_chat
 
         user = self.scope["X-USER-ID"]
@@ -41,10 +29,7 @@ class KubeChatConsumer(WebsocketConsumer):
             raise Exception("Chat not found")
 
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        if collection.type == CollectionType.DATABASE:
-            pass
-        else:
-            self.index = init_index(collection_id)
+        self.index = init_index(collection_id)
 
         headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
         self.accept(subprotocol=(None, headers))
@@ -112,7 +97,7 @@ class KubeChatConsumer(WebsocketConsumer):
         })
 
 
-class KubeChatEchoConsumer(KubeChatConsumer):
+class DocumentSizeConsumer(DocumentQAConsumer):
     def connect(self):
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
@@ -123,4 +108,4 @@ class KubeChatEchoConsumer(KubeChatConsumer):
         print("disconnect: " + str(close_code))
 
     def predict(self, query):
-        return query, ""
+        return f"{query} {len(query)}", ""
