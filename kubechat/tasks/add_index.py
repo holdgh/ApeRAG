@@ -64,28 +64,6 @@ def add_index_for_document(document_id) -> bool:
     document.save()
     return True
 
-
-def persistent_in_vector_db(document, vector_store_db: Optional[VectorStoreConnector] = None) -> bool:
-    """
-    persistent the document in the vector db
-    :param vector_store_db: vector store conn
-    :param document:
-    :return
-    """
-    if vector_store_db is None:
-        return False
-    storage_context = StorageContext.from_defaults(vector_store=vector_store_db.store)
-    service_context = ServiceContext.from_defaults(
-        chunk_size=2048,
-        chunk_overlap=200,
-        llm=FakeListLLM(responses=["fake"]),
-    )
-    VectorStoreIndex.from_documents(
-        document, service_context=service_context, storage_context=storage_context
-    )
-    return True
-
-
 @app.task
 def remove_index(doc):
     """
