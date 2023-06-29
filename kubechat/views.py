@@ -7,9 +7,10 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
-from kubechat.tasks.add_index import add_index_for_document
+from kubechat.tasks.add_index import add_index_for_document, remove_index
 from kubechat.auth.validator import GlobalAuth
-from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, query_chats
+from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
+    query_chats
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
 from .models import Collection, CollectionStatus, \
@@ -18,6 +19,7 @@ from .models import Collection, CollectionStatus, \
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
 from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query, elasticsearch_query
+
 from services.text2SQL.sql.sql import SQLBase
 from services.text2SQL.base import DataBase
 
@@ -204,9 +206,7 @@ def delete_document(request, collection_id, document_id):
     document = query_document(user, collection_id, document_id)
     if document is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
-    document.status = DocumentStatus.DELETED
-    document.gmt_deleted = datetime.now()
-    document.save()
+    remove_index.delay(document_id)
     return success(document.view())
 
 

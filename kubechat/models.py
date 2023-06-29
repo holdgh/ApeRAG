@@ -70,6 +70,7 @@ class Document(models.Model):
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)
     size = models.BigIntegerField()
     file = models.FileField(upload_to=user_document_path)
+    relate_ids = models.CharField(max_length=4096)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)

@@ -2,9 +2,9 @@ from django.urls import re_path
 from kubechat.utils.utils import extract_collection_and_chat_id
 from asgiref.sync import sync_to_async
 
-from document_qa_consumer import DocumentSizeConsumer, DocumentQAConsumer
-from text_2_sql_consumer import Text2SQLConsumer
-from chat_bot_consumer import ChatBotConsumer
+from .document_qa_consumer import DocumentSizeConsumer, DocumentQAConsumer
+from .text_2_sql_consumer import Text2SQLConsumer
+from .chat_bot_consumer import ChatBotConsumer
 
 
 async def collection_consumer_router(scope, receive, send):

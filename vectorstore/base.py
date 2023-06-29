@@ -14,10 +14,13 @@ class VectorStoreConnector(ABC):
     def __init__(self, ctx: Dict[str, Any], **kwargs: Any) -> None:
         self.ctx = ctx
         self.client = None
-        self.embedding : BaseEmbedding = None
-        self.store : VectorStore = None
+        self.embedding: BaseEmbedding = None
+        self.store: VectorStore = None
 
     @abstractmethod
     def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass
 
+    @abstractmethod
+    def delete(self, **delete_kwargs: Any):
+        pass

@@ -1,22 +1,20 @@
+from datetime import datetime
 import logging
-from typing import Optional
 
-from config.celery import app
-from langchain.llms import FakeListLLM
-from llama_index import SimpleDirectoryReader, StorageContext, ServiceContext
-
-from config.vector_db import vector_db_connector
-from kubechat.models import Document, DocumentStatus
-from llama_index import VectorStoreIndex, download_loader
-from llama_index.readers.schema.base import Document as lla_doc
 from celery import Task
+from config.celery import app
 
+from config.settings import VECTOR_DB_TYPE
+from config.vector_db import get_local_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
-from vectorstore.base import VectorStoreConnector
+
+from kubechat.models import Document, DocumentStatus
 
 status = DocumentStatus
 logger = logging.getLogger(__name__)
 
+def generate_qdrant_collection_id(user, collection) -> str:
+    return str(user).replace('|', '-') + "-" + str(collection)
 
 class CustomLoadDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
@@ -52,8 +50,12 @@ def add_index_for_document(document_id) -> bool:
     document.save()
     try:
         loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
-                                    vector_store_adaptor=vector_db_connector)
-        loader.load_data()
+                                    vector_store_adaptor=get_local_vector_db_connector(VECTOR_DB_TYPE,
+                                                                                       collection=generate_qdrant_collection_id(
+                                                                                           user=document.user,
+                                                                                           collection=document.collection.id)))
+        ids = loader.load_data()
+        document.relate_ids = ",".join(ids)
     except Exception as e:
         document.status = status.FAILED
         document.save()
@@ -64,17 +66,31 @@ def add_index_for_document(document_id) -> bool:
     document.save()
     return True
 
+
 @app.task
-def remove_index(doc):
+def remove_index(document_id) -> bool:
     """
     remove the doc embedding index from vector store db
     :param doc:
     :return:
     """
-    if doc.status == status.DELETED:
-        pass
-    doc.status = status.RUNNING
-    loader = SimpleDirectoryReader(
-        doc, recursive=True, exclude_hidden=False
-    )
-    documents = loader.load_data()
+    document = Document.objects.get(id=document_id)
+    document.status = status.RUNNING
+    document.save()
+
+    try:
+        logger.debug(f"document id: {document.file.name}")
+        logger.debug(f"qdrant points id to delete {document.relate_ids}")
+        vector_db = get_local_vector_db_connector(VECTOR_DB_TYPE,
+                                                  collection=generate_qdrant_collection_id(user=document.user,
+                                                                                           collection=document.collection.id))
+        vector_db.connector.delete(ids=str(document.relate_ids).split(','))
+        document.status = DocumentStatus.DELETED
+        document.gmt_deleted = datetime.now()
+        document.save()
+        logger.debug(f"index delete from vector db success")
+    except Exception as e:
+        document.status = status.FAILED
+        document.save()
+        logger.error(f"index delete from vector db failed:{e}")
+        return False
