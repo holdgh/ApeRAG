@@ -16,7 +16,6 @@ class DocumentQAConsumer(WebsocketConsumer):
 
     def connect(self):
         from kubechat.index import init_index
-        from kubechat.models import CollectionType, CollectionStatus
         from kubechat.utils.db import query_collection, query_chat
 
         user = self.scope["X-USER-ID"]
@@ -30,10 +29,7 @@ class DocumentQAConsumer(WebsocketConsumer):
             raise Exception("Chat not found")
 
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        if collection.type == CollectionType.DATABASE:
-            pass
-        else:
-            self.index = init_index(collection_id)
+        self.index = init_index(collection_id)
 
         headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
         self.accept(subprotocol=(None, headers))
