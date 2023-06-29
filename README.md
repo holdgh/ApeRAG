@@ -67,3 +67,4 @@ make run-frontend
 * [ ] 补充API测试用例
 * [ ] 支持chat bot
 * [ ] 源数据库替换为PG
+* [ ] 聊天支持流式返回

@@ -20,7 +20,14 @@ logger = logging.getLogger(__name__)
 class CustomLLM(LLM):
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs) -> str:
-        return requests.post(settings.MODEL_SERVER, prompt).text
+        input = {
+            "prompt": prompt,
+            "temperature": 0,
+            "max_new_tokens": 2048,
+            "model": "vicuna-13b",
+            # "stop":  "\nSQLResult:"
+        }
+        return requests.post(settings.MODEL_SERVER, input).text
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
@@ -37,7 +44,7 @@ def init_index(collection_id: str | int) -> VectorStoreIndex:
     logger.info(f"init index for collection {collection_id}")
 
     if collection.status == CollectionStatus.ACTIVE:
-        client = qdrant_client.QdrantClient(url=settings.QDRANT_URL)
+        client = qdrant_client.QdrantClient(url="http://127.0.0.1:6333")
 
         service_context = ServiceContext.from_defaults(
             llm=CustomLLM(),
