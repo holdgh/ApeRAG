@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 
 class CustomLoadDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
-        print("异步任务成功")
-        return super(CustomTask, self).on_success(retval, task_id, args, kwargs)
+        print("task successed!")
+        return super(CustomLoadDocumentTask, self).on_success(retval, task_id, args, kwargs)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        print("异步任务失败")
-        return super(CustomTask, self).on_failure(exc, task_id, args, kwargs, einfo)
+        print("task failed!")
+        return super(CustomLoadDocumentTask, self).on_failure(exc, task_id, args, kwargs, einfo)
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
         print(retval)
-        return super(CustomTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
+        return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
 
 @app.task(base=CustomLoadDocumentTask)
@@ -51,7 +51,8 @@ def add_index_for_document(document_id) -> bool:
     document.status = status.RUNNING
     document.save()
     try:
-        loader = LocalPathEmbedding(input_dir=document.file, vector_store_adaptor=vector_db_connector)
+        loader = LocalPathEmbedding(input_dir=document.file.name, embedding_config={"model_type": "huggingface"},
+                                    vector_store_adaptor=vector_db_connector)
         loader.load_data()
     except Exception as e:
         document.status = status.FAILED
