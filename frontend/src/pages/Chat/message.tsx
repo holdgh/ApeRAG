@@ -1,7 +1,7 @@
-import { Message, MessageStatus } from '@/models/chat';
+import { Message } from '@/models/chat';
 import { getUser } from '@/models/user';
 import { RobotOutlined } from '@ant-design/icons';
-import { Avatar, Skeleton, Space, Tag, Typography, theme } from 'antd';
+import { Avatar, Space, Tag, theme } from 'antd';
 import classNames from 'classnames';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -12,13 +12,7 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
-export default ({
-  item,
-  status = 'normal',
-}: {
-  item: Message;
-  status: MessageStatus;
-}) => {
+export default ({ item }: { item: Message }) => {
   const user = getUser();
   const { token } = theme.useToken();
 
@@ -28,7 +22,10 @@ export default ({
   const renderAvatar = () => {
     const size = 42;
     const AiAvatar = (
-      <Avatar size={size} style={{ minWidth: size, background: token.colorWarning }}>
+      <Avatar
+        size={size}
+        style={{ minWidth: size, background: token.colorWarning }}
+      >
         <RobotOutlined />
       </Avatar>
     );
@@ -36,7 +33,7 @@ export default ({
       <Avatar style={{ minWidth: size }} size={size} src={user?.picture} />
     );
     return item.role === 'ai' ? AiAvatar : HummanAvatar;
-  }
+  };
 
   const MarkdownElement = (
     <ReactMarkdown
@@ -60,13 +57,7 @@ export default ({
       {item.data}
     </ReactMarkdown>
   );
-  const LoadingElement = (
-    <Skeleton style={{ marginTop: 16 }} active paragraph={{ rows: 0 }} />
-  );
-  const ErrorElement = (
-    <Typography.Text type="danger">response error</Typography.Text>
-  );
-  
+
   const MessageInfoElement = (
     <Space
       className={styles.messageInfo}
@@ -90,17 +81,13 @@ export default ({
       <div
         className={classNames({
           [styles.message]: true,
-          [styles.loading]: status === 'loading',
-          [styles.error]: status === 'error',
         })}
       >
         <div
           className={styles.messageContent}
           style={{ background: msgBgColor }}
         >
-          {status === 'normal' ? MarkdownElement : null}
-          {status === 'loading' ? LoadingElement : null}
-          {status === 'error' ? ErrorElement : null}
+          {MarkdownElement}
         </div>
         {MessageInfoElement}
       </div>

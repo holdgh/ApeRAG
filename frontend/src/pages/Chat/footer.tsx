@@ -1,29 +1,28 @@
-import { MessageStatus, SocketStatus } from '@/models/chat';
+import { SocketStatus } from '@/models/chat';
 import {
   ArrowRightOutlined,
   ClearOutlined,
-  LoadingOutlined,
 } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
 type Props = {
-  socketStatus: SocketStatus;
-  messageStatus: MessageStatus;
+  status: SocketStatus;
+  loading: boolean;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
 
 export default ({
-  socketStatus,
-  messageStatus,
+  status,
+  loading,
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
   const [message, setMessage] = useState<string>('');
-  const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
-  // const disabled = false;
+  // const disabled = loading || status !== 'Connected';
+  const disabled = false;
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);
