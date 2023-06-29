@@ -57,12 +57,6 @@ export default ({
           onClick={() => {
             onClick(option);
           }}
-          style={{
-            borderColor:
-              currentValue === option.value
-                ? token.colorPrimary
-                : token.colorBorder,
-          }}
         >
           <Space className={styles.row}>
             <Space size="large">
@@ -80,12 +74,10 @@ export default ({
                 ) : null}
               </Space>
             </Space>
-            {currentValue === option.value ? (
-              <CheckOutlined
-                className={styles.icon}
-                style={{ color: token.colorPrimary }}
-              />
-            ) : null}
+            <CheckOutlined
+              className={styles.icon}
+              style={{ color: token.colorPrimary }}
+            />
           </Space>
         </Card>
       ))}

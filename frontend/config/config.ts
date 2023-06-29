@@ -35,6 +35,10 @@ export default defineConfig({
       changeOrigin: true,
     },
   },
+  locale: {
+    default: 'en-US',
+    antd: true,
+  },
   routes: [
     {
       path: '/',
@@ -71,7 +75,7 @@ export default defineConfig({
           routes: [
             {
               name: 'Documents',
-              path: '/collections/:collectionId/documents',
+              path: '/collections/:collectionId/document',
               component: './Documents/list',
             },
             {
