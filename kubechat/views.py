@@ -1,4 +1,6 @@
 import json
+import uuid
+import os
 import config.settings as settings
 from datetime import datetime
 from typing import List
@@ -8,7 +10,6 @@ from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
 from kubechat.tasks.index import add_index_for_document, remove_index
-from kubechat.auth.validator import GlobalAuth
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
     query_chats
 from kubechat.utils.request import get_user, success, fail
@@ -25,16 +26,16 @@ from services.text2SQL.base import DataBase
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
 
-# DEFAULT_DATABASE_TYPE_CLS: Dict[str, Type[DataBase]] = {
-#     "mysql": SQLBase,
-#     "postgresql": SQLBase,
-#     "sqlite": SQLBase,
-#     "oracle": SQLBase,
-#     "redis": redis_query.Redis,
-#     "mongo": mongo_query.Mongo,
-#     "clickhouse": clickhouse_query.Clickhouse,
-#     "elasticsearch": elasticsearch_query.ElasticsearchClient,
-# }
+DEFAULT_DATABASE_TYPE_CLS: Dict[str, Type[DataBase]] = {
+    "mysql": SQLBase,
+    "postgresql": SQLBase,
+    "sqlite": SQLBase,
+    "oracle": SQLBase,
+    "redis": redis_query.Redis,
+    "mongo": mongo_query.Mongo,
+    "clickhouse": clickhouse_query.Clickhouse,
+    "elasticsearch": elasticsearch_query.ElasticsearchClient,
+}
 
 
 class CollectionIn(Schema):
@@ -60,6 +61,19 @@ class ConnectionInfo(Schema):
     ca_cert: Optional[str]
     client_key: Optional[str]
     client_cert: Optional[str]
+
+
+@api.post("/collections/ca/upload")
+def ca_upload(request, file: UploadedFile = File(...)):
+    file_name = uuid.uuid4().hex
+    _, file_extension = os.path.splitext(file.name)
+    if file_extension not in ["pem", "key", "crt", "csr"]:
+        fail(HTTPStatus.NOT_FOUND, "file extension not found")
+
+    with open(file_name+file_extension, "wb+") as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+    return success(file_name+file_extension)
 
 
 @api.post("/collections/test_connection")
