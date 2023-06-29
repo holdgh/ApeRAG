@@ -44,8 +44,9 @@ class Redis(DataBase):
             db: Optional[int] = 0,
             prompt: Optional[Prompt] = _DEFAULT_PROMPT,
             llm: Optional[BaseLLM] = None,
+            db_type: Optional[str] = "redis",
     ):
-        super().__init__(host, port, user, pwd, prompt, "redis", llm)
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
 
     def connect(

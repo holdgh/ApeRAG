@@ -45,8 +45,9 @@ class Mongo(DataBase):
             collection: Optional[str] = None,
             prompt: Optional[Prompt] = _DEFAULT_PROMPT,
             llm: Optional[BaseLLM] = None,
+            db_type: Optional[str] = "mongo",
     ):
-        super().__init__(host, port, user, pwd, prompt, "mongo", llm)
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
         self.collection = collection
 

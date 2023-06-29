@@ -44,8 +44,9 @@ class Clickhouse(DataBase):
         db: Optional[str] = None,
         prompt: Optional[Prompt] = _DEFAULT_PROMPT,
         llm: Optional[BaseLLM] = None,
+        db_type: Optional[str] = "clickhouse",
     ):
-        super().__init__(host, port, user, pwd, prompt, "clickhouse", llm)
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.user = user
         self.db = db
 
