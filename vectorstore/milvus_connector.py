@@ -4,6 +4,10 @@ from llama_index.vector_stores import qdrant, MilvusVectorStore
 from llama_index.embeddings import google
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
+from query.query import (
+    QueryWithEmbedding,
+    QueryResult
+)
 
 from pymilvus import (
     connections,
@@ -20,15 +24,19 @@ class MilvusVectorStoreConnector(VectorStoreConnector):
         self.ctx = ctx
         self.collection_name = ctx.get("collection", "collection")
 
-        self.url = ctx.get("url", "http://localhost")
+        self.host = ctx.get("host", "localhost")
         self.port = ctx.get("port", 19530)
-        self.grpc_port = ctx.get("grpc_port", 6334)
-        self.prefer_grpc = ctx.get("prefer_grpc", False)
-        self.https = ctx.get("https", False)
-        self.timeout = ctx.get("timeout", 300)
-        self.vector_size = ctx.get("vector_size", 1536)
+        self.user = ctx.get("user", "")
+        self.password = ctx.get("password", "")
+        self.alias = f"{self.host}:{self.port}"
 
-        self.client = connections.connect("default", host="localhost", port="19530")
+        connections.connect(self.alias, host=self.host, port=self.port)
         print("connect successful")
+
+        # be careful that connections is a single instance in pymilvus
+        self.client = connections
         self.embedding = ctx.get("embedding", google.GoogleUnivSentEncoderEmbedding)
         self.store = MilvusVectorStore(client=self.client, collection_name=self.collection_name)
+
+    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
+        pass

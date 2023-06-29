@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "server"}]
 
 [tool.poetry.dependencies]
-python = "==3.11.4"
+python = "==3.11.3"
 langchain = "^0.0.206"
 llama-index = "^0.6.29"
 uvicorn = "^0.22.0"
@@ -43,7 +43,7 @@ redis = "^4.6.0"
 pymongo = "^4.4.0"
 elasticsearch = "^8.8.0"
 weaviate-client = "^3.21.0"
-socksio = "^1.0.0"
+arrow = "^1.2.3"
 
 [build-system]
 requires = ["poetry-core"]

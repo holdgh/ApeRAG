@@ -4,6 +4,10 @@ from llama_index.vector_stores.weaviate import WeaviateVectorStore
 from weaviate import Client
 from vectorstore.base import VectorStoreConnector
 from llama_index.vector_stores.utils import DEFAULT_TEXT_KEY
+from query.query import (
+    QueryWithEmbedding,
+    QueryResult
+)
 
 
 class WeaviateVectorStoreConnector(VectorStoreConnector):
@@ -35,3 +39,6 @@ class WeaviateVectorStoreConnector(VectorStoreConnector):
             index_name=self.index_name,
             text_key=self.text_key,
         )
+
+    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
+        pass

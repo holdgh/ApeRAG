@@ -1,12 +1,14 @@
-
+import time
 from typing import cast
 
+from llama_index.schema import TextNode
+from llama_index.vector_stores.types import VectorStoreQuery, NodeWithEmbedding
 from pymilvus import MilvusClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance,VectorParams
 from qdrant_client.http.exceptions import UnexpectedResponse
-from chromadb import Client as ChromaClient
-from weaviate import Client as WeaviateClient
+from llama_index.vector_stores.opensearch import OpensearchVectorClient, OpensearchVectorStore
+
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from pymilvus import (
     connections,
@@ -26,6 +28,52 @@ def test_qdrant_connector():
         client.create_collection(collection_name="test", vectors_config=VectorParams(size=100, distance=Distance.COSINE))
 
     print(c.connector.client.get_collections())
+
+
+def test_opensearch_connector():
+    ctx = {"url": "https://localhost", "port": 9200, "index": "test", "vector_size": 300}
+    auth = {
+        "verify": False,  # Disable SSL verification
+        "basic_auth": ("admin", "admin"),  # The default username/password for the OpenSearch docker image
+    }
+    # auth = {}
+    c = VectorStoreConnectorAdaptor("opensearch", ctx, auth=auth)
+    client = cast(OpensearchVectorClient, c.connector.client)
+
+    # Initialize an OpensearchVectorStore instance
+    vector_store = OpensearchVectorStore(client=client)
+
+    # Create some sample embedding results
+    embedding_results = [
+        NodeWithEmbedding(
+            node=TextNode(text="Sample text 1", id_="1"),
+            embedding=[0.2 + i / 10.0 for i in range(300)],
+        ),
+        NodeWithEmbedding(
+            node=TextNode(text="Sample text 2", id_="2"),
+            embedding=[0.3 + i / 10.0 for i in range(300)],
+        ),
+        # Add more embedding results as needed
+    ]
+
+    # Test adding embedding results to the index
+    vector_store.add(embedding_results)
+
+    # Test querying the index to ensure the added embeddings are present
+    query_embedding = [0.2 + i / 10.0 for i in range(300)]
+    query = VectorStoreQuery(query_embedding=query_embedding, similarity_top_k=2)
+    query_result = vector_store.query(query)
+    assert len(query_result.ids) == len(embedding_results)  # Ensure all added embeddings are retrieved
+
+    # Test deleting a document from the index
+    ref_doc_id = "1"
+    vector_store.delete(ref_doc_id)
+    time.sleep(5)  # Wait until the deletion is ok
+
+    # Test querying the index again to ensure the deleted document is no longer present
+    query_result = vector_store.query(query)
+    assert ref_doc_id not in query_result.ids  # Ensure the deleted document is not retrieved
+
 
 def test_milvus_connector():
     ctx = {"url":"http://localhost", "port":19530, "collection":"test"}

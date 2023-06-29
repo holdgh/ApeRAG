@@ -1,5 +1,6 @@
 """Simple reader that reads files of different formats from a directory."""
 import logging
+import os
 from typing import Callable, Dict, Generator, List, Optional, Type
 
 from llama_index.readers.base import BaseReader
@@ -39,17 +40,17 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
     """
 
     def __init__(
-        self,
-        input_dir: Optional[str] = None,
-        input_files: Optional[List] = None,
-        exclude: Optional[List] = None,
-        exclude_hidden: bool = True,
-        errors: str = "ignore",
-        recursive: bool = False,
-        required_exts: Optional[List[str]] = None,
-        file_extractor: Optional[Dict[str, BaseReader]] = None,
-        num_files_limit: Optional[int] = None,
-        file_metadata: Optional[Callable[[str], Dict]] = None,
+            self,
+            input_dir: Optional[str] = None,
+            input_files: Optional[List] = None,
+            exclude: Optional[List] = None,
+            exclude_hidden: bool = True,
+            errors: str = "ignore",
+            recursive: bool = False,
+            required_exts: Optional[List[str]] = None,
+            file_extractor: Optional[Dict[str, BaseReader]] = None,
+            num_files_limit: Optional[int] = None,
+            file_metadata: Optional[Callable[[str], Dict]] = None,
     ) -> None:
         """Initialize with parameters."""
         super().__init__(
@@ -65,7 +66,7 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             file_metadata,
         )
 
-        self.process_files = self.input_files
+        self.process_files = self.input_files or self.phase_dir()
 
     def load_data(self) -> {List[Document], str}:
         """Load data from the input directory.
@@ -80,7 +81,6 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
 
         """
         documents = []
-
         if not self.process_files:
             return documents, ""
 
@@ -96,7 +96,17 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
                 reader_cls = DEFAULT_FILE_READER_CLS[input_file.suffix]
                 self.file_extractor[input_file.suffix] = reader_cls()
             reader = self.file_extractor[input_file.suffix]
-            docs = reader.load_data(input_file, extra_info=metadata)
+            docs = reader.load_data(input_file, metadata=metadata) # metadata for llama_index 0.6.35
             documents.extend(docs)
 
         return documents, input_file
+
+    def phase_dir(self) -> List:
+        files = []
+        if not self.input_dir:
+            return files
+        try:
+            files = os.listdir(self.input_dir)
+            return files
+        except Exception as e:
+            logger.error(f"phase dir failed: {e}")

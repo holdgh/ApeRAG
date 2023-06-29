@@ -1,7 +1,12 @@
+import logging
+from func_timeout import func_set_timeout
 import clickhouse_connect
 from typing import Optional
-from services.text2SQL.nosql.base import Nosql
+from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
+from langchain.llms.base import BaseLLM
+
+logger = logging.getLogger(__name__)
 
 _CLICKHOUSE_PROMPT_TPL = (
     "Given an input question, first create a syntactically correct clickhouse "
@@ -29,34 +34,60 @@ _DEFAULT_PROMPT = Prompt(
 )
 
 
-class Clickhouse(Nosql):
+class Clickhouse(DataBase):
     def __init__(
         self,
         host,
-        port,
-        username: Optional[str] = "default",
-        pwd: Optional[str] = "",
+        user: Optional[str] = "default",
+        pwd: Optional[str] = None,
+        port: Optional[int] = 8123,
         db: Optional[str] = None,
         prompt: Optional[Prompt] = _DEFAULT_PROMPT,
+        llm: Optional[BaseLLM] = None,
+        db_type: Optional[str] = "clickhouse",
     ):
-        super().__init__(host, port, pwd, prompt)
-        self.username = username
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
+        self.user = user
         self.db = db
 
-    def connect(self):
-        self.conn = clickhouse_connect.get_client(
-            host=self.host,
-            port=self.port,
-            database=self.db,
-            username=self.username,
-            password=self.pwd,
-        )
+    def connect(
+            self,
+            verify: Optional[bool] = False,
+            ca_cert: Optional[str] = None,
+            client_key: Optional[str] = None,
+            client_cert: Optional[str] = None,
+    ):
+        kwargs = {
+            "verify": verify,
+            "ca_cert": ca_cert,
+            "client_cert_key": client_key,
+            "client_cert": client_cert,
+        }
+
+        @func_set_timeout(2)
+        def ping():
+            self.conn = clickhouse_connect.get_client(
+                host=self.host,
+                port=self.port,
+                database=self.db,
+                username=self.user,
+                password=self.pwd,
+                **kwargs
+            )
+            return self.conn.ping()
+
+        try:
+            connected = ping()
+        except BaseException as e:
+            connected = False
+            logger.warning("connect to clickhouse failed, err={}".format(e))
+
+        return connected
 
     # get the schemas of all tables in the database
     # and do query
     def text_to_query(self, text):
         tables = self.conn.command("show tables")
-        print(tables)
         tables = tables.splitlines()
         schema = ""
         i = 1

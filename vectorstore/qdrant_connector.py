@@ -3,7 +3,24 @@ from typing import Any, Dict, List, Optional
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 import qdrant_client
 from qdrant_client.models import Distance,VectorParams
+from qdrant_client.http.models import (
+    ScoredPoint,
+    SearchRequest,
+    Filter,
+    FieldCondition,
+    Field,
+    MatchValue,
+    Range
+)
 from vectorstore.base import VectorStoreConnector
+from query.query import (
+    QueryWithEmbedding,
+    DocumentWithScore,
+    DocumentMetadataFilter,
+    DocumentChunk,
+    QueryResult,
+    QueryRequest
+)
 
 
 class QdrantVectorStoreConnector(VectorStoreConnector):
@@ -38,3 +55,45 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
             client=self.client,
             collection_name=self.collection_name,
             vectors_config=VectorParams(size=self.vector_size, distance=self.distance))
+
+    def search(self,
+               query: QueryWithEmbedding,
+               **kwargs):
+
+        limit = kwargs.get("limit", 3)
+        consistency = kwargs.get("consistency", "majority")
+        search_params = kwargs.get("search_params")
+
+        hits = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=query.embedding,
+            with_vectors=True,
+            limit=query.top_k,
+            consistency=consistency,
+            search_params=search_params,
+        )
+
+        return QueryResult(
+            query=query.query,
+            results=[
+                self._convert_scored_point_to_document_with_score(point)
+                for point in hits
+            ],
+        )
+
+    def _convert_scored_point_to_document_with_score(
+            self, scored_point: ScoredPoint
+    ) -> DocumentWithScore:
+        payload = scored_point.payload or {}
+        return DocumentWithScore(
+            id=payload.get("id"),
+            text=scored_point.payload.get("text"),  # type: ignore
+            metadata=scored_point.payload.get("metadata"),  # type: ignore
+            embedding=scored_point.vector,  # type: ignore
+            score=scored_point.score,
+        )
+
+    def delete(self, **delete_kwargs: Any):
+        ids = delete_kwargs.get("ids")
+        for doc_id in ids:
+            self.store.delete(ref_doc_id=doc_id, **delete_kwargs)
