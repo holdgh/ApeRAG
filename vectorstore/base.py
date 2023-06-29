@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 from llama_index.vector_stores.types import VectorStore
 from llama_index.embeddings.base import BaseEmbedding
+from query.query import (
+    QueryWithEmbedding,
+    QueryResult
+)
 
 
 class VectorStoreConnector(ABC):
@@ -12,5 +16,5 @@ class VectorStoreConnector(ABC):
         self.store : VectorStore = None
 
     @abstractmethod
-    def search(self, **kwargs):
+    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass
