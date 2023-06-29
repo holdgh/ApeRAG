@@ -5,6 +5,8 @@ from llama_index.prompts.base import Prompt
 import os
 import json
 import requests
+import logging
+import urllib3
 
 _ELASTICSEARCH_PROMPT_TPL = (
     "Given an input question, first create a syntactically correct Elasticsearch "
@@ -44,8 +46,38 @@ class ElasticsearchClient(Nosql):
         super().__init__(host, port, pwd, prompt)
         self.scheme = scheme
 
-    def connect(self):
-        self.conn = Elasticsearch([{'host': self.host, 'port': self.port, 'scheme': self.scheme}])
+    def connect(
+            self,
+            verify: Optional[bool] = False,
+            ca_cert: Optional[str] = '',
+            client_key: Optional[str] = '',
+            client_cert: Optional[str] = ''
+    ) -> bool:
+        kwargs = {
+            "verify_certs": verify,
+            "ca_certs": ca_cert,
+            "client_key": client_key,
+            "client_cert": client_cert,
+        }
+        if verify:
+            try:
+                self.conn = Elasticsearch(
+                    [{'host': self.host, 'port': self.port, 'scheme': 'https'}],
+                    **kwargs
+                )
+                return True
+            except Exception as e:
+                print(f"Failed to connect to Elasticsearch: {e}")
+                return False
+        else:
+            try:
+                self.conn = Elasticsearch(
+                    [{'host': self.host, 'port': self.port, 'scheme': self.scheme}]
+                )
+                return True
+            except Exception as e:
+                print(f"Failed to connect to Elasticsearch: {e}")
+                return False
 
     def text_to_query(self, text):
         indices = self.conn.indices.get_alias(index="*")  # 获取所有索引
@@ -96,9 +128,9 @@ class ElasticsearchClient(Nosql):
 
 
 if __name__ == "__main__":
-    os.environ['OPENAI_API_KEY'] = "sk-xxx"
+    os.environ['OPENAI_API_KEY'] = "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"
     es = ElasticsearchClient("localhost", 9200)
-    es.connect()
+    print(es.connect(verify= True))
     q = es.text_to_query("search for all docs in the index 'bank' ")
     print(q)
     # print(es.execute_query(q))
