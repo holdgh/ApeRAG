@@ -7,7 +7,7 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
-from kubechat.tasks.add_index import add_index_for_document, remove_index
+from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.auth.validator import GlobalAuth
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
     query_chats
@@ -25,16 +25,16 @@ from services.text2SQL.base import DataBase
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
 
-DEFAULT_DATABASE_TYPE_CLS: Dict[str, Type[DataBase]] = {
-    "mysql": SQLBase,
-    "postgresql": SQLBase,
-    "sqlite": SQLBase,
-    "oracle": SQLBase,
-    "redis": redis_query.Redis,
-    "mongo": mongo_query.Mongo,
-    "clickhouse": clickhouse_query.Clickhouse,
-    "elasticsearch": elasticsearch_query.ElasticsearchClient,
-}
+# DEFAULT_DATABASE_TYPE_CLS: Dict[str, Type[DataBase]] = {
+#     "mysql": SQLBase,
+#     "postgresql": SQLBase,
+#     "sqlite": SQLBase,
+#     "oracle": SQLBase,
+#     "redis": redis_query.Redis,
+#     "mongo": mongo_query.Mongo,
+#     "clickhouse": clickhouse_query.Clickhouse,
+#     "elasticsearch": elasticsearch_query.ElasticsearchClient,
+# }
 
 
 class CollectionIn(Schema):
