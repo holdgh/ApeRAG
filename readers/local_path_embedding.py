@@ -15,12 +15,12 @@ from llama_index.data_structs.node import Node, DocumentRelationship
 class LocalPathEmbedding(DocumentBaseEmbedding):
 
     def __init__(
-        self,
-        vector_store_adaptor: VectorStoreConnectorAdaptor,
-        embedding_config: Optional[Dict[str, Any]] = None,
-        **kwargs: Any,
+            self,
+            vector_store_adaptor: VectorStoreConnectorAdaptor,
+            embedding_config: Optional[Dict[str, Any]] = None,
+            **kwargs: Any,
     ) -> None:
-        uri_path = kwargs.get("input_dir")
+        uri_path = kwargs.get("input_files") or kwargs.get("input_dir")
         super().__init__(uri_path, vector_store_adaptor, embedding_config)
 
         self.args = kwargs
@@ -37,7 +37,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 end = True
                 break
 
-            nodes : List[NodeWithEmbedding] = []
+            nodes: List[NodeWithEmbedding] = []
             for doc in docs:
                 vector = embedding.get_text_embedding(doc.text)
                 doc.embedding = vector
