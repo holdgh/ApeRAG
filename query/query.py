@@ -17,19 +17,30 @@ class Document(BaseModel):
     text: str = None
 
 
-class DocumentWithScore(BaseModel):
-    source: Source = Source.FILE
-    doc_id: str = None
-    text: str = None
-    score: float
-
-
 class DocumentMetadata(BaseModel):
     source: Optional[Source] = None
     source_id: Optional[str] = None
     url: Optional[str] = None
     created_at: Optional[str] = None
     author: Optional[str] = None
+
+
+class DocumentChunkMetadata(DocumentMetadata):
+    doc_id: Optional[str] = None
+
+
+class DocumentChunk(BaseModel):
+    id: Optional[str] = None
+    text: str
+    metadata: DocumentChunkMetadata
+    embedding: Optional[List[float]] = None
+
+
+class DocumentWithScore(BaseModel):
+    source: Source = Source.FILE
+    doc_id: str = None
+    text: str = None
+    score: float
 
 
 class DocumentMetadataFilter(BaseModel):
@@ -54,6 +65,13 @@ class QueryResult(BaseModel):
     query: str
     results: List[DocumentWithScore]
 
+    def get_packed_answer(self, limit_length: Optional[int] = 0) -> str:
+        text_chunks = [ r.text for r in self.results]
+        answer_text = "\n\n".join(text_chunks)
+        if limit_length != 0:
+            return answer_text[:limit_length]
+        else:
+            return answer_text
 
 class UpsertRequest(BaseModel):
     documents: List[Document]

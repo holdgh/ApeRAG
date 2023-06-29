@@ -11,6 +11,7 @@ from langchain.utilities import TextRequestsWrapper
 from llama_index.prompts.default_prompts import DEFAULT_REFINE_PROMPT_TMPL, DEFAULT_TEXT_QA_PROMPT_TMPL
 from langchain import PromptTemplate
 from configs.config import Config
+from query.query import QueryResult, QueryWithEmbedding
 
 
 #CFG = Config()
@@ -104,24 +105,19 @@ def test_local_llm_qa(query: str):
 
     embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
     vector = embedding.get_query_embedding(query)
-    client = cast(QdrantClient, adaptor.connector.client)
+    query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
-    hits = client.search(
+    results = adaptor.connector.search(
+        query_embedding,
         collection_name="test",
-        query_vector=vector,
+        query_vector=query_embedding.embedding,
         with_vectors=True,
-        limit=3,
+        limit=query_embedding.top_k,
         consistency="majority",
         search_params={"hnsw_ef":128, "exact":False},
     )
 
-    text_chunks = []
-    for hit in hits:
-        text_chunks.append(hit.payload.get("text"))
-    answer_text = "\n\n".join(text_chunks)
-
-    if len(answer_text) > 1600:
-        answer_text = answer_text[:1900]
+    answer_text = results.get_packed_answer(1900)
 
     context_msg = "database, workflow, system"
     prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
@@ -140,7 +136,7 @@ def test_local_llm_qa(query: str):
     print("prompt ", prompt_str)
     print(len(prompt_str))
 
-    llm_server = "http://127.0.0.1:8000"
+    llm_server = "http://47.98.164.173:8000"
     response = requests.post("%s/generate" % llm_server, json=input).text
     r = json.loads(response)["response"]
     print(r)
