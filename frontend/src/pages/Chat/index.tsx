@@ -28,7 +28,8 @@ export default () => {
 
   const createChat = async () => {
     if (!currentCollection) return;
-    await CreateCollectionChat(currentCollection?.id);
+    const { data } = await CreateCollectionChat(currentCollection?.id);
+    setChat(data);
   };
   const getChat = async (id: number) => {
     if (!currentCollection) return;
@@ -44,7 +45,6 @@ export default () => {
       getChat(item.id);
     } else {
       await createChat();
-      await getChats();
     }
   };
 
