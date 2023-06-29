@@ -2,11 +2,13 @@ from elasticsearch import Elasticsearch
 from typing import Optional
 from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
-import os
+from langchain.llms.base import BaseLLM
+from func_timeout import func_set_timeout
 import json
 import requests
 import logging
-import urllib3
+
+logger = logging.getLogger(__name__)
 
 _ELASTICSEARCH_PROMPT_TPL = (
     "Given an input question, first create a syntactically correct Elasticsearch "
@@ -38,20 +40,23 @@ class ElasticsearchClient(DataBase):
     def __init__(
             self,
             host,
-            port,
-            scheme: str = 'http',
+            user: Optional[str] = None,
             pwd: Optional[str] = None,
-            prompt: Optional[Prompt] = _DEFAULT_PROMPT
+            port: Optional[int] = 9200,
+            scheme: Optional[str] = 'http',
+            prompt: Optional[Prompt] = _DEFAULT_PROMPT,
+            llm: Optional[BaseLLM] = None,
+            db_type: Optional[str] = "elasticsearch",
     ):
-        super().__init__(host, port, pwd, prompt)
+        super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.scheme = scheme
 
     def connect(
             self,
             verify: Optional[bool] = False,
-            ca_cert: Optional[str] = '',
-            client_key: Optional[str] = '',
-            client_cert: Optional[str] = ''
+            ca_cert: Optional[str] = None,
+            client_key: Optional[str] = None,
+            client_cert: Optional[str] = None
     ) -> bool:
         kwargs = {
             "verify_certs": verify,
@@ -59,25 +64,22 @@ class ElasticsearchClient(DataBase):
             "client_key": client_key,
             "client_cert": client_cert,
         }
-        if verify:
-            try:
-                self.conn = Elasticsearch(
-                    [{'host': self.host, 'port': self.port, 'scheme': 'https'}],
-                    **kwargs
-                )
-                return True
-            except Exception as e:
-                print(f"Failed to connect to Elasticsearch: {e}")
-                return False
-        else:
-            try:
-                self.conn = Elasticsearch(
-                    [{'host': self.host, 'port': self.port, 'scheme': self.scheme}]
-                )
-                return True
-            except Exception as e:
-                print(f"Failed to connect to Elasticsearch: {e}")
-                return False
+
+        @func_set_timeout(2)
+        def ping():
+            self.conn = Elasticsearch(
+                [{'host': self.host, 'port': self.port, 'scheme': 'https'}],
+                **kwargs
+            )
+            return self.conn.ping()
+
+        try:
+            connected = ping()
+        except BaseException as e:
+            connected = False
+            logger.warning("connect to elasticsearch failed, err={}".format(e))
+
+        return connected
 
     def text_to_query(self, text):
         indices = self.conn.indices.get_alias(index="*")  # 获取所有索引
@@ -125,12 +127,4 @@ class ElasticsearchClient(DataBase):
         # Add more elif conditions here for other HTTP methods if needed
         else:
             raise ValueError(f"Unsupported HTTP method: {method}")
-
-
-if __name__ == "__main__":
-    os.environ['OPENAI_API_KEY'] = "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"
-    es = ElasticsearchClient("localhost", 9200)
-    print(es.connect(verify= True))
-    q = es.text_to_query("search for all docs in the index 'bank' ")
-    print(q)
-    # print(es.execute_query(q))
+        return response
