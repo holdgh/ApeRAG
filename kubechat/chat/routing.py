@@ -4,6 +4,7 @@ from asgiref.sync import sync_to_async
 
 from document_qa_consumer import DocumentSizeConsumer, DocumentQAConsumer
 from text_2_sql_consumer import Text2SQLConsumer
+from chat_bot_consumer import ChatBotConsumer
 
 
 async def collection_consumer_router(scope, receive, send):
@@ -28,11 +29,15 @@ async def collection_consumer_router(scope, receive, send):
         raise Exception("Invalid collection type")
 
 
+async def chat_bot_consumer_router(scope, receive, send):
+    return await ChatBotConsumer.as_asgi()(scope, receive, send)
+
+
 websocket_urlpatterns = [
     re_path(
         r"api/v1/collections/(?P<collection_id>\w+)/chats/(?P<chat_id>\w+)/connect$", collection_consumer_router,
     ),
     re_path(
-        r"api/v1/bot/(?P<chat_id>\w+)/connect$", collection_consumer_router,
+        r"api/v1/bot/(?P<chat_id>\w+)/connect$", chat_bot_consumer_router,
     )
 ]
