@@ -27,7 +27,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         self.args = kwargs
         self.reader = InteractiveSimpleDirectoryReader(**kwargs)
 
-    def load_data(self):
+    def load_data(self) -> list[str]:
         end = False
         embedding = self.embedding
         count = 0
@@ -50,6 +50,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     embedding=vector))
 
             count = count + 1
-            print(f"processed {count} files, current file is {file_name} ")
-            self.connector.store.add(nodes)
+            print(f"processed {count} files, current fiile is {file_name} ")
+            return self.connector.store.add(nodes)
 
+    def delete(self,**kwargs) -> bool:
+        return self.connector.delete(**kwargs)
