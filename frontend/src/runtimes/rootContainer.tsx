@@ -13,7 +13,7 @@ export const rootContainer = (children: React.ReactElement) => {
     >
       <ProConfigProvider dark={true}>
         <App>
-          <div style={{ maxWidth: 1480, margin: '0 auto' }}>{children}</div>
+          <div style={{ maxWidth: 1380, margin: '0 auto' }}>{children}</div>
         </App>
       </ProConfigProvider>
     </ConfigProvider>

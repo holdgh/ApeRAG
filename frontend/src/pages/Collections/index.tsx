@@ -1,6 +1,7 @@
 import CollectionTitle from '@/components/CollectionTitle';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, history, useModel } from '@umijs/max';
+import { getCollectionUrl } from '@/models/collection';
 import {
   Button,
   Card,
@@ -88,7 +89,7 @@ export default () => {
                     >
                       Chat
                     </Button>
-                    <Link to={`/collections/${collection.id}/documents`}>
+                    <Link to={getCollectionUrl(collection)}>
                       <Button style={{ width: 120, display: 'inline-block' }}>
                         View
                       </Button>

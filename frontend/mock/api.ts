@@ -30,7 +30,7 @@ const collections = [
     id: 4,
     title: 'Sealos user manual',
     status: 'INACTIVE',
-    type: 'multimedia',
+    type: 'database',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },

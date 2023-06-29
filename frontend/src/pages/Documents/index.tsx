@@ -10,11 +10,19 @@ export default () => {
   const key = history.location.pathname.replace(/.*\//, '');
   const [tabActiveKey, setTabActiveKey] = useState<string>(key);
 
+  const collection = getCollection(collectionId);
+
+  const tabList = [];
+  if (collection?.type === 'document') {
+    tabList.push({ tab: 'Documents', key: 'document' });
+  }
+  tabList.push({ tab: 'Setting', key: 'setting' });
+
   useEffect(() => {
     setTabActiveKey(key);
   }, [key]);
 
-  const collection = getCollection(collectionId);
+  if (!collection) return;
 
   return (
     <PageContainer
@@ -36,16 +44,7 @@ export default () => {
           Chat
         </Button>,
       ]}
-      tabList={[
-        {
-          tab: 'Documents',
-          key: 'documents',
-        },
-        {
-          tab: 'Setting',
-          key: 'setting',
-        },
-      ]}
+      tabList={tabList}
       onTabChange={(key) => {
         history.push(`/collections/${collectionId}/${key}`);
       }}

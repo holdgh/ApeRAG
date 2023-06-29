@@ -42,7 +42,7 @@ export default (): React.ReactNode => {
           zIndex: 100,
         }}
       >
-        <PageLoading message="login..." />
+        <PageLoading />
       </div>
     );
   }

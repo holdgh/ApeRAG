@@ -80,12 +80,10 @@ export default ({
                 ) : null}
               </Space>
             </Space>
-            {currentValue === option.value ? (
-              <CheckOutlined
-                className={styles.icon}
-                style={{ color: token.colorPrimary }}
-              />
-            ) : null}
+            <CheckOutlined
+              className={styles.icon}
+              style={{ color: token.colorPrimary }}
+            />
           </Space>
         </Card>
       ))}

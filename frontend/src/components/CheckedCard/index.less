@@ -1,6 +1,7 @@
 .item {
   cursor: pointer;
   margin-bottom: 12px;
+  transition-duration: 0.3s;
 
   &:last-child {
     margin-bottom: 0;
@@ -20,8 +21,18 @@
     }
 
     .icon {
-      font-size: 28px;
+      font-size: 30px;
       font-weight: bold;
+      opacity: 0;
+      transition-duration: 0.3s;
+    }
+  }
+
+  &.selected {
+    .row {
+      .icon {
+        opacity: 1;
+      }
     }
   }
 }

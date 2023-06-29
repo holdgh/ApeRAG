@@ -71,7 +71,7 @@ export default defineConfig({
           routes: [
             {
               name: 'Documents',
-              path: '/collections/:collectionId/documents',
+              path: '/collections/:collectionId/document',
               component: './Documents/list',
             },
             {

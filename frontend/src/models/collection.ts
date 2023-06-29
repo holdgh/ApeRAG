@@ -20,6 +20,10 @@ export type Collection = {
   updated: string;
 };
 
+export const getCollectionUrl = (collection: Collection): string => {
+  return `/collections/${collection.id}/${collection.type === 'database' ? 'setting' : 'document'}`;
+}
+
 export default () => {
   const [collections, setCollections] = useState<Collection[]>();
   const [currentCollection, _setCurrentCollection] = useState<Collection>();
@@ -41,7 +45,7 @@ export default () => {
     if (data.id) {
       message.success('create success');
       setCollections(collections?.concat(data));
-      history.push(`/collections/${data.id}/documents`);
+      history.push(getCollectionUrl(data));
     } else {
       message.error('create error');
     }

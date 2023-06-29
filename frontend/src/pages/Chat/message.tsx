@@ -28,7 +28,7 @@ export default ({
   const renderAvatar = () => {
     const size = 42;
     const AiAvatar = (
-      <Avatar size={size} style={{ minWidth: size }}>
+      <Avatar size={size} style={{ minWidth: size, background: token.colorWarning }}>
         <RobotOutlined />
       </Avatar>
     );
