@@ -1,10 +1,12 @@
-import func_timeout
+import logging
 from func_timeout import func_set_timeout
 from redis.client import Redis as RedisClient
 from typing import Optional
 from services.text2SQL.base import DataBase
 from llama_index.prompts.base import Prompt
 from langchain.llms.base import BaseLLM
+
+logger = logging.getLogger(__name__)
 
 _REDIS_PROMPT_TPL = (
     "Given an input question, first create a syntactically correct redis "
@@ -74,8 +76,9 @@ class Redis(DataBase):
 
         try:
             connected = ping()
-        except (ConnectionError, func_timeout.exceptions.FunctionTimedOut):
+        except Exception as e:
             connected = False
+            logger.warning("connect to redis failed, err={}".format(e))
 
         return connected
 

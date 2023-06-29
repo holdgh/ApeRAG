@@ -1,7 +1,36 @@
-from services.text2SQL.nosql.mongo_query import Mongo
+import unittest
+from services.text2SQL.nosql.redis_query import Redis
+from services.text2SQL.nosql.clickhouse_query import Clickhouse
 
-if __name__ == "__main__":
-    r = Mongo(host='localhost', port='27017', db='test', collection='user', pwd='')
-    print(r.connect())
-    q = r.text_to_query("查询名字为 John Doe 或者年龄小于 18 的用户：")
-    print(q)
+
+class TestRedis(unittest.TestCase):
+    def setUp(self) -> None:
+        self.cli = Redis("127.0.0.1")
+
+    def test_connect_without_verify(self):
+        result = self.cli.connect()
+        self.assertTrue(result)
+
+    def test_connect_with_verify(self):
+        result = self.cli.connect(verify=True)
+        self.assertFalse(result)
+
+    def tearDown(self):
+        print("测试用例{}执行结束...".format(self))
+
+
+class TestClickHouse(unittest.TestCase):
+    def setUp(self) -> None:
+        self.cli = Clickhouse("127.0.0.1", pwd="4gtfgprc")
+
+    def test_connect_without_verify(self):
+        result = self.cli.connect()
+        self.assertTrue(result)
+
+    def test_connect_with_verify(self):
+        self.cli = Clickhouse("127.0.0.1")
+        result = self.cli.connect(verify=True)
+        self.assertFalse(result)
+
+    def tearDown(self):
+        print("测试用例{}执行结束...".format(self))
