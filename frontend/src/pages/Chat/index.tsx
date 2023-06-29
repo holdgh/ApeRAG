@@ -6,6 +6,7 @@ import {
   GetCollectionChats,
   UpdateCollectionChat,
 } from '@/services/chats';
+import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import classNames from 'classnames';
 import _ from 'lodash';
@@ -20,6 +21,7 @@ export default () => {
   const [chatSocket, setChatSocket] = useState<WebSocket>();
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('Closed');
   const [messageStatus, setMessageStatus] = useState<MessageStatus>('normal');
+  const [pingTimer, setPingTimer] = useState<NodeJS.Timer>();
   const { currentCollection } = useModel('collection');
   const { initialState } = useModel('@@initialState');
   const user = getUser();
@@ -33,6 +35,7 @@ export default () => {
     const { data } = await GetCollectionChat(currentCollection.id, id);
     setChat(data);
   };
+
   const getChats = async () => {
     if (!currentCollection) return;
     const { data } = await GetCollectionChats(currentCollection?.id);
@@ -46,20 +49,31 @@ export default () => {
   };
 
   const createWebSocket = async () => {
-    if (!currentCollection || !chat) return;
+    if (!currentCollection || !chat || chatSocket) return;
     const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
     const host = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     const prefix = `${protocol}://${host}`;
     const path = `/api/v1/collections/${currentCollection.id}/chats/${chat.id}/connect`;
     const socket = new WebSocket(prefix + path, user?.__raw);
+
     setSocketStatus('Connecting');
+    setChatSocket(socket);
+
+    // socket.onerror = (e) => console.log(e);
     socket.onopen = () => {
       setSocketStatus('Connected');
+      const pingMsg: Message = {
+        type: 'ping',
+      };
+      const timer = setInterval(
+        () => socket.send(JSON.stringify(pingMsg)),
+        5000,
+      );
+      setPingTimer(timer);
     };
     socket.onclose = () => {
       setSocketStatus('Closed');
     };
-    // socket.onerror = (e) => console.log(e);
     socket.onmessage = (e) => {
       let msg: Message = {};
       try {
@@ -69,17 +83,17 @@ export default () => {
       if (msg.error) {
         setMessageStatus('error');
       } else if (msg.type === 'message' && msg.data) {
-        setChat({
-          ...chat,
-          history: (chat.history || []).concat({
-            role: 'robot',
-            message: msg.data,
-          }),
+        setChat((state) => {
+          if (state) {
+            return {
+              ...state,
+              history: (state.history || []).concat({ ...msg, role: 'ai' }),
+            };
+          }
         });
         setMessageStatus('normal');
       }
     };
-    setChatSocket(socket);
   };
 
   const onClear = async () => {
@@ -97,29 +111,40 @@ export default () => {
     }
   };
 
-  const onSubmit = (data: string) => {
+  const onSubmit = async (data: string) => {
     if (!chat) return;
-    setChat({
-      ...chat,
-      history: (chat.history || []).concat({
-        role: 'human',
-        message: data,
-      }),
-    });
+    const timestamp = new Date().getTime();
     const msg: Message = {
       type: 'message',
+      role: 'human',
       data,
-      timestamps: String(new Date().getTime()),
+      timestamp,
     };
+
+    setChat((state) => {
+      if (state) {
+        return {
+          ...state,
+          history: (state.history || []).concat(msg),
+        };
+      }
+    });
+    setMessageStatus('loading');
     chatSocket?.send(JSON.stringify(msg));
-    setTimeout(() => setMessageStatus('loading'), 550);
   };
 
   useEffect(() => {
-    return () => {
-      chatSocket?.close();
-    };
+    return () => chatSocket?.close();
   }, [chatSocket]);
+
+  useEffect(() => {
+    return () => clearInterval(pingTimer);
+  }, [pingTimer]);
+
+  useEffect(() => {
+    if (socketStatus !== 'Closed') return;
+    clearInterval(pingTimer);
+  }, [socketStatus]);
 
   useEffect(() => {
     getChats();
@@ -130,20 +155,28 @@ export default () => {
   }, [chat]);
 
   return (
-    <div
-      className={classNames({
-        [styles.chatContainer]: true,
-        [styles.collapsed]: initialState?.collapsed,
-      })}
-    >
-      <Header chat={chat} />
-      <Content chat={chat} messageStatus={messageStatus} />
-      <Footer
-        socketStatus={socketStatus}
-        messageStatus={messageStatus}
-        onSubmit={onSubmit}
-        onClear={onClear}
-      />
-    </div>
+    <RouteContext.Consumer>
+      {(value: RouteContextType) => {
+        const { isMobile } = value;
+        return (
+          <div
+            className={classNames({
+              [styles.container]: true,
+              [styles.collapsed]: initialState?.collapsed,
+              [styles.mobile]: isMobile,
+            })}
+          >
+            <Header />
+            <Content chat={chat} messageStatus={messageStatus} />
+            <Footer
+              socketStatus={socketStatus}
+              messageStatus={messageStatus}
+              onSubmit={onSubmit}
+              onClear={onClear}
+            />
+          </div>
+        );
+      }}
+    </RouteContext.Consumer>
   );
 };

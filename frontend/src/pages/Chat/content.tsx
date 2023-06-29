@@ -1,8 +1,6 @@
 import { Chat, MessageStatus } from '@/models/chat';
 import { useEffect } from 'react';
 import { Element as ScrollElement, scroller } from 'react-scroll';
-import { CSSTransition, TransitionGroup } from 'react-transition-group';
-import './animate.css';
 import styles from './index.less';
 import Message from './message';
 
@@ -15,29 +13,24 @@ export default ({ chat, messageStatus }: Props) => {
   useEffect(() => {
     if (chat) {
       scroller.scrollTo('bottom', {
-        containerId: 'chart-content',
+        containerId: 'chat-content',
+        smooth: true,
+        duration: 100,
       });
     }
   }, [chat, messageStatus]);
 
   return (
-    <div id="chart-content" className={styles.content}>
-      <TransitionGroup>
+    <div id="chat-content" className={styles.content}>
+      <div className={styles.wrap}>
         {chat?.history?.map((item, key) => (
-          <CSSTransition key={key} timeout={500} classNames="animate-item">
-            <Message status="normal" item={item} />
-          </CSSTransition>
+          <Message key={key} status="normal" item={item} />
         ))}
         {messageStatus !== 'normal' ? (
-          <CSSTransition timeout={500} classNames="animate-item">
-            <Message
-              status={messageStatus}
-              item={{ role: 'robot', message: '' }}
-            />
-          </CSSTransition>
+          <Message status={messageStatus} item={{ role: 'ai', data: '' }} />
         ) : null}
-      </TransitionGroup>
-      <ScrollElement name="bottom"></ScrollElement>
+        <ScrollElement name="bottom"></ScrollElement>
+      </div>
     </div>
   );
 };

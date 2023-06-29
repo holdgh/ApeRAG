@@ -1,17 +1,59 @@
-.chat-container {
+@maxWidth: 980px;
+.layout() {
+  max-width: @maxWidth;
+  margin: 0 auto;
+  width: 100%;
+  padding: 16px;
+}
+
+.container {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   transition-duration: 0.15s;
   left: 257px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  .header {
+    text-align: center;
+    padding-block: 12px;
+    padding-inline: 24px;
+    height: 56px;
+    overflow: hidden;
+  }
+
+  .content {
+    flex: 1;
+    overflow: auto;
+
+    .wrap {
+      .layout();
+    }
+  }
+
+  .footer {
+    .wrap {
+      display: flex;
+      .layout();
+    }
+
+    .input {
+      flex: 1;
+      margin: 0 12px;
+      resize: none;
+      padding: 7px 20px;
+    }
+  }
 
   &.collapsed {
     left: 65px;
 
     .header {
       height: 47px;
-      padding: 8px;
+      padding-block: 8px;
     }
 
     .content {
@@ -19,68 +61,67 @@
     }
   }
 
-  .header {
-    text-align: center;
-    padding: 12px;
-    height: 55px;
-    overflow: hidden;
-    transition-duration: 0.15s;
+  &.mobile {
+    left: 0;
+    top: 56px;
+
+    .header {
+      height: 47px;
+      padding-block: 8px;
+    }
+  }
+}
+
+.message-container {
+  display: flex;
+  margin-top: 24px;
+
+  &:first-child {
+    margin-top: 0;
   }
 
-  .content {
-    position: absolute;
-    top: 55px;
-    bottom: 74px;
-    left: 0;
-    right: 0;
-    overflow: auto;
-    padding: 24px;
-    transition-duration: 0.15s;
+  .message {
+    max-width: 80%;
+    margin: 0 12px;
+    min-width: 200px;
 
-    .message-container {
-      display: flex;
-      margin-bottom: 24px;
+    &.loading {
+      width: 60%;
+    }
 
-      &:last-child {
+    &.error {
+      width: 60%;
+    }
+
+    .message-content {
+      padding: 8px 20px;
+      border-radius: 4px;
+      
+      & > :last-child {
         margin-bottom: 0;
       }
 
-      &.robot {
-        flex-direction: row;
+      img {
+        max-width: 100%;
       }
+    }
 
-      &.human {
-        flex-direction: row-reverse;
-      }
-
-      .message {
-        padding: 10px 20px;
-        border-radius: 4px;
-        max-width: 60%;
-        margin: 0 20px;
-        min-width: 20%;
-
-        &.loading {
-          width: 60%;
-        }
-
-        &.error {
-          width: 60%;
-        }
-
-        img {
-          max-width: 100%;
-        }
-      }
+    .message-info {
+      font-size: 12px;
+      display: flex;
+      margin-top: 2px;
     }
   }
 
-  .footer {
-    position: absolute;
-    padding: 12px;
-    height: 74px;
-    bottom: 0;
-    left: 0;
-    right: 0;
+  &.ai {
+    flex-direction: row;
+  }
+  
+  &.human {
+    flex-direction: row-reverse;
+
+    .message-info {
+      flex-direction: row-reverse;
+    }
   }
 }

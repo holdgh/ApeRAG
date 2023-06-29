@@ -7,13 +7,15 @@ from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE
 
 from vectorstore.milvus_connector import MilvusVectorStoreConnector
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
+from vectorstore.chroma_connector import ChromaVectorStoreConnector
+from vectorstore.weaviate_connector import WeaviateVectorStoreConnector
 from vectorstore.base import VectorStoreConnector
 import qdrant_client
 
 VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorStoreConnector]] = {
     # VectorStoreType.SIMPLE: SimpleVectorStoreConnector,
     # VectorStoreType.REDIS: RedisVectorStoreConnector,
-    # VectorStoreType.WEAVIATE: WeaviateVectorStoreConnector,
+    VectorStoreType.WEAVIATE: WeaviateVectorStoreConnector,
     VectorStoreType.QDRANT: QdrantVectorStoreConnector,
     # VectorStoreType.LANCEDB: LanceDBVectorStoreConnector,
     # VectorStoreType.SUPABASE: SupabaseVectorStoreConnector,
@@ -21,7 +23,7 @@ VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorSt
     # VectorStoreType.PINECONE: PineconeVectorStoreConnector,
     # VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
     # VectorStoreType.FAISS: FaissVectorStoreConnector,
-    # VectorStoreType.CHROMA: ChromaVectorStoreConnector,
+    VectorStoreType.CHROMA: ChromaVectorStoreConnector,
     # VectorStoreType.CHATGPT_PLUGIN: ChatGPTRetrievalPluginClientConnector,
     # VectorStoreType.DEEPLAKE: DeepLakeVectorStoreConnector,
     # VectorStoreType.MYSCALE: MyScaleVectorStoreConnector,

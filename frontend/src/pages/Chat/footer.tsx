@@ -1,10 +1,10 @@
 import { MessageStatus, SocketStatus } from '@/models/chat';
 import {
+  ArrowRightOutlined,
   ClearOutlined,
   LoadingOutlined,
-  SendOutlined,
 } from '@ant-design/icons';
-import { Button, Input, Space, Tooltip, Typography, theme } from 'antd';
+import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
@@ -21,62 +21,51 @@ export default ({
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
-  const [message, setMessage] = useState<string>();
-  const { token } = theme.useToken();
+  const [message, setMessage] = useState<string>('');
+  const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
+  // const disabled = false;
 
   const _onSubmit = () => {
-    if (message) onSubmit(message);
-    setMessage(undefined);
+    const reg = new RegExp(/^\n+$/);
+    if (message && !reg.test(message) && !disabled) {
+      onSubmit(message);
+      setMessage('');
+    }
   };
 
-  // const disabled = messageStatus !== 'normal' || socketStatus !== 'Connected';
-  const disabled = false;
   return (
-    <div
-      className={styles.footer}
-      style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}
-    >
-      <Input
-        disabled={disabled}
-        value={message}
-        onChange={(e) => setMessage(e.currentTarget.value)}
-        onPressEnter={() => _onSubmit()}
-        suffix={
-          <Space>
-            <Tooltip title="Clear">
-              <Button
-                type="text"
-                onClick={() => onClear()}
-                icon={
-                  <Typography.Text type="secondary">
-                    <ClearOutlined />
-                  </Typography.Text>
-                }
-              ></Button>
-            </Tooltip>
-            <Tooltip title="Send">
-              <Button
-                type="text"
-                disabled={disabled}
-                onClick={() => _onSubmit()}
-                icon={
-                  disabled ? (
-                    <LoadingOutlined />
-                  ) : (
-                    <Typography.Text style={{ color: token.colorPrimary }}>
-                      <SendOutlined />
-                    </Typography.Text>
-                  )
-                }
-              ></Button>
-            </Tooltip>
-          </Space>
-        }
-        autoFocus
-        size="large"
-        bordered={false}
-        placeholder="Enter your question here..."
-      />
+    <div className={styles.footer}>
+      <div className={styles.wrap}>
+        <Button
+          type="text"
+          size="large"
+          onClick={() => onClear()}
+          icon={<ClearOutlined />}
+          shape="circle"
+        />
+        <Input.TextArea
+          className={styles.input}
+          value={message}
+          onChange={(e) => setMessage(e.currentTarget.value)}
+          onPressEnter={(e) => {
+            if (!e.shiftKey) {
+              _onSubmit();
+              e.preventDefault();
+            }
+          }}
+          autoFocus
+          autoSize={{ maxRows: 6 }}
+          placeholder="Enter your question here..."
+        />
+        <Button
+          type="primary"
+          size="large"
+          onClick={() => _onSubmit()}
+          shape="circle"
+          loading={disabled}
+          icon={<ArrowRightOutlined />}
+        />
+      </div>
     </div>
   );
 };

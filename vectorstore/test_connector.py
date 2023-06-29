@@ -5,6 +5,8 @@ from pymilvus import MilvusClient
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance,VectorParams
 from qdrant_client.http.exceptions import UnexpectedResponse
+from chromadb import Client as ChromaClient
+from weaviate import Client as WeaviateClient
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from pymilvus import (
     connections,
@@ -44,6 +46,21 @@ def test_milvus_connector():
     has = utility.has_collection("hello_milvus")
     print(f"drop collection \nDoes collection hello_milvus exist in Milvus after drop: {has}")
 
+def test_chroma_connector():
+    ctx = {"collection_name": "test"}
+    c = VectorStoreConnectorAdaptor("chroma", ctx)
+    client = cast(ChromaClient, c.connector.client)
 
+    collection = client.get_or_create_collection(name="test")
+
+    print(c.connector.client.get_collection(name="test"))
+
+def test_weaviate_connector():
+    ctx = {"url": "http://localhost:8080"}
+    c = VectorStoreConnectorAdaptor("weaviate", ctx)
+    client = cast(WeaviateClient, c.connector.client)
+
+    print(c.connector.client.schema.get())
+    
 if __name__ == "__main__":
-    test_milvus_connector()
+    test_weaviate_connector()

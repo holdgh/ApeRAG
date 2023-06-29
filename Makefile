@@ -15,7 +15,7 @@ clean:
 	/bin/rm -f db.sqlite3
 
 run-backend: migrate
-	uvicorn config.asgi:application --host 0.0.0.0 --reload
+	daphne config.asgi:application -b 0.0.0.0
 
 run-frontend:
 	cd frontend && yarn dev

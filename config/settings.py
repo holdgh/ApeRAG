@@ -37,6 +37,7 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'kubechat',
     # 'kubechat.apps.KubechatConfig',
     'django.contrib.admin',
@@ -179,3 +180,37 @@ CELERY_TASK_SEND_SENT_EVENT = True
 # WebSockets
 INSTALLED_APPS += ["channels"]
 ASGI_APPLICATION = "config.asgi.application"
+
+
+# Logging
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": env.str("DJANGO_LOG_LEVEL", default="INFO"),
+    },
+}
+
+# Model
+
+MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
+
+
+# Memory backend
+
+MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://redis:6379/1")
+
+VECTOR_DB_TYPE = "qdrant"

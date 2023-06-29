@@ -2,8 +2,8 @@ from django.db import models
 
 
 def user_document_path(instance, filename):
-    instance.user.replace("|", "-")
-    return "documents/user-{0}/collection-{1}/{2}".format(instance.user, instance.collection.id, filename)
+    user = instance.user.replace("|", "-")
+    return "documents/user-{0}/collection-{1}/{2}".format(user, instance.collection.id, filename)
 
 
 class CollectionStatus(models.TextChoices):
@@ -61,7 +61,7 @@ class Collection(models.Model):
 
     def view(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "title": self.title,
             "description": self.description,
             "status": self.status,
@@ -87,7 +87,7 @@ class Document(models.Model):
 
     def view(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "name": self.name,
             "status": self.status,
             "size": self.size,
@@ -102,15 +102,19 @@ class Chat(models.Model):
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE
     )
-    history = models.TextField()
+    # currently, we use the first message in the history as summary
+    summary = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
-    def view(self):
+    def view(self, messages=None):
+        if messages is None:
+            messages = []
         return {
-            "id": self.id,
-            "summary": self.history[:100],
+            "id": str(self.id),
+            "summary": self.summary,
+            "history": messages,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
         }
