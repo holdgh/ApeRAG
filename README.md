@@ -68,4 +68,4 @@ make run-frontend
 * [ ] 支持chat bot
 * [ ] 源数据库替换为PG
 * [ ] 聊天支持流式返回
-* [ ] Auth0认证缓存
+* [x] Auth0认证缓存
