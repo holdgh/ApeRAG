@@ -15,7 +15,7 @@ export default ({ chat, messageStatus }: Props) => {
       scroller.scrollTo('bottom', {
         containerId: 'chat-content',
         smooth: true,
-        duration: 100,
+        duration: 300,
       });
     }
   }, [chat, messageStatus]);
