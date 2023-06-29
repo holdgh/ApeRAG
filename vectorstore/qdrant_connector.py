@@ -13,7 +13,14 @@ from qdrant_client.http.models import (
     Range
 )
 from vectorstore.base import VectorStoreConnector
-from query.query import QueryWithEmbedding, DocumentWithScore, DocumentMetadataFilter
+from query.query import (
+    QueryWithEmbedding,
+    DocumentWithScore,
+    DocumentMetadataFilter,
+    QueryResult,
+    QueryRequest
+)
+
 from utils.date import to_unix_timestamp
 
 
@@ -65,6 +72,14 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
             limit=query.top_k,
             consistency=consistency,
             search_params=search_params,
+        )
+
+        QueryResult(
+            query=query.query,
+            results=[
+                self._convert_scored_point_to_document_chunk_with_score(point)
+                for point in hits
+            ],
         )
 
     def _convert_query_to_search_request(

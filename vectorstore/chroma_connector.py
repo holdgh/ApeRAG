@@ -4,6 +4,10 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 from chromadb.config import Settings
 from vectorstore.base import VectorStoreConnector
+from query.query import (
+    QueryWithEmbedding,
+    QueryResult
+)
 
 
 class ChromaVectorStoreConnector(VectorStoreConnector):
@@ -45,5 +49,5 @@ class ChromaVectorStoreConnector(VectorStoreConnector):
             client=self.client, chroma_collection=self.collection_name
         )
 
-    def search(self, **kwargs):
+    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass

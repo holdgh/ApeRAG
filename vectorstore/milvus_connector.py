@@ -4,6 +4,10 @@ from llama_index.vector_stores import qdrant, MilvusVectorStore
 from llama_index.embeddings import google
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
+from query.query import (
+    QueryWithEmbedding,
+    QueryResult
+)
 
 from pymilvus import (
     connections,
@@ -34,5 +38,5 @@ class MilvusVectorStoreConnector(VectorStoreConnector):
         self.embedding = ctx.get("embedding", google.GoogleUnivSentEncoderEmbedding)
         self.store = MilvusVectorStore(client=self.client, collection_name=self.collection_name)
 
-    def search(self, **kwargs):
+    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass
