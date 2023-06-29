@@ -113,7 +113,7 @@ def create_collection(request, collection: CollectionIn):
     instance = Collection(
         user=user,
         type=collection.type,
-        status=CollectionStatus.INACTIVE,
+        status=CollectionStatus.ACTIVE,
         title=collection.title,
         description=collection.description,
     )

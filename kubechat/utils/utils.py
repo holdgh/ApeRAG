@@ -12,3 +12,8 @@ def extract_collection_and_chat_id(path: str):
 
 def now_unix_milliseconds():
     return int(datetime.utcnow().timestamp() * 1e3)
+
+
+def generate_vector_db_collection_id(user, collection) -> str:
+    return str(user).replace('|', '-') + "-" + str(collection)
+

@@ -22,7 +22,7 @@ async def collection_consumer_router(scope, receive, send):
         raise Exception("Chat not found")
 
     if collection.type == CollectionType.DOCUMENT:
-        return await DocumentSizeConsumer.as_asgi()(scope, receive, send)
+        return await DocumentQAConsumer.as_asgi()(scope, receive, send)
     elif collection.type == CollectionType.DATABASE:
         return await Text2SQLConsumer.as_asgi()(scope, receive, send)
     else:
