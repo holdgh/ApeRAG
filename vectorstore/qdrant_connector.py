@@ -38,3 +38,6 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
             client=self.client,
             collection_name=self.collection_name,
             vectors_config=VectorParams(size=self.vector_size, distance=self.distance))
+
+    def search(self, **kwargs):
+        self.client.search()

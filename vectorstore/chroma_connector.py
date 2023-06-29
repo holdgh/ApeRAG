@@ -44,3 +44,6 @@ class ChromaVectorStoreConnector(VectorStoreConnector):
         self.store = ChromaVectorStore(
             client=self.client, chroma_collection=self.collection_name
         )
+
+    def search(self, **kwargs):
+        pass

@@ -35,3 +35,6 @@ class WeaviateVectorStoreConnector(VectorStoreConnector):
             index_name=self.index_name,
             text_key=self.text_key,
         )
+
+    def search(self, **kwargs):
+        pass

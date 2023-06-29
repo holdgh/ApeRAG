@@ -10,3 +10,7 @@ class VectorStoreConnector(ABC):
         self.client = None
         self.embedding : BaseEmbedding = None
         self.store : VectorStore = None
+
+    @abstractmethod
+    def search(self, **kwargs):
+        pass

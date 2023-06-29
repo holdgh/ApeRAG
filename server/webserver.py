@@ -2,6 +2,8 @@ import json
 import gradio as gr
 import requests
 import openai
+
+from common.sql_database import Database
 from configs.config import Config
 from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, select, column, insert
 from typing import Optional, List, Mapping, Any
@@ -36,6 +38,21 @@ SQLQuery:
 """
 
 CFG = Config()
+
+local_db = Database.from_uri(
+    "mysql+pymysql://"
+    + CFG.LOCAL_DB_USER
+    + ":"
+    + CFG.LOCAL_DB_PASSWORD
+    + "@"
+    + CFG.LOCAL_DB_HOST
+    + ":"
+    + str(CFG.LOCAL_DB_PORT)
+    + "/"
+    + str(CFG.LOCAL_DB_DATABASE),
+    engine_args={"pool_size": 10, "pool_recycle": 3600, "echo": True},
+    )
+
 
 class CustomLLM(LLM):
 
@@ -84,7 +101,7 @@ def prepare_data(engine):
 def llama_index_text2sql(question):
     engine = create_engine("sqlite:///:memory:")
     prepare_data(engine)
-    table_names = CFG.local_db.get_usable_table_names()
+    table_names = local_db.get_usable_table_names()
     tables = []
     for name in table_names:
         print("table: " + name)
@@ -101,8 +118,8 @@ def llama_index_text2sql(question):
 
 
 def raw_text2sql(question):
-    db_connect = CFG.local_db.get_session("test")
-    schemas = CFG.local_db.table_simple_info(db_connect)
+    db_connect = local_db.get_session("test")
+    schemas = local_db.table_simple_info(db_connect)
     message = ""
     for s in schemas:
         message += str(s) + ";"
