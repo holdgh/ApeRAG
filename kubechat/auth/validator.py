@@ -4,18 +4,14 @@ from auth0.authentication.token_verifier import TokenVerifier, AsymmetricSignatu
 from channels.middleware import BaseMiddleware
 
 
-class AuthError(Exception):
-    def __init__(self, error, status_code):
-        self.error = error
-        self.status_code = status_code
+jwks_url = 'https://{}/.well-known/jwks.json'.format(settings.AUTH0_DOMAIN)
+issuer = 'https://{}/'.format(settings.AUTH0_DOMAIN)
+
+sv = AsymmetricSignatureVerifier(jwks_url)  # Reusable instance
+tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID)
 
 
 def get_user_from_token(token):
-    jwks_url = 'https://{}/.well-known/jwks.json'.format(settings.AUTH0_DOMAIN)
-    issuer = 'https://{}/'.format(settings.AUTH0_DOMAIN)
-
-    sv = AsymmetricSignatureVerifier(jwks_url)  # Reusable instance
-    tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID)
     payload = tv.verify(token)
     return payload["sub"]
 
