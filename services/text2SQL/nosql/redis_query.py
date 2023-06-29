@@ -60,23 +60,23 @@ class Redis(DataBase):
             "ssl_keyfile": client_key,
             "ssl_certfile": client_cert,
         }
-        self.conn = RedisClient(
-            host=self.host,
-            port=self.port,
-            db=self.db,
-            ssl=verify,
-            password=self.pwd,
-            decode_responses=True,
-            **kwargs,
-        )
 
         @func_set_timeout(2)
         def ping():
+            self.conn = RedisClient(
+                host=self.host,
+                port=self.port,
+                db=self.db,
+                ssl=verify,
+                password=self.pwd,
+                decode_responses=True,
+                **kwargs,
+            )
             return self.conn.ping()
 
         try:
             connected = ping()
-        except Exception as e:
+        except BaseException as e:
             connected = False
             logger.warning("connect to redis failed, err={}".format(e))
 

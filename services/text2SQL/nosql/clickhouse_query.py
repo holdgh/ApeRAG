@@ -1,5 +1,4 @@
 import logging
-import traceback
 from func_timeout import func_set_timeout
 import clickhouse_connect
 from typing import Optional
@@ -78,7 +77,7 @@ class Clickhouse(DataBase):
 
         try:
             connected = ping()
-        except Exception as e:
+        except BaseException as e:
             connected = False
             logger.warning("connect to clickhouse failed, err={}".format(e))
 
