@@ -1,5 +1,4 @@
-import type { Message, SocketStatus, Chat } from '@/models/chat';
-import type { Collection } from '@/models/collection';
+import type { Message, SocketStatus } from '@/models/chat';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
@@ -8,7 +7,7 @@ import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import Content from './content';
+import Chats from './chats';
 import Footer from './footer';
 import Header from './header';
 import styles from './index.less';
@@ -21,21 +20,14 @@ const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
   [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
 };
 
-const getSocketUrl = (collection?: Collection, chat?: Chat) => {
-  const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
-  const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
-  const url = `${protocol}://${hostname}/api/v1/collections/${collection?.id}/chats/${chat?.id}/connect`;
-  return url;
-}
-
 export default () => {
   const user = getUser();
   const { currentCollection, currentChat, setCurrentChatMessages } =
     useModel('collection');
   const [loading, setLoading] = useState<boolean>(false);
-  const [socketUrl, setSocketUrl] = useState<string>(getSocketUrl(currentCollection, currentChat));
+  const [socketUrl, setSocketUrl] = useState<string>('');
   const { initialState } = useModel('@@initialState');
-  
+
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     share: true,
     protocols: user?.__raw,
@@ -72,10 +64,15 @@ export default () => {
 
   useEffect(() => {
     setLoading(SocketStatusMap[readyState] !== 'Open');
-  }, [readyState])
+  }, [readyState]);
 
   useEffect(() => {
-    setSocketUrl(getSocketUrl(currentCollection, currentChat));
+    if (!currentCollection || !currentChat) return;
+
+    const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
+    const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
+    const url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
+    setSocketUrl(url);
   }, [currentCollection, currentChat]);
 
   useEffect(() => {
@@ -123,7 +120,11 @@ export default () => {
             })}
           >
             <Header />
-            <Content loading={loading} messages={messages} />
+            <Chats
+              status={SocketStatusMap[readyState]}
+              loading={loading}
+              messages={messages}
+            />
             <Footer
               status={SocketStatusMap[readyState]}
               loading={loading}

@@ -7,9 +7,11 @@ import moment from 'moment';
 import ReactMarkdown from 'react-markdown';
 import { useTypewriter } from 'react-simple-typewriter';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { monokai } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
-import rehypeRaw from 'rehype-raw';
+// import { monokai } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
+import dark from 'react-syntax-highlighter/dist/esm/styles/prism/vs-dark';
+
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
+import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
@@ -20,14 +22,15 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = item.data || '';
-  // const [animateText] = useTypewriter({
-  //   words: [displayText],
-  //   typeSpeed: 10,
-  //   loop: 1,
-  // });
-  // if(loading) {
-  //   displayText = animateText;
-  // }
+
+  if (item.role === 'ai') {
+    const [animateText] = useTypewriter({
+      words: [displayText],
+      typeSpeed: 5,
+      loop: 1,
+    });
+    displayText = loading ? animateText : displayText;
+  }
 
   const renderAvatar = () => {
     const size = 50;
@@ -70,7 +73,11 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
               code({ inline, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || '');
                 return !inline && match ? (
-                  <SyntaxHighlighter style={monokai} language={match[1]} PreTag="div">
+                  <SyntaxHighlighter
+                    style={dark}
+                    language={match[1]}
+                    PreTag="div"
+                  >
                     {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>
                 ) : (
