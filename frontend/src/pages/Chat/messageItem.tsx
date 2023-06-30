@@ -16,7 +16,7 @@ import styles from './index.less';
 export default ({ item, loading }: { item: Message; loading: boolean }) => {
   const user = getUser();
   const { token } = theme.useToken();
-  const [text] = useTypewriter({
+  const [animateText] = useTypewriter({
     words: [item.data || ''],
     typeSpeed: 5,
     loop: false,
@@ -60,7 +60,7 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
         },
       }}
     >
-      {loading && item.role === "ai" ? text : item.data}
+      {loading ? animateText : item.data}
     </ReactMarkdown>
   );
 
