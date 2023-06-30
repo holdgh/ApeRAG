@@ -2,10 +2,11 @@ import logging
 
 from typing import Optional, Dict
 from langchain.llms.base import BaseLLM
-from llama_index import LangchainEmbedding, SQLDatabase, Prompt, LLMPredictor
+from llama_index import LangchainEmbedding, Prompt, LLMPredictor
 from llama_index.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_PROMPT
 from sqlalchemy import create_engine, text
 from services.text2SQL.base import DataBase
+from common.sql_database import Database as SQLDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,8 @@ class SQLBase(DataBase):
             self,
             db_type,
             host,
-            user: Optional[str] = None,
-            pwd: Optional[str] = None,
+            user: Optional[str] = "",
+            pwd: Optional[str] = "",
             db: Optional[str] = "",
             port: Optional[int] = None,
             embed_model: Optional[LangchainEmbedding] = None,
@@ -44,7 +45,7 @@ class SQLBase(DataBase):
         self.embed_model = embed_model if embed_model is not None else None
 
     def _generate_db_url(self) -> str:
-        return f"{self.db_type}+{DEFAULT_DRIVER[self.db_type]}://{self.user}:{self.pwd}@{self.host}:{self.port}/{self.db}"
+        return f"{self.db_type}+{DEFAULT_DRIVER[self.db_type]}://{self.user}:{self.pwd}@{self.host}:{self.port}"
 
     def _get_ssl_args(self, ca_cert, client_key, client_cert):
         args = {}
@@ -63,12 +64,12 @@ class SQLBase(DataBase):
     ) -> bool:
         kwargs = self._get_ssl_args(ca_cert, client_key, client_cert) if verify else {}
         try:
-            self.conn = SQLDatabase(create_engine(self.engineUrl), **kwargs)
+            self.conn = SQLDatabase(create_engine(self.engineUrl, **kwargs))
             with self.conn.engine.connect() as connection:
                 _ = connection.execute(text("select 1"))
                 return True
         except BaseException as e:
-            print("Connect failed: str{}".format(e))
+            print("Connect failed: err:{}".format(e))
             return False
 
     def text_to_query(self, query_str: str, sample_rows: Optional[int] = 3) -> str:

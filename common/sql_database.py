@@ -73,6 +73,10 @@ class Database:
         return cls(create_engine(database_uri, **_engine_args), **kwargs)
 
     @property
+    def engine(self):
+        return self._engine
+
+    @property
     def dialect(self) -> str:
         """Return string representation of dialect to use."""
         return self._engine.dialect.name
