@@ -1,7 +1,7 @@
 import {
   CollectionConfig,
   CollectionConfigCerify,
-  collectionConfigDBTypeOptions,
+  DATABASE_TYPE_OPTIONS,
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
@@ -212,7 +212,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
             ]}
             label="Database type"
           >
-            <Select options={collectionConfigDBTypeOptions} />
+            <Select options={DATABASE_TYPE_OPTIONS} />
           </Form.Item>
           <Row gutter={[12, 0]}>
             <Col span={16}>

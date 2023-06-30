@@ -1,14 +1,19 @@
-import { CreateCollectionChat, GetCollectionChat, GetCollectionChats } from '@/services/chats';
+import {
+  CreateCollectionChat,
+  GetCollectionChat,
+  GetCollectionChats,
+} from '@/services/chats';
 import {
   CreateCollection,
+  GetCollectionDatabase,
   GetCollections,
   UpdateCollection,
 } from '@/services/collections';
 import { history } from '@umijs/max';
 import { App } from 'antd';
 import _ from 'lodash';
-import { Chat, Message } from './chat';
 import { useEffect, useState } from 'react';
+import { Chat, Message } from './chat';
 
 export type CollectionConfigDbType =
   | 'mysql'
@@ -20,17 +25,20 @@ export type CollectionConfigDbType =
   | 'clickhouse'
   | 'elasticsearch';
 
+export type DatabaseExecuteMethod = 'true' | 'false';
+
 export type CollectionConfigCerify = 'prefered' | 'ca_only' | 'full';
 
 export type CollectionConfigDBTypeOption = {
   label: string;
   value: CollectionConfigDbType;
-  icon?: string,
+  icon?: string;
+  showSelector?: boolean;
 };
 
 export type CollectionConfig = {
   db_type?: CollectionConfigDbType;
-  host: string;
+  host?: string;
   port?: number;
   db_name?: string;
   username?: string;
@@ -43,7 +51,7 @@ export type CollectionConfig = {
 
 export type CollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
 
-export type CollectionType = 'document' | 'database';
+export type CollectionType = 'document' | 'database' | 'document_local';
 
 export type Collection = {
   id: string;
@@ -51,22 +59,38 @@ export type Collection = {
   user: string;
   status: CollectionStatus;
   type: CollectionType;
-  config: CollectionConfig | string;
+  config: string;
   description: string;
   created: string;
   updated: string;
 };
 
-export const collectionConfigDBTypeOptions: CollectionConfigDBTypeOption[] = [
+export const DATABASE_EXECUTE_OPTIONS: {
+  label: string;
+  value: DatabaseExecuteMethod;
+}[] = [
+  {
+    label: 'Immediate Execute',
+    value: 'true',
+  },
+  {
+    label: 'Execute on Request',
+    value: 'false',
+  },
+];
+
+export const DATABASE_TYPE_OPTIONS: CollectionConfigDBTypeOption[] = [
   {
     label: 'MySQL',
     value: 'mysql',
     icon: 'https://cdn.kubeblocks.com/img/mysql.png',
+    showSelector: true,
   },
   {
     label: 'PostgreSql',
     value: 'postgresql',
     icon: 'https://cdn.kubeblocks.com/img/pg.png',
+    showSelector: true,
   },
   {
     label: 'SQLite',
@@ -96,6 +120,21 @@ export const collectionConfigDBTypeOptions: CollectionConfigDBTypeOption[] = [
   },
 ];
 
+export const hasDatabaseList = (collection?: Collection): boolean => {
+  const config: CollectionConfig = {};
+  const whiteList = DATABASE_TYPE_OPTIONS.filter(
+    (o) => o.showSelector === true,
+  ).map((o) => o.value);
+
+  try {
+    Object.assign(config, JSON.parse(collection?.config || '{}'));
+  } catch (err) {}
+  const isInWhiteList =
+    !!config.db_type &&
+    new RegExp(`^(${whiteList.join('|')})$`).test(config.db_type);
+  return collection?.type === 'database' && isInWhiteList;
+};
+
 export const getCollectionUrl = (collection: Collection): string => {
   return `/collections/${collection.id}/${
     collection.type === 'database' ? 'setting' : 'document'
@@ -106,6 +145,7 @@ export default () => {
   const [collections, _setCollections] = useState<Collection[]>();
   const [currentCollection, _setCurrentCollection] = useState<Collection>();
   const [currentChat, _setCurrentChat] = useState<Chat>();
+  const [currentDatabase, _setCurrentDatabase] = useState<string[]>();
   const { message } = App.useApp();
 
   const _createChat = async () => {
@@ -128,13 +168,21 @@ export default () => {
       await _createChat();
     }
   };
+  const _getDatabase = async () => {
+    if (!currentCollection) return;
+    if (hasDatabaseList(currentCollection)) {
+      const { data } = await GetCollectionDatabase(currentCollection.id);
+      _setCurrentDatabase(data);
+    }
+  };
+
   const setCurrentChatMessages = async (messages: Message[]) => {
     if (!currentChat) return;
     _setCurrentChat({
       ...currentChat,
       history: messages,
-    })
-  }
+    });
+  };
 
   const getCollections = async () => {
     const { data } = await GetCollections();
@@ -157,10 +205,7 @@ export default () => {
     }
   };
 
-  const updateCollection = async (
-    collectionId: string,
-    params: Collection,
-  ) => {
+  const updateCollection = async (collectionId: string, params: Collection) => {
     const { data } = await UpdateCollection(collectionId, params);
     if (data.id) {
       message.success('update success');
@@ -206,17 +251,19 @@ export default () => {
   }, [collections]);
 
   useEffect(() => {
-    if(currentCollection) {
-      _getChats()
+    if (currentCollection) {
+      _getChats();
+      _getDatabase();
     } else {
       _setCurrentChat(undefined);
     }
-  }, [currentCollection])
+  }, [currentCollection]);
 
   return {
     collections,
     currentCollection,
     currentChat,
+    currentDatabase,
     setCurrentChatMessages,
     getCollections,
     getCollection,

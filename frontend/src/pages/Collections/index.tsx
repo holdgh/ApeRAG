@@ -17,7 +17,7 @@ import {
 export default () => {
   const { collections, setCurrentCollection } = useModel('collection');
   const cardBodyStyle = {
-    height: 260,
+    height: 240,
   };
   const { token } = theme.useToken();
   return (
@@ -35,13 +35,13 @@ export default () => {
               xl={12}
               xxl={12}
             >
-              <Card bodyStyle={cardBodyStyle}>
+              <Card size="small" bodyStyle={cardBodyStyle}>
                 <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"
                   style={{
                     maxHeight: 45,
-                    minHeight: 25,
+                    marginTop: 8,
                     overflow: 'hidden',
                     display: 'block',
                   }}

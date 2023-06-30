@@ -1,8 +1,10 @@
 import type { Message, SocketStatus } from '@/models/chat';
+import { DATABASE_EXECUTE_OPTIONS, hasDatabaseList } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
+import { Form, Radio, Select, Space } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -20,21 +22,54 @@ const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
   [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
 };
 
+type DbChatFormFields = { [key in string]: string | undefined };
+
 export default () => {
-  const user = getUser();
-  const { currentCollection, currentChat, setCurrentChatMessages } =
-    useModel('collection');
   const [loading, setLoading] = useState<boolean>(false);
   const [socketUrl, setSocketUrl] = useState<string>('');
   const { initialState } = useModel('@@initialState');
-
+  const {
+    currentCollection,
+    currentChat,
+    currentDatabase,
+    setCurrentChatMessages,
+  } = useModel('collection');
+  const user = getUser();
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     share: true,
     protocols: user?.__raw,
     shouldReconnect: () => true,
     reconnectInterval: 5000,
+    reconnectAttempts: 5,
   });
+  const [dbForm] = Form.useForm();
+
   const messages = currentChat?.history || [];
+  const showSelector = hasDatabaseList(currentCollection);
+
+  const defaultDbChatFormValue: DbChatFormFields = {
+    database: _.first(currentDatabase),
+    execute: _.first(DATABASE_EXECUTE_OPTIONS)?.value,
+  };
+  const updateSocketUrl = (params?: DbChatFormFields) => {
+    if (!currentCollection || !currentChat) return;
+
+    const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
+    const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
+    let url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
+
+    if (showSelector) {
+      if (_.isEmpty(currentDatabase)) return;
+
+      const query = _.map(
+        { ...defaultDbChatFormValue, ...params },
+        (value, key) => `${key}=${value}`,
+      );
+      if (!_.isEmpty(query)) url += `?${query.join('&')}`;
+    }
+
+    setSocketUrl(url);
+  };
 
   const onClear = async () => {
     if (!currentCollection || !currentChat) return;
@@ -67,12 +102,7 @@ export default () => {
   }, [readyState]);
 
   useEffect(() => {
-    if (!currentCollection || !currentChat) return;
-
-    const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
-    const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
-    const url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
-    setSocketUrl(url);
+    updateSocketUrl();
   }, [currentCollection, currentChat]);
 
   useEffect(() => {
@@ -107,6 +137,29 @@ export default () => {
     }
   }, [lastMessage]);
 
+  const DatabaseSelector = (
+    <Space>
+      <Form
+        form={dbForm}
+        layout="inline"
+        onValuesChange={(changedValues, allValues) => {
+          updateSocketUrl(allValues);
+        }}
+        initialValues={defaultDbChatFormValue}
+      >
+        <Form.Item name="database">
+          <Select
+            style={{ width: 140 }}
+            options={currentDatabase?.map((d) => ({ label: d, value: d }))}
+          />
+        </Form.Item>
+        <Form.Item name="execute">
+          <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
+        </Form.Item>
+      </Form>
+    </Space>
+  );
+
   return (
     <RouteContext.Consumer>
       {(value: RouteContextType) => {
@@ -119,7 +172,7 @@ export default () => {
               [styles.mobile]: isMobile,
             })}
           >
-            <Header />
+            <Header extra={showSelector ? DatabaseSelector : null} />
             <Chats
               status={SocketStatusMap[readyState]}
               loading={loading}

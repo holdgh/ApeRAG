@@ -13,6 +13,10 @@ body {
 }
 
 .ant-form {
+  .ant-form-item-control-input {
+    margin-bottom: 8px;
+  }
+
   &.ant-form-vertical {
     .ant-form-item {
       .ant-form-item-label>label {
@@ -21,7 +25,13 @@ body {
     }
   }
 
-  .ant-form-item-control-input {
-    margin-bottom: 8px;
+  &.ant-form-inline {
+    .ant-form-item:last-child {
+      margin-right: 0;
+    }
+    
+    .ant-form-item-control-input {
+      margin-bottom: 0;
+    }
   }
 }

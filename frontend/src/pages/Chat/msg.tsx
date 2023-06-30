@@ -9,6 +9,7 @@ import { useTypewriter } from 'react-simple-typewriter';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 // import { monokai } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
 import dark from 'react-syntax-highlighter/dist/esm/styles/prism/vs-dark';
+import ChatRobot from '@/assets/chatbot.png';
 
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
@@ -37,6 +38,7 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
     const AiAvatar = (
       <Avatar
         size={size}
+        src={ loading ? null : ChatRobot }
         style={{ minWidth: size, background: token.volcano5 }}
       >
         {loading ? <LoadingOutlined /> : <RobotOutlined />}

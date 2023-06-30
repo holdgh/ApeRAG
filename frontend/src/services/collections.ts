@@ -21,8 +21,8 @@ export const ReadCollection = (
 
 export const GetCollectionDatabase = (
   collectionId: string,
-): Promise<{ code: string; data: Collection; message?: string }> => {
-  return request(`/api/v1/collections/${collectionId}`, {
+): Promise<{ code: string; data: string[]; message?: string }> => {
+  return request(`/api/v1/collections/${collectionId}/database`, {
     method: 'GET',
   });
 };
