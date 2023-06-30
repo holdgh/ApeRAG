@@ -1,7 +1,6 @@
 import json
 from .base_consumer import BaseConsumer
-from kubechat.utils.db import query_collection
-from kubechat.utils.utils import new_db_client
+from kubechat.utils.db import query_collection, new_db_client
 
 
 class Text2SQLConsumer(BaseConsumer):
