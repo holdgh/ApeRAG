@@ -129,6 +129,9 @@ export default () => {
       await _createChat();
     }
   };
+  const setCurrentChatMessages = async (messages: Message[]) => {
+
+  }
 
   const getCollections = async () => {
     const { data } = await GetCollections();
@@ -209,6 +212,7 @@ export default () => {
     collections,
     currentCollection,
     currentChat,
+    setCurrentChatMessages,
     getCollections,
     getCollection,
     createColection,

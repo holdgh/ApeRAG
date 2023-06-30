@@ -73,7 +73,7 @@ export default () => {
       msg = JSON.parse(lastMessage.data);
     } catch (err) {}
 
-    if (msg.type === 'pong' || msg.type === 'error') {
+    if (msg.type === 'error') {
       return;
     }
 
