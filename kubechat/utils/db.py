@@ -46,7 +46,7 @@ def add_ssl_file(config, user, collection):
 def new_db_client(config):
     # only import class when it is needed
     match config["db_type"]:
-        case "mysql", "postgresql", "sqlite", "oracle":
+        case "mysql" | "postgresql" | "sqlite" | "oracle":
             from services.text2SQL.sql.sql import SQLBase
             new_client = SQLBase
         case "redis":
@@ -69,8 +69,8 @@ def new_db_client(config):
     client = new_client(
         host=config["host"],
         user=config["username"] if "username" in config.keys() else None,
-        pwd=config["password"] if "password" in config.keys else None,
-        port=int(config["port"]) if "port" in config.keys() else None,
+        pwd=config["password"] if "password" in config.keys() else None,
+        port=int(config["port"]) if "port" in config.keys() and config["port"] is not None else None,
         db_type=config["db_type"],
     )
     return client
