@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Callable, Dict, Generator, List, Optional, Type
 
+from compose_image_reader import ComposeImageReader
 from llama_index.readers.base import BaseReader
 from llama_index.readers.file.markdown_reader import MarkdownReader
 from llama_index.readers.schema.base import Document
@@ -12,6 +13,9 @@ from llama_index.readers.file.base import DEFAULT_FILE_READER_CLS
 logger = logging.getLogger(__name__)
 
 DEFAULT_FILE_READER_CLS[".txt"] = MarkdownReader
+DEFAULT_FILE_READER_CLS[".png"] = ComposeImageReader
+DEFAULT_FILE_READER_CLS[".jpg"] = ComposeImageReader
+DEFAULT_FILE_READER_CLS[".jpeg"] = ComposeImageReader
 
 
 class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
@@ -114,3 +118,5 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             return files
         except Exception as e:
             logger.error(f"phase dir failed: {e}")
+
+
