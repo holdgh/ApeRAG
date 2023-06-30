@@ -7,7 +7,7 @@ import {
 import { history } from '@umijs/max';
 import { App } from 'antd';
 import _ from 'lodash';
-import { Chat } from './chat';
+import { Chat, Message } from './chat';
 import { useEffect, useState } from 'react';
 
 export type CollectionConfigDbType =
@@ -130,7 +130,11 @@ export default () => {
     }
   };
   const setCurrentChatMessages = async (messages: Message[]) => {
-
+    if (!currentChat) return;
+    _setCurrentChat({
+      ...currentChat,
+      history: messages,
+    })
   }
 
   const getCollections = async () => {

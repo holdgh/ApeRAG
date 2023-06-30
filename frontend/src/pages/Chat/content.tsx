@@ -6,9 +6,10 @@ import MessageItem from './messageItem';
 
 type Props = {
   messages: Message[];
+  loading: boolean,
 };
 
-export default ({ messages }: Props) => {
+export default ({ messages, loading }: Props) => {
   useEffect(() => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
@@ -17,12 +18,15 @@ export default ({ messages }: Props) => {
     });
   }, [messages]);
 
+  
+
   return (
     <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>
-        {messages.map((item, key) => (
-          <MessageItem key={key} item={item} />
-        ))}
+        {messages.map((item, key) => {
+          const isLoading = key === messages.length - 1 && loading;
+          return <MessageItem loading={isLoading} key={key} item={item} />
+        })}
         <ScrollElement name="bottom"></ScrollElement>
       </div>
     </div>

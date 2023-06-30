@@ -23,16 +23,13 @@ const Protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
 const Hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
 
 export default () => {
-  const { currentCollection, currentChat } = useModel('collection');
+  const { currentCollection, currentChat, setCurrentChatMessages } = useModel('collection');
   const user = getUser();
   if (!user || !currentCollection || !currentChat) return null;
 
   const { initialState } = useModel('@@initialState');
-  const [messageHistory, setMessageHistory] = useState<Message[]>(
-    currentChat.history,
-  );
   const [loading, setLoading] = useState<boolean>(false);
-
+  const messageHistory = currentChat.history;
   const url = `${Protocol}://${Hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
   const { sendMessage, lastMessage, readyState } = useWebSocket(url, {
     share: true,
@@ -50,7 +47,7 @@ export default () => {
         history: [],
       },
     );
-    if (data.id) setMessageHistory([]);
+    if (data.id) setCurrentChatMessages([]);
   };
 
   const onSubmit = async (data: string) => {
@@ -61,7 +58,7 @@ export default () => {
       data,
       timestamp,
     };
-    setMessageHistory(messageHistory.concat(msg));
+    setCurrentChatMessages(messageHistory.concat(msg));
     setLoading(true);
     sendMessage(JSON.stringify(msg))
   };
@@ -94,7 +91,7 @@ export default () => {
       } else {
         data.push(message);
       }
-      setMessageHistory(data);
+      setCurrentChatMessages(data);
     }
   }, [lastMessage]);
 
@@ -111,7 +108,7 @@ export default () => {
             })}
           >
             <Header />
-            <Content messages={messageHistory} />
+            <Content loading={loading} messages={messageHistory} />
             <Footer
               status={SocketStatusMap[readyState]}
               loading={loading}

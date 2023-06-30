@@ -12,7 +12,7 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
-export default ({ item }: { item: Message }) => {
+export default ({ item, loading }: { item: Message, loading: boolean }) => {
   const user = getUser();
   const { token } = theme.useToken();
 
