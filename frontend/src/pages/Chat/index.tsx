@@ -71,6 +71,10 @@ export default () => {
   };
 
   useEffect(() => {
+    setLoading(SocketStatusMap[readyState] !== 'Open');
+  }, [readyState])
+
+  useEffect(() => {
     setSocketUrl(getSocketUrl(currentCollection, currentChat));
   }, [currentCollection, currentChat]);
 
