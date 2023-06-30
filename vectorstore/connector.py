@@ -1,17 +1,14 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Type
-from llama_index.embeddings import base
-from llama_index.embeddings import openai
-from llama_index.vector_stores.registry import VectorStoreType
-from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
+from typing import Any, Dict, Type
 
+from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
+from llama_index.vector_stores.registry import VectorStoreType
+
+# from vectorstore.opensearch_connector import OpensearchVectorStoreConnector
+from vectorstore.base import VectorStoreConnector
+from vectorstore.chroma_connector import ChromaVectorStoreConnector
 from vectorstore.milvus_connector import MilvusVectorStoreConnector
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
-from vectorstore.chroma_connector import ChromaVectorStoreConnector
 from vectorstore.weaviate_connector import WeaviateVectorStoreConnector
-#from vectorstore.opensearch_connector import OpensearchVectorStoreConnector
-from vectorstore.base import VectorStoreConnector
-import qdrant_client
 
 VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorStoreConnector]] = {
     # VectorStoreType.SIMPLE: SimpleVectorStoreConnector,
@@ -22,7 +19,7 @@ VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorSt
     # VectorStoreType.SUPABASE: SupabaseVectorStoreConnector,
     VectorStoreType.MILVUS: MilvusVectorStoreConnector,
     # VectorStoreType.PINECONE: PineconeVectorStoreConnector,
-    #VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
+    # VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
     # VectorStoreType.FAISS: FaissVectorStoreConnector,
     VectorStoreType.CHROMA: ChromaVectorStoreConnector,
     # VectorStoreType.CHATGPT_PLUGIN: ChatGPTRetrievalPluginClientConnector,

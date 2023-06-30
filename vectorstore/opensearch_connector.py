@@ -1,8 +1,9 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-from llama_index.vector_stores import opensearch
+from typing import Any, Dict
+
 from llama_index.embeddings import google
+from llama_index.vector_stores import opensearch
 from llama_index.vector_stores.opensearch import OpensearchVectorStore
+
 from vectorstore.base import VectorStoreConnector
 
 

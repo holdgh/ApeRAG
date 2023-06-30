@@ -1,26 +1,19 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-from llama_index.vector_stores.qdrant import QdrantVectorStore
+from typing import Any, Dict
+from typing import Any, Dict
+
 import qdrant_client
-from qdrant_client.models import Distance,VectorParams
+from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client.http.models import (
-    ScoredPoint,
-    SearchRequest,
-    Filter,
-    FieldCondition,
-    Field,
-    MatchValue,
-    Range
+    ScoredPoint
 )
-from vectorstore.base import VectorStoreConnector
+from qdrant_client.models import VectorParams
+
 from query.query import (
     QueryWithEmbedding,
     DocumentWithScore,
-    DocumentMetadataFilter,
-    DocumentChunk,
-    QueryResult,
-    QueryRequest
+    QueryResult
 )
+from vectorstore.base import VectorStoreConnector
 
 
 class QdrantVectorStoreConnector(VectorStoreConnector):

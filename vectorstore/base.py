@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-from llama_index.vector_stores.types import VectorStore
+from typing import Any, Dict
+
 from llama_index.embeddings.base import BaseEmbedding
+from llama_index.vector_stores.types import VectorStore
+
 from query.query import (
     QueryWithEmbedding,
-    QueryResult,
-    DocumentMetadataFilter,
-    DocumentChunk
+    QueryResult
 )
 
 

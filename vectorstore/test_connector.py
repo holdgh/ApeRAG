@@ -2,30 +2,31 @@ import time
 from typing import cast
 
 from llama_index.schema import TextNode
+from llama_index.vector_stores.opensearch import OpensearchVectorClient, OpensearchVectorStore
 from llama_index.vector_stores.types import VectorStoreQuery, NodeWithEmbedding
 from pymilvus import MilvusClient
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance,VectorParams
-from qdrant_client.http.exceptions import UnexpectedResponse
-from llama_index.vector_stores.opensearch import OpensearchVectorClient, OpensearchVectorStore
-
-from vectorstore.connector import VectorStoreConnectorAdaptor
 from pymilvus import (
-    connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
     Collection,
 )
+from qdrant_client import QdrantClient
+from qdrant_client.http.exceptions import UnexpectedResponse
+from qdrant_client.models import Distance, VectorParams
+
+from vectorstore.connector import VectorStoreConnectorAdaptor
+
 
 def test_qdrant_connector():
-    ctx = {"url":"http://localhost", "port":6333, "collection":"test"}
+    ctx = {"url": "http://localhost", "port": 6333, "collection": "test"}
     c = VectorStoreConnectorAdaptor("qdrant", ctx)
     client = cast(QdrantClient, c.connector.client)
 
     try:
         collection = client.get_collection("test")
     except (UnexpectedResponse):
-        client.create_collection(collection_name="test", vectors_config=VectorParams(size=100, distance=Distance.COSINE))
+        client.create_collection(collection_name="test",
+                                 vectors_config=VectorParams(size=100, distance=Distance.COSINE))
 
     print(c.connector.client.get_collections())
 
@@ -76,7 +77,7 @@ def test_opensearch_connector():
 
 
 def test_milvus_connector():
-    ctx = {"url":"http://localhost", "port":19530, "collection":"test"}
+    ctx = {"url": "http://localhost", "port": 19530, "collection": "test"}
     c = VectorStoreConnectorAdaptor("milvus", ctx)
     client = cast(MilvusClient, c.connector.client)
     fields = [
@@ -94,6 +95,7 @@ def test_milvus_connector():
     has = utility.has_collection("hello_milvus")
     print(f"drop collection \nDoes collection hello_milvus exist in Milvus after drop: {has}")
 
+
 def test_chroma_connector():
     ctx = {"collection_name": "test"}
     c = VectorStoreConnectorAdaptor("chroma", ctx)
@@ -103,12 +105,14 @@ def test_chroma_connector():
 
     print(c.connector.client.get_collection(name="test"))
 
+
 def test_weaviate_connector():
     ctx = {"url": "http://localhost:8080"}
     c = VectorStoreConnectorAdaptor("weaviate", ctx)
     client = cast(WeaviateClient, c.connector.client)
 
     print(c.connector.client.schema.get())
-    
+
+
 if __name__ == "__main__":
     test_weaviate_connector()

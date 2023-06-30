@@ -1,19 +1,14 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-from llama_index.vector_stores import qdrant, MilvusVectorStore
+from typing import Any, Dict
+
 from llama_index.embeddings import google
-from llama_index.vector_stores.qdrant import QdrantVectorStore
-from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
+from llama_index.vector_stores import MilvusVectorStore
+from pymilvus import (
+    connections,
+)
+
 from query.query import (
     QueryWithEmbedding,
     QueryResult
-)
-
-from pymilvus import (
-    connections,
-    utility,
-    FieldSchema, CollectionSchema, DataType,
-    Collection,
 )
 from vectorstore.base import VectorStoreConnector
 
