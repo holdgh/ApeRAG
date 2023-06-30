@@ -1,3 +1,4 @@
+import logging
 import json
 import uuid
 import os
@@ -23,6 +24,10 @@ from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query, 
 
 from services.text2SQL.sql.sql import SQLBase
 from services.text2SQL.base import DataBase
+
+
+logger = logging.getLogger(__name__)
+
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
 
@@ -271,7 +276,11 @@ def get_chat(request, collection_id, chat_id):
     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
     messages = []
     for message in history.messages:
-        item = json.loads(message.content)
+        try:
+            item = json.loads(message.content)
+        except Exception as e:
+            logger.exception(e)
+            continue
         item["role"] = message.additional_kwargs["role"]
         messages.append(item)
     return success(chat.view(messages))
