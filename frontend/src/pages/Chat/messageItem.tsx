@@ -60,7 +60,7 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
         },
       }}
     >
-      {loading ? text : item.data}
+      {loading && item.role === "ai" ? text : item.data}
     </ReactMarkdown>
   );
 

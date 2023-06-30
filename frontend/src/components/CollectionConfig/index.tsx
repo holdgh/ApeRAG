@@ -1,17 +1,21 @@
-import { CollectionConfig, CollectionConfigCerify, collectionConfigDBTypeOptions } from '@/models/collection';
-import { useEffect, useState } from 'react';
-
+import {
+  CollectionConfig,
+  CollectionConfigCerify,
+  collectionConfigDBTypeOptions,
+} from '@/models/collection';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
 import {
   ApiOutlined,
   CheckOutlined,
   EditOutlined,
+  PlusOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import {
   App,
   Button,
+  Card,
   Col,
   Descriptions,
   Divider,
@@ -28,6 +32,9 @@ import {
   UploadProps,
   theme,
 } from 'antd';
+import _ from 'lodash';
+import { useEffect, useState } from 'react';
+import styles from './index.less';
 
 type PropsType = {
   value?: string;
@@ -49,11 +56,13 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
 
   const onConnectTest = async () => {
     const values = await form.validateFields();
-    const { data } = await TestCollection(values);
-    if (data) {
+    const res = await TestCollection(values);
+    if (res.data) {
       setValid(true);
-    } else {
-      message.error('connect error');
+    }
+
+    if (res.code === '404') {
+      message.error(res.message);
     }
   };
 
@@ -117,67 +126,85 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
     setConfig(defaultConfig);
   }, []);
 
+  const DatabaseEdit = (
+    <Card
+      className={styles.databaseEdit}
+      onClick={() => {
+        if (!disabled) setVisible(true);
+      }}
+    >
+      <Typography.Text type="secondary">
+        <PlusOutlined /> Edit connection
+      </Typography.Text>
+    </Card>
+  );
+
+  const DatabaseInfo = (
+    <Descriptions
+      title={<Typography.Text>Database Connection</Typography.Text>}
+      size="small"
+      bordered
+      column={{ xs: 1, sm: 2, md: 2 }}
+      contentStyle={{
+        color: token.colorTextDisabled,
+        minWidth: 100,
+      }}
+      extra={
+        <Typography.Link
+          onClick={() => {
+            if (!disabled) setVisible(true);
+          }}
+        >
+          <EditOutlined />
+        </Typography.Link>
+      }
+    >
+      <Descriptions.Item label="Database Type">
+        {config.db_type || ''}
+      </Descriptions.Item>
+      <Descriptions.Item label="Database">
+        {config.db_name || ''}
+      </Descriptions.Item>
+      <Descriptions.Item label="Host">{config.host || ''}</Descriptions.Item>
+      <Descriptions.Item label="Port">{config.port || ''}</Descriptions.Item>
+      <Descriptions.Item label="Username">
+        {config.username || ''}
+      </Descriptions.Item>
+      <Descriptions.Item label="Password">
+        <Input.Password
+          disabled
+          visibilityToggle={false}
+          bordered={false}
+          value={config.password}
+        />
+      </Descriptions.Item>
+      <Descriptions.Item label="SSL">{config.verify}</Descriptions.Item>
+    </Descriptions>
+  );
+
   return (
     <>
-      <Descriptions
-        title={<Typography.Text>Database Connection</Typography.Text>}
-        size="small"
-        bordered
-        column={{ xs: 1, sm: 2, md: 2 }}
-        contentStyle={{
-          color: token.colorTextDisabled,
-          minWidth: 100,
-        }}
-        extra={
-          <Typography.Link
-            onClick={() => {
-              if (!disabled) setVisible(true);
-            }}
-          >
-            <EditOutlined />
-          </Typography.Link>
-        }
-      >
-        <Descriptions.Item label="Database Type">
-          {config.db_type || ''}
-        </Descriptions.Item>
-        <Descriptions.Item label="Database">
-          {config.db_name || ''}
-        </Descriptions.Item>
-        <Descriptions.Item label="Host">{config.host || ''}</Descriptions.Item>
-        <Descriptions.Item label="Port">{config.port || ''}</Descriptions.Item>
-        <Descriptions.Item label="Username">
-          {config.username || ''}
-        </Descriptions.Item>
-        <Descriptions.Item label="Password">
-          <Input.Password
-            disabled
-            visibilityToggle={false}
-            bordered={false}
-            value={config.password}
-          />
-        </Descriptions.Item>
-        <Descriptions.Item label="SSL">{config.verify}</Descriptions.Item>
-      </Descriptions>
-
+      {_.isEmpty(config.host) ? DatabaseEdit : DatabaseInfo}
       <Modal
         title="Connection Config"
         open={visible}
         onCancel={() => setVisible(false)}
         footer={footer}
       >
+        <br />
+        <br />
         <Form onChange={() => setValid(false)} form={form} layout="vertical">
           <Form.Item
             name="db_type"
             rules={[
               {
                 required: true,
-                message: 'database type is required.',
+                message: 'database is required.',
               },
             ]}
             label="Database type"
           >
-            <Select options={collectionConfigDBTypeOptions}/>
+            <Select options={collectionConfigDBTypeOptions} />
           </Form.Item>
           <Row gutter={[12, 0]}>
             <Col span={16}>
@@ -191,7 +218,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
                   },
                 ]}
               >
-                <Input placeholder="database host" />
+                <Input placeholder="host" />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -202,14 +229,14 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
           </Row>
 
           <Form.Item name="db_name" label="Database name">
-            <Input />
+            <Input placeholder="database" />
           </Form.Item>
 
           <Form.Item name="username" label="Username">
-            <Input />
+            <Input placeholder="username" />
           </Form.Item>
           <Form.Item name="password" label="Password">
-            <Input.Password />
+            <Input.Password placeholder="password" />
           </Form.Item>
 
           <Form.Item name="verify" label="SSL">
