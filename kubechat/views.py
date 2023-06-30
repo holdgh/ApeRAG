@@ -5,14 +5,14 @@ import os
 import config.settings as settings
 from datetime import datetime
 from typing import List
-from typing import Optional, Dict, Type
+from typing import Optional
 from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
-    query_chats
+    query_chats, add_ssl_file
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
 from .models import Collection, CollectionStatus, \
@@ -133,7 +133,9 @@ def create_collection(request, collection: CollectionIn):
     instance.save()
 
     if instance.type == CollectionType.DATABASE:
-        pass
+        config = json.loads(collection.config)
+        if config["verify"] != VerifyWay.PREFERRED:
+            add_ssl_file(config, user, instance)
     return success(instance.view())
 
 
