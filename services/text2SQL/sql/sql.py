@@ -110,3 +110,18 @@ class SQLBase(DataBase):
         with self.conn.engine.connect() as connection:
             result = connection.execute(query)
         return result
+
+    def get_database_list(self):
+        cmd = ""
+        match self.db_type:
+            case "mysql":
+                cmd = "show databases;"
+            case "postgresql":
+                cmd = "select datname from pg_database;"
+
+        db_list = []
+        with self.conn.engine.connect() as connection:
+            db_all = connection.execute(text(cmd))
+            for db in db_all:
+                db_list.append(db[0])
+        return db_list

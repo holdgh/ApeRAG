@@ -12,7 +12,7 @@ from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
-    query_chats, add_ssl_file
+    query_chats, add_ssl_file, new_db_client
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
 from .models import Collection, CollectionStatus, \
@@ -74,38 +74,13 @@ def ssl_file_upload(request, file: UploadedFile = File(...)):
 def connection_test(request, connection: ConnectionInfo):
     verify = (connection.verify != VerifyWay.PREFERRED)
     host = connection.host
-    db_type = connection.db_type
-
-    # only import class when it is needed
-    match db_type:
-        case "mysql", "postgresql", "sqlite", "oracle":
-            from services.text2SQL.sql.sql import SQLBase
-            new_client = SQLBase
-        case "redis":
-            from services.text2SQL.nosql import redis_query
-            new_client = redis_query.Redis
-        case "mongo":
-            from services.text2SQL.nosql import mongo_query
-            new_client = mongo_query.Mongo
-        case "clickhouse":
-            from services.text2SQL.nosql import clickhouse_query
-            new_client = clickhouse_query.Clickhouse
-        case "elasticsearch":
-            from services.text2SQL.nosql import elasticsearch_query
-            new_client = elasticsearch_query.ElasticsearchClient
-        case _:
-            return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
 
     if host == "":
         return fail(HTTPStatus.NOT_FOUND, "host not found")
 
-    client = new_client(
-        host=host,
-        user=connection.username,
-        pwd=connection.password,
-        port=connection.port,
-        db_type=connection.db_type,
-    )
+    client = new_db_client(dict(connection))
+    if client is None:
+        return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
 
     if not client.connect(
             verify,
@@ -146,6 +121,29 @@ def list_collections(request):
     response = []
     for instance in instances:
         response.append(instance.view())
+    return success(response)
+
+
+@api.get("/collections/{collection_id}/database")
+def get_database_list(request, collection_id):
+    user = get_user(request)
+    instance = query_collection(user, collection_id)
+    if instance is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+
+    config = json.loads(instance.config)
+    db_type = config["db_type"]
+    if db_type not in ["mysql", "postgresql"]:
+        return fail(HTTPStatus.NOT_FOUND, "{} don't have multiple databases".format(db_type))
+
+    client = new_db_client(config)
+    # TODO:add SSL
+    if not client.connect(
+        False,
+    ):
+        return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
+
+    response = client.get_database_list()
     return success(response)
 
 

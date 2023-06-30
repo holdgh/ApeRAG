@@ -39,6 +39,7 @@ arrow = "^1.2.3"
 func-timeout = "^4.3.5"
 daphne = "^4.0.0"
 docx2txt = "^0.8"
+terminal = "^0.4.0"
 
 [tool.poetry.group.llmserver]
 optional = true
@@ -76,6 +77,7 @@ build-backend = "poetry.core.masonry.api"
 start = "server.main:start"
 llmserver = "server.llmserver:start"
 webserver = "server.webserver:start"
+test_local_path_embedding = "readers.test_local_path_embedding:start"
 
 [[tool.poetry.source]]
 name = "aliyun"

@@ -41,3 +41,36 @@ def add_ssl_file(config, user, collection):
                     file=ContentFile(f.read(), name),
                 )
                 ssl_file_instance.save()
+
+
+def new_db_client(config):
+    # only import class when it is needed
+    match config["db_type"]:
+        case "mysql", "postgresql", "sqlite", "oracle":
+            from services.text2SQL.sql.sql import SQLBase
+            new_client = SQLBase
+        case "redis":
+            from services.text2SQL.nosql import redis_query
+            new_client = redis_query.Redis
+        case "mongo":
+            from services.text2SQL.nosql import mongo_query
+            new_client = mongo_query.Mongo
+        case "clickhouse":
+            from services.text2SQL.nosql import clickhouse_query
+            new_client = clickhouse_query.Clickhouse
+        case "elasticsearch":
+            from services.text2SQL.nosql import elasticsearch_query
+            new_client = elasticsearch_query.ElasticsearchClient
+        case _:
+            new_client = None
+    if new_client is None:
+        return None
+
+    client = new_client(
+        host=config["host"],
+        user=config["username"] if "username" in config.keys() else None,
+        pwd=config["password"] if "password" in config.keys else None,
+        port=int(config["port"]) if "port" in config.keys() else None,
+        db_type=config["db_type"],
+    )
+    return client

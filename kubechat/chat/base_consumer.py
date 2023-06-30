@@ -7,7 +7,7 @@ from langchain.memory import RedisChatMessageHistory
 from langchain.schema import HumanMessage, AIMessage
 
 import config.settings as settings
-from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, generate_vector_db_collection_id
+from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
 

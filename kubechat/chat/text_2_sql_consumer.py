@@ -1,13 +1,23 @@
-from channels.generic.websocket import WebsocketConsumer
+import json
+from .base_consumer import BaseConsumer
+from kubechat.utils.db import query_collection, new_db_client
 
 
-class Text2SQLConsumer(WebsocketConsumer):
+class Text2SQLConsumer(BaseConsumer):
     def connect(self):
-        self.accept()
+        super().connect()
+        collection = query_collection(self.user, self.collection_id)
+        config = json.loads(collection.config)
+        self.client = new_db_client(config)
+        if not self.client.connect(
+            False,
+        ):
+            raise Exception("can not connect to db")
 
-    def disconnect(self, close_code):
-        pass
+    def predict(self, query):
+        response = self.client.text_to_query(query)
+        for tokens in response.iter_content():
+            yield tokens.decode("ascii")
 
-    def receive(self, text_data, **kwargs):
-        self.send(text_data=text_data)
+
 
