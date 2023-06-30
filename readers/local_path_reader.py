@@ -4,11 +4,14 @@ import os
 from typing import Callable, Dict, Generator, List, Optional, Type
 
 from llama_index.readers.base import BaseReader
+from llama_index.readers.file.markdown_reader import MarkdownReader
 from llama_index.readers.schema.base import Document
 from llama_index.readers.file.base import SimpleDirectoryReader
 from llama_index.readers.file.base import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_FILE_READER_CLS[".txt"] = MarkdownReader
 
 
 class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
@@ -89,14 +92,15 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
         if self.file_metadata is not None:
             metadata = self.file_metadata(str(input_file))
 
-        if input_file.suffix.lower() in self.supported_suffix:
+        if input_file.suffix.lower() in list(DEFAULT_FILE_READER_CLS.keys()):
             # use file readers
             if input_file.suffix not in self.file_extractor:
                 # instantiate file reader if not already
                 reader_cls = DEFAULT_FILE_READER_CLS[input_file.suffix]
                 self.file_extractor[input_file.suffix] = reader_cls()
             reader = self.file_extractor[input_file.suffix]
-            docs = reader.load_data(input_file, metadata=metadata) # metadata for llama_index 0.6.35
+            # todo: support more kind of reader
+            docs = reader.load_data(input_file, metadata=metadata)  # metadata for llama_index 0.6.35
             documents.extend(docs)
 
         return documents, input_file
