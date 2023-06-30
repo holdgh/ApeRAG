@@ -97,15 +97,23 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
       name: 'file',
       multiple: false,
       showUploadList: false,
+      maxCount: 1,
       action: `/api/v1/collections/ca/upload`,
+      // accept: '.pem,.key,.crt,.csr',
       headers: {
         Authorization: 'Bearer ' + user?.__raw,
       },
       onChange(info) {
         const { status } = info.file;
+        const code = info?.file?.response?.code;
+        const msg = info?.file?.response?.message;
         if (status === 'done') {
+          if(code !== "200" && msg) {
+            message.error(info?.file?.response?.message);
+          }
           form.setFieldValue(type, info?.file?.response?.data || '');
-        } else if (status === 'error') {
+        }
+        if (status === 'error') {
           message.error('upload error');
         }
       },

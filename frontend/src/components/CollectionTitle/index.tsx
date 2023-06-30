@@ -1,5 +1,5 @@
 import { Collection } from '@/models/collection';
-import { AppstoreFilled, ReadFilled } from '@ant-design/icons';
+import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
 import { Space, Typography } from 'antd';
 
 export default ({ collection }: { collection?: Collection }) => {
@@ -7,10 +7,10 @@ export default ({ collection }: { collection?: Collection }) => {
     <Typography.Title level={4}>
       <Space>
         {collection?.type === 'document' ? (
-          <ReadFilled style={{ fontSize: 16 }} />
+          <ReadOutlined style={{ fontSize: 16 }} />
         ) : null}
         {collection?.type === 'database' ? (
-          <AppstoreFilled style={{ fontSize: 16 }} />
+          <AppstoreOutlined style={{ fontSize: 16 }} />
         ) : null}
         {collection?.title}
       </Space>

@@ -3,7 +3,7 @@ import type { Collection } from './collection';
 export type DocumentStatus = 'PENDING' | 'RUNNING' | 'FAILED' | 'COMPLETE' | 'DELETED';
 
 export type Document = {
-  id: number;
+  id: string;
   name: string;
   user: string;
   collection: Collection;

@@ -48,11 +48,7 @@ export default defineConfig({
       name: 'Chat',
       path: '/chat',
       icon: 'MessageFilled',
-      component: './Chat/layout',
-      routes: [{
-        path: '/chat/:chatId',
-        component: './Chat',
-      }]
+      component: './Chat',
     },
     {
       name: 'Collections',

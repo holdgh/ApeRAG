@@ -19,6 +19,21 @@ export default ({ onFinish, form, action, type }: Props) => {
     setCollectionType(type);
   }, [type]);
 
+  const collectionTypeOptions = [
+    {
+      icon: <ReadOutlined />,
+      label: 'Document',
+      value: 'document',
+      description: 'Use docx, pptx, csv, pdf, or md as a collection.',
+    },
+    {
+      icon: <AppstoreOutlined />,
+      label: 'Database',
+      value: 'database',
+      description: 'Use database as a collection.',
+    },
+  ];
+
   return (
     <Form onFinish={onFinish} size="large" form={form} layout="vertical">
       <Form.Item
@@ -49,20 +64,7 @@ export default ({ onFinish, form, action, type }: Props) => {
         <CheckedCard
           disabled={action === 'edit'}
           onChange={(v) => setCollectionType(v as CollectionType)}
-          options={[
-            {
-              icon: <ReadOutlined />,
-              label: 'Document',
-              value: 'document',
-              description: 'Use docx, pptx, csv, pdf, or md as a collection.',
-            },
-            {
-              icon: <AppstoreOutlined />,
-              label: 'Database',
-              value: 'database',
-              description: 'Use database as a collection.',
-            },
-          ]}
+          options={collectionTypeOptions.filter(o => action === 'add' || o.value === type)}
         />
       </Form.Item>
 

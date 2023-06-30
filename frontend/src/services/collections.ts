@@ -12,7 +12,15 @@ export const GetCollections = (): Promise<{
 };
 
 export const ReadCollection = (
-  collectionId: string | number,
+  collectionId: string,
+): Promise<{ code: string; data: Collection; message?: string }> => {
+  return request(`/api/v1/collections/${collectionId}`, {
+    method: 'GET',
+  });
+};
+
+export const GetCollectionDatabase = (
+  collectionId: string,
 ): Promise<{ code: string; data: Collection; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}`, {
     method: 'GET',

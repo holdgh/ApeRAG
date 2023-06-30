@@ -46,7 +46,7 @@ export type CollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
 export type CollectionType = 'document' | 'database';
 
 export type Collection = {
-  id: number;
+  id: string;
   title: string;
   user: string;
   status: CollectionStatus;
@@ -113,7 +113,7 @@ export default () => {
     const { data } = await CreateCollectionChat(currentCollection?.id);
     _setCurrentChat(data);
   };
-  const _getChat = async (id: number) => {
+  const _getChat = async (id: string) => {
     if (!currentCollection) return;
     const { data } = await GetCollectionChat(currentCollection.id, id);
     _setCurrentChat(data);
@@ -141,7 +141,7 @@ export default () => {
     _setCollections(data);
   };
 
-  const getCollection = (id?: string | number): Collection | undefined => {
+  const getCollection = (id?: string): Collection | undefined => {
     if (!id) return;
     return collections?.find((c) => String(c.id) === String(id));
   };
@@ -158,7 +158,7 @@ export default () => {
   };
 
   const updateCollection = async (
-    collectionId: string | number,
+    collectionId: string,
     params: Collection,
   ) => {
     const { data } = await UpdateCollection(collectionId, params);

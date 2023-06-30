@@ -92,6 +92,11 @@ export default {
       data: { ...collections[0], id: req.params.collectionId },
     });
   },
+  'GET /api/v1/collections/:collectionId/database': (req: any, res: any) => {
+    res.json({
+      data: ['mysql', 'development', 'production'],
+    });
+  },
   'PUT /api/v1/collections/:collectionId': (req: any, res: any) => {
     res.json({
       data: req.body,
