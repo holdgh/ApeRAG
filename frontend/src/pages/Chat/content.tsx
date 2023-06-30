@@ -18,8 +18,6 @@ export default ({ messages, loading }: Props) => {
     });
   }, [messages]);
 
-  
-
   return (
     <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>

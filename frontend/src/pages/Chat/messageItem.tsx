@@ -1,6 +1,6 @@
 import { Message } from '@/models/chat';
 import { getUser } from '@/models/user';
-import { RobotOutlined } from '@ant-design/icons';
+import { LoadingOutlined, RobotOutlined } from '@ant-design/icons';
 import { Avatar, Space, Tag, theme } from 'antd';
 import classNames from 'classnames';
 import ReactMarkdown from 'react-markdown';
@@ -26,7 +26,7 @@ export default ({ item, loading }: { item: Message, loading: boolean }) => {
         size={size}
         style={{ minWidth: size, background: token.colorWarning }}
       >
-        <RobotOutlined />
+        { loading ? <LoadingOutlined /> : <RobotOutlined /> }
       </Avatar>
     );
     const HummanAvatar = (
