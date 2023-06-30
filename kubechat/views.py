@@ -5,19 +5,19 @@ import os
 import config.settings as settings
 from datetime import datetime
 from typing import List
-from typing import Optional, Dict, Type
+from typing import Optional
 from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
-    query_chats
+    query_chats, add_ssl_file
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
 from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus, \
-    VerifyWay, ca_temp_file_path
+    VerifyWay, ssl_temp_file_path, CollectionType
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
 
@@ -54,13 +54,17 @@ class ConnectionInfo(Schema):
 
 
 @api.post("/collections/ca/upload")
-def ca_upload(request, file: UploadedFile = File(...)):
+def ssl_file_upload(request, file: UploadedFile = File(...)):
     file_name = uuid.uuid4().hex
     _, file_extension = os.path.splitext(file.name)
-    if file_extension not in ["pem", "key", "crt", "csr"]:
+    print(file_extension)
+    if file_extension not in [".pem", ".key", ".crt", ".csr"]:
         return fail(HTTPStatus.NOT_FOUND, "file extension not found")
 
-    with open(ca_temp_file_path(file_name+file_extension), "wb+") as f:
+    if not os.path.exists(ssl_temp_file_path("")):
+        os.makedirs(ssl_temp_file_path(""))
+
+    with open(ssl_temp_file_path(file_name+file_extension), "wb+") as f:
         for chunk in file.chunks():
             f.write(chunk)
     return success(file_name+file_extension)
@@ -127,6 +131,11 @@ def create_collection(request, collection: CollectionIn):
     if collection.config is not None:
         instance.config = collection.config
     instance.save()
+
+    if instance.type == CollectionType.DATABASE:
+        config = json.loads(collection.config)
+        if config["verify"] != VerifyWay.PREFERRED:
+            add_ssl_file(config, user, instance)
     return success(instance.view())
 
 

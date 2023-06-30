@@ -143,3 +143,6 @@ dmypy.json
 poetry.lock
 *.bin
 documents
+
+# ssl file
+ssl_file
