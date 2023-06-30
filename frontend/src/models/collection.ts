@@ -1,3 +1,4 @@
+import { CreateCollectionChat, GetCollectionChat, GetCollectionChats } from '@/services/chats';
 import {
   CreateCollection,
   GetCollections,
@@ -6,6 +7,7 @@ import {
 import { history } from '@umijs/max';
 import { App } from 'antd';
 import _ from 'lodash';
+import { Chat, Message } from './chat';
 import { useEffect, useState } from 'react';
 
 export type CollectionConfigDbType =
@@ -101,14 +103,43 @@ export const getCollectionUrl = (collection: Collection): string => {
 };
 
 export default () => {
-  const [collections, setCollections] = useState<Collection[]>();
+  const [collections, _setCollections] = useState<Collection[]>();
   const [currentCollection, _setCurrentCollection] = useState<Collection>();
+  const [currentChat, _setCurrentChat] = useState<Chat>();
 
   const { message } = App.useApp();
 
+  const _createChat = async () => {
+    if (!currentCollection) return;
+    const { data } = await CreateCollectionChat(currentCollection?.id);
+    _setCurrentChat(data);
+  };
+  const _getChat = async (id: number) => {
+    if (!currentCollection) return;
+    const { data } = await GetCollectionChat(currentCollection.id, id);
+    _setCurrentChat(data);
+  };
+  const _getChats = async () => {
+    if (!currentCollection) return;
+    const { data } = await GetCollectionChats(currentCollection?.id);
+    const item = _.first(data);
+    if (item) {
+      _getChat(item.id);
+    } else {
+      await _createChat();
+    }
+  };
+  const setCurrentChatMessages = async (messages: Message[]) => {
+    if (!currentChat) return;
+    _setCurrentChat({
+      ...currentChat,
+      history: messages,
+    })
+  }
+
   const getCollections = async () => {
     const { data } = await GetCollections();
-    setCollections(data);
+    _setCollections(data);
   };
 
   const getCollection = (id?: string | number): Collection | undefined => {
@@ -120,7 +151,7 @@ export default () => {
     const { data } = await CreateCollection(params);
     if (data.id) {
       message.success('create success');
-      setCollections(collections?.concat(data));
+      _setCollections(collections?.concat(data));
       history.push(getCollectionUrl(data));
     } else {
       message.error('create error');
@@ -142,7 +173,7 @@ export default () => {
           ...origin,
           ...data,
         }));
-        setCollections(items);
+        _setCollections(items);
       }
     } else {
       message.error('update error');
@@ -175,9 +206,17 @@ export default () => {
     setCurrentCollection(current);
   }, [collections]);
 
+  useEffect(() => {
+    if(currentCollection) {
+      _getChats()
+    }
+  }, [currentCollection])
+
   return {
     collections,
     currentCollection,
+    currentChat,
+    setCurrentChatMessages,
     getCollections,
     getCollection,
     createColection,
