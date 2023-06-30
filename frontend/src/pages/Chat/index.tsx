@@ -1,4 +1,5 @@
-import type { Message, SocketStatus } from '@/models/chat';
+import type { Message, SocketStatus, Chat } from '@/models/chat';
+import type { Collection } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
@@ -12,6 +13,7 @@ import Footer from './footer';
 import Header from './header';
 import styles from './index.less';
 
+
 const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
   [ReadyState.CONNECTING]: 'Connecting',
   [ReadyState.OPEN]: 'Open',
@@ -19,26 +21,32 @@ const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
   [ReadyState.CLOSED]: 'Closed',
   [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
 };
-const Protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
-const Hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
+
+const getSocketUrl = (collection?: Collection, chat?: Chat) => {
+  const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
+  const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
+  const url = `${protocol}://${hostname}/api/v1/collections/${collection?.id}/chats/${chat?.id}/connect`;
+  return url;
+}
 
 export default () => {
-  const { currentCollection, currentChat, setCurrentChatMessages } = useModel('collection');
   const user = getUser();
-  if (!user || !currentCollection || !currentChat) return null;
-
-  const { initialState } = useModel('@@initialState');
+  const { currentCollection, currentChat, setCurrentChatMessages } =
+    useModel('collection');
   const [loading, setLoading] = useState<boolean>(false);
-  const messageHistory = currentChat.history;
-  const url = `${Protocol}://${Hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
-  const { sendMessage, lastMessage, readyState } = useWebSocket(url, {
+  const [socketUrl, setSocketUrl] = useState<string>(getSocketUrl(currentCollection, currentChat));
+  const { initialState } = useModel('@@initialState');
+  
+  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     share: true,
-    protocols: user.__raw,
+    protocols: user?.__raw,
     shouldReconnect: () => true,
     reconnectInterval: 5000,
   });
+  const messages = currentChat?.history || [];
 
   const onClear = async () => {
+    if (!currentCollection || !currentChat) return;
     const { data } = await UpdateCollectionChat(
       currentCollection.id,
       currentChat.id,
@@ -58,10 +66,14 @@ export default () => {
       data,
       timestamp,
     };
-    setCurrentChatMessages(messageHistory.concat(msg));
-    setLoading(true);
-    sendMessage(JSON.stringify(msg))
+    await setCurrentChatMessages(messages.concat(msg));
+    await setLoading(true);
+    sendMessage(JSON.stringify(msg));
   };
+
+  useEffect(() => {
+    setSocketUrl(getSocketUrl(currentCollection, currentChat));
+  }, [currentCollection, currentChat]);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -81,9 +93,9 @@ export default () => {
 
     if (msg.type === 'message' && msg.data) {
       const message: Message = { ...msg, role: 'ai' };
-      const data = _.cloneDeep(messageHistory);
+      const data = _.cloneDeep(messages);
       let isAiLast = _.last(data)?.role !== 'human';
-      if(isAiLast) {
+      if (isAiLast && loading) {
         _.update(data, data.length - 1, (origin) => ({
           ...message,
           data: (origin?.data || '') + msg.data,
@@ -108,7 +120,7 @@ export default () => {
             })}
           >
             <Header />
-            <Content loading={loading} messages={messageHistory} />
+            <Content loading={loading} messages={messages} />
             <Footer
               status={SocketStatusMap[readyState]}
               loading={loading}

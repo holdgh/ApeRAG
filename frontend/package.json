@@ -21,6 +21,7 @@
     "moment": "^2.29.4",
     "react-markdown": "^8.0.7",
     "react-scroll": "^1.8.9",
+    "react-simple-typewriter": "^5.0.1",
     "react-syntax-highlighter": "^15.5.0",
     "react-transition-group": "^4.4.5",
     "react-use-websocket": "^4.3.1",

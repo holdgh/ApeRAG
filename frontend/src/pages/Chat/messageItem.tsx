@@ -1,20 +1,25 @@
 import { Message } from '@/models/chat';
 import { getUser } from '@/models/user';
 import { LoadingOutlined, RobotOutlined } from '@ant-design/icons';
-import { Avatar, Space, Tag, theme } from 'antd';
+import { Avatar, Space, theme } from 'antd';
 import classNames from 'classnames';
+import moment from 'moment';
 import ReactMarkdown from 'react-markdown';
+import { useTypewriter } from 'react-simple-typewriter';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import dark from 'react-syntax-highlighter/dist/esm/styles/prism/vs-dark';
-
-import moment from 'moment';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
-export default ({ item, loading }: { item: Message, loading: boolean }) => {
+export default ({ item, loading }: { item: Message; loading: boolean }) => {
   const user = getUser();
   const { token } = theme.useToken();
+  const [text] = useTypewriter({
+    words: [item.data || ''],
+    typeSpeed: 5,
+    loop: false,
+  });
 
   const msgBgColor =
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
@@ -26,7 +31,7 @@ export default ({ item, loading }: { item: Message, loading: boolean }) => {
         size={size}
         style={{ minWidth: size, background: token.colorWarning }}
       >
-        { loading ? <LoadingOutlined /> : <RobotOutlined /> }
+        {loading ? <LoadingOutlined /> : <RobotOutlined />}
       </Avatar>
     );
     const HummanAvatar = (
@@ -54,7 +59,7 @@ export default ({ item, loading }: { item: Message, loading: boolean }) => {
         },
       }}
     >
-      {item.data}
+      {loading ? text : item.data}
     </ReactMarkdown>
   );
 
@@ -65,7 +70,7 @@ export default ({ item, loading }: { item: Message, loading: boolean }) => {
       align={item.role === 'human' ? 'start' : 'end'}
     >
       <span>{moment(item.timestamp).format('llll')}</span>
-      <span>{item.references ? <Tag>{item.references}</Tag> : null}</span>
+      {/* <span>{item.references ? <Tag>{item.references}</Tag> : null}</span> */}
     </Space>
   );
 
