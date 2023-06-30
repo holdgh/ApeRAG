@@ -1,19 +1,13 @@
-import time
-import string
-import random
 import json
 import logging
 import requests
 import config.settings as settings
 
-from channels.generic.websocket import WebsocketConsumer
-from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, generate_vector_db_collection_id
-from langchain.memory import RedisChatMessageHistory
-from langchain.schema import HumanMessage, AIMessage
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from langchain import PromptTemplate
 from query.query import QueryWithEmbedding
 from . import embedding_model
+from .base_consumer import BaseConsumer
 
 
 logger = logging.getLogger(__name__)
@@ -30,31 +24,7 @@ VICUNA_REFINE_TEMPLATE = (
 )
 
 
-class DocumentQAConsumer(WebsocketConsumer):
-
-    def connect(self):
-        from kubechat.utils.db import query_collection, query_chat
-
-        self.user = self.scope["X-USER-ID"]
-        collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
-        self.collection_id = collection_id
-        self.vector_db_collection_id = generate_vector_db_collection_id(self.user, self.collection_id)
-        collection = query_collection(self.user, collection_id)
-        if collection is None:
-            raise Exception("Collection not found")
-
-        chat = query_chat(self.user, collection_id, chat_id)
-        if chat is None:
-            raise Exception("Chat not found")
-
-        self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-
-        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
-        self.accept(subprotocol=(None, headers))
-
-    def disconnect(self, close_code):
-        pass
-
+class DocumentQAConsumer(BaseConsumer):
     def predict(self, query):
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         vectordb_ctx["collection"] = self.vector_db_collection_id
@@ -88,112 +58,3 @@ class DocumentQAConsumer(WebsocketConsumer):
         response = requests.post("%s/generate" % settings.MODEL_SERVER, json=input)
         for tokens in response.iter_content():
             yield tokens.decode("ascii")
-
-    def receive(self, text_data, **kwargs):
-        data = json.loads(text_data)
-        msg_type = data["type"]
-        if msg_type == "ping":
-            return json.dumps({"type": "pong", "timestamp": now_unix_milliseconds()})
-
-        # save user message to history
-        self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
-
-        message = ""
-        for tokens in self.predict(data["data"]):
-            # streaming response to user
-            response = self.success_response(tokens)
-            self.send(text_data=response)
-
-            # concat response tokens
-            message += tokens
-
-        self.send(text_data=self.stop_response())
-
-        # save all tokens as a message to history
-        self.history.add_message(AIMessage(content=self.success_response(message), additional_kwargs={"role": "ai"}))
-
-    @staticmethod
-    def success_response(message, references=None):
-        if references is None:
-            references = []
-        return json.dumps({
-            "type": "message",
-            "data": message,
-            "timestamp": now_unix_milliseconds(),
-            "references": references,
-        })
-
-    @staticmethod
-    def fail_response(error):
-        return json.dumps({
-            "type": "error",
-            "data": "",
-            "timestamp": now_unix_milliseconds(),
-            "error": error,
-        })
-
-    @staticmethod
-    def stop_response():
-        return json.dumps({
-            "type": "stop",
-            "timestamp": now_unix_milliseconds(),
-        })
-
-
-class MockConsumer(DocumentQAConsumer):
-    response = '''
----
-title: KubeBlocks overview
-description: KubeBlocks, kbcli, multicloud
-keywords: [kubeblocks, overview, introduction]
-sidebar_position: 1
----
-
-# KubeBlocks overview
-
-## Introduction
-
-KubeBlocks is an open-source, cloud-native data infrastructure designed to help application developers and platform engineers manage database and analytical workloads on Kubernetes. It is cloud-neutral and supports multiple cloud service providers, offering a unified and declarative approach to increase productivity in DevOps practices.
-
-The name KubeBlocks is derived from Kubernetes and LEGO blocks, which indicates that building database and analytical workloads on Kubernetes can be both productive and enjoyable, like playing with construction toys. KubeBlocks combines the large-scale production experiences of top cloud service providers with enhanced usability and stability.
-
-## Why you need KubeBlocks
-
-Kubernetes has become the de facto standard for container orchestration. It manages an ever-increasing number of stateless workloads with the scalability and availability provided by ReplicaSet and the rollout and rollback capabilities provided by Deployment. However, managing stateful workloads poses great challenges for Kubernetes. Although StatefulSet provides stable persistent storage and unique network identifiers, these abilities are far from enough for complex stateful workloads.
-
-To address these challenges, and solve the problem of complexity, KubeBlocks introduces ReplicationSet and ConsensusSet, with the following capabilities:
-
-- Role-based update order reduces downtime caused by upgrading versions, scaling, and rebooting.
-- Maintains the status of data replication and automatically repairs replication errors or delays.
-
-## Key features
-
-- Be compatible with AWS, GCP, Azure, and Alibaba Cloud.
-- Supports MySQL, PostgreSQL, Redis, MongoDB, Kafka, and more.
-- Provides production-level performance, resilience, scalability, and observability.
-- Simplifies day-2 operations, such as upgrading, scaling, monitoring, backup, and restore.
-- Contains a powerful and intuitive command line tool.
-- Sets up a full-stack, production-ready data infrastructure in minutes.
-'''
-
-    def connect(self):
-        collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
-        self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope.get("Sec-Websocket-Protocol")}
-        self.accept(subprotocol=(None, headers))
-
-    def disconnect(self, close_code):
-        print("disconnect: " + str(close_code))
-
-    def predict(self, query):
-        tokens = self.response.split(" ")
-        start = 0
-        length = len(tokens)
-        while start < len(tokens):
-            count = random.randint(5, 10)
-            end = start + count
-            if end > length:
-                end = length
-            yield " ".join(tokens[start:end])
-            start = end
-            time.sleep(random.uniform(0.1, 0.5))
