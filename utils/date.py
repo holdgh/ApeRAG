@@ -1,5 +1,5 @@
 import arrow
-
+import time
 
 def to_unix_timestamp(date_str: str) -> int:
     """
@@ -21,3 +21,7 @@ def to_unix_timestamp(date_str: str) -> int:
         # If the parsing fails, return the current unix timestamp and print a warning
         print(f"Invalid date format: {date_str}")
         return int(arrow.now().timestamp())
+
+def elapsed_time(start):
+    end = time.time()
+    return end-start

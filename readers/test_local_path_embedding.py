@@ -1,5 +1,10 @@
 import json
+import os
+import time
 import requests
+import curses
+import sys
+from requests import Response
 from typing import cast
 from readers.local_path_embedding import LocalPathEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
@@ -12,6 +17,7 @@ from llama_index.prompts.default_prompts import DEFAULT_REFINE_PROMPT_TMPL, DEFA
 from langchain import PromptTemplate
 from configs.config import Config
 from query.query import QueryResult, QueryWithEmbedding
+from utils.date import elapsed_time
 
 
 #CFG = Config()
@@ -54,7 +60,7 @@ REFINE_TEMPLATE = (
     "Given the new context, refine the original answer to better \n"
     "answer the question. \n"
     "If the context isn't useful, return the original answer.\n"
-    "### Assistant :\n"
+    "### Assistant:\n"
 )
 
 VICUNA_REFINE_TEMPLATE = (
@@ -65,7 +71,7 @@ VICUNA_REFINE_TEMPLATE = (
     "(only if needed) with some more context below.\n"
     "Given the new context, refine and synthesize the original answer to better \n"
     "answer the question. Make sure that the refine answer is less than 200 words. \n"
-    "### Assistant :\n"
+    "### Assistant:"
 )
 
 VICUNA_QA_TEMPLATE = (
@@ -86,25 +92,6 @@ def test_local_path_embedding_query(query: str):
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
     embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
     vector = embedding.get_query_embedding(query)
-    client = cast(QdrantClient, adaptor.connector.client)
-    hits = client.search(
-        collection_name="test",
-        query_vector=vector,
-        with_vectors=True,
-        limit=5,
-        consistency="majority",
-        search_params={"hnsw_ef":128, "exact":False},
-        )
-
-    print("hits:", hits)
-
-
-def test_local_llm_qa(query: str):
-    ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
-    adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
-
-    embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
-    vector = embedding.get_query_embedding(query)
     query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
     results = adaptor.connector.search(
@@ -113,13 +100,77 @@ def test_local_llm_qa(query: str):
         query_vector=query_embedding.embedding,
         with_vectors=True,
         limit=query_embedding.top_k,
-        consistency="majority",
-        search_params={"hnsw_ef":128, "exact":False},
     )
 
-    answer_text = results.get_packed_answer(1900)
+    print("hits:", results)
 
-    context_msg = "database, workflow, system"
+
+def get_streaming_response(llm_server:str, input: str):
+    response = requests.post("%s/generate_stream" % llm_server, json=input, stream=True)
+    for line in response.iter_content():
+        if line:
+            content = line.decode("utf-8")
+            yield content
+
+
+def stream(llm_server:str, input: str):
+    try:
+        # Initialize ncurses
+        screen = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
+        screen.keypad(True)
+
+        # Clear screen
+        screen.clear()
+
+        # Print initial message
+        screen.addstr(0, 0, "Hello, ncurses world!")
+
+        # Move cursor
+        screen.move(5, 5)
+
+        s = requests.Session()
+        r = s.post("%s/generate_stream" % llm_server, json=input, stream=True)
+        buffer = ""
+
+        # Loop and update text
+        for c in r.iter_content(chunk_size=1):
+            if c == b'\x00':
+                continue
+
+            c = c.decode("utf-8")
+            buffer += c
+
+            if "}" in c:
+                j = json.loads(buffer)
+                buffer = ""
+                screen.addstr(0, 0, f"{j['text']}")
+                screen.refresh()
+    finally:
+        # Close ncurses
+        curses.nocbreak(); screen.keypad(0); curses.echo()
+        #curses.endwin()
+
+
+def test_local_llm_qa(query: str):
+    ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
+    adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
+
+    embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
+    vector = embedding.get_query_embedding(query)
+    query_embedding = QueryWithEmbedding(query=query, top_k=1, embedding=vector)
+
+    hits  = adaptor.connector.search(
+        query_embedding,
+        collection_name="test",
+        query_vector=query_embedding.embedding,
+        with_vectors=True,
+        limit=query_embedding.top_k,
+    )
+
+    answer_text = hits.get_packed_answer(1900)
+
     prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
     prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
 
@@ -130,19 +181,27 @@ def test_local_llm_qa(query: str):
         "temperature": 0,
         "max_new_tokens": 2048,
         "model": "gptj-6b",
-        "stop": "\nSQLResult:"
+        "stop": "### Assistant:"
     }
 
     print("prompt ", prompt_str)
     print(len(prompt_str))
 
+    start = time.time()
     llm_server = "http://47.98.164.173:8000"
-    response = requests.post("%s/generate" % llm_server, json=input).text
-    r = json.loads(response)["response"]
-    print(r)
+
+    #for line in get_streaming_response(llm_server, input):
+    # run stream in a real terminal is ok, for emulator terminal, it is not well adapated
+    stream(llm_server=llm_server, input=input)
+
+    elapsed = elapsed_time(start)
+    print("elapsed time ", elapsed)
 
 
+def start():
+    #test_local_path_embedding()
+    #test_local_path_embedding_query("what is data lake")
+    test_local_llm_qa("what is data lake")
 
-#test_local_path_embedding()
-#test_local_path_embedding_query("what is data lake")
-test_local_llm_qa("what is data lake")
+if __name__ == "__main__":
+    pass
