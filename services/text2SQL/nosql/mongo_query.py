@@ -40,13 +40,15 @@ class Mongo(DataBase):
             host,
             user: Optional[str] = None,
             pwd: Optional[str] = "",
-            port: Optional[int] = 27017,
+            port: Optional[int] = None,
             db: Optional[str] = None,
             collection: Optional[str] = None,
             prompt: Optional[Prompt] = _DEFAULT_PROMPT,
             llm: Optional[BaseLLM] = None,
             db_type: Optional[str] = "mongo",
     ):
+        if port is None:
+            port = 27017
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
         self.collection = collection

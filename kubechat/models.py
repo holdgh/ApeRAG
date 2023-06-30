@@ -36,7 +36,7 @@ class ChatStatus(models.TextChoices):
 
 
 class VerifyWay(models.TextChoices):
-    PREFERRED = "preferred"
+    PREFERRED = "prefered"
     CAONLY = "ca_only"
     FULL = "full"
 

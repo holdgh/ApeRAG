@@ -73,7 +73,7 @@ def ca_upload(request, file: UploadedFile = File(...)):
     file_name = uuid.uuid4().hex
     _, file_extension = os.path.splitext(file.name)
     if file_extension not in ["pem", "key", "crt", "csr"]:
-        fail(HTTPStatus.NOT_FOUND, "file extension not found")
+        return fail(HTTPStatus.NOT_FOUND, "file extension not found")
 
     with open(ca_temp_file_path(file_name+file_extension), "wb+") as f:
         for chunk in file.chunks():
