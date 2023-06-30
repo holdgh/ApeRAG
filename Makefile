@@ -3,9 +3,6 @@
 diff:
 	@python manage.py diffsettings
 
-llmserver:
-	@python server/llmserver.py
-
 migrate:
 	@python manage.py makemigrations
 	@python manage.py migrate

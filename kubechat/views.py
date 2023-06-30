@@ -20,27 +20,12 @@ from .models import Collection, CollectionStatus, \
     VerifyWay
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
-from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query, elasticsearch_query
-
-from services.text2SQL.sql.sql import SQLBase
-from services.text2SQL.base import DataBase
 
 
 logger = logging.getLogger(__name__)
 
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
-
-DEFAULT_DATABASE_TYPE_CLS: Dict[str, Type[DataBase]] = {
-    "mysql": SQLBase,
-    "postgresql": SQLBase,
-    "sqlite": SQLBase,
-    "oracle": SQLBase,
-    "redis": redis_query.Redis,
-    "mongo": mongo_query.Mongo,
-    "clickhouse": clickhouse_query.Clickhouse,
-    "elasticsearch": elasticsearch_query.ElasticsearchClient,
-}
 
 
 class CollectionIn(Schema):
@@ -87,12 +72,29 @@ def connection_test(request, connection: ConnectionInfo):
     host = connection.host
     db_type = connection.db_type
 
-    if db_type == "" or db_type not in DEFAULT_DATABASE_TYPE_CLS.keys():
-        return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
+    # only import class when it is needed
+    match db_type:
+        case "mysql", "postgresql", "sqlite", "oracle":
+            from services.text2SQL.sql.sql import SQLBase
+            new_client = SQLBase
+        case "redis":
+            from services.text2SQL.nosql import redis_query
+            new_client = redis_query.Redis
+        case "mongo":
+            from services.text2SQL.nosql import mongo_query
+            new_client = mongo_query.Mongo
+        case "clickhouse":
+            from services.text2SQL.nosql import clickhouse_query
+            new_client = clickhouse_query.Clickhouse
+        case "elasticsearch":
+            from services.text2SQL.nosql import elasticsearch_query
+            new_client = elasticsearch_query.ElasticsearchClient
+        case _:
+            return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
+
     if host == "":
         return fail(HTTPStatus.NOT_FOUND, "host not found")
 
-    new_client = DEFAULT_DATABASE_TYPE_CLS[db_type]
     client = new_client(
         host=host,
         user=connection.username,
