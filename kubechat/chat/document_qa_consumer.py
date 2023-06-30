@@ -107,9 +107,10 @@ class DocumentQAConsumer(WebsocketConsumer):
             # concat response tokens
             message += tokens
 
+        self.send(text_data=self.stop_response())
+
         # save all tokens as a message to history
         self.history.add_message(AIMessage(content=message, additional_kwargs={"role": "ai"}))
-
 
     @staticmethod
     def success_response(message, references=None):
@@ -150,7 +151,7 @@ class RandomConsumer(DocumentQAConsumer):
         print("disconnect: " + str(close_code))
 
     def predict(self, query):
-        for i in range(0, 100):
+        for i in range(0, 20):
             yield ''.join(random.choices(string.ascii_lowercase, k=random.randint(3, 10)))
             # mock the thinking time
             time.sleep(random.uniform(0.1, 1))
