@@ -6,6 +6,10 @@ def user_document_path(instance, filename):
     return "documents/user-{0}/collection-{1}/{2}".format(user, instance.collection.id, filename)
 
 
+def ca_temp_file_path(filename):
+    return "temp/upload/{}".format(filename)
+
+
 class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
     ACTIVE = "ACTIVE"
@@ -32,7 +36,7 @@ class ChatStatus(models.TextChoices):
 
 
 class VerifyWay(models.TextChoices):
-    PREFERRED = "preferred"
+    PREFERRED = "prefered"
     CAONLY = "ca_only"
     FULL = "full"
 

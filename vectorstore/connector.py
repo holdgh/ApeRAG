@@ -3,30 +3,6 @@ from typing import Any, Dict, Type
 from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
 from llama_index.vector_stores.registry import VectorStoreType
 
-# from vectorstore.opensearch_connector import OpensearchVectorStoreConnector
-from vectorstore.base import VectorStoreConnector
-from vectorstore.chroma_connector import ChromaVectorStoreConnector
-from vectorstore.milvus_connector import MilvusVectorStoreConnector
-from vectorstore.qdrant_connector import QdrantVectorStoreConnector
-from vectorstore.weaviate_connector import WeaviateVectorStoreConnector
-
-VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR: Dict[VectorStoreType, Type[VectorStoreConnector]] = {
-    # VectorStoreType.SIMPLE: SimpleVectorStoreConnector,
-    # VectorStoreType.REDIS: RedisVectorStoreConnector,
-    VectorStoreType.WEAVIATE: WeaviateVectorStoreConnector,
-    VectorStoreType.QDRANT: QdrantVectorStoreConnector,
-    # VectorStoreType.LANCEDB: LanceDBVectorStoreConnector,
-    # VectorStoreType.SUPABASE: SupabaseVectorStoreConnector,
-    VectorStoreType.MILVUS: MilvusVectorStoreConnector,
-    # VectorStoreType.PINECONE: PineconeVectorStoreConnector,
-    # VectorStoreType.OPENSEARCH: OpensearchVectorStoreConnector,
-    # VectorStoreType.FAISS: FaissVectorStoreConnector,
-    VectorStoreType.CHROMA: ChromaVectorStoreConnector,
-    # VectorStoreType.CHATGPT_PLUGIN: ChatGPTRetrievalPluginClientConnector,
-    # VectorStoreType.DEEPLAKE: DeepLakeVectorStoreConnector,
-    # VectorStoreType.MYSCALE: MyScaleVectorStoreConnector,
-}
-
 
 class VectorStoreConnectorAdaptor:
     def __init__(self, vector_store_type, ctx: Dict[str, Any], **kwargs: Any) -> None:
@@ -37,5 +13,19 @@ class VectorStoreConnectorAdaptor:
         if vector_store_class is None:
             raise ValueError("unsupported vector store type:", vector_store_type)
 
-        typed_connector = VECTOR_STORE_TYPE_TO_VECTOR_STORE_CONNECTOR[vector_store_type]
-        self.connector = typed_connector(ctx, **kwargs)
+        # only import the connector class when it is needed
+        match vector_store_type:
+            case VectorStoreType.CHROMA:
+                from vectorstore.chroma_connector import ChromaVectorStoreConnector
+                self.connector = ChromaVectorStoreConnector(ctx, **kwargs)
+            case VectorStoreType.WEAVIATE:
+                from vectorstore.weaviate_connector import WeaviateVectorStoreConnector
+                self.connector = WeaviateVectorStoreConnector(ctx, **kwargs)
+            case VectorStoreType.QDRANT:
+                from vectorstore.qdrant_connector import QdrantVectorStoreConnector
+                self.connector = QdrantVectorStoreConnector(ctx, **kwargs)
+            case VectorStoreType.MILVUS:
+                from vectorstore.milvus_connector import MilvusVectorStoreConnector
+                self.connector = MilvusVectorStoreConnector(ctx, **kwargs)
+            case _:
+                raise ValueError("unsupported vector store type:", vector_store_type)

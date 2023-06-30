@@ -40,12 +40,14 @@ class Clickhouse(DataBase):
         host,
         user: Optional[str] = "default",
         pwd: Optional[str] = None,
-        port: Optional[int] = 8123,
+        port: Optional[int] = None,
         db: Optional[str] = None,
         prompt: Optional[Prompt] = _DEFAULT_PROMPT,
         llm: Optional[BaseLLM] = None,
         db_type: Optional[str] = "clickhouse",
     ):
+        if port is None:
+            port = 8123
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.user = user
         self.db = db

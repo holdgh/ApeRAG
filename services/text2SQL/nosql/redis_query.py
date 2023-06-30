@@ -40,12 +40,14 @@ class Redis(DataBase):
             host,
             user: Optional[str] = None,
             pwd: Optional[str] = None,
-            port: Optional[int] = 6379,
+            port: Optional[int] = None,
             db: Optional[int] = 0,
             prompt: Optional[Prompt] = _DEFAULT_PROMPT,
             llm: Optional[BaseLLM] = None,
             db_type: Optional[str] = "redis",
     ):
+        if port is None:
+            port = 6379
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
 

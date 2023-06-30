@@ -42,12 +42,14 @@ class ElasticsearchClient(DataBase):
             host,
             user: Optional[str] = None,
             pwd: Optional[str] = None,
-            port: Optional[int] = 9200,
+            port: Optional[int] = None,
             scheme: Optional[str] = 'http',
             prompt: Optional[Prompt] = _DEFAULT_PROMPT,
             llm: Optional[BaseLLM] = None,
             db_type: Optional[str] = "elasticsearch",
     ):
+        if port is None:
+            port = 9200
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.scheme = scheme
 
