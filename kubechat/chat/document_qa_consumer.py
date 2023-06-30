@@ -8,6 +8,7 @@ from langchain import PromptTemplate
 from query.query import QueryWithEmbedding
 from . import embedding_model
 from .base_consumer import BaseConsumer
+from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, generate_vector_db_collection_id
 
 
 logger = logging.getLogger(__name__)
@@ -27,14 +28,15 @@ VICUNA_REFINE_TEMPLATE = (
 class DocumentQAConsumer(BaseConsumer):
     def predict(self, query):
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-        vectordb_ctx["collection"] = self.vector_db_collection_id
+        vector_db_collection_id = generate_vector_db_collection_id(self.user, self.collection_id)
+        vectordb_ctx["collection"] = vector_db_collection_id
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
         vector = embedding_model.get_query_embedding(query)
         query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
         results = adaptor.connector.search(
             query_embedding,
-            collection_name=self.vector_db_collection_id,
+            collection_name=vector_db_collection_id,
             query_vector=query_embedding.embedding,
             with_vectors=True,
             limit=query_embedding.top_k,

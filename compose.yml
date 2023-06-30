@@ -17,6 +17,7 @@ services:
       - qdrant
     volumes:
       - .:/app:z
+      - ~/.cache:/root/.cache
     env_file:
       - .env
     ports:
@@ -51,6 +52,7 @@ services:
       - qdrant
     volumes:
       - .:/app:z
+      - ~/.cache:/root/.cache
     ports: []
     command: /app/scripts/start-celery-worker.sh
 

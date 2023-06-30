@@ -20,7 +20,6 @@ class BaseConsumer(WebsocketConsumer):
         self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         self.collection_id = collection_id
-        self.vector_db_collection_id = generate_vector_db_collection_id(self.user, self.collection_id)
         collection = query_collection(self.user, collection_id)
         if collection is None:
             raise Exception("Collection not found")
