@@ -1,13 +1,14 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
+
+from llama_index.vector_stores.utils import DEFAULT_TEXT_KEY
 from llama_index.vector_stores.weaviate import WeaviateVectorStore
 from weaviate import Client
-from vectorstore.base import VectorStoreConnector
-from llama_index.vector_stores.utils import DEFAULT_TEXT_KEY
+
 from query.query import (
     QueryWithEmbedding,
     QueryResult
 )
+from vectorstore.base import VectorStoreConnector
 
 
 class WeaviateVectorStoreConnector(VectorStoreConnector):

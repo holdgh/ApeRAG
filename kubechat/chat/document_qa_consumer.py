@@ -101,7 +101,7 @@ class DocumentQAConsumer(WebsocketConsumer):
         message = ""
         for tokens in self.predict(data["data"]):
             # streaming response to user
-            response = self.success_response(tokens, "")
+            response = self.success_response(tokens)
             self.send(text_data=response)
 
             # concat response tokens
@@ -140,7 +140,7 @@ class DocumentQAConsumer(WebsocketConsumer):
         })
 
 
-class RandomConsumer(DocumentQAConsumer):
+class MockConsumer(DocumentQAConsumer):
     response = '''
 ---
 title: KubeBlocks overview
@@ -190,7 +190,7 @@ To address these challenges, and solve the problem of complexity, KubeBlocks int
         start = 0
         length = len(tokens)
         while start < len(tokens):
-            count = random.randint(5, 20)
+            count = random.randint(5, 10)
             end = start + count
             if end > length:
                 end = length
