@@ -43,7 +43,7 @@ class ComposeImageReader(BaseReader):
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
         text = read_image_text(file, metadata)
         meaning, bytes = read_image_meaning(file, text, metadata)
-        return [ImageDocument(text=text, image=bytes, metadata=metadata)]
+        return [ImageDocument(text="%s\n%s" % (text, meaning), image=bytes, metadata=metadata)]
 
 
 
