@@ -1,143 +1,59 @@
-import type { Chat, Message, SocketStatus } from '@/models/chat';
+import type { Message, SocketStatus } from '@/models/chat';
 import { getUser } from '@/models/user';
-import {
-  CreateCollectionChat,
-  GetCollectionChat,
-  GetCollectionChats,
-  UpdateCollectionChat,
-} from '@/services/chats';
-import useWebSocket, { ReadyState } from 'react-use-websocket';
+import { UpdateCollectionChat } from '@/services/chats';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
+import useWebSocket, { ReadyState } from 'react-use-websocket';
 import Content from './content';
 import Footer from './footer';
 import Header from './header';
 import styles from './index.less';
 
+const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
+  [ReadyState.CONNECTING]: 'Connecting',
+  [ReadyState.OPEN]: 'Open',
+  [ReadyState.CLOSING]: 'Closing',
+  [ReadyState.CLOSED]: 'Closed',
+  [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+};
+const Protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
+const Hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
 
 export default () => {
-  const [chat, setChat] = useState<Chat | undefined>();
-  const { currentCollection } = useModel('collection');
-  const [socket, setSocket] = useState<WebSocket>();
-  const [status, setStatus] = useState<SocketStatus>('Closed');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [pingTimer, setPingTimer] = useState<NodeJS.Timer>();
-  const { initialState } = useModel('@@initialState');
+  const { currentCollection, currentChat } = useModel('collection');
   const user = getUser();
+  if (!user || !currentCollection || !currentChat) return null;
 
+  const { initialState } = useModel('@@initialState');
+  const [messageHistory, setMessageHistory] = useState<Message[]>(
+    currentChat.history,
+  );
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const createChat = async () => {
-    if (!currentCollection) return;
-    const { data } = await CreateCollectionChat(currentCollection?.id);
-    setChat(data);
-  };
-  const getChat = async (id: number) => {
-    if (!currentCollection) return;
-    const { data } = await GetCollectionChat(currentCollection.id, id);
-    setChat(data);
-  };
-  const getChats = async () => {
-    if (!currentCollection) return;
-    const { data } = await GetCollectionChats(currentCollection?.id);
-    const item = _.first(data);
-    if (item) {
-      getChat(item.id);
-    } else {
-      await createChat();
-    }
-  };
-
-  const onMessage = (e) => {
-    let msg: Message = {};
-      try {
-        msg = JSON.parse(e.data);
-      } catch (err) {}
-
-      if (msg.type === 'pong') {
-        return;
-      }
-
-      if (msg.type === 'error') {
-        return;
-      }
-
-      if (msg.type === 'stop') {
-        setLoading(false);
-        return;
-      }
-
-      if (msg.type === 'message' && msg.data) {
-        console.log(loading, 111)
-        // setChat((state) => {
-        //   if (!state) return;
-        //   const history = _.cloneDeep(state.history || []);
-        //   const message: Message = { ...msg, role: 'ai' };
-        //   let lastAiIndex = _.findLastIndex(history, (h) => h.role === 'ai');
-
-        //   if(lastAiIndex === -1) {
-        //     history.push(message);
-        //   } else {
-        //     if (loading) {
-        //       _.update(history, lastAiIndex, (origin) => ({
-        //         ...message,
-        //         data: origin?.data || '' + message.data,
-        //       }));
-        //     } else {
-        //       history.push(message);
-        //     }
-        //   }
-        //   return { ...state, history };
-        // });
-      }
-  }
-
-  const createWebSocket = async () => {
-    if (!currentCollection || !chat || socket) return;
-    const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
-    const host = API_ENDPOINT.replace(/^(http|https):\/\//, '');
-    const prefix = `${protocol}://${host}`;
-    const path = `/api/v1/collections/${currentCollection.id}/chats/${chat.id}/connect`;
-    const socketClient = new WebSocket(prefix + path, user?.__raw);
-
-    setStatus('Connecting');
-    setSocket(socketClient);
-
-    // socketClient.onerror = (e) => console.log(e);
-    socketClient.onopen = function() {
-      setStatus('Connected');
-      const pingMsg: Message = { type: 'ping' };
-      const timer = setInterval(
-        () => socketClient.send(JSON.stringify(pingMsg)),
-        10000,
-      );
-      setPingTimer(timer);
-    };
-    socketClient.onclose = function() {
-      setStatus('Closed');
-    };
-    socketClient.onmessage = onMessage
-  };
+  const url = `${Protocol}://${Hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
+  const { sendMessage, lastMessage, readyState } = useWebSocket(url, {
+    share: true,
+    protocols: user.__raw,
+    shouldReconnect: () => true,
+    reconnectInterval: 5000,
+  });
 
   const onClear = async () => {
-    if (!currentCollection || !chat) return;
     const { data } = await UpdateCollectionChat(
-      currentCollection?.id,
-      chat?.id,
+      currentCollection.id,
+      currentChat.id,
       {
-        ...chat,
+        ...currentChat,
         history: [],
       },
     );
-    if (data.id) {
-      setChat(data);
-    }
+    if (data.id) setMessageHistory([]);
   };
 
   const onSubmit = async (data: string) => {
-    if (!chat || !socket) return;
     const timestamp = new Date().getTime();
     const msg: Message = {
       type: 'message',
@@ -145,37 +61,42 @@ export default () => {
       data,
       timestamp,
     };
-    setChat((state) => {
-      if (!state) return;
-      const history = state.history || [];
-      return { ...state, history: history.concat(msg) };
-    });
+    setMessageHistory(messageHistory.concat(msg));
     setLoading(true);
-    setTimeout(() => {
-      socket.send(JSON.stringify(msg));
-    }, 1000);
+    sendMessage(JSON.stringify(msg))
   };
 
   useEffect(() => {
-    return () => socket?.close();
-  }, [socket]);
+    if (!lastMessage) return;
+    let msg: Message = {};
+    try {
+      msg = JSON.parse(lastMessage.data);
+    } catch (err) {}
 
-  useEffect(() => {
-    return () => clearInterval(pingTimer);
-  }, [pingTimer]);
+    if (msg.type === 'pong' || msg.type === 'error') {
+      return;
+    }
 
-  useEffect(() => {
-    if (status !== 'Closed') return;
-    clearInterval(pingTimer);
-  }, [status]);
+    if (msg.type === 'stop') {
+      setLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    getChats();
-  }, [currentCollection]);
-
-  useEffect(() => {
-    createWebSocket();
-  }, [chat]);
+    if (msg.type === 'message' && msg.data) {
+      const message: Message = { ...msg, role: 'ai' };
+      const data = _.cloneDeep(messageHistory);
+      let isAiLast = _.last(data)?.role !== 'human';
+      if(isAiLast) {
+        _.update(data, data.length - 1, (origin) => ({
+          ...message,
+          data: (origin?.data || '') + msg.data,
+        }));
+      } else {
+        data.push(message);
+      }
+      setMessageHistory(data);
+    }
+  }, [lastMessage]);
 
   return (
     <RouteContext.Consumer>
@@ -190,9 +111,9 @@ export default () => {
             })}
           >
             <Header />
-            <Content chat={chat} />
+            <Content messages={messageHistory} />
             <Footer
-              status={status}
+              status={SocketStatusMap[readyState]}
               loading={loading}
               onSubmit={onSubmit}
               onClear={onClear}

@@ -1,6 +1,6 @@
 import type { Collection } from './collection';
 
-export type SocketStatus = 'Closed' | 'Connected' | 'Connecting';
+export type SocketStatus = 'Closed' | 'Open' | 'Connecting' | 'Closing' | 'Uninstantiated';
 export type MessageType = 'ping' | 'pong' | 'message' | 'stop' | 'error';
 export type MessageRole = 'ai' | 'human';
 

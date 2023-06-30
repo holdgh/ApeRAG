@@ -21,8 +21,7 @@ export default ({
   onSubmit = () => {},
 }: Props) => {
   const [message, setMessage] = useState<string>('');
-  // const disabled = loading || status !== 'Connected';
-  const disabled = false;
+  const disabled = loading || status !== 'Open';
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);

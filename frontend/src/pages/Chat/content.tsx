@@ -1,29 +1,27 @@
-import { Chat } from '@/models/chat';
+import { Message } from '@/models/chat';
 import { useEffect } from 'react';
 import { Element as ScrollElement, scroller } from 'react-scroll';
 import styles from './index.less';
-import Message from './message';
+import MessageItem from './messageItem';
 
 type Props = {
-  chat?: Chat;
+  messages: Message[];
 };
 
-export default ({ chat }: Props) => {
+export default ({ messages }: Props) => {
   useEffect(() => {
-    if (chat) {
-      scroller.scrollTo('bottom', {
-        containerId: 'chat-content',
-        smooth: true,
-        duration: 300,
-      });
-    }
-  }, [chat]);
+    scroller.scrollTo('bottom', {
+      containerId: 'chat-content',
+      smooth: true,
+      duration: 300,
+    });
+  }, [messages]);
 
   return (
     <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>
-        {chat?.history?.map((item, key) => (
-          <Message key={key} item={item} />
+        {messages.map((item, key) => (
+          <MessageItem key={key} item={item} />
         ))}
         <ScrollElement name="bottom"></ScrollElement>
       </div>
