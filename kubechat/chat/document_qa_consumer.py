@@ -1,35 +1,53 @@
+import time
+import string
+import random
 import json
 import logging
-import traceback
+import requests
 import config.settings as settings
 
 from channels.generic.websocket import WebsocketConsumer
-from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
+from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, generate_vector_db_collection_id
 from langchain.memory import RedisChatMessageHistory
 from langchain.schema import HumanMessage, AIMessage
+from vectorstore.connector import VectorStoreConnectorAdaptor
+from langchain import PromptTemplate
+from query.query import QueryWithEmbedding
+from . import embedding_model
 
 
 logger = logging.getLogger(__name__)
+
+VICUNA_REFINE_TEMPLATE = (
+    "### Human:\n"
+    "The original question is as follows: {query_str}\n"
+    "We have provided an existing answer: {existing_answer}\n"
+    "We have the opportunity to refine the existing answer "
+    "(only if needed) with some more context below.\n"
+    "Given the new context, refine and synthesize the original answer to better \n"
+    "answer the question. Make sure that the refine answer is less than 200 words. \n"
+    "### Assistant :\n"
+)
 
 
 class DocumentQAConsumer(WebsocketConsumer):
 
     def connect(self):
-        from kubechat.index import init_index
         from kubechat.utils.db import query_collection, query_chat
 
-        user = self.scope["X-USER-ID"]
+        self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
-        collection = query_collection(user, collection_id)
+        self.collection_id = collection_id
+        self.vector_db_collection_id = generate_vector_db_collection_id(self.user, self.collection_id)
+        collection = query_collection(self.user, collection_id)
         if collection is None:
             raise Exception("Collection not found")
 
-        chat = query_chat(user, collection_id, chat_id)
+        chat = query_chat(self.user, collection_id, chat_id)
         if chat is None:
             raise Exception("Chat not found")
 
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        self.index = init_index(collection_id)
 
         headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
         self.accept(subprotocol=(None, headers))
@@ -38,22 +56,38 @@ class DocumentQAConsumer(WebsocketConsumer):
         pass
 
     def predict(self, query):
-        prompt = f"""
-        Please return a nicely formatted markdown string to this request:
+        vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
+        vectordb_ctx["collection"] = self.vector_db_collection_id
+        adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
+        vector = embedding_model.get_query_embedding(query)
+        query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
-        {query}
-        """
-        engine = self.index.as_query_engine()
-        try:
-            result = engine.query(prompt)
-        except Exception as e:
-            logger.exception(f"Error during query: {e}")
-            traceback.print_stack()
-            self.send(self.fail_response(str(e)))
-            return
+        results = adaptor.connector.search(
+            query_embedding,
+            collection_name=self.vector_db_collection_id,
+            query_vector=query_embedding.embedding,
+            with_vectors=True,
+            limit=query_embedding.top_k,
+            consistency="majority",
+            search_params={"hnsw_ef": 128, "exact": False},
+        )
 
-        references = result.get_formatted_sources()
-        return result.response_txt, references
+        answer_text = results.get_packed_answer(1900)
+
+        prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
+        prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
+
+        input = {
+            "prompt": prompt_str,
+            "temperature": 0,
+            "max_new_tokens": 2048,
+            "model": "vicuna-13b",
+            "stop": "\nSQLResult:"
+        }
+
+        response = requests.post("%s/generate" % settings.MODEL_SERVER, json=input)
+        for tokens in response.iter_content():
+            yield tokens.decode("ascii")
 
     def receive(self, text_data, **kwargs):
         data = json.loads(text_data)
@@ -64,15 +98,19 @@ class DocumentQAConsumer(WebsocketConsumer):
         # save user message to history
         self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
 
-        response_txt, references = self.predict(data["data"])
+        message = ""
+        for tokens in self.predict(data["data"]):
+            # streaming response to user
+            response = self.success_response(tokens, "")
+            self.send(text_data=response)
 
-        response = self.success_response(response_txt, references)
+            # concat response tokens
+            message += tokens
 
-        # save bot message to history
-        self.history.add_message(AIMessage(content=response, additional_kwargs={"role": "ai"}))
+        self.send(text_data=self.stop_response())
 
-        # response to user
-        self.send(text_data=response)
+        # save all tokens as a message to history
+        self.history.add_message(AIMessage(content=self.success_response(message), additional_kwargs={"role": "ai"}))
 
     @staticmethod
     def success_response(message, references=None):
@@ -80,7 +118,6 @@ class DocumentQAConsumer(WebsocketConsumer):
             references = []
         return json.dumps({
             "type": "message",
-            "code": "200",
             "data": message,
             "timestamp": now_unix_milliseconds(),
             "references": references,
@@ -89,23 +126,74 @@ class DocumentQAConsumer(WebsocketConsumer):
     @staticmethod
     def fail_response(error):
         return json.dumps({
-            "type": "message",
+            "type": "error",
             "data": "",
             "timestamp": now_unix_milliseconds(),
-            "code": "500",
             "error": error,
         })
 
+    @staticmethod
+    def stop_response():
+        return json.dumps({
+            "type": "stop",
+            "timestamp": now_unix_milliseconds(),
+        })
 
-class DocumentSizeConsumer(DocumentQAConsumer):
+
+class RandomConsumer(DocumentQAConsumer):
+    response = '''
+---
+title: KubeBlocks overview
+description: KubeBlocks, kbcli, multicloud
+keywords: [kubeblocks, overview, introduction]
+sidebar_position: 1
+---
+
+# KubeBlocks overview
+
+## Introduction
+
+KubeBlocks is an open-source, cloud-native data infrastructure designed to help application developers and platform engineers manage database and analytical workloads on Kubernetes. It is cloud-neutral and supports multiple cloud service providers, offering a unified and declarative approach to increase productivity in DevOps practices.
+
+The name KubeBlocks is derived from Kubernetes and LEGO blocks, which indicates that building database and analytical workloads on Kubernetes can be both productive and enjoyable, like playing with construction toys. KubeBlocks combines the large-scale production experiences of top cloud service providers with enhanced usability and stability.
+
+## Why you need KubeBlocks
+
+Kubernetes has become the de facto standard for container orchestration. It manages an ever-increasing number of stateless workloads with the scalability and availability provided by ReplicaSet and the rollout and rollback capabilities provided by Deployment. However, managing stateful workloads poses great challenges for Kubernetes. Although StatefulSet provides stable persistent storage and unique network identifiers, these abilities are far from enough for complex stateful workloads.
+
+To address these challenges, and solve the problem of complexity, KubeBlocks introduces ReplicationSet and ConsensusSet, with the following capabilities:
+
+- Role-based update order reduces downtime caused by upgrading versions, scaling, and rebooting.
+- Maintains the status of data replication and automatically repairs replication errors or delays.
+
+## Key features
+
+- Be compatible with AWS, GCP, Azure, and Alibaba Cloud.
+- Supports MySQL, PostgreSQL, Redis, MongoDB, Kafka, and more.
+- Provides production-level performance, resilience, scalability, and observability.
+- Simplifies day-2 operations, such as upgrading, scaling, monitoring, backup, and restore.
+- Contains a powerful and intuitive command line tool.
+- Sets up a full-stack, production-ready data infrastructure in minutes.
+'''
+
     def connect(self):
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
+        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope.get("Sec-Websocket-Protocol")}
         self.accept(subprotocol=(None, headers))
 
     def disconnect(self, close_code):
         print("disconnect: " + str(close_code))
 
     def predict(self, query):
-        return f"{query} {len(query)}", ""
+        tokens = self.response.split(" ")
+        start = 0
+        length = len(tokens)
+        while start < len(tokens):
+            count = random.randint(5, 20)
+            end = start + count
+            if end > length:
+                end = length
+            yield " ".join(tokens[start:end])
+            start = end
+            time.sleep(random.uniform(0.1, 0.5))
