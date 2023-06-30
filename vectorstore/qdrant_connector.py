@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Any, Dict
 from typing import Any, Dict
 
@@ -78,10 +80,17 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
             self, scored_point: ScoredPoint
     ) -> DocumentWithScore:
         payload = scored_point.payload or {}
+        text = scored_point.payload.get("text") or json.loads(payload["_node_content"]).get("text")
+        metadata = payload.get("metadata") or json.loads(payload["_node_content"]).get("metadata")
+        # todo source phrase
+        relationships = json.loads(payload["_node_content"]).get("relationships")
+        if relationships is not None:
+            source = relationships.get("1").get("metadata").get("source")
+            os.path.basename(source)
         return DocumentWithScore(
             id=payload.get("id"),
-            text=scored_point.payload.get("text"),  # type: ignore
-            metadata=scored_point.payload.get("metadata"),  # type: ignore
+            text=text,  # type: ignore
+            metadata=metadata,  # type: ignore
             embedding=scored_point.vector,  # type: ignore
             score=scored_point.score,
         )
