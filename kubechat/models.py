@@ -6,9 +6,13 @@ def user_document_path(instance, filename):
     return "documents/user-{0}/collection-{1}/{2}".format(user, instance.collection.id, filename)
 
 
-def ca_temp_file_path(filename):
+def ssl_temp_file_path(filename):
     return "temp/upload/{}".format(filename)
 
+
+def ssl_file_path(instance, filename):
+    user = instance.user.replace("|", "-")
+    return "ssl_file/user-{0}/collection-{1}/{2}".format(user, instance.collection.id, filename)
 
 class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
@@ -117,3 +121,17 @@ class Chat(models.Model):
 class Settings(models.Model):
     key = models.CharField(max_length=512)
     value = models.TextField()
+
+
+class SslFile(models.Model):
+    user = models.CharField(max_length=256)
+    name = models.CharField(max_length=64)
+    status = models.CharField(max_length=16, choices=ChatStatus.choices)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE
+    )
+    size = models.BigIntegerField()
+    file = models.FileField(upload_to=ssl_file_path)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
