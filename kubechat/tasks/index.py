@@ -8,7 +8,6 @@ from config.settings import VECTOR_DB_TYPE
 from config.vector_db import get_local_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
 from kubechat.utils.utils import generate_vector_db_collection_id
-
 from kubechat.models import Document, DocumentStatus, CollectionStatus
 
 logger = logging.getLogger(__name__)
