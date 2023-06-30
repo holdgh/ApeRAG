@@ -25,28 +25,3 @@ body {
     margin-bottom: 8px;
   }
 }
-
-
-
-.fade-enter {
-  opacity: 0;
-  transform: translate(0, 0);
-  z-index: 1;
-}
-
-.fade-enter.fade-enter-active {
-  opacity: 1;
-  transform: translate(0, 0);
-  transition: opacity 600ms ease-out, transform 600ms ease;
-}
-
-.fade-exit {
-  opacity: 0;
-  transform: translate(0, 0);
-}
-
-.fade-exit.fade-exit-active {
-  opacity: 0;
-  transform: translate(0, 0);
-  transition: opacity 0 ease-out, transform 0 ease;
-}

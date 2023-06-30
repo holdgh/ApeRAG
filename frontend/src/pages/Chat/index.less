@@ -88,7 +88,7 @@
     .message-content {
       padding: 8px 20px;
       border-radius: 4px;
-      word-break:break-all;
+      // word-break:break-all;
       
       & > :last-child {
         margin-bottom: 0;
@@ -96,6 +96,14 @@
 
       img {
         max-width: 100%;
+      }
+
+      hr {
+        border: 1px solid rgba(255, 255, 255, 8%);
+      }
+
+      p {
+        color: rgba(255, 255, 255, 70%);
       }
     }
 
@@ -113,8 +121,19 @@
   &.human {
     flex-direction: row-reverse;
 
-    .message-info {
-      flex-direction: row-reverse;
+    .message {
+      .message-content {
+        a {
+          color: #FFF;
+          text-decoration: underline;
+        }
+      }
+
+      .message-info {
+        flex-direction: row-reverse;
+      }
     }
+
+    
   }
 }

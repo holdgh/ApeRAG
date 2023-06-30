@@ -9,6 +9,7 @@ import { useTypewriter } from 'react-simple-typewriter';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import dark from 'react-syntax-highlighter/dist/esm/styles/prism/vs-dark';
 import rehypeRaw from 'rehype-raw';
+import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
@@ -43,7 +44,7 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
   const MarkdownElement = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw]}
+      rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
       components={{
         code({ inline, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '');

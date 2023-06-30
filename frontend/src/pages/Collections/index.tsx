@@ -35,7 +35,7 @@ export default () => {
               xl={12}
               xxl={12}
             >
-              <Card bodyStyle={cardBodyStyle} bordered={false}>
+              <Card bodyStyle={cardBodyStyle}>
                 <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"

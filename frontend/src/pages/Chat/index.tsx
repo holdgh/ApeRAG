@@ -13,7 +13,6 @@ import Footer from './footer';
 import Header from './header';
 import styles from './index.less';
 
-
 const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
   [ReadyState.CONNECTING]: 'Connecting',
   [ReadyState.OPEN]: 'Open',
