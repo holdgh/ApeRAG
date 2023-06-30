@@ -16,7 +16,7 @@ export default ({ messages, loading }: Props) => {
       smooth: true,
       duration: 300,
     });
-  }, [messages]);
+  }, [messages, loading]);
 
   return (
     <div id="chat-content" className={styles.content}>

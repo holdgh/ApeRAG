@@ -106,7 +106,6 @@ export default () => {
   const [collections, _setCollections] = useState<Collection[]>();
   const [currentCollection, _setCurrentCollection] = useState<Collection>();
   const [currentChat, _setCurrentChat] = useState<Chat>();
-
   const { message } = App.useApp();
 
   const _createChat = async () => {
@@ -209,6 +208,8 @@ export default () => {
   useEffect(() => {
     if(currentCollection) {
       _getChats()
+    } else {
+      _setCurrentChat(undefined);
     }
   }, [currentCollection])
 
