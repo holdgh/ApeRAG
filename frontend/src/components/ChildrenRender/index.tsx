@@ -8,6 +8,7 @@ import { Link, Outlet, history, useModel } from '@umijs/max';
 import { Button, Card, CardProps, Result, theme } from 'antd';
 import { useEffect } from 'react';
 import PageLoading from '../PageLoading';
+import './index.less';
 
 export default (): React.ReactNode => {
   const { collections, getCollections } = useModel('collection');
@@ -97,11 +98,7 @@ export default (): React.ReactNode => {
   // return (
   //   <TransitionGroup component={null}>
   //     <CSSTransition key={history.location.pathname} classNames="fade" timeout={5000}>
-  //       <div style={{ position: 'relative' }}>
-  //         <div style={{ position: 'absolute', width: '100%' }}>
-  //           <Outlet />
-  //         </div>
-  //       </div>
+  //       <Outlet />
   //     </CSSTransition>
   //   </TransitionGroup>
   // );

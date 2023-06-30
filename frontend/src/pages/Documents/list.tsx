@@ -28,6 +28,7 @@ import moment from 'moment';
 import { useEffect, useState } from 'react';
 
 export default () => {
+  const [loading, setLoading] = useState<boolean>(false);
   const [searchKey, setSearchKey] = useState<string | undefined>();
   const [documents, setDocuments] = useState<Document[] | undefined>();
   const [uploadVisible, setUploadVisible] = useState<boolean>(false);
@@ -40,8 +41,10 @@ export default () => {
   );
 
   const getDocuments = async () => {
+    setLoading(true);
     const { data } = await GetCollectionDocuments(String(collectionId));
     setDocuments(data);
+    setLoading(false)
   };
 
   const onDelete = (record: Document) => {
@@ -169,7 +172,7 @@ export default () => {
       </Space>
       <br />
       <br />
-      <Table rowKey="id" columns={columns} dataSource={dataSource} />
+      <Table loading={loading} rowKey="id" columns={columns} dataSource={dataSource} />
       <Modal
         title="Upload Documents"
         open={uploadVisible}

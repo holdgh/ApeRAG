@@ -47,7 +47,7 @@ export default defineConfig({
     {
       name: 'Chat',
       path: '/chat',
-      icon: 'MessageOutlined',
+      icon: 'MessageFilled',
       component: './Chat/layout',
       routes: [{
         path: '/chat/:chatId',
@@ -57,7 +57,7 @@ export default defineConfig({
     {
       name: 'Collections',
       path: '/collections',
-      icon: 'UnorderedListOutlined',
+      icon: 'AppstoreFilled',
       routes: [
         {
           path: '/collections',
@@ -94,7 +94,7 @@ export default defineConfig({
     {
       name: 'Bot Settings',
       path: '/settings',
-      icon: 'SettingOutlined',
+      icon: 'SettingFilled',
       component: './Settings',
     },
   ],

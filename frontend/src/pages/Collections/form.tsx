@@ -1,7 +1,7 @@
 import CheckedCard from '@/components/CheckedCard';
 import CollectionConfig from '@/components/CollectionConfig';
 import { CollectionType } from '@/models/collection';
-import { DatabaseOutlined, SnippetsOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
 import { Button, Form, FormInstance, Input } from 'antd';
 import { useEffect, useState } from 'react';
 
@@ -51,13 +51,13 @@ export default ({ onFinish, form, action, type }: Props) => {
           onChange={(v) => setCollectionType(v as CollectionType)}
           options={[
             {
-              icon: <SnippetsOutlined />,
+              icon: <ReadOutlined />,
               label: 'Document',
               value: 'document',
               description: 'Use docx, pptx, csv, pdf, or md as a collection.',
             },
             {
-              icon: <DatabaseOutlined />,
+              icon: <AppstoreOutlined />,
               label: 'Database',
               value: 'database',
               description: 'Use database as a collection.',
@@ -82,7 +82,7 @@ export default ({ onFinish, form, action, type }: Props) => {
 
       <Form.Item>
         <Button type="primary" htmlType="submit">
-          {action === 'add' ? 'Create' : 'Update'}
+          {action === 'add' ? 'Create' : 'Save'}
         </Button>
       </Form.Item>
     </Form>
