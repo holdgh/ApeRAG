@@ -20,14 +20,14 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = item.data || '';
-  const [animateText] = useTypewriter({
-    words: [displayText],
-    typeSpeed: 10,
-    loop: 1,
-  });
-  if(loading) {
-    displayText = animateText;
-  }
+  // const [animateText] = useTypewriter({
+  //   words: [displayText],
+  //   typeSpeed: 10,
+  //   loop: 1,
+  // });
+  // if(loading) {
+  //   displayText = animateText;
+  // }
 
   const renderAvatar = () => {
     const size = 50;
