@@ -17,7 +17,7 @@ from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
 from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus, \
-    VerifyWay
+    VerifyWay, ca_temp_file_path
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
 from services.text2SQL.nosql import redis_query, mongo_query, clickhouse_query, elasticsearch_query
@@ -75,7 +75,7 @@ def ca_upload(request, file: UploadedFile = File(...)):
     if file_extension not in ["pem", "key", "crt", "csr"]:
         fail(HTTPStatus.NOT_FOUND, "file extension not found")
 
-    with open(file_name+file_extension, "wb+") as f:
+    with open(ca_temp_file_path(file_name+file_extension), "wb+") as f:
         for chunk in file.chunks():
             f.write(chunk)
     return success(file_name+file_extension)
