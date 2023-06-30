@@ -80,10 +80,10 @@ VICUNA_QA_TEMPLATE = (
 )
 
 
-def test_local_path_embedding():
-    ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
+def test_local_path_embedding(path: str, collection_name: str):
+    ctx = {"url":"http://localhost", "port":6333, "collection":collection_name, "vector_size":768, "distance":"Cosine", "timeout": 1000}
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
-    lpm = LocalPathEmbedding(adaptor, {"model_type": "huggingface"}, input_dir="/Users/slc/Desktop/paper/")
+    lpm = LocalPathEmbedding(adaptor, {"model_type": "huggingface"}, input_dir=path)
     lpm.load_data()
 
 
@@ -197,11 +197,16 @@ def test_local_llm_qa(query: str):
     elapsed = elapsed_time(start)
     print("elapsed time ", elapsed)
 
+def test_local_path_embedding_pics():
+    test_local_path_embedding(path="/Users/slc/pics/", collection_name="pics")
+
 
 def start():
     #test_local_path_embedding()
     #test_local_path_embedding_query("what is data lake")
-    test_local_llm_qa("what is data lake")
+    #test_local_llm_qa("what is data lake")
+    test_local_path_embedding_pics()
+
 
 if __name__ == "__main__":
-    pass
+    start()
