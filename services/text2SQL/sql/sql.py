@@ -77,5 +77,5 @@ class SQLBase(DataBase):
 
     def execute_query(self, query):
         with self.conn.engine.connect() as connection:
-            result = connection.execute(query)
-        return result
+            result = connection.execute(text(query))
+        return result.all()
