@@ -1,4 +1,4 @@
-import type { TypesDocumentConfig } from '@/models/collection';
+import type { TypesDocumentConfig } from '@/types';
 import { Descriptions, Form, Input } from 'antd';
 
 // desc

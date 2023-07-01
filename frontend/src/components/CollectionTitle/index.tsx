@@ -1,4 +1,4 @@
-import type { TypesCollection } from '@/models/collection';
+import type { TypesCollection } from '@/types';
 import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
 import { Space, Typography } from 'antd';
 

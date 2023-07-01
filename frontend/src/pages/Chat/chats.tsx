@@ -1,4 +1,4 @@
-import type { TypesMessage, TypesSocketStatus } from '@/models/chat';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { useModel } from '@umijs/max';
 import { useEffect } from 'react';
 import { Element as ScrollElement, scroller } from 'react-scroll';

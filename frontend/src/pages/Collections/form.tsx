@@ -1,7 +1,7 @@
 import CheckedCard from '@/components/CheckedCard';
 import DatabaseConfig from '@/components/DatabaseConfig';
 import DocumentConfig from '@/components/DocumentConfig';
-import type { TypesCollectionType } from '@/models/collection';
+import type { TypesCollectionType } from '@/types';
 import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
 import { Button, Form, FormInstance, Input, Space } from 'antd';
 import { useEffect, useState } from 'react';

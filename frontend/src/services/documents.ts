@@ -1,4 +1,4 @@
-import type { TypesDocument } from '@/models/document';
+import type { TypesDocument } from '@/types';
 import { request } from '@umijs/max';
 
 export const GetCollectionDocuments = (

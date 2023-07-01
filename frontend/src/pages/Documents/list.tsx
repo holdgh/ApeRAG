@@ -1,4 +1,4 @@
-import type { TypesDocument } from '@/models/document';
+import type { TypesDocument } from '@/types';
 import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,

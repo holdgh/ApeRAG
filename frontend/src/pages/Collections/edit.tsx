@@ -1,13 +1,13 @@
 import type {
-  DOCUMENT_DEFAULT_CONFIG,
   TypesCollection,
   TypesDatabaseConfig,
   TypesDocumentConfig,
-} from '@/models/collection';
+} from '@/types';
 import { useModel, useParams } from '@umijs/max';
 import { Card, Form } from 'antd';
 import { useEffect } from 'react';
 import CollectionForm from './form';
+import { DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
 
 export default () => {
   const [form] = Form.useForm();

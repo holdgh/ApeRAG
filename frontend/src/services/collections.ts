@@ -1,4 +1,4 @@
-import type { TypesCollection, TypesDatabaseConfig } from '@/models/collection';
+import type { TypesCollection, TypesDatabaseConfig } from '@/types';
 import { request } from '@umijs/max';
 
 export const GetCollections = (): Promise<{

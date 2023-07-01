@@ -1,4 +1,4 @@
-import type { TypesSocketStatus } from '@/models/chat';
+import type { TypesSocketStatus } from '@/types';
 import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';

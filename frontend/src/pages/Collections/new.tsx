@@ -2,7 +2,7 @@ import type {
   TypesCollection,
   TypesDatabaseConfig,
   TypesDocumentConfig,
-} from '@/models/collection';
+} from '@/types';
 
 import { DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
 

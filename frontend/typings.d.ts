@@ -1,5 +1,7 @@
 import '@umijs/max/typings';
 
+import '@/types';
+
 declare global {
   const API_ENDPOINT: string;
   const ASSETS_ENDPOINT: string;

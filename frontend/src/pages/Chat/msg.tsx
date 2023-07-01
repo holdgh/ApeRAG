@@ -1,4 +1,4 @@
-import type { TypesMessage } from '@/models/chat';
+import type { TypesMessage } from '@/types';
 import { getUser } from '@/models/user';
 import {
   LoadingOutlined,

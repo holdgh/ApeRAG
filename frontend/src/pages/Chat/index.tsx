@@ -1,4 +1,4 @@
-import type { TypesMessage, TypesSocketStatus } from '@/models/chat';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { DATABASE_EXECUTE_OPTIONS, hasDatabaseList } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';

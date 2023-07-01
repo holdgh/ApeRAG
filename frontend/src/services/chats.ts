@@ -1,4 +1,4 @@
-import type { TypesChat } from '@/models/chat';
+import type { TypesChat } from '@/types';
 import { request } from '@umijs/max';
 
 export const GetCollectionChats = (
