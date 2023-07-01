@@ -14,14 +14,12 @@ export const rootContainer = (children: React.ReactElement) => {
             colorBgElevated: '#141414',
           },
           Form: {
-            lineHeight: 1.2
+            lineHeight: 1.2,
           },
           Descriptions: {
             titleMarginBottom: 8,
           },
-          Card: {
-            
-          }
+          Card: {},
         },
       }}
     >

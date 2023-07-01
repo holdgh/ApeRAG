@@ -1,5 +1,5 @@
 import { CheckOutlined } from '@ant-design/icons';
-import { Avatar, Card, Space, Typography, theme } from 'antd';
+import { Avatar, Card, Col, Row, Space, Typography, theme } from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 
 import classNames from 'classnames';
@@ -41,46 +41,55 @@ export default ({
   }, [value]);
 
   return (
-    <div>
+    <Row gutter={[30, 30]}>
       {options.map((option, key) => (
-        <Card
-          className={classNames({
-            [styles.item]: true,
-            [styles.selected]: currentValue === option.value,
-            [styles.disabled]: disabled,
-          })}
-          bodyStyle={{
-            minHeight: 30,
-            padding: '12px 20px',
-          }}
+        <Col
           key={key}
-          onClick={() => {
-            onClick(option);
-          }}
+          xs={24}
+          sm={24}
+          md={24}
+          lg={12}
+          xl={12}
+          xxl={12}
         >
-          <Space className={styles.row}>
-            <Space size="large">
-              {option.icon ? (
-                <Avatar style={{ fontSize: 24 }} size={50}>
-                  {option.icon}
-                </Avatar>
-              ) : null}
-              <Space direction="vertical">
-                <Typography.Text>{option.label}</Typography.Text>
-                {option.description ? (
-                  <Typography.Text type="secondary">
-                    {option.description}
-                  </Typography.Text>
+          <Card
+            className={classNames({
+              [styles.item]: true,
+              [styles.selected]: currentValue === option.value,
+              [styles.disabled]: disabled,
+            })}
+            bodyStyle={{
+              minHeight: 30,
+              padding: '12px 20px',
+            }}
+            onClick={() => {
+              onClick(option);
+            }}
+          >
+            <Space className={styles.row}>
+              <Space size="large" style={{ flex: 1 }}>
+                {option.icon ? (
+                  <Avatar style={{ fontSize: 24 }} size={50}>
+                    {option.icon}
+                  </Avatar>
                 ) : null}
+                <Space direction="vertical" style={{ flex: 1 }}>
+                  <Typography.Text>{option.label}</Typography.Text>
+                  {option.description ? (
+                    <Typography.Text type="secondary" ellipsis>
+                      {option.description}
+                    </Typography.Text>
+                  ) : null}
+                </Space>
               </Space>
+              <CheckOutlined
+                className={styles.icon}
+                style={{ color: token.colorPrimary }}
+              />
             </Space>
-            <CheckOutlined
-              className={styles.icon}
-              style={{ color: token.colorPrimary }}
-            />
-          </Space>
-        </Card>
+          </Card>
+        </Col>
       ))}
-    </div>
+    </Row>
   );
 };

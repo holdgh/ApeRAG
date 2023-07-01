@@ -36,10 +36,12 @@ export const CreateCollection = (
   });
 };
 
-export const TestCollection = (config: CollectionConfig): Promise<{ code: string; data: boolean; message?: string }> => {
+export const TestCollection = (
+  config: CollectionConfig,
+): Promise<{ code: string; data: boolean; message?: string }> => {
   return request(`/api/v1/collections/test_connection`, {
     method: 'POST',
-    data: config
+    data: config,
   });
 };
 

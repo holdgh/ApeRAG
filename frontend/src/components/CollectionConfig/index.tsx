@@ -108,7 +108,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
         const code = info?.file?.response?.code;
         const msg = info?.file?.response?.message;
         if (status === 'done') {
-          if(code !== "200" && msg) {
+          if (code !== '200' && msg) {
             message.error(info?.file?.response?.message);
           }
           form.setFieldValue(type, info?.file?.response?.data || '');

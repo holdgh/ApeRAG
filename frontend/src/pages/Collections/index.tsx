@@ -1,7 +1,7 @@
 import CollectionTitle from '@/components/CollectionTitle';
+import { getCollectionUrl } from '@/models/collection';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, history, useModel } from '@umijs/max';
-import { getCollectionUrl } from '@/models/collection';
 import {
   Button,
   Card,
@@ -27,7 +27,6 @@ export default () => {
           return (
             <Col
               key={key}
-              span={12}
               xs={24}
               sm={24}
               md={24}

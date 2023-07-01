@@ -6,7 +6,7 @@ import MessageItem from './msg';
 
 type Props = {
   messages: Message[];
-  loading: boolean,
+  loading: boolean;
   status: SocketStatus;
 };
 
@@ -23,8 +23,9 @@ export default ({ messages, loading, status }: Props) => {
     <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>
         {messages.map((item, key) => {
-          const isLoading = key === messages.length - 1 && loading && status === "Open";
-          return <MessageItem loading={isLoading} key={key} item={item} />
+          const isLoading =
+            key === messages.length - 1 && loading && status === 'Open';
+          return <MessageItem loading={isLoading} key={key} item={item} />;
         })}
         <ScrollElement name="bottom"></ScrollElement>
       </div>

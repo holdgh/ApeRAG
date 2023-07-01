@@ -62,9 +62,11 @@ export default ({ onFinish, form, action, type }: Props) => {
         ]}
       >
         <CheckedCard
-          disabled={action === 'edit'}
+          // disabled={action === 'edit'}
           onChange={(v) => setCollectionType(v as CollectionType)}
-          options={collectionTypeOptions.filter(o => action === 'add' || o.value === type)}
+          options={collectionTypeOptions.filter(
+            (o) => action === 'add' || o.value === type,
+          )}
         />
       </Form.Item>
 
