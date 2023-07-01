@@ -7,12 +7,12 @@ def user_document_path(instance, filename):
 
 
 def ssl_temp_file_path(filename):
-    return "ssl_file/upload_temp/{}".format(filename)
+    return "ssl_file/upload_temp/{}".format(filename) if filename is not None else None
 
 
 def ssl_file_path(instance, filename):
     user = instance.user.replace("|", "-")
-    return "ssl_file/user-{0}/collection-{1}/{2}".format(user, instance.collection.id, filename)
+    return "ssl_file/user-{0}/collection-{1}/{2}".format(user, instance.id, filename)
 
 
 class CollectionStatus(models.TextChoices):
@@ -82,6 +82,7 @@ class Document(models.Model):
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+    metadata = models.CharField(max_length=256)  # for md5 or latest update time
 
     def view(self):
         return {
@@ -121,15 +122,3 @@ class Chat(models.Model):
 class Settings(models.Model):
     key = models.CharField(max_length=512)
     value = models.TextField()
-
-
-class SslFile(models.Model):
-    user = models.CharField(max_length=256)
-    name = models.CharField(max_length=64)
-    collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE
-    )
-    file = models.FileField(upload_to=ssl_file_path)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)

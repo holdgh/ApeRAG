@@ -13,14 +13,15 @@ from llama_index.readers.file.video_audio_reader import VideoAudioReader
 from readers.epub_reader import EpubReader
 from readers.pptx_reader import PptxReader
 from readers.txt_reader import TxtReader
+from readers.compose_image_reader import ComposeImageReader
 
 DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".pdf": PDFReader,
     ".docx": DocxReader,
     ".pptx": PptxReader,
-    ".jpg": ImageReader,
-    ".png": ImageReader,
-    ".jpeg": ImageReader,
+    ".jpg": ComposeImageReader,
+    ".png": ComposeImageReader,
+    ".jpeg": ComposeImageReader,
     ".mp3": VideoAudioReader,
     ".mp4": VideoAudioReader,
     ".csv": PandasCSVReader,

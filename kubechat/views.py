@@ -10,17 +10,27 @@ from http import HTTPStatus
 from django.http import HttpResponse
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
+
+from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
     query_chats, add_ssl_file, new_db_client
 from kubechat.utils.request import get_user, success, fail
 from langchain.memory import RedisChatMessageHistory
+
+from readers.base_embedding import  get_default_embedding_model
 from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus, \
     VerifyWay, ssl_temp_file_path, CollectionType
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
 from pydantic import BaseModel
+
+from .source.local import scanning_dir_add_index
+from .source.oss import scanning_oss_add_index
+from .utils.utils import generate_vector_db_collection_id
+
+from .source.ftp import scanning_dir_add_index_from_ftp
 
 logger = logging.getLogger(__name__)
 
@@ -81,10 +91,10 @@ def ssl_file_upload(request, file: UploadedFile = File(...)):
     if not os.path.exists(ssl_temp_file_path("")):
         os.makedirs(ssl_temp_file_path(""))
 
-    with open(ssl_temp_file_path(file_name+file_extension), "wb+") as f:
+    with open(ssl_temp_file_path(file_name + file_extension), "wb+") as f:
         for chunk in file.chunks():
             f.write(chunk)
-    return success(file_name+file_extension)
+    return success(file_name + file_extension)
 
 
 @api.post("/collections/test_connection")
@@ -100,10 +110,10 @@ def connection_test(request, connection: ConnectionInfo):
         return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
 
     if not client.connect(
-            verify,
-            connection.ca_cert,
-            connection.client_key,
-            connection.client_cert,
+            False,
+            ssl_temp_file_path(connection.ca_cert),
+            ssl_temp_file_path(connection.client_key),
+            ssl_temp_file_path(connection.client_cert),
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -120,25 +130,37 @@ def create_collection(request, collection: CollectionIn):
         title=collection.title,
         description=collection.description,
     )
+
     if collection.config is not None:
         instance.config = collection.config
     instance.save()
+
+    # pre-create collection in vector db
+    vector_db_conn = get_vector_db_connector(collection=generate_vector_db_collection_id(user=user,
+                                                                                         collection=instance.id))
+    _, size = get_default_embedding_model(load=False)
+    vector_db_conn.connector.create_collection(vector_size=size)
     config = json.loads(collection.config)
+
     if instance.type == CollectionType.DATABASE:
         if config["verify"] != VerifyWay.PREFERRED:
-            add_ssl_file(config, user, instance)
+            add_ssl_file(config, instance)
+            collection.config = json.dumps(config)
+            instance.save()
     else:
         if config["source"] == "system":
             pass
         elif config["source"] == "local":
-            from kubechat.source.local import scanning_dir_add_index
             scanning_dir_add_index(config["path"], instance)
         elif config["source"] == "s3":
-            pass
+            from kubechat.source.s3 import scanning_s3_add_index
+            scanning_s3_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"], config["region"], instance)
         elif config["source"] == "oss":
-            pass
+            scanning_oss_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"],
+                                   config["region"], instance)
         elif config["source"] == "ftp":
-            pass
+            scanning_dir_add_index_from_ftp(config["path"], config["host"], config["username"], config["password"],
+                                            instance)
         elif config["source"] == "email":
             pass
 
@@ -170,7 +192,7 @@ def get_database_list(request, collection_id):
     client = new_db_client(config)
     # TODO:add SSL
     if not client.connect(
-        False,
+            False,
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -230,7 +252,7 @@ def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
         )
         document_instance.save()
         response.append(document_instance.view())
-        add_index_for_document.delay(document_instance)
+        add_index_for_document.delay(document_instance.id, document_instance.file.name)
     return success(response)
 
 

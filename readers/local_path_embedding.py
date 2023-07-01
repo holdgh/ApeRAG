@@ -11,6 +11,9 @@ from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from llama_index.vector_stores.types import NodeWithEmbedding
 from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
+from llama_index import (
+    LangchainEmbedding,
+)
 
 
 class LocalPathEmbedding(DocumentBaseEmbedding):
@@ -18,11 +21,12 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
     def __init__(
             self,
             vector_store_adaptor: VectorStoreConnectorAdaptor,
-            embedding_config: Optional[Dict[str, Any]] = None,
+            embedding_model: LangchainEmbedding = None,
+            vector_size: int = 0,
             **kwargs: Any,
     ) -> None:
         uri_path = kwargs.get("input_files") or kwargs.get("input_dir")
-        super().__init__(uri_path, vector_store_adaptor, embedding_config)
+        super().__init__(uri_path, vector_store_adaptor, embedding_model, vector_size)
 
         self.args = kwargs
         self.reader = InteractiveSimpleDirectoryReader(**kwargs)
@@ -53,7 +57,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     embedding=vector))
             count = count + 1
             print(f"processed {count} files, current fiile is {file_name} ")
-            self.connector.store.add(nodes)
+            return self.connector.store.add(nodes)
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)

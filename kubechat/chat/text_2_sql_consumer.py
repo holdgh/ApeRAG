@@ -9,7 +9,7 @@ class Text2SQLConsumer(BaseConsumer):
         super().connect()
         collection = query_collection(self.user, self.collection_id)
         database, execute_at_once = extract_database_and_execute(self.scope["query_string"].decode())
-        print("execute at once", execute_at_once)
+
         config = json.loads(collection.config)
         config["db_name"] = database
 
@@ -36,7 +36,3 @@ class Text2SQLConsumer(BaseConsumer):
                 response = self.client.text_to_query(query)
         for tokens in response:
             yield str(tokens)
-
-
-
-

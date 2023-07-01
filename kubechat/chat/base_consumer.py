@@ -5,6 +5,7 @@ from abc import abstractmethod
 from channels.generic.websocket import WebsocketConsumer
 from langchain.memory import RedisChatMessageHistory
 from langchain.schema import HumanMessage, AIMessage
+from readers.base_embedding import get_default_embedding_model
 
 import config.settings as settings
 from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
@@ -28,8 +29,8 @@ class BaseConsumer(WebsocketConsumer):
         if chat is None:
             raise Exception("Chat not found")
 
+        self.embedding_model, self.vector_size = get_default_embedding_model()
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-
         headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
         self.accept(subprotocol=(None, headers))
 

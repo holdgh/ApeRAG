@@ -31,11 +31,11 @@ class CustomLoadDocumentTask(Task):
 
 
 @app.task(base=CustomLoadDocumentTask)
-def add_index_for_document(document_id):
+def add_index_for_document(document_id, file_path):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
-            document_id: the document id in Django Module
+            document_id: the document in Django Module
         Returns:
             bool: True if the index is created and saved successfully, False otherwise.
         """
@@ -45,10 +45,11 @@ def add_index_for_document(document_id):
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
-        loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
-                                    vector_store_adaptor=get_vector_db_connector(collection=generate_qdrant_collection_id(
-                                                                                           user=document.user,
-                                                                                           collection=document.collection.id)))
+        loader = LocalPathEmbedding(input_files=[file_path],
+                                    vector_store_adaptor=get_vector_db_connector(
+                                        collection=generate_qdrant_collection_id(
+                                            user=document.user,
+                                            collection=document.collection.id)))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
         logger.debug(f"add_index_for_document(): add qdrant points: {document.relate_ids}")
@@ -72,7 +73,7 @@ def remove_index(document_id):
     """
     remove the doc embedding index from vector store db
 
-    :param document_id:
+    :param document:
     """
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
@@ -99,7 +100,7 @@ def remove_index(document_id):
 
 
 @app.task
-def update_index(document_id):
+def update_index(document_id, file_path):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -107,11 +108,11 @@ def update_index(document_id):
     document.collection.save()
 
     try:
-        loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
-                                    vector_store_adaptor=get_local_vector_db_connector(VECTOR_DB_TYPE,
-                                                                                       collection=generate_qdrant_collection_id(
-                                                                                           user=document.user,
-                                                                                           collection=document.collection.id)))
+        loader = LocalPathEmbedding(input_files=[file_path],
+                                    vector_store_adaptor=get_vector_db_connector(
+                                        collection=generate_qdrant_collection_id(
+                                            user=document.user,
+                                            collection=document.collection.id)))
         loader.connector.delete(ids=str(document.relate_ids).split(','))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)

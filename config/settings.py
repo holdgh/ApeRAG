@@ -207,7 +207,7 @@ LOGGING = {
     },
 }
 
-# Model
+# LLM Model
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 
 # Memory backend
