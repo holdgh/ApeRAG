@@ -1,6 +1,11 @@
 import type { Collection } from './collection';
 
-export type DocumentStatus = 'PENDING' | 'RUNNING' | 'FAILED' | 'COMPLETE' | 'DELETED';
+export type DocumentStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'FAILED'
+  | 'COMPLETE'
+  | 'DELETED';
 
 export type Document = {
   id: string;

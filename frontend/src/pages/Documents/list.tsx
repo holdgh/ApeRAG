@@ -44,7 +44,7 @@ export default () => {
     setLoading(true);
     const { data } = await GetCollectionDocuments(String(collectionId));
     setDocuments(data);
-    setLoading(false)
+    setLoading(false);
   };
 
   const onDelete = (record: Document) => {
@@ -172,7 +172,12 @@ export default () => {
       </Space>
       <br />
       <br />
-      <Table loading={loading} rowKey="id" columns={columns} dataSource={dataSource} />
+      <Table
+        loading={loading}
+        rowKey="id"
+        columns={columns}
+        dataSource={dataSource}
+      />
       <Modal
         title="Upload Documents"
         open={uploadVisible}

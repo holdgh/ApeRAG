@@ -11,12 +11,8 @@ from typing import Dict, List, Optional
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document
 
-from config.settings import VECTOR_DB_TYPE
-from config.vector_db import get_local_vector_db_connector
-
-
-def generate_qdrant_collection_id(user, collection) -> str:
-    return str(user).replace('|', '-') + "-" + str(collection)
+# model_id_or_path = "nlpconnect/vit-gpt2-image-captioning"
+model_id_or_path = "/Users/alal/.cache/huggingface/hub/models--nlpconnect--vit-gpt2-image-captioning"
 
 
 class PptxReader(BaseReader):
@@ -45,13 +41,13 @@ class PptxReader(BaseReader):
             )
 
         model = VisionEncoderDecoderModel.from_pretrained(
-            "nlpconnect/vit-gpt2-image-captioning",
+            model_id_or_path
         )
         feature_extractor = ViTFeatureExtractor.from_pretrained(
-            "nlpconnect/vit-gpt2-image-captioning"
+            model_id_or_path
         )
         tokenizer = AutoTokenizer.from_pretrained(
-            "nlpconnect/vit-gpt2-image-captioning"
+            model_id_or_path
         )
 
         self.parser_config = {
@@ -118,14 +114,3 @@ class PptxReader(BaseReader):
                     result += f"{shape.text}\n"
 
         return [Document(text=result, metadata=metadata or {})]
-
-# if __name__ == '__main__':
-#     # loader = LocalPathEmbedding(input_files="documents/user-google-oauth2-103585158649912927710/collection-1/ape.pptx", embedding_config={"model_type": "huggingface"},
-#     #                             vector_store_adaptor=get_local_vector_db_connector(VECTOR_DB_TYPE,
-#     #                                                                                collection=generate_qdrant_collection_id(
-#     #                                                                                    user="user-google-oauth2-103585158649912927710",
-#     #                                                                                    collection="1")))
-#     load = PptxReader()
-#     load.load_data()
-#
-#     # loader.load_data()

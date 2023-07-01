@@ -1,8 +1,5 @@
 import { SocketStatus } from '@/models/chat';
-import {
-  ArrowRightOutlined,
-  ClearOutlined,
-} from '@ant-design/icons';
+import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';

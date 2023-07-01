@@ -4,14 +4,14 @@ import path from 'path';
 
 const collections = [
   {
-    id: "1",
+    id: '1',
     title: 'Kubeblocks user manual',
     status: 'ACTIVE',
     type: 'document',
     description: 'This collection is designed to provided documents',
   },
   {
-    id: "2",
+    id: '2',
     title: 'Sealos user manual',
     status: 'INACTIVE',
     type: 'document',
@@ -19,7 +19,7 @@ const collections = [
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
   {
-    id: "3",
+    id: '3',
     title: 'Kubeblocks user manual',
     status: 'ACTIVE',
     type: 'document',
@@ -27,39 +27,40 @@ const collections = [
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
   {
-    id: "4",
+    id: '4',
     title: 'Sealos user manual',
     status: 'INACTIVE',
     type: 'database',
-    config: '{"host": "http://127.0.0.1", "port": 3306, "verify": "prefered", "db_name": "db_name", "db_type": "mysql", "username": "username", "password": "password"}',
+    config:
+      '{"host": "http://127.0.0.1", "port": 3306, "verify": "prefered", "db_name": "db_name", "db_type": "mysql", "username": "username", "password": "password"}',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },
 ];
 const documents = [
   {
-    id: "1",
+    id: '1',
     name: 'Kubeblocks user manual(1/4).pdf',
     status: 'COMPLETE',
     size: 85,
     updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
   {
-    id: "2",
+    id: '2',
     name: 'Kubeblocks user manual(2/4).pdf',
     status: 'FAILED',
     size: 85,
     updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
   {
-    id: "3",
+    id: '3',
     name: 'Kubeblocks user manual(3/4).pdf',
     status: 'FAILED',
     size: 85,
     updatedAt: '2023-06-27T07:58:06.274709+00:00',
   },
   {
-    id: "4",
+    id: '4',
     name: 'Kubeblocks user manual(4/4).pdf',
     status: 'COMPLETE',
     size: 85,
@@ -73,10 +74,10 @@ export default {
     res.json({ data: collections });
   },
   'POST /api/v1/collections/test_connection': (req: any, res: any) => {
-    res.json({ data: Boolean(_.random(1)) });
+    res.json({ code: '', data: Boolean(_.random(1)) });
   },
   'POST /api/v1/collections/ca/upload': (req: any, res: any) => {
-    res.json({ data: String((new Date()).getTime()) });
+    res.json({ data: String(new Date().getTime()) });
   },
   'POST /api/v1/collections': (req: any, res: any) => {
     res.json({

@@ -23,11 +23,16 @@ export default () => {
     form.setFieldsValue(collection);
   }, [collection]);
 
-  if(!collection) return;
+  if (!collection) return;
 
   return (
     <Card bordered={false}>
-      <CollectionForm onFinish={onFinish} form={form} type={collection.type} action="edit" />
+      <CollectionForm
+        onFinish={onFinish}
+        form={form}
+        type={collection.type}
+        action="edit"
+      />
     </Card>
   );
 };

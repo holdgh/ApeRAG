@@ -1,6 +1,11 @@
 import type { Collection } from './collection';
 
-export type SocketStatus = 'Closed' | 'Open' | 'Connecting' | 'Closing' | 'Uninstantiated';
+export type SocketStatus =
+  | 'Closed'
+  | 'Open'
+  | 'Connecting'
+  | 'Closing'
+  | 'Uninstantiated';
 export type MessageType = 'message' | 'stop' | 'error';
 export type MessageRole = 'ai' | 'human';
 
