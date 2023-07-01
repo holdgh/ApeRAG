@@ -10,11 +10,14 @@ class Mysql(SQLBase):
         return f"{self.db_type}+{driver}://{self.user}:{self.pwd}@{self.host}:{self.port}/{self.db}"
 
     def _get_ssl_args(self, ca_cert, client_key, client_cert):
-        return {
-            "ssl_ca": ca_cert,
-            "ssl_cert": client_cert,
-            "ssl_key": client_key
-        }
+        ssl_str = "?"
+        if ca_cert is not None:
+            ssl_str += "ssl_ca={}&".format(ca_cert)
+        if client_key is not None:
+            ssl_str += "ssl_key={}&".format(client_key)
+        if client_cert is not None:
+            ssl_str += "ssl_cert={}".format(client_cert)
+        return ssl_str
 
     def get_database_list(self):
         cmd = "show databases;"
