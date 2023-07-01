@@ -49,7 +49,7 @@ WORKDIR $PYSETUP_PATH
 COPY poetry.lock pyproject.toml ./
 
 # install runtime deps - uses $POETRY_VIRTUALENVS_IN_PROJECT internally
-RUN poetry install
+RUN poetry install --no-root
 
 
 # `development` image is used during development / testing

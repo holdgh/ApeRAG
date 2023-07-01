@@ -82,12 +82,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
 
 
 # Password validation
@@ -176,6 +177,7 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_WORKER_SEND_TASK_EVENTS = True
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-task_send_sent_event
 CELERY_TASK_SEND_SENT_EVENT = True
+INSTALLED_APPS += ["django_celery_beat"]
 
 
 # WebSockets
@@ -206,13 +208,10 @@ LOGGING = {
 }
 
 # Model
-
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 
-
 # Memory backend
-
-MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://redis:6379/1")
+MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
 
 VECTOR_DB_TYPE = env.str("VECTOR_DB_TYPE", default="qdrant")
-VECTOR_DB_CONTEXT = env.json("VECTOR_DB_CONTEXT", '{"url":"http://localhost", "port":6333, "distance":"Cosine", "timeout": 1000}')
+VECTOR_DB_CONTEXT = env.str("VECTOR_DB_CONTEXT", '{"url":"http://localhost", "port":6333, "distance":"Cosine", "timeout": 1000}')
