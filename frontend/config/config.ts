@@ -15,6 +15,7 @@ export default defineConfig({
     exportLocalsConvention: 'camelCase',
     localIdentName: '[path][name]__[local]--[hash:base64:5]',
   },
+  alias: {},
   codeSplitting: {
     jsStrategy: 'depPerChunk',
     jsStrategyOptions: {},
