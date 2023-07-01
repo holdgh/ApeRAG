@@ -44,22 +44,22 @@ def add_index_for_document(document_id, file_path):
     document.save()
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
-    loader = LocalPathEmbedding(input_files=[file_path], embedding_config={"model_type": "huggingface"},
-                                vector_store_adaptor=get_vector_db_connector(collection=generate_qdrant_collection_id(
-                                    user=document.user,
-                                    collection=document.collection.id)))
-    ids = loader.load_data()
-    document.relate_ids = ",".join(ids)
-    logger.debug(f"add_index_for_document(): add qdrant points: {document.relate_ids}")
-    # try:
-    #
-    # except Exception as e:
-    #     document.status = DocumentStatus.FAILED
-    #     document.save()
-    #     document.collection.status = CollectionStatus.ACTIVE
-    #     document.collection.save()
-    #     logger.error(f"add_index_for_document(): index embedding to vector db failed:{e}")
-    #     return False
+    try:
+        loader = LocalPathEmbedding(input_files=[file_path],
+                                    vector_store_adaptor=get_vector_db_connector(
+                                        collection=generate_qdrant_collection_id(
+                                            user=document.user,
+                                            collection=document.collection.id)))
+        ids = loader.load_data()
+        document.relate_ids = ",".join(ids)
+        logger.debug(f"add_index_for_document(): add qdrant points: {document.relate_ids}")
+    except Exception as e:
+        document.status = DocumentStatus.FAILED
+        document.save()
+        document.collection.status = CollectionStatus.ACTIVE
+        document.collection.save()
+        logger.error(f"add_index_for_document(): index embedding to vector db failed:{e}")
+        return False
 
     document.status = DocumentStatus.COMPLETE
     document.save()
@@ -100,7 +100,7 @@ def remove_index(document_id):
 
 
 @app.task
-def update_index(document_id):
+def update_index(document_id, file_path):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -108,11 +108,11 @@ def update_index(document_id):
     document.collection.save()
 
     try:
-        loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
-                                    vector_store_adaptor=get_local_vector_db_connector(VECTOR_DB_TYPE,
-                                                                                       collection=generate_qdrant_collection_id(
-                                                                                           user=document.user,
-                                                                                           collection=document.collection.id)))
+        loader = LocalPathEmbedding(input_files=[file_path],
+                                    vector_store_adaptor=get_vector_db_connector(
+                                        collection=generate_qdrant_collection_id(
+                                            user=document.user,
+                                            collection=document.collection.id)))
         loader.connector.delete(ids=str(document.relate_ids).split(','))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)

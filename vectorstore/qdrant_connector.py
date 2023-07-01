@@ -102,3 +102,11 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         ids = delete_kwargs.get("ids")
         for doc_id in ids:
             self.store.delete(ref_doc_id=doc_id, **delete_kwargs)
+
+    def create_collection(self, **kwargs: Any):
+        vector_size = kwargs.get("vector_size")
+        from qdrant_client.http import models as rest
+        self.client.recreate_collection(collection_name=self.collection_name, vectors_config=rest.VectorParams(
+            size=vector_size,
+            distance=rest.Distance.COSINE,
+        ))

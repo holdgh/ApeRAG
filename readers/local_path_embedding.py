@@ -21,8 +21,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
     def __init__(
             self,
             vector_store_adaptor: VectorStoreConnectorAdaptor,
-            embedding_model: LangchainEmbedding,
-            vector_size: int,
+            embedding_model: LangchainEmbedding = None,
+            vector_size: int = 0,
             **kwargs: Any,
     ) -> None:
         uri_path = kwargs.get("input_files") or kwargs.get("input_dir")
@@ -57,7 +57,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     embedding=vector))
             count = count + 1
             print(f"processed {count} files, current fiile is {file_name} ")
-            self.connector.store.add(nodes)
+            return self.connector.store.add(nodes)
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)
