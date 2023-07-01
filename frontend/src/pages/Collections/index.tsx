@@ -13,6 +13,7 @@ import {
   Typography,
   theme,
 } from 'antd';
+import _ from 'lodash';
 
 export default () => {
   const { collections, setCurrentCollection } = useModel('collection');
@@ -45,7 +46,7 @@ export default () => {
                   >
                     <Statistic
                       title="Status"
-                      value={collection.status}
+                      value={_.capitalize(collection.status)}
                       valueStyle={{
                         fontSize: 16,
                         color:
@@ -57,7 +58,7 @@ export default () => {
                     <Divider type="vertical" style={{ height: 30 }} />
                     <Statistic
                       title="Type"
-                      value={collection.type}
+                      value={_.capitalize(collection.type)}
                       valueStyle={{ fontSize: 16 }}
                     />
                     <Divider type="vertical" style={{ height: 30 }} />

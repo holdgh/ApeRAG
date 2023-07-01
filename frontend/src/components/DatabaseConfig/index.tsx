@@ -159,16 +159,18 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
         minWidth: 100,
       }}
       extra={
-        <Button
-          shape="circle"
-          type="text"
-          disabled={disabled}
-          onClick={() => {
-            setVisible(true);
-          }}
-        >
-          <SettingOutlined />
-        </Button>
+        disabled ? null : (
+          <Button
+            shape="circle"
+            type="text"
+            disabled={disabled}
+            onClick={() => {
+              setVisible(true);
+            }}
+          >
+            <SettingOutlined />
+          </Button>
+        )
       }
     >
       <Descriptions.Item label="Database Type">
@@ -198,7 +200,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
     <>
       {_.isEmpty(config.host) ? DatabaseEdit : DatabaseInfo}
       <Modal
-        title="Connection Config"
+        title="Database Connection"
         open={visible}
         onCancel={() => setVisible(false)}
         footer={footer}

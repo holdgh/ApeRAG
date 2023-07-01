@@ -85,16 +85,18 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
         minWidth: 100,
       }}
       extra={
-        <Button
-          shape="circle"
-          type="text"
-          disabled={disabled}
-          onClick={() => {
-            setVisible(true);
-          }}
-        >
-          <SettingOutlined />
-        </Button>
+        disabled ? null : (
+          <Button
+            shape="circle"
+            type="text"
+            disabled={disabled}
+            onClick={() => {
+              setVisible(true);
+            }}
+          >
+            <SettingOutlined />
+          </Button>
+        )
       }
     >
       <Descriptions.Item label="Source">
@@ -113,7 +115,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
     <>
       {originConfig.source === 'system' ? DocumentEdit : DocumentInfo}
       <Modal
-        title="Document Config"
+        title="Document Source"
         open={visible}
         onCancel={() => setVisible(false)}
         destroyOnClose={true}

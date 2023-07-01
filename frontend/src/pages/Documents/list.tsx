@@ -23,6 +23,7 @@ import {
   Upload,
   UploadProps,
 } from 'antd';
+import byteSize from 'byte-size';
 import { ColumnsType } from 'antd/es/table';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
@@ -80,7 +81,7 @@ export default () => {
       dataIndex: 'size',
       render: (_value, record) => {
         return (
-          <Typography.Text type="secondary">{record.size}</Typography.Text>
+          <Typography.Text type="secondary">{byteSize(record.size || 0).toString()}</Typography.Text>
         );
       },
     },
@@ -90,7 +91,7 @@ export default () => {
       render: (_value, record) => {
         return (
           <Tag color={record.status === 'FAILED' ? 'error' : 'default'}>
-            {record.status}
+            {_.capitalize(record.status)}
           </Tag>
         );
       },

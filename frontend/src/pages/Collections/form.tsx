@@ -63,7 +63,7 @@ export default ({
         <Input />
       </Form.Item>
       <Form.Item name="description" label="Description">
-        <Input.TextArea rows={4} />
+        <Input.TextArea rows={2} />
       </Form.Item>
       <Form.Item
         name="type"
