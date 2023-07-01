@@ -22,6 +22,8 @@ from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
 from pydantic import BaseModel
 
+from .source.ftp import scanning_dir_add_index_from_ftp
+
 logger = logging.getLogger(__name__)
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
@@ -81,10 +83,10 @@ def ssl_file_upload(request, file: UploadedFile = File(...)):
     if not os.path.exists(ssl_temp_file_path("")):
         os.makedirs(ssl_temp_file_path(""))
 
-    with open(ssl_temp_file_path(file_name+file_extension), "wb+") as f:
+    with open(ssl_temp_file_path(file_name + file_extension), "wb+") as f:
         for chunk in file.chunks():
             f.write(chunk)
-    return success(file_name+file_extension)
+    return success(file_name + file_extension)
 
 
 @api.post("/collections/test_connection")
@@ -138,7 +140,8 @@ def create_collection(request, collection: CollectionIn):
         elif config["source"] == "oss":
             pass
         elif config["source"] == "ftp":
-            pass
+            scanning_dir_add_index_from_ftp(config["path"], config["host"], config["username"], config["password"],
+                                            instance)
         elif config["source"] == "email":
             pass
 
@@ -170,7 +173,7 @@ def get_database_list(request, collection_id):
     client = new_db_client(config)
     # TODO:add SSL
     if not client.connect(
-        False,
+            False,
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
