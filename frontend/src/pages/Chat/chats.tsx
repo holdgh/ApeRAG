@@ -6,17 +6,19 @@ import MessageItem from './msg';
 
 type Props = {
   messages: Message[];
-  loading: boolean;
   status: SocketStatus;
+  loading: boolean;
   markdown: boolean;
+  onExecuteSQL: (msg?: Message) => void;
 };
 
-export default ({ messages, loading, status, markdown=true }: Props) => {
+export default ({ messages, loading, status, markdown=true, onExecuteSQL }: Props) => {
   useEffect(() => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
       smooth: true,
-      duration: 300,
+      // duration: 300,
+      duration: 0,
     });
   }, [messages, loading]);
 
@@ -26,7 +28,7 @@ export default ({ messages, loading, status, markdown=true }: Props) => {
         {messages.map((item, key) => {
           const isLoading =
             key === messages.length - 1 && loading && status === 'Open';
-          return <MessageItem markdown={markdown} loading={isLoading} key={key} item={item} />;
+          return <MessageItem onExecuteSQL={onExecuteSQL} markdown={markdown} loading={isLoading} key={key} item={item} />;
         })}
         <ScrollElement name="bottom"></ScrollElement>
       </div>

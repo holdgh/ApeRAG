@@ -63,6 +63,12 @@ export default () => {
     setSocketUrl(url);
   };
 
+  const onExecuteSQL = (msg?: Message) => {
+    if(msg?.type === 'sql') {
+      sendMessage(JSON.stringify(msg));
+    }
+  }
+
   const onClear = async () => {
     if (!currentCollection || !currentChat) return;
     const { data } = await UpdateCollectionChat(
@@ -101,7 +107,7 @@ export default () => {
     if(currentDatabase) {
       const values = {
         database: _.first(currentDatabase),
-        execute: _.first(DATABASE_EXECUTE_OPTIONS)?.value,
+        execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
       }
       setSocketParams(values);
       paramsForm.setFieldsValue(values);
@@ -130,7 +136,7 @@ export default () => {
       return;
     }
 
-    if (msg.type === 'message' && msg.data) {
+    if ((msg.type === 'sql' || msg.type === 'message') && msg.data) {
       const message: Message = { ...msg, role: 'ai' };
       const data = messages;
       let isAiLast = _.last(data)?.role !== 'human';
@@ -184,6 +190,7 @@ export default () => {
               loading={loading}
               messages={messages}
               markdown={true}
+              onExecuteSQL={onExecuteSQL}
             />
             <Footer
               status={SocketStatusMap[readyState]}
