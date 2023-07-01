@@ -72,5 +72,6 @@ def new_db_client(config):
         pwd=config["password"] if "password" in config.keys() else None,
         port=int(config["port"]) if "port" in config.keys() and config["port"] is not None else None,
         db_type=config["db_type"],
+        db=config["db_name"] if "db_name" in config.keys() else ""
     )
     return client

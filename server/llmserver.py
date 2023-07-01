@@ -166,7 +166,6 @@ def generate(prompt_request: PromptRequest):
     for rsp in output:
         # rsp = rsp.decode("utf-8")
         rsp_str = str(rsp, "utf-8")
-        print("[TEST: output]:", rsp_str)
         response.append(rsp_str)
 
     return {"response": rsp_str}
