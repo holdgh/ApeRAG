@@ -27,6 +27,7 @@ type DbChatFormFields = { [key in string]: string | undefined };
 export default () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [socketUrl, setSocketUrl] = useState<string>('');
+  const [socketParams, setSocketParams] = useState<DbChatFormFields>();
   const { initialState } = useModel('@@initialState');
   const {
     currentCollection,
@@ -42,30 +43,21 @@ export default () => {
     reconnectInterval: 5000,
     reconnectAttempts: 5,
   });
-  const [dbForm] = Form.useForm();
+  const [paramsForm] = Form.useForm();
 
   const messages = currentChat?.history || [];
   const showSelector = hasDatabaseList(currentCollection);
 
-  const defaultDbChatFormValue: DbChatFormFields = {
-    database: _.first(currentDatabase),
-    execute: _.first(DATABASE_EXECUTE_OPTIONS)?.value,
-  };
-  const updateSocketUrl = (params?: DbChatFormFields) => {
+  const updateSocketUrl = () => {
     if (!currentCollection || !currentChat) return;
 
     const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
     const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     let url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
 
-    if (showSelector) {
-      if (_.isEmpty(currentDatabase)) return;
-
-      const query = _.map(
-        { ...defaultDbChatFormValue, ...params },
-        (value, key) => `${key}=${value}`,
-      );
-      if (!_.isEmpty(query)) url += `?${query.join('&')}`;
+    const query = _.map(socketParams,(value, key) => `${key}=${value}`);
+    if(!_.isEmpty(query)) {
+      url += `?${query.join('&')}`;
     }
 
     setSocketUrl(url);
@@ -106,6 +98,23 @@ export default () => {
   }, [currentCollection, currentChat]);
 
   useEffect(() => {
+    if(currentDatabase) {
+      const values = {
+        database: _.first(currentDatabase),
+        execute: _.first(DATABASE_EXECUTE_OPTIONS)?.value,
+      }
+      setSocketParams(values);
+      paramsForm.setFieldsValue(values);
+    }
+  }, [currentDatabase])
+
+  useEffect(() => {
+    if(!_.isEmpty(socketParams)) {
+      updateSocketUrl();
+    }
+  }, [socketParams])
+
+  useEffect(() => {
     if (!lastMessage) return;
     let msg: Message = {};
     try {
@@ -123,7 +132,7 @@ export default () => {
 
     if (msg.type === 'message' && msg.data) {
       const message: Message = { ...msg, role: 'ai' };
-      const data = _.cloneDeep(messages);
+      const data = messages;
       let isAiLast = _.last(data)?.role !== 'human';
       if (isAiLast && loading) {
         _.update(data, data.length - 1, (origin) => ({
@@ -140,12 +149,9 @@ export default () => {
   const DatabaseSelector = (
     <Space>
       <Form
-        form={dbForm}
+        form={paramsForm}
         layout="inline"
-        onValuesChange={(changedValues, allValues) => {
-          updateSocketUrl(allValues);
-        }}
-        initialValues={defaultDbChatFormValue}
+        onValuesChange={(changedValues, allValues) => setSocketParams(allValues)}
       >
         <Form.Item name="database">
           <Select
@@ -177,6 +183,7 @@ export default () => {
               status={SocketStatusMap[readyState]}
               loading={loading}
               messages={messages}
+              markdown={true}
             />
             <Footer
               status={SocketStatusMap[readyState]}

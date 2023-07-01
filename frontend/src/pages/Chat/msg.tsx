@@ -5,18 +5,23 @@ import { Avatar, Space, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import ReactMarkdown from 'react-markdown';
-import { useTypewriter } from 'react-simple-typewriter';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 // import { monokai } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
 import ChatRobot from '@/assets/chatbot.png';
 import dark from 'react-syntax-highlighter/dist/esm/styles/prism/vs-dark';
-
+import { useTypewriter } from 'react-simple-typewriter';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
-export default ({ item, loading }: { item: Message; loading: boolean }) => {
+type Props = {
+  item: Message;
+  loading: boolean;
+  markdown: boolean;
+};
+
+export default ({ item, loading, markdown = true }: Props) => {
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
@@ -68,30 +73,34 @@ export default ({ item, loading }: { item: Message; loading: boolean }) => {
           className={styles.messageContent}
           style={{ background: msgBgColor }}
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
-            components={{
-              code({ inline, className, children, ...props }) {
-                const match = /language-(\w+)/.exec(className || '');
-                return !inline && match ? (
-                  <SyntaxHighlighter
-                    style={dark}
-                    language={match[1]}
-                    PreTag="div"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                );
-              },
-            }}
-          >
-            {displayText}
-          </ReactMarkdown>
+          {markdown ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
+              components={{
+                code({ inline, className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  return !inline && match ? (
+                    <SyntaxHighlighter
+                      style={dark}
+                      language={match[1]}
+                      PreTag="div"
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+              }}
+            >
+              {displayText}
+            </ReactMarkdown>
+          ) : (
+            displayText
+          )}
         </div>
         <Space
           className={styles.messageInfo}
