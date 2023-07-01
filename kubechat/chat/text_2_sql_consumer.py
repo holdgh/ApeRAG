@@ -15,6 +15,7 @@ class Text2SQLConsumer(BaseConsumer):
         self.client = new_db_client(config)
         if not self.client.connect(
             False,
+            test_only=False
         ):
             raise Exception("can not connect to db")
 
