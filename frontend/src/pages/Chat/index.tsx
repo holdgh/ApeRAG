@@ -4,7 +4,7 @@ import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Radio, Select, Space } from 'antd';
+import { App, Form, Radio, Select, Space } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -35,6 +35,8 @@ export default () => {
     currentDatabase,
     setCurrentChatMessages,
   } = useModel('collection');
+  const { message } = App.useApp();
+
   const user = getUser();
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     share: true,
@@ -44,7 +46,6 @@ export default () => {
     reconnectAttempts: 5,
   });
   const [paramsForm] = Form.useForm();
-
   const messages = currentChat?.history || [];
   const showSelector = hasDatabaseList(currentCollection);
 
@@ -55,8 +56,8 @@ export default () => {
     const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     let url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
 
-    const query = _.map(socketParams,(value, key) => `${key}=${value}`);
-    if(!_.isEmpty(query)) {
+    const query = _.map(socketParams, (value, key) => `${key}=${value}`);
+    if (!_.isEmpty(query)) {
       url += `?${query.join('&')}`;
     }
 
@@ -64,10 +65,10 @@ export default () => {
   };
 
   const onExecuteSQL = (msg?: Message) => {
-    if(msg?.type === 'sql') {
+    if (msg?.type === 'sql') {
       sendMessage(JSON.stringify(msg));
     }
-  }
+  };
 
   const onClear = async () => {
     if (!currentCollection || !currentChat) return;
@@ -83,6 +84,7 @@ export default () => {
   };
 
   const onSubmit = async (data: string) => {
+    if (loading) return;
     const timestamp = new Date().getTime();
     const msg: Message = {
       type: 'message',
@@ -100,25 +102,25 @@ export default () => {
   }, [readyState]);
 
   useEffect(() => {
+    if (currentDatabase) {
+      const values = {
+        database: _.first(currentDatabase),
+        execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
+      };
+      setSocketParams(values);
+      paramsForm.setFieldsValue(values);
+    }
+  }, [currentDatabase]);
+
+  useEffect(() => {
     updateSocketUrl();
   }, [currentCollection, currentChat]);
 
   useEffect(() => {
-    if(currentDatabase) {
-      const values = {
-        database: _.first(currentDatabase),
-        execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
-      }
-      setSocketParams(values);
-      paramsForm.setFieldsValue(values);
-    }
-  }, [currentDatabase])
-
-  useEffect(() => {
-    if(!_.isEmpty(socketParams)) {
+    if (!_.isEmpty(socketParams)) {
       updateSocketUrl();
     }
-  }, [socketParams])
+  }, [socketParams]);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -128,6 +130,7 @@ export default () => {
     } catch (err) {}
 
     if (msg.type === 'error') {
+      if (msg.data) message.error(msg.data);
       return;
     }
 
@@ -157,7 +160,9 @@ export default () => {
       <Form
         form={paramsForm}
         layout="inline"
-        onValuesChange={(changedValues, allValues) => setSocketParams(allValues)}
+        onValuesChange={(changedValues, allValues) =>
+          setSocketParams(allValues)
+        }
       >
         <Form.Item name="database">
           <Select
