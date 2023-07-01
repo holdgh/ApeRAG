@@ -148,18 +148,18 @@ export default () => {
   const { message } = App.useApp();
 
   const _createChat = async () => {
-    if (!currentCollection) return;
-    const { data } = await CreateCollectionChat(currentCollection?.id);
+    if (!currentCollection?.id) return;
+    const { data } = await CreateCollectionChat(currentCollection.id);
     _setCurrentChat(data);
   };
   const _getChat = async (id: string) => {
-    if (!currentCollection) return;
+    if (!currentCollection?.id) return;
     const { data } = await GetCollectionChat(currentCollection.id, id);
     _setCurrentChat(data);
   };
   const _getChats = async () => {
-    if (!currentCollection) return;
-    const { data } = await GetCollectionChats(currentCollection?.id);
+    if (!currentCollection?.id) return;
+    const { data } = await GetCollectionChats(currentCollection.id);
     const item = _.first(data);
     if (item) {
       _getChat(item.id);
@@ -168,7 +168,7 @@ export default () => {
     }
   };
   const _getDatabase = async () => {
-    if (!currentCollection) return;
+    if (!currentCollection?.id) return;
     if (hasDatabaseList(currentCollection)) {
       const { data } = await GetCollectionDatabase(currentCollection.id);
       _setCurrentDatabase(data);

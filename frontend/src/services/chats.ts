@@ -2,7 +2,7 @@ import type { TypesChat } from '@/types';
 import { request } from '@umijs/max';
 
 export const GetCollectionChats = (
-  collectionId: number | string,
+  collectionId: string,
 ): Promise<{ code: string; data: TypesChat[]; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats`, {
     method: 'get',
@@ -10,8 +10,8 @@ export const GetCollectionChats = (
 };
 
 export const GetCollectionChat = (
-  collectionId: number | string,
-  chatId: number | string,
+  collectionId: string,
+  chatId: string,
 ): Promise<{ code: string; data: TypesChat; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
     method: 'get',
@@ -19,7 +19,7 @@ export const GetCollectionChat = (
 };
 
 export const CreateCollectionChat = (
-  collectionId: number | string,
+  collectionId: string,
   data?: TypesChat,
 ): Promise<{ code: string; data: TypesChat; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats`, {
@@ -29,8 +29,8 @@ export const CreateCollectionChat = (
 };
 
 export const UpdateCollectionChat = (
-  collectionId: number | string,
-  chatId: number | string,
+  collectionId: string,
+  chatId: string,
   data?: TypesChat,
 ): Promise<{ code: string; data: TypesChat; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
@@ -40,9 +40,9 @@ export const UpdateCollectionChat = (
 };
 
 export const DeleteCollectionChat = (
-  collectionId: number | string,
-  chatId: number | string,
-): Promise<{ code: string; data: string | number; message?: string }> => {
+  collectionId: string,
+  chatId: string,
+): Promise<{ code: string; data: string; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/chats/${chatId}`, {
     method: 'delete',
   });

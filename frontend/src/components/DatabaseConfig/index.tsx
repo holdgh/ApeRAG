@@ -1,10 +1,7 @@
-import type {
-  TypesDatabaseConfig,
-  TypesDatabaseConfigCerify,
-} from '@/types';
 import { DATABASE_TYPE_OPTIONS } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
+import type { TypesDatabaseConfig, TypesDatabaseConfigCerify } from '@/types';
 import {
   ApiOutlined,
   CheckOutlined,

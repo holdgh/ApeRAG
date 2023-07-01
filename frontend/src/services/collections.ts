@@ -46,7 +46,7 @@ export const TestCollection = (
 };
 
 export const UpdateCollection = (
-  collectionId: string | number,
+  collectionId: string,
   data: TypesCollection,
 ): Promise<{ code: string; data: TypesCollection; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}`, {
@@ -56,8 +56,8 @@ export const UpdateCollection = (
 };
 
 export const DeleteCollection = (
-  collectionId: string | number,
-): Promise<{ code: string; data: string | number; message?: string }> => {
+  collectionId: string,
+): Promise<{ code: string; data: string; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}`, {
     method: 'DELETE',
   });

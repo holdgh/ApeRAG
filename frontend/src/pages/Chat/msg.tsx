@@ -1,5 +1,5 @@
-import type { TypesMessage } from '@/types';
 import { getUser } from '@/models/user';
+import type { TypesMessage } from '@/types';
 import {
   LoadingOutlined,
   PlayCircleFilled,

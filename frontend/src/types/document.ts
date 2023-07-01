@@ -1,4 +1,4 @@
-import type { TypesCollection } from "./collection";
+import type { TypesCollection } from './collection';
 
 export type TypesDocumentStatus =
   | 'PENDING'

@@ -1,5 +1,5 @@
-import type { TypesDocumentConfig } from '@/types';
 import { DOCUMENT_SOURCE_OPTIONS } from '@/models/collection';
+import type { TypesDocumentConfig } from '@/types';
 import { EditOutlined, SettingOutlined } from '@ant-design/icons';
 import {
   Button,

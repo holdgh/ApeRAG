@@ -1,4 +1,4 @@
-import type { TypesCollection } from "./collection";
+import type { TypesCollection } from './collection';
 
 export type TypesSocketStatus =
   | 'Closed'
@@ -20,7 +20,6 @@ export type TypesMessage = {
 export type TypesChat = {
   id: string;
   name: string;
-  user: string;
   collection: TypesCollection;
   history: TypesMessage[];
   created: string;

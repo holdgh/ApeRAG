@@ -1,9 +1,9 @@
-import type { TypesDocument } from '@/types';
 import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,
   GetCollectionDocuments,
 } from '@/services/documents';
+import type { TypesDocument } from '@/types';
 import {
   DeleteOutlined,
   InboxOutlined,
@@ -23,8 +23,8 @@ import {
   Upload,
   UploadProps,
 } from 'antd';
-import byteSize from 'byte-size';
 import { ColumnsType } from 'antd/es/table';
+import byteSize from 'byte-size';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 
@@ -81,7 +81,9 @@ export default () => {
       dataIndex: 'size',
       render: (_value, record) => {
         return (
-          <Typography.Text type="secondary">{byteSize(record.size || 0).toString()}</Typography.Text>
+          <Typography.Text type="secondary">
+            {byteSize(record.size || 0).toString()}
+          </Typography.Text>
         );
       },
     },

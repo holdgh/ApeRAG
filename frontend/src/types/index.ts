@@ -1,3 +1,3 @@
 export * from './chat';
-export * from './document';
 export * from './collection';
+export * from './document';

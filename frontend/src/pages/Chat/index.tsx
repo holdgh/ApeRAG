@@ -1,7 +1,7 @@
-import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { DATABASE_EXECUTE_OPTIONS, hasDatabaseList } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { App, Form, Radio, Select, Space } from 'antd';

@@ -1,4 +1,3 @@
-
 export type TypesDatabaseConfigDbType =
   | 'mysql'
   | 'postgresql'
@@ -66,7 +65,7 @@ export type TypesCollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
 export type TypesCollectionType = 'document' | 'database' | 'document_local';
 
 export type TypesCollection = {
-  id: string;
+  id?: string;
   title?: string;
   status?: TypesCollectionStatus;
   type: TypesCollectionType;
