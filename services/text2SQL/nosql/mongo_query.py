@@ -96,7 +96,7 @@ class Mongo(DataBase):
             schema += f"Key: {key}, Data Type: {data_type}\n"
 
         # Call the llm_predict.predict() method with the appropriate parameters
-        response_str, _ = self.llm_predict.predict(
+        generator, _ = self.llm_predict.stream(
             Prompt(
                 _MONGODB_PROMPT_TPL,
                 stop_token="\nResult:",
@@ -106,7 +106,7 @@ class Mongo(DataBase):
             schema=schema,
         )
 
-        return response_str
+        return generator
 
     # pymongo does not support a way to directly execute js query statements
     def execute_query(self, query):

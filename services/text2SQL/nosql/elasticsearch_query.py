@@ -106,12 +106,12 @@ class ElasticsearchClient(DataBase):
             schema += "\n"
         print(schema)
 
-        response_str, _ = self.llm_predict.predict(
+        generator, _ = self.llm_predict.stream(
             self.prompt,
             query_str=text,
             schema=schema,
         )
-        return response_str
+        return generator
 
     def execute_query(self, query):
         lines = query.split('\n')

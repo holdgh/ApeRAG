@@ -100,12 +100,12 @@ class Clickhouse(DataBase):
             schema += "\n"
             i += 1
 
-        response_str, _ = self.llm_predict.predict(
+        generator, _ = self.llm_predict.stream(
             self.prompt,
             query_str=text,
             schema=schema,
         )
-        return response_str
+        return generator
 
     def execute_query(self, query):
         return self.conn.command(query)

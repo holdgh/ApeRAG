@@ -89,12 +89,12 @@ class Redis(DataBase):
         keys = self.conn.keys()
         schema = {k: self.conn.type(k) for k in keys}
 
-        response_str, _ = self.llm_predict.predict(
+        generator, _ = self.llm_predict.stream(
             self.prompt,
             query_str=text,
             schema=schema,
         )
-        return response_str.strip()
+        return generator
 
     def execute_query(self, query):
         return self.conn.execute_command(query)
