@@ -18,14 +18,12 @@ import styles from './index.less';
 type Props = {
   item: Message;
   loading: boolean;
-  markdown: boolean;
   onExecuteSQL: (msg?: Message) => void;
 };
 
 export default ({
   item,
   loading,
-  markdown = true,
   onExecuteSQL = () => {},
 }: Props) => {
   const user = getUser();
@@ -62,7 +60,10 @@ export default ({
   };
 
   const renderContent = () => {
-    if (!markdown) return displayText;
+    if (item.type === 'sql') {
+      displayText = '```sql\n' + displayText + '\n```';
+    }
+
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}

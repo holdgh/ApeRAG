@@ -8,11 +8,10 @@ type Props = {
   messages: Message[];
   status: SocketStatus;
   loading: boolean;
-  markdown: boolean;
   onExecuteSQL: (msg?: Message) => void;
 };
 
-export default ({ messages, loading, status, markdown=true, onExecuteSQL }: Props) => {
+export default ({ messages, loading, status, onExecuteSQL }: Props) => {
   useEffect(() => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
@@ -28,7 +27,7 @@ export default ({ messages, loading, status, markdown=true, onExecuteSQL }: Prop
         {messages.map((item, key) => {
           const isLoading =
             key === messages.length - 1 && loading && status === 'Open';
-          return <MessageItem onExecuteSQL={onExecuteSQL} markdown={markdown} loading={isLoading} key={key} item={item} />;
+          return <MessageItem onExecuteSQL={onExecuteSQL} loading={isLoading} key={key} item={item} />;
         })}
         <ScrollElement name="bottom"></ScrollElement>
       </div>
