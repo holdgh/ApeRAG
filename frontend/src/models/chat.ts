@@ -1,28 +1,28 @@
-import type { Collection } from './collection';
+import type { TypesCollection } from './collection';
 
-export type SocketStatus =
+export type TypesSocketStatus =
   | 'Closed'
   | 'Open'
   | 'Connecting'
   | 'Closing'
   | 'Uninstantiated';
-export type MessageType = 'message' | 'stop' | 'error' | 'sql';
-export type MessageRole = 'ai' | 'human';
+export type TypesMessageType = 'message' | 'stop' | 'error' | 'sql';
+export type TypesMessageRole = 'ai' | 'human';
 
-export type Message = {
-  type?: MessageType;
-  role?: MessageRole;
+export type TypesMessage = {
+  type?: TypesMessageType;
+  role?: TypesMessageRole;
   data?: string;
   timestamp?: number;
   references?: string;
 };
 
-export type Chat = {
+export type TypesChat = {
   id: string;
   name: string;
   user: string;
-  collection: Collection;
-  history: Message[];
+  collection: TypesCollection;
+  history: TypesMessage[];
   created: string;
   updated: string;
 };

@@ -1,9 +1,9 @@
-import type { Document } from '@/models/document';
+import type { TypesDocument } from '@/models/document';
 import { request } from '@umijs/max';
 
 export const GetCollectionDocuments = (
   collectionId: number | string,
-): Promise<{ code: string; data: Document[]; message?: string }> => {
+): Promise<{ code: string; data: TypesDocument[]; message?: string }> => {
   return request(`/api/v1/collections/${collectionId}/documents`);
 };
 

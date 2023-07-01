@@ -1,18 +1,18 @@
-import type { Collection } from './collection';
+import type { TypesCollection } from './collection';
 
-export type DocumentStatus =
+export type TypesDocumentStatus =
   | 'PENDING'
   | 'RUNNING'
   | 'FAILED'
   | 'COMPLETE'
   | 'DELETED';
 
-export type Document = {
+export type TypesDocument = {
   id: string;
   name: string;
   user: string;
-  collection: Collection;
-  status: DocumentStatus;
+  collection: TypesCollection;
+  status: TypesDocumentStatus;
   size: number;
   created: string;
   updated: string;

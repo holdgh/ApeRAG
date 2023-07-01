@@ -1,4 +1,4 @@
-import type { Document } from '@/models/document';
+import type { TypesDocument } from '@/models/document';
 import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,
@@ -30,7 +30,7 @@ import { useEffect, useState } from 'react';
 export default () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchKey, setSearchKey] = useState<string | undefined>();
-  const [documents, setDocuments] = useState<Document[] | undefined>();
+  const [documents, setDocuments] = useState<TypesDocument[] | undefined>();
   const [uploadVisible, setUploadVisible] = useState<boolean>(false);
   const { collectionId } = useParams();
   const { modal, message } = App.useApp();
@@ -47,7 +47,7 @@ export default () => {
     setLoading(false);
   };
 
-  const onDelete = (record: Document) => {
+  const onDelete = (record: TypesDocument) => {
     if (!collectionId) return;
     modal.confirm({
       title: 'Comfirm',
@@ -59,7 +59,7 @@ export default () => {
     });
   };
 
-  const columns: ColumnsType<Document> = [
+  const columns: ColumnsType<TypesDocument> = [
     {
       title: 'Name',
       dataIndex: 'name',

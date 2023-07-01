@@ -1,23 +1,26 @@
-import { Message, SocketStatus } from '@/models/chat';
+import type { TypesMessage, TypesSocketStatus } from '@/models/chat';
+import { useModel } from '@umijs/max';
 import { useEffect } from 'react';
 import { Element as ScrollElement, scroller } from 'react-scroll';
 import styles from './index.less';
 import MessageItem from './msg';
 
 type Props = {
-  messages: Message[];
-  status: SocketStatus;
+  status: TypesSocketStatus;
   loading: boolean;
-  onExecuteSQL: (msg?: Message) => void;
+  onExecuteSQL: (msg?: TypesMessage) => void;
 };
 
-export default ({ messages, loading, status, onExecuteSQL }: Props) => {
+export default ({ loading, status, onExecuteSQL }: Props) => {
+  const { currentChat } = useModel('collection');
+
+  const messages = currentChat?.history || [];
+
   useEffect(() => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
       smooth: true,
-      // duration: 300,
-      duration: 0,
+      duration: 300,
     });
   }, [messages, loading]);
 
@@ -27,7 +30,18 @@ export default ({ messages, loading, status, onExecuteSQL }: Props) => {
         {messages.map((item, key) => {
           const isLoading =
             key === messages.length - 1 && loading && status === 'Open';
-          return <MessageItem disabled={loading} onExecuteSQL={onExecuteSQL} loading={isLoading} key={key} item={item} />;
+          return (
+            <MessageItem
+              animate={
+                loading && item.role === 'ai' && key === messages.length - 1
+              }
+              disabled={loading}
+              onExecuteSQL={onExecuteSQL}
+              loading={isLoading}
+              key={key}
+              item={item}
+            />
+          );
         })}
         <ScrollElement name="bottom"></ScrollElement>
       </div>

@@ -1,6 +1,10 @@
-import { Message } from '@/models/chat';
+import type { TypesMessage } from '@/models/chat';
 import { getUser } from '@/models/user';
-import { LoadingOutlined, PlayCircleFilled, RobotOutlined } from '@ant-design/icons';
+import {
+  LoadingOutlined,
+  PlayCircleFilled,
+  RobotOutlined,
+} from '@ant-design/icons';
 import { Avatar, Button, Space, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
@@ -16,16 +20,18 @@ import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 
 type Props = {
-  item: Message;
+  item: TypesMessage;
   loading: boolean;
   disabled: boolean;
-  onExecuteSQL: (msg?: Message) => void;
+  animate: boolean;
+  onExecuteSQL: (msg?: TypesMessage) => void;
 };
 
 export default ({
   item,
   loading,
   disabled = false,
+  animate = false,
   onExecuteSQL = () => {},
 }: Props) => {
   const user = getUser();
@@ -33,15 +39,15 @@ export default ({
   const msgBgColor =
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
-  let displayText = item.data || '';
+  let displayText = (item.data || '').replace(/^\n*/, '');
+  const [animateText] = useTypewriter({
+    words: [displayText],
+    typeSpeed: 5,
+    loop: 1,
+  });
 
-  if (item.role === 'ai') {
-    const [animateText] = useTypewriter({
-      words: [displayText],
-      typeSpeed: 5,
-      loop: 1,
-    });
-    displayText = loading ? animateText : displayText;
+  if (animate) {
+    displayText = animateText;
   }
 
   const renderAvatar = () => {
@@ -106,7 +112,7 @@ export default ({
       >
         <div
           className={styles.messageContent}
-          style={{background: msgBgColor }}
+          style={{ background: msgBgColor }}
         >
           {renderContent()}
         </div>
@@ -119,9 +125,15 @@ export default ({
             <span>{moment(item.timestamp).format('llll')}</span>
             {/* <span>{item.references ? <Tag>{item.references}</Tag> : null}</span> */}
           </Space>
-          {
-            item.type === 'sql' ? <Button disabled={disabled} onClick={() => onExecuteSQL(item)} type="text" size="small" icon={<PlayCircleFilled />} /> : null
-          }
+          {item.type === 'sql' ? (
+            <Button
+              disabled={disabled}
+              onClick={() => onExecuteSQL(item)}
+              type="text"
+              size="small"
+              icon={<PlayCircleFilled />}
+            />
+          ) : null}
         </Space>
       </div>
     </div>

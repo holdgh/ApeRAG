@@ -1,11 +1,11 @@
-import { SocketStatus } from '@/models/chat';
+import type { TypesSocketStatus } from '@/models/chat';
 import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
 type Props = {
-  status: SocketStatus;
+  status: TypesSocketStatus;
   loading: boolean;
   onSubmit: (val: string) => void;
   onClear: () => void;
