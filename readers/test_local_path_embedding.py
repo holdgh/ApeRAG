@@ -87,8 +87,8 @@ def test_local_path_embedding(path: str, collection_name: str):
     lpm.load_data()
 
 
-def test_local_path_embedding_query(query: str):
-    ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
+def test_local_path_embedding_query(query: str, collection_name: str):
+    ctx = {"url":"http://localhost", "port":6333, "collection":collection_name, "vector_size":768, "distance":"Cosine", "timeout": 1000}
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
     embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
     vector = embedding.get_query_embedding(query)
@@ -96,7 +96,7 @@ def test_local_path_embedding_query(query: str):
 
     results = adaptor.connector.search(
         query_embedding,
-        collection_name="test",
+        collection_name=collection_name,
         query_vector=query_embedding.embedding,
         with_vectors=True,
         limit=query_embedding.top_k,
@@ -116,19 +116,19 @@ def get_streaming_response(llm_server:str, input: str):
 def stream(llm_server:str, input: str):
     try:
         # Initialize ncurses
-        screen = curses.initscr()
-        curses.noecho()
-        curses.cbreak()
-        screen.keypad(True)
+        #screen = curses.initscr()
+        #curses.noecho()
+        #curses.cbreak()
+        #screen.keypad(True)
 
         # Clear screen
-        screen.clear()
+        #screen.clear()
 
         # Print initial message
-        screen.addstr(0, 0, "Hello, ncurses world!")
+        #screen.addstr(0, 0, "Hello, ncurses world!")
 
         # Move cursor
-        screen.move(5, 5)
+        #screen.move(5, 5)
 
         s = requests.Session()
         r = s.post("%s/generate_stream" % llm_server, json=input, stream=True)
@@ -145,25 +145,26 @@ def stream(llm_server:str, input: str):
             if "}" in c:
                 j = json.loads(buffer)
                 buffer = ""
-                screen.addstr(0, 0, f"{j['text']}")
-                screen.refresh()
+                #screen.addstr(0, 0, f"{j['text']}")
+                #screen.refresh()
     finally:
         # Close ncurses
-        curses.nocbreak(); screen.keypad(0); curses.echo()
+        #curses.nocbreak(); screen.keypad(0); curses.echo()
         #curses.endwin()
+        pass
 
 
-def test_local_llm_qa(query: str):
-    ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
+def test_local_llm_qa(query: str, collection_name: str):
+    ctx = {"url":"http://localhost", "port":6333, "collection":collection_name, "vector_size":768, "distance":"Cosine", "timeout": 1000}
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
 
     embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
     vector = embedding.get_query_embedding(query)
-    query_embedding = QueryWithEmbedding(query=query, top_k=1, embedding=vector)
+    query_embedding = QueryWithEmbedding(query=query, top_k=10, embedding=vector)
 
     hits  = adaptor.connector.search(
         query_embedding,
-        collection_name="test",
+        collection_name=collection_name,
         query_vector=query_embedding.embedding,
         with_vectors=True,
         limit=query_embedding.top_k,
@@ -197,15 +198,15 @@ def test_local_llm_qa(query: str):
     elapsed = elapsed_time(start)
     print("elapsed time ", elapsed)
 
-def test_local_path_embedding_pics():
-    test_local_path_embedding(path="/Users/slc/pics/", collection_name="pics")
 
 
 def start():
     #test_local_path_embedding()
     #test_local_path_embedding_query("what is data lake")
-    #test_local_llm_qa("what is data lake")
-    test_local_path_embedding_pics()
+    #test_local_llm_qa("what is data lake", "paper")
+    os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+    #test_local_path_embedding(path="/Users/slc/pics/", collection_name="pics")
+    test_local_llm_qa("what is etcd balancer", "pics")
 
 
 if __name__ == "__main__":
