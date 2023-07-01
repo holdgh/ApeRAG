@@ -52,7 +52,7 @@ class BaseConsumer(WebsocketConsumer):
         message = ""
         for tokens in self.predict(data["data"]):
             # streaming response to user
-            response = self.success_response(tokens)
+            response = self.success_response(tokens, issql=self.response_type == "sql")
             self.send(text_data=response)
 
             # concat response tokens
@@ -61,21 +61,22 @@ class BaseConsumer(WebsocketConsumer):
         self.send(text_data=self.stop_response())
 
         # save all tokens as a message to history
-        if self.response_type == "sql":
-            self.history.add_message(
-                AIMessage(type="sql", content=self.success_response(message), additional_kwargs={"role": "ai"})
+        self.history.add_message(
+            AIMessage(
+                content=self.success_response(
+                    message,
+                    issql=self.response_type == "sql"
+                ),
+                additional_kwargs={"role": "ai"}
             )
-        else:
-            self.history.add_message(
-                AIMessage(content=self.success_response(message), additional_kwargs={"role": "ai"})
-            )
+        )
 
     @staticmethod
-    def success_response(message, references=None):
+    def success_response(message, references=None, issql=False):
         if references is None:
             references = []
         return json.dumps({
-            "type": "message",
+            "type": "message" if not issql else "sql",
             "data": message,
             "timestamp": now_unix_milliseconds(),
             "references": references,
