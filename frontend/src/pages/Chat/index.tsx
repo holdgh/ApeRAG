@@ -1,7 +1,7 @@
-import type { Message, SocketStatus } from '@/models/chat';
 import { DATABASE_EXECUTE_OPTIONS, hasDatabaseList } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { App, Form, Radio, Select, Space } from 'antd';
@@ -14,7 +14,7 @@ import Footer from './footer';
 import Header from './header';
 import styles from './index.less';
 
-const SocketStatusMap: { [key in ReadyState]: SocketStatus } = {
+const SocketStatusMap: { [key in ReadyState]: TypesSocketStatus } = {
   [ReadyState.CONNECTING]: 'Connecting',
   [ReadyState.OPEN]: 'Open',
   [ReadyState.CLOSING]: 'Closing',
@@ -38,6 +38,8 @@ export default () => {
   const { message } = App.useApp();
 
   const user = getUser();
+  const messages = currentChat?.history || [];
+
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
     share: true,
     protocols: user?.__raw,
@@ -46,7 +48,7 @@ export default () => {
     reconnectAttempts: 5,
   });
   const [paramsForm] = Form.useForm();
-  const messages = currentChat?.history || [];
+
   const showSelector = hasDatabaseList(currentCollection);
 
   const updateSocketUrl = () => {
@@ -64,8 +66,16 @@ export default () => {
     setSocketUrl(url);
   };
 
-  const onExecuteSQL = (msg?: Message) => {
+  const onExecuteSQL = async (msg?: TypesMessage) => {
     if (msg?.type === 'sql') {
+      await setCurrentChatMessages(
+        messages.concat({
+          type: 'message',
+          role: 'ai',
+          data: '',
+        }),
+      );
+      await setLoading(true);
       sendMessage(JSON.stringify(msg));
     }
   };
@@ -86,7 +96,7 @@ export default () => {
   const onSubmit = async (data: string) => {
     if (loading) return;
     const timestamp = new Date().getTime();
-    const msg: Message = {
+    const msg: TypesMessage = {
       type: 'message',
       role: 'human',
       data,
@@ -124,7 +134,7 @@ export default () => {
 
   useEffect(() => {
     if (!lastMessage) return;
-    let msg: Message = {};
+    let msg: TypesMessage = {};
     try {
       msg = JSON.parse(lastMessage.data);
     } catch (err) {}
@@ -139,10 +149,11 @@ export default () => {
       return;
     }
 
-    if ((msg.type === 'sql' || msg.type === 'message') && msg.data) {
-      const message: Message = { ...msg, role: 'ai' };
+    if (_.includes(['sql', 'message'], msg.type) && msg.data) {
+      const message: TypesMessage = { ...msg, role: 'ai' };
       const data = messages;
       let isAiLast = _.last(data)?.role !== 'human';
+
       if (isAiLast && loading) {
         _.update(data, data.length - 1, (origin) => ({
           ...message,
@@ -193,7 +204,6 @@ export default () => {
             <Chats
               status={SocketStatusMap[readyState]}
               loading={loading}
-              messages={messages}
               onExecuteSQL={onExecuteSQL}
             />
             <Footer

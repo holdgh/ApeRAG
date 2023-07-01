@@ -1,3 +1,9 @@
+import { DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
+import type {
+  TypesCollection,
+  TypesDatabaseConfig,
+  TypesDocumentConfig,
+} from '@/types';
 import { useModel, useParams } from '@umijs/max';
 import { Card, Form } from 'antd';
 import { useEffect } from 'react';
@@ -19,6 +25,26 @@ export default () => {
     });
   };
 
+  const onValuesChange = (
+    changedValues: TypesCollection,
+    allValues: TypesCollection,
+  ) => {
+    if (changedValues.type) {
+      let config: TypesDocumentConfig & TypesDatabaseConfig = {};
+      if (allValues.config) {
+        try {
+          JSON.parse(allValues.config);
+        } catch (err) {}
+      }
+      if (changedValues.type === 'database' && _.isEmpty(config.host)) {
+        form.setFieldValue('config', '');
+      }
+      if (changedValues.type === 'document' && _.isEmpty(config.source)) {
+        form.setFieldValue('config', DOCUMENT_DEFAULT_CONFIG);
+      }
+    }
+  };
+
   useEffect(() => {
     form.setFieldsValue(collection);
   }, [collection]);
@@ -29,6 +55,7 @@ export default () => {
     <Card bordered={false}>
       <CollectionForm
         onFinish={onFinish}
+        onValuesChange={onValuesChange}
         form={form}
         type={collection.type}
         action="edit"
