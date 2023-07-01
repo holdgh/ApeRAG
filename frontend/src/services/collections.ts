@@ -1,4 +1,4 @@
-import type { Collection, CollectionConfig } from '@/models/collection';
+import type { Collection, DatabaseConfig } from '@/models/collection';
 import { request } from '@umijs/max';
 
 export const GetCollections = (): Promise<{
@@ -37,7 +37,7 @@ export const CreateCollection = (
 };
 
 export const TestCollection = (
-  config: CollectionConfig,
+  config: DatabaseConfig,
 ): Promise<{ code: string; data: boolean; message?: string }> => {
   return request(`/api/v1/collections/test_connection`, {
     method: 'POST',

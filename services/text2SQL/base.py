@@ -27,7 +27,7 @@ class DataBase(ABC):
         self.prompt = prompt
 
         if llm is None:
-            self.llm = OpenAI(temperature=0, model_name="text-davinci-003", max_tokens=-1)
+            self.llm = OpenAI(temperature=0, model_name="text-davinci-003", max_tokens=-1, streaming=True)
         else:
             self.llm = llm
         self.llm_predict = LLMPredictor(llm=self.llm)

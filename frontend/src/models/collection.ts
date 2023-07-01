@@ -15,7 +15,7 @@ import _ from 'lodash';
 import { useEffect, useState } from 'react';
 import { Chat, Message } from './chat';
 
-export type CollectionConfigDbType =
+export type DatabaseConfigDbType =
   | 'mysql'
   | 'postgresql'
   | 'sqlite'
@@ -27,26 +27,37 @@ export type CollectionConfigDbType =
 
 export type DatabaseExecuteMethod = 'true' | 'false';
 
-export type CollectionConfigCerify = 'prefered' | 'ca_only' | 'full';
+export type DatabaseConfigCerify = 'prefered' | 'ca_only' | 'full';
 
-export type CollectionConfigDBTypeOption = {
+export type DatabaseConfigDbTypeOption = {
   label: string;
-  value: CollectionConfigDbType;
+  value: DatabaseConfigDbType;
   icon?: string;
   showSelector?: boolean;
 };
 
-export type CollectionConfig = {
-  db_type?: CollectionConfigDbType;
+export type DatabaseConfig = {
+  db_type?: DatabaseConfigDbType;
   host?: string;
   port?: number;
   db_name?: string;
   username?: string;
   password?: string;
-  verify?: CollectionConfigCerify;
+  verify?: DatabaseConfigCerify;
   ca_cert?: string;
   client_key?: string;
   client_cert?: string;
+};
+
+export type DocumentConfigSource = 'system' | 'local' | 's3' | 'oss' | 'ftp';
+
+export type DocumentConfigSourceOption = {
+  label: string;
+  value: DocumentConfigSource;
+};
+
+export type DocumentConfig = {
+  source?: string;
 };
 
 export type CollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
@@ -79,7 +90,7 @@ export const DATABASE_EXECUTE_OPTIONS: {
   },
 ];
 
-export const DATABASE_TYPE_OPTIONS: CollectionConfigDBTypeOption[] = [
+export const DATABASE_TYPE_OPTIONS: DatabaseConfigDbTypeOption[] = [
   {
     label: 'MySQL',
     value: 'mysql',
@@ -120,8 +131,31 @@ export const DATABASE_TYPE_OPTIONS: CollectionConfigDBTypeOption[] = [
   },
 ];
 
+export const DOCUMENT_SOURCE_OPTIONS: DocumentConfigSourceOption[] = [
+  {
+    label: 'Default',
+    value: 'system',
+  },
+  {
+    label: 'Local',
+    value: 'local',
+  },
+  {
+    label: 'AWS S3',
+    value: 's3',
+  },
+  {
+    label: 'Aliyun OSS',
+    value: 'oss',
+  },
+  {
+    label: 'FTP',
+    value: 'ftp',
+  },
+];
+
 export const hasDatabaseList = (collection?: Collection): boolean => {
-  const config: CollectionConfig = {};
+  const config: DatabaseConfig = {};
   const whiteList = DATABASE_TYPE_OPTIONS.filter(
     (o) => o.showSelector === true,
   ).map((o) => o.value);
@@ -140,6 +174,17 @@ export const getCollectionUrl = (collection: Collection): string => {
     collection.type === 'database' ? 'setting' : 'document'
   }`;
 };
+
+// export const parseCollectionConfig = (
+//   collection: Collection,
+// ): DocumentConfig & DatabaseConfig => {
+//   const config = collection.config || '{}';
+//   let result: DocumentConfig & DatabaseConfig = {};
+//   try {
+//     result = JSON.parse(config);
+//   } catch (err) {}
+//   return result;
+// };
 
 export default () => {
   const [collections, _setCollections] = useState<Collection[]>();

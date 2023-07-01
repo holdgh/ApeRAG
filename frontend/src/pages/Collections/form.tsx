@@ -1,8 +1,9 @@
 import CheckedCard from '@/components/CheckedCard';
-import CollectionConfig from '@/components/CollectionConfig';
+import DatabaseConfig from '@/components/DatabaseConfig';
+import DocumentConfig from '@/components/DocumentConfig';
 import { CollectionType } from '@/models/collection';
 import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
-import { Button, Form, FormInstance, Input } from 'antd';
+import { Button, Form, FormInstance, Input, Space } from 'antd';
 import { useEffect, useState } from 'react';
 
 type Props = {
@@ -22,7 +23,7 @@ export default ({ onFinish, form, action, type }: Props) => {
   const collectionTypeOptions = [
     {
       icon: <ReadOutlined />,
-      label: 'Document',
+      label: <Space>Document</Space>,
       value: 'document',
       description: 'Use docx, pptx, csv, pdf, or md as a collection.',
     },
@@ -62,11 +63,9 @@ export default ({ onFinish, form, action, type }: Props) => {
         ]}
       >
         <CheckedCard
-          // disabled={action === 'edit'}
+          disabled={action === 'edit'}
           onChange={(v) => setCollectionType(v as CollectionType)}
-          options={collectionTypeOptions.filter(
-            (o) => action === 'add' || o.value === type,
-          )}
+          options={collectionTypeOptions}
         />
       </Form.Item>
 
@@ -80,7 +79,13 @@ export default ({ onFinish, form, action, type }: Props) => {
             },
           ]}
         >
-          <CollectionConfig />
+          <DatabaseConfig />
+        </Form.Item>
+      ) : null}
+
+      {collectionType === 'document' ? (
+        <Form.Item name="config">
+          <DocumentConfig />
         </Form.Item>
       ) : null}
 
