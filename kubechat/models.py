@@ -23,7 +23,6 @@ class CollectionStatus(models.TextChoices):
 
 class CollectionType(models.TextChoices):
     DOCUMENT = "document"
-    MULTIMEDIA = "multimedia"
     DATABASE = "database"
 
 
