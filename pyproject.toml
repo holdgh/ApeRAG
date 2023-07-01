@@ -40,6 +40,7 @@ func-timeout = "^4.3.5"
 daphne = "^4.0.0"
 docx2txt = "^0.8"
 terminal = "^0.4.0"
+types-chardet = "^5.0.4.6"
 pysocks = "^1.7.1"
 
 [tool.poetry.group.llmserver]

@@ -41,6 +41,10 @@ class DocumentWithScore(BaseModel):
     doc_id: str = None
     text: str = None
     score: float
+    metadata: dict = None
+
+    def get_source_file(self) -> str:
+        return self.metadata["source"]
 
 
 class DocumentMetadataFilter(BaseModel):
@@ -66,12 +70,13 @@ class QueryResult(BaseModel):
     results: List[DocumentWithScore]
 
     def get_packed_answer(self, limit_length: Optional[int] = 0) -> str:
-        text_chunks = [ r.text for r in self.results]
+        text_chunks = [r.text for r in self.results]
         answer_text = "\n\n".join(text_chunks)
         if limit_length != 0:
             return answer_text[:limit_length]
         else:
             return answer_text
+
 
 class UpsertRequest(BaseModel):
     documents: List[Document]

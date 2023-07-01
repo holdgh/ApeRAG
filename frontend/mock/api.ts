@@ -31,7 +31,7 @@ const collections = [
     title: 'Sealos user manual',
     status: 'INACTIVE',
     type: 'database',
-    // config: '{"host": "asd"}',
+    config: '{"host": "http://127.0.0.1", "port": 3306, "verify": "prefered", "db_name": "db_name", "db_type": "mysql", "username": "username", "password": "password"}',
     description:
       'This collection is designed to provided documents for kubeblocks who are interested in learning the kubeblocks, database and gitops.',
   },

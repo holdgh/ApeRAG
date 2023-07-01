@@ -19,7 +19,7 @@ export const rootContainer = (children: React.ReactElement) => {
           Descriptions: {
             titleMarginBottom: 8,
           },
-          Select: {
+          Card: {
             
           }
         },
