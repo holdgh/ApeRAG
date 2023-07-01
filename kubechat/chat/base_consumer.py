@@ -42,12 +42,12 @@ class BaseConsumer(WebsocketConsumer):
 
     def receive(self, text_data, **kwargs):
         data = json.loads(text_data)
-        msg_type = data["type"]
-        if msg_type == "ping":
-            return json.dumps({"type": "pong", "timestamp": now_unix_milliseconds()})
+        self.msg_type = data["type"]
+        self.response_type = "message"
 
         # save user message to history
-        self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
+        if self.msg_type != "sql":
+            self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
 
         message = ""
         for tokens in self.predict(data["data"]):
@@ -61,7 +61,14 @@ class BaseConsumer(WebsocketConsumer):
         self.send(text_data=self.stop_response())
 
         # save all tokens as a message to history
-        self.history.add_message(AIMessage(content=self.success_response(message), additional_kwargs={"role": "ai"}))
+        if self.response_type == "sql":
+            self.history.add_message(
+                AIMessage(type="sql", content=self.success_response(message), additional_kwargs={"role": "ai"})
+            )
+        else:
+            self.history.add_message(
+                AIMessage(content=self.success_response(message), additional_kwargs={"role": "ai"})
+            )
 
     @staticmethod
     def success_response(message, references=None):

@@ -7,7 +7,8 @@ def download_model(repo_id: str, filename:str, cache_dir:str):
 
 
 if __name__ == "__main__":
-    repo_id="naver-clova-ix/donut-base-finetuned-cord-v2"
+    #repo_id="naver-clova-ix/donut-base-finetuned-cord-v2"
+    repo_id="nlpconnect/vit-gpt2-image-captioning"
     #download_model(repo_id="naver-clova-ix/donut-base-finetuned-cord-v2", filename="config.json", cache_dir="/Users/slc/huggingface_models/")
-    os.environ.setdefault("https_proxy", "socks5://127.0.0.1:2002")
+    #os.environ.setdefault("https_proxy", "socks5://127.0.0.1:2002")
     snapshot_download(repo_id=repo_id)

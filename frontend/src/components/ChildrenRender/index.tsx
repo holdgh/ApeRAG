@@ -5,7 +5,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, history, useModel } from '@umijs/max';
-import { Button, Card, CardProps, Result, theme } from 'antd';
+import { Button, Card, CardProps, Result, Typography, theme } from 'antd';
 import { useEffect } from 'react';
 import PageLoading from '../PageLoading';
 import './index.less';
@@ -52,8 +52,9 @@ export default (): React.ReactNode => {
     return (
       <Card {...cardProps}>
         <Result
+          status={"error"}
           icon={<UserOutlined />}
-          title="We have just sent an email to your mailbox, please confirm the verification identity"
+          title={<Typography.Title level={5}>We have just sent an email to your mailbox, confirm the verification identity.</Typography.Title>}
           subTitle="Click the button below to check again."
           extra={[
             <Button
@@ -78,8 +79,9 @@ export default (): React.ReactNode => {
     return (
       <Card {...cardProps}>
         <Result
+          status={"warning"}
           icon={<FileTextOutlined />}
-          title="KubeChat is a new chatbot based on local datasets and utilizes multiple large language models."
+          title={<Typography.Title level={5}>KubeChat is a new chatbot based on local datasets and utilizes multiple large language models.</Typography.Title>}
           subTitle="Click the button below to get started."
           extra={[
             <Link to="/collections/new" key="createCollection">

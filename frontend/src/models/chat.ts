@@ -6,7 +6,7 @@ export type SocketStatus =
   | 'Connecting'
   | 'Closing'
   | 'Uninstantiated';
-export type MessageType = 'message' | 'stop' | 'error';
+export type MessageType = 'message' | 'stop' | 'error' | 'sql';
 export type MessageRole = 'ai' | 'human';
 
 export type Message = {
