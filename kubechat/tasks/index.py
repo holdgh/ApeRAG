@@ -31,7 +31,7 @@ class CustomLoadDocumentTask(Task):
 
 
 @app.task(base=CustomLoadDocumentTask)
-def add_index_for_document(document):
+def add_index_for_document(document_id):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
@@ -39,7 +39,7 @@ def add_index_for_document(document):
         Returns:
             bool: True if the index is created and saved successfully, False otherwise.
         """
-    # document = Document.objects.get(id=document_id)
+    document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
     document.collection.status = CollectionStatus.INACTIVE
@@ -68,13 +68,13 @@ def add_index_for_document(document):
 
 
 @app.task
-def remove_index(document):
+def remove_index(document_id):
     """
     remove the doc embedding index from vector store db
 
     :param document_id:
     """
-    # document = Document.objects.get(id=document_id)
+    document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
     document.collection.status = CollectionStatus.INACTIVE
@@ -99,7 +99,8 @@ def remove_index(document):
 
 
 @app.task
-def update_index(document):
+def update_index(document_id):
+    document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
     document.collection.status = CollectionStatus.INACTIVE
