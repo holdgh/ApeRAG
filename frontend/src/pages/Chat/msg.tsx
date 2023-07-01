@@ -18,12 +18,14 @@ import styles from './index.less';
 type Props = {
   item: Message;
   loading: boolean;
+  disabled: boolean;
   onExecuteSQL: (msg?: Message) => void;
 };
 
 export default ({
   item,
   loading,
+  disabled = false,
   onExecuteSQL = () => {},
 }: Props) => {
   const user = getUser();
@@ -104,7 +106,7 @@ export default ({
       >
         <div
           className={styles.messageContent}
-          style={{ background: msgBgColor }}
+          style={{background: msgBgColor }}
         >
           {renderContent()}
         </div>
@@ -118,7 +120,7 @@ export default ({
             {/* <span>{item.references ? <Tag>{item.references}</Tag> : null}</span> */}
           </Space>
           {
-            item.type === 'sql' ? <Button onClick={() => onExecuteSQL(item)} type="text" size="small" icon={<PlayCircleFilled />} /> : null
+            item.type === 'sql' ? <Button disabled={disabled} onClick={() => onExecuteSQL(item)} type="text" size="small" icon={<PlayCircleFilled />} /> : null
           }
         </Space>
       </div>

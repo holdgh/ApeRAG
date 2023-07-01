@@ -27,7 +27,7 @@ export default ({ messages, loading, status, onExecuteSQL }: Props) => {
         {messages.map((item, key) => {
           const isLoading =
             key === messages.length - 1 && loading && status === 'Open';
-          return <MessageItem onExecuteSQL={onExecuteSQL} loading={isLoading} key={key} item={item} />;
+          return <MessageItem disabled={loading} onExecuteSQL={onExecuteSQL} loading={isLoading} key={key} item={item} />;
         })}
         <ScrollElement name="bottom"></ScrollElement>
       </div>

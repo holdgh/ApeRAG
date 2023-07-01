@@ -194,7 +194,6 @@ export default () => {
               status={SocketStatusMap[readyState]}
               loading={loading}
               messages={messages}
-              markdown={true}
               onExecuteSQL={onExecuteSQL}
             />
             <Footer

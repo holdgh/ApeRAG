@@ -14,7 +14,10 @@ export default () => {
   };
 
   useEffect(() => {
-    form.setFieldValue('type', 'document');
+    form.setFieldsValue({
+      type: 'document',
+      config: '{"source": "system"}'
+    });
   }, []);
 
   return (
