@@ -37,7 +37,7 @@ class SQLBase(DataBase):
         if port is None:
             port = DEFAULT_PORT[db_type]
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
-        self.db = "mydb"
+        self.db = db
         self.conn = None
         self.schema = None
 
@@ -61,7 +61,11 @@ class SQLBase(DataBase):
     ) -> bool:
         kwargs = self._get_ssl_args(ca_cert, client_key, client_cert) if verify else {}
         try:
-            self.conn = SQLDatabase(create_engine(self._generate_db_url(), **kwargs), sample_rows_in_table_info=3, schema=self.db)
+            self.conn = SQLDatabase(create_engine(
+                self._generate_db_url(), **kwargs),
+                sample_rows_in_table_info=3,
+                schema=self.db
+            )
             with self.conn.engine.connect() as connection:
                 _ = connection.execute(text("select 1"))
             self.schema = self.generate_sql_schema()

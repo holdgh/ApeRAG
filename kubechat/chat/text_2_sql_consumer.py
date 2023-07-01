@@ -10,7 +10,7 @@ class Text2SQLConsumer(BaseConsumer):
         collection = query_collection(self.user, self.collection_id)
         database, execute = extract_database_and_execute(self.scope["query_string"].decode())
         config = json.loads(collection.config)
-        config["db"] = database
+        config["db_name"] = database
 
         self.client = new_db_client(config)
         if not self.client.connect(

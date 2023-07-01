@@ -164,6 +164,7 @@ def update_collection(request, collection_id, collection: CollectionIn):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.title = collection.title
     instance.description = collection.description
+    instance.config = collection.config
     instance.save()
     return success(instance.view())
 
