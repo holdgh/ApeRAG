@@ -66,9 +66,9 @@ class DocumentBaseEmbedding(ABC):
         self.uri_path = uri_path
         self.connector = vector_store_adaptor.connector
         if embedding_model is None:
-            self.embedding_model, self.vector_size = get_default_embedding_model()
+            self.embedding, self.vector_size = get_default_embedding_model()
         else:
-            self.embedding_model, self.vector_size = embedding_model, vector_size
+            self.embedding, self.vector_size = embedding_model, vector_size
         self.client = vector_store_adaptor.connector.client
 
     @abstractmethod
