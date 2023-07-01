@@ -7,12 +7,11 @@ from typing import Callable, Dict, Generator, List, Optional, Type
 from llama_index.schema import Document, ImageDocument
 
 
-def read_image_meaning(file: PIL.Image.Image, ctx: str) -> (str, str):
+def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
     from transformers import BlipProcessor, BlipForConditionalGeneration
 
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-    image = Image.open(file).convert("RGB")
 
     inputs = processor(image, ctx, return_tensors="pt")
     out = model.generate(**inputs)
@@ -23,6 +22,8 @@ def read_image_meaning(file: PIL.Image.Image, ctx: str) -> (str, str):
 def read_image_text(image: PIL.Image.Image) -> str:
     import torch
     from transformers import DonutProcessor, VisionEncoderDecoderModel
+    from transformers import ViTImageProcessor, AutoTokenizer
+
     processor = DonutProcessor.from_pretrained(
         "naver-clova-ix/donut-base-finetuned-cord-v2"
     )
@@ -30,14 +31,14 @@ def read_image_text(image: PIL.Image.Image) -> str:
         "naver-clova-ix/donut-base-finetuned-cord-v2"
     )
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
-
     # prepare decoder inputs
     task_prompt = "<s_cord-v2>"
     decoder_input_ids = processor.tokenizer(
         task_prompt, add_special_tokens=False, return_tensors="pt"
     ).input_ids
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 
     pixel_values = processor(image, return_tensors="pt").pixel_values
 
@@ -59,8 +60,32 @@ def read_image_text(image: PIL.Image.Image) -> str:
         processor.tokenizer.pad_token, ""
     )
     # remove first task start token
-    text_str = re.sub(r"<.*?>", "", sequence, count=1).strip()
+    text_str = re.sub(r"<.*?>", "", sequence, count=0).strip()
     return text_str
+
+    '''
+    model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+    processor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+    tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+
+    pixel_values = processor(images=[image], return_tensors="pt").pixel_values
+
+    outputs = model.generate(
+        pixel_values.to(device),
+        max_length=16,
+        use_cache=True,
+        num_beams=4,
+        return_dict_in_generate=True,
+    )
+
+    sequence = tokenizer.batch_decode(outputs.sequences)[0]
+    # remove first task start token
+    text_str = re.sub(r"<.*?>", "", sequence, count=0).strip()
+    return text_str
+    '''
 
 
 class ComposeImageReader(BaseReader):
@@ -71,7 +96,8 @@ class ComposeImageReader(BaseReader):
 
         image = Image.open(file).convert('RGB')
         text = read_image_text(image)
-        meaning = read_image_meaning(image, text)
+        #meaning = read_image_meaning(image, text)
+        meaning = ""
         image_bytes = img_2_b64(image)
         return [ImageDocument(text="%s\n%s" % (text, meaning), image=image_bytes, metadata=metadata or {})]
 
