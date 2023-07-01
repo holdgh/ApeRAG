@@ -96,3 +96,28 @@ def remove_index(document):
     document.save()
     document.collection.status = CollectionStatus.ACTIVE
     document.collection.save()
+
+
+@app.task
+def update_index(document):
+    document.status = DocumentStatus.RUNNING
+    document.save()
+    document.collection.status = CollectionStatus.INACTIVE
+    document.collection.save()
+
+    try:
+        loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
+                                    vector_store_adaptor=get_local_vector_db_connector(VECTOR_DB_TYPE,
+                                                                                       collection=generate_qdrant_collection_id(
+                                                                                           user=document.user,
+                                                                                           collection=document.collection.id)))
+        loader.connector.delete(ids=str(document.relate_ids).split(','))
+        ids = loader.load_data()
+        document.relate_ids = ",".join(ids)
+        logger.debug(f"add_index_for_document(): add qdrant points: {document.relate_ids}")
+
+    except Exception as e:
+        document.status = DocumentStatus.FAILED
+        document.save()
+        logger.error(f"updata_index(): index delete from vector db failed:{e}")
+        return False
