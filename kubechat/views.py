@@ -199,7 +199,7 @@ def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
         )
         document_instance.save()
         response.append(document_instance.view())
-    add_index_for_document.delay(document_instance.id)
+        add_index_for_document.delay(document_instance.id)
     return success(response)
 
 
