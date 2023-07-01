@@ -61,7 +61,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
       setValid(true);
     }
 
-    if (res.code === '404') {
+    if (res.code !== '404') {
       message.error(res.message);
     }
   };

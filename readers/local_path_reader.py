@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Callable, Dict, Generator, List, Optional, Type
 
-from compose_image_reader import ComposeImageReader
+from .compose_image_reader import ComposeImageReader
 from llama_index.readers.base import BaseReader
 from llama_index.readers.file.markdown_reader import MarkdownReader
 from llama_index.readers.schema.base import Document
@@ -95,6 +95,8 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
         metadata: Optional[dict] = None
         if self.file_metadata is not None:
             metadata = self.file_metadata(str(input_file))
+        else:
+            metadata = {"name": str(input_file)}
 
         if input_file.suffix.lower() in list(DEFAULT_FILE_READER_CLS.keys()):
             # use file readers

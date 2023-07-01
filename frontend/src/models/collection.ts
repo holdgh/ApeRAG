@@ -37,8 +37,10 @@ export type DatabaseConfigDbTypeOption = {
 };
 
 export type DatabaseConfig = {
-  db_type?: DatabaseConfigDbType;
   host?: string;
+
+  // database
+  db_type?: DatabaseConfigDbType;
   port?: number;
   db_name?: string;
   username?: string;
@@ -51,13 +53,29 @@ export type DatabaseConfig = {
 
 export type DocumentConfigSource = 'system' | 'local' | 's3' | 'oss' | 'ftp';
 
+export type DocumentConfig = {
+  source?: DocumentConfigSource;
+
+  // local
+  path?: string;
+
+  // s3 | oss
+  region?: string;
+  access_key_id?: string;
+  secret_access_key?: string;
+  bucket?: string;
+  dir?: string;
+
+  // ftp
+  host?: string;
+  username?: string;
+  password?: string;
+};
+
+
 export type DocumentConfigSourceOption = {
   label: string;
   value: DocumentConfigSource;
-};
-
-export type DocumentConfig = {
-  source?: string;
 };
 
 export type CollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';

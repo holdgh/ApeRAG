@@ -53,7 +53,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     embedding=vector))
             count = count + 1
             print(f"processed {count} files, current fiile is {file_name} ")
-            return self.connector.store.add(nodes)
+            self.connector.store.add(nodes)
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)

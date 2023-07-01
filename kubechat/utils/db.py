@@ -46,21 +46,24 @@ def add_ssl_file(config, user, collection):
 def new_db_client(config):
     # only import class when it is needed
     match config["db_type"]:
-        case "mysql" | "postgresql" | "sqlite" | "oracle":
+        case "postgresql" | "sqlite" | "oracle":
             from services.text2SQL.sql.sql import SQLBase
             new_client = SQLBase
+        case "mysql":
+            from services.text2SQL.sql.mysql import Mysql
+            new_client = Mysql
         case "redis":
-            from services.text2SQL.nosql import redis_query
-            new_client = redis_query.Redis
+            from services.text2SQL.nosql.redis_query import Redis
+            new_client = Redis
         case "mongo":
-            from services.text2SQL.nosql import mongo_query
-            new_client = mongo_query.Mongo
+            from services.text2SQL.nosql.mongo_query import Mongo
+            new_client = Mongo
         case "clickhouse":
-            from services.text2SQL.nosql import clickhouse_query
-            new_client = clickhouse_query.Clickhouse
+            from services.text2SQL.nosql.clickhouse_query import Clickhouse
+            new_client = Clickhouse
         case "elasticsearch":
-            from services.text2SQL.nosql import elasticsearch_query
-            new_client = elasticsearch_query.ElasticsearchClient
+            from services.text2SQL.nosql.elasticsearch_query import ElasticsearchClient
+            new_client = ElasticsearchClient
         case _:
             new_client = None
     if new_client is None:
@@ -72,5 +75,6 @@ def new_db_client(config):
         pwd=config["password"] if "password" in config.keys() else None,
         port=int(config["port"]) if "port" in config.keys() and config["port"] is not None else None,
         db_type=config["db_type"],
+        db=config["db_name"] if "db_name" in config.keys() else ""
     )
     return client

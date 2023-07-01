@@ -25,6 +25,7 @@ class DataBase(ABC):
         self.db_type = db_type
         self.conn = None
         self.prompt = prompt
+        self.schema = None
 
         if llm is None:
             self.llm = OpenAI(temperature=0, model_name="text-davinci-003", max_tokens=-1, streaming=True)
