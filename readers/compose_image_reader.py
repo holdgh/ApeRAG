@@ -1,3 +1,4 @@
+from PIL import Image
 from pathlib import Path
 from llama_index.readers.base import BaseReader
 from typing import Callable, Dict, Generator, List, Optional, Type
@@ -27,12 +28,11 @@ def read_image_meaning(file: Path, ctx: str, metadata: Optional[Dict] = None) ->
 
 
 def read_image_text(file: Path, metadata: Optional[Dict] = None) -> str:
-    with open(file) as fd:
-        data = fd.read()
+    raw_image = Image.open(file).convert('RGB')
 
     processor = TrOCRProcessor.from_pretrained('microsoft/trocr-base-handwritten')
     model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-base-handwritten')
-    pixel_values = processor(images=data, return_tensors="pt").pixel_values
+    pixel_values = processor(images=raw_image, return_tensors="pt").pixel_values
 
     generated_ids = model.generate(pixel_values)
     return processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
@@ -43,7 +43,7 @@ class ComposeImageReader(BaseReader):
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
         text = read_image_text(file, metadata)
         meaning, bytes = read_image_meaning(file, text, metadata)
-        return [ImageDocument(text="%s\n%s" % (text, meaning), image=bytes, metadata=metadata)]
+        return [ImageDocument(text="%s\n%s" % (text, meaning), image=bytes, metadata=metadata or {})]
 
 
 
