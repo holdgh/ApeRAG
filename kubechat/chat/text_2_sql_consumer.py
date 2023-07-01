@@ -13,11 +13,12 @@ class Text2SQLConsumer(BaseConsumer):
             False,
         ):
             raise Exception("can not connect to db")
+        print(self.client.schema)
 
     def predict(self, query):
         response = self.client.text_to_query(query)
-        for tokens in response.iter_content():
-            yield tokens.decode("ascii")
+        for tokens in response:
+            yield tokens
 
 
 
