@@ -1,25 +1,14 @@
 import logging
 
-from typing import Optional, Dict
+from typing import Optional
 from langchain.llms.base import BaseLLM
 from llama_index import SQLDatabase, Prompt, LLMPredictor
 from llama_index.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_PROMPT
 from sqlalchemy import create_engine, text
 from services.text2SQL.base import DataBase
+from abc import abstractmethod
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_PORT: Dict[str, int] = {
-    "mysql": 3306,
-    "postgresql": 5432,
-    "sqlite": None,
-    "oracle": 1521,
-}
-
-DEFAULT_DRIVER: Dict[str, str] = {
-    "mysql": "pymysql",
-    "postgresql": "psycopg2",
-}
 
 
 class SQLBase(DataBase):
@@ -27,30 +16,23 @@ class SQLBase(DataBase):
             self,
             db_type,
             host,
+            port,
             user: Optional[str] = "",
             pwd: Optional[str] = "",
             db: Optional[str] = "",
-            port: Optional[int] = None,
             prompt: Optional[Prompt] = DEFAULT_TEXT_TO_SQL_PROMPT,
             llm: Optional[BaseLLM] = None,
     ):
-        if port is None:
-            port = DEFAULT_PORT[db_type]
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
-        self.conn = None
-        self.schema = None
 
+    @abstractmethod
     def _generate_db_url(self) -> str:
-        return f"{self.db_type}+{DEFAULT_DRIVER[self.db_type]}://{self.user}:{self.pwd}@{self.host}:{self.port}/{self.db}"
+        pass
 
+    @abstractmethod
     def _get_ssl_args(self, ca_cert, client_key, client_cert):
-        args = {}
-        if self.db_type == "mysql":
-            args["ssl_ca"] = ca_cert
-            args["ssl_cert"] = client_cert
-            args["ssl_key"] = client_key
-        return args
+        pass
 
     def connect(
             self,
@@ -58,6 +40,7 @@ class SQLBase(DataBase):
             ca_cert: Optional[str] = None,
             client_key: Optional[str] = None,
             client_cert: Optional[str] = None,
+            test_only: Optional[bool] = True,
     ) -> bool:
         kwargs = self._get_ssl_args(ca_cert, client_key, client_cert) if verify else {}
         try:
@@ -68,7 +51,8 @@ class SQLBase(DataBase):
             )
             with self.conn.engine.connect() as connection:
                 _ = connection.execute(text("select 1"))
-            self.schema = self.generate_sql_schema()
+            if not test_only:
+                self.schema = self.generate_sql_schema()
             return True
         except BaseException as e:
             print("Connect failed: err:{}".format(e))
@@ -95,18 +79,3 @@ class SQLBase(DataBase):
         with self.conn.engine.connect() as connection:
             result = connection.execute(query)
         return result
-
-    def get_database_list(self):
-        cmd = ""
-        match self.db_type:
-            case "mysql":
-                cmd = "show databases;"
-            case "postgresql":
-                cmd = "select datname from pg_database;"
-
-        db_list = []
-        with self.conn.engine.connect() as connection:
-            db_all = connection.execute(text(cmd))
-            for db in db_all:
-                db_list.append(db[0])
-        return db_list
