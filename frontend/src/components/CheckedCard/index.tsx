@@ -43,15 +43,7 @@ export default ({
   return (
     <Row gutter={[30, 30]}>
       {options.map((option, key) => (
-        <Col
-          key={key}
-          xs={24}
-          sm={24}
-          md={24}
-          lg={12}
-          xl={12}
-          xxl={12}
-        >
+        <Col key={key} xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
           <Card
             className={classNames({
               [styles.item]: true,

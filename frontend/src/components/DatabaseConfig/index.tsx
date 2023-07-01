@@ -1,7 +1,7 @@
 import {
-  CollectionConfig,
-  CollectionConfigCerify,
   DATABASE_TYPE_OPTIONS,
+  DatabaseConfig,
+  DatabaseConfigCerify,
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
@@ -9,7 +9,7 @@ import {
   ApiOutlined,
   CheckOutlined,
   EditOutlined,
-  PlusOutlined,
+  SettingOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import {
@@ -49,7 +49,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
   const [form] = Form.useForm();
   const { token } = theme.useToken();
   const user = getUser();
-  const [config, setConfig] = useState<CollectionConfig>({
+  const [config, setConfig] = useState<DatabaseConfig>({
     host: '',
     verify: 'prefered',
   });
@@ -126,7 +126,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
   };
 
   useEffect(() => {
-    let defaultConfig: CollectionConfig = config;
+    let defaultConfig: DatabaseConfig = config;
     try {
       defaultConfig = { ...defaultConfig, ...JSON.parse(value) };
     } catch (err) {}
@@ -142,7 +142,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
       }}
     >
       <Typography.Text type="secondary">
-        <PlusOutlined /> Edit connection
+        <EditOutlined /> Database Connection
       </Typography.Text>
     </Card>
   );
@@ -163,7 +163,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
             if (!disabled) setVisible(true);
           }}
         >
-          <EditOutlined />
+          <SettingOutlined />
         </Typography.Link>
       }
     >
@@ -199,7 +199,6 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
         onCancel={() => setVisible(false)}
         footer={footer}
       >
-        <br />
         <br />
         <Form onChange={() => setValid(false)} form={form} layout="vertical">
           <Form.Item
@@ -250,7 +249,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
           <Form.Item name="verify" label="SSL">
             <Radio.Group
               onChange={(e) => {
-                const value = e.target.value as CollectionConfigCerify;
+                const value = e.target.value as DatabaseConfigCerify;
                 setConfig((s) => ({ ...s, verify: value }));
               }}
             >

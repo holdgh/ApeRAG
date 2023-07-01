@@ -25,15 +25,7 @@ export default () => {
       <Row gutter={[30, 30]}>
         {collections?.map((collection, key) => {
           return (
-            <Col
-              key={key}
-              xs={24}
-              sm={24}
-              md={24}
-              lg={12}
-              xl={12}
-              xxl={12}
-            >
+            <Col key={key} xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
               <Card size="small" bodyStyle={cardBodyStyle}>
                 <CollectionTitle collection={collection} />
                 <Typography.Text
