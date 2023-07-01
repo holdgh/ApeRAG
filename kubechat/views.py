@@ -20,10 +20,9 @@ from .models import Collection, CollectionStatus, \
     VerifyWay, ssl_temp_file_path, CollectionType
 from django.core.files.base import ContentFile
 from .auth.validator import GlobalAuth
-
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
-
 
 api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
 
@@ -51,6 +50,24 @@ class ConnectionInfo(Schema):
     ca_cert: Optional[str]
     client_key: Optional[str]
     client_cert: Optional[str]
+
+
+class Auth(BaseModel):
+    username: str = ""
+    password: str = ""
+
+
+class Host(BaseModel):
+    source: str = 'system'
+    host: str = ""
+    port: str = ""
+
+
+class DocumentConfig(BaseModel):
+    host: Host = Host
+    auth: Auth = Auth
+    filedir: str = ""
+    filepath: str = ""
 
 
 @api.post("/collections/ca/upload")
@@ -106,11 +123,25 @@ def create_collection(request, collection: CollectionIn):
     if collection.config is not None:
         instance.config = collection.config
     instance.save()
-
+    config = json.loads(collection.config)
     if instance.type == CollectionType.DATABASE:
-        config = json.loads(collection.config)
         if config["verify"] != VerifyWay.PREFERRED:
             add_ssl_file(config, user, instance)
+    else:
+        if config["source"] == "system":
+            pass
+        elif config["source"] == "local":
+            from kubechat.source.local import scanning_dir_add_index
+            scanning_dir_add_index(config["path"], instance)
+        elif config["source"] == "s3":
+            pass
+        elif config["source"] == "oss":
+            pass
+        elif config["source"] == "ftp":
+            pass
+        elif config["source"] == "email":
+            pass
+
     return success(instance.view())
 
 
@@ -164,7 +195,6 @@ def update_collection(request, collection_id, collection: CollectionIn):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.title = collection.title
     instance.description = collection.description
-    instance.config = collection.config
     instance.save()
     return success(instance.view())
 
@@ -200,7 +230,7 @@ def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
         )
         document_instance.save()
         response.append(document_instance.view())
-        add_index_for_document.delay(document_instance.id)
+        add_index_for_document.delay(document_instance)
     return success(response)
 
 
@@ -235,7 +265,7 @@ def delete_document(request, collection_id, document_id):
     document = query_document(user, collection_id, document_id)
     if document is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
-    remove_index.delay(document_id)
+    remove_index.delay(document)
     return success(document.view())
 
 
