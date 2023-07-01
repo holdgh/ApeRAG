@@ -153,8 +153,8 @@ def stream(llm_server:str, input: str):
         #curses.endwin()
 
 
-def test_local_llm_qa(collection: str, query: str):
-    ctx = {"url":"http://localhost", "port":6333, "collection":collection, "vector_size":768, "distance":"Cosine", "timeout": 1000}
+def test_local_llm_qa(query: str):
+    ctx = {"url":"http://localhost", "port":6333, "collection":"paper", "vector_size":768, "distance":"Cosine", "timeout": 1000}
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
 
     embedding, vector_size = get_embedding_model({"model_type": "huggingface"})
@@ -198,14 +198,14 @@ def test_local_llm_qa(collection: str, query: str):
     print("elapsed time ", elapsed)
 
 def test_local_path_embedding_pics():
-    test_local_path_embedding(path="/Users/ziang/Downloads/pics", collection_name="pics")
+    test_local_path_embedding(path="/Users/slc/pics/", collection_name="pics")
 
 
 def start():
     #test_local_path_embedding()
     #test_local_path_embedding_query("what is data lake")
+    #test_local_llm_qa("what is data lake")
     test_local_path_embedding_pics()
-    test_local_llm_qa("pics", "what is etcd balancer")
 
 
 if __name__ == "__main__":
