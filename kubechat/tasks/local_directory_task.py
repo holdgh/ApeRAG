@@ -5,9 +5,11 @@ import time
 
 from celery import Task
 from config.celery import app
+from kubechat.models import Document, DocumentStatus
 from kubechat.utils.db import query_collection, query_documents
 from readers.Readers import DEFAULT_FILE_READER_CLS
-from kubechat.tasks.index import add_index_for_document, remove_index
+from kubechat.tasks.index import add_index_for_document, remove_index, update_index
+
 # app.conf.beat_schedule = {
 #     'add-every-60-seconds': {
 #         'task': 'blog.tasks.add',
@@ -20,7 +22,7 @@ from kubechat.tasks.index import add_index_for_document, remove_index
 #         'args': (12, 24),
 #     },
 # }
-cron_collection_metadata = list[dict]
+cron_collection_metadata = []
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +33,7 @@ class filestat():
 
 
 @app.task
-def update_index_cron_job(add_index_for_document=None):
+def update_index_cron_job():
     for metadata in cron_collection_metadata:
         collection = query_collection(user=metadata["user"], collection_id=metadata["id"])
         # scan the directory
@@ -47,15 +49,30 @@ def update_index_cron_job(add_index_for_document=None):
         for filename in docments_in_direct.keys():
             if filename not in docments_in_db:
                 # for added
-                add_index_for_document.delay()
+                document_instance = Document(
+                    user=collection.user,
+                    name=filename,
+                    status=DocumentStatus.PENDING,
+                    size=docments_in_db[filename].file_size,
+                    collection=collection,
+                    metadata=docments_in_db[filename].latest_time
+                )
+                add_index_for_document.delay(document_instance.id,filename)
                 # read from local direct
             else:
                 # for update
-                if
+                docment_in_db = documents[docments_in_db[filename]]
+                if update_strategies(docments_in_direct[filename],
+                                     filestat(latest_time=docment_in_db.metadata, file_size=docment_in_db.size)):
+                    update_index.delay(docment_in_db.id)
         # for delete
         for filename in docments_in_direct.keys():
             if filename not in docments_in_direct:
-                remove_index.delay()
+                remove_index.delay(documents[docments_in_db[filename]])
+
+
+def update_strategies(stat_in_direct: filestat, stat_in_db: filestat) -> bool:
+    return True
 
 
 def scan_local_direct(direct) -> (bool, dict[str:filestat]):
