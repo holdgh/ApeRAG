@@ -4,8 +4,7 @@ import logging
 from celery import Task
 from config.celery import app
 
-from config.settings import VECTOR_DB_TYPE
-from config.vector_db import get_local_vector_db_connector
+from config.vector_db import get_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
 from kubechat.utils.utils import generate_vector_db_collection_id
 from kubechat.models import Document, DocumentStatus, CollectionStatus
@@ -47,8 +46,7 @@ def add_index_for_document(document_id):
     document.collection.save()
     try:
         loader = LocalPathEmbedding(input_files=[document.file.name], embedding_config={"model_type": "huggingface"},
-                                    vector_store_adaptor=get_local_vector_db_connector(VECTOR_DB_TYPE,
-                                                                                       collection=generate_qdrant_collection_id(
+                                    vector_store_adaptor=get_vector_db_connector(collection=generate_qdrant_collection_id(
                                                                                            user=document.user,
                                                                                            collection=document.collection.id)))
         ids = loader.load_data()
@@ -84,9 +82,8 @@ def remove_index(document_id):
     try:
         logger.debug(f"remove_index(): document id: {document.file.name}")
         logger.debug(f"remove_index(): qdrant points id to delete {document.relate_ids}")
-        vector_db = get_local_vector_db_connector(VECTOR_DB_TYPE,
-                                                  collection=generate_vector_db_collection_id(user=document.user,
-                                                                                              collection=document.collection.id))
+        vector_db = get_vector_db_connector(collection=generate_vector_db_collection_id(user=document.user,
+                                                                                        collection=document.collection.id))
         vector_db.connector.delete(ids=str(document.relate_ids).split(','))
     except Exception as e:
         document.status = DocumentStatus.FAILED

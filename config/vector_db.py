@@ -1,13 +1,15 @@
-from config.settings import VECTOR_DB_TYPE
+from config.settings import VECTOR_DB_TYPE, VECTOR_DB_CONTEXT
 
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
 
 
-def get_local_vector_db_connector(db_type: str, collection: str) -> VectorStoreConnectorAdaptor:
+def get_vector_db_connector(collection: str) -> VectorStoreConnectorAdaptor:
     # todo: specify the collection for different user
     # one person one collection
-    return VectorStoreConnectorAdaptor(db_type, ctx={"url": "http://localhost", "port": 6333, "collection": collection})
+    ctx = VECTOR_DB_CONTEXT
+    ctx["collection"] = collection
+    return VectorStoreConnectorAdaptor(VECTOR_DB_TYPE, ctx=ctx)
 
 
 # vector_db_connector = get_local_vector_db_connector(VECTOR_DB_TYPE)

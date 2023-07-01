@@ -64,7 +64,7 @@ services:
       - redis
       - postgres
     ports: []
-    command: /app/scripts/start-celery-celerybeat.sh
+    command: /app/scripts/start-celery-beat.sh
 
   flower:
     <<: *django
