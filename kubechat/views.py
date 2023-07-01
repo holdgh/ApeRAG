@@ -136,7 +136,8 @@ def create_collection(request, collection: CollectionIn):
         elif config["source"] == "s3":
             pass
         elif config["source"] == "oss":
-            pass
+            from kubechat.source.oss import scanning_oss_add_index
+            scanning_oss_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"], config["region"], instance)
         elif config["source"] == "ftp":
             pass
         elif config["source"] == "email":
