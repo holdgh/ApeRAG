@@ -136,7 +136,8 @@ def create_collection(request, collection: CollectionIn):
             from kubechat.source.local import scanning_dir_add_index
             scanning_dir_add_index(config["path"], instance)
         elif config["source"] == "s3":
-            pass
+            from kubechat.source.s3 import scanning_s3_add_index
+            scanning_s3_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"], config["region"], instance)
         elif config["source"] == "oss":
             from kubechat.source.oss import scanning_oss_add_index
             scanning_oss_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"], config["region"], instance)
