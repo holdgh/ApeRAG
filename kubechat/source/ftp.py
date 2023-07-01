@@ -23,18 +23,17 @@ def download_file(ftp, remote_path):
 
 
 def deal_the_path(ftp, collection, path='/'):
-    ftp.cwd(path)  # 切换到指定路径
-    files = ftp.nlst()  # 获取当前路径下的文件列表
-    print(path)
+    ftp.cwd(path)  # Switch to the specified path
+    files = ftp.nlst()  # Get the list of files in the current path
     temp_files = []
     for file in files:
-        file_path = os.path.join(path, file)  # 构建文件的完整路径
+        file_path = os.path.join(path, file)  # Build the full file path
         try:
-            ftp.cwd(file_path)  # 尝试切换到指定路径
-            deal_the_path(ftp, collection, file_path)
-        except error_perm:  # 不是文件夹，就处理文件
+            ftp.cwd(file_path)  # Try to switch to the specified path (if it's a folder)
+            deal_the_path(ftp, collection, file_path)  # Recursively process the subdirectory
+        except error_perm:  # If it's not a folder, process the file
             print(file_path)
-            temp_file = download_file(ftp, file_path)
+            temp_file = download_file(ftp, file_path)  # Download the file
             temp_files.append(temp_file)
             file_stat = os.stat(file_path)
             document_instance = Document(
@@ -51,18 +50,14 @@ def deal_the_path(ftp, collection, path='/'):
 
     for temp_file in temp_files:
         os.remove(temp_file)
-        print(f"已删除临时文件: {temp_file}")
+        logger.error(f"Temporary file deleted: {temp_file}")
 
 
-def scanning_dir_add_index_from_ftp(dir: str, collection):
-    ftp_host = collection.ftp_host
-    ftp_user = collection.ftp_user
-    ftp_password = collection.ftp_password
-
+def scanning_dir_add_index_from_ftp(dir, ftp_host, ftp_user, ftp_password, collection):
     collection.status = CollectionStatus.INACTIVE
     collection.save()
 
-    # 连接到FTP服务器
+    # Connect to the FTP server
     try:
         ftp = FTP(ftp_host)
         ftp.login(ftp_user, ftp_password)
@@ -74,11 +69,11 @@ def scanning_dir_add_index_from_ftp(dir: str, collection):
     except Exception as e:
         logger.error(f"scanning_dir_add_index() error {e}")
 
-    # 关闭FTP连接
+    # Close the FTP connection
     ftp.quit()
-    # add the
+    # Update the collection status
     collection.status = CollectionStatus.ACTIVE
     collection.save()
 
-    # add the collection to cron job list
+    # Add the collection to the cron job list
     cron_collection_metadata.append({"user": collection.user, "id": collection.id})
