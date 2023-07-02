@@ -53,7 +53,7 @@ export default ({
   let displayText = (item.data || '').replace(/^\n*/, '');
   const [animateText] = useTypewriter({
     words: [displayText],
-    typeSpeed: 30,
+    typeSpeed: 10,
     loop: 1,
   });
 
