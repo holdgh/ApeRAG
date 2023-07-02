@@ -8,7 +8,7 @@ import config.settings as settings
 from kubechat.utils.utils import generate_vector_db_collection_id
 from query.query import QueryWithEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
-from .base_consumer import BaseConsumer
+from .base_consumer import BaseConsumer, KUBE_CHAT_DOC_QA_REFERENCES
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +68,21 @@ class DocumentQAConsumer(BaseConsumer):
             buffer += c
 
             if "}" in c:
-                j = json.loads(buffer)
+                try:
+                    j = json.loads(buffer)
+                except Exception as e:
+                    continue
                 buffer = ""
-                new_text = j["text"][len(last_buffer):]
-                last_buffer = j["text"]
+                parts = j["text"].split("### Assistant :")
+                new_text = parts[1][len(last_buffer):]
+                last_buffer = parts[1]
                 yield new_text
+
+        references = []
+        for result in results.results:
+            references.append({
+                "score": result.score,
+                "text": result.text,
+                "metadata": result.metadata
+            })
+        yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)

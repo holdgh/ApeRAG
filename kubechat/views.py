@@ -330,6 +330,7 @@ def get_chat(request, collection_id, chat_id):
             logger.exception(e)
             continue
         item["role"] = message.additional_kwargs["role"]
+        item["references"] = message.additional_kwargs.get("references") or []
         messages.append(item)
     return success(chat.view(messages))
 
