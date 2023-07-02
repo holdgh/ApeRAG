@@ -51,13 +51,13 @@ export default ({
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = (item.data || '').replace(/^\n*/, '');
-  const [animateText] = useTypewriter({
+  const [animateText, stop] = useTypewriter({
     words: [displayText],
-    typeSpeed: 30,
+    typeSpeed: 40,
     loop: 1,
   });
 
-  if (animate) {
+  if (animate && !stop.isDone) {
     displayText = animateText;
   }
 
