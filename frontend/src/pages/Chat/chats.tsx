@@ -20,7 +20,7 @@ export default ({ loading, onExecuteSQL }: Props) => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
       smooth: true,
-      duration: 300,
+      duration: 0,
     });
   }, [messages, loading]);
 

@@ -61,11 +61,13 @@ export default () => {
     const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     let url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
 
-    const query = _.map(socketParams, (value, key) => `${key}=${value}`);
-    if (!_.isEmpty(query)) {
-      url += `?${query.join('&')}`;
+    if(currentCollection.type === 'database') {
+      const query = _.map(socketParams, (value, key) => `${key}=${value}`);
+      if (!_.isEmpty(query)) {
+        url += `?${query.join('&')}`;
+      }
     }
-
+    
     setSocketUrl(url);
   };
 
