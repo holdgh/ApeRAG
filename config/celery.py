@@ -19,7 +19,7 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     "file-update-cron-job": {
         "task": "kubechat.tasks.scan.get_collections_cron_job",
-        "schedule": 10,
+        "schedule": 60*60*2,
     }
 }
 
