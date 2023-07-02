@@ -8,6 +8,7 @@ from kubechat.models import Document, DocumentStatus, CollectionStatus
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +36,8 @@ def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region,
             file_suffix = os.path.splitext(obj.key)[1].lower()
             if file_suffix in DEFAULT_FILE_READER_CLS.keys():
                 file_content = obj.get()["Body"].read()
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix)
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix,
+                                                        prefix=os.path.splitext(obj.key)[0] + "_")
                 temp_file.write(file_content)
                 temp_file.close()
                 document_instance = Document(
