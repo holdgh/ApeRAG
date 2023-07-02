@@ -7,7 +7,7 @@ from elasticsearch_query import ElasticsearchClient
 
 class TestRedis(unittest.TestCase):
     def setUp(self) -> None:
-        self.cli = Redis("127.0.0.1")
+        self.cli = Redis(host="127.0.0.1", db_type="redis")
 
     def test_connect_without_verify(self):
         result = self.cli.connect()

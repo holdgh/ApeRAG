@@ -105,6 +105,10 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
     label: 'FTP',
     value: 'ftp',
   },
+  {
+    label: 'Email',
+    value: 'email',
+  },
 ];
 
 export const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
