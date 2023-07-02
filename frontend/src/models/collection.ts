@@ -20,6 +20,7 @@ import type {
   TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
   TypesDatabaseExecuteMethod,
+  TypesDocumentConfig,
   TypesDocumentConfigSourceOption,
   TypesMessage,
 } from '@/types';
@@ -86,7 +87,7 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
 
 export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   {
-    label: 'Default',
+    label: 'System',
     value: 'system',
   },
   {
@@ -132,16 +133,16 @@ export const getCollectionUrl = (collection: TypesCollection): string => {
   }`;
 };
 
-// export const parseCollectionConfig = (
-//   collection: TypesCollection,
-// ): TypesDocumentConfig & TypesDatabaseConfig => {
-//   const config = collection.config || '{}';
-//   let result: TypesDocumentConfig & TypesDatabaseConfig = {};
-//   try {
-//     result = JSON.parse(config);
-//   } catch (err) {}
-//   return result;
-// };
+export const parseCollectionConfig = (
+  collection: TypesCollection,
+): TypesDocumentConfig & TypesDatabaseConfig => {
+  const config = collection.config || '{}';
+  let result: TypesDocumentConfig & TypesDatabaseConfig = {};
+  try {
+    result = JSON.parse(config);
+  } catch (err) {}
+  return result;
+};
 
 export default () => {
   const [collections, _setCollections] = useState<TypesCollection[]>();

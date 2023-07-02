@@ -21,6 +21,7 @@
     "lodash": "^4.17.21",
     "mockjs": "^1.1.0",
     "moment": "^2.29.4",
+    "react-idle-timer": "^5.7.2",
     "react-markdown": "^8.0.7",
     "react-scroll": "^1.8.9",
     "react-simple-typewriter": "^5.0.1",

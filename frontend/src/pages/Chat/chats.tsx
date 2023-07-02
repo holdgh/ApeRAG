@@ -23,7 +23,7 @@ export default ({ loading, onExecuteSQL, status }: Props) => {
       smooth: true,
       duration: 0,
     });
-  }, [currentChat, loading]);
+  }, [currentChat]);
 
   const lastAiIndex = _.findLastIndex(
     messages,

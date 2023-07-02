@@ -8,6 +8,7 @@ import { useModel, useParams } from '@umijs/max';
 import { Card, Form } from 'antd';
 import { useEffect } from 'react';
 import CollectionForm from './form';
+import _ from 'lodash';
 
 export default () => {
   const [form] = Form.useForm();
@@ -46,7 +47,11 @@ export default () => {
   };
 
   useEffect(() => {
-    form.setFieldsValue(collection);
+    if(collection?.type === "document" && _.isEmpty(collection?.config)) {
+      form.setFieldsValue({...collection, config: DOCUMENT_DEFAULT_CONFIG.config});
+    } else {
+      form.setFieldsValue(collection);
+    }
   }, [collection]);
 
   if (!collection) return;

@@ -1,5 +1,5 @@
 import CollectionTitle from '@/components/CollectionTitle';
-import { getCollectionUrl } from '@/models/collection';
+import { getCollectionUrl, parseCollectionConfig } from '@/models/collection';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, history, useModel } from '@umijs/max';
 import {
@@ -10,6 +10,7 @@ import {
   Row,
   Space,
   Statistic,
+  Tag,
   Typography,
   theme,
 } from 'antd';
@@ -17,30 +18,34 @@ import _ from 'lodash';
 
 export default () => {
   const { collections, setCurrentCollection } = useModel('collection');
-  const cardBodyStyle = {
-    height: 240,
-  };
   const { token } = theme.useToken();
+
   return (
     <PageContainer ghost>
       <Row gutter={[30, 30]}>
         {collections?.map((collection, key) => {
+          const config = parseCollectionConfig(collection);
           return (
             <Col key={key} xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
-              <Card size="small" bodyStyle={cardBodyStyle}>
-                <CollectionTitle collection={collection} />
+              <Card
+                title={<CollectionTitle collection={collection} />}
+                bodyStyle={{
+                  height: 220,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+                extra={<Tag>{_.capitalize(collection.type)}</Tag>}
+              >
                 <Typography.Text
                   type="secondary"
+                  ellipsis
                   style={{
-                    maxHeight: 45,
-                    marginTop: 8,
-                    overflow: 'hidden',
                     display: 'block',
                   }}
                 >
                   {collection.description}
                 </Typography.Text>
-                <Card bordered={false}>
+                <div style={{ margin: '30px 0', flex: 1, verticalAlign: 'middle' }}>
                   <Space
                     style={{ justifyContent: 'space-around', width: '100%' }}
                   >
@@ -57,8 +62,10 @@ export default () => {
                     />
                     <Divider type="vertical" style={{ height: 30 }} />
                     <Statistic
-                      title="Type"
-                      value={_.capitalize(collection.type)}
+                      title={collection.type === 'database' ? "DB Type" : "Document Source"}
+                      value={_.capitalize(
+                        config.source || config.db_type || 'System',
+                      )}
                       valueStyle={{ fontSize: 16 }}
                     />
                     <Divider type="vertical" style={{ height: 30 }} />
@@ -68,7 +75,7 @@ export default () => {
                       valueStyle={{ fontSize: 16 }}
                     />
                   </Space>
-                </Card>
+                </div>
                 <div style={{ textAlign: 'center' }}>
                   <Space size="large">
                     <Button

@@ -63,7 +63,7 @@ export default ({
         <Input />
       </Form.Item>
       <Form.Item name="description" label="Description">
-        <Input.TextArea rows={2} />
+        <Input.TextArea rows={2} maxLength={200} showCount style={{ resize: 'none' }} />
       </Form.Item>
       <Form.Item
         name="type"
@@ -102,7 +102,7 @@ export default ({
           rules={[
             {
               required: true,
-              message: 'Database connection is required.',
+              message: 'Document source is required.',
             },
           ]}
         >

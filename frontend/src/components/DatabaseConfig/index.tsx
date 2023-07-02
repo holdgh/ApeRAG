@@ -213,7 +213,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
                 message: 'database is required.',
               },
             ]}
-            label="Database type"
+            label="Database Type"
           >
             <Select options={DATABASE_TYPE_OPTIONS} />
           </Form.Item>
@@ -241,7 +241,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
 
           <Form.Item
             name="db_name"
-            label="Database name"
+            label="Database"
             rules={[
               {
                 required: true,
