@@ -1,10 +1,8 @@
 import logging
 from func_timeout import func_set_timeout
 from redis.client import Redis as RedisClient
-from typing import Optional
-from services.text2SQL.base import DataBase
+from services.text2SQL.nosql.nosql import NoSQLBase
 from llama_index.prompts.base import Prompt
-from langchain.llms.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
@@ -27,74 +25,40 @@ _REDIS_PROMPT_TPL = (
     "Query: "
 )
 
-_DEFAULT_PROMPT = Prompt(
-    _REDIS_PROMPT_TPL,
-    stop_token="\nResult:",
-    prompt_type="text_to_sql",
-)
 
+class Redis(NoSQLBase):
+    @func_set_timeout(2)
+    def ping(self, verify, ca_cert, client_key, client_cert):
+        if self.port is None:
+            self.port = 6379
+        self.conn = RedisClient(
+            host=self.host,
+            port=self.port,
+            db=int(self.db) if self.db is not None else 0,
+            ssl=verify,
+            password=self.pwd,
+            decode_responses=True,
+            **self._get_ssl_args(ca_cert, client_key, client_cert),
+        )
+        return self.conn.ping()
 
-class Redis(DataBase):
-    def __init__(
-            self,
-            host,
-            user: Optional[str] = None,
-            pwd: Optional[str] = None,
-            port: Optional[int] = None,
-            db: Optional[int] = 0,
-            prompt: Optional[Prompt] = _DEFAULT_PROMPT,
-            llm: Optional[BaseLLM] = None,
-            db_type: Optional[str] = "redis",
-    ):
-        if port is None:
-            port = 6379
-        super().__init__(host, port, user, pwd, prompt, db_type, llm)
-        self.db = db
+    def _generate_schema(self):
+        keys = self.conn.keys()
+        return {k: self.conn.type(k) for k in keys}
 
-    def connect(
-            self,
-            verify: Optional[bool] = False,
-            ca_cert: Optional[str] = None,
-            client_key: Optional[str] = None,
-            client_cert: Optional[str] = None,
-    ):
-        kwargs = {
+    def execute_query(self, query):
+        return self.conn.execute_command(query)
+
+    def _get_ssl_args(self, ca_cert, client_key, client_cert):
+        return {
             "ssl_ca_certs": ca_cert,
             "ssl_keyfile": client_key,
             "ssl_certfile": client_cert,
         }
 
-        @func_set_timeout(2)
-        def ping():
-            self.conn = RedisClient(
-                host=self.host,
-                port=self.port,
-                db=self.db,
-                ssl=verify,
-                password=self.pwd,
-                decode_responses=True,
-                **kwargs,
-            )
-            return self.conn.ping()
-
-        try:
-            connected = ping()
-        except BaseException as e:
-            connected = False
-            logger.warning("connect to redis failed, err={}".format(e))
-
-        return connected
-
-    def text_to_query(self, text):
-        keys = self.conn.keys()
-        schema = {k: self.conn.type(k) for k in keys}
-
-        generator, _ = self.llm_predict.stream(
-            self.prompt,
-            query_str=text,
-            schema=schema,
+    def _get_default_prompt(self):
+        return Prompt(
+            _REDIS_PROMPT_TPL,
+            stop_token="\nResult:",
+            prompt_type="text_to_sql",
         )
-        return generator
-
-    def execute_query(self, query):
-        return self.conn.execute_command(query)

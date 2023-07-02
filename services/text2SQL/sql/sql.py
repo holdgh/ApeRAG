@@ -2,7 +2,7 @@ import logging
 
 from typing import Optional
 from langchain.llms.base import BaseLLM
-from llama_index import SQLDatabase, Prompt, LLMPredictor
+from llama_index import SQLDatabase, Prompt
 from llama_index.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_PROMPT
 from sqlalchemy import create_engine, text
 from services.text2SQL.base import DataBase
@@ -20,7 +20,7 @@ class SQLBase(DataBase):
             user: Optional[str] = "",
             pwd: Optional[str] = "",
             db: Optional[str] = "",
-            prompt: Optional[Prompt] = DEFAULT_TEXT_TO_SQL_PROMPT,
+            prompt: Optional[Prompt] = None,
             llm: Optional[BaseLLM] = None,
     ):
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
@@ -28,10 +28,6 @@ class SQLBase(DataBase):
 
     @abstractmethod
     def _generate_db_url(self) -> str:
-        pass
-
-    @abstractmethod
-    def _get_ssl_args(self, ca_cert, client_key, client_cert):
         pass
 
     def connect(
@@ -54,15 +50,16 @@ class SQLBase(DataBase):
             with self.conn.engine.connect() as connection:
                 _ = connection.execute(text("select 1"))
             if not test_only:
-                self.schema = self.generate_sql_schema()
+                self.schema = self._generate_schema()
             return True
         except BaseException as e:
             print("Connect failed: err:{}".format(e))
             return False
 
     def text_to_query(self, query_str: str, sample_rows: Optional[int] = 3):
-        llm_predictor = LLMPredictor(llm=self.llm)
-        response, _ = llm_predictor.stream(
+        if self.prompt is None:
+            self.prompt = DEFAULT_TEXT_TO_SQL_PROMPT
+        response, _ = self.llm_predict.stream(
             prompt=self.prompt,
             query_str=query_str,
             schema=self.schema,
@@ -70,7 +67,7 @@ class SQLBase(DataBase):
         )
         return response
 
-    def generate_sql_schema(self) -> str:
+    def _generate_schema(self) -> str:
         schema = ""
         usable_tables = self.conn.get_usable_table_names()
         for t in usable_tables:

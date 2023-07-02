@@ -40,6 +40,7 @@ class DataBase(ABC):
             ca_cert: Optional[str] = None,
             client_key: Optional[str] = None,
             client_cert: Optional[str] = None,
+            test_only: Optional[bool] = True,
     ) -> bool:
         pass
 
@@ -50,3 +51,12 @@ class DataBase(ABC):
     @abstractmethod
     def execute_query(self, query):
         pass
+
+    @abstractmethod
+    def _get_ssl_args(self, ca_cert, client_key, client_cert):
+        pass
+
+    @abstractmethod
+    def _generate_schema(self):
+        pass
+

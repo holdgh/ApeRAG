@@ -1,3 +1,4 @@
+import os.path
 from datetime import datetime
 import logging
 
@@ -30,7 +31,7 @@ class CustomLoadDocumentTask(Task):
         return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
 
-@app.task(base=CustomLoadDocumentTask)
+@app.task(base=CustomLoadDocumentTask, time_limit=300, soft_time_limit=180)
 def add_index_for_document(document_id, file_path):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
