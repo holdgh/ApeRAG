@@ -28,6 +28,7 @@ export const getFtpDescItems = (config: TypesDocumentConfig) => {
   return (
     <>
       <Descriptions.Item label="Host">{config.host || ''}</Descriptions.Item>
+      <Descriptions.Item label="Path">{config.path || ''}</Descriptions.Item>
       <Descriptions.Item label="Username">
         {config.username || ''}
       </Descriptions.Item>
@@ -117,6 +118,18 @@ export const getFtpFormItems = () => {
           },
         ]}
         label="Host"
+      >
+        <Input />
+      </Form.Item>
+      <Form.Item
+        name="path"
+        rules={[
+          {
+            required: true,
+            message: 'path is required.',
+          },
+        ]}
+        label="Path"
       >
         <Input />
       </Form.Item>

@@ -39,8 +39,13 @@ export type DocumentConfigSource = 'system' | 'local' | 's3' | 'oss' | 'ftp';
 export type TypesDocumentConfig = {
   source?: DocumentConfigSource;
 
-  // local
+  // local and ftp
   path?: string;
+
+  // ftp
+  host?: string;
+  username?: string;
+  password?: string;
 
   // s3 | oss
   region?: string;
@@ -48,11 +53,6 @@ export type TypesDocumentConfig = {
   secret_access_key?: string;
   bucket?: string;
   dir?: string;
-
-  // ftp
-  host?: string;
-  username?: string;
-  password?: string;
 };
 
 export type TypesDocumentConfigSourceOption = {

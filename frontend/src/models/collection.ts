@@ -107,7 +107,7 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   },
 ];
 
-export const hasDatabaseList = (collection?: TypesCollection): boolean => {
+export const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
   const config: TypesDatabaseConfig = {};
   const whiteList = DATABASE_TYPE_OPTIONS.filter(
     (o) => o.showSelector === true,
@@ -119,7 +119,7 @@ export const hasDatabaseList = (collection?: TypesCollection): boolean => {
   const isInWhiteList =
     !!config.db_type &&
     new RegExp(`^(${whiteList.join('|')})$`).test(config.db_type);
-  return collection?.type === 'database' && isInWhiteList;
+  return isInWhiteList;
 };
 
 export const getCollectionUrl = (collection: TypesCollection): string => {
@@ -169,7 +169,7 @@ export default () => {
   };
   const _getDatabase = async () => {
     if (!currentCollection?.id) return;
-    if (hasDatabaseList(currentCollection)) {
+    if (hasDatabaseSelector(currentCollection)) {
       const { data } = await GetCollectionDatabase(currentCollection.id);
       _setCurrentDatabase(data);
     }
