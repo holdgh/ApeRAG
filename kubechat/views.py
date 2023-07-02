@@ -273,7 +273,7 @@ def delete_document(request, collection_id, document_id):
     document = query_document(user, collection_id, document_id)
     if document is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
-    remove_index.delay(document.relate_ids)
+    remove_index.delay(document.id)
     return success(document.view())
 
 
