@@ -1,3 +1,4 @@
+import ChatRobot from '@/assets/chatbot.png';
 import { getUser } from '@/models/user';
 import type { TypesMessage } from '@/types';
 import {
@@ -9,9 +10,8 @@ import { Avatar, Button, Space, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import ChatRobot from '@/assets/chatbot.png';
 import { useTypewriter } from 'react-simple-typewriter';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
@@ -41,7 +41,7 @@ export default ({
   let displayText = (item.data || '').replace(/^\n*/, '');
   const [animateText] = useTypewriter({
     words: [displayText],
-    typeSpeed: 5,
+    typeSpeed: 10,
     loop: 1,
   });
 
@@ -79,7 +79,11 @@ export default ({
           code({ inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
-              <SyntaxHighlighter style={vscDarkPlus} language={match[1]} PreTag="div">
+              <SyntaxHighlighter
+                style={vscDarkPlus}
+                language={match[1]}
+                PreTag="div"
+              >
                 {String(children).replace(/\n$/, '')}
               </SyntaxHighlighter>
             ) : (
