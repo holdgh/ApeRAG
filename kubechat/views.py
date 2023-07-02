@@ -1,37 +1,34 @@
-import logging
 import json
-import uuid
+import logging
 import os
-import config.settings as settings
+import uuid
 from datetime import datetime
+from http import HTTPStatus
 from typing import List
 from typing import Optional
-from http import HTTPStatus
+
+from django.core.files.base import ContentFile
 from django.http import HttpResponse
+from langchain.memory import RedisChatMessageHistory
 from ninja import NinjaAPI, Schema, File
 from ninja.files import UploadedFile
+from pydantic import BaseModel
 
+import config.settings as settings
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.tasks.scan import scan_collection
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
     query_chats, add_ssl_file, new_db_client
 from kubechat.utils.request import get_user, success, fail
-from langchain.memory import RedisChatMessageHistory
-
-from readers.base_embedding import  get_default_embedding_model
+from readers.base_embedding import get_default_embedding_model
+from .auth.validator import GlobalAuth
 from .models import Collection, CollectionStatus, \
     Document, DocumentStatus, Chat, ChatStatus, \
     VerifyWay, ssl_temp_file_path, CollectionType
-from django.core.files.base import ContentFile
-from .auth.validator import GlobalAuth
-from pydantic import BaseModel
-
-from .source.local import scanning_dir_add_index
-from .source.oss import scanning_oss_add_index
 from .utils.utils import generate_vector_db_collection_id
 
-from .source.ftp import scanning_dir_add_index_from_ftp
+from .source.ftp import scanning_ftp_add_index
 
 logger = logging.getLogger(__name__)
 
