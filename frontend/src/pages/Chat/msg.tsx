@@ -21,12 +21,12 @@ import classNames from 'classnames';
 import moment from 'moment';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useTypewriter } from 'react-simple-typewriter';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { tomorrow as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import TypeIt from 'typeit-react';
 import styles from './index.less';
 
 type Props = {
@@ -51,15 +51,15 @@ export default ({
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = (item.data || '').replace(/^\n*/, '');
-  const [animateText, stop] = useTypewriter({
-    words: [displayText],
-    typeSpeed: 40,
-    loop: 1,
-  });
+  // const [animateText, helper] = useTypewriter({
+  //   words: [displayText],
+  //   typeSpeed: 40,
+  //   loop: 1,
+  // });
 
-  if (animate && !stop.isDone) {
-    displayText = animateText;
-  }
+  // if (animate && helper.isType) {
+  //   displayText = animateText;
+  // }
 
   const renderAvatar = () => {
     const size = 50;
@@ -83,7 +83,7 @@ export default ({
       displayText = '```sql\n' + displayText + '\n```';
     }
 
-    return (
+    const Markdown = (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
@@ -92,7 +92,7 @@ export default ({
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
               <SyntaxHighlighter
-                style={vscDarkPlus}
+                style={dark}
                 language={match[1]}
                 PreTag="div"
               >
@@ -108,6 +108,21 @@ export default ({
       >
         {displayText}
       </ReactMarkdown>
+    );
+    return animate ? (
+      <TypeIt
+        options={{
+          speed: 10,
+          loop: false,
+          cursor: false,
+          html: true,
+          lifeLike: true,
+        }}
+      >
+        {Markdown}
+      </TypeIt>
+    ) : (
+      Markdown
     );
   };
 
@@ -194,7 +209,7 @@ export default ({
                     const match = /language-(\w+)/.exec(className || '');
                     return !inline && match ? (
                       <SyntaxHighlighter
-                        style={vscDarkPlus}
+                        style={dark}
                         language={match[1]}
                         PreTag="div"
                       >
