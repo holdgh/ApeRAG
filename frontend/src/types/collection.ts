@@ -34,13 +34,24 @@ export type TypesDatabaseConfig = {
   client_cert?: string;
 };
 
-export type DocumentConfigSource = 'system' | 'local' | 's3' | 'oss' | 'ftp';
+export type DocumentConfigSource =
+  | 'system'
+  | 'local'
+  | 's3'
+  | 'oss'
+  | 'ftp'
+  | 'email';
 
 export type TypesDocumentConfig = {
   source?: DocumentConfigSource;
 
-  // local
+  // local and ftp
   path?: string;
+
+  // ftp
+  host?: string;
+  username?: string;
+  password?: string;
 
   // s3 | oss
   region?: string;
@@ -49,10 +60,11 @@ export type TypesDocumentConfig = {
   bucket?: string;
   dir?: string;
 
-  // ftp
-  host?: string;
-  username?: string;
-  password?: string;
+  // email
+  pop_server?: string;
+  port?: string;
+  email_address?: string;
+  email_password?: string;
 };
 
 export type TypesDocumentConfigSourceOption = {

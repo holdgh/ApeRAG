@@ -13,7 +13,7 @@ class NoSQLBase(DataBase):
             self,
             db_type,
             host,
-            port,
+            port: Optional[int] = None,
             user: Optional[str] = "",
             pwd: Optional[str] = "",
             db: Optional[str] = "",

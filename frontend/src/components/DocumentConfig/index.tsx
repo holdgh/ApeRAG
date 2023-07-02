@@ -17,6 +17,8 @@ import { useEffect, useState } from 'react';
 import {
   getCloudDescItems,
   getCloudFormItems,
+  getEmailDescItems,
+  getEmailFormItems,
   getFtpDescItems,
   getFtpFormItems,
   getLocalDescItems,
@@ -104,6 +106,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
       </Descriptions.Item>
 
       {originConfig.source === 'local' ? getLocalDescItems(originConfig) : null}
+      {originConfig.source === 'email' ? getEmailDescItems(originConfig) : null}
       {originConfig.source === 's3' || originConfig.source === 'oss'
         ? getCloudDescItems(originConfig)
         : null}
@@ -119,6 +122,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
         open={visible}
         onCancel={() => setVisible(false)}
         destroyOnClose={true}
+        width={560}
         footer={
           <Space>
             <Button onClick={() => setVisible(false)}>Cancel</Button>
@@ -149,6 +153,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
             <Radio.Group options={DOCUMENT_SOURCE_OPTIONS} />
           </Form.Item>
           {config.source === 'local' ? getLocalFormItems() : null}
+          {config.source === 'email' ? getEmailFormItems() : null}
           {config.source === 's3' || config.source === 'oss'
             ? getCloudFormItems()
             : null}

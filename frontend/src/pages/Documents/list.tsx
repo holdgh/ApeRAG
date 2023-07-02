@@ -147,6 +147,10 @@ export default () => {
 
   useEffect(() => {
     getDocuments();
+    const timer = setInterval(getDocuments, 5000);
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
 
   return (

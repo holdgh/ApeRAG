@@ -1,8 +1,9 @@
 import json
 
 from config.celery import app
-from kubechat.models import Collection, CollectionType, CollectionStatus
+from kubechat.models import Collection
 from .index import CustomLoadDocumentTask
+from .local_directory_task import update_local_directory_index
 
 
 @app.task(base=CustomLoadDocumentTask, time_limit=300, soft_time_limit=180)
@@ -27,6 +28,18 @@ def scan_collection(collection_id):
     elif config["source"] == "ftp":
         from kubechat.source.ftp import scanning_dir_add_index_from_ftp
         scanning_dir_add_index_from_ftp(config["path"], config["host"], config["username"], config["password"],
-                                        collection)
+                                        collection, config["port"])
     elif config["source"] == "email":
         pass
+
+
+@app.task(base=CustomLoadDocumentTask)
+def get_collections_cron_job():
+    collections = Collection.objects.all()
+    for collection in collections:
+        # todo: need User Balanced Solutions to make sure that tasks are not filled with large users
+        config = json.loads(collection.config)
+        if config["source"] == "system":
+            config
+        if config["source"] == "local":
+            update_local_directory_index.delay(collection.user, collection.id)

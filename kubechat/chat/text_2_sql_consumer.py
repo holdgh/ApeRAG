@@ -2,6 +2,7 @@ import json
 from .base_consumer import BaseConsumer
 from kubechat.utils.db import query_collection, new_db_client
 from kubechat.utils.utils import extract_database_and_execute
+from typing import Generator
 
 
 class Text2SQLConsumer(BaseConsumer):
@@ -35,5 +36,11 @@ class Text2SQLConsumer(BaseConsumer):
             else:
                 self.response_type = "sql"
                 response = self.client.text_to_query(query)
-        for tokens in response:
-            yield str(tokens)
+
+        if isinstance(response, Generator):
+            for tokens in response:
+                yield str(tokens)
+        else:
+            for tokens in response:
+                yield str(tokens) + "\n"
+

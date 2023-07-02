@@ -7,7 +7,7 @@ from django.db.models.fields.files import FieldFile
 
 from kubechat.tasks.index import add_index_for_document
 from kubechat.models import Document, DocumentStatus, CollectionStatus
-from kubechat.tasks.local_directory_task import cron_collection_metadata
+
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 import logging
@@ -61,7 +61,6 @@ def scanning_oss_add_index(b_name: str, id, secret, ep, collection):
     collection.status = CollectionStatus.ACTIVE
     collection.save()
 
-    cron_collection_metadata.append({"user": collection.user, "id": collection.id})
 
 
 

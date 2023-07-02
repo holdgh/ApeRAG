@@ -8,7 +8,6 @@ from ftplib import FTP, error_perm
 
 from kubechat.tasks.index import add_index_for_document
 from kubechat.models import Document, DocumentStatus, CollectionStatus
-from kubechat.tasks.local_directory_task import cron_collection_metadata
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
@@ -54,27 +53,26 @@ def deal_the_path(ftp, collection, path='/'):
         logger.error(f"Temporary file deleted: {temp_file}")
 
 
-def scanning_dir_add_index_from_ftp(dir, ftp_host, ftp_user, ftp_password, collection):
+def scanning_dir_add_index_from_ftp(dir, ftp_host, ftp_user, ftp_password, collection,ftp_port="21"):
     collection.status = CollectionStatus.INACTIVE
     collection.save()
 
     # Connect to the FTP server
     try:
-        ftp = FTP(ftp_host)
+        ftp = FTP()
+        ftp.connect(ftp_host, ftp_port)
         ftp.login(ftp_user, ftp_password)
+        try:
+            deal_the_path(ftp, collection, dir)
+        except Exception as e:
+            logger.error(f"scanning_dir_add_index() error {e}")
+        # Close the FTP connection
+        ftp.quit()
+        # Update the collection status
+        collection.status = CollectionStatus.ACTIVE
+        collection.save()
+
     except Exception as e:
         logger.error(f"scanning_dir_add_index_from_ftp() ftp connect error {e}")
 
-    try:
-        deal_the_path(ftp, collection, dir)
-    except Exception as e:
-        logger.error(f"scanning_dir_add_index() error {e}")
 
-    # Close the FTP connection
-    ftp.quit()
-    # Update the collection status
-    collection.status = CollectionStatus.ACTIVE
-    collection.save()
-
-    # Add the collection to the cron job list
-    cron_collection_metadata.append({"user": collection.user, "id": collection.id})

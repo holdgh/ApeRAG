@@ -19,11 +19,11 @@ def generate_qdrant_collection_id(user, collection) -> str:
 
 class CustomLoadDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
-        print("task successed!")
+        # print("task successed!")
         return super(CustomLoadDocumentTask, self).on_success(retval, task_id, args, kwargs)
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        print("task failed!")
+        # print("task failed!")
         return super(CustomLoadDocumentTask, self).on_failure(exc, task_id, args, kwargs, einfo)
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
@@ -53,19 +53,20 @@ def add_index_for_document(document_id, file_path):
                                             collection=document.collection.id)))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
-        logger.debug(f"add_index_for_document(): add qdrant points: {document.relate_ids}")
+        logger.debug(f"add qdrant points: {document.relate_ids} for document {file_path}")
     except Exception as e:
         document.status = DocumentStatus.FAILED
         document.save()
         document.collection.status = CollectionStatus.ACTIVE
         document.collection.save()
-        logger.error(f"add_index_for_document(): index embedding to vector db failed:{e}")
+        logger.error(f"add qdrant points for document {file_path} error:{e}")
         return False
 
     document.status = DocumentStatus.COMPLETE
     document.save()
     document.collection.status = CollectionStatus.ACTIVE
     document.collection.save()
+    logger.debug(f"add qdrant points for document {file_path} success")
     return True
 
 
@@ -82,8 +83,7 @@ def remove_index(document_id):
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
-        logger.debug(f"remove_index(): document id: {document.file.name}")
-        logger.debug(f"remove_index(): qdrant points id to delete {document.relate_ids}")
+        logger.debug(f"remove qdrant points: {document.relate_ids} for document {document.file}")
         vector_db = get_vector_db_connector(collection=generate_vector_db_collection_id(user=document.user,
                                                                                         collection=document.collection.id))
         vector_db.connector.delete(ids=str(document.relate_ids).split(','))
@@ -92,7 +92,7 @@ def remove_index(document_id):
         document.save()
         logger.error(f"remove_index(): index delete from vector db failed:{e}")
         return False
-    logger.debug(f"remove_index(): index delete from vector db success")
+    logger.debug(f"remove qdrant points for document {document.file} success")
     document.status = DocumentStatus.DELETED
     document.gmt_deleted = datetime.now()
     document.save()
@@ -117,10 +117,16 @@ def update_index(document_id, file_path):
         loader.connector.delete(ids=str(document.relate_ids).split(','))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
-        logger.debug(f"add_index_for_document(): add qdrant points: {document.relate_ids}")
+        logger.debug(f"update qdrant points: {document.relate_ids} for document {file_path}")
 
     except Exception as e:
         document.status = DocumentStatus.FAILED
         document.save()
-        logger.error(f"updata_index(): index delete from vector db failed:{e}")
+        logger.error(f"update index for document{file_path} error:{e}")
         return False
+
+    document.status = DocumentStatus.COMPLETE
+    document.save()
+    document.collection.status = CollectionStatus.ACTIVE
+    document.collection.save()
+    logger.debug(f"update qdrant points for document {file_path} success")
