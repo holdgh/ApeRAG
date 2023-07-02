@@ -214,4 +214,4 @@ MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
 
 VECTOR_DB_TYPE = env.str("VECTOR_DB_TYPE", default="qdrant")
-VECTOR_DB_CONTEXT = env.str("VECTOR_DB_CONTEXT", '{"url":"http://localhost", "port":6333, "distance":"Cosine", "timeout": 1000}')
+VECTOR_DB_CONTEXT = env.str("VECTOR_DB_CONTEXT", '{"url":"http://localhost", "port":6333, "distance":"Cosine"}')

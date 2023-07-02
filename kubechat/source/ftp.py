@@ -8,7 +8,6 @@ from ftplib import FTP, error_perm
 
 from kubechat.tasks.index import add_index_for_document
 from kubechat.models import Document, DocumentStatus, CollectionStatus
-from kubechat.tasks.local_directory_task import cron_collection_metadata
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
@@ -73,8 +72,6 @@ def scanning_dir_add_index_from_ftp(dir, ftp_host, ftp_user, ftp_password, colle
         collection.status = CollectionStatus.ACTIVE
         collection.save()
 
-        # Add the collection to the cron job list
-        cron_collection_metadata.append({"user": collection.user, "id": collection.id})
     except Exception as e:
         logger.error(f"scanning_dir_add_index_from_ftp() ftp connect error {e}")
 
