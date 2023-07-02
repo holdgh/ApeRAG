@@ -13,6 +13,7 @@ from ninja.files import UploadedFile
 
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
+from kubechat.tasks.scan import scan_collection
 from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
     query_chats, add_ssl_file, new_db_client
 from kubechat.utils.request import get_user, success, fail
@@ -140,28 +141,13 @@ def create_collection(request, collection: CollectionIn):
                                                                                          collection=instance.id))
     _, size = get_default_embedding_model(load=False)
     vector_db_conn.connector.create_collection(vector_size=size)
-    config = json.loads(collection.config)
 
+    config = json.loads(collection.config)
     if instance.type == CollectionType.DATABASE:
         if config["verify"] != VerifyWay.PREFERRED:
             add_ssl_file(config, user, instance)
-    else:
-        if config["source"] == "system":
-            pass
-        elif config["source"] == "local":
-            scanning_dir_add_index(config["path"], instance)
-        elif config["source"] == "s3":
-            from kubechat.source.s3 import scanning_s3_add_index
-            scanning_s3_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"], config["region"], instance)
-        elif config["source"] == "oss":
-            scanning_oss_add_index(config["bucket"], config["access_key_id"], config["secret_access_key"],
-                                   config["region"], instance)
-        elif config["source"] == "ftp":
-            scanning_dir_add_index_from_ftp(config["path"], config["host"], config["username"], config["password"],
-                                            instance)
-        elif config["source"] == "email":
-            pass
-
+    elif instance.type == CollectionType.DOCUMENT:
+        scan_collection.delay(instance.id)
     return success(instance.view())
 
 

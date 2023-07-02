@@ -1,6 +1,7 @@
 import boto3
 import os
 import time
+import tempfile
 
 from kubechat.tasks.index import add_index_for_document
 from kubechat.models import Document, DocumentStatus, CollectionStatus
@@ -32,17 +33,22 @@ def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region,
 
     try:
         for obj in bucket.objects.all():
-            if os.path.splitext(obj.key)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
+            file_suffix = os.path.splitext(obj.key)[1].lower()
+            if file_suffix in DEFAULT_FILE_READER_CLS.keys():
+                file_content = obj.get()["Body"].read()
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix)
+                temp_file.write(file_content)
+                temp_file.close()
                 document_instance = Document(
                     user=collection.user,
                     name=obj.key,
                     status=DocumentStatus.PENDING,
                     size=obj.size,
                     collection=collection,
-                    metadata=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(obj.last_modified))
+                    # metadata=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(obj.last_modified))
                 )
                 document_instance.save()
-                add_index_for_document.delay(document_instance.id)
+                add_index_for_document.delay(document_instance.id, temp_file.name)
     except Exception as e:
         logger.error(f"scanning_s3_add_index() error {e}")
 

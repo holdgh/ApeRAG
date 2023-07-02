@@ -108,6 +108,8 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             # todo: support more kind of reader
             docs = reader.load_data(input_file, metadata=metadata)  # metadata for llama_index 0.6.35
             documents.extend(docs)
+        else:
+            logger.warning(f"Unsupported file extension: {input_file.suffix}")
 
         return documents, input_file
 

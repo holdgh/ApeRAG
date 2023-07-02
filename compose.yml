@@ -19,7 +19,7 @@ services:
       - .:/app:z
       - ~/.cache:/root/.cache
     env_file:
-      - .env
+      - .docker-env
     ports:
       - "8000:8000"
     command: /app/scripts/start-django.sh
@@ -30,7 +30,7 @@ services:
     volumes:
       - kubechat_postgres_data:/var/lib/postgresql/data
     env_file:
-      - .env
+      - .docker-env
 
   redis:
     image: redis:6
