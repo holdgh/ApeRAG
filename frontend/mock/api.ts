@@ -1,6 +1,4 @@
-import fs from 'fs';
 import _ from 'lodash';
-import path from 'path';
 import charExample from './chat_example.json';
 
 const collections = [

@@ -12,7 +12,7 @@ type Props = {
   onExecuteSQL: (msg?: TypesMessage) => void;
 };
 
-export default ({ loading, onExecuteSQL, status}: Props) => {
+export default ({ loading, onExecuteSQL, status }: Props) => {
   const { currentChat } = useModel('collection');
 
   const messages = currentChat?.history || [];
@@ -37,7 +37,10 @@ export default ({ loading, onExecuteSQL, status}: Props) => {
           return (
             <MessageItem
               animate={
-                item.role === 'ai' && key === messages.length - 1 && loading && status === "Open"
+                item.role === 'ai' &&
+                key === messages.length - 1 &&
+                loading &&
+                status === 'Open'
               }
               disabled={loading}
               onExecuteSQL={onExecuteSQL}

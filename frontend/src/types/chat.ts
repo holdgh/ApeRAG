@@ -1,5 +1,3 @@
-import type { TypesCollection } from './collection';
-
 export type TypesSocketStatus =
   | 'Closed'
   | 'Open'
@@ -10,12 +8,12 @@ export type TypesMessageType = 'message' | 'stop' | 'error' | 'sql';
 export type TypesMessageRole = 'ai' | 'human';
 
 export type TypesMessageReferences = {
-  score?: number,
-  text?: string,
+  score?: number;
+  text?: string;
   metadata?: {
-    source?: string,
-  }
-}
+    source?: string;
+  };
+};
 
 export type TypesMessage = {
   type?: TypesMessageType;

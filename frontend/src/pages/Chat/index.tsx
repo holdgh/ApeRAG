@@ -4,7 +4,11 @@ import {
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
-import type { TypesMessage, TypesMessageReferences, TypesSocketStatus } from '@/types';
+import type {
+  TypesMessage,
+  TypesMessageReferences,
+  TypesSocketStatus,
+} from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { App, Form, Radio, Select, Space } from 'antd';
@@ -151,14 +155,18 @@ export default () => {
 
     if (msg.type === 'stop') {
       setLoading(false);
-      const references: TypesMessageReferences[] = msg.data as unknown as TypesMessageReferences[];
-      if(msg.data) {
-        _.update(messages, messages.length - 1, (origin) => ({
-          ...origin,
-          references,
-        }))
-        setCurrentChatMessages(messages);
+      if (_.last(messages)?.role === 'ai') {
+        const references: TypesMessageReferences[] =
+          msg.data as unknown as TypesMessageReferences[];
+        if (msg.data) {
+          _.update(messages, messages.length - 1, (origin) => ({
+            ...origin,
+            references,
+          }));
+          setCurrentChatMessages(messages);
+        }
       }
+
       return;
     }
 
@@ -219,7 +227,11 @@ export default () => {
                 currentCollection?.type === 'database' ? DatabaseSelector : null
               }
             />
-            <Chats loading={loading} onExecuteSQL={onExecuteSQL} status={SocketStatusMap[readyState]} />
+            <Chats
+              loading={loading}
+              onExecuteSQL={onExecuteSQL}
+              status={SocketStatusMap[readyState]}
+            />
             <Footer loading={loading} onSubmit={onSubmit} onClear={onClear} />
           </div>
         );
