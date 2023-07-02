@@ -38,7 +38,7 @@ class Redis(NoSQLBase):
             ssl=verify,
             password=self.pwd,
             decode_responses=True,
-            **self._get_ssl_args(ca_cert, client_key, client_cert),
+            **self._get_ssl_args(verify, ca_cert, client_key, client_cert),
         )
         return self.conn.ping()
 
@@ -47,14 +47,17 @@ class Redis(NoSQLBase):
         return {k: self.conn.type(k) for k in keys}
 
     def execute_query(self, query):
-        return self.conn.execute_command(query)
+        response = self.conn.execute_command(query)
+        if isinstance(response, str):
+            response = [response]
+        return response
 
-    def _get_ssl_args(self, ca_cert, client_key, client_cert):
+    def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
         return {
             "ssl_ca_certs": ca_cert,
             "ssl_keyfile": client_key,
             "ssl_certfile": client_cert,
-        }
+        } if verify else {}
 
     def _get_default_prompt(self):
         return Prompt(

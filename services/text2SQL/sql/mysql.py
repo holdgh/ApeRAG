@@ -9,7 +9,7 @@ class Mysql(SQLBase):
             self.port = 3306
         return f"{self.db_type}+{driver}://{self.user}:{self.pwd}@{self.host}:{self.port}/{self.db}"
 
-    def _get_ssl_args(self, ca_cert, client_key, client_cert):
+    def _get_ssl_args(self, verify,  ca_cert, client_key, client_cert):
         ssl_str = "?"
         if ca_cert is not None:
             ssl_str += "ssl_ca={}&".format(ca_cert)
@@ -17,6 +17,9 @@ class Mysql(SQLBase):
             ssl_str += "ssl_key={}&".format(client_key)
         if client_cert is not None:
             ssl_str += "ssl_cert={}".format(client_cert)
+
+        if verify and ssl_str == "?":
+            raise ValueError("have no ssl file at all")
         return ssl_str
 
     def get_database_list(self):
