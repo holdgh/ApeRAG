@@ -10,7 +10,6 @@ from kubechat.utils.db import query_collection, query_documents
 from readers.Readers import DEFAULT_FILE_READER_CLS
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -75,7 +74,7 @@ def update_strategies(stat_in_direct: filestat, stat_in_db: filestat) -> bool:
     if stat_in_direct.latest_time == stat_in_db.latest_time:
         logger.debug("update_strategies : no need update")
         return False
-    if abs(stat_in_direct.file_size - stat_in_db.file_size) < stat_in_db.file_size * 0.2:
+    if abs(stat_in_direct.file_size - stat_in_db.file_size) < stat_in_db.file_size * 0.2:  # only size, need more check
         logger.debug("update_strategies : no need update")
         return False
     logger.debug("update_strategies : need update")
@@ -89,26 +88,17 @@ def scan_local_direct(directory) -> (bool, dict):
     :return:
     """
     result = {}
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if os.path.splitext(file_path)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
-                file_stat = os.stat(file_path)
-                temp = filestat(
-                    latest_time=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(file_stat.st_mtime)),
-                    file_size=file_stat.st_size)
-                result[file_path] = temp
-    return True, result
-    # try:
-    #     for root, dirs, files in os.walk(directory):
-    #         for file in files:
-    #             file_path = os.path.join(root, file)
-    #             if os.path.splitext(file_path)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
-    #                 file_stat = os.stat(file_path)
-    #                 result[file_path] = filestat(
-    #                     latest_time=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(file_stat.st_mtime)),
-    #                     file_size=file_stat.st_size)
-    #     return True, result
-    # except Exception as e:
-    #     logger.error(f"scan_local_direct(): error{e}")
-    #     return False, None
+    try:
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if os.path.splitext(file_path)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
+                    file_stat = os.stat(file_path)
+                    temp = filestat(
+                        latest_time=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(file_stat.st_mtime)),
+                        file_size=file_stat.st_size)
+                    result[file_path] = temp
+        return True, result
+    except Exception as e:
+        logger.error(f"update_local_directory_index - scan_local_direct(): error{e}")
+        return False, None

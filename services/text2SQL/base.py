@@ -53,7 +53,7 @@ class DataBase(ABC):
         pass
 
     @abstractmethod
-    def _get_ssl_args(self, ca_cert, client_key, client_cert):
+    def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
         pass
 
     @abstractmethod

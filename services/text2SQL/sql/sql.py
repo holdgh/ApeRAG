@@ -16,7 +16,7 @@ class SQLBase(DataBase):
             self,
             db_type,
             host,
-            port,
+            port: Optional[int] = None,
             user: Optional[str] = "",
             pwd: Optional[str] = "",
             db: Optional[str] = "",
@@ -42,7 +42,7 @@ class SQLBase(DataBase):
             self.conn = SQLDatabase(
                 create_engine(
                     self._generate_db_url() +
-                    self._get_ssl_args(ca_cert, client_key, client_cert)
+                    self._get_ssl_args(verify, ca_cert, client_key, client_cert)
                 ),
                 sample_rows_in_table_info=3,
                 schema=self.db

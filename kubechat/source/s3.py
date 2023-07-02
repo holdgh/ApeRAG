@@ -5,7 +5,6 @@ import tempfile
 
 from kubechat.tasks.index import add_index_for_document
 from kubechat.models import Document, DocumentStatus, CollectionStatus
-from kubechat.tasks.local_directory_task import cron_collection_metadata
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 import logging
@@ -54,5 +53,3 @@ def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region,
 
     collection.status = CollectionStatus.ACTIVE
     collection.save()
-
-    cron_collection_metadata.append({"user": collection.user, "id": collection.id})

@@ -1,10 +1,10 @@
 import unittest
-from sql import SQLBase
+from mysql import Mysql
 
 
-class TestSqlBase(unittest.TestCase):
+class TestMysql(unittest.TestCase):
     def setUp(self) -> None:
-        self.cli = SQLBase("127.0.0.1", "mysql")
+        self.cli = Mysql(host="127.0.0.1", db_type="mysql", db="mydb", pwd="ml8hdhhr", user="root")
 
     def test_connect_without_verify(self):
         result = self.cli.connect()
