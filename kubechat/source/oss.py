@@ -41,15 +41,17 @@ def scanning_oss_add_index(b_name: str, key_id, key_secret, ep, collection):
 
     try:
         for obj in oss2.ObjectIterator(bucket):
-            file_suffix = os.path.splitext(obj.key)[1].lower()
+            filename = os.path.basename(obj.key)  # Extract filename from path
+            file_suffix = os.path.splitext(filename)[1].lower()
+            file_prefix = os.path.splitext(filename)[0] + "_"
             if file_suffix in DEFAULT_FILE_READER_CLS.keys():
                 file_content = read_file(bucket, obj.key)
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix)
+                temp_file = tempfile.NamedTemporaryFile(delete=False, prefix=file_prefix, suffix=file_suffix)
                 temp_file.write(file_content)
                 temp_file.close()
                 document_instance = Document(
                     user=collection.user,
-                    name=obj.key,
+                    name=filename,
                     status=DocumentStatus.PENDING,
                     size=obj.size,
                     collection=collection,
