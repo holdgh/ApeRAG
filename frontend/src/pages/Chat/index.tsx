@@ -4,7 +4,7 @@ import {
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
-import type { TypesMessage, TypesSocketStatus } from '@/types';
+import type { TypesMessage, TypesMessageReferences, TypesSocketStatus } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { App, Form, Radio, Select, Space } from 'antd';
@@ -151,23 +151,30 @@ export default () => {
 
     if (msg.type === 'stop') {
       setLoading(false);
+      const references: TypesMessageReferences[] = msg.data as unknown as TypesMessageReferences[];
+      if(msg.data) {
+        _.update(messages, messages.length - 1, (origin) => ({
+          ...origin,
+          references,
+        }))
+        setCurrentChatMessages(messages);
+      }
       return;
     }
 
     if (_.includes(['sql', 'message'], msg.type) && msg.data) {
       const message: TypesMessage = { ...msg, role: 'ai' };
-      const data = messages;
-      let isAiLast = _.last(data)?.role !== 'human';
+      let isAiLast = _.last(messages)?.role !== 'human';
 
       if (isAiLast && loading) {
-        _.update(data, data.length - 1, (origin) => ({
+        _.update(messages, messages.length - 1, (origin) => ({
           ...message,
           data: (origin?.data || '') + msg.data,
         }));
       } else {
-        data.push(message);
+        messages.push(message);
       }
-      setCurrentChatMessages(data);
+      setCurrentChatMessages(messages);
     }
   }, [lastMessage]);
 
@@ -212,7 +219,7 @@ export default () => {
                 currentCollection?.type === 'database' ? DatabaseSelector : null
               }
             />
-            <Chats loading={loading} onExecuteSQL={onExecuteSQL} />
+            <Chats loading={loading} onExecuteSQL={onExecuteSQL} status={SocketStatusMap[readyState]} />
             <Footer loading={loading} onSubmit={onSubmit} onClear={onClear} />
           </div>
         );

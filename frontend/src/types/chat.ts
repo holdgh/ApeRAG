@@ -9,18 +9,25 @@ export type TypesSocketStatus =
 export type TypesMessageType = 'message' | 'stop' | 'error' | 'sql';
 export type TypesMessageRole = 'ai' | 'human';
 
+export type TypesMessageReferences = {
+  score?: number,
+  text?: string,
+  metadata?: {
+    source?: string,
+  }
+}
+
 export type TypesMessage = {
   type?: TypesMessageType;
   role?: TypesMessageRole;
   data?: string;
   timestamp?: number;
-  references?: string;
+  references?: TypesMessageReferences[];
 };
 
 export type TypesChat = {
   id: string;
-  name: string;
-  collection: TypesCollection;
+  summary: string;
   history: TypesMessage[];
   created: string;
   updated: string;

@@ -148,7 +148,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
                 message: 'source is required.',
               },
             ]}
-            label="Source"
+            label="Document Source"
           >
             <Radio.Group options={DOCUMENT_SOURCE_OPTIONS} />
           </Form.Item>

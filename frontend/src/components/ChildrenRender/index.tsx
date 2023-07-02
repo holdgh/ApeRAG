@@ -55,10 +55,10 @@ export default (): React.ReactNode => {
           status={'error'}
           icon={<UserOutlined />}
           title={
-            <Typography.Title level={5}>
+            <Typography.Text style={{ fontSize: 18 }}>
               We have just sent an email to your mailbox, confirm the
               verification identity.
-            </Typography.Title>
+            </Typography.Text>
           }
           subTitle="Click the button below to check again."
           extra={[
@@ -70,7 +70,7 @@ export default (): React.ReactNode => {
                 window.location.reload();
               }}
             >
-              Reload
+              Refresh
             </Button>,
           ]}
         />
@@ -84,18 +84,18 @@ export default (): React.ReactNode => {
     return (
       <Card {...cardProps}>
         <Result
-          status={'warning'}
+          status={'info'}
           icon={<FileTextOutlined />}
           title={
-            <Typography.Title level={5}>
+            <Typography.Text style={{ fontSize: 18 }}>
               KubeChat is a new chatbot based on local datasets and utilizes
               multiple large language models.
-            </Typography.Title>
+            </Typography.Text>
           }
           subTitle="Click the button below to get started."
           extra={[
             <Link to="/collections/new" key="createCollection">
-              <Button type="primary" icon={<PlusOutlined />}>
+              <Button size="large" type="primary" icon={<PlusOutlined />}>
                 Create a collection
               </Button>
             </Link>,

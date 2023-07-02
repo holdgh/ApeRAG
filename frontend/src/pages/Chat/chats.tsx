@@ -1,4 +1,4 @@
-import type { TypesMessage } from '@/types';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { useModel } from '@umijs/max';
 import _ from 'lodash';
 import { useEffect } from 'react';
@@ -7,11 +7,12 @@ import styles from './index.less';
 import MessageItem from './msg';
 
 type Props = {
+  status: TypesSocketStatus;
   loading: boolean;
   onExecuteSQL: (msg?: TypesMessage) => void;
 };
 
-export default ({ loading, onExecuteSQL }: Props) => {
+export default ({ loading, onExecuteSQL, status}: Props) => {
   const { currentChat } = useModel('collection');
 
   const messages = currentChat?.history || [];
@@ -36,7 +37,7 @@ export default ({ loading, onExecuteSQL }: Props) => {
           return (
             <MessageItem
               animate={
-                item.role === 'ai' && key === messages.length - 1 && loading
+                item.role === 'ai' && key === messages.length - 1 && loading && status === "Open"
               }
               disabled={loading}
               onExecuteSQL={onExecuteSQL}

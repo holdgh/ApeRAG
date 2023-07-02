@@ -1,6 +1,7 @@
 import fs from 'fs';
 import _ from 'lodash';
 import path from 'path';
+import charExample from './chat_example.json';
 
 const collections = [
   {
@@ -138,55 +139,7 @@ export default {
     req: any,
     res: any,
   ) => {
-    res.json({
-      data: {
-        id: req.params.chatId,
-        history: [
-          {
-            type: 'message',
-            role: 'human',
-            timestamp: 1687936930307,
-            data: `what is kubeblocks?`,
-          },
-          {
-            role: 'ai',
-            type: 'message',
-            timestamp: 1687936930307,
-            data: String(
-              fs.readFileSync(path.join(__dirname, './example_markdown.md')),
-            ),
-          },
-          {
-            role: 'human',
-            type: 'message',
-            timestamp: 1687936930307,
-            data: `describe cluster with kbcli...`,
-          },
-          {
-            role: 'ai',
-            type: 'message',
-            timestamp: 1687936930307,
-            data: String(
-              fs.readFileSync(path.join(__dirname, './example_kbcli.md')),
-            ),
-          },
-          {
-            role: 'human',
-            type: 'message',
-            timestamp: 1687936930307,
-            data: `sql example...`,
-          },
-          {
-            role: 'ai',
-            type: 'message',
-            timestamp: 1687936930307,
-            data: String(
-              fs.readFileSync(path.join(__dirname, './example_sql.md')),
-            ),
-          },
-        ],
-      },
-    });
+    res.json(charExample);
   },
   'POST /api/v1/collections/:collectionId/chats': (req: any, res: any) => {
     res.json({
