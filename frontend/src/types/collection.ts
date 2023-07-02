@@ -34,7 +34,13 @@ export type TypesDatabaseConfig = {
   client_cert?: string;
 };
 
-export type DocumentConfigSource = 'system' | 'local' | 's3' | 'oss' | 'ftp';
+export type DocumentConfigSource =
+  | 'system'
+  | 'local'
+  | 's3'
+  | 'oss'
+  | 'ftp'
+  | 'email';
 
 export type TypesDocumentConfig = {
   source?: DocumentConfigSource;
@@ -53,6 +59,12 @@ export type TypesDocumentConfig = {
   secret_access_key?: string;
   bucket?: string;
   dir?: string;
+
+  // email
+  pop_server?: string;
+  port?: string;
+  email_address?: string;
+  email_password?: string;
 };
 
 export type TypesDocumentConfigSourceOption = {

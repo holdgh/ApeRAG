@@ -35,7 +35,9 @@ export default ({ loading, onExecuteSQL }: Props) => {
           const isLoading = key === lastAiIndex && loading;
           return (
             <MessageItem
-              animate={item.role === 'ai' && key === messages.length - 1 && loading}
+              animate={
+                item.role === 'ai' && key === messages.length - 1 && loading
+              }
               disabled={loading}
               onExecuteSQL={onExecuteSQL}
               loading={isLoading}

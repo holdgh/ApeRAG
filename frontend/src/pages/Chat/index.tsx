@@ -61,13 +61,13 @@ export default () => {
     const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     let url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
 
-    if(currentCollection.type === 'database') {
+    if (currentCollection.type === 'database') {
       const query = _.map(socketParams, (value, key) => `${key}=${value}`);
       if (!_.isEmpty(query)) {
         url += `?${query.join('&')}`;
       }
     }
-    
+
     setSocketUrl(url);
   };
 
@@ -212,15 +212,8 @@ export default () => {
                 currentCollection?.type === 'database' ? DatabaseSelector : null
               }
             />
-            <Chats
-              loading={loading}
-              onExecuteSQL={onExecuteSQL}
-            />
-            <Footer
-              loading={loading}
-              onSubmit={onSubmit}
-              onClear={onClear}
-            />
+            <Chats loading={loading} onExecuteSQL={onExecuteSQL} />
+            <Footer loading={loading} onSubmit={onSubmit} onClear={onClear} />
           </div>
         );
       }}

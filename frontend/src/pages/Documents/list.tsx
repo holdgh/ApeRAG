@@ -150,7 +150,7 @@ export default () => {
     const timer = setInterval(getDocuments, 5000);
     return () => {
       clearInterval(timer);
-    }
+    };
   }, []);
 
   return (
