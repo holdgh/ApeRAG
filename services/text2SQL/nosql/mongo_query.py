@@ -1,10 +1,8 @@
 import logging
 from func_timeout import func_set_timeout
 from pymongo import MongoClient
-from typing import Optional
-from services.text2SQL.base import DataBase
+from services.text2SQL.nosql.nosql import NoSQLBase
 from llama_index.prompts.base import Prompt
-from langchain.llms.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
@@ -21,93 +19,54 @@ _MONGODB_PROMPT_TPL = (
     "Query: Query to run\n"
     "Result: Result of the Query\n"
     "Answer: Final answer here\n"
-    "Only use the keys with its type listed below.\n"
+    "Only use the collections listed below.\n"
     "{schema}\n"
     "Question: {query_str}\n"
     "Query: "
 )
 
-_DEFAULT_PROMPT = Prompt(
-    _MONGODB_PROMPT_TPL,
-    stop_token="\nResult:",
-    prompt_type="text_to_sql",
-)
 
+class Mongo(NoSQLBase):
+    @func_set_timeout(2)
+    def ping(self, verify, ca_cert, client_key, client_cert):
+        if self.user is not None:
+            self.conn = MongoClient(
+                "mongodb://" + self.user + ':' + self.pwd + '@' + self.host + ':' + str(self.port),
+                **self._get_ssl_args(verify, ca_cert, client_key, client_cert),
+            )
+        else:
+            self.conn = MongoClient(
+                "mongodb://" + self.host + ':' + str(self.port),
+                **self._get_ssl_args(verify, ca_cert, client_key, client_cert),
+            )
+        return self.conn.admin.command("ping")
 
-class Mongo(DataBase):
-    def __init__(
-            self,
-            host,
-            user: Optional[str] = None,
-            pwd: Optional[str] = "",
-            port: Optional[int] = None,
-            db: Optional[str] = None,
-            collection: Optional[str] = None,
-            prompt: Optional[Prompt] = _DEFAULT_PROMPT,
-            llm: Optional[BaseLLM] = None,
-            db_type: Optional[str] = "mongo",
-    ):
-        if port is None:
-            port = 27017
-        super().__init__(host, port, user, pwd, prompt, db_type, llm)
-        self.db = db
-        self.collection = collection
+    def _generate_schema(self):
+        db = self.conn[self.db]
+        collections = db.list_collection_names()
+        schema = ""
+        for collection in collections:
+            schema += 'Collection ' + collection + ':'
+            document = collection.find_one()
+            for key in document.keys():
+                schema += "Key: {}, Data Type: {}; ".format(key, type[document[key]])
+            schema += "\n"
 
-    def connect(
-            self,
-            verify: Optional[bool] = False,
-            ca_cert: Optional[str] = None,
-            client_key: Optional[str] = None,
-            client_cert: Optional[str] = None
-    ):
-        kwargs = {
+    # pymongo does not support a way to directly execute js query statements
+    def execute_query(self, query):
+        return
+
+    def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
+        return {
             'directConnection': True,
             'ssl': verify,
             "tlsCAFile": ca_cert,
             "tlsCertificateKeyFile": client_key,
         }
 
-        @func_set_timeout(2)
-        def ping():
-            if self.user is not None:
-                self.conn = MongoClient("mongodb://" + self.user + ':' + self.pwd +
-                                        '@' + self.host + ':' + str(self.port), **kwargs)
-            else:
-                self.conn = MongoClient("mongodb://" + self.host + ':' + str(self.port), **kwargs)
-            return self.conn.admin.command("ping")
-
-        try:
-            connected = ping()
-        except BaseException as e:
-            connected = False
-            logger.warning("connect to mongo failed, err={}".format(e))
-
-        return connected
-
-    def text_to_query(self, text):
-        # Connect to the MongoDB database and collection
-        connect = self.conn[str(self.db)][str(self.collection)]
-        document = connect.find_one()
-
-        # Print key and data type to schema
-        schema = 'Collection: ' + self.collection + '\n'
-        for key in document.keys():
-            data_type = type(document[key])
-            schema += f"Key: {key}, Data Type: {data_type}\n"
-
-        # Call the llm_predict.predict() method with the appropriate parameters
-        generator, _ = self.llm_predict.stream(
-            Prompt(
-                _MONGODB_PROMPT_TPL,
-                stop_token="\nResult:",
-                prompt_type="text_to_sql",
-            ),
-            query_str=text,
-            schema=schema,
+    def _get_default_prompt(self):
+        return Prompt(
+            _MONGODB_PROMPT_TPL,
+            stop_token="\nResult:",
+            prompt_type="text_to_sql",
         )
-
-        return generator
-
-    # pymongo does not support a way to directly execute js query statements
-    def execute_query(self, query):
-        return

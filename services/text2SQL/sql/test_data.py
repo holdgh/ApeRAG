@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, MetaData, Table, String, Column, Integer, insert
 
 
-def add_test_data_to_mysql(pwd):
+def add_testdata_to_mysql(pwd):
     engine = create_engine("mysql+pymysql://root:{}@127.0.0.1:3306/mydb".format(pwd))
     metadata_obj = MetaData()
 
@@ -58,4 +58,4 @@ def add_test_data_to_mysql(pwd):
 
 
 if __name__ == "__main__":
-    add_test_data_to_mysql("")
+    add_testdata_to_mysql("")

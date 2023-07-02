@@ -13,6 +13,9 @@ from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_millis
 logger = logging.getLogger(__name__)
 
 
+KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
+
+
 class BaseConsumer(WebsocketConsumer):
 
     def connect(self):
@@ -51,7 +54,12 @@ class BaseConsumer(WebsocketConsumer):
             self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
 
         message = ""
+        references = []
         for tokens in self.predict(data["data"]):
+            if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
+                references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES):])
+                continue
+
             # streaming response to user
             response = self.success_response(tokens, issql=self.response_type == "sql")
             self.send(text_data=response)
@@ -59,7 +67,7 @@ class BaseConsumer(WebsocketConsumer):
             # concat response tokens
             message += tokens
 
-        self.send(text_data=self.stop_response())
+        self.send(text_data=self.stop_response(references))
 
         # save all tokens as a message to history
         self.history.add_message(
@@ -68,19 +76,16 @@ class BaseConsumer(WebsocketConsumer):
                     message,
                     issql=self.response_type == "sql"
                 ),
-                additional_kwargs={"role": "ai"}
+                additional_kwargs={"role": "ai", "references": references}
             )
         )
 
     @staticmethod
-    def success_response(message, references=None, issql=False):
-        if references is None:
-            references = []
+    def success_response(message, issql=False):
         return json.dumps({
             "type": "message" if not issql else "sql",
             "data": message,
             "timestamp": now_unix_milliseconds(),
-            "references": references,
         })
 
     @staticmethod
@@ -93,8 +98,11 @@ class BaseConsumer(WebsocketConsumer):
         })
 
     @staticmethod
-    def stop_response():
+    def stop_response(references):
+        if references is None:
+            references = []
         return json.dumps({
             "type": "stop",
+            "data": references,
             "timestamp": now_unix_milliseconds(),
         })

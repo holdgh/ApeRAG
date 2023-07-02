@@ -41,7 +41,7 @@ class NoSQLBase(DataBase):
                 self.schema = self._generate_schema()
         except BaseException as e:
             connected = False
-            logger.warning("connect to redis failed, err={}".format(e))
+            logger.warning("connect to {0} failed, err={1}".format(self.db_type, e))
 
         return connected
 
