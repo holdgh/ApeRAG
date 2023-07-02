@@ -49,7 +49,7 @@ def download_email_body_to_temp_file(pop_conn, email_index):
             decoded_subject += part
     plain_text = extract_plain_text_from_email_body(body)
     if plain_text:
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".txt",)
         temp_file.write(plain_text.encode('utf-8'))
         temp_file.close()
         return temp_file.name, decoded_subject
@@ -68,7 +68,7 @@ def scanning_email_add_index(pop_server, port, email_address, email_password, co
             if temp_file_path:
                 document_instance = Document(
                     user=collection.user,
-                    name=decoded_subject+f".txt",
+                    name=decoded_subject + f".txt",
                     status=DocumentStatus.PENDING,
                     size=os.path.getsize(temp_file_path),
                     collection=collection,
@@ -81,4 +81,3 @@ def scanning_email_add_index(pop_server, port, email_address, email_password, co
 
     collection.status = CollectionStatus.ACTIVE
     collection.save()
-
