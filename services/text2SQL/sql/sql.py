@@ -42,10 +42,12 @@ class SQLBase(DataBase):
             client_cert: Optional[str] = None,
             test_only: Optional[bool] = True,
     ) -> bool:
-        kwargs = self._get_ssl_args(ca_cert, client_key, client_cert) if verify else {}
         try:
-            self.conn = SQLDatabase(create_engine(
-                self._generate_db_url(), **kwargs),
+            self.conn = SQLDatabase(
+                create_engine(
+                    self._generate_db_url() +
+                    self._get_ssl_args(ca_cert, client_key, client_cert)
+                ),
                 sample_rows_in_table_info=3,
                 schema=self.db
             )

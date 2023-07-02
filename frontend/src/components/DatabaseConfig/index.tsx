@@ -1,10 +1,7 @@
-import {
-  DATABASE_TYPE_OPTIONS,
-  DatabaseConfig,
-  DatabaseConfigCerify,
-} from '@/models/collection';
+import { DATABASE_TYPE_OPTIONS } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
+import type { TypesDatabaseConfig, TypesDatabaseConfigCerify } from '@/types';
 import {
   ApiOutlined,
   CheckOutlined,
@@ -49,7 +46,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
   const [form] = Form.useForm();
   const { token } = theme.useToken();
   const user = getUser();
-  const [config, setConfig] = useState<DatabaseConfig>({
+  const [config, setConfig] = useState<TypesDatabaseConfig>({
     host: '',
     verify: 'prefered',
   });
@@ -126,7 +123,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
   };
 
   useEffect(() => {
-    let defaultConfig: DatabaseConfig = config;
+    let defaultConfig: TypesDatabaseConfig = config;
     try {
       defaultConfig = { ...defaultConfig, ...JSON.parse(value) };
     } catch (err) {}
@@ -138,7 +135,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
     <Card
       className={styles.databaseEdit}
       onClick={() => {
-        if (!disabled) setVisible(true);
+        setVisible(true);
       }}
     >
       <Typography.Text type="secondary">
@@ -158,13 +155,18 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
         minWidth: 100,
       }}
       extra={
-        <Typography.Link
-          onClick={() => {
-            if (!disabled) setVisible(true);
-          }}
-        >
-          <SettingOutlined />
-        </Typography.Link>
+        disabled ? null : (
+          <Button
+            shape="circle"
+            type="text"
+            disabled={disabled}
+            onClick={() => {
+              setVisible(true);
+            }}
+          >
+            <SettingOutlined />
+          </Button>
+        )
       }
     >
       <Descriptions.Item label="Database Type">
@@ -194,7 +196,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
     <>
       {_.isEmpty(config.host) ? DatabaseEdit : DatabaseInfo}
       <Modal
-        title="Connection Config"
+        title="Database Connection"
         open={visible}
         onCancel={() => setVisible(false)}
         footer={footer}
@@ -249,7 +251,7 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
           <Form.Item name="verify" label="SSL">
             <Radio.Group
               onChange={(e) => {
-                const value = e.target.value as DatabaseConfigCerify;
+                const value = e.target.value as TypesDatabaseConfigCerify;
                 setConfig((s) => ({ ...s, verify: value }));
               }}
             >

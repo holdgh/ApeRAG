@@ -111,10 +111,10 @@ def connection_test(request, connection: ConnectionInfo):
         return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
 
     if not client.connect(
-            verify,
-            connection.ca_cert,
-            connection.client_key,
-            connection.client_cert,
+            False,
+            ssl_temp_file_path(connection.ca_cert),
+            ssl_temp_file_path(connection.client_key),
+            ssl_temp_file_path(connection.client_cert),
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -145,7 +145,9 @@ def create_collection(request, collection: CollectionIn):
     config = json.loads(collection.config)
     if instance.type == CollectionType.DATABASE:
         if config["verify"] != VerifyWay.PREFERRED:
-            add_ssl_file(config, user, instance)
+            add_ssl_file(config, instance)
+            collection.config = json.dumps(config)
+            instance.save()
     elif instance.type == CollectionType.DOCUMENT:
         scan_collection.delay(instance.id)
     return success(instance.view())

@@ -13,90 +13,25 @@ import { history } from '@umijs/max';
 import { App } from 'antd';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-import { Chat, Message } from './chat';
 
-export type DatabaseConfigDbType =
-  | 'mysql'
-  | 'postgresql'
-  | 'sqlite'
-  | 'redis'
-  | 'oracle'
-  | 'mongo'
-  | 'clickhouse'
-  | 'elasticsearch';
+import type {
+  TypesChat,
+  TypesCollection,
+  TypesDatabaseConfig,
+  TypesDatabaseConfigDbTypeOption,
+  TypesDatabaseExecuteMethod,
+  TypesDocumentConfigSourceOption,
+  TypesMessage,
+} from '@/types';
 
-export type DatabaseExecuteMethod = 'true' | 'false';
-
-export type DatabaseConfigCerify = 'prefered' | 'ca_only' | 'full';
-
-export type DatabaseConfigDbTypeOption = {
-  label: string;
-  value: DatabaseConfigDbType;
-  icon?: string;
-  showSelector?: boolean;
-};
-
-export type DatabaseConfig = {
-  host?: string;
-
-  // database
-  db_type?: DatabaseConfigDbType;
-  port?: number;
-  db_name?: string;
-  username?: string;
-  password?: string;
-  verify?: DatabaseConfigCerify;
-  ca_cert?: string;
-  client_key?: string;
-  client_cert?: string;
-};
-
-export type DocumentConfigSource = 'system' | 'local' | 's3' | 'oss' | 'ftp';
-
-export type DocumentConfig = {
-  source?: DocumentConfigSource;
-
-  // local
-  path?: string;
-
-  // s3 | oss
-  region?: string;
-  access_key_id?: string;
-  secret_access_key?: string;
-  bucket?: string;
-  dir?: string;
-
-  // ftp
-  host?: string;
-  username?: string;
-  password?: string;
-};
-
-
-export type DocumentConfigSourceOption = {
-  label: string;
-  value: DocumentConfigSource;
-};
-
-export type CollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
-
-export type CollectionType = 'document' | 'database' | 'document_local';
-
-export type Collection = {
-  id: string;
-  title: string;
-  user: string;
-  status: CollectionStatus;
-  type: CollectionType;
-  config: string;
-  description: string;
-  created: string;
-  updated: string;
+export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
+  type: 'document',
+  config: '{"source": "system"}',
 };
 
 export const DATABASE_EXECUTE_OPTIONS: {
   label: string;
-  value: DatabaseExecuteMethod;
+  value: TypesDatabaseExecuteMethod;
 }[] = [
   {
     label: 'Immediate Execute',
@@ -108,7 +43,7 @@ export const DATABASE_EXECUTE_OPTIONS: {
   },
 ];
 
-export const DATABASE_TYPE_OPTIONS: DatabaseConfigDbTypeOption[] = [
+export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
   {
     label: 'MySQL',
     value: 'mysql',
@@ -149,7 +84,7 @@ export const DATABASE_TYPE_OPTIONS: DatabaseConfigDbTypeOption[] = [
   },
 ];
 
-export const DOCUMENT_SOURCE_OPTIONS: DocumentConfigSourceOption[] = [
+export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   {
     label: 'Default',
     value: 'system',
@@ -172,8 +107,8 @@ export const DOCUMENT_SOURCE_OPTIONS: DocumentConfigSourceOption[] = [
   },
 ];
 
-export const hasDatabaseList = (collection?: Collection): boolean => {
-  const config: DatabaseConfig = {};
+export const hasDatabaseList = (collection?: TypesCollection): boolean => {
+  const config: TypesDatabaseConfig = {};
   const whiteList = DATABASE_TYPE_OPTIONS.filter(
     (o) => o.showSelector === true,
   ).map((o) => o.value);
@@ -187,17 +122,17 @@ export const hasDatabaseList = (collection?: Collection): boolean => {
   return collection?.type === 'database' && isInWhiteList;
 };
 
-export const getCollectionUrl = (collection: Collection): string => {
+export const getCollectionUrl = (collection: TypesCollection): string => {
   return `/collections/${collection.id}/${
     collection.type === 'database' ? 'setting' : 'document'
   }`;
 };
 
 // export const parseCollectionConfig = (
-//   collection: Collection,
-// ): DocumentConfig & DatabaseConfig => {
+//   collection: TypesCollection,
+// ): TypesDocumentConfig & TypesDatabaseConfig => {
 //   const config = collection.config || '{}';
-//   let result: DocumentConfig & DatabaseConfig = {};
+//   let result: TypesDocumentConfig & TypesDatabaseConfig = {};
 //   try {
 //     result = JSON.parse(config);
 //   } catch (err) {}
@@ -205,25 +140,26 @@ export const getCollectionUrl = (collection: Collection): string => {
 // };
 
 export default () => {
-  const [collections, _setCollections] = useState<Collection[]>();
-  const [currentCollection, _setCurrentCollection] = useState<Collection>();
-  const [currentChat, _setCurrentChat] = useState<Chat>();
+  const [collections, _setCollections] = useState<TypesCollection[]>();
+  const [currentCollection, _setCurrentCollection] =
+    useState<TypesCollection>();
+  const [currentChat, _setCurrentChat] = useState<TypesChat>();
   const [currentDatabase, _setCurrentDatabase] = useState<string[]>();
   const { message } = App.useApp();
 
   const _createChat = async () => {
-    if (!currentCollection) return;
-    const { data } = await CreateCollectionChat(currentCollection?.id);
+    if (!currentCollection?.id) return;
+    const { data } = await CreateCollectionChat(currentCollection.id);
     _setCurrentChat(data);
   };
   const _getChat = async (id: string) => {
-    if (!currentCollection) return;
+    if (!currentCollection?.id) return;
     const { data } = await GetCollectionChat(currentCollection.id, id);
     _setCurrentChat(data);
   };
   const _getChats = async () => {
-    if (!currentCollection) return;
-    const { data } = await GetCollectionChats(currentCollection?.id);
+    if (!currentCollection?.id) return;
+    const { data } = await GetCollectionChats(currentCollection.id);
     const item = _.first(data);
     if (item) {
       _getChat(item.id);
@@ -232,14 +168,14 @@ export default () => {
     }
   };
   const _getDatabase = async () => {
-    if (!currentCollection) return;
+    if (!currentCollection?.id) return;
     if (hasDatabaseList(currentCollection)) {
       const { data } = await GetCollectionDatabase(currentCollection.id);
       _setCurrentDatabase(data);
     }
   };
 
-  const setCurrentChatMessages = async (messages: Message[]) => {
+  const setCurrentChatMessages = async (messages: TypesMessage[]) => {
     if (!currentChat) return;
     _setCurrentChat({
       ...currentChat,
@@ -252,12 +188,12 @@ export default () => {
     _setCollections(data);
   };
 
-  const getCollection = (id?: string): Collection | undefined => {
+  const getCollection = (id?: string): TypesCollection | undefined => {
     if (!id) return;
     return collections?.find((c) => String(c.id) === String(id));
   };
 
-  const createColection = async (params: Collection) => {
+  const createColection = async (params: TypesCollection) => {
     const { data } = await CreateCollection(params);
     if (data.id) {
       message.success('create success');
@@ -268,7 +204,10 @@ export default () => {
     }
   };
 
-  const updateCollection = async (collectionId: string, params: Collection) => {
+  const updateCollection = async (
+    collectionId: string,
+    params: TypesCollection,
+  ) => {
     const { data } = await UpdateCollection(collectionId, params);
     if (data.id) {
       message.success('update success');
@@ -287,7 +226,7 @@ export default () => {
     }
   };
 
-  const setCurrentCollection = async (collection?: Collection) => {
+  const setCurrentCollection = async (collection?: TypesCollection) => {
     if (collection) {
       localStorage.setItem('collection', JSON.stringify(collection));
       _setCurrentCollection(collection);
@@ -300,7 +239,7 @@ export default () => {
   useEffect(() => {
     if (collections === undefined) return;
     const localCollection = localStorage.getItem('collection');
-    let current: Collection | undefined;
+    let current: TypesCollection | undefined;
     if (localCollection) {
       try {
         current = JSON.parse(localCollection);

@@ -1,6 +1,7 @@
 import os
+import shutil
 from kubechat.models import Collection, CollectionStatus, Document, DocumentStatus, Chat, ChatStatus, \
-    ssl_temp_file_path, SslFile
+    ssl_temp_file_path, ssl_file_path
 from django.core.files.base import ContentFile
 
 
@@ -29,18 +30,18 @@ def query_chats(user, collection_id: str):
     return Chat.objects.exclude(status=DocumentStatus.DELETED).filter(user=user, collection_id=collection_id)
 
 
-def add_ssl_file(config, user, collection):
-    for ssl_file_name in ["ca_cert", "client_key", "client_cert"]:
-        if ssl_file_name in config.keys():
-            with open(ssl_temp_file_path(config[ssl_file_name]), "rb+") as f:
-                name = ssl_file_name + os.path.splitext(f.name)[1]
-                ssl_file_instance = SslFile(
-                    user=user,
-                    name=name,
-                    collection=collection,
-                    file=ContentFile(f.read(), name),
-                )
-                ssl_file_instance.save()
+def add_ssl_file(config, collection):
+    if not os.path.exists(ssl_file_path(collection, "")):
+        os.makedirs(ssl_file_path(collection, ""))
+
+    for ssl_file_type in ["ca_cert", "client_key", "client_cert"]:
+        if ssl_file_type in config.keys():
+            ssl_temp_name = config[ssl_file_type]
+            _, file_extension = os.path.splitext(ssl_temp_name)
+            ssl_file_name = ssl_file_type + file_extension
+            whole_ssl_file_path = ssl_file_path(collection, ssl_file_name)
+            shutil.move(ssl_temp_file_path(ssl_temp_name), whole_ssl_file_path)
+            config[ssl_file_type] = whole_ssl_file_path
 
 
 def new_db_client(config):

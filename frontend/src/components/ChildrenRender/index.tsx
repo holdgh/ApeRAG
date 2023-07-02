@@ -52,9 +52,14 @@ export default (): React.ReactNode => {
     return (
       <Card {...cardProps}>
         <Result
-          status={"error"}
+          status={'error'}
           icon={<UserOutlined />}
-          title={<Typography.Title level={5}>We have just sent an email to your mailbox, confirm the verification identity.</Typography.Title>}
+          title={
+            <Typography.Title level={5}>
+              We have just sent an email to your mailbox, confirm the
+              verification identity.
+            </Typography.Title>
+          }
           subTitle="Click the button below to check again."
           extra={[
             <Button
@@ -79,9 +84,14 @@ export default (): React.ReactNode => {
     return (
       <Card {...cardProps}>
         <Result
-          status={"warning"}
+          status={'warning'}
           icon={<FileTextOutlined />}
-          title={<Typography.Title level={5}>KubeChat is a new chatbot based on local datasets and utilizes multiple large language models.</Typography.Title>}
+          title={
+            <Typography.Title level={5}>
+              KubeChat is a new chatbot based on local datasets and utilizes
+              multiple large language models.
+            </Typography.Title>
+          }
           subTitle="Click the button below to get started."
           extra={[
             <Link to="/collections/new" key="createCollection">

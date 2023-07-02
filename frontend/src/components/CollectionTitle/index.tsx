@@ -1,8 +1,8 @@
-import { Collection } from '@/models/collection';
+import type { TypesCollection } from '@/types';
 import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
 import { Space, Typography } from 'antd';
 
-export default ({ collection }: { collection?: Collection }) => {
+export default ({ collection }: { collection?: TypesCollection }) => {
   return (
     <Typography.Title level={4} style={{ margin: 0 }}>
       <Space>

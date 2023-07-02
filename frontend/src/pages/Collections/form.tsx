@@ -1,20 +1,27 @@
 import CheckedCard from '@/components/CheckedCard';
 import DatabaseConfig from '@/components/DatabaseConfig';
 import DocumentConfig from '@/components/DocumentConfig';
-import { CollectionType } from '@/models/collection';
+import type { TypesCollectionType } from '@/types';
 import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
 import { Button, Form, FormInstance, Input, Space } from 'antd';
 import { useEffect, useState } from 'react';
 
 type Props = {
   action: 'add' | 'edit';
-  type: CollectionType;
+  type: TypesCollectionType;
   onFinish: () => void;
+  onValuesChange: (changedValues: any, allValues: any) => void;
   form: FormInstance;
 };
 
-export default ({ onFinish, form, action, type }: Props) => {
-  const [collectionType, setCollectionType] = useState<CollectionType>();
+export default ({
+  onFinish,
+  form,
+  action,
+  type,
+  onValuesChange = () => {},
+}: Props) => {
+  const [collectionType, setCollectionType] = useState<TypesCollectionType>();
 
   useEffect(() => {
     setCollectionType(type);
@@ -36,7 +43,13 @@ export default ({ onFinish, form, action, type }: Props) => {
   ];
 
   return (
-    <Form onFinish={onFinish} size="large" form={form} layout="vertical">
+    <Form
+      onValuesChange={onValuesChange}
+      onFinish={onFinish}
+      size="large"
+      form={form}
+      layout="vertical"
+    >
       <Form.Item
         name="title"
         label="Title"
@@ -50,7 +63,7 @@ export default ({ onFinish, form, action, type }: Props) => {
         <Input />
       </Form.Item>
       <Form.Item name="description" label="Description">
-        <Input.TextArea rows={4} />
+        <Input.TextArea rows={2} />
       </Form.Item>
       <Form.Item
         name="type"
@@ -64,7 +77,7 @@ export default ({ onFinish, form, action, type }: Props) => {
       >
         <CheckedCard
           disabled={action === 'edit'}
-          onChange={(v) => setCollectionType(v as CollectionType)}
+          onChange={(v) => setCollectionType(v as TypesCollectionType)}
           options={collectionTypeOptions}
         />
       </Form.Item>
@@ -79,13 +92,21 @@ export default ({ onFinish, form, action, type }: Props) => {
             },
           ]}
         >
-          <DatabaseConfig />
+          <DatabaseConfig disabled={action === 'edit'} />
         </Form.Item>
       ) : null}
 
       {collectionType === 'document' ? (
-        <Form.Item name="config">
-          <DocumentConfig />
+        <Form.Item
+          name="config"
+          rules={[
+            {
+              required: true,
+              message: 'Database connection is required.',
+            },
+          ]}
+        >
+          <DocumentConfig disabled={action === 'edit'} />
         </Form.Item>
       ) : null}
 

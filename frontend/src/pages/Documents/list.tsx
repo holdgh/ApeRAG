@@ -1,9 +1,9 @@
-import type { Document } from '@/models/document';
 import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,
   GetCollectionDocuments,
 } from '@/services/documents';
+import type { TypesDocument } from '@/types';
 import {
   DeleteOutlined,
   InboxOutlined,
@@ -24,13 +24,14 @@ import {
   UploadProps,
 } from 'antd';
 import { ColumnsType } from 'antd/es/table';
+import byteSize from 'byte-size';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 
 export default () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchKey, setSearchKey] = useState<string | undefined>();
-  const [documents, setDocuments] = useState<Document[] | undefined>();
+  const [documents, setDocuments] = useState<TypesDocument[] | undefined>();
   const [uploadVisible, setUploadVisible] = useState<boolean>(false);
   const { collectionId } = useParams();
   const { modal, message } = App.useApp();
@@ -47,7 +48,7 @@ export default () => {
     setLoading(false);
   };
 
-  const onDelete = (record: Document) => {
+  const onDelete = (record: TypesDocument) => {
     if (!collectionId) return;
     modal.confirm({
       title: 'Comfirm',
@@ -59,7 +60,7 @@ export default () => {
     });
   };
 
-  const columns: ColumnsType<Document> = [
+  const columns: ColumnsType<TypesDocument> = [
     {
       title: 'Name',
       dataIndex: 'name',
@@ -80,7 +81,9 @@ export default () => {
       dataIndex: 'size',
       render: (_value, record) => {
         return (
-          <Typography.Text type="secondary">{record.size}</Typography.Text>
+          <Typography.Text type="secondary">
+            {byteSize(record.size || 0).toString()}
+          </Typography.Text>
         );
       },
     },
@@ -90,7 +93,7 @@ export default () => {
       render: (_value, record) => {
         return (
           <Tag color={record.status === 'FAILED' ? 'error' : 'default'}>
-            {record.status}
+            {_.capitalize(record.status)}
           </Tag>
         );
       },

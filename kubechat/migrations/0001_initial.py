@@ -67,33 +67,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name="SslFile",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("user", models.CharField(max_length=256)),
-                ("name", models.CharField(max_length=64)),
-                ("file", models.FileField(upload_to=kubechat.models.ssl_file_path)),
-                ("gmt_created", models.DateTimeField(auto_now_add=True)),
-                ("gmt_updated", models.DateTimeField(auto_now=True)),
-                ("gmt_deleted", models.DateTimeField(blank=True, null=True)),
-                (
-                    "collection",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="kubechat.collection",
-                    ),
-                ),
-            ],
-        ),
-        migrations.CreateModel(
             name="Document",
             fields=[
                 (

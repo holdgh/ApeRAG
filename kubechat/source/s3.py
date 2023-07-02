@@ -45,7 +45,7 @@ def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region,
                     status=DocumentStatus.PENDING,
                     size=obj.size,
                     collection=collection,
-                    # metadata=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(obj.last_modified))
+                    metadata=obj.last_modified.strftime("%Y-%m-%d %H:%M:%S")
                 )
                 document_instance.save()
                 add_index_for_document.delay(document_instance.id, temp_file.name)
