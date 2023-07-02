@@ -17,6 +17,12 @@ run-backend: migrate
 run-frontend:
 	cd frontend && yarn dev
 
+compose-up:
+	docker-compose -f compose.yml up -d
+
+compose-down:
+	docker-compose -f compose.yml down
+
 format:
 	poetry run black .
 	poetry run ruff --select I --fix .
