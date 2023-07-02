@@ -28,6 +28,7 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import TypeIt from 'typeit-react';
 import styles from './index.less';
+import { useTypewriter } from 'react-simple-typewriter';
 
 type Props = {
   item: TypesMessage;
@@ -51,15 +52,15 @@ export default ({
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = (item.data || '').replace(/^\n*/, '');
-  // const [animateText, helper] = useTypewriter({
-  //   words: [displayText],
-  //   typeSpeed: 40,
-  //   loop: 1,
-  // });
+  const [animateText, helper] = useTypewriter({
+    words: [displayText],
+    typeSpeed: 40,
+    loop: 1,
+  });
 
-  // if (animate && helper.isType) {
-  //   displayText = animateText;
-  // }
+  if (animate && helper.isType) {
+    displayText = animateText;
+  }
 
   const renderAvatar = () => {
     const size = 50;
@@ -109,21 +110,7 @@ export default ({
         {displayText}
       </ReactMarkdown>
     );
-    return animate ? (
-      <TypeIt
-        options={{
-          speed: 10,
-          loop: false,
-          cursor: false,
-          html: true,
-          lifeLike: true,
-        }}
-      >
-        {Markdown}
-      </TypeIt>
-    ) : (
-      Markdown
-    );
+    return Markdown;
   };
 
   const renderReferences = () => {
