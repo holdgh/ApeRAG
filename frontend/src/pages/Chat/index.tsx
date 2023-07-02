@@ -1,4 +1,7 @@
-import { DATABASE_EXECUTE_OPTIONS, hasDatabaseList } from '@/models/collection';
+import {
+  DATABASE_EXECUTE_OPTIONS,
+  hasDatabaseSelector,
+} from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesSocketStatus } from '@/types';
@@ -49,7 +52,7 @@ export default () => {
   });
   const [paramsForm] = Form.useForm();
 
-  const showSelector = hasDatabaseList(currentCollection);
+  const showSelector = hasDatabaseSelector(currentCollection);
 
   const updateSocketUrl = () => {
     if (!currentCollection || !currentChat) return;
@@ -58,11 +61,13 @@ export default () => {
     const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
     let url = `${protocol}://${hostname}/api/v1/collections/${currentCollection.id}/chats/${currentChat.id}/connect`;
 
-    const query = _.map(socketParams, (value, key) => `${key}=${value}`);
-    if (!_.isEmpty(query)) {
-      url += `?${query.join('&')}`;
+    if(currentCollection.type === 'database') {
+      const query = _.map(socketParams, (value, key) => `${key}=${value}`);
+      if (!_.isEmpty(query)) {
+        url += `?${query.join('&')}`;
+      }
     }
-
+    
     setSocketUrl(url);
   };
 
@@ -81,7 +86,7 @@ export default () => {
   };
 
   const onClear = async () => {
-    if (!currentCollection || !currentChat) return;
+    if (!currentCollection?.id || !currentChat?.id) return;
     const { data } = await UpdateCollectionChat(
       currentCollection.id,
       currentChat.id,
@@ -175,12 +180,14 @@ export default () => {
           setSocketParams(allValues)
         }
       >
-        <Form.Item name="database">
-          <Select
-            style={{ width: 140 }}
-            options={currentDatabase?.map((d) => ({ label: d, value: d }))}
-          />
-        </Form.Item>
+        {showSelector ? (
+          <Form.Item name="database">
+            <Select
+              style={{ width: 140 }}
+              options={currentDatabase?.map((d) => ({ label: d, value: d }))}
+            />
+          </Form.Item>
+        ) : null}
         <Form.Item name="execute">
           <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
         </Form.Item>
@@ -200,14 +207,16 @@ export default () => {
               [styles.mobile]: isMobile,
             })}
           >
-            <Header extra={showSelector ? DatabaseSelector : null} />
+            <Header
+              extra={
+                currentCollection?.type === 'database' ? DatabaseSelector : null
+              }
+            />
             <Chats
-              status={SocketStatusMap[readyState]}
               loading={loading}
               onExecuteSQL={onExecuteSQL}
             />
             <Footer
-              status={SocketStatusMap[readyState]}
               loading={loading}
               onSubmit={onSubmit}
               onClear={onClear}

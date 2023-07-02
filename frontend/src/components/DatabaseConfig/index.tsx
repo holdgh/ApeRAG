@@ -58,8 +58,10 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
       setValid(true);
     }
 
-    if (res.code !== '404') {
-      message.error(res.message);
+    if (res.code === '200') {
+      message.success(res.data || 'successfully connected');
+    } else {
+      message.error(res.message || 'connected error');
     }
   };
 
@@ -237,7 +239,16 @@ export default ({ value = '', onChange = () => {}, disabled }: PropsType) => {
             </Col>
           </Row>
 
-          <Form.Item name="db_name" label="Database name">
+          <Form.Item
+            name="db_name"
+            label="Database name"
+            rules={[
+              {
+                required: true,
+                message: 'database name is required.',
+              },
+            ]}
+          >
             <Input placeholder="database" />
           </Form.Item>
 

@@ -1,24 +1,21 @@
-import type { TypesSocketStatus } from '@/types';
 import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
 type Props = {
-  status: TypesSocketStatus;
   loading: boolean;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
 
 export default ({
-  status,
   loading,
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
   const [message, setMessage] = useState<string>('');
-  const disabled = loading || status !== 'Open';
+  const disabled = loading;
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);
