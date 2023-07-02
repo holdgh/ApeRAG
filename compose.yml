@@ -53,6 +53,7 @@ services:
     volumes:
       - .:/app:z
       - ~/.cache:/root/.cache
+      - ./resources:/Users/ziang/git/KubeChat/resources
     ports: []
     command: /app/scripts/start-celery-worker.sh
 

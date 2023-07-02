@@ -71,9 +71,14 @@ class ModelWorker:
 
     def generate_stream_gate(self, params):
         try:
+            last_output = ""
             for output in self.generate_stream_func(
                 self.model, self.tokenizer, params, DEVICE, CFG.MAX_POSITION_EMBEDDINGS
             ):
+                new_output = output[len(last_output):]
+                last_output = output
+                output = new_output
+
                 # Please do not open the output in production!
                 # The gpt4all thread shares stdout with the parent process,
                 # and opening it may affect the frontend output

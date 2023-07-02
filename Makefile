@@ -17,7 +17,7 @@ run-backend: migrate
 run-frontend:
 	cd frontend && yarn dev
 
-compose-up:
+compose-up: migrate
 	docker-compose -f compose.yml up -d
 
 compose-down:

@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 from abc import abstractmethod
@@ -54,25 +55,32 @@ class BaseConsumer(WebsocketConsumer):
             self.history.add_message(HumanMessage(content=text_data, additional_kwargs={"role": "human"}))
 
         message = ""
+        message_id = f'{now_unix_milliseconds()}'
+
+        # send start message
+        self.send(text_data=self.start_response(message_id))
+
         references = []
         for tokens in self.predict(data["data"]):
             if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
                 references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES):])
                 continue
 
-            # streaming response to user
-            response = self.success_response(tokens, issql=self.response_type == "sql")
+            # streaming response
+            response = self.success_response(message_id, tokens, issql=self.response_type == "sql")
             self.send(text_data=response)
 
             # concat response tokens
             message += tokens
 
-        self.send(text_data=self.stop_response(references))
+        # send stop message
+        self.send(text_data=self.stop_response(message_id, references))
 
         # save all tokens as a message to history
         self.history.add_message(
             AIMessage(
                 content=self.success_response(
+                    message_id,
                     message,
                     issql=self.response_type == "sql"
                 ),
@@ -81,28 +89,38 @@ class BaseConsumer(WebsocketConsumer):
         )
 
     @staticmethod
-    def success_response(message, issql=False):
+    def success_response(message_id, data, issql=False):
         return json.dumps({
             "type": "message" if not issql else "sql",
-            "data": message,
+            "id": message_id,
+            "data": data,
             "timestamp": now_unix_milliseconds(),
         })
 
     @staticmethod
-    def fail_response(error):
+    def fail_response(message_id, error):
         return json.dumps({
             "type": "error",
-            "data": "",
+            "id": message_id,
+            "data": error,
             "timestamp": now_unix_milliseconds(),
-            "error": error,
         })
 
     @staticmethod
-    def stop_response(references):
+    def start_response(message_id):
+        return json.dumps({
+            "type": "start",
+            "id": message_id,
+            "timestamp": now_unix_milliseconds(),
+        })
+
+    @staticmethod
+    def stop_response(message_id, references):
         if references is None:
             references = []
         return json.dumps({
             "type": "stop",
+            "id": message_id,
             "data": references,
             "timestamp": now_unix_milliseconds(),
         })
