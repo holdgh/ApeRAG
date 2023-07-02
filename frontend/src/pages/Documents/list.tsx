@@ -25,6 +25,7 @@ import {
 } from 'antd';
 import { ColumnsType } from 'antd/es/table';
 import byteSize from 'byte-size';
+import _ from 'lodash';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 
@@ -71,7 +72,7 @@ export default () => {
       render: (_value, record) => {
         return (
           <Typography.Text type="secondary">
-            {record.name?.replace(/.*\./, '').toUpperCase()}
+            {record.name.substring(record.name.lastIndexOf('.') + 1).toUpperCase()}
           </Typography.Text>
         );
       },
