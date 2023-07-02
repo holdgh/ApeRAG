@@ -3,7 +3,6 @@ from services.text2SQL.base import DataBase
 from typing import Optional
 from llama_index import Prompt
 from langchain.llms.base import BaseLLM
-from func_timeout import func_set_timeout
 from abc import abstractmethod
 
 logger = logging.getLogger(__name__)
@@ -24,9 +23,8 @@ class NoSQLBase(DataBase):
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
 
-    @func_set_timeout(2)
     @abstractmethod
-    def ping(self):
+    def ping(self, verify, ca_cert, client_key, client_cert):
         pass
 
     def connect(
@@ -59,3 +57,4 @@ class NoSQLBase(DataBase):
             query_str=text,
             schema=self.schema,
         )
+        return generator

@@ -8,10 +8,11 @@ class Text2SQLConsumer(BaseConsumer):
     def connect(self):
         super().connect()
         collection = query_collection(self.user, self.collection_id)
-        database, execute_at_once = extract_database_and_execute(self.scope["query_string"].decode())
-
         config = json.loads(collection.config)
-        config["db_name"] = database
+        database, execute_at_once = extract_database_and_execute(self.scope["query_string"].decode(), config["db_type"])
+
+        if database is not None:
+            config["db_name"] = database
 
         self.client = new_db_client(config)
         self.execute_at_once = execute_at_once
