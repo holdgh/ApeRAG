@@ -30,7 +30,9 @@ def scan_collection(collection_id):
         scanning_dir_add_index_from_ftp(config["path"], config["host"], config["username"], config["password"],
                                         collection, config["port"])
     elif config["source"] == "email":
-        pass
+        from kubechat.source.email import scanning_email_add_index
+        scanning_email_add_index(config["pop_server"], config["port"], config["email_address"],
+                                 config["email_password"], collection)
 
 
 @app.task(base=CustomLoadDocumentTask)
