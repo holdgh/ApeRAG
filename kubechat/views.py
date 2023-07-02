@@ -31,7 +31,7 @@ from .source.local import scanning_dir_add_index
 from .source.oss import scanning_oss_add_index
 from .utils.utils import generate_vector_db_collection_id
 
-from .source.ftp import scanning_dir_add_index_from_ftp
+from .source.ftp import scanning_ftp_add_index
 
 logger = logging.getLogger(__name__)
 
