@@ -3,6 +3,7 @@ from .base_consumer import BaseConsumer
 from kubechat.utils.db import query_collection, new_db_client
 from kubechat.utils.utils import extract_database_and_execute
 from typing import Generator
+from sqlalchemy import Row
 
 
 class Text2SQLConsumer(BaseConsumer):
@@ -41,6 +42,13 @@ class Text2SQLConsumer(BaseConsumer):
             for tokens in response:
                 yield str(tokens)
         else:
+            if not hasattr(response, '__iter__'):
+                yield "true" if response > 0 else "false"
             for tokens in response:
+                if isinstance(tokens, Row):
+                    t = ""
+                    for i in dict(tokens._mapping):
+                        t += str(i) + ":" + str(dict(tokens._mapping)[i]) + " "
+                    tokens = t
                 yield str(tokens) + "\n"
 
