@@ -16,5 +16,12 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
+app.conf.beat_schedule = {
+    "file-update-cron-job": {
+        "task": "kubechat.tasks.scan.get_collections_cron_job",
+        "schedule": 10,
+    }
+}
+
 if __name__ == '__main__':
     app.start()
