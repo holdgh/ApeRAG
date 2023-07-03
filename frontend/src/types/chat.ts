@@ -22,6 +22,7 @@ export type TypesMessage = {
   data?: string;
   timestamp?: number;
   references?: TypesMessageReferences[];
+  _typeWriter?: boolean;
 };
 
 export type TypesChat = {

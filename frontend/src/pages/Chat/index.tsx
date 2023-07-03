@@ -164,7 +164,6 @@ export default () => {
     if (msg.type === 'stop') {
       setLoading(false);
       const references = msg.data as unknown as TypesMessageReferences[];
-
       if (msg.data) {
         _.update(historyMessages, index, (origin) => ({
           ...origin,
@@ -176,7 +175,11 @@ export default () => {
 
     // create a new message or update a old message.
     if (_.includes(['start', 'sql', 'message'], msg.type)) {
-      const message: TypesMessage = { ...msg, role: 'ai' };
+      const message: TypesMessage = {
+        ...msg,
+        role: 'ai',
+        _typeWriter: true
+      };
       if (msg.type === 'start') {
         setLoading(true);
         historyMessages.push(message);

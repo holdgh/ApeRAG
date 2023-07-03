@@ -21,6 +21,7 @@
     "lodash": "^4.17.21",
     "mockjs": "^1.1.0",
     "moment": "^2.29.4",
+    "react-interval": "^2.1.2",
     "react-markdown": "^8.0.7",
     "react-scroll": "^1.8.9",
     "react-syntax-highlighter": "^15.5.0",

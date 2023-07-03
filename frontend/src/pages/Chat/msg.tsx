@@ -1,4 +1,5 @@
 import ChatRobot from '@/assets/chatbot.png';
+import EllipsisAnimate from '@/components/EllipsisAnimate';
 import { getUser } from '@/models/user';
 import type { TypesMessage, TypesSocketStatus } from '@/types';
 import {
@@ -8,35 +9,37 @@ import {
 } from '@ant-design/icons';
 import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
+import _ from 'lodash';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
+import ReactInterval from 'react-interval';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
-import EllipsisAnimate from '@/components/EllipsisAnimate';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
-import _ from 'lodash';
 
 type Props = {
   item: TypesMessage;
   loading: boolean;
   status: TypesSocketStatus;
+  typeWriter: boolean;
   onExecute: (msg: TypesMessage) => void;
 };
 
-export default ({ item, loading, status, onExecute = () => {} }: Props) => {
+const TYPE_WRITER_SPEED = 40;
+
+export default ({ item, loading, onExecute = () => {} }: Props) => {
   const [realText, setRealText] = useState<string>('');
+  const [displayText, setDisplayText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
-  
-  
   const renderAvatar = () => {
     const size = 50;
     const AiAvatar = (
@@ -55,35 +58,48 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
   };
 
   const renderContent = () => {
-    let text = realText;
-
-    if (item.type === 'sql') {
-      text = '```sql\n' + realText + '\n```';
+    const customStyle = {
+      padding:0,
+      fontFamily: 'inherit',
+      fontSize: 'inherit',
+      margin: 0,
+      lineHeight: 'inherit',
     }
-
-    const Markdown = (
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
-        components={{
-          code({ inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
-              <SyntaxHighlighter style={dark} language={match[1]} PreTag="div">
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-        }}
-      >
-        {text}
-      </ReactMarkdown>
-    );
-    return Markdown;
+    if (item.type === 'sql') {
+      return (
+        <SyntaxHighlighter style={dark} language="sql" PreTag="div" customStyle={customStyle}>
+          {String(displayText).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      );
+    } else {
+      return (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
+          components={{
+            code({ inline, className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || '');
+              return !inline && match ? (
+                <SyntaxHighlighter
+                  style={dark}
+                  customStyle={customStyle}
+                  language={match[1]}
+                  PreTag="div"
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              ) : (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            },
+          }}
+        >
+          {displayText}
+        </ReactMarkdown>
+      );
+    }
   };
 
   const renderReferences = () => {
@@ -106,10 +122,25 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
     );
   };
 
+
+  const typingWriter = () => {
+    setDisplayText(s => {
+      const distance = Math.ceil((realText.length - displayText.length) / 10);
+      const fromIndex = displayText.length;
+      const toIndex = fromIndex + distance;
+      const nextChar = realText.substring(fromIndex, toIndex);
+      return s + nextChar;
+    });
+  };
+
   useEffect(() => {
     let data = (item.data || '').replace(/^\n*/, '');
-    setRealText(data);
-  }, [item])
+    if (item._typeWriter) {
+      setRealText(data);
+    } else {
+      setDisplayText(data);
+    }
+  }, [item]);
 
   return (
     <div
@@ -119,6 +150,13 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
         [styles.human]: item.role === 'human',
       })}
     >
+      {item._typeWriter ? (
+        <ReactInterval
+          timeout={TYPE_WRITER_SPEED}
+          enabled={true}
+          callback={typingWriter}
+        />
+      ) : null}
       {renderAvatar()}
       <div
         className={classNames({
@@ -132,7 +170,11 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
           })}
           style={{ background: msgBgColor }}
         >
-          {_.isEmpty(realText) && loading  ? <EllipsisAnimate /> :  renderContent()}
+          {_.isEmpty(displayText) && loading ? (
+            <EllipsisAnimate />
+          ) : (
+            renderContent()
+          )}
         </div>
         <Space
           className={styles.messageInfo}
@@ -143,15 +185,14 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
             <div>{moment(item.timestamp).format('llll')}</div>
             {renderReferences()}
             {item.type === 'sql' && !loading ? (
-            <Typography.Link
-              style={{ fontSize: 12 }}
-              onClick={() => onExecute(item)}
-            >
-              Execute
-            </Typography.Link>
-          ) : null}
+              <Typography.Link
+                style={{ fontSize: 12 }}
+                onClick={() => onExecute(item)}
+              >
+                Execute
+              </Typography.Link>
+            ) : null}
           </Space>
-          
         </Space>
       </div>
       <Drawer

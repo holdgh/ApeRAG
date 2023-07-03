@@ -19,7 +19,7 @@ export default ({ loading, onExecute, status }: Props) => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
       smooth: true,
-      duration: 0,
+      duration: 800,
     });
   }, [currentChat]);
 
