@@ -42,6 +42,7 @@ class Text2SQLConsumer(BaseConsumer):
             for tokens in response:
                 yield str(tokens)
         else:
+            # TODO: temporarily format
             if not hasattr(response, '__iter__'):
                 yield "true" if response > 0 else "false"
             for tokens in response:
