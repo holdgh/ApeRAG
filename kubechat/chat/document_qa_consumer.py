@@ -59,7 +59,6 @@ class DocumentQAConsumer(BaseConsumer):
 
         response = requests.post("%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True)
         buffer = ""
-        last_buffer = ""
         for c in response.iter_content():
             if c == b'\x00':
                 continue
@@ -68,15 +67,14 @@ class DocumentQAConsumer(BaseConsumer):
             buffer += c
 
             if "}" in c:
+                idx = buffer.rfind("}")
+                data = buffer[:idx + 1]
                 try:
-                    j = json.loads(buffer)
+                    msg = json.loads(data)
                 except Exception as e:
                     continue
-                buffer = ""
-                parts = j["text"].split("### Assistant :")
-                new_text = parts[1][len(last_buffer):]
-                last_buffer = parts[1]
-                yield new_text
+                yield msg["text"]
+                buffer = buffer[idx+1:]
 
         references = []
         for result in results.results:
