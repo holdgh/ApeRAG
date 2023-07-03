@@ -1,18 +1,17 @@
 import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { useModel } from '@umijs/max';
-import _ from 'lodash';
 import { useEffect } from 'react';
 import { Element as ScrollElement, scroller } from 'react-scroll';
 import styles from './index.less';
 import MessageItem from './msg';
 
 type Props = {
-  status: TypesSocketStatus;
+  // status: TypesSocketStatus;
   loading: boolean;
   onExecuteSQL: (msg?: TypesMessage) => void;
 };
 
-export default ({ loading, onExecuteSQL, status }: Props) => {
+export default ({ loading, onExecuteSQL }: Props) => {
   const { currentChat } = useModel('collection');
 
   const messages = currentChat?.history || [];
@@ -25,26 +24,15 @@ export default ({ loading, onExecuteSQL, status }: Props) => {
     });
   }, [currentChat]);
 
-  const lastAiIndex = _.findLastIndex(
-    messages,
-    (m: TypesMessage) => m.role === 'ai',
-  );
   return (
     <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>
         {messages.map((item, key) => {
-          const isLoading = key === lastAiIndex && loading;
+          const isAiLast = item.role === 'ai' && key === messages.length - 1
           return (
             <MessageItem
-              animate={
-                item.role === 'ai' &&
-                key === messages.length - 1 &&
-                loading &&
-                status === 'Open'
-              }
-              disabled={loading}
               onExecuteSQL={onExecuteSQL}
-              loading={isLoading}
+              loading={isAiLast && loading}
               key={key}
               item={item}
             />

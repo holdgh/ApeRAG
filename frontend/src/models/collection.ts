@@ -180,11 +180,11 @@ export default () => {
     }
   };
 
-  const setCurrentChatMessages = async (messages: TypesMessage[]) => {
+  const setCurrentChatHistory = async (data: TypesMessage[]) => {
     if (!currentChat) return;
     _setCurrentChat({
       ...currentChat,
-      history: messages,
+      history: data,
     });
   };
 
@@ -271,7 +271,7 @@ export default () => {
     currentCollection,
     currentChat,
     currentDatabase,
-    setCurrentChatMessages,
+    setCurrentChatHistory,
     getCollections,
     getCollection,
     createColection,

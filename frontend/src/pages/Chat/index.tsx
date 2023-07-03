@@ -11,7 +11,7 @@ import type {
 } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { App, Form, Radio, Select, Space } from 'antd';
+import { Form, Radio, Select, Space } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -32,29 +32,45 @@ const SocketStatusMap: { [key in ReadyState]: TypesSocketStatus } = {
 type DbChatFormFields = { [key in string]: string | undefined };
 
 export default () => {
+  // const { message } = App.useApp();
+
+  // Is the socket already connected and the data stream in the loading state
   const [loading, setLoading] = useState<boolean>(false);
+
+  // WebSocket url
   const [socketUrl, setSocketUrl] = useState<string>('');
+
+  // WebSocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
+
+  // initialState.collapsed for mobile adaptation
   const { initialState } = useModel('@@initialState');
+
+  // login user
+  const user = getUser();
+
   const {
     currentCollection,
     currentChat,
     currentDatabase,
-    setCurrentChatMessages,
+    setCurrentChatHistory,
   } = useModel('collection');
-  const { message } = App.useApp();
 
-  const user = getUser();
-  const messages = currentChat?.history || [];
+  // history list;
+  const historyMessages = currentChat?.history || [];
 
-  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
-    share: true,
-    protocols: user?.__raw,
-    shouldReconnect: () => true,
-    reconnectInterval: 5000,
-    reconnectAttempts: 5,
-  });
-  const [paramsForm] = Form.useForm();
+  // web socket instance
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
+    socketUrl,
+    {
+      share: true,
+      protocols: user?.__raw,
+      shouldReconnect: () => true,
+      reconnectInterval: 5000,
+      reconnectAttempts: 5,
+    },
+  );
+  const [dbSelectorForm] = Form.useForm();
 
   const showSelector = hasDatabaseSelector(currentCollection);
 
@@ -71,22 +87,12 @@ export default () => {
         url += `?${query.join('&')}`;
       }
     }
-
     setSocketUrl(url);
   };
 
   const onExecuteSQL = async (msg?: TypesMessage) => {
-    if (msg?.type === 'sql') {
-      await setCurrentChatMessages(
-        messages.concat({
-          type: 'message',
-          role: 'ai',
-          data: '',
-        }),
-      );
-      await setLoading(true);
-      sendMessage(JSON.stringify(msg));
-    }
+    if (msg?.type !== 'sql') return;
+    sendJsonMessage(msg);
   };
 
   const onClear = async () => {
@@ -99,7 +105,7 @@ export default () => {
         history: [],
       },
     );
-    if (data.id) setCurrentChatMessages([]);
+    if (data.id) setCurrentChatHistory([]);
   };
 
   const onSubmit = async (data: string) => {
@@ -111,9 +117,9 @@ export default () => {
       data,
       timestamp,
     };
-    await setCurrentChatMessages(messages.concat(msg));
+    await setCurrentChatHistory(historyMessages.concat(msg));
     await setLoading(true);
-    sendMessage(JSON.stringify(msg));
+    sendJsonMessage(msg);
   };
 
   useEffect(() => {
@@ -127,7 +133,6 @@ export default () => {
         execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
       };
       setSocketParams(values);
-      paramsForm.setFieldsValue(values);
     }
   }, [currentDatabase]);
 
@@ -136,79 +141,56 @@ export default () => {
   }, [currentCollection, currentChat]);
 
   useEffect(() => {
-    if (!_.isEmpty(socketParams)) {
+    if (_.isEmpty(socketParams)) {
+      dbSelectorForm.setFieldsValue(socketParams);
       updateSocketUrl();
     }
   }, [socketParams]);
 
   useEffect(() => {
-    if (!lastMessage) return;
-    let msg: TypesMessage = {};
-    try {
-      msg = JSON.parse(lastMessage.data);
-    } catch (err) {}
+    if (_.isEmpty(lastJsonMessage)) return;
 
-    if (msg.type === 'error') {
-      if (msg.data) message.error(msg.data);
-      return;
+    let msg: TypesMessage = lastJsonMessage as TypesMessage;
+
+    let index = historyMessages.findLastIndex((m) => m.id === msg.id);
+    if (index === -1) {
+      index = 0;
     }
 
+    // message stream is error.
+    if (msg.type === 'error') {
+      setLoading(false);
+    }
+
+    // set history references when all stream has been received.
     if (msg.type === 'stop') {
       setLoading(false);
-      if (_.last(messages)?.role === 'ai') {
-        const references: TypesMessageReferences[] =
-          msg.data as unknown as TypesMessageReferences[];
-        if (msg.data) {
-          _.update(messages, messages.length - 1, (origin) => ({
-            ...origin,
-            references,
-          }));
-          setCurrentChatMessages(messages);
-        }
-      }
+      const references = msg.data as unknown as TypesMessageReferences[];
 
-      return;
-    }
-
-    if (_.includes(['sql', 'message'], msg.type) && msg.data) {
-      const message: TypesMessage = { ...msg, role: 'ai' };
-      let isAiLast = _.last(messages)?.role !== 'human';
-
-      if (isAiLast && loading) {
-        _.update(messages, messages.length - 1, (origin) => ({
-          ...message,
-          data: (origin?.data || '') + msg.data,
+      if (msg.data) {
+        _.update(historyMessages, index, (origin) => ({
+          ...origin,
+          references,
         }));
-      } else {
-        messages.push(message);
+        setCurrentChatHistory(historyMessages);
       }
-      setCurrentChatMessages(messages);
     }
-  }, [lastMessage]);
 
-  const DatabaseSelector = (
-    <Space>
-      <Form
-        form={paramsForm}
-        layout="inline"
-        onValuesChange={(changedValues, allValues) =>
-          setSocketParams(allValues)
-        }
-      >
-        {showSelector ? (
-          <Form.Item name="database">
-            <Select
-              style={{ width: 140 }}
-              options={currentDatabase?.map((d) => ({ label: d, value: d }))}
-            />
-          </Form.Item>
-        ) : null}
-        <Form.Item name="execute">
-          <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
-        </Form.Item>
-      </Form>
-    </Space>
-  );
+    // create a new message or update a old message.
+    if (_.includes(['start', 'sql', 'message'], msg.type)) {
+      const message: TypesMessage = { ...msg, role: 'ai' };
+      if (msg.type === 'start') {
+        setLoading(true);
+        historyMessages.push(message);
+      } else {
+        _.update(historyMessages, index, (origin) => ({
+          ...message,
+          data: (origin?.data || '') + msg.data, // append new stream data
+        }));
+      }
+      setCurrentChatHistory(historyMessages);
+    }
+  }, [lastJsonMessage]);
 
   return (
     <RouteContext.Consumer>
@@ -224,7 +206,32 @@ export default () => {
           >
             <Header
               extra={
-                currentCollection?.type === 'database' ? DatabaseSelector : null
+                currentCollection?.type === 'database' ? (
+                  <Space>
+                    <Form
+                      form={dbSelectorForm}
+                      layout="inline"
+                      onValuesChange={(changedValues, allValues) =>
+                        setSocketParams(allValues)
+                      }
+                    >
+                      {showSelector ? (
+                        <Form.Item name="database">
+                          <Select
+                            style={{ width: 140 }}
+                            options={currentDatabase?.map((d) => ({
+                              label: d,
+                              value: d,
+                            }))}
+                          />
+                        </Form.Item>
+                      ) : null}
+                      <Form.Item name="execute">
+                        <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
+                      </Form.Item>
+                    </Form>
+                  </Space>
+                ) : null
               }
             />
             <Chats

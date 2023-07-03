@@ -4,7 +4,7 @@ export type TypesSocketStatus =
   | 'Connecting'
   | 'Closing'
   | 'Uninstantiated';
-export type TypesMessageType = 'message' | 'stop' | 'error' | 'sql';
+export type TypesMessageType = 'start' | 'stop' | 'message' | 'sql' | 'error';
 export type TypesMessageRole = 'ai' | 'human';
 
 export type TypesMessageReferences = {
@@ -16,6 +16,7 @@ export type TypesMessageReferences = {
 };
 
 export type TypesMessage = {
+  id?: string,
   type?: TypesMessageType;
   role?: TypesMessageRole;
   data?: string;

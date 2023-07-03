@@ -26,23 +26,18 @@ import { tomorrow as dark } from 'react-syntax-highlighter/dist/esm/styles/prism
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
-import TypeIt from 'typeit-react';
 import styles from './index.less';
 import { useTypewriter } from 'react-simple-typewriter';
 
 type Props = {
   item: TypesMessage;
   loading: boolean;
-  disabled: boolean;
-  animate: boolean;
   onExecuteSQL: (msg?: TypesMessage) => void;
 };
 
 export default ({
   item,
   loading,
-  disabled = false,
-  animate = false,
   onExecuteSQL = () => {},
 }: Props) => {
   const [showReferences, setShowReferences] = useState<boolean>(false);
@@ -58,7 +53,7 @@ export default ({
     loop: 1,
   });
 
-  if (animate && helper.isType) {
+  if (loading && helper.isType) {
     displayText = animateText;
   }
 
@@ -167,7 +162,7 @@ export default ({
           </Space>
           {item.type === 'sql' ? (
             <Button
-              disabled={disabled}
+              disabled={!loading}
               onClick={() => onExecuteSQL(item)}
               type="text"
               size="small"
