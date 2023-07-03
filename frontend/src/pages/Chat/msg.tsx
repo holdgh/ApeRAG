@@ -14,9 +14,11 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
+import EllipsisAnimate from '@/components/EllipsisAnimate';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
+import _ from 'lodash';
 
 type Props = {
   item: TypesMessage;
@@ -33,9 +35,7 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = (item.data || '').replace(/^\n*/, '');
-  if (item.type === 'sql') {
-    displayText = '```sql\n' + displayText + '\n```';
-  }
+  
 
   const renderAvatar = () => {
     const size = 50;
@@ -55,6 +55,16 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
   };
 
   const renderContent = () => {
+    let text = displayText;
+
+    if(_.isEmpty(text) && loading) {
+      return <EllipsisAnimate />
+    }
+
+    if (item.type === 'sql') {
+      text = '```sql\n' + displayText + '\n```';
+    }
+
     const Markdown = (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -74,7 +84,7 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
           },
         }}
       >
-        {displayText}
+        {text}
       </ReactMarkdown>
     );
     return Markdown;
