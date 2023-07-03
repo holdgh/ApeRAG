@@ -32,7 +32,7 @@ from .source.ftp import scanning_ftp_add_index
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
+api = NinjaAPI(version="1.0.0", auth=GlobalAuth())
 
 
 class CollectionIn(Schema):

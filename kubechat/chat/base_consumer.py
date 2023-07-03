@@ -5,11 +5,12 @@ from abc import abstractmethod
 
 from channels.generic.websocket import WebsocketConsumer
 from langchain.memory import RedisChatMessageHistory
-from langchain.schema import HumanMessage, AIMessage
+from langchain.schema import HumanMessage, AIMessage, BaseChatMessageHistory
 from readers.base_embedding import get_default_embedding_model
 
 import config.settings as settings
 from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
+from kubechat.auth.validator import DEFAULT_USER
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,14 @@ KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
 
 
 class BaseConsumer(WebsocketConsumer):
+
+    def __init__(self):
+        super().__init__()
+        self.collection_id = None
+        self.embedding_model = None
+        self.vector_size = 0
+        self.history = None
+        self.user = DEFAULT_USER
 
     def connect(self):
         from kubechat.utils.db import query_collection, query_chat
@@ -34,8 +43,13 @@ class BaseConsumer(WebsocketConsumer):
             raise Exception("Chat not found")
 
         self.embedding_model, self.vector_size = get_default_embedding_model()
+
         self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        headers = {"SEC-WEBSOCKET-PROTOCOL": self.scope["Sec-Websocket-Protocol"]}
+
+        headers = {}
+        token = self.scope.get("Sec-Websocket-Protocol", None)
+        if token is not None:
+            headers = {"SEC-WEBSOCKET-PROTOCOL": token}
         self.accept(subprotocol=(None, headers))
 
     def disconnect(self, close_code):

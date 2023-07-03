@@ -10,6 +10,8 @@ issuer = 'https://{}/'.format(settings.AUTH0_DOMAIN)
 sv = AsymmetricSignatureVerifier(jwks_url)  # Reusable instance
 tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID)
 
+DEFAULT_USER = "kubechat"
+
 
 def get_user_from_token(token):
     payload = tv.verify(token)
@@ -18,7 +20,10 @@ def get_user_from_token(token):
 
 class GlobalAuth(HttpBearer):
     def authenticate(self, request, token):
-        request.META["X-USER-ID"] = get_user_from_token(token)
+        if settings.AUTH_ENABLED:
+            request.META["X-USER-ID"] = get_user_from_token(token)
+        else:
+            request.META["X-USER-ID"] = DEFAULT_USER
         return token
 
 
@@ -28,7 +33,14 @@ class TokenAuthMiddleware(BaseMiddleware):
 
     def __call__(self, scope, receive, send):
         headers = dict(scope['headers'])
-        token = headers[b'sec-websocket-protocol'].decode("ascii")
+
+        token = headers.get(b'sec-websocket-protocol', None)
+        if token is not None:
+            token = token.decode("ascii")
         scope["Sec-Websocket-Protocol"] = token
-        scope["X-USER-ID"] = get_user_from_token(token)
+
+        if settings.AUTH_ENABLED:
+            scope["X-USER-ID"] = get_user_from_token(token)
+        else:
+            scope["X-USER-ID"] = DEFAULT_USER
         return self.app(scope, receive, send)
