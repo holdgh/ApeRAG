@@ -9,7 +9,7 @@ import {
 import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -28,15 +28,15 @@ type Props = {
 };
 
 export default ({ item, loading, status, onExecute = () => {} }: Props) => {
+  const [realText, setRealText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
-  let displayText = (item.data || '').replace(/^\n*/, '');
   
-
+  
   const renderAvatar = () => {
     const size = 50;
     const AiAvatar = (
@@ -55,14 +55,10 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
   };
 
   const renderContent = () => {
-    let text = displayText;
-
-    if(_.isEmpty(text) && loading) {
-      return <EllipsisAnimate />
-    }
+    let text = realText;
 
     if (item.type === 'sql') {
-      text = '```sql\n' + displayText + '\n```';
+      text = '```sql\n' + realText + '\n```';
     }
 
     const Markdown = (
@@ -110,6 +106,11 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
     );
   };
 
+  useEffect(() => {
+    let data = (item.data || '').replace(/^\n*/, '');
+    setRealText(data);
+  }, [item])
+
   return (
     <div
       className={classNames({
@@ -131,7 +132,7 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
           })}
           style={{ background: msgBgColor }}
         >
-          {renderContent()}
+          {_.isEmpty(realText) && loading  ? <EllipsisAnimate /> :  renderContent()}
         </div>
         <Space
           className={styles.messageInfo}
@@ -141,7 +142,7 @@ export default ({ item, loading, status, onExecute = () => {} }: Props) => {
           <Space split={<Divider type="vertical" />}>
             <div>{moment(item.timestamp).format('llll')}</div>
             {renderReferences()}
-            {item.type === 'sql' ? (
+            {item.type === 'sql' && !loading ? (
             <Typography.Link
               style={{ fontSize: 12 }}
               onClick={() => onExecute(item)}

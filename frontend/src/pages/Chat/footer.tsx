@@ -18,11 +18,10 @@ export default ({
   onSubmit = () => {},
 }: Props) => {
   const [message, setMessage] = useState<string>('');
-  const disabled = loading && status === 'Open';
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);
-    if (message && !reg.test(message) && !disabled) {
+    if (message && !reg.test(message) && !loading && status === 'Open') {
       onSubmit(message);
       setMessage('');
     }
@@ -57,7 +56,7 @@ export default ({
           size="large"
           onClick={() => _onSubmit()}
           shape="circle"
-          loading={disabled}
+          loading={loading || status !== 'Open'}
           icon={<ArrowRightOutlined />}
         />
       </div>
