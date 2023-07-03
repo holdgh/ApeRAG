@@ -1,15 +1,15 @@
 import json
 import logging
 import traceback
+from typing import Any, List, Mapping, Optional
 
 import requests
-
 from channels.generic.websocket import WebsocketConsumer
-from kubechat.utils.utils import extract_chat_id, now_unix_milliseconds
-from langchain.memory import ConversationBufferWindowMemory
 from langchain.llms.base import LLM
-from typing import Optional, List, Mapping, Any
+from langchain.memory import ConversationBufferWindowMemory
+
 from configs.config import Config
+from kubechat.utils.utils import extract_chat_id, now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +17,13 @@ CFG = Config()
 
 
 class CustomLLM(LLM):
-
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         input = {
             "prompt": prompt,
             "temperature": 0,
             "max_new_tokens": 2048,
             "model": "vicuna-13b",
-            "stop": "\nSQLResult:"
+            "stop": "\nSQLResult:",
         }
         response = requests.post("%s/generate" % CFG.MODEL_SERVER, json=input)
         return response
@@ -50,6 +49,7 @@ class ChatBotConsumer(WebsocketConsumer):
     def connect(self):
         from kubechat.index import init_index
         from kubechat.utils.db import query_chat
+
         user = self.scope["X-USER-ID"]
         chat_id = extract_chat_id(self.scope["path"])  # get the chat_id in path
         # chat = query_chat(user, chat_id) # new func, need to be verified # 这个chat好像没什么用
@@ -65,11 +65,12 @@ class ChatBotConsumer(WebsocketConsumer):
         pass
 
     def receive(self, text_data, **kwargs):
-
         data = json.loads(text_data)
         msg_type = data["type"]
         if msg_type == "ping":
-            response = json.dumps({"type": "pong", "timestamp": now_unix_milliseconds()})
+            response = json.dumps(
+                {"type": "pong", "timestamp": now_unix_milliseconds()}
+            )
             self.send(text_data=response)
             return
 
@@ -82,13 +83,13 @@ class ChatBotConsumer(WebsocketConsumer):
 
     def predict(self, query):
         def reformat_history(buffer):
-            split_history = buffer['history'].split('\n')
+            split_history = buffer["history"].split("\n")
             formatted_history = ""
             for line in split_history:  # 从开始位置开始添加对话
-                if line.startswith('Human: '):
-                    formatted_history += 'Human: ' + line[len('Human: '):] + '\n'
-                elif line.startswith('AI: '):
-                    formatted_history += 'AI: ' + line[len('AI: '):] + '\n'
+                if line.startswith("Human: "):
+                    formatted_history += "Human: " + line[len("Human: ") :] + "\n"
+                elif line.startswith("AI: "):
+                    formatted_history += "AI: " + line[len("AI: ") :] + "\n"
             return formatted_history
 
         buffer = self.memory.load_memory_variables({})
@@ -101,12 +102,12 @@ Please complete the conversation in the role of AI, give your response, begin wi
         stop = []
 
         response = self.llm.call_custom_llm(prompt, stop).text  # 约10s左右出结果
-        response = response.strip('\x00')  # 去掉末尾的'\x00'
+        response = response.strip("\x00")  # 去掉末尾的'\x00'
         response_dict = json.loads(response)  # 解析json字符串为字典
-        text_str = response_dict['response']  # 提取response字段的内容
+        text_str = response_dict["response"]  # 提取response字段的内容
 
         # 从字符串中获取AI的最后一句话
-        start = text_str.rfind('AI: ') + 4  # 从右边找到'ai: '的位置并加4（'AI: '的长度）
+        start = text_str.rfind("AI: ") + 4  # 从右边找到'ai: '的位置并加4（'AI: '的长度）
         end = text_str.rfind('", "error_code":')  # 从右边找到'", "error_code":'的位置
         ai_last_sentence = text_str[start:end]  # 截取出AI的回答
 
@@ -117,20 +118,24 @@ Please complete the conversation in the role of AI, give your response, begin wi
     def success_response(message, references=None):
         if references is None:
             references = []
-        return json.dumps({
-            "type": "message",
-            "code": "200",
-            "data": message,
-            "timestamp": now_unix_milliseconds(),
-            "references": references,
-        })
+        return json.dumps(
+            {
+                "type": "message",
+                "code": "200",
+                "data": message,
+                "timestamp": now_unix_milliseconds(),
+                "references": references,
+            }
+        )
 
     @staticmethod
     def fail_response(error):
-        return json.dumps({
-            "type": "message",
-            "data": "",
-            "timestamp": now_unix_milliseconds(),
-            "code": "500",
-            "error": error,
-        })
+        return json.dumps(
+            {
+                "type": "message",
+                "data": "",
+                "timestamp": now_unix_milliseconds(),
+                "code": "500",
+                "error": error,
+            }
+        )

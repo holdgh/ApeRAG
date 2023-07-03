@@ -4,13 +4,12 @@ import os
 import uuid
 from datetime import datetime
 from http import HTTPStatus
-from typing import List
-from typing import Optional
+from typing import List, Optional
 
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from langchain.memory import RedisChatMessageHistory
-from ninja import NinjaAPI, Schema, File
+from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
 
@@ -18,21 +17,37 @@ import config.settings as settings
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.tasks.scan import scan_collection
-from kubechat.utils.db import query_collection, query_collections, query_document, query_documents, query_chat, \
-    query_chats, add_ssl_file, new_db_client
-from kubechat.utils.request import get_user, success, fail
+from kubechat.utils.db import (
+    add_ssl_file,
+    new_db_client,
+    query_chat,
+    query_chats,
+    query_collection,
+    query_collections,
+    query_document,
+    query_documents,
+)
+from kubechat.utils.request import fail, get_user, success
 from readers.base_embedding import get_default_embedding_model
-from .auth.validator import GlobalAuth
-from .models import Collection, CollectionStatus, \
-    Document, DocumentStatus, Chat, ChatStatus, \
-    VerifyWay, ssl_temp_file_path, CollectionType
-from .utils.utils import generate_vector_db_collection_id
 
+from .auth.validator import GlobalAuth
+from .models import (
+    Chat,
+    ChatStatus,
+    Collection,
+    CollectionStatus,
+    CollectionType,
+    Document,
+    DocumentStatus,
+    VerifyWay,
+    ssl_temp_file_path,
+)
 from .source.ftp import scanning_ftp_add_index
+from .utils.utils import generate_vector_db_collection_id
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI(version="1.0.0", auth=GlobalAuth() if settings.AUTH_ENABLED else None)
+api = NinjaAPI(version="1.0.0", auth=GlobalAuth())
 
 
 class CollectionIn(Schema):
@@ -66,7 +81,7 @@ class Auth(BaseModel):
 
 
 class Host(BaseModel):
-    source: str = 'system'
+    source: str = "system"
     host: str = ""
     port: str = ""
 
@@ -97,7 +112,7 @@ def ssl_file_upload(request, file: UploadedFile = File(...)):
 
 @api.post("/collections/test_connection")
 def connection_test(request, connection: ConnectionInfo):
-    verify = (connection.verify != VerifyWay.PREFERRED)
+    verify = connection.verify != VerifyWay.PREFERRED
     host = connection.host
 
     if host == "":
@@ -108,10 +123,10 @@ def connection_test(request, connection: ConnectionInfo):
         return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
 
     if not client.connect(
-            False,
-            ssl_temp_file_path(connection.ca_cert),
-            ssl_temp_file_path(connection.client_key),
-            ssl_temp_file_path(connection.client_cert),
+        False,
+        ssl_temp_file_path(connection.ca_cert),
+        ssl_temp_file_path(connection.client_key),
+        ssl_temp_file_path(connection.client_cert),
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -134,8 +149,9 @@ def create_collection(request, collection: CollectionIn):
     instance.save()
 
     # pre-create collection in vector db
-    vector_db_conn = get_vector_db_connector(collection=generate_vector_db_collection_id(user=user,
-                                                                                         collection=instance.id))
+    vector_db_conn = get_vector_db_connector(
+        collection=generate_vector_db_collection_id(user=user, collection=instance.id)
+    )
     _, size = get_default_embedding_model(load=False)
     vector_db_conn.connector.create_collection(vector_size=size)
 
@@ -170,12 +186,14 @@ def get_database_list(request, collection_id):
     config = json.loads(instance.config)
     db_type = config["db_type"]
     if db_type not in ["mysql", "postgresql"]:
-        return fail(HTTPStatus.NOT_FOUND, "{} don't have multiple databases".format(db_type))
+        return fail(
+            HTTPStatus.NOT_FOUND, "{} don't have multiple databases".format(db_type)
+        )
 
     client = new_db_client(config)
     # TODO:add SSL
     if not client.connect(
-            False,
+        False,
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -250,7 +268,9 @@ def list_documents(request, collection_id):
 
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
-def update_document(request, collection_id, document_id, file: UploadedFile = File(...)):
+def update_document(
+    request, collection_id, document_id, file: UploadedFile = File(...)
+):
     user = get_user(request)
     document = query_document(user, collection_id, document_id)
     if document is None:

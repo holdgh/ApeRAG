@@ -4,10 +4,7 @@ from typing import Any, Dict
 from llama_index.embeddings.base import BaseEmbedding
 from llama_index.vector_stores.types import VectorStore
 
-from query.query import (
-    QueryWithEmbedding,
-    QueryResult
-)
+from query.query import QueryResult, QueryWithEmbedding
 
 
 class VectorStoreConnector(ABC):
@@ -26,5 +23,5 @@ class VectorStoreConnector(ABC):
         pass
 
     @abstractmethod
-    def create_collection(self,**delete_kwargs: Any):
+    def create_collection(self, **delete_kwargs: Any):
         pass

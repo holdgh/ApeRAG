@@ -1,8 +1,9 @@
 import unittest
-from redis_query import Redis
+
 from clickhouse_query import Clickhouse
-from mongo_query import Mongo
 from elasticsearch_query import ElasticsearchClient
+from mongo_query import Mongo
+from redis_query import Redis
 
 
 class TestRedis(unittest.TestCase):

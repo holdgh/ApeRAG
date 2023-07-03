@@ -1,20 +1,13 @@
 import json
 import os
 from typing import Any, Dict
-from typing import Any, Dict
 
 import qdrant_client
 from llama_index.vector_stores.qdrant import QdrantVectorStore
-from qdrant_client.http.models import (
-    ScoredPoint
-)
+from qdrant_client.http.models import ScoredPoint
 from qdrant_client.models import VectorParams
 
-from query.query import (
-    QueryWithEmbedding,
-    DocumentWithScore,
-    QueryResult
-)
+from query.query import DocumentWithScore, QueryResult, QueryWithEmbedding
 from vectorstore.base import VectorStoreConnector
 
 
@@ -49,12 +42,10 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         self.store = QdrantVectorStore(
             client=self.client,
             collection_name=self.collection_name,
-            vectors_config=VectorParams(size=self.vector_size, distance=self.distance))
+            vectors_config=VectorParams(size=self.vector_size, distance=self.distance),
+        )
 
-    def search(self,
-               query: QueryWithEmbedding,
-               **kwargs):
-
+    def search(self, query: QueryWithEmbedding, **kwargs):
         limit = kwargs.get("limit", 3)
         consistency = kwargs.get("consistency", "majority")
         search_params = kwargs.get("search_params")
@@ -77,12 +68,16 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         )
 
     def _convert_scored_point_to_document_with_score(
-            self, scored_point: ScoredPoint
+        self, scored_point: ScoredPoint
     ) -> DocumentWithScore | None:
         try:
             payload = scored_point.payload or {}
-            text = scored_point.payload.get("text") or json.loads(payload["_node_content"]).get("text")
-            metadata = payload.get("metadata") or json.loads(payload["_node_content"]).get("metadata")
+            text = scored_point.payload.get("text") or json.loads(
+                payload["_node_content"]
+            ).get("text")
+            metadata = payload.get("metadata") or json.loads(
+                payload["_node_content"]
+            ).get("metadata")
             # todo source phrase
             relationships = json.loads(payload["_node_content"]).get("relationships")
             if relationships is not None and metadata.get("source") is None:
@@ -106,7 +101,11 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
     def create_collection(self, **kwargs: Any):
         vector_size = kwargs.get("vector_size")
         from qdrant_client.http import models as rest
-        self.client.recreate_collection(collection_name=self.collection_name, vectors_config=rest.VectorParams(
-            size=vector_size,
-            distance=rest.Distance.COSINE,
-        ))
+
+        self.client.recreate_collection(
+            collection_name=self.collection_name,
+            vectors_config=rest.VectorParams(
+                size=vector_size,
+                distance=rest.Distance.COSINE,
+            ),
+        )

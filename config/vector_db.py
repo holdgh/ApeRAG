@@ -1,6 +1,6 @@
 import json
-from config.settings import VECTOR_DB_TYPE, VECTOR_DB_CONTEXT
 
+from config.settings import VECTOR_DB_CONTEXT, VECTOR_DB_TYPE
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
 

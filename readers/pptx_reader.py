@@ -12,7 +12,9 @@ from llama_index.readers.base import BaseReader
 from llama_index.schema import Document
 
 # model_id_or_path = "nlpconnect/vit-gpt2-image-captioning"
-model_id_or_path = "/Users/alal/.cache/huggingface/hub/models--nlpconnect--vit-gpt2-image-captioning"
+model_id_or_path = (
+    "/Users/alal/.cache/huggingface/hub/models--nlpconnect--vit-gpt2-image-captioning"
+)
 
 
 class PptxReader(BaseReader):
@@ -40,15 +42,9 @@ class PptxReader(BaseReader):
                 "`pip install torch transformers python-pptx Pillow`"
             )
 
-        model = VisionEncoderDecoderModel.from_pretrained(
-            model_id_or_path
-        )
-        feature_extractor = ViTFeatureExtractor.from_pretrained(
-            model_id_or_path
-        )
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_id_or_path
-        )
+        model = VisionEncoderDecoderModel.from_pretrained(model_id_or_path)
+        feature_extractor = ViTFeatureExtractor.from_pretrained(model_id_or_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_id_or_path)
 
         self.parser_config = {
             "feature_extractor": feature_extractor,
@@ -87,9 +83,9 @@ class PptxReader(BaseReader):
         return preds[0].strip()
 
     def load_data(
-            self,
-            file: Path,
-            metadata: Optional[Dict] = None,
+        self,
+        file: Path,
+        metadata: Optional[Dict] = None,
     ) -> List[Document]:
         """Parse file."""
         from pptx import Presentation

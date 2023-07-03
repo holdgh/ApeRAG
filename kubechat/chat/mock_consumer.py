@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class MockConsumer(BaseConsumer):
-    response = '''
+    response = """
 ---
 title: KubeBlocks overview
 description: KubeBlocks, kbcli, multicloud
@@ -41,7 +41,7 @@ To address these challenges, and solve the problem of complexity, KubeBlocks int
 - Simplifies day-2 operations, such as upgrading, scaling, monitoring, backup, and restore.
 - Contains a powerful and intuitive command line tool.
 - Sets up a full-stack, production-ready data infrastructure in minutes.
-'''
+"""
 
     def predict(self, query):
         tokens = self.response.split(" ")

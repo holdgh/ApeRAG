@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import List
-
-from auto_gpt_plugin_template import AutoGPTPluginTemplate
 
 from utils.singleton import Singleton
-from common.sql_database import Database
 
 
 class Config(metaclass=Singleton):

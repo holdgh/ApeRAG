@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
-from vectorstore.connector import VectorStoreConnectorAdaptor
-from langchain.embeddings.huggingface import HuggingFaceEmbeddings, HuggingFaceInstructEmbeddings
-from langchain.embeddings.openai import OpenAIEmbeddings
+from threading import Lock, Thread
+from typing import Any, Dict, List, Optional
+
 from langchain.embeddings.google_palm import GooglePalmEmbeddings
+from langchain.embeddings.huggingface import (
+    HuggingFaceEmbeddings,
+    HuggingFaceInstructEmbeddings,
+)
+from langchain.embeddings.openai import OpenAIEmbeddings
 from llama_index import (
     LangchainEmbedding,
+    PromptHelper,
     ServiceContext,
     StorageContext,
     download_loader,
-    PromptHelper
 )
-from threading import Thread, Lock
+
+from vectorstore.connector import VectorStoreConnectorAdaptor
 
 
-def get_embedding_model(embedding_config: Dict[str, Any], load=True) -> {LangchainEmbedding, int}:
+def get_embedding_model(
+    embedding_config: Dict[str, Any], load=True
+) -> {LangchainEmbedding, int}:
     type = embedding_config["model_type"]
     embedding_model = None
     vector_size = 0
@@ -24,12 +31,16 @@ def get_embedding_model(embedding_config: Dict[str, Any], load=True) -> {Langcha
     if not type or type == "huggingface":
         if load:
             embedding_model = LangchainEmbedding(
-                HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2"))
+                HuggingFaceEmbeddings(
+                    model_name="sentence-transformers/all-mpnet-base-v2"
+                )
+            )
         vector_size = 768
     elif type == "huggingface_instruct":
         if load:
             embedding_model = LangchainEmbedding(
-                HuggingFaceInstructEmbeddings("hkunlp/instructor-large"))
+                HuggingFaceInstructEmbeddings("hkunlp/instructor-large")
+            )
         vector_size = 768
     elif type == "openai":
         if load:
@@ -53,19 +64,20 @@ def get_default_embedding_model(load=True) -> {LangchainEmbedding, int}:
     global default_embedding_model, default_vector_size
     with mutex:
         if default_embedding_model is None:
-            default_embedding_model, default_vector_size = get_embedding_model({"model_type": "huggingface"}, load)
+            default_embedding_model, default_vector_size = get_embedding_model(
+                {"model_type": "huggingface"}, load
+            )
     return default_embedding_model, default_vector_size
 
 
 class DocumentBaseEmbedding(ABC):
-
     def __init__(
-            self,
-            uri_path,
-            vector_store_adaptor: VectorStoreConnectorAdaptor,
-            embedding_model: LangchainEmbedding,
-            vector_size: int,
-            **kwargs: Any,
+        self,
+        uri_path,
+        vector_store_adaptor: VectorStoreConnectorAdaptor,
+        embedding_model: LangchainEmbedding,
+        vector_size: int,
+        **kwargs: Any,
     ) -> None:
         self.uri_path = uri_path
         self.connector = vector_store_adaptor.connector
@@ -79,7 +91,9 @@ class DocumentBaseEmbedding(ABC):
     def load_data(self):
         pass
 
-    def set_vector_store_adaptor(self, vector_store_adaptor: VectorStoreConnectorAdaptor):
+    def set_vector_store_adaptor(
+        self, vector_store_adaptor: VectorStoreConnectorAdaptor
+    ):
         self.connector = vector_store_adaptor.connector
         self.client = vector_store_adaptor.connector.client
 

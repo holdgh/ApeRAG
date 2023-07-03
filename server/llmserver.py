@@ -77,17 +77,17 @@ class ModelWorker:
             ):
                 # remove the prompt from answer if exists
                 if output.startswith(params["prompt"]):
-                    output = output[len(params["prompt"]):]
+                    output = output[len(params["prompt"]) :]
 
                 # get the new text
-                text = output[len(last_output):]
+                text = output[len(last_output) :]
                 last_output = output
 
                 # Please do not open the output in production!
                 # The gpt4all thread shares stdout with the parent process,
                 # and opening it may affect the frontend output
                 if not ("gptj" in CFG.LLM_MODEL or "guanaco" in CFG.LLM_MODEL):
-                    print(text, end='', flush=True)
+                    print(text, end="", flush=True)
 
                 ret = {
                     "text": text,
@@ -188,8 +188,10 @@ def embeddings(prompt_request: EmbeddingRequest):
     output = worker.get_embeddings(params["prompt"])
     return {"response": [float(x) for x in output]}
 
+
 def start():
     uvicorn.run(app, host="0.0.0.0", port=CFG.MODEL_PORT, log_level="info")
+
 
 if __name__ == "__main__":
     start()

@@ -6,10 +6,7 @@ from pymilvus import (
     connections,
 )
 
-from query.query import (
-    QueryWithEmbedding,
-    QueryResult
-)
+from query.query import QueryResult, QueryWithEmbedding
 from vectorstore.base import VectorStoreConnector
 
 
@@ -31,7 +28,9 @@ class MilvusVectorStoreConnector(VectorStoreConnector):
         # be careful that connections is a single instance in pymilvus
         self.client = connections
         self.embedding = ctx.get("embedding", google.GoogleUnivSentEncoderEmbedding)
-        self.store = MilvusVectorStore(client=self.client, collection_name=self.collection_name)
+        self.store = MilvusVectorStore(
+            client=self.client, collection_name=self.collection_name
+        )
 
     def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass

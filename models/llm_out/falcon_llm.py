@@ -1,7 +1,8 @@
-import torch
 import copy
 from threading import Thread
-from transformers import TextIteratorStreamer, StoppingCriteriaList, StoppingCriteria
+
+import torch
+from transformers import StoppingCriteria, StoppingCriteriaList, TextIteratorStreamer
 
 
 def falcon_generate_output(model, tokenizer, params, device, context_len=2048):

@@ -1,8 +1,10 @@
 import logging
+
 from func_timeout import func_set_timeout
-from redis.client import Redis as RedisClient
-from services.text2SQL.nosql.nosql import NoSQLBase
 from llama_index.prompts.base import Prompt
+from redis.client import Redis as RedisClient
+
+from services.text2SQL.nosql.nosql import NoSQLBase
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +55,15 @@ class Redis(NoSQLBase):
         return response
 
     def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
-        return {
-            "ssl_ca_certs": ca_cert,
-            "ssl_keyfile": client_key,
-            "ssl_certfile": client_cert,
-        } if verify else {}
+        return (
+            {
+                "ssl_ca_certs": ca_cert,
+                "ssl_keyfile": client_key,
+                "ssl_certfile": client_cert,
+            }
+            if verify
+            else {}
+        )
 
     def _get_default_prompt(self):
         return Prompt(

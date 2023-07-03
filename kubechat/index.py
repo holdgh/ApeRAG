@@ -1,24 +1,23 @@
 import json
 import logging
-import requests
+from typing import Any, List, Mapping, Optional
 
-from typing import Optional, List, Mapping, Any
 import qdrant_client
-from config import settings
-from llama_index import ServiceContext
+import requests
+from langchain.llms.base import LLM
 from llama_index import (
+    ServiceContext,
     VectorStoreIndex,
 )
-from langchain.llms.base import LLM
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 
+from config import settings
 from kubechat.models import Collection, CollectionStatus
 
 logger = logging.getLogger(__name__)
 
 
 class CustomLLM(LLM):
-
     def _call(self, prompt: str, stop: Optional[List[str]] = None, **kwargs) -> str:
         input = {
             "prompt": prompt,

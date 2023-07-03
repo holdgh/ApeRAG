@@ -1,6 +1,8 @@
-from services.text2SQL.sql.sql import SQLBase
 from typing import Optional
+
 from sqlalchemy import text
+
+from services.text2SQL.sql.sql import SQLBase
 
 
 class Mysql(SQLBase):
@@ -9,7 +11,7 @@ class Mysql(SQLBase):
             self.port = 3306
         return f"{self.db_type}+{driver}://{self.user}:{self.pwd}@{self.host}:{self.port}/{self.db}"
 
-    def _get_ssl_args(self, verify,  ca_cert, client_key, client_cert):
+    def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
         ssl_str = "?"
         if ca_cert is not None:
             ssl_str += "ssl_ca={}&".format(ca_cert)
@@ -31,4 +33,3 @@ class Mysql(SQLBase):
             for db in db_all:
                 db_list.append(db[0])
         return db_list
-

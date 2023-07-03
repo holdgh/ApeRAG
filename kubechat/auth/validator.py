@@ -1,14 +1,21 @@
-import config.settings as settings
-from ninja.security import HttpBearer
-from auth0.authentication.token_verifier import TokenVerifier, AsymmetricSignatureVerifier
+from auth0.authentication.token_verifier import (
+    AsymmetricSignatureVerifier,
+    TokenVerifier,
+)
 from channels.middleware import BaseMiddleware
+from ninja.security import HttpBearer
 
+import config.settings as settings
 
-jwks_url = 'https://{}/.well-known/jwks.json'.format(settings.AUTH0_DOMAIN)
-issuer = 'https://{}/'.format(settings.AUTH0_DOMAIN)
+jwks_url = "https://{}/.well-known/jwks.json".format(settings.AUTH0_DOMAIN)
+issuer = "https://{}/".format(settings.AUTH0_DOMAIN)
 
 sv = AsymmetricSignatureVerifier(jwks_url)  # Reusable instance
-tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID)
+tv = TokenVerifier(
+    signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID
+)
+
+DEFAULT_USER = "kubechat"
 
 
 def get_user_from_token(token):
@@ -18,7 +25,10 @@ def get_user_from_token(token):
 
 class GlobalAuth(HttpBearer):
     def authenticate(self, request, token):
-        request.META["X-USER-ID"] = get_user_from_token(token)
+        if settings.AUTH_ENABLED:
+            request.META["X-USER-ID"] = get_user_from_token(token)
+        else:
+            request.META["X-USER-ID"] = DEFAULT_USER
         return token
 
 
@@ -27,8 +37,15 @@ class TokenAuthMiddleware(BaseMiddleware):
         self.app = app
 
     def __call__(self, scope, receive, send):
-        headers = dict(scope['headers'])
-        token = headers[b'sec-websocket-protocol'].decode("ascii")
+        headers = dict(scope["headers"])
+
+        token = headers.get(b"sec-websocket-protocol", None)
+        if token is not None:
+            token = token.decode("ascii")
         scope["Sec-Websocket-Protocol"] = token
-        scope["X-USER-ID"] = get_user_from_token(token)
+
+        if settings.AUTH_ENABLED:
+            scope["X-USER-ID"] = get_user_from_token(token)
+        else:
+            scope["X-USER-ID"] = DEFAULT_USER
         return self.app(scope, receive, send)

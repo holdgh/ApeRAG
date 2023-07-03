@@ -1,7 +1,9 @@
 from typing import Any, Dict, Type
 
-from llama_index.vector_stores.registry import VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS
-from llama_index.vector_stores.registry import VectorStoreType
+from llama_index.vector_stores.registry import (
+    VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS,
+    VectorStoreType,
+)
 
 
 class VectorStoreConnectorAdaptor:
@@ -17,15 +19,19 @@ class VectorStoreConnectorAdaptor:
         match vector_store_type:
             case VectorStoreType.CHROMA:
                 from vectorstore.chroma_connector import ChromaVectorStoreConnector
+
                 self.connector = ChromaVectorStoreConnector(ctx, **kwargs)
             case VectorStoreType.WEAVIATE:
                 from vectorstore.weaviate_connector import WeaviateVectorStoreConnector
+
                 self.connector = WeaviateVectorStoreConnector(ctx, **kwargs)
             case VectorStoreType.QDRANT:
                 from vectorstore.qdrant_connector import QdrantVectorStoreConnector
+
                 self.connector = QdrantVectorStoreConnector(ctx, **kwargs)
             case VectorStoreType.MILVUS:
                 from vectorstore.milvus_connector import MilvusVectorStoreConnector
+
                 self.connector = MilvusVectorStoreConnector(ctx, **kwargs)
             case _:
                 raise ValueError("unsupported vector store type:", vector_store_type)

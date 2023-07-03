@@ -8,7 +8,8 @@ import config.settings as settings
 from kubechat.utils.utils import generate_vector_db_collection_id
 from query.query import QueryWithEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
-from .base_consumer import BaseConsumer, KUBE_CHAT_DOC_QA_REFERENCES
+
+from .base_consumer import KUBE_CHAT_DOC_QA_REFERENCES, BaseConsumer
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,11 @@ VICUNA_REFINE_TEMPLATE = (
 
 
 class DocumentQAConsumer(BaseConsumer):
-
     def predict(self, query):
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-        vector_db_collection_id = generate_vector_db_collection_id(self.user, self.collection_id)
+        vector_db_collection_id = generate_vector_db_collection_id(
+            self.user, self.collection_id
+        )
         vectordb_ctx["collection"] = vector_db_collection_id
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
         vector = self.embedding_model.get_query_embedding(query)
@@ -54,13 +56,15 @@ class DocumentQAConsumer(BaseConsumer):
             "temperature": 0,
             "max_new_tokens": 2048,
             "model": "vicuna-13b",
-            "stop": "\nSQLResult:"
+            "stop": "\nSQLResult:",
         }
 
-        response = requests.post("%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True)
+        response = requests.post(
+            "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True
+        )
         buffer = ""
         for c in response.iter_content():
-            if c == b'\x00':
+            if c == b"\x00":
                 continue
 
             c = c.decode("utf-8")
@@ -68,19 +72,21 @@ class DocumentQAConsumer(BaseConsumer):
 
             if "}" in c:
                 idx = buffer.rfind("}")
-                data = buffer[:idx + 1]
+                data = buffer[: idx + 1]
                 try:
                     msg = json.loads(data)
                 except Exception as e:
                     continue
                 yield msg["text"]
-                buffer = buffer[idx+1:]
+                buffer = buffer[idx + 1 :]
 
         references = []
         for result in results.results:
-            references.append({
-                "score": result.score,
-                "text": result.text,
-                "metadata": result.metadata
-            })
+            references.append(
+                {
+                    "score": result.score,
+                    "text": result.text,
+                    "metadata": result.metadata,
+                }
+            )
         yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)

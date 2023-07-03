@@ -1,24 +1,26 @@
 import logging
-from services.text2SQL.base import DataBase
-from typing import Optional
-from llama_index import Prompt
-from langchain.llms.base import BaseLLM
 from abc import abstractmethod
+from typing import Optional
+
+from langchain.llms.base import BaseLLM
+from llama_index import Prompt
+
+from services.text2SQL.base import DataBase
 
 logger = logging.getLogger(__name__)
 
 
 class NoSQLBase(DataBase):
     def __init__(
-            self,
-            db_type,
-            host,
-            port: Optional[int] = None,
-            user: Optional[str] = "",
-            pwd: Optional[str] = "",
-            db: Optional[str] = "",
-            prompt: Optional[Prompt] = None,
-            llm: Optional[BaseLLM] = None,
+        self,
+        db_type,
+        host,
+        port: Optional[int] = None,
+        user: Optional[str] = "",
+        pwd: Optional[str] = "",
+        db: Optional[str] = "",
+        prompt: Optional[Prompt] = None,
+        llm: Optional[BaseLLM] = None,
     ):
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
@@ -28,12 +30,12 @@ class NoSQLBase(DataBase):
         pass
 
     def connect(
-            self,
-            verify: Optional[bool] = False,
-            ca_cert: Optional[str] = None,
-            client_key: Optional[str] = None,
-            client_cert: Optional[str] = None,
-            test_only: Optional[bool] = True,
+        self,
+        verify: Optional[bool] = False,
+        ca_cert: Optional[str] = None,
+        client_key: Optional[str] = None,
+        client_cert: Optional[str] = None,
+        test_only: Optional[bool] = True,
     ):
         try:
             connected = self.ping(verify, ca_cert, client_key, client_cert)

@@ -1,8 +1,10 @@
 import logging
+
 from func_timeout import func_set_timeout
-from pymongo import MongoClient
-from services.text2SQL.nosql.nosql import NoSQLBase
 from llama_index.prompts.base import Prompt
+from pymongo import MongoClient
+
+from services.text2SQL.nosql.nosql import NoSQLBase
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +33,19 @@ class Mongo(NoSQLBase):
     def ping(self, verify, ca_cert, client_key, client_cert):
         if self.user is not None:
             self.conn = MongoClient(
-                "mongodb://" + self.user + ':' + self.pwd + '@' + self.host + ':' + str(self.port),
+                "mongodb://"
+                + self.user
+                + ":"
+                + self.pwd
+                + "@"
+                + self.host
+                + ":"
+                + str(self.port),
                 **self._get_ssl_args(verify, ca_cert, client_key, client_cert),
             )
         else:
             self.conn = MongoClient(
-                "mongodb://" + self.host + ':' + str(self.port),
+                "mongodb://" + self.host + ":" + str(self.port),
                 **self._get_ssl_args(verify, ca_cert, client_key, client_cert),
             )
         return self.conn.admin.command("ping")
@@ -46,7 +55,7 @@ class Mongo(NoSQLBase):
         collections = db.list_collection_names()
         schema = ""
         for collection in collections:
-            schema += 'Collection ' + collection + ':'
+            schema += "Collection " + collection + ":"
             document = collection.find_one()
             for key in document.keys():
                 schema += "Key: {}, Data Type: {}; ".format(key, type[document[key]])
@@ -58,8 +67,8 @@ class Mongo(NoSQLBase):
 
     def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
         return {
-            'directConnection': True,
-            'ssl': verify,
+            "directConnection": True,
+            "ssl": verify,
             "tlsCAFile": ca_cert,
             "tlsCertificateKeyFile": client_key,
         }

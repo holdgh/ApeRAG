@@ -3,12 +3,12 @@ import logging
 import os
 from typing import Callable, Dict, Generator, List, Optional, Type
 
-from .compose_image_reader import ComposeImageReader
 from llama_index.readers.base import BaseReader
+from llama_index.readers.file.base import DEFAULT_FILE_READER_CLS, SimpleDirectoryReader
 from llama_index.readers.file.markdown_reader import MarkdownReader
 from llama_index.readers.schema.base import Document
-from llama_index.readers.file.base import SimpleDirectoryReader
-from llama_index.readers.file.base import DEFAULT_FILE_READER_CLS
+
+from .compose_image_reader import ComposeImageReader
 
 logger = logging.getLogger(__name__)
 
@@ -47,17 +47,17 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
     """
 
     def __init__(
-            self,
-            input_dir: Optional[str] = None,
-            input_files: Optional[List] = None,
-            exclude: Optional[List] = None,
-            exclude_hidden: bool = True,
-            errors: str = "ignore",
-            recursive: bool = False,
-            required_exts: Optional[List[str]] = None,
-            file_extractor: Optional[Dict[str, BaseReader]] = None,
-            num_files_limit: Optional[int] = None,
-            file_metadata: Optional[Callable[[str], Dict]] = None,
+        self,
+        input_dir: Optional[str] = None,
+        input_files: Optional[List] = None,
+        exclude: Optional[List] = None,
+        exclude_hidden: bool = True,
+        errors: str = "ignore",
+        recursive: bool = False,
+        required_exts: Optional[List[str]] = None,
+        file_extractor: Optional[Dict[str, BaseReader]] = None,
+        num_files_limit: Optional[int] = None,
+        file_metadata: Optional[Callable[[str], Dict]] = None,
     ) -> None:
         """Initialize with parameters."""
         super().__init__(
@@ -106,7 +106,9 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
                 self.file_extractor[input_file.suffix] = reader_cls()
             reader = self.file_extractor[input_file.suffix]
             # todo: support more kind of reader
-            docs = reader.load_data(input_file, metadata=metadata)  # metadata for llama_index 0.6.35
+            docs = reader.load_data(
+                input_file, metadata=metadata
+            )  # metadata for llama_index 0.6.35
             documents.extend(docs)
         else:
             logger.warning(f"Unsupported file extension: {input_file.suffix}")
@@ -122,5 +124,3 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             return files
         except Exception as e:
             logger.error(f"phase dir failed: {e}")
-
-
