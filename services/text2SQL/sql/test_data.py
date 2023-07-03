@@ -1,3 +1,4 @@
+import sys
 from sqlalchemy import create_engine, MetaData, Table, String, Column, Integer, insert
 
 
@@ -58,4 +59,4 @@ def add_testdata_to_mysql(pwd):
 
 
 if __name__ == "__main__":
-    add_testdata_to_mysql("")
+    add_testdata_to_mysql(sys.argv[1])
