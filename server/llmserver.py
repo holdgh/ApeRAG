@@ -75,21 +75,26 @@ class ModelWorker:
             for output in self.generate_stream_func(
                 self.model, self.tokenizer, params, DEVICE, CFG.MAX_POSITION_EMBEDDINGS
             ):
-                new_output = output[len(last_output):]
+                # remove the prompt from answer if exists
+                if output.startswith(params["prompt"]):
+                    output = output[len(params["prompt"]):]
+
+                # get the new text
+                text = output[len(last_output):]
                 last_output = output
-                output = new_output
 
                 # Please do not open the output in production!
                 # The gpt4all thread shares stdout with the parent process,
                 # and opening it may affect the frontend output
                 if not ("gptj" in CFG.LLM_MODEL or "guanaco" in CFG.LLM_MODEL):
-                    print("output: ", output)
+                    print(text, end='', flush=True)
 
                 ret = {
-                    "text": output,
+                    "text": text,
                     "error_code": 0,
                 }
                 yield json.dumps(ret).encode() + b"\0"
+            print("")
 
         except torch.cuda.CudaError:
             ret = {"text": "**GPU OutOfMemory, Please Refresh.**", "error_code": 0}
