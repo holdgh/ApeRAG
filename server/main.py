@@ -1,21 +1,33 @@
 import os
 from typing import Optional
+
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, Depends, Body, UploadFile
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.staticfiles import StaticFiles
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import (
+    BackgroundTasks,
+    Body,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import StreamingResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 bearer_scheme = HTTPBearer()
 BEARER_TOKEN = os.environ.get("BEARER_TOKEN")
-#assert BEARER_TOKEN is not None
+# assert BEARER_TOKEN is not None
 
 app = FastAPI()
 
+
 class EmbeddingRequest(BaseModel):
     prompt: str
+
 
 @app.post("/embedding")
 def embeddings(prompt_request: EmbeddingRequest):
@@ -23,6 +35,7 @@ def embeddings(prompt_request: EmbeddingRequest):
     print("Received prompt: ", params["prompt"])
     output = [1, 2, 3]
     return {"response": [float(x) for x in output]}
+
 
 @app.on_event("startup")
 async def startup():

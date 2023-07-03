@@ -4,9 +4,9 @@
 import traceback
 from queue import Queue
 from threading import Thread
-import transformers
-
 from typing import List, Optional
+
+import transformers
 
 from configs.config import Config
 from models.base import Message

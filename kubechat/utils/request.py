@@ -17,4 +17,3 @@ def fail(code, message):
         "code": "%d" % code,
         "message": message,
     }
-

@@ -4,10 +4,7 @@ from llama_index.vector_stores.utils import DEFAULT_TEXT_KEY
 from llama_index.vector_stores.weaviate import WeaviateVectorStore
 from weaviate import Client
 
-from query.query import (
-    QueryWithEmbedding,
-    QueryResult
-)
+from query.query import QueryResult, QueryWithEmbedding
 from vectorstore.base import VectorStoreConnector
 
 

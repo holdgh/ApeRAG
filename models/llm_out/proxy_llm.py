@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import json
+
 import requests
+
 from configs.config import Config
 
 CFG = Config()

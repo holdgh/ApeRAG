@@ -23,7 +23,7 @@ class OpensearchVectorStoreConnector(VectorStoreConnector):
             endpoint=f"{self.url}:{self.port}",
             index=self.index_name,
             dim=self.vector_size,
-            auth=auth
+            auth=auth,
         )
 
         self.embedding = ctx.get("embedding", google.GoogleUnivSentEncoderEmbedding)

@@ -1,9 +1,11 @@
 from __future__ import annotations
-import sqlparse
-import regex as re
+
 import warnings
 from typing import Any, Iterable, List, Optional
+
+import regex as re
 import sqlalchemy
+import sqlparse
 from sqlalchemy import (
     MetaData,
     Table,
@@ -14,8 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import CursorResult, Engine
 from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.schema import CreateTable
-from sqlalchemy.orm import sessionmaker, scoped_session
 
 
 def _format_index(index: sqlalchemy.engine.interfaces.ReflectedIndex) -> str:

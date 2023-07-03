@@ -1,27 +1,28 @@
 import logging
-
+from abc import abstractmethod
 from typing import Optional
+
 from langchain.llms.base import BaseLLM
-from llama_index import SQLDatabase, Prompt
+from llama_index import Prompt, SQLDatabase
 from llama_index.prompts.default_prompts import DEFAULT_TEXT_TO_SQL_PROMPT
 from sqlalchemy import create_engine, text
+
 from services.text2SQL.base import DataBase
-from abc import abstractmethod
 
 logger = logging.getLogger(__name__)
 
 
 class SQLBase(DataBase):
     def __init__(
-            self,
-            db_type,
-            host,
-            port: Optional[int] = None,
-            user: Optional[str] = "",
-            pwd: Optional[str] = "",
-            db: Optional[str] = "",
-            prompt: Optional[Prompt] = None,
-            llm: Optional[BaseLLM] = None,
+        self,
+        db_type,
+        host,
+        port: Optional[int] = None,
+        user: Optional[str] = "",
+        pwd: Optional[str] = "",
+        db: Optional[str] = "",
+        prompt: Optional[Prompt] = None,
+        llm: Optional[BaseLLM] = None,
     ):
         super().__init__(host, port, user, pwd, prompt, db_type, llm)
         self.db = db
@@ -31,21 +32,21 @@ class SQLBase(DataBase):
         pass
 
     def connect(
-            self,
-            verify: Optional[bool] = False,
-            ca_cert: Optional[str] = None,
-            client_key: Optional[str] = None,
-            client_cert: Optional[str] = None,
-            test_only: Optional[bool] = True,
+        self,
+        verify: Optional[bool] = False,
+        ca_cert: Optional[str] = None,
+        client_key: Optional[str] = None,
+        client_cert: Optional[str] = None,
+        test_only: Optional[bool] = True,
     ) -> bool:
         try:
             self.conn = SQLDatabase(
                 create_engine(
-                    self._generate_db_url() +
-                    self._get_ssl_args(verify, ca_cert, client_key, client_cert)
+                    self._generate_db_url()
+                    + self._get_ssl_args(verify, ca_cert, client_key, client_cert)
                 ),
                 sample_rows_in_table_info=3,
-                schema=self.db
+                schema=self.db,
             )
             with self.conn.engine.connect() as connection:
                 _ = connection.execute(text("select 1"))

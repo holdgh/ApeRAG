@@ -1,14 +1,19 @@
-import config.settings as settings
-from ninja.security import HttpBearer
-from auth0.authentication.token_verifier import TokenVerifier, AsymmetricSignatureVerifier
+from auth0.authentication.token_verifier import (
+    AsymmetricSignatureVerifier,
+    TokenVerifier,
+)
 from channels.middleware import BaseMiddleware
+from ninja.security import HttpBearer
 
+import config.settings as settings
 
-jwks_url = 'https://{}/.well-known/jwks.json'.format(settings.AUTH0_DOMAIN)
-issuer = 'https://{}/'.format(settings.AUTH0_DOMAIN)
+jwks_url = "https://{}/.well-known/jwks.json".format(settings.AUTH0_DOMAIN)
+issuer = "https://{}/".format(settings.AUTH0_DOMAIN)
 
 sv = AsymmetricSignatureVerifier(jwks_url)  # Reusable instance
-tv = TokenVerifier(signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID)
+tv = TokenVerifier(
+    signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID
+)
 
 DEFAULT_USER = "kubechat"
 
@@ -32,9 +37,9 @@ class TokenAuthMiddleware(BaseMiddleware):
         self.app = app
 
     def __call__(self, scope, receive, send):
-        headers = dict(scope['headers'])
+        headers = dict(scope["headers"])
 
-        token = headers.get(b'sec-websocket-protocol', None)
+        token = headers.get(b"sec-websocket-protocol", None)
         if token is not None:
             token = token.decode("ascii")
         scope["Sec-Websocket-Protocol"] = token

@@ -1,22 +1,24 @@
-import boto3
-import os
-import time
-import tempfile
-
-from kubechat.tasks.index import add_index_for_document
-from kubechat.models import Document, DocumentStatus, CollectionStatus
-from readers.Readers import DEFAULT_FILE_READER_CLS
-
 import logging
+import os
+import tempfile
+import time
+
+import boto3
+
+from kubechat.models import CollectionStatus, Document, DocumentStatus
+from kubechat.tasks.index import add_index_for_document
+from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
 
 def connect_to_s3(access_key_id, access_key_secret, bucket_name, region):
-    s3 = boto3.resource('s3',
-                        aws_access_key_id=access_key_id,
-                        aws_secret_access_key=access_key_secret,
-                        region_name=region)
+    s3 = boto3.resource(
+        "s3",
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=access_key_secret,
+        region_name=region,
+    )
     bucket = s3.Bucket(bucket_name)
     return bucket
 
@@ -26,7 +28,9 @@ def list_files(bucket):
         print(obj.key)
 
 
-def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region, collection):
+def scanning_s3_add_index(
+    bucket_name, access_key_id, access_key_secret, region, collection
+):
     collection.status = CollectionStatus.INACTIVE
     collection.save()
     bucket = connect_to_s3(access_key_id, access_key_secret, bucket_name, region)
@@ -36,7 +40,9 @@ def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region,
             file_suffix = os.path.splitext(obj.key)[1].lower()
             if file_suffix in DEFAULT_FILE_READER_CLS.keys():
                 file_content = obj.get()["Body"].read()
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix)
+                temp_file = tempfile.NamedTemporaryFile(
+                    delete=False, suffix=file_suffix
+                )
                 temp_file.write(file_content)
                 temp_file.close()
                 document_instance = Document(
@@ -45,7 +51,7 @@ def scanning_s3_add_index(bucket_name, access_key_id, access_key_secret, region,
                     status=DocumentStatus.PENDING,
                     size=obj.size,
                     collection=collection,
-                    metadata=obj.last_modified.strftime("%Y-%m-%d %H:%M:%S")
+                    metadata=obj.last_modified.strftime("%Y-%m-%d %H:%M:%S"),
                 )
                 document_instance.save()
                 add_index_for_document.delay(document_instance.id, temp_file.name)

@@ -1,10 +1,12 @@
 import logging
-from func_timeout import func_set_timeout
-import clickhouse_connect
 from typing import Optional
-from services.text2SQL.base import DataBase
-from llama_index.prompts.base import Prompt
+
+import clickhouse_connect
+from func_timeout import func_set_timeout
 from langchain.llms.base import BaseLLM
+from llama_index.prompts.base import Prompt
+
+from services.text2SQL.base import DataBase
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +55,11 @@ class Clickhouse(DataBase):
         self.db = db
 
     def connect(
-            self,
-            verify: Optional[bool] = False,
-            ca_cert: Optional[str] = None,
-            client_key: Optional[str] = None,
-            client_cert: Optional[str] = None,
+        self,
+        verify: Optional[bool] = False,
+        ca_cert: Optional[str] = None,
+        client_key: Optional[str] = None,
+        client_cert: Optional[str] = None,
     ):
         kwargs = {
             "verify": verify,

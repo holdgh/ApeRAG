@@ -1,17 +1,20 @@
 import re
-import PIL.Image
-from PIL import Image
 from pathlib import Path
-from llama_index.readers.base import BaseReader
 from typing import Callable, Dict, Generator, List, Optional, Type
+
+import PIL.Image
+from llama_index.readers.base import BaseReader
 from llama_index.schema import Document, ImageDocument
+from PIL import Image
 
 
 def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
-    from transformers import BlipProcessor, BlipForConditionalGeneration
+    from transformers import BlipForConditionalGeneration, BlipProcessor
 
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+    model = BlipForConditionalGeneration.from_pretrained(
+        "Salesforce/blip-image-captioning-base"
+    )
 
     inputs = processor(image, ctx, return_tensors="pt")
     out = model.generate(**inputs)
@@ -21,8 +24,12 @@ def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
 
 def read_image_text(image: PIL.Image.Image) -> str:
     import torch
-    from transformers import DonutProcessor, VisionEncoderDecoderModel
-    from transformers import ViTImageProcessor, AutoTokenizer
+    from transformers import (
+        AutoTokenizer,
+        DonutProcessor,
+        VisionEncoderDecoderModel,
+        ViTImageProcessor,
+    )
 
     processor = DonutProcessor.from_pretrained(
         "naver-clova-ix/donut-base-finetuned-cord-v2"
@@ -63,7 +70,7 @@ def read_image_text(image: PIL.Image.Image) -> str:
     text_str = re.sub(r"<.*?>", "", sequence, count=0).strip()
     return text_str
 
-    '''
+    """
     model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
     processor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
     tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
@@ -85,22 +92,23 @@ def read_image_text(image: PIL.Image.Image) -> str:
     # remove first task start token
     text_str = re.sub(r"<.*?>", "", sequence, count=0).strip()
     return text_str
-    '''
+    """
 
 
 class ComposeImageReader(BaseReader):
-
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
-        from PIL import Image
         from llama_index.img_utils import img_2_b64
+        from PIL import Image
 
-        image = Image.open(file).convert('RGB')
+        image = Image.open(file).convert("RGB")
         text = read_image_text(image)
-        #meaning = read_image_meaning(image, text)
+        # meaning = read_image_meaning(image, text)
         meaning = ""
         image_bytes = img_2_b64(image)
-        return [ImageDocument(text="%s\n%s" % (text, meaning), image=image_bytes, metadata=metadata or {})]
-
-
-
-
+        return [
+            ImageDocument(
+                text="%s\n%s" % (text, meaning),
+                image=image_bytes,
+                metadata=metadata or {},
+            )
+        ]

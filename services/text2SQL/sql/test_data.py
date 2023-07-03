@@ -1,5 +1,6 @@
 import sys
-from sqlalchemy import create_engine, MetaData, Table, String, Column, Integer, insert
+
+from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine, insert
 
 
 def add_testdata_to_mysql(pwd):

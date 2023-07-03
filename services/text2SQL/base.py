@@ -1,22 +1,22 @@
-from llama_index.langchain_helpers.chain_wrapper import LLMPredictor
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Optional
-from llama_index import Prompt
-from langchain.llms.base import BaseLLM
-from abc import ABC
+
 from langchain import OpenAI
+from langchain.llms.base import BaseLLM
+from llama_index import Prompt
+from llama_index.langchain_helpers.chain_wrapper import LLMPredictor
 
 
 class DataBase(ABC):
     def __init__(
-            self,
-            host: str,
-            port: int,
-            user: str,
-            pwd: str,
-            prompt: Prompt,
-            db_type: str,
-            llm: Optional[BaseLLM] = None,
+        self,
+        host: str,
+        port: int,
+        user: str,
+        pwd: str,
+        prompt: Prompt,
+        db_type: str,
+        llm: Optional[BaseLLM] = None,
     ):
         self.host = host
         self.port = port
@@ -28,19 +28,24 @@ class DataBase(ABC):
         self.schema = None
 
         if llm is None:
-            self.llm = OpenAI(temperature=0, model_name="text-davinci-003", max_tokens=-1, streaming=True)
+            self.llm = OpenAI(
+                temperature=0,
+                model_name="text-davinci-003",
+                max_tokens=-1,
+                streaming=True,
+            )
         else:
             self.llm = llm
         self.llm_predict = LLMPredictor(llm=self.llm)
 
     @abstractmethod
     def connect(
-            self,
-            verify: Optional[bool] = False,
-            ca_cert: Optional[str] = None,
-            client_key: Optional[str] = None,
-            client_cert: Optional[str] = None,
-            test_only: Optional[bool] = True,
+        self,
+        verify: Optional[bool] = False,
+        ca_cert: Optional[str] = None,
+        client_key: Optional[str] = None,
+        client_cert: Optional[str] = None,
+        test_only: Optional[bool] = True,
     ) -> bool:
         pass
 
@@ -59,4 +64,3 @@ class DataBase(ABC):
     @abstractmethod
     def _generate_schema(self):
         pass
-

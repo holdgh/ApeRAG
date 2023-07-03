@@ -5,10 +5,7 @@ from chromadb.config import Settings
 from llama_index.embeddings import google
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
-from query.query import (
-    QueryWithEmbedding,
-    QueryResult
-)
+from query.query import QueryResult, QueryWithEmbedding
 from vectorstore.base import VectorStoreConnector
 
 

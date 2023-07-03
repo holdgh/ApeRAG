@@ -1,9 +1,12 @@
 import json
-from .base_consumer import BaseConsumer
-from kubechat.utils.db import query_collection, new_db_client
-from kubechat.utils.utils import extract_database_and_execute
 from typing import Generator
+
 from sqlalchemy import Row
+
+from kubechat.utils.db import new_db_client, query_collection
+from kubechat.utils.utils import extract_database_and_execute
+
+from .base_consumer import BaseConsumer
 
 
 class Text2SQLConsumer(BaseConsumer):
@@ -11,17 +14,16 @@ class Text2SQLConsumer(BaseConsumer):
         super().connect()
         collection = query_collection(self.user, self.collection_id)
         config = json.loads(collection.config)
-        database, execute_at_once = extract_database_and_execute(self.scope["query_string"].decode(), config["db_type"])
+        database, execute_at_once = extract_database_and_execute(
+            self.scope["query_string"].decode(), config["db_type"]
+        )
 
         if database is not None:
             config["db_name"] = database
 
         self.client = new_db_client(config)
         self.execute_at_once = execute_at_once
-        if not self.client.connect(
-            False,
-            test_only=False
-        ):
+        if not self.client.connect(False, test_only=False):
             raise Exception("can not connect to db")
 
     def predict(self, query):
@@ -43,7 +45,7 @@ class Text2SQLConsumer(BaseConsumer):
                 yield str(tokens)
         else:
             # TODO: temporarily format
-            if not hasattr(response, '__iter__'):
+            if not hasattr(response, "__iter__"):
                 yield "true" if response > 0 else "false"
             for tokens in response:
                 if isinstance(tokens, Row):
@@ -52,4 +54,3 @@ class Text2SQLConsumer(BaseConsumer):
                         t += str(i) + ":" + str(dict(tokens._mapping)[i]) + " "
                     tokens = t
                 yield str(tokens) + "\n"
-

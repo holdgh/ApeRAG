@@ -2,17 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import List
 from functools import cache
+from typing import List
+
 from transformers import (
     AutoModel,
     AutoModelForCausalLM,
     AutoTokenizer,
-    LlamaTokenizer,
     BitsAndBytesConfig,
+    LlamaTokenizer,
 )
-from configs.model_config import DEVICE
+
 from configs.config import Config
+from configs.model_config import DEVICE
 
 CFG = Config()
 

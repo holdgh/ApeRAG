@@ -3,7 +3,10 @@ from datetime import datetime
 
 
 def extract_collection_and_chat_id(path: str):
-    match = re.match(r"/api/v1/collections/(?P<collection_id>\w+)/chats/(?P<chat_id>\w+)/connect$", path)
+    match = re.match(
+        r"/api/v1/collections/(?P<collection_id>\w+)/chats/(?P<chat_id>\w+)/connect$",
+        path,
+    )
     if match:
         return match.group("collection_id"), match.group("chat_id")
     else:
@@ -35,5 +38,4 @@ def now_unix_milliseconds():
 
 
 def generate_vector_db_collection_id(user, collection) -> str:
-    return str(user).replace('|', '-') + "-" + str(collection)
-
+    return str(user).replace("|", "-") + "-" + str(collection)
