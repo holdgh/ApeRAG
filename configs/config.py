@@ -2,11 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import List
 
-from auto_gpt_plugin_template import AutoGPTPluginTemplate
-
-from common.sql_database import Database
 from utils.singleton import Singleton
 
 
