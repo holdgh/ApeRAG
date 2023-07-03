@@ -68,7 +68,7 @@ export default () => {
       dataIndex: 'name',
       render: (_value, record) => {
         return (
-          <Tooltip placement='left' title={record.name}>
+          <Tooltip placement="left" title={record.name}>
             <Typography.Text style={{ maxWidth: 300 }} ellipsis={true}>
               {record.name}
             </Typography.Text>
@@ -83,7 +83,9 @@ export default () => {
       render: (_value, record) => {
         return (
           <Typography.Text type="secondary" ellipsis={true}>
-            {record.name.substring(record.name.lastIndexOf('.') + 1).toUpperCase()}
+            {record.name
+              .substring(record.name.lastIndexOf('.') + 1)
+              .toUpperCase()}
           </Typography.Text>
         );
       },

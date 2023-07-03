@@ -30,7 +30,9 @@ export default ({ loading, onExecute, status }: Props) => {
           return (
             <MessageItem
               onExecute={onExecute}
-              loading={loading && key === messages.length - 1 && item.role === 'ai'}
+              loading={
+                loading && key === messages.length - 1 && item.role === 'ai'
+              }
               status={status}
               key={key}
               item={item}

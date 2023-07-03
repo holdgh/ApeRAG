@@ -1,8 +1,8 @@
+import { TypesSocketStatus } from '@/types';
 import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
-import { TypesSocketStatus } from '@/types';
 
 type Props = {
   loading: boolean;

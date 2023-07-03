@@ -45,7 +45,9 @@ export default () => {
                 >
                   {collection.description}
                 </Typography.Text>
-                <div style={{ margin: '30px 0', flex: 1, verticalAlign: 'middle' }}>
+                <div
+                  style={{ margin: '30px 0', flex: 1, verticalAlign: 'middle' }}
+                >
                   <Space
                     style={{ justifyContent: 'space-around', width: '100%' }}
                   >
@@ -62,7 +64,11 @@ export default () => {
                     />
                     <Divider type="vertical" style={{ height: 30 }} />
                     <Statistic
-                      title={collection.type === 'database' ? "DB Type" : "Document Source"}
+                      title={
+                        collection.type === 'database'
+                          ? 'DB Type'
+                          : 'Document Source'
+                      }
                       value={_.capitalize(
                         config.source || config.db_type || 'System',
                       )}

@@ -6,9 +6,9 @@ import type {
 } from '@/types';
 import { useModel, useParams } from '@umijs/max';
 import { Card, Form } from 'antd';
+import _ from 'lodash';
 import { useEffect } from 'react';
 import CollectionForm from './form';
-import _ from 'lodash';
 
 export default () => {
   const [form] = Form.useForm();
@@ -47,8 +47,11 @@ export default () => {
   };
 
   useEffect(() => {
-    if(collection?.type === "document" && _.isEmpty(collection?.config)) {
-      form.setFieldsValue({...collection, config: DOCUMENT_DEFAULT_CONFIG.config});
+    if (collection?.type === 'document' && _.isEmpty(collection?.config)) {
+      form.setFieldsValue({
+        ...collection,
+        config: DOCUMENT_DEFAULT_CONFIG.config,
+      });
     } else {
       form.setFieldsValue(collection);
     }

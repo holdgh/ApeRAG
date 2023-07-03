@@ -140,10 +140,10 @@ export default () => {
   }, [socketParams]);
 
   useEffect(() => {
-    if(SOCKET_STATUS_MAP[readyState] !== 'Open') {
+    if (SOCKET_STATUS_MAP[readyState] !== 'Open') {
       setLoading(false);
     }
-  }, [readyState])
+  }, [readyState]);
 
   useEffect(() => {
     if (_.isEmpty(lastJsonMessage)) return;
@@ -178,7 +178,7 @@ export default () => {
       const message: TypesMessage = {
         ...msg,
         role: 'ai',
-        _typeWriter: true
+        _typeWriter: true,
       };
       if (msg.type === 'start') {
         setLoading(true);

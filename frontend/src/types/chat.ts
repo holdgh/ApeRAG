@@ -16,7 +16,7 @@ export type TypesMessageReferences = {
 };
 
 export type TypesMessage = {
-  id?: string,
+  id?: string;
   type?: TypesMessageType;
   role?: TypesMessageRole;
   data?: string;

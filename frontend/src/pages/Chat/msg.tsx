@@ -25,14 +25,13 @@ type Props = {
   item: TypesMessage;
   loading: boolean;
   status: TypesSocketStatus;
-  typeWriter: boolean;
   onExecute: (msg: TypesMessage) => void;
 };
 
 const TYPE_WRITER_SPEED = 40;
 
 export default ({ item, loading, onExecute = () => {} }: Props) => {
-  const [realText, setRealText] = useState<string>('');
+  const [runtimeText, setRuntimeText] = useState<string>('');
   const [displayText, setDisplayText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const user = getUser();
@@ -59,15 +58,20 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
 
   const renderContent = () => {
     const customStyle = {
-      padding:0,
+      padding: 0,
       fontFamily: 'inherit',
       fontSize: 'inherit',
       margin: 0,
       lineHeight: 'inherit',
-    }
+    };
     if (item.type === 'sql') {
       return (
-        <SyntaxHighlighter style={dark} language="sql" PreTag="div" customStyle={customStyle}>
+        <SyntaxHighlighter
+          style={dark}
+          language="sql"
+          PreTag="div"
+          customStyle={customStyle}
+        >
           {String(displayText).replace(/\n$/, '')}
         </SyntaxHighlighter>
       );
@@ -122,25 +126,26 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
     );
   };
 
-
   const typingWriter = () => {
-    setDisplayText(s => {
-      const distance = Math.ceil((realText.length - displayText.length) / 10);
+    setDisplayText((s) => {
+      const distance = Math.ceil(
+        (runtimeText.length - displayText.length) / 10,
+      );
       const fromIndex = displayText.length;
       const toIndex = fromIndex + distance;
-      const nextChar = realText.substring(fromIndex, toIndex);
+      const nextChar = runtimeText.substring(fromIndex, toIndex);
       return s + nextChar;
     });
   };
 
   useEffect(() => {
     let data = (item.data || '').replace(/^\n*/, '');
-    if (item._typeWriter) {
-      setRealText(data);
-    } else {
+    if (!loading || !item._typeWriter) {
       setDisplayText(data);
+    } else {
+      setRuntimeText(data);
     }
-  }, [item]);
+  }, [item, loading]);
 
   return (
     <div
@@ -150,7 +155,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
         [styles.human]: item.role === 'human',
       })}
     >
-      {item._typeWriter ? (
+      {item._typeWriter && loading ? (
         <ReactInterval
           timeout={TYPE_WRITER_SPEED}
           enabled={true}
