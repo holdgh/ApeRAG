@@ -1,54 +1,47 @@
+import CollectionTitle from '@/components/CollectionTitle';
 import {
   DATABASE_EXECUTE_OPTIONS,
+  SOCKET_STATUS_MAP,
   hasDatabaseSelector,
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
-import type {
-  TypesMessage,
-  TypesMessageReferences,
-  TypesSocketStatus,
-} from '@/types';
+import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Radio, Select, Space } from 'antd';
+import { Form, Radio, Select, Space, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-import useWebSocket, { ReadyState } from 'react-use-websocket';
+import useWebSocket from 'react-use-websocket';
 import Chats from './chats';
 import Footer from './footer';
-import Header from './header';
 import styles from './index.less';
-
-const SocketStatusMap: { [key in ReadyState]: TypesSocketStatus } = {
-  [ReadyState.CONNECTING]: 'Connecting',
-  [ReadyState.OPEN]: 'Open',
-  [ReadyState.CLOSING]: 'Closing',
-  [ReadyState.CLOSED]: 'Closed',
-  [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-};
 
 type DbChatFormFields = { [key in string]: string | undefined };
 
 export default () => {
   // const { message } = App.useApp();
 
-  // Is the socket already connected and the data stream in the loading state
+  // the data stream in the loading state
   const [loading, setLoading] = useState<boolean>(false);
 
-  // WebSocket url
+  // websocket url
   const [socketUrl, setSocketUrl] = useState<string>('');
 
-  // WebSocket params
+  // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
 
-  // initialState.collapsed for mobile adaptation
+  // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
 
-  // login user
+  // login user;
   const user = getUser();
 
+  // theme tokens;
+  const { token } = theme.useToken();
+
+  // collection model data;
   const {
     currentCollection,
     currentChat,
@@ -70,6 +63,8 @@ export default () => {
       reconnectAttempts: 5,
     },
   );
+
+  // db form instance;
   const [dbSelectorForm] = Form.useForm();
 
   const showSelector = hasDatabaseSelector(currentCollection);
@@ -90,8 +85,7 @@ export default () => {
     setSocketUrl(url);
   };
 
-  const onExecuteSQL = async (msg?: TypesMessage) => {
-    if (msg?.type !== 'sql') return;
+  const onExecute = async (msg: TypesMessage) => {
     sendJsonMessage(msg);
   };
 
@@ -123,16 +117,14 @@ export default () => {
   };
 
   useEffect(() => {
-    setLoading(SocketStatusMap[readyState] !== 'Open');
-  }, [readyState]);
-
-  useEffect(() => {
-    if (currentDatabase) {
+    if (!_.isEmpty(currentDatabase)) {
       const values = {
         database: _.first(currentDatabase),
         execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
       };
       setSocketParams(values);
+    } else {
+      setSocketParams({});
     }
   }, [currentDatabase]);
 
@@ -141,11 +133,17 @@ export default () => {
   }, [currentCollection, currentChat]);
 
   useEffect(() => {
-    if (_.isEmpty(socketParams)) {
+    if (!_.isEmpty(socketParams)) {
       dbSelectorForm.setFieldsValue(socketParams);
       updateSocketUrl();
     }
   }, [socketParams]);
+
+  useEffect(() => {
+    if(SOCKET_STATUS_MAP[readyState] !== 'Open') {
+      setLoading(false);
+    }
+  }, [readyState])
 
   useEffect(() => {
     if (_.isEmpty(lastJsonMessage)) return;
@@ -204,9 +202,18 @@ export default () => {
               [styles.mobile]: isMobile,
             })}
           >
-            <Header
-              extra={
-                currentCollection?.type === 'database' ? (
+            <div
+              className={styles.header}
+              style={{
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              }}
+            >
+              <Space
+                style={{ display: 'flex', justifyContent: 'space-between' }}
+                align="center"
+              >
+                <CollectionTitle collection={currentCollection} />
+                {currentCollection?.type === 'database' ? (
                   <Space>
                     <Form
                       form={dbSelectorForm}
@@ -231,15 +238,20 @@ export default () => {
                       </Form.Item>
                     </Form>
                   </Space>
-                ) : null
-              }
-            />
+                ) : null}
+              </Space>
+            </div>
             <Chats
               loading={loading}
-              onExecuteSQL={onExecuteSQL}
-              status={SocketStatusMap[readyState]}
+              status={SOCKET_STATUS_MAP[readyState]}
+              onExecute={onExecute}
             />
-            <Footer loading={loading} onSubmit={onSubmit} onClear={onClear} />
+            <Footer
+              status={SOCKET_STATUS_MAP[readyState]}
+              loading={loading}
+              onSubmit={onSubmit}
+              onClear={onClear}
+            />
           </div>
         );
       }}

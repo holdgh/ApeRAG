@@ -23,7 +23,9 @@ import type {
   TypesDocumentConfig,
   TypesDocumentConfigSourceOption,
   TypesMessage,
+  TypesSocketStatus,
 } from '@/types';
+import { ReadyState } from 'react-use-websocket';
 
 export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',
@@ -112,6 +114,14 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   },
 ];
 
+export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
+  [ReadyState.CONNECTING]: 'Connecting',
+  [ReadyState.OPEN]: 'Open',
+  [ReadyState.CLOSING]: 'Closing',
+  [ReadyState.CLOSED]: 'Closed',
+  [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+};
+
 export const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
   const config: TypesDatabaseConfig = {};
   const whiteList = DATABASE_TYPE_OPTIONS.filter(
@@ -176,7 +186,7 @@ export default () => {
     if (!currentCollection?.id) return;
     if (hasDatabaseSelector(currentCollection)) {
       const { data } = await GetCollectionDatabase(currentCollection.id);
-      _setCurrentDatabase(data);
+      _setCurrentDatabase(data || []);
     }
   };
 

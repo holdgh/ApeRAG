@@ -6,14 +6,13 @@ import styles from './index.less';
 import MessageItem from './msg';
 
 type Props = {
-  // status: TypesSocketStatus;
+  status: TypesSocketStatus;
   loading: boolean;
-  onExecuteSQL: (msg?: TypesMessage) => void;
+  onExecute: (msg: TypesMessage) => void;
 };
 
-export default ({ loading, onExecuteSQL }: Props) => {
+export default ({ loading, onExecute, status }: Props) => {
   const { currentChat } = useModel('collection');
-
   const messages = currentChat?.history || [];
 
   useEffect(() => {
@@ -28,11 +27,11 @@ export default ({ loading, onExecuteSQL }: Props) => {
     <div id="chat-content" className={styles.content}>
       <div className={styles.wrap}>
         {messages.map((item, key) => {
-          const isAiLast = item.role === 'ai' && key === messages.length - 1
           return (
             <MessageItem
-              onExecuteSQL={onExecuteSQL}
-              loading={isAiLast && loading}
+              onExecute={onExecute}
+              loading={loading && key === messages.length - 1 && item.role === 'ai'}
+              status={status}
               key={key}
               item={item}
             />

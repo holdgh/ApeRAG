@@ -1,45 +1,31 @@
 import ChatRobot from '@/assets/chatbot.png';
 import { getUser } from '@/models/user';
-import type { TypesMessage } from '@/types';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import {
   LinkOutlined,
   LoadingOutlined,
-  PlayCircleFilled,
   RobotOutlined,
 } from '@ant-design/icons';
-import {
-  Avatar,
-  Badge,
-  Button,
-  Divider,
-  Drawer,
-  Space,
-  Typography,
-  theme,
-} from 'antd';
+import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
-import { useTypewriter } from 'react-simple-typewriter';
 
 type Props = {
   item: TypesMessage;
   loading: boolean;
-  onExecuteSQL: (msg?: TypesMessage) => void;
+  status: TypesSocketStatus;
+  onExecute: (msg: TypesMessage) => void;
 };
 
-export default ({
-  item,
-  loading,
-  onExecuteSQL = () => {},
-}: Props) => {
+export default ({ item, loading, status, onExecute = () => {} }: Props) => {
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const user = getUser();
   const { token } = theme.useToken();
@@ -47,14 +33,8 @@ export default ({
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
 
   let displayText = (item.data || '').replace(/^\n*/, '');
-  const [animateText, helper] = useTypewriter({
-    words: [displayText],
-    typeSpeed: 40,
-    loop: 1,
-  });
-
-  if (loading && helper.isType) {
-    displayText = animateText;
+  if (item.type === 'sql') {
+    displayText = '```sql\n' + displayText + '\n```';
   }
 
   const renderAvatar = () => {
@@ -75,10 +55,6 @@ export default ({
   };
 
   const renderContent = () => {
-    if (item.type === 'sql') {
-      displayText = '```sql\n' + displayText + '\n```';
-    }
-
     const Markdown = (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -87,11 +63,7 @@ export default ({
           code({ inline, className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             return !inline && match ? (
-              <SyntaxHighlighter
-                style={dark}
-                language={match[1]}
-                PreTag="div"
-              >
+              <SyntaxHighlighter style={dark} language={match[1]} PreTag="div">
                 {String(children).replace(/\n$/, '')}
               </SyntaxHighlighter>
             ) : (
@@ -159,16 +131,16 @@ export default ({
           <Space split={<Divider type="vertical" />}>
             <div>{moment(item.timestamp).format('llll')}</div>
             {renderReferences()}
-          </Space>
-          {item.type === 'sql' ? (
-            <Button
-              disabled={!loading}
-              onClick={() => onExecuteSQL(item)}
-              type="text"
-              size="small"
-              icon={<PlayCircleFilled />}
-            />
+            {item.type === 'sql' ? (
+            <Typography.Link
+              style={{ fontSize: 12 }}
+              onClick={() => onExecute(item)}
+            >
+              Execute
+            </Typography.Link>
           ) : null}
+          </Space>
+          
         </Space>
       </div>
       <Drawer
