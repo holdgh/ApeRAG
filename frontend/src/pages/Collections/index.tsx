@@ -1,5 +1,4 @@
 import CollectionTitle from '@/components/CollectionTitle';
-import { getCollectionUrl, parseCollectionConfig } from '@/models/collection';
 import { PageContainer } from '@ant-design/pro-components';
 import { Link, history, useModel } from '@umijs/max';
 import {
@@ -17,7 +16,12 @@ import {
 import _ from 'lodash';
 
 export default () => {
-  const { collections, setCurrentCollection } = useModel('collection');
+  const {
+    collections,
+    setCurrentCollection,
+    getCollectionUrl,
+    parseCollectionConfig,
+  } = useModel('collection');
   const { token } = theme.useToken();
 
   return (
@@ -50,6 +54,7 @@ export default () => {
                 >
                   <Space
                     style={{ justifyContent: 'space-around', width: '100%' }}
+                    split={<Divider type="vertical" style={{ height: 30 }} />}
                   >
                     <Statistic
                       title="Status"
@@ -62,7 +67,6 @@ export default () => {
                             : token.colorWarning,
                       }}
                     />
-                    <Divider type="vertical" style={{ height: 30 }} />
                     <Statistic
                       title={
                         collection.type === 'database'
@@ -74,12 +78,12 @@ export default () => {
                       )}
                       valueStyle={{ fontSize: 16 }}
                     />
-                    <Divider type="vertical" style={{ height: 30 }} />
-                    <Statistic
+                    { collection?.type === 'document' && config.source === 'system' ? <Statistic
                       title="Documents"
                       value={12}
                       valueStyle={{ fontSize: 16 }}
-                    />
+                    /> : null }
+                    
                   </Space>
                 </div>
                 <div style={{ textAlign: 'center' }}>

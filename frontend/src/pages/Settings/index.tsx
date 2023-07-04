@@ -1,12 +1,14 @@
 import CheckedCard from '@/components/CheckedCard';
 import { RobotOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
-import { Avatar, Button, Card, Form } from 'antd';
+import { Avatar, Button, Card, Form, theme } from 'antd';
 import { useEffect } from 'react';
+import ChatRobot from '@/assets/chatbot.png';
 
 export default () => {
   const [form] = Form.useForm();
   const onFinish = () => {};
+  const { token } = theme.useToken();
 
   useEffect(() => {
     form.setFieldValue('model', 'GPT-3.5');
@@ -17,7 +19,7 @@ export default () => {
       <Card bordered={false}>
         <Form onFinish={onFinish} size="large" form={form} layout="vertical">
           <Form.Item name="image" label="Image">
-            <Avatar size={60}>
+            <Avatar size={60} src={ChatRobot} style={{ background: token.volcano5 }}>
               <RobotOutlined style={{ fontSize: 24 }} />
             </Avatar>
           </Form.Item>
@@ -33,6 +35,7 @@ export default () => {
             ]}
           >
             <CheckedCard
+              disabled
               options={[
                 {
                   label: 'GPT-3.5',
@@ -48,7 +51,7 @@ export default () => {
             />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit">
+            <Button disabled type="primary" htmlType="submit">
               Update Bot
             </Button>
           </Form.Item>

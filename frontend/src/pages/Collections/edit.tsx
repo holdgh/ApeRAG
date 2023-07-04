@@ -1,4 +1,4 @@
-import { DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
+import { DATABASE_DEFAULT_CONFIG, DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
 import type {
   TypesCollection,
   TypesDatabaseConfig,
@@ -28,32 +28,30 @@ export default () => {
 
   const onValuesChange = (
     changedValues: TypesCollection,
-    allValues: TypesCollection,
   ) => {
     if (changedValues.type) {
       let config: TypesDocumentConfig & TypesDatabaseConfig = {};
-      if (allValues.config) {
-        try {
-          JSON.parse(allValues.config);
-        } catch (err) {}
-      }
       if (changedValues.type === 'database' && _.isEmpty(config.host)) {
-        form.setFieldValue('config', '');
+        form.setFieldValue('config', DATABASE_DEFAULT_CONFIG.config);
       }
       if (changedValues.type === 'document' && _.isEmpty(config.source)) {
-        form.setFieldValue('config', DOCUMENT_DEFAULT_CONFIG);
+        form.setFieldValue('config', DOCUMENT_DEFAULT_CONFIG.config);
       }
     }
   };
 
   useEffect(() => {
-    if (collection?.type === 'document' && _.isEmpty(collection?.config)) {
+    if (collection?.type === 'document') {
       form.setFieldsValue({
+        ...DOCUMENT_DEFAULT_CONFIG,
         ...collection,
-        config: DOCUMENT_DEFAULT_CONFIG.config,
       });
-    } else {
-      form.setFieldsValue(collection);
+    }
+    if (collection?.type === 'database') {
+      form.setFieldsValue({
+        ...DATABASE_DEFAULT_CONFIG,
+        ...collection,
+      });
     }
   }, [collection]);
 

@@ -2,7 +2,6 @@ import CollectionTitle from '@/components/CollectionTitle';
 import {
   DATABASE_EXECUTE_OPTIONS,
   SOCKET_STATUS_MAP,
-  hasDatabaseSelector,
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
@@ -31,6 +30,8 @@ export default () => {
 
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
+
+  const { hasDatabaseSelector } = useModel('collection');
 
   // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
