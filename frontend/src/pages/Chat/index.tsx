@@ -2,14 +2,13 @@ import CollectionTitle from '@/components/CollectionTitle';
 import {
   DATABASE_EXECUTE_OPTIONS,
   SOCKET_STATUS_MAP,
-  hasDatabaseSelector,
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Radio, Select, Space, theme } from 'antd';
+import { Form, Radio, Select, Space, Tag, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -31,6 +30,8 @@ export default () => {
 
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
+
+  const { hasDatabaseSelector } = useModel('collection');
 
   // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
@@ -215,7 +216,18 @@ export default () => {
                 style={{ display: 'flex', justifyContent: 'space-between' }}
                 align="center"
               >
-                <CollectionTitle collection={currentCollection} />
+                <Space>
+                  <CollectionTitle collection={currentCollection} />
+                  <Tag
+                    color={
+                      currentCollection?.status === 'ACTIVE'
+                        ? 'success'
+                        : 'error'
+                    }
+                  >
+                    {_.capitalize(currentCollection?.status)}
+                  </Tag>
+                </Space>
                 {currentCollection?.type === 'database' ? (
                   <Space>
                     <Form

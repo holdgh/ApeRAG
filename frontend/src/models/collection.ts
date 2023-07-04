@@ -27,6 +27,10 @@ import type {
 } from '@/types';
 import { ReadyState } from 'react-use-websocket';
 
+export const DATABASE_DEFAULT_CONFIG: TypesCollection = {
+  type: 'database',
+  config: '', // default is empty..
+};
 export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',
   config: '{"source": "system"}',
@@ -122,38 +126,6 @@ export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
   [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
 };
 
-export const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
-  const config: TypesDatabaseConfig = {};
-  const whiteList = DATABASE_TYPE_OPTIONS.filter(
-    (o) => o.showSelector === true,
-  ).map((o) => o.value);
-
-  try {
-    Object.assign(config, JSON.parse(collection?.config || '{}'));
-  } catch (err) {}
-  const isInWhiteList =
-    !!config.db_type &&
-    new RegExp(`^(${whiteList.join('|')})$`).test(config.db_type);
-  return isInWhiteList;
-};
-
-export const getCollectionUrl = (collection: TypesCollection): string => {
-  return `/collections/${collection.id}/${
-    collection.type === 'database' ? 'setting' : 'document'
-  }`;
-};
-
-export const parseCollectionConfig = (
-  collection: TypesCollection,
-): TypesDocumentConfig & TypesDatabaseConfig => {
-  const config = collection.config || '{}';
-  let result: TypesDocumentConfig & TypesDatabaseConfig = {};
-  try {
-    result = JSON.parse(config);
-  } catch (err) {}
-  return result;
-};
-
 export default () => {
   const [collections, _setCollections] = useState<TypesCollection[]>();
   const [currentCollection, _setCurrentCollection] =
@@ -161,6 +133,40 @@ export default () => {
   const [currentChat, _setCurrentChat] = useState<TypesChat>();
   const [currentDatabase, _setCurrentDatabase] = useState<string[]>();
   const { message } = App.useApp();
+
+  const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
+    const config: TypesDatabaseConfig = {};
+    const whiteList = DATABASE_TYPE_OPTIONS.filter(
+      (o) => o.showSelector === true,
+    ).map((o) => o.value);
+
+    try {
+      Object.assign(config, JSON.parse(collection?.config || '{}'));
+    } catch (err) {}
+    const isInWhiteList =
+      !!config.db_type &&
+      new RegExp(`^(${whiteList.join('|')})$`).test(config.db_type);
+    return isInWhiteList;
+  };
+
+  const getCollectionUrl = (collection: TypesCollection): string => {
+    return `/collections/${collection.id}/${
+      collection.type === 'database' ? 'setting' : 'document'
+    }`;
+  };
+
+  const parseCollectionConfig = (
+    collection?: TypesCollection,
+  ): TypesDocumentConfig & TypesDatabaseConfig => {
+    if (!collection) return {};
+
+    const config = collection.config || '{}';
+    let result: TypesDocumentConfig & TypesDatabaseConfig = {};
+    try {
+      result = JSON.parse(config);
+    } catch (err) {}
+    return result;
+  };
 
   const _createChat = async () => {
     if (!currentCollection?.id) return;
@@ -182,6 +188,7 @@ export default () => {
       await _createChat();
     }
   };
+
   const _getDatabase = async () => {
     if (!currentCollection?.id) return;
     if (hasDatabaseSelector(currentCollection)) {
@@ -281,6 +288,10 @@ export default () => {
     currentCollection,
     currentChat,
     currentDatabase,
+    hasDatabaseSelector,
+    getCollectionUrl,
+    parseCollectionConfig,
+
     setCurrentChatHistory,
     getCollections,
     getCollection,

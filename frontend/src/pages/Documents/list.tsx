@@ -4,18 +4,13 @@ import {
   GetCollectionDocuments,
 } from '@/services/documents';
 import type { TypesDocument } from '@/types';
-import {
-  DeleteOutlined,
-  InboxOutlined,
-  UploadOutlined,
-} from '@ant-design/icons';
-import { useParams } from '@umijs/max';
+import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import { useModel, useParams } from '@umijs/max';
 import {
   App,
   Button,
   Card,
   Input,
-  Modal,
   Space,
   Table,
   Tag,
@@ -34,10 +29,12 @@ export default () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchKey, setSearchKey] = useState<string | undefined>();
   const [documents, setDocuments] = useState<TypesDocument[] | undefined>();
-  const [uploadVisible, setUploadVisible] = useState<boolean>(false);
   const { collectionId } = useParams();
   const { modal, message } = App.useApp();
   const user = getUser();
+  const { getCollection, parseCollectionConfig } = useModel('collection');
+  const collection = getCollection(collectionId);
+  const config = parseCollectionConfig(collection);
 
   const dataSource = documents?.filter((d) =>
     new RegExp(searchKey || '').test(d.name),
@@ -149,6 +146,7 @@ export default () => {
     multiple: true,
     action: `/api/v1/collections/${collectionId}/documents`,
     data: {},
+    showUploadList: false,
     headers: {
       Authorization: 'Bearer ' + user?.__raw,
     },
@@ -181,18 +179,17 @@ export default () => {
             setSearchKey(e.currentTarget.value);
           }}
         />
-        <Space>
-          <Button disabled>Merge</Button>
-          <Button
-            type="primary"
-            onClick={() => {
-              setUploadVisible(true);
-            }}
-            icon={<UploadOutlined />}
-          >
-            Add Documents
-          </Button>
-        </Space>
+
+        {collection?.type === 'document' && config.source === 'system' ? (
+          <Space>
+            <Button disabled>Merge</Button>
+            <Upload {...uploadProps}>
+              <Button type="primary" icon={<UploadOutlined />}>
+                Add Documents
+              </Button>
+            </Upload>
+          </Space>
+        ) : null}
       </Space>
       <br />
       <br />
@@ -202,27 +199,6 @@ export default () => {
         columns={columns}
         dataSource={dataSource}
       />
-      <Modal
-        title="Upload Documents"
-        open={uploadVisible}
-        onCancel={() => {
-          setUploadVisible(false);
-        }}
-        footer={false}
-      >
-        <Upload.Dragger {...uploadProps}>
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <Typography.Paragraph type="secondary">
-            Click or drag file to this area to upload
-          </Typography.Paragraph>
-          <Typography.Paragraph type="secondary">
-            Support for a single or bulk upload. Strictly prohibited from
-            uploading company data or other banned files.
-          </Typography.Paragraph>
-        </Upload.Dragger>
-      </Modal>
     </Card>
   );
 };
