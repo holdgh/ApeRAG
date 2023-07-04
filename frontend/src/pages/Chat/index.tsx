@@ -1,60 +1,71 @@
+import CollectionTitle from '@/components/CollectionTitle';
 import {
   DATABASE_EXECUTE_OPTIONS,
+  SOCKET_STATUS_MAP,
   hasDatabaseSelector,
 } from '@/models/collection';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
-import type {
-  TypesMessage,
-  TypesMessageReferences,
-  TypesSocketStatus,
-} from '@/types';
+import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { App, Form, Radio, Select, Space } from 'antd';
+import { Form, Radio, Select, Space, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
-import useWebSocket, { ReadyState } from 'react-use-websocket';
+import useWebSocket from 'react-use-websocket';
 import Chats from './chats';
 import Footer from './footer';
-import Header from './header';
 import styles from './index.less';
-
-const SocketStatusMap: { [key in ReadyState]: TypesSocketStatus } = {
-  [ReadyState.CONNECTING]: 'Connecting',
-  [ReadyState.OPEN]: 'Open',
-  [ReadyState.CLOSING]: 'Closing',
-  [ReadyState.CLOSED]: 'Closed',
-  [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-};
 
 type DbChatFormFields = { [key in string]: string | undefined };
 
 export default () => {
+  // const { message } = App.useApp();
+
+  // the data stream in the loading state
   const [loading, setLoading] = useState<boolean>(false);
+
+  // websocket url
   const [socketUrl, setSocketUrl] = useState<string>('');
+
+  // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
+
+  // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
+
+  // login user;
+  const user = getUser();
+
+  // theme tokens;
+  const { token } = theme.useToken();
+
+  // collection model data;
   const {
     currentCollection,
     currentChat,
     currentDatabase,
-    setCurrentChatMessages,
+    setCurrentChatHistory,
   } = useModel('collection');
-  const { message } = App.useApp();
 
-  const user = getUser();
-  const messages = currentChat?.history || [];
+  // history list;
+  const historyMessages = currentChat?.history || [];
 
-  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {
-    share: true,
-    protocols: user?.__raw,
-    shouldReconnect: () => true,
-    reconnectInterval: 5000,
-    reconnectAttempts: 5,
-  });
-  const [paramsForm] = Form.useForm();
+  // web socket instance
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
+    socketUrl,
+    {
+      share: true,
+      protocols: user?.__raw,
+      shouldReconnect: () => true,
+      reconnectInterval: 5000,
+      reconnectAttempts: 5,
+    },
+  );
+
+  // db form instance;
+  const [dbSelectorForm] = Form.useForm();
 
   const showSelector = hasDatabaseSelector(currentCollection);
 
@@ -71,22 +82,11 @@ export default () => {
         url += `?${query.join('&')}`;
       }
     }
-
     setSocketUrl(url);
   };
 
-  const onExecuteSQL = async (msg?: TypesMessage) => {
-    if (msg?.type === 'sql') {
-      await setCurrentChatMessages(
-        messages.concat({
-          type: 'message',
-          role: 'ai',
-          data: '',
-        }),
-      );
-      await setLoading(true);
-      sendMessage(JSON.stringify(msg));
-    }
+  const onExecute = async (msg: TypesMessage) => {
+    sendJsonMessage(msg);
   };
 
   const onClear = async () => {
@@ -99,7 +99,7 @@ export default () => {
         history: [],
       },
     );
-    if (data.id) setCurrentChatMessages([]);
+    if (data.id) setCurrentChatHistory([]);
   };
 
   const onSubmit = async (data: string) => {
@@ -111,23 +111,20 @@ export default () => {
       data,
       timestamp,
     };
-    await setCurrentChatMessages(messages.concat(msg));
+    await setCurrentChatHistory(historyMessages.concat(msg));
     await setLoading(true);
-    sendMessage(JSON.stringify(msg));
+    sendJsonMessage(msg);
   };
 
   useEffect(() => {
-    setLoading(SocketStatusMap[readyState] !== 'Open');
-  }, [readyState]);
-
-  useEffect(() => {
-    if (currentDatabase) {
+    if (!_.isEmpty(currentDatabase)) {
       const values = {
         database: _.first(currentDatabase),
         execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
       };
       setSocketParams(values);
-      paramsForm.setFieldsValue(values);
+    } else {
+      setSocketParams({});
     }
   }, [currentDatabase]);
 
@@ -137,78 +134,64 @@ export default () => {
 
   useEffect(() => {
     if (!_.isEmpty(socketParams)) {
+      dbSelectorForm.setFieldsValue(socketParams);
       updateSocketUrl();
     }
   }, [socketParams]);
 
   useEffect(() => {
-    if (!lastMessage) return;
-    let msg: TypesMessage = {};
-    try {
-      msg = JSON.parse(lastMessage.data);
-    } catch (err) {}
+    if (SOCKET_STATUS_MAP[readyState] !== 'Open') {
+      setLoading(false);
+    }
+  }, [readyState]);
 
-    if (msg.type === 'error') {
-      if (msg.data) message.error(msg.data);
-      return;
+  useEffect(() => {
+    if (_.isEmpty(lastJsonMessage)) return;
+
+    let msg: TypesMessage = lastJsonMessage as TypesMessage;
+
+    let index = historyMessages.findLastIndex((m) => m.id === msg.id);
+    if (index === -1) {
+      index = 0;
     }
 
+    // message stream is error.
+    if (msg.type === 'error') {
+      setLoading(false);
+    }
+
+    // set history references when all stream has been received.
     if (msg.type === 'stop') {
       setLoading(false);
-      if (_.last(messages)?.role === 'ai') {
-        const references: TypesMessageReferences[] =
-          msg.data as unknown as TypesMessageReferences[];
-        if (msg.data) {
-          _.update(messages, messages.length - 1, (origin) => ({
-            ...origin,
-            references,
-          }));
-          setCurrentChatMessages(messages);
-        }
-      }
-
-      return;
-    }
-
-    if (_.includes(['sql', 'message'], msg.type) && msg.data) {
-      const message: TypesMessage = { ...msg, role: 'ai' };
-      let isAiLast = _.last(messages)?.role !== 'human';
-
-      if (isAiLast && loading) {
-        _.update(messages, messages.length - 1, (origin) => ({
-          ...message,
-          data: (origin?.data || '') + msg.data,
+      const references = msg.data as unknown as TypesMessageReferences[];
+      if (msg.data) {
+        _.update(historyMessages, index, (origin) => ({
+          ...origin,
+          references,
         }));
-      } else {
-        messages.push(message);
+        setCurrentChatHistory(historyMessages);
       }
-      setCurrentChatMessages(messages);
     }
-  }, [lastMessage]);
 
-  const DatabaseSelector = (
-    <Space>
-      <Form
-        form={paramsForm}
-        layout="inline"
-        onValuesChange={(changedValues, allValues) =>
-          setSocketParams(allValues)
-        }
-      >
-        {showSelector ? (
-          <Form.Item name="database">
-            <Select
-              style={{ width: 140 }}
-              options={currentDatabase?.map((d) => ({ label: d, value: d }))}
-            />
-          </Form.Item>
-        ) : null}
-        <Form.Item name="execute">
-          <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
-        </Form.Item>
-      </Form>
-    </Space>
-  );
+    // create a new message or update a old message.
+    if (_.includes(['start', 'sql', 'message'], msg.type)) {
+      const message: TypesMessage = {
+        ...msg,
+        role: 'ai',
+        _typeWriter: true,
+      };
+      if (msg.type === 'start') {
+        setLoading(true);
+        historyMessages.push(message);
+      } else {
+        _.update(historyMessages, index, (origin) => ({
+          ...message,
+          data: (origin?.data || '') + msg.data, // append new stream data
+        }));
+      }
+      setCurrentChatHistory(historyMessages);
+    }
+  }, [lastJsonMessage]);
 
   return (
     <RouteContext.Consumer>
@@ -222,17 +205,56 @@ export default () => {
               [styles.mobile]: isMobile,
             })}
           >
-            <Header
-              extra={
-                currentCollection?.type === 'database' ? DatabaseSelector : null
-              }
-            />
+            <div
+              className={styles.header}
+              style={{
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+              }}
+            >
+              <Space
+                style={{ display: 'flex', justifyContent: 'space-between' }}
+                align="center"
+              >
+                <CollectionTitle collection={currentCollection} />
+                {currentCollection?.type === 'database' ? (
+                  <Space>
+                    <Form
+                      form={dbSelectorForm}
+                      layout="inline"
+                      onValuesChange={(changedValues, allValues) =>
+                        setSocketParams(allValues)
+                      }
+                    >
+                      {showSelector ? (
+                        <Form.Item name="database">
+                          <Select
+                            style={{ width: 140 }}
+                            options={currentDatabase?.map((d) => ({
+                              label: d,
+                              value: d,
+                            }))}
+                          />
+                        </Form.Item>
+                      ) : null}
+                      <Form.Item name="execute">
+                        <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
+                      </Form.Item>
+                    </Form>
+                  </Space>
+                ) : null}
+              </Space>
+            </div>
             <Chats
               loading={loading}
-              onExecuteSQL={onExecuteSQL}
-              status={SocketStatusMap[readyState]}
+              status={SOCKET_STATUS_MAP[readyState]}
+              onExecute={onExecute}
             />
-            <Footer loading={loading} onSubmit={onSubmit} onClear={onClear} />
+            <Footer
+              status={SOCKET_STATUS_MAP[readyState]}
+              loading={loading}
+              onSubmit={onSubmit}
+              onClear={onClear}
+            />
           </div>
         );
       }}

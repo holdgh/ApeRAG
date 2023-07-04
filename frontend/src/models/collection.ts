@@ -20,9 +20,12 @@ import type {
   TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
   TypesDatabaseExecuteMethod,
+  TypesDocumentConfig,
   TypesDocumentConfigSourceOption,
   TypesMessage,
+  TypesSocketStatus,
 } from '@/types';
+import { ReadyState } from 'react-use-websocket';
 
 export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',
@@ -86,7 +89,7 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
 
 export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   {
-    label: 'Default',
+    label: 'System',
     value: 'system',
   },
   {
@@ -111,6 +114,14 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   },
 ];
 
+export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
+  [ReadyState.CONNECTING]: 'Connecting',
+  [ReadyState.OPEN]: 'Open',
+  [ReadyState.CLOSING]: 'Closing',
+  [ReadyState.CLOSED]: 'Closed',
+  [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+};
+
 export const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
   const config: TypesDatabaseConfig = {};
   const whiteList = DATABASE_TYPE_OPTIONS.filter(
@@ -132,16 +143,16 @@ export const getCollectionUrl = (collection: TypesCollection): string => {
   }`;
 };
 
-// export const parseCollectionConfig = (
-//   collection: TypesCollection,
-// ): TypesDocumentConfig & TypesDatabaseConfig => {
-//   const config = collection.config || '{}';
-//   let result: TypesDocumentConfig & TypesDatabaseConfig = {};
-//   try {
-//     result = JSON.parse(config);
-//   } catch (err) {}
-//   return result;
-// };
+export const parseCollectionConfig = (
+  collection: TypesCollection,
+): TypesDocumentConfig & TypesDatabaseConfig => {
+  const config = collection.config || '{}';
+  let result: TypesDocumentConfig & TypesDatabaseConfig = {};
+  try {
+    result = JSON.parse(config);
+  } catch (err) {}
+  return result;
+};
 
 export default () => {
   const [collections, _setCollections] = useState<TypesCollection[]>();
@@ -175,15 +186,15 @@ export default () => {
     if (!currentCollection?.id) return;
     if (hasDatabaseSelector(currentCollection)) {
       const { data } = await GetCollectionDatabase(currentCollection.id);
-      _setCurrentDatabase(data);
+      _setCurrentDatabase(data || []);
     }
   };
 
-  const setCurrentChatMessages = async (messages: TypesMessage[]) => {
+  const setCurrentChatHistory = async (data: TypesMessage[]) => {
     if (!currentChat) return;
     _setCurrentChat({
       ...currentChat,
-      history: messages,
+      history: data,
     });
   };
 
@@ -270,7 +281,7 @@ export default () => {
     currentCollection,
     currentChat,
     currentDatabase,
-    setCurrentChatMessages,
+    setCurrentChatHistory,
     getCollections,
     getCollection,
     createColection,

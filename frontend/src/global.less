@@ -2,6 +2,14 @@ body {
   background: #0a0a0a;
 }
 
+input:-internal-autofill-previewed,
+input:-internal-autofill-selected {
+  font-size: inherit;
+  font-family: inherit;
+  -webkit-text-fill-color: rgba(255, 255, 255, 85%);
+  transition: background-color 5000s ease-out 0.5s;
+}
+
 .ant-page-header {
   padding-block-start: 30px !important;
   padding-block-end: 0 !important;

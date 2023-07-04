@@ -19,6 +19,7 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
   Typography,
   Upload,
   UploadProps,
@@ -65,14 +66,26 @@ export default () => {
     {
       title: 'Name',
       dataIndex: 'name',
+      render: (_value, record) => {
+        return (
+          <Tooltip placement="left" title={record.name}>
+            <Typography.Text style={{ maxWidth: 300 }} ellipsis={true}>
+              {record.name}
+            </Typography.Text>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Type',
       dataIndex: 'type',
+      width: 80,
       render: (_value, record) => {
         return (
-          <Typography.Text type="secondary">
-            {record.name.substring(record.name.lastIndexOf('.') + 1).toUpperCase()}
+          <Typography.Text type="secondary" ellipsis={true}>
+            {record.name
+              .substring(record.name.lastIndexOf('.') + 1)
+              .toUpperCase()}
           </Typography.Text>
         );
       },
@@ -80,9 +93,10 @@ export default () => {
     {
       title: 'Size',
       dataIndex: 'size',
+      width: 100,
       render: (_value, record) => {
         return (
-          <Typography.Text type="secondary">
+          <Typography.Text type="secondary" ellipsis={true}>
             {byteSize(record.size || 0).toString()}
           </Typography.Text>
         );
@@ -91,6 +105,7 @@ export default () => {
     {
       title: 'Status',
       dataIndex: 'status',
+      width: 120,
       render: (_value, record) => {
         return (
           <Tag color={record.status === 'FAILED' ? 'error' : 'default'}>
@@ -101,9 +116,10 @@ export default () => {
     },
     {
       title: 'Created At',
+      width: 140,
       render: (_value, record) => {
         return (
-          <Typography.Text type="secondary">
+          <Typography.Text type="secondary" ellipsis={true}>
             {moment(record.created).fromNow()}
           </Typography.Text>
         );

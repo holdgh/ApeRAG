@@ -74,7 +74,7 @@ export type TypesDocumentConfigSourceOption = {
 
 export type TypesCollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
 
-export type TypesCollectionType = 'document' | 'database' | 'document_local';
+export type TypesCollectionType = 'document' | 'database';
 
 export type TypesCollection = {
   id?: string;

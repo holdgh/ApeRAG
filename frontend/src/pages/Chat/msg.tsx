@@ -1,66 +1,43 @@
 import ChatRobot from '@/assets/chatbot.png';
+import EllipsisAnimate from '@/components/EllipsisAnimate';
 import { getUser } from '@/models/user';
-import type { TypesMessage } from '@/types';
+import type { TypesMessage, TypesSocketStatus } from '@/types';
 import {
   LinkOutlined,
   LoadingOutlined,
-  PlayCircleFilled,
   RobotOutlined,
 } from '@ant-design/icons';
-import {
-  Avatar,
-  Badge,
-  Button,
-  Divider,
-  Drawer,
-  Space,
-  Typography,
-  theme,
-} from 'antd';
+import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
+import _ from 'lodash';
 import moment from 'moment';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import ReactInterval from 'react-interval';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus as dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
-import TypeIt from 'typeit-react';
 import styles from './index.less';
-import { useTypewriter } from 'react-simple-typewriter';
 
 type Props = {
   item: TypesMessage;
   loading: boolean;
-  disabled: boolean;
-  animate: boolean;
-  onExecuteSQL: (msg?: TypesMessage) => void;
+  status: TypesSocketStatus;
+  onExecute: (msg: TypesMessage) => void;
 };
 
-export default ({
-  item,
-  loading,
-  disabled = false,
-  animate = false,
-  onExecuteSQL = () => {},
-}: Props) => {
+const TYPE_WRITER_SPEED = 40;
+
+export default ({ item, loading, onExecute = () => {} }: Props) => {
+  const [runtimeText, setRuntimeText] = useState<string>('');
+  const [displayText, setDisplayText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
-
-  let displayText = (item.data || '').replace(/^\n*/, '');
-  const [animateText, helper] = useTypewriter({
-    words: [displayText],
-    typeSpeed: 40,
-    loop: 1,
-  });
-
-  if (animate && helper.isType) {
-    displayText = animateText;
-  }
 
   const renderAvatar = () => {
     const size = 50;
@@ -80,37 +57,53 @@ export default ({
   };
 
   const renderContent = () => {
+    const customStyle = {
+      padding: 0,
+      fontFamily: 'inherit',
+      fontSize: 'inherit',
+      margin: 0,
+      lineHeight: 'inherit',
+    };
     if (item.type === 'sql') {
-      displayText = '```sql\n' + displayText + '\n```';
+      return (
+        <SyntaxHighlighter
+          style={dark}
+          language="sql"
+          PreTag="div"
+          customStyle={customStyle}
+        >
+          {String(displayText).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      );
+    } else {
+      return (
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
+          components={{
+            code({ inline, className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || '');
+              return !inline && match ? (
+                <SyntaxHighlighter
+                  style={dark}
+                  customStyle={customStyle}
+                  language={match[1]}
+                  PreTag="div"
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              ) : (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            },
+          }}
+        >
+          {displayText}
+        </ReactMarkdown>
+      );
     }
-
-    const Markdown = (
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
-        components={{
-          code({ inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={dark}
-                language={match[1]}
-                PreTag="div"
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-        }}
-      >
-        {displayText}
-      </ReactMarkdown>
-    );
-    return Markdown;
   };
 
   const renderReferences = () => {
@@ -133,6 +126,27 @@ export default ({
     );
   };
 
+  const typingWriter = () => {
+    setDisplayText((s) => {
+      const distance = Math.ceil(
+        (runtimeText.length - displayText.length) / 10,
+      );
+      const fromIndex = displayText.length;
+      const toIndex = fromIndex + distance;
+      const nextChar = runtimeText.substring(fromIndex, toIndex);
+      return s + nextChar;
+    });
+  };
+
+  useEffect(() => {
+    let data = (item.data || '').replace(/^\n*/, '');
+    if (!loading || !item._typeWriter) {
+      setDisplayText(data);
+    } else {
+      setRuntimeText(data);
+    }
+  }, [item, loading]);
+
   return (
     <div
       className={classNames({
@@ -141,6 +155,13 @@ export default ({
         [styles.human]: item.role === 'human',
       })}
     >
+      {item._typeWriter && loading ? (
+        <ReactInterval
+          timeout={TYPE_WRITER_SPEED}
+          enabled={true}
+          callback={typingWriter}
+        />
+      ) : null}
       {renderAvatar()}
       <div
         className={classNames({
@@ -154,7 +175,11 @@ export default ({
           })}
           style={{ background: msgBgColor }}
         >
-          {renderContent()}
+          {_.isEmpty(displayText) && loading ? (
+            <EllipsisAnimate />
+          ) : (
+            renderContent()
+          )}
         </div>
         <Space
           className={styles.messageInfo}
@@ -164,16 +189,15 @@ export default ({
           <Space split={<Divider type="vertical" />}>
             <div>{moment(item.timestamp).format('llll')}</div>
             {renderReferences()}
+            {item.type === 'sql' && !loading ? (
+              <Typography.Link
+                style={{ fontSize: 12 }}
+                onClick={() => onExecute(item)}
+              >
+                Execute
+              </Typography.Link>
+            ) : null}
           </Space>
-          {item.type === 'sql' ? (
-            <Button
-              disabled={disabled}
-              onClick={() => onExecuteSQL(item)}
-              type="text"
-              size="small"
-              icon={<PlayCircleFilled />}
-            />
-          ) : null}
         </Space>
       </div>
       <Drawer
