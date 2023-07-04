@@ -123,6 +123,19 @@ export default ({
         </Form.Item>
       ) : null}
 
+        {collectionType === 'code' ? (
+        <Form.Item
+          name="config"
+          rules={[
+            {
+              required: true,
+              message: 'code config is required.',
+            },
+          ]}
+        >
+        </Form.Item>
+      ) : null}
+
       <Form.Item>
         <Button loading={collectionLoading} type="primary" htmlType="submit">
           {action === 'add' ? 'Create' : 'Save'}
