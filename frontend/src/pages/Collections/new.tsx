@@ -22,7 +22,7 @@ export default () => {
 
   const onFinish = async () => {
     const values = await form.getFieldsValue();
-    createColection(values);
+    await createColection(values);
   };
 
   const onValuesChange = (changedValues: TypesCollection) => {

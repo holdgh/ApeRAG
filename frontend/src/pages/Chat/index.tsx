@@ -8,7 +8,7 @@ import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Radio, Select, theme } from 'antd';
+import { Form, Select, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ import useWebSocket from 'react-use-websocket';
 import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
+import PageLoading from '@/components/PageLoading';
 
 type DbChatFormFields = { [key in string]: string | undefined };
 
@@ -31,7 +32,7 @@ export default () => {
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
 
-  const { hasDatabaseSelector } = useModel('collection');
+  const { hasDatabaseSelector, chatLoading } = useModel('collection');
 
   // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
@@ -212,7 +213,8 @@ export default () => {
                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
             >
-              <CollectionTitle status={true} collection={currentCollection} />
+              { isMobile ? null : <CollectionTitle status={true} collection={currentCollection} /> }
+              
               {currentCollection?.type === 'database' ? (
                 <Form
                   form={dbSelectorForm}
@@ -234,7 +236,7 @@ export default () => {
                     </Form.Item>
                   ) : null}
                   <Form.Item name="execute">
-                    <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
+                    <Select style={{ width: 180 }} options={DATABASE_EXECUTE_OPTIONS} />
                   </Form.Item>
                 </Form>
               ) : null}
@@ -250,6 +252,7 @@ export default () => {
               onSubmit={onSubmit}
               onClear={onClear}
             />
+            { chatLoading ? <PageLoading /> : null }
           </div>
         );
       }}

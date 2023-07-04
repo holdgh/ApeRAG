@@ -153,10 +153,13 @@ export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
 
 export default () => {
   const [collections, _setCollections] = useState<TypesCollection[]>();
-  const [currentCollection, _setCurrentCollection] =
-    useState<TypesCollection>();
+  const [currentCollection, _setCurrentCollection] = useState<TypesCollection>();
   const [currentChat, _setCurrentChat] = useState<TypesChat>();
   const [currentDatabase, _setCurrentDatabase] = useState<string[]>();
+
+  const [collectionLoading, _setCollectionLoading] = useState<boolean>(false);
+  const [chatLoading, _setChatLoading] = useState<boolean>(false);
+
   const { message } = App.useApp();
 
   const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
@@ -195,17 +198,26 @@ export default () => {
 
   const _createChat = async () => {
     if (!currentCollection?.id) return;
+    _setChatLoading(true);
     const { data } = await CreateCollectionChat(currentCollection.id);
+    _setChatLoading(false);
+
     _setCurrentChat(data);
   };
   const _getChat = async (id: string) => {
     if (!currentCollection?.id) return;
+
+    _setChatLoading(true);
     const { data } = await GetCollectionChat(currentCollection.id, id);
+    _setChatLoading(false);
+
     _setCurrentChat(data);
   };
   const _getChats = async () => {
     if (!currentCollection?.id) return;
+    _setChatLoading(true);
     const { data } = await GetCollectionChats(currentCollection.id);
+    _setChatLoading(false);
     const item = _.first(data);
     if (item) {
       _getChat(item.id);
@@ -230,18 +242,27 @@ export default () => {
     });
   };
 
+  // get collections
   const getCollections = async () => {
+    _setCollectionLoading(true);
     const { data } = await GetCollections();
+    _setCollectionLoading(false);
+
     _setCollections(data);
   };
 
+  // get collection by id
   const getCollection = (id?: string): TypesCollection | undefined => {
     if (!id) return;
     return collections?.find((c) => String(c.id) === String(id));
   };
 
+  // create a collection
   const createColection = async (params: TypesCollection) => {
+    _setCollectionLoading(true);
     const { data } = await CreateCollection(params);
+    _setCollectionLoading(false);
+
     if (data.id) {
       message.success('create success');
       _setCollections(collections?.concat(data));
@@ -251,11 +272,15 @@ export default () => {
     }
   };
 
+  // update a collection
   const updateCollection = async (
     collectionId: string,
     params: TypesCollection,
   ) => {
+    _setCollectionLoading(true);
     const { data } = await UpdateCollection(collectionId, params);
+    _setCollectionLoading(false);
+
     if (data.id) {
       message.success('update success');
       const index = collections?.findIndex(
@@ -313,6 +338,9 @@ export default () => {
     currentCollection,
     currentChat,
     currentDatabase,
+    collectionLoading,
+    chatLoading,
+
     hasDatabaseSelector,
     getCollectionUrl,
     parseCollectionConfig,
