@@ -4,25 +4,24 @@ metadata:
   annotations:
     kompose.cmd: kompose convert -f compose.yml -c -o deploy/kubechat
     kompose.version: 1.26.0 (40646f47)
-  creationTimestamp: null
   labels:
-    io.kompose.service: celerybeat
+    {{- include "kubechat.labels" . | nindent 4 }}
   name: celerybeat
 spec:
-  replicas: 1
+  replicas: {{ index .Values "celery-beat" "replicaCount" }}
   selector:
     matchLabels:
-      io.kompose.service: celerybeat
+      {{- include "kubechat.selectorLabels" . | nindent 6 }}
   strategy:
     type: Recreate
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
       annotations:
-        kompose.cmd: kompose convert -f compose.yml -c -o deploy/kubechat
-        kompose.version: 1.26.0 (40646f47)
-      creationTimestamp: null
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        io.kompose.service: celerybeat
+        {{- include "kubechat.selectorLabels" . | nindent 8 }}
     spec:
       containers:
         - args:
@@ -63,21 +62,6 @@ spec:
                 configMapKeyRef:
                   key: DJANGO_LOG_LEVEL
                   name: docker-env
-            - name: LIMIT_MODEL_CONCURRENCY
-              valueFrom:
-                configMapKeyRef:
-                  key: LIMIT_MODEL_CONCURRENCY
-                  name: docker-env
-            - name: LLM_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  key: LLM_MODEL
-                  name: docker-env
-            - name: MAX_POSITION_EMBEDDINGS
-              valueFrom:
-                configMapKeyRef:
-                  key: MAX_POSITION_EMBEDDINGS
-                  name: docker-env
             - name: MEMORY_REDIS_URL
               valueFrom:
                 configMapKeyRef:
@@ -113,21 +97,6 @@ spec:
                 configMapKeyRef:
                   key: POSTGRES_USER
                   name: docker-env
-            - name: PROXY_API_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: PROXY_API_KEY
-                  name: docker-env
-            - name: PROXY_SERVER_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: PROXY_SERVER_URL
-                  name: docker-env
-            - name: QUANTIZE_QLORA
-              valueFrom:
-                configMapKeyRef:
-                  key: QUANTIZE_QLORA
-                  name: docker-env
             - name: VECTOR_DB_CONTEXT
               valueFrom:
                 configMapKeyRef:
@@ -138,8 +107,9 @@ spec:
                 configMapKeyRef:
                   key: VECTOR_DB_TYPE
                   name: docker-env
-          image: apecloud/kubechat
+          image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celerybeat
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources: {}
       restartPolicy: Always
 status: {}

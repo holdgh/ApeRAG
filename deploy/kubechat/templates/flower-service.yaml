@@ -4,9 +4,8 @@ metadata:
   annotations:
     kompose.cmd: kompose convert -f compose.yml -c -o deploy/kubechat
     kompose.version: 1.26.0 (40646f47)
-  creationTimestamp: null
   labels:
-    io.kompose.service: flower
+    {{- include "kubechat.labels" . | nindent 4 }}
   name: flower
 spec:
   ports:
@@ -14,6 +13,6 @@ spec:
       port: 5555
       targetPort: 5555
   selector:
-    io.kompose.service: flower
+    {{- include "kubechat.selectorLabels" . | nindent 4 }}
 status:
   loadBalancer: {}
