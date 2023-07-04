@@ -25,6 +25,7 @@ jobs:
         env: 
           ENV_BASE64: ${{ secrets.FRONTEND_ENV_PRODUCTION }}
         run: |
+          echo $ENV_BASE64 | base64 -d
           echo $ENV_BASE64 | base64 -d > frontend/.env.production
 
       - name: Build Static
