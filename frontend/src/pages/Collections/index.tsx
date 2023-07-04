@@ -78,12 +78,13 @@ export default () => {
                       )}
                       valueStyle={{ fontSize: 16 }}
                     />
-                    { collection?.type === 'document' && config.source === 'system' ? <Statistic
-                      title="Documents"
-                      value={12}
-                      valueStyle={{ fontSize: 16 }}
-                    /> : null }
-                    
+                    {collection?.type === 'document' ? (
+                      <Statistic
+                        title="Documents"
+                        value="--"
+                        valueStyle={{ fontSize: 16 }}
+                      />
+                    ) : null}
                   </Space>
                 </div>
                 <div style={{ textAlign: 'center' }}>

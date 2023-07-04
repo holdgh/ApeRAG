@@ -4,12 +4,8 @@ import {
   GetCollectionDocuments,
 } from '@/services/documents';
 import type { TypesDocument } from '@/types';
-import {
-  DeleteOutlined,
-  UploadOutlined,
-} from '@ant-design/icons';
-import { useModel } from '@umijs/max';
-import { useParams } from '@umijs/max';
+import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
+import { useModel, useParams } from '@umijs/max';
 import {
   App,
   Button,
@@ -184,18 +180,16 @@ export default () => {
           }}
         />
 
-        { collection?.type === 'document' && config.source === 'system' ? <Space>
-          <Button disabled>Merge</Button>
-          <Upload {...uploadProps}>
-            <Button
-              type="primary"
-              icon={<UploadOutlined />}
-            >
-              Add Documents
-            </Button>
-          </Upload>
-        </Space> : null }
-        
+        {collection?.type === 'document' && config.source === 'system' ? (
+          <Space>
+            <Button disabled>Merge</Button>
+            <Upload {...uploadProps}>
+              <Button type="primary" icon={<UploadOutlined />}>
+                Add Documents
+              </Button>
+            </Upload>
+          </Space>
+        ) : null}
       </Space>
       <br />
       <br />

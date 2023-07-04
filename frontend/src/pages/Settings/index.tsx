@@ -1,9 +1,9 @@
+import ChatRobot from '@/assets/chatbot.png';
 import CheckedCard from '@/components/CheckedCard';
 import { RobotOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { Avatar, Button, Card, Form, theme } from 'antd';
 import { useEffect } from 'react';
-import ChatRobot from '@/assets/chatbot.png';
 
 export default () => {
   const [form] = Form.useForm();
@@ -19,7 +19,11 @@ export default () => {
       <Card bordered={false}>
         <Form onFinish={onFinish} size="large" form={form} layout="vertical">
           <Form.Item name="image" label="Image">
-            <Avatar size={60} src={ChatRobot} style={{ background: token.volcano5 }}>
+            <Avatar
+              size={60}
+              src={ChatRobot}
+              style={{ background: token.volcano5 }}
+            >
               <RobotOutlined style={{ fontSize: 24 }} />
             </Avatar>
           </Form.Item>

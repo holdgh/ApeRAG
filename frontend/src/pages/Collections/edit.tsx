@@ -1,4 +1,7 @@
-import { DATABASE_DEFAULT_CONFIG, DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
+import {
+  DATABASE_DEFAULT_CONFIG,
+  DOCUMENT_DEFAULT_CONFIG,
+} from '@/models/collection';
 import type {
   TypesCollection,
   TypesDatabaseConfig,
@@ -26,9 +29,7 @@ export default () => {
     });
   };
 
-  const onValuesChange = (
-    changedValues: TypesCollection,
-  ) => {
+  const onValuesChange = (changedValues: TypesCollection) => {
     if (changedValues.type) {
       let config: TypesDocumentConfig & TypesDatabaseConfig = {};
       if (changedValues.type === 'database' && _.isEmpty(config.host)) {

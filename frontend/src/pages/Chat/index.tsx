@@ -8,7 +8,7 @@ import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Radio, Select, Space, theme } from 'antd';
+import { Form, Radio, Select, Space, Tag, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -216,7 +216,18 @@ export default () => {
                 style={{ display: 'flex', justifyContent: 'space-between' }}
                 align="center"
               >
-                <CollectionTitle collection={currentCollection} />
+                <Space>
+                  <CollectionTitle collection={currentCollection} />
+                  <Tag
+                    color={
+                      currentCollection?.status === 'ACTIVE'
+                        ? 'success'
+                        : 'error'
+                    }
+                  >
+                    {_.capitalize(currentCollection?.status)}
+                  </Tag>
+                </Space>
                 {currentCollection?.type === 'database' ? (
                   <Space>
                     <Form

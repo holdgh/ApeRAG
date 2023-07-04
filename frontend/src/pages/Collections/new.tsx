@@ -4,7 +4,10 @@ import type {
   TypesDocumentConfig,
 } from '@/types';
 
-import { DATABASE_DEFAULT_CONFIG, DOCUMENT_DEFAULT_CONFIG } from '@/models/collection';
+import {
+  DATABASE_DEFAULT_CONFIG,
+  DOCUMENT_DEFAULT_CONFIG,
+} from '@/models/collection';
 
 import { PageContainer } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
@@ -22,9 +25,7 @@ export default () => {
     createColection(values);
   };
 
-  const onValuesChange = (
-    changedValues: TypesCollection,
-  ) => {
+  const onValuesChange = (changedValues: TypesCollection) => {
     if (changedValues.type) {
       let config: TypesDocumentConfig & TypesDatabaseConfig = {};
       if (changedValues.type === 'database' && _.isEmpty(config.host)) {

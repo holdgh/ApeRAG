@@ -139,7 +139,7 @@ export default () => {
     const whiteList = DATABASE_TYPE_OPTIONS.filter(
       (o) => o.showSelector === true,
     ).map((o) => o.value);
-  
+
     try {
       Object.assign(config, JSON.parse(collection?.config || '{}'));
     } catch (err) {}
@@ -148,18 +148,18 @@ export default () => {
       new RegExp(`^(${whiteList.join('|')})$`).test(config.db_type);
     return isInWhiteList;
   };
-  
+
   const getCollectionUrl = (collection: TypesCollection): string => {
     return `/collections/${collection.id}/${
       collection.type === 'database' ? 'setting' : 'document'
     }`;
   };
-  
+
   const parseCollectionConfig = (
     collection?: TypesCollection,
   ): TypesDocumentConfig & TypesDatabaseConfig => {
-    if(!collection) return {};
-  
+    if (!collection) return {};
+
     const config = collection.config || '{}';
     let result: TypesDocumentConfig & TypesDatabaseConfig = {};
     try {
@@ -188,7 +188,7 @@ export default () => {
       await _createChat();
     }
   };
-  
+
   const _getDatabase = async () => {
     if (!currentCollection?.id) return;
     if (hasDatabaseSelector(currentCollection)) {
@@ -291,7 +291,7 @@ export default () => {
     hasDatabaseSelector,
     getCollectionUrl,
     parseCollectionConfig,
-    
+
     setCurrentChatHistory,
     getCollections,
     getCollection,
