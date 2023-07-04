@@ -110,6 +110,7 @@ spec:
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celerybeat
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          resources: {}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       restartPolicy: Always
 status: {}

@@ -112,6 +112,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8000
-          resources: {}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       restartPolicy: Always
 status: {}
