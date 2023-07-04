@@ -12,14 +12,14 @@ type Props = {
 };
 
 export default ({ loading, onExecute, status }: Props) => {
-  const { currentChat } = useModel('collection');
+  const { currentChat } = useModel('chat');
   const messages = currentChat?.history || [];
 
   useEffect(() => {
     scroller.scrollTo('bottom', {
       containerId: 'chat-content',
       smooth: true,
-      duration: 800,
+      duration: 0,
     });
   }, [currentChat]);
 

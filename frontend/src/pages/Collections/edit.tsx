@@ -1,8 +1,4 @@
-import {
-  CODE_DEFAULT_CONFIG,
-  DATABASE_DEFAULT_CONFIG,
-  DOCUMENT_DEFAULT_CONFIG,
-} from '@/models/collection';
+
 import type {
   TypesCollection,
   TypesDatabaseConfig,
@@ -13,6 +9,7 @@ import { Card, Form } from 'antd';
 import _ from 'lodash';
 import { useEffect } from 'react';
 import CollectionForm from './form';
+import { CODE_DEFAULT_CONFIG, DATABASE_DEFAULT_CONFIG, DOCUMENT_DEFAULT_CONFIG } from '@/constants';
 
 export default () => {
   const [form] = Form.useForm();

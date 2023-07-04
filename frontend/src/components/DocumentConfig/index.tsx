@@ -1,4 +1,4 @@
-import { DOCUMENT_SOURCE_OPTIONS } from '@/models/collection';
+import { DOCUMENT_SOURCE_OPTIONS } from '@/constants';
 import type { TypesDocumentConfig } from '@/types';
 import { EditOutlined, SettingOutlined } from '@ant-design/icons';
 import {

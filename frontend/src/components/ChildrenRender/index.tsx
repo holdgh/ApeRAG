@@ -9,6 +9,7 @@ import { Button, Card, CardProps, Result, Typography, theme } from 'antd';
 import { useEffect } from 'react';
 import PageLoading from '../PageLoading';
 import './index.less';
+import { TransitionGroup, CSSTransition } from 'react-transition-group';
 
 export default (): React.ReactNode => {
   const { collections, getCollections } = useModel('collection');
@@ -109,7 +110,7 @@ export default (): React.ReactNode => {
 
   // return (
   //   <TransitionGroup component={null}>
-  //     <CSSTransition key={history.location.pathname} classNames="fade" timeout={5000}>
+  //     <CSSTransition key={history.location.pathname} classNames="fade" timeout={600}>
   //       <Outlet />
   //     </CSSTransition>
   //   </TransitionGroup>

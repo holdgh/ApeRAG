@@ -1,8 +1,6 @@
 import CollectionTitle from '@/components/CollectionTitle';
-import {
-  DATABASE_EXECUTE_OPTIONS,
-  SOCKET_STATUS_MAP,
-} from '@/models/collection';
+import PageLoading from '@/components/PageLoading';
+import { DATABASE_EXECUTE_OPTIONS, SOCKET_STATUS_MAP } from '@/constants';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
@@ -16,7 +14,6 @@ import useWebSocket from 'react-use-websocket';
 import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
-import PageLoading from '@/components/PageLoading';
 
 type DbChatFormFields = { [key in string]: string | undefined };
 
@@ -32,8 +29,6 @@ export default () => {
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
 
-  const { hasDatabaseSelector, chatLoading } = useModel('collection');
-
   // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
 
@@ -43,13 +38,10 @@ export default () => {
   // theme tokens;
   const { token } = theme.useToken();
 
-  // collection model data;
-  const {
-    currentCollection,
-    currentChat,
-    currentDatabase,
-    setCurrentChatHistory,
-  } = useModel('collection');
+  // model data;
+  const { hasDatabaseSelector, currentCollection } = useModel('collection');
+  const { currentDatabase } = useModel('database');
+  const { currentChat, chatLoading, setCurrentChatHistory } = useModel('chat');
 
   // history list;
   const historyMessages = currentChat?.history || [];
@@ -213,8 +205,10 @@ export default () => {
                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
             >
-              { isMobile ? null : <CollectionTitle status={true} collection={currentCollection} /> }
-              
+              {isMobile ? null : (
+                <CollectionTitle status={true} collection={currentCollection} />
+              )}
+
               {currentCollection?.type === 'database' ? (
                 <Form
                   form={dbSelectorForm}
@@ -236,7 +230,10 @@ export default () => {
                     </Form.Item>
                   ) : null}
                   <Form.Item name="execute">
-                    <Select style={{ width: 180 }} options={DATABASE_EXECUTE_OPTIONS} />
+                    <Select
+                      style={{ width: 180 }}
+                      options={DATABASE_EXECUTE_OPTIONS}
+                    />
                   </Form.Item>
                 </Form>
               ) : null}
@@ -252,7 +249,7 @@ export default () => {
               onSubmit={onSubmit}
               onClear={onClear}
             />
-            { chatLoading ? <PageLoading /> : null }
+            {chatLoading ? <PageLoading /> : null}
           </div>
         );
       }}

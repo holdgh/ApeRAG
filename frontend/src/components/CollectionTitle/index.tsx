@@ -1,8 +1,7 @@
+import { COLLECTION_STATUS_TAG_COLORS } from '@/constants';
 import type { TypesCollection } from '@/types';
 import { AppstoreFilled, ReadFilled } from '@ant-design/icons';
 import { Tag, Typography } from 'antd';
-
-import { COLLECTION_STATUS_TAG_COLORS } from '@/models/collection';
 import _ from 'lodash';
 import styles from './index.less';
 
