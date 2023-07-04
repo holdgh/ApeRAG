@@ -148,7 +148,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 # Auth0
 # Load Auth0 application settings into memory
 AUTH_ENABLED = env.bool("AUTH_ENABLED", default=True)
-AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat.jp.auth0.com")
+AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat-dev.jp.auth0.com")
 AUTH0_CLIENT_ID = env.str("AUTH0_CLIENT_ID", default="")
 
 

@@ -1,24 +1,23 @@
 apiVersion: v1
 data:
   AUTH_ENABLED: "False"
-  AUTH0_CLIENT_ID: G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2
-  AUTH0_DOMAIN: kubechat.jp.auth0.com
-  CELERY_BROKER_URL: redis://redis:6379/0
+  AUTH0_CLIENT_ID: wuYeG5UUnEyyoGDHbJSrLSaESwpg7T63
+  AUTH0_DOMAIN: kubechat-dev.jp.auth0.com
+  CELERY_BROKER_URL: redis://redis-redis:6379/0
   CELERY_FLOWER_PASSWORD: admin
   CELERY_FLOWER_USER: admin
   DJANGO_LOG_LEVEL: INFO
-  MEMORY_REDIS_URL: redis://redis:6379/1
+  MEMORY_REDIS_URL: redis://redis-redis:6379/1
   MODEL_SERVER: http://47.96.65.19:8000
   POSTGRES_DB: kubechat
-  POSTGRES_HOST: postgres
-  POSTGRES_PASSWORD: admin
+  POSTGRES_HOST: postgresql-postgresql
+  POSTGRES_PASSWORD: kwzrnhq5
   POSTGRES_PORT: "5432"
-  POSTGRES_USER: admin
-  VECTOR_DB_CONTEXT: '{"url":"http://qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+  POSTGRES_USER: postgres
+  VECTOR_DB_CONTEXT: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   VECTOR_DB_TYPE: qdrant
 kind: ConfigMap
 metadata:
-  creationTimestamp: null
   labels:
-    io.kompose.service: celerybeat-docker-env
+    {{- include "kubechat.labels" . | nindent 4 }}
   name: docker-env
