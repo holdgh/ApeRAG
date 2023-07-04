@@ -13,7 +13,7 @@ jobs:
     name: Deploy Front-End To CDN
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout ApeCloud
+      - name: Checkout KubeChat
         uses: actions/checkout@v3
 
       - name: Setup Node.js
