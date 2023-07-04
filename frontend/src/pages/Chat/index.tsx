@@ -8,7 +8,7 @@ import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Radio, Select, Space, Tag, theme } from 'antd';
+import { Form, Select, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ import useWebSocket from 'react-use-websocket';
 import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
+import PageLoading from '@/components/PageLoading';
 
 type DbChatFormFields = { [key in string]: string | undefined };
 
@@ -31,7 +32,7 @@ export default () => {
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
 
-  const { hasDatabaseSelector } = useModel('collection');
+  const { hasDatabaseSelector, chatLoading } = useModel('collection');
 
   // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
@@ -212,49 +213,33 @@ export default () => {
                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
             >
-              <Space
-                style={{ display: 'flex', justifyContent: 'space-between' }}
-                align="center"
-              >
-                <Space>
-                  <CollectionTitle collection={currentCollection} />
-                  <Tag
-                    color={
-                      currentCollection?.status === 'ACTIVE'
-                        ? 'success'
-                        : 'error'
-                    }
-                  >
-                    {_.capitalize(currentCollection?.status)}
-                  </Tag>
-                </Space>
-                {currentCollection?.type === 'database' ? (
-                  <Space>
-                    <Form
-                      form={dbSelectorForm}
-                      layout="inline"
-                      onValuesChange={(changedValues, allValues) =>
-                        setSocketParams(allValues)
-                      }
-                    >
-                      {showSelector ? (
-                        <Form.Item name="database">
-                          <Select
-                            style={{ width: 140 }}
-                            options={currentDatabase?.map((d) => ({
-                              label: d,
-                              value: d,
-                            }))}
-                          />
-                        </Form.Item>
-                      ) : null}
-                      <Form.Item name="execute">
-                        <Radio.Group options={DATABASE_EXECUTE_OPTIONS} />
-                      </Form.Item>
-                    </Form>
-                  </Space>
-                ) : null}
-              </Space>
+              { isMobile ? null : <CollectionTitle status={true} collection={currentCollection} /> }
+              
+              {currentCollection?.type === 'database' ? (
+                <Form
+                  form={dbSelectorForm}
+                  layout="inline"
+                  className={styles.databaseForm}
+                  onValuesChange={(changedValues, allValues) =>
+                    setSocketParams(allValues)
+                  }
+                >
+                  {showSelector ? (
+                    <Form.Item name="database">
+                      <Select
+                        style={{ width: 140 }}
+                        options={currentDatabase?.map((d) => ({
+                          label: d,
+                          value: d,
+                        }))}
+                      />
+                    </Form.Item>
+                  ) : null}
+                  <Form.Item name="execute">
+                    <Select style={{ width: 180 }} options={DATABASE_EXECUTE_OPTIONS} />
+                  </Form.Item>
+                </Form>
+              ) : null}
             </div>
             <Chats
               loading={loading}
@@ -267,6 +252,7 @@ export default () => {
               onSubmit={onSubmit}
               onClear={onClear}
             />
+            { chatLoading ? <PageLoading /> : null }
           </div>
         );
       }}

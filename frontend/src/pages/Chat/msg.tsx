@@ -28,7 +28,7 @@ type Props = {
   onExecute: (msg: TypesMessage) => void;
 };
 
-const TYPE_WRITER_SPEED = 40;
+const TYPE_WRITER_SPEED = 20;
 
 export default ({ item, loading, onExecute = () => {} }: Props) => {
   const [runtimeText, setRuntimeText] = useState<string>('');
@@ -100,7 +100,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
             },
           }}
         >
-          {displayText}
+          {displayText.replace(/\n{1}/g, '\n\n')}
         </ReactMarkdown>
       );
     }

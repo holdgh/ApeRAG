@@ -1,4 +1,5 @@
 import {
+  CODE_DEFAULT_CONFIG,
   DATABASE_DEFAULT_CONFIG,
   DOCUMENT_DEFAULT_CONFIG,
 } from '@/models/collection';
@@ -38,9 +39,12 @@ export default () => {
       if (changedValues.type === 'document' && _.isEmpty(config.source)) {
         form.setFieldValue('config', DOCUMENT_DEFAULT_CONFIG.config);
       }
+      if (changedValues.type === 'code' && _.isEmpty(config.source)) {
+        form.setFieldValue('config', CODE_DEFAULT_CONFIG.config);
+      }
     }
   };
-
+  
   useEffect(() => {
     if (collection?.type === 'document') {
       form.setFieldsValue({

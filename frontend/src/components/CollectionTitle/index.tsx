@@ -1,19 +1,34 @@
 import type { TypesCollection } from '@/types';
-import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
-import { Space, Typography } from 'antd';
+import { AppstoreFilled, ReadFilled } from '@ant-design/icons';
+import { Tag, Typography } from 'antd';
 
-export default ({ collection }: { collection?: TypesCollection }) => {
+import { COLLECTION_STATUS_TAG_COLORS } from '@/models/collection';
+import _ from 'lodash';
+import styles from './index.less';
+
+type Props = {
+  collection?: TypesCollection;
+  status?: boolean;
+};
+
+export default ({ collection, status }: Props) => {
   return (
-    <Typography.Title level={4} style={{ margin: 0 }}>
-      <Space>
-        {collection?.type === 'document' ? (
-          <ReadOutlined style={{ fontSize: 16 }} />
-        ) : null}
-        {collection?.type === 'database' ? (
-          <AppstoreOutlined style={{ fontSize: 16 }} />
-        ) : null}
-        {collection?.title}
-      </Space>
-    </Typography.Title>
+    <Typography.Text className={styles.title}>
+      {collection?.type === 'document' ? (
+        <ReadFilled className={styles.icon} />
+      ) : null}
+      {collection?.type === 'database' ? (
+        <AppstoreFilled className={styles.icon} />
+      ) : null}
+      {collection?.title}
+      {status && collection?.status ? (
+        <Tag
+          className={styles.status}
+          color={COLLECTION_STATUS_TAG_COLORS[collection.status]}
+        >
+          {_.capitalize(collection?.status)}
+        </Tag>
+      ) : null}
+    </Typography.Text>
   );
 };

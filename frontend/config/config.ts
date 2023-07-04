@@ -96,6 +96,7 @@ export default defineConfig({
     },
   ],
   npmClient: 'yarn',
+  esbuildMinifyIIFE: true,
   chainWebpack: (config) => {
     config.output.chunkFilename('[contenthash:16].js').end();
     config

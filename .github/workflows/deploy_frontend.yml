@@ -1,0 +1,51 @@
+name: Deploy Front-End To CDN
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - frontend
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Front-End To CDN
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ApeCloud
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup .envfile
+        env: 
+          ENV_BASE64: ${{ secrets.FRONTEND_ENV_PRODUCTION }}
+        run: |
+          echo $ENV_BASE64 | base64 -d > frontend/.env
+
+      - name: Build Static
+        run: cd frontend && yarn install --frozen-lockfile && yarn build
+
+      - name: Sync Static To AWS S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read --follow-symlinks --delete
+        env:
+          AWS_S3_BUCKET: kubechat
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-northeast-1
+          SOURCE_DIR: frontend/build
+
+      - name: Clear CDN Cache
+        uses: chetan/invalidate-cloudfront-action@v2
+        env:
+          DISTRIBUTION: E2S71PSXLBD5DJ
+          PATHS: /*
+          AWS_REGION: ap-northeast-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

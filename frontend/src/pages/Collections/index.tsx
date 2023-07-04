@@ -9,7 +9,6 @@ import {
   Row,
   Space,
   Statistic,
-  Tag,
   Typography,
   theme,
 } from 'antd';
@@ -24,6 +23,10 @@ export default () => {
   } = useModel('collection');
   const { token } = theme.useToken();
 
+  const btnSize = 'middle';
+  const btnWidth = 120;
+  const cardHeight = 220;
+
   return (
     <PageContainer ghost>
       <Row gutter={[30, 30]}>
@@ -32,14 +35,14 @@ export default () => {
           return (
             <Col key={key} xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
               <Card
-                title={<CollectionTitle collection={collection} />}
+                bordered={false}
                 bodyStyle={{
-                  height: 220,
+                  height: cardHeight,
                   display: 'flex',
                   flexDirection: 'column',
                 }}
-                extra={<Tag>{_.capitalize(collection.type)}</Tag>}
               >
+                <CollectionTitle collection={collection} />
                 <Typography.Text
                   type="secondary"
                   ellipsis
@@ -50,10 +53,17 @@ export default () => {
                   {collection.description}
                 </Typography.Text>
                 <div
-                  style={{ margin: '30px 0', flex: 1, verticalAlign: 'middle' }}
+                  style={{
+                    margin: '20px 0',
+                    flex: 1,
+                    verticalAlign: 'middle',
+                  }}
                 >
                   <Space
-                    style={{ justifyContent: 'space-around', width: '100%' }}
+                    style={{
+                      justifyContent: 'space-around',
+                      width: '100%',
+                    }}
                     split={<Divider type="vertical" style={{ height: 30 }} />}
                   >
                     <Statistic
@@ -64,14 +74,12 @@ export default () => {
                         color:
                           collection.status === 'ACTIVE'
                             ? token.colorText
-                            : token.colorWarning,
+                            : token.colorError,
                       }}
                     />
                     <Statistic
                       title={
-                        collection.type === 'database'
-                          ? 'DB Type'
-                          : 'Document Source'
+                        collection.type === 'database' ? 'Database' : 'Source'
                       }
                       value={_.capitalize(
                         config.source || config.db_type || 'System',
@@ -90,8 +98,9 @@ export default () => {
                 <div style={{ textAlign: 'center' }}>
                   <Space size="large">
                     <Button
+                      size={btnSize}
                       type="primary"
-                      style={{ width: 120, display: 'inline-block' }}
+                      style={{ width: btnWidth, display: 'inline-block' }}
                       onClick={async () => {
                         await setCurrentCollection(collection);
                         history.push('/chat');
@@ -100,7 +109,13 @@ export default () => {
                       Chat
                     </Button>
                     <Link to={getCollectionUrl(collection)}>
-                      <Button style={{ width: 120, display: 'inline-block' }}>
+                      <Button
+                        size={btnSize}
+                        style={{
+                          width: btnWidth,
+                          display: 'inline-block',
+                        }}
+                      >
                         View
                       </Button>
                     </Link>

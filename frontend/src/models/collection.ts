@@ -17,23 +17,30 @@ import { useEffect, useState } from 'react';
 import type {
   TypesChat,
   TypesCollection,
+  TypesCollectionStatus,
   TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
   TypesDatabaseExecuteMethod,
   TypesDocumentConfig,
   TypesDocumentConfigSourceOption,
+  TypesDocumentStatus,
   TypesMessage,
   TypesSocketStatus,
 } from '@/types';
+import { PresetStatusColorType } from 'antd/es/_util/colors';
 import { ReadyState } from 'react-use-websocket';
 
 export const DATABASE_DEFAULT_CONFIG: TypesCollection = {
   type: 'database',
-  config: '', // default is empty..
+  config: '', // default is empty.
 };
 export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',
   config: '{"source": "system"}',
+};
+export const CODE_DEFAULT_CONFIG: TypesCollection = {
+  type: 'code',
+  config: '',
 };
 
 export const DATABASE_EXECUTE_OPTIONS: {
@@ -96,10 +103,7 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
     label: 'System',
     value: 'system',
   },
-  {
-    label: 'Local',
-    value: 'local',
-  },
+
   {
     label: 'AWS S3',
     value: 's3',
@@ -118,6 +122,31 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   },
 ];
 
+if (process.env.NODE_ENV === 'development') {
+  DOCUMENT_SOURCE_OPTIONS.splice(1, 0, {
+    label: 'Local',
+    value: 'local',
+  });
+}
+
+export const COLLECTION_STATUS_TAG_COLORS: {
+  [key in TypesCollectionStatus]: PresetStatusColorType;
+} = {
+  INACTIVE: 'error',
+  ACTIVE: 'success',
+  DELETED: 'error',
+};
+
+export const DOCUMENT_STATUS_TAG_COLORS: {
+  [key in TypesDocumentStatus]: PresetStatusColorType;
+} = {
+  PENDING: 'warning',
+  RUNNING: 'processing',
+  FAILED: 'error',
+  COMPLETE: 'success',
+  DELETED: 'default',
+};
+
 export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
   [ReadyState.CONNECTING]: 'Connecting',
   [ReadyState.OPEN]: 'Open',
@@ -128,10 +157,13 @@ export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
 
 export default () => {
   const [collections, _setCollections] = useState<TypesCollection[]>();
-  const [currentCollection, _setCurrentCollection] =
-    useState<TypesCollection>();
+  const [currentCollection, _setCurrentCollection] = useState<TypesCollection>();
   const [currentChat, _setCurrentChat] = useState<TypesChat>();
   const [currentDatabase, _setCurrentDatabase] = useState<string[]>();
+
+  const [collectionLoading, _setCollectionLoading] = useState<boolean>(false);
+  const [chatLoading, _setChatLoading] = useState<boolean>(false);
+
   const { message } = App.useApp();
 
   const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
@@ -170,17 +202,26 @@ export default () => {
 
   const _createChat = async () => {
     if (!currentCollection?.id) return;
+    _setChatLoading(true);
     const { data } = await CreateCollectionChat(currentCollection.id);
+    _setChatLoading(false);
+
     _setCurrentChat(data);
   };
   const _getChat = async (id: string) => {
     if (!currentCollection?.id) return;
+
+    _setChatLoading(true);
     const { data } = await GetCollectionChat(currentCollection.id, id);
+    _setChatLoading(false);
+
     _setCurrentChat(data);
   };
   const _getChats = async () => {
     if (!currentCollection?.id) return;
+    _setChatLoading(true);
     const { data } = await GetCollectionChats(currentCollection.id);
+    _setChatLoading(false);
     const item = _.first(data);
     if (item) {
       _getChat(item.id);
@@ -205,18 +246,27 @@ export default () => {
     });
   };
 
+  // get collections
   const getCollections = async () => {
+    _setCollectionLoading(true);
     const { data } = await GetCollections();
+    _setCollectionLoading(false);
+
     _setCollections(data);
   };
 
+  // get collection by id
   const getCollection = (id?: string): TypesCollection | undefined => {
     if (!id) return;
     return collections?.find((c) => String(c.id) === String(id));
   };
 
+  // create a collection
   const createColection = async (params: TypesCollection) => {
+    _setCollectionLoading(true);
     const { data } = await CreateCollection(params);
+    _setCollectionLoading(false);
+
     if (data.id) {
       message.success('create success');
       _setCollections(collections?.concat(data));
@@ -226,11 +276,15 @@ export default () => {
     }
   };
 
+  // update a collection
   const updateCollection = async (
     collectionId: string,
     params: TypesCollection,
   ) => {
+    _setCollectionLoading(true);
     const { data } = await UpdateCollection(collectionId, params);
+    _setCollectionLoading(false);
+
     if (data.id) {
       message.success('update success');
       const index = collections?.findIndex(
@@ -288,6 +342,9 @@ export default () => {
     currentCollection,
     currentChat,
     currentDatabase,
+    collectionLoading,
+    chatLoading,
+
     hasDatabaseSelector,
     getCollectionUrl,
     parseCollectionConfig,

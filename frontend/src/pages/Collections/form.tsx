@@ -2,8 +2,9 @@ import CheckedCard from '@/components/CheckedCard';
 import DatabaseConfig from '@/components/DatabaseConfig';
 import DocumentConfig from '@/components/DocumentConfig';
 import type { TypesCollectionType } from '@/types';
-import { AppstoreOutlined, ReadOutlined } from '@ant-design/icons';
-import { Button, Form, FormInstance, Input, Space } from 'antd';
+import { AppstoreFilled, ReadFilled } from '@ant-design/icons';
+import { useModel } from '@umijs/max';
+import { Button, Form, FormInstance, Input } from 'antd';
 import { useEffect, useState } from 'react';
 
 type Props = {
@@ -22,6 +23,7 @@ export default ({
   onValuesChange = () => {},
 }: Props) => {
   const [collectionType, setCollectionType] = useState<TypesCollectionType>();
+  const { collectionLoading } = useModel('collection');
 
   useEffect(() => {
     setCollectionType(type);
@@ -29,16 +31,22 @@ export default ({
 
   const collectionTypeOptions = [
     {
-      icon: <ReadOutlined />,
-      label: <Space>Document</Space>,
+      icon: <ReadFilled />,
+      label: 'Document',
       value: 'document',
       description: 'Use docx, pptx, csv, pdf, or md as a collection.',
     },
     {
-      icon: <AppstoreOutlined />,
+      icon: <AppstoreFilled />,
       label: 'Database',
       value: 'database',
       description: 'Use database as a collection.',
+    },
+    {
+      icon: <AppstoreFilled />,
+      label: 'Code',
+      value: 'code',
+      description: 'Code generator',
     },
   ];
 
@@ -116,7 +124,7 @@ export default ({
       ) : null}
 
       <Form.Item>
-        <Button type="primary" htmlType="submit">
+        <Button loading={collectionLoading} type="primary" htmlType="submit">
           {action === 'add' ? 'Create' : 'Save'}
         </Button>
       </Form.Item>
