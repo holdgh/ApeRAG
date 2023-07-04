@@ -1,3 +1,4 @@
+import { DOCUMENT_STATUS_TAG_COLORS } from '@/models/collection';
 import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,
@@ -105,7 +106,7 @@ export default () => {
       width: 120,
       render: (_value, record) => {
         return (
-          <Tag color={record.status === 'FAILED' ? 'error' : 'default'}>
+          <Tag color={DOCUMENT_STATUS_TAG_COLORS[record.status]}>
             {_.capitalize(record.status)}
           </Tag>
         );

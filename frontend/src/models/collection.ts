@@ -17,19 +17,22 @@ import { useEffect, useState } from 'react';
 import type {
   TypesChat,
   TypesCollection,
+  TypesCollectionStatus,
   TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
   TypesDatabaseExecuteMethod,
   TypesDocumentConfig,
   TypesDocumentConfigSourceOption,
+  TypesDocumentStatus,
   TypesMessage,
   TypesSocketStatus,
 } from '@/types';
+import { PresetStatusColorType } from 'antd/es/_util/colors';
 import { ReadyState } from 'react-use-websocket';
 
 export const DATABASE_DEFAULT_CONFIG: TypesCollection = {
   type: 'database',
-  config: '', // default is empty..
+  config: '', // default is empty.
 };
 export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',
@@ -96,10 +99,7 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
     label: 'System',
     value: 'system',
   },
-  {
-    label: 'Local',
-    value: 'local',
-  },
+
   {
     label: 'AWS S3',
     value: 's3',
@@ -117,6 +117,31 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
     value: 'email',
   },
 ];
+
+if (process.env.NODE_ENV === 'development') {
+  DOCUMENT_SOURCE_OPTIONS.splice(1, 0, {
+    label: 'Local',
+    value: 'local',
+  });
+}
+
+export const COLLECTION_STATUS_TAG_COLORS: {
+  [key in TypesCollectionStatus]: PresetStatusColorType;
+} = {
+  INACTIVE: 'error',
+  ACTIVE: 'success',
+  DELETED: 'error',
+};
+
+export const DOCUMENT_STATUS_TAG_COLORS: {
+  [key in TypesDocumentStatus]: PresetStatusColorType;
+} = {
+  PENDING: 'warning',
+  RUNNING: 'processing',
+  FAILED: 'error',
+  COMPLETE: 'success',
+  DELETED: 'default',
+};
 
 export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
   [ReadyState.CONNECTING]: 'Connecting',
