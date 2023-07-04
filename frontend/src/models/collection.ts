@@ -40,7 +40,7 @@ export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
 };
 export const CODE_DEFAULT_CONFIG: TypesCollection = {
   type: 'code',
-  config: '',
+  config: '{}',
 };
 
 export const DATABASE_EXECUTE_OPTIONS: {
