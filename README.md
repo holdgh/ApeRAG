@@ -38,8 +38,8 @@ make run-backend
 put the .env file to /path/to/frontend/.env
 
 ```
-AUTH0_DOMAIN=kubechat.jp.auth0.com
-AUTH0_CLIENT_ID=G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2
+AUTH0_DOMAIN=kubechat-dev.jp.auth0.com
+AUTH0_CLIENT_ID=wuYeG5UUnEyyoGDHbJSrLSaESwpg7T63
 ASSETS_ENDPOINT=http://localhost:8001
 API_ENDPOINT=http://127.0.0.1:8000
 PORT=8001
