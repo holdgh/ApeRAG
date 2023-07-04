@@ -38,6 +38,10 @@ export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',
   config: '{"source": "system"}',
 };
+export const CODE_DEFAULT_CONFIG: TypesCollection = {
+  type: 'code',
+  config: '',
+};
 
 export const DATABASE_EXECUTE_OPTIONS: {
   label: string;

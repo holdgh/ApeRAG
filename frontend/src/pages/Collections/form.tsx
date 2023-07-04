@@ -42,6 +42,12 @@ export default ({
       value: 'database',
       description: 'Use database as a collection.',
     },
+    {
+      icon: <AppstoreFilled />,
+      label: 'Code',
+      value: 'code',
+      description: 'Code generator',
+    },
   ];
 
   return (
