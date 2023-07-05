@@ -15,7 +15,7 @@ from pydantic import BaseModel
 global_counter = 0
 model_semaphore = None
 
-ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(ROOT_PATH)
 
 from configs.config import Config

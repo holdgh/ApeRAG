@@ -112,5 +112,11 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /root/.cache
+              name: embedding-models
       restartPolicy: Always
-status: {}
+      volumes:
+        - name: embedding-models
+          persistentVolumeClaim:
+            claimName: embedding-models

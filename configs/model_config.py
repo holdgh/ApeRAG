@@ -19,6 +19,8 @@ PLUGINS_DIR = os.path.join(ROOT_PATH, "plugins")
 current_directory = os.getcwd()
 
 new_directory = RESOURCES_PATH
+if not os.path.exists(new_directory):
+    os.makedirs(new_directory)
 os.chdir(new_directory)
 
 DEVICE = (
