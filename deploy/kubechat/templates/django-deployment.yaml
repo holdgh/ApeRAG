@@ -24,8 +24,12 @@ spec:
         {{- include "kubechat.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - args:
-            - /app/scripts/start-django.sh
+        - command:
+            - /bin/sh
+            - -c
+            - |
+              ln -s /data/.cache/huggingface /root/.cache/
+              /app/scripts/start-django.sh
           env:
             - name: AUTH0_CLIENT_ID
               valueFrom:
@@ -114,5 +118,12 @@ spec:
             - containerPort: 8000
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /root/.cache
+              name: data
       restartPolicy: Always
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: kubechat-efs-claim
 status: {}

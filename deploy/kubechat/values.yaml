@@ -14,6 +14,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+efsId: fs-000f009e5b2735fc4
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -80,7 +82,7 @@ django:
   metaDBPort: 5432
   metaDBDatabase: kubechat
   metaDBUser: postgres
-  metaDBPassword: wlm2jhkg
+  metaDBPassword: fgqgfql4
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   vectorDBType: qdrant
 

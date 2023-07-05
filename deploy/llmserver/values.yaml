@@ -6,8 +6,8 @@ replicaCount: 1
 
 image:
   registry: docker.io
-  repository: apecloud/llmserver
-  pullPolicy: Always
+  repository: apecloud/kubechat
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v1.0.0"
 
@@ -59,7 +59,9 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
+resources:
+  limits:
+    nvidia.com/gpu: 1
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
