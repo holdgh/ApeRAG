@@ -119,4 +119,4 @@ spec:
       volumes:
         - name: embedding-models
           persistentVolumeClaim:
-            claimName: embedding-models
+            claimName: kubechat-efs-claim

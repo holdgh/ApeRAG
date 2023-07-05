@@ -80,7 +80,7 @@ django:
   metaDBPort: 5432
   metaDBDatabase: kubechat
   metaDBUser: postgres
-  metaDBPassword: 92mc988x
+  metaDBPassword: wlm2jhkg
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   vectorDBType: qdrant
 
