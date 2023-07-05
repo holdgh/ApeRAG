@@ -8,8 +8,6 @@ export type TypesDatabaseConfigDbType =
   | 'clickhouse'
   | 'elasticsearch';
 
-export type TypesDatabaseExecuteMethod = 'true' | 'false';
-
 export type TypesDatabaseConfigCerify = 'prefered' | 'ca_only' | 'full';
 
 export type TypesDatabaseConfigDbTypeOption = {

@@ -16,9 +16,7 @@ export default () => {
 
   const createChat = async () => {
     if (!currentCollection?.id) return;
-    setChatLoading(true);
     const { data } = await CreateCollectionChat(currentCollection.id);
-    setChatLoading(false);
     setCurrentChat(data);
   };
 
@@ -29,39 +27,32 @@ export default () => {
     if (item) {
       setCurrentChat(item);
     } else {
-      setChatLoading(true);
       const { data } = await GetCollectionChat(currentCollection.id, id);
-      setChatLoading(false);
-
       setChats(
         chats.concat({
           ...data,
           collectionId: currentCollection.id,
         }),
       );
-
       setCurrentChat(data);
     }
   };
 
   const getChats = async () => {
     if (!currentCollection?.id) return;
-
+    setChatLoading(true);
     let items = chats.filter((c) => c.collectionId === currentCollection.id);
-
     if (_.isEmpty(items)) {
-      setChatLoading(true);
       const { data } = await GetCollectionChats(currentCollection.id);
       items = data;
-      setChatLoading(false);
     }
-
     const item = _.first(items);
     if (item) {
       await getChat(item.id);
     } else {
       await createChat();
     }
+    setChatLoading(false);
   };
 
   const setCurrentChatHistory = async (data: TypesMessage[]) => {
@@ -73,7 +64,6 @@ export default () => {
   };
 
   useEffect(() => {
-    setCurrentChat(undefined);
     getChats();
   }, [currentCollection]);
 

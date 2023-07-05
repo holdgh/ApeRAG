@@ -1,12 +1,11 @@
 import CollectionTitle from '@/components/CollectionTitle';
-import PageLoading from '@/components/PageLoading';
-import { DATABASE_EXECUTE_OPTIONS, SOCKET_STATUS_MAP } from '@/constants';
+import { SOCKET_STATUS_MAP } from '@/constants';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Select, theme } from 'antd';
+import { Form, Select, Switch, Tooltip, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -15,7 +14,7 @@ import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
 
-type DbChatFormFields = { [key in string]: string | undefined };
+type DbChatFormFields = { database?: string; execute?: boolean };
 
 export default () => {
   // const { message } = App.useApp();
@@ -40,8 +39,8 @@ export default () => {
 
   // model data;
   const { hasDatabaseSelector, currentCollection } = useModel('collection');
-  const { currentDatabase } = useModel('database');
-  const { currentChat, chatLoading, setCurrentChatHistory } = useModel('chat');
+  const { currentDatabase, databaseLoading } = useModel('database');
+  const { currentChat, setCurrentChatHistory } = useModel('chat');
 
   // history list;
   const historyMessages = currentChat?.history || [];
@@ -111,10 +110,10 @@ export default () => {
   };
 
   useEffect(() => {
-    if (!_.isEmpty(currentDatabase)) {
-      const values = {
-        database: _.first(currentDatabase),
-        execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
+    if (currentDatabase?.length) {
+      const values: DbChatFormFields = {
+        database: currentDatabase[0],
+        execute: false,
       };
       setSocketParams(values);
     } else {
@@ -191,6 +190,7 @@ export default () => {
     <RouteContext.Consumer>
       {(value: RouteContextType) => {
         const { isMobile } = value;
+
         return (
           <div style={{ position: 'relative' }}>
             <div
@@ -203,10 +203,7 @@ export default () => {
                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
             >
-              {isMobile ? null : (
-                <CollectionTitle status={true} collection={currentCollection} />
-              )}
-
+              <CollectionTitle status={true} collection={currentCollection} />
               {currentCollection?.type === 'database' ? (
                 <Form
                   form={dbSelectorForm}
@@ -219,7 +216,9 @@ export default () => {
                   {showSelector ? (
                     <Form.Item name="database">
                       <Select
-                        style={{ width: 160, background: 'transparent' }}
+                        loading={databaseLoading}
+                        className={styles.selector}
+                        bordered={false}
                         options={currentDatabase?.map((d) => ({
                           label: d,
                           value: d,
@@ -227,12 +226,11 @@ export default () => {
                       />
                     </Form.Item>
                   ) : null}
-                  <Form.Item name="execute">
-                    <Select
-                      style={{ width: 180, background: 'transparent' }}
-                      options={DATABASE_EXECUTE_OPTIONS}
-                    />
-                  </Form.Item>
+                  <Tooltip title="Immediate Execute">
+                    <Form.Item name="execute" valuePropName="checked">
+                      <Switch className={styles.switch} />
+                    </Form.Item>
+                  </Tooltip>
                 </Form>
               ) : null}
             </div>
@@ -256,7 +254,6 @@ export default () => {
                 onClear={onClear}
               />
             </div>
-            {chatLoading ? <PageLoading mask={false} /> : null}
           </div>
         );
       }}

@@ -2,7 +2,6 @@ import {
   TypesCollection,
   TypesCollectionStatus,
   TypesDatabaseConfigDbTypeOption,
-  TypesDatabaseExecuteMethod,
   TypesDocumentConfigSourceOption,
   TypesDocumentStatus,
   TypesSocketStatus,
@@ -27,15 +26,15 @@ export const DATABASE_DEFAULT_CONFIG: TypesCollection = {
 
 export const DATABASE_EXECUTE_OPTIONS: {
   label: string;
-  value: TypesDatabaseExecuteMethod;
+  value: boolean;
 }[] = [
   {
     label: 'Immediate Execute',
-    value: 'true',
+    value: true,
   },
   {
     label: 'Execute on Request',
-    value: 'false',
+    value: false,
   },
 ];
 

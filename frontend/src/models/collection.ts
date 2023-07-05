@@ -1,6 +1,7 @@
 import { DATABASE_TYPE_OPTIONS } from '@/constants';
 import {
   CreateCollection,
+  DeleteCollection,
   GetCollections,
   UpdateCollection,
 } from '@/services/collections';
@@ -67,6 +68,28 @@ export default () => {
     return collections?.find((c) => String(c.id) === String(id));
   };
 
+  const deleteCollection = async (id: string) => {
+    if (!collections) return;
+    const { code } = await DeleteCollection(id);
+    if (code === '200') {
+      setCollections(collections.filter((c) => c.id !== id));
+      history.push('/collections');
+    } else {
+      message.error('delete error');
+    }
+  };
+
+  const getLocalCollection = (): TypesCollection | undefined => {
+    const localCollectionString = localStorage.getItem('collection');
+    let localCollection: TypesCollection | undefined = undefined;
+    if (localCollectionString) {
+      try {
+        localCollection = JSON.parse(localCollectionString);
+      } catch (err) {}
+    }
+    return localCollection;
+  };
+
   const createColection = async (params: TypesCollection) => {
     setCollectionLoading(true);
     const { data } = await CreateCollection(params);
@@ -108,20 +131,19 @@ export default () => {
 
   useEffect(() => {
     if (collections === undefined) return;
-    const localCollectionString = localStorage.getItem('collection');
-    let localCollection: TypesCollection | undefined = undefined;
-    if (localCollectionString) {
-      try {
-        localCollection = JSON.parse(localCollectionString);
-      } catch (err) {}
-    }
 
+    let localCollection = getLocalCollection();
     const item = collections.find((c) => c.id === localCollection?.id);
     if (localCollection?.id === item?.id) {
       setCurrentCollection(item);
     } else {
-      setCurrentCollection(undefined);
-      localStorage.removeItem('collection');
+      const current = _.first(collections);
+      if (current) {
+        setCurrentCollection(current);
+      } else {
+        setCurrentCollection(undefined);
+        localStorage.removeItem('collection');
+      }
     }
   }, [collections]);
 
@@ -142,6 +164,8 @@ export default () => {
 
     getCollections,
     getCollection,
+    deleteCollection,
+    getLocalCollection,
     createColection,
     updateCollection,
     setCurrentCollection,
