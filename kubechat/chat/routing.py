@@ -38,6 +38,12 @@ async def chat_bot_consumer_router(scope, receive, send):
     return await ChatBotConsumer.as_asgi()(scope, receive, send)
 
 
+async def code_generate_chat_consumer_router(scope, receive, send):
+    # for .code_generate_con
+    from .code_generate_consumer import CodeGenerateConsumer
+    return await CodeGenerateConsumer.as_asgi()(scope, receive, send)
+
+
 websocket_urlpatterns = [
     re_path(
         r"api/v1/collections/(?P<collection_id>\w+)/chats/(?P<chat_id>\w+)/connect$",
@@ -47,4 +53,5 @@ websocket_urlpatterns = [
         r"api/v1/bot/(?P<chat_id>\w+)/connect$",
         chat_bot_consumer_router,
     ),
+    re_path(r"api/v1/code/(?P<chat_id>\w+)/connect$", code_generate_chat_consumer_router)
 ]

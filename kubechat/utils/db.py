@@ -11,7 +11,7 @@ from kubechat.models import (
     Document,
     DocumentStatus,
     ssl_file_path,
-    ssl_temp_file_path,
+    ssl_temp_file_path, CodeChat, CodeChatStatus,
 )
 
 
@@ -106,3 +106,15 @@ def new_db_client(config):
         db=config["db_name"] if "db_name" in config.keys() else "",
     )
     return client
+
+
+def query_code_chat(user, chat_id):
+    return CodeChat.objects.exclude(status=CodeChatStatus.DELETED).get(
+        user=user, pk=chat_id
+    )
+
+
+def query_code_chats(user):
+    return CodeChat.objects.exclude(status=CodeChatStatus.DELETED).filter(
+        user=user
+    )

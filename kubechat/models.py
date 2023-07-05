@@ -26,6 +26,7 @@ class CollectionStatus(models.TextChoices):
 class CollectionType(models.TextChoices):
     DOCUMENT = "document"
     DATABASE = "database"
+    CODE = "code"
 
 
 class DocumentStatus(models.TextChoices):
@@ -38,6 +39,12 @@ class DocumentStatus(models.TextChoices):
 
 class ChatStatus(models.TextChoices):
     ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
+
+
+class CodeChatStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    FINISHED = "FINISHED"
     DELETED = "DELETED"
 
 
@@ -114,6 +121,27 @@ class Chat(models.Model):
             "history": messages,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
+        }
+
+
+class CodeChat(models.Model):
+    user = models.CharField(max_length=256)
+    title = models.CharField(max_length=32)
+    status = models.CharField(max_length=16, choices=CodeChatStatus.choices)
+    summary = models.TextField()
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_finished = models.DateTimeField(null=True, blank=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    def view(self, history=None):
+        if history is None:
+            history = []
+        return {
+            "id": str(self.id),
+            "summary": self.summary,
+            "history": history,
+            "created": self.gmt_created.isoformat(),
+            "finished:": self.gmt_finished.isoformat(),
         }
 
 
