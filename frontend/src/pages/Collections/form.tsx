@@ -2,7 +2,7 @@ import CheckedCard from '@/components/CheckedCard';
 import DatabaseConfig from '@/components/DatabaseConfig';
 import DocumentConfig from '@/components/DocumentConfig';
 import type { TypesCollectionType } from '@/types';
-import { AppstoreFilled, ReadFilled } from '@ant-design/icons';
+import { AppstoreFilled, CodeOutlined, ReadFilled } from '@ant-design/icons';
 import { useModel } from '@umijs/max';
 import { Button, Form, FormInstance, Input } from 'antd';
 import { useEffect, useState } from 'react';
@@ -43,7 +43,7 @@ export default ({
       description: 'Use database as a collection.',
     },
     {
-      icon: <AppstoreFilled />,
+      icon: <CodeOutlined />,
       label: 'Code',
       value: 'code',
       description: 'Code generator',
@@ -123,7 +123,7 @@ export default ({
         </Form.Item>
       ) : null}
 
-        {collectionType === 'code' ? (
+      {collectionType === 'code' ? (
         <Form.Item
           name="config"
           rules={[
@@ -132,8 +132,7 @@ export default ({
               message: 'code config is required.',
             },
           ]}
-        >
-        </Form.Item>
+        ></Form.Item>
       ) : null}
 
       <Form.Item>

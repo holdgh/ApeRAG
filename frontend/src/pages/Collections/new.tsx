@@ -1,13 +1,13 @@
-import type {
-  TypesCollection,
-  TypesDatabaseConfig,
-  TypesDocumentConfig,
-} from '@/types';
 import {
   CODE_DEFAULT_CONFIG,
   DATABASE_DEFAULT_CONFIG,
   DOCUMENT_DEFAULT_CONFIG,
 } from '@/constants';
+import type {
+  TypesCollection,
+  TypesDatabaseConfig,
+  TypesDocumentConfig,
+} from '@/types';
 import { PageContainer } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { Card, Form } from 'antd';

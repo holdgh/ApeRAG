@@ -1,7 +1,7 @@
 import type { TypesMessage, TypesSocketStatus } from '@/types';
 import { useModel } from '@umijs/max';
 import { useEffect } from 'react';
-import { Element as ScrollElement, scroller } from 'react-scroll';
+import { animateScroll } from 'react-scroll';
 import styles from './index.less';
 import MessageItem from './msg';
 
@@ -16,31 +16,31 @@ export default ({ loading, onExecute, status }: Props) => {
   const messages = currentChat?.history || [];
 
   useEffect(() => {
-    scroller.scrollTo('bottom', {
-      containerId: 'chat-content',
-      smooth: true,
+    animateScroll.scrollToBottom({
       duration: 0,
     });
+    return () => {
+      animateScroll.scrollToTop({
+        duration: 0,
+      });
+    };
   }, [currentChat]);
 
   return (
-    <div id="chat-content" className={styles.content}>
-      <div className={styles.wrap}>
-        {messages.map((item, key) => {
-          return (
-            <MessageItem
-              onExecute={onExecute}
-              loading={
-                loading && key === messages.length - 1 && item.role === 'ai'
-              }
-              status={status}
-              key={key}
-              item={item}
-            />
-          );
-        })}
-        <ScrollElement name="bottom"></ScrollElement>
-      </div>
+    <div id={`chats-container`} className={styles.content}>
+      {messages.map((item, key) => {
+        return (
+          <MessageItem
+            onExecute={onExecute}
+            loading={
+              loading && key === messages.length - 1 && item.role === 'ai'
+            }
+            status={status}
+            key={key}
+            item={item}
+          />
+        );
+      })}
     </div>
   );
 };

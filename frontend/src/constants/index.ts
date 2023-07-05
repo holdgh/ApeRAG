@@ -1,6 +1,14 @@
-import { TypesCollection, TypesCollectionStatus, TypesDatabaseConfigDbTypeOption, TypesDatabaseExecuteMethod, TypesDocumentConfigSourceOption, TypesDocumentStatus, TypesSocketStatus } from "@/types";
-import { PresetStatusColorType } from "antd/es/_util/colors";
-import { ReadyState } from "react-use-websocket";
+import {
+  TypesCollection,
+  TypesCollectionStatus,
+  TypesDatabaseConfigDbTypeOption,
+  TypesDatabaseExecuteMethod,
+  TypesDocumentConfigSourceOption,
+  TypesDocumentStatus,
+  TypesSocketStatus,
+} from '@/types';
+import { PresetStatusColorType } from 'antd/es/_util/colors';
+import { ReadyState } from 'react-use-websocket';
 
 export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
   type: 'document',

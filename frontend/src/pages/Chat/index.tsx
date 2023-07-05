@@ -192,15 +192,13 @@ export default () => {
       {(value: RouteContextType) => {
         const { isMobile } = value;
         return (
-          <div
-            className={classNames({
-              [styles.container]: true,
-              [styles.collapsed]: initialState?.collapsed,
-              [styles.mobile]: isMobile,
-            })}
-          >
+          <div style={{ position: 'relative' }}>
             <div
-              className={styles.header}
+              className={classNames({
+                [styles.header]: true,
+                [styles.collapsed]: initialState?.collapsed,
+                [styles.mobile]: isMobile,
+              })}
               style={{
                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
@@ -221,7 +219,7 @@ export default () => {
                   {showSelector ? (
                     <Form.Item name="database">
                       <Select
-                        style={{ width: 140 }}
+                        style={{ width: 160, background: 'transparent' }}
                         options={currentDatabase?.map((d) => ({
                           label: d,
                           value: d,
@@ -231,7 +229,7 @@ export default () => {
                   ) : null}
                   <Form.Item name="execute">
                     <Select
-                      style={{ width: 180 }}
+                      style={{ width: 180, background: 'transparent' }}
                       options={DATABASE_EXECUTE_OPTIONS}
                     />
                   </Form.Item>
@@ -243,13 +241,26 @@ export default () => {
               status={SOCKET_STATUS_MAP[readyState]}
               onExecute={onExecute}
             />
-            <Footer
-              status={SOCKET_STATUS_MAP[readyState]}
-              loading={loading}
-              onSubmit={onSubmit}
-              onClear={onClear}
-            />
-            {chatLoading ? <PageLoading /> : null}
+            <div
+              className={classNames({
+                [styles.footer]: true,
+                [styles.collapsed]: initialState?.collapsed,
+                [styles.mobile]: isMobile,
+              })}
+              style={{ background: '#0A0A0A' }}
+            >
+              <Footer
+                status={SOCKET_STATUS_MAP[readyState]}
+                loading={loading}
+                onSubmit={onSubmit}
+                onClear={onClear}
+              />
+            </div>
+            {chatLoading ? (
+              <div style={{ marginTop: '30%' }}>
+                <PageLoading />
+              </div>
+            ) : null}
           </div>
         );
       }}

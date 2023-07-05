@@ -9,7 +9,6 @@ import { Button, Card, CardProps, Result, Typography, theme } from 'antd';
 import { useEffect } from 'react';
 import PageLoading from '../PageLoading';
 import './index.less';
-import { TransitionGroup, CSSTransition } from 'react-transition-group';
 
 export default (): React.ReactNode => {
   const { collections, getCollections } = useModel('collection');

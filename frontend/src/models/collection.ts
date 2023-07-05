@@ -108,27 +108,26 @@ export default () => {
 
   useEffect(() => {
     if (collections === undefined) return;
-    const localCollection = localStorage.getItem('collection');
-    let current: TypesCollection | undefined;
-    if (localCollection) {
+    const localCollectionString = localStorage.getItem('collection');
+    let localCollection: TypesCollection | undefined = undefined;
+    if (localCollectionString) {
       try {
-        current = JSON.parse(localCollection);
+        localCollection = JSON.parse(localCollectionString);
       } catch (err) {}
     }
-    const isExsited = !!collections.find((c) => c.id === current?.id);
-    if (!isExsited) {
-      current = _.first(collections);
+
+    const item = collections.find((c) => c.id === localCollection?.id);
+    if (localCollection?.id === item?.id) {
+      setCurrentCollection(item);
+    } else {
+      setCurrentCollection(undefined);
+      localStorage.removeItem('collection');
     }
-    setCurrentCollection(current);
   }, [collections]);
 
   useEffect(() => {
     if (currentCollection) {
       localStorage.setItem('collection', JSON.stringify(currentCollection));
-      setCurrentCollection(currentCollection);
-    } else {
-      localStorage.removeItem('collection');
-      setCurrentCollection(undefined);
     }
   }, [currentCollection]);
 
