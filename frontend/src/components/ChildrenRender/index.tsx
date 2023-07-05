@@ -63,7 +63,7 @@ export default (): React.ReactNode => {
     );
   }
 
-  if (collections === undefined && !collectionLoading) {
+  if (collections === undefined) {
     return <Result style={style} icon={TipIcon} />;
   }
 
