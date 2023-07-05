@@ -1,4 +1,4 @@
-import { DOCUMENT_STATUS_TAG_COLORS } from '@/models/collection';
+import { DOCUMENT_STATUS_TAG_COLORS } from '@/constants';
 import { getUser } from '@/models/user';
 import {
   DeleteCollectionDocument,

@@ -1,8 +1,7 @@
+import { COLLECTION_STATUS_TAG_COLORS } from '@/constants';
 import type { TypesCollection } from '@/types';
-import { AppstoreFilled, ReadFilled } from '@ant-design/icons';
+import { AppstoreFilled, CodeOutlined, ReadFilled } from '@ant-design/icons';
 import { Tag, Typography } from 'antd';
-
-import { COLLECTION_STATUS_TAG_COLORS } from '@/models/collection';
 import _ from 'lodash';
 import styles from './index.less';
 
@@ -19,6 +18,9 @@ export default ({ collection, status }: Props) => {
       ) : null}
       {collection?.type === 'database' ? (
         <AppstoreFilled className={styles.icon} />
+      ) : null}
+      {collection?.type === 'code' ? (
+        <CodeOutlined className={styles.icon} />
       ) : null}
       {collection?.title}
       {status && collection?.status ? (

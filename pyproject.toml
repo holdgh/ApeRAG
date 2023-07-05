@@ -50,6 +50,7 @@ boto3 = "^1.26.165"
 oss2 = "^2.18.0"
 mypy = "^1.4.1"
 django-cors-headers = "^4.1.0"
+socksio = "^1.0.0"
 
 [tool.poetry.group.llmserver]
 optional = true

@@ -8,13 +8,23 @@
   }
 }
 
+.mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  transition-duration: 0.2s;
+}
+
 .page-loading {
   display: inline-block;
   width: 100px;
   height: 100px;
   position: absolute;
   left: 50%;
-  top: 30%;
+  top: 35%;
   margin-left: -50px;
 
   .message {

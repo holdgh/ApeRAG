@@ -1,14 +1,11 @@
 import CollectionTitle from '@/components/CollectionTitle';
-import {
-  DATABASE_EXECUTE_OPTIONS,
-  SOCKET_STATUS_MAP,
-} from '@/models/collection';
+import { SOCKET_STATUS_MAP } from '@/constants';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { RouteContext, RouteContextType } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Form, Select, theme } from 'antd';
+import { Form, Select, Switch, Tooltip, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -16,9 +13,8 @@ import useWebSocket from 'react-use-websocket';
 import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
-import PageLoading from '@/components/PageLoading';
 
-type DbChatFormFields = { [key in string]: string | undefined };
+type DbChatFormFields = { database?: string; execute?: boolean };
 
 export default () => {
   // const { message } = App.useApp();
@@ -32,8 +28,6 @@ export default () => {
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
 
-  const { hasDatabaseSelector, chatLoading } = useModel('collection');
-
   // initialState.collapsed for mobile adaptation;
   const { initialState } = useModel('@@initialState');
 
@@ -43,13 +37,10 @@ export default () => {
   // theme tokens;
   const { token } = theme.useToken();
 
-  // collection model data;
-  const {
-    currentCollection,
-    currentChat,
-    currentDatabase,
-    setCurrentChatHistory,
-  } = useModel('collection');
+  // model data;
+  const { hasDatabaseSelector, currentCollection } = useModel('collection');
+  const { currentDatabase, databaseLoading } = useModel('database');
+  const { currentChat, setCurrentChatHistory } = useModel('chat');
 
   // history list;
   const historyMessages = currentChat?.history || [];
@@ -119,10 +110,10 @@ export default () => {
   };
 
   useEffect(() => {
-    if (!_.isEmpty(currentDatabase)) {
-      const values = {
-        database: _.first(currentDatabase),
-        execute: _.last(DATABASE_EXECUTE_OPTIONS)?.value,
+    if (currentDatabase?.length) {
+      const values: DbChatFormFields = {
+        database: currentDatabase[0],
+        execute: false,
       };
       setSocketParams(values);
     } else {
@@ -199,22 +190,20 @@ export default () => {
     <RouteContext.Consumer>
       {(value: RouteContextType) => {
         const { isMobile } = value;
+
         return (
-          <div
-            className={classNames({
-              [styles.container]: true,
-              [styles.collapsed]: initialState?.collapsed,
-              [styles.mobile]: isMobile,
-            })}
-          >
+          <div style={{ position: 'relative' }}>
             <div
-              className={styles.header}
+              className={classNames({
+                [styles.header]: true,
+                [styles.collapsed]: initialState?.collapsed,
+                [styles.mobile]: isMobile,
+              })}
               style={{
                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
             >
-              { isMobile ? null : <CollectionTitle status={true} collection={currentCollection} /> }
-              
+              <CollectionTitle status={true} collection={currentCollection} />
               {currentCollection?.type === 'database' ? (
                 <Form
                   form={dbSelectorForm}
@@ -227,7 +216,9 @@ export default () => {
                   {showSelector ? (
                     <Form.Item name="database">
                       <Select
-                        style={{ width: 140 }}
+                        loading={databaseLoading}
+                        className={styles.selector}
+                        bordered={false}
                         options={currentDatabase?.map((d) => ({
                           label: d,
                           value: d,
@@ -235,9 +226,11 @@ export default () => {
                       />
                     </Form.Item>
                   ) : null}
-                  <Form.Item name="execute">
-                    <Select style={{ width: 180 }} options={DATABASE_EXECUTE_OPTIONS} />
-                  </Form.Item>
+                  <Tooltip title="Immediate Execute">
+                    <Form.Item name="execute" valuePropName="checked">
+                      <Switch className={styles.switch} />
+                    </Form.Item>
+                  </Tooltip>
                 </Form>
               ) : null}
             </div>
@@ -246,13 +239,21 @@ export default () => {
               status={SOCKET_STATUS_MAP[readyState]}
               onExecute={onExecute}
             />
-            <Footer
-              status={SOCKET_STATUS_MAP[readyState]}
-              loading={loading}
-              onSubmit={onSubmit}
-              onClear={onClear}
-            />
-            { chatLoading ? <PageLoading /> : null }
+            <div
+              className={classNames({
+                [styles.footer]: true,
+                [styles.collapsed]: initialState?.collapsed,
+                [styles.mobile]: isMobile,
+              })}
+              style={{ background: '#0A0A0A' }}
+            >
+              <Footer
+                status={SOCKET_STATUS_MAP[readyState]}
+                loading={loading}
+                onSubmit={onSubmit}
+                onClear={onClear}
+              />
+            </div>
           </div>
         );
       }}

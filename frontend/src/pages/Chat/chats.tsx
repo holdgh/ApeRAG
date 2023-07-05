@@ -1,7 +1,9 @@
 import type { TypesMessage, TypesSocketStatus } from '@/types';
+import { WechatFilled } from '@ant-design/icons';
 import { useModel } from '@umijs/max';
+import { Result, Typography } from 'antd';
 import { useEffect } from 'react';
-import { Element as ScrollElement, scroller } from 'react-scroll';
+import { animateScroll } from 'react-scroll';
 import styles from './index.less';
 import MessageItem from './msg';
 
@@ -12,21 +14,37 @@ type Props = {
 };
 
 export default ({ loading, onExecute, status }: Props) => {
-  const { currentChat } = useModel('collection');
+  const { currentChat, chatLoading } = useModel('chat');
   const messages = currentChat?.history || [];
 
   useEffect(() => {
-    scroller.scrollTo('bottom', {
-      containerId: 'chat-content',
-      smooth: true,
-      duration: 800,
+    animateScroll.scrollToBottom({
+      duration: 0,
     });
+    return () => {
+      animateScroll.scrollToTop({
+        duration: 0,
+      });
+    };
   }, [currentChat]);
 
+  if (chatLoading) {
+    return null;
+  }
+
   return (
-    <div id="chat-content" className={styles.content}>
-      <div className={styles.wrap}>
-        {messages.map((item, key) => {
+    <div id={`chats-container`} className={styles.content}>
+      {messages.length === 0 ? (
+        <Result
+          style={{ marginTop: 100 }}
+          icon={
+            <Typography.Text>
+              <WechatFilled style={{ opacity: 0.05, fontSize: 200 }} />
+            </Typography.Text>
+          }
+        />
+      ) : (
+        messages.map((item, key) => {
           return (
             <MessageItem
               onExecute={onExecute}
@@ -38,9 +56,8 @@ export default ({ loading, onExecute, status }: Props) => {
               item={item}
             />
           );
-        })}
-        <ScrollElement name="bottom"></ScrollElement>
-      </div>
+        })
+      )}
     </div>
   );
 };

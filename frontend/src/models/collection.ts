@@ -1,169 +1,24 @@
-import {
-  CreateCollectionChat,
-  GetCollectionChat,
-  GetCollectionChats,
-} from '@/services/chats';
+import { DATABASE_TYPE_OPTIONS } from '@/constants';
 import {
   CreateCollection,
-  GetCollectionDatabase,
+  DeleteCollection,
   GetCollections,
   UpdateCollection,
 } from '@/services/collections';
+import type {
+  TypesCollection,
+  TypesDatabaseConfig,
+  TypesDocumentConfig,
+} from '@/types';
 import { history } from '@umijs/max';
 import { App } from 'antd';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
 
-import type {
-  TypesChat,
-  TypesCollection,
-  TypesCollectionStatus,
-  TypesDatabaseConfig,
-  TypesDatabaseConfigDbTypeOption,
-  TypesDatabaseExecuteMethod,
-  TypesDocumentConfig,
-  TypesDocumentConfigSourceOption,
-  TypesDocumentStatus,
-  TypesMessage,
-  TypesSocketStatus,
-} from '@/types';
-import { PresetStatusColorType } from 'antd/es/_util/colors';
-import { ReadyState } from 'react-use-websocket';
-
-export const DATABASE_DEFAULT_CONFIG: TypesCollection = {
-  type: 'database',
-  config: '', // default is empty.
-};
-export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
-  type: 'document',
-  config: '{"source": "system"}',
-};
-export const CODE_DEFAULT_CONFIG: TypesCollection = {
-  type: 'code',
-  config: '{}',
-};
-
-export const DATABASE_EXECUTE_OPTIONS: {
-  label: string;
-  value: TypesDatabaseExecuteMethod;
-}[] = [
-  {
-    label: 'Immediate Execute',
-    value: 'true',
-  },
-  {
-    label: 'Execute on Request',
-    value: 'false',
-  },
-];
-
-export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
-  {
-    label: 'MySQL',
-    value: 'mysql',
-    icon: 'https://cdn.kubeblocks.com/img/mysql.png',
-    showSelector: true,
-  },
-  {
-    label: 'PostgreSql',
-    value: 'postgresql',
-    icon: 'https://cdn.kubeblocks.com/img/pg.png',
-    showSelector: true,
-  },
-  {
-    label: 'SQLite',
-    value: 'sqlite',
-  },
-  {
-    label: 'Redis',
-    value: 'redis',
-    icon: 'https://cdn.kubeblocks.com/img/redis.svg',
-  },
-  {
-    label: 'Oracle',
-    value: 'oracle',
-  },
-  {
-    label: 'Mongo',
-    value: 'mongo',
-    icon: 'https://cdn.kubeblocks.com/img/mongodb.svg',
-  },
-  {
-    label: 'ClickHouse',
-    value: 'clickhouse',
-  },
-  {
-    label: 'ElasticSearch',
-    value: 'elasticsearch',
-  },
-];
-
-export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
-  {
-    label: 'System',
-    value: 'system',
-  },
-
-  {
-    label: 'AWS S3',
-    value: 's3',
-  },
-  {
-    label: 'Aliyun OSS',
-    value: 'oss',
-  },
-  {
-    label: 'FTP',
-    value: 'ftp',
-  },
-  {
-    label: 'Email',
-    value: 'email',
-  },
-];
-
-if (process.env.NODE_ENV === 'development') {
-  DOCUMENT_SOURCE_OPTIONS.splice(1, 0, {
-    label: 'Local',
-    value: 'local',
-  });
-}
-
-export const COLLECTION_STATUS_TAG_COLORS: {
-  [key in TypesCollectionStatus]: PresetStatusColorType;
-} = {
-  INACTIVE: 'error',
-  ACTIVE: 'success',
-  DELETED: 'error',
-};
-
-export const DOCUMENT_STATUS_TAG_COLORS: {
-  [key in TypesDocumentStatus]: PresetStatusColorType;
-} = {
-  PENDING: 'warning',
-  RUNNING: 'processing',
-  FAILED: 'error',
-  COMPLETE: 'success',
-  DELETED: 'default',
-};
-
-export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
-  [ReadyState.CONNECTING]: 'Connecting',
-  [ReadyState.OPEN]: 'Open',
-  [ReadyState.CLOSING]: 'Closing',
-  [ReadyState.CLOSED]: 'Closed',
-  [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-};
-
 export default () => {
-  const [collections, _setCollections] = useState<TypesCollection[]>();
-  const [currentCollection, _setCurrentCollection] = useState<TypesCollection>();
-  const [currentChat, _setCurrentChat] = useState<TypesChat>();
-  const [currentDatabase, _setCurrentDatabase] = useState<string[]>();
-
-  const [collectionLoading, _setCollectionLoading] = useState<boolean>(false);
-  const [chatLoading, _setChatLoading] = useState<boolean>(false);
-
+  const [collections, setCollections] = useState<TypesCollection[]>();
+  const [currentCollection, setCurrentCollection] = useState<TypesCollection>();
+  const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
   const { message } = App.useApp();
 
   const hasDatabaseSelector = (collection?: TypesCollection): boolean => {
@@ -200,158 +55,117 @@ export default () => {
     return result;
   };
 
-  const _createChat = async () => {
-    if (!currentCollection?.id) return;
-    _setChatLoading(true);
-    const { data } = await CreateCollectionChat(currentCollection.id);
-    _setChatLoading(false);
-
-    _setCurrentChat(data);
-  };
-  const _getChat = async (id: string) => {
-    if (!currentCollection?.id) return;
-
-    _setChatLoading(true);
-    const { data } = await GetCollectionChat(currentCollection.id, id);
-    _setChatLoading(false);
-
-    _setCurrentChat(data);
-  };
-  const _getChats = async () => {
-    if (!currentCollection?.id) return;
-    _setChatLoading(true);
-    const { data } = await GetCollectionChats(currentCollection.id);
-    _setChatLoading(false);
-    const item = _.first(data);
-    if (item) {
-      _getChat(item.id);
-    } else {
-      await _createChat();
-    }
-  };
-
-  const _getDatabase = async () => {
-    if (!currentCollection?.id) return;
-    if (hasDatabaseSelector(currentCollection)) {
-      const { data } = await GetCollectionDatabase(currentCollection.id);
-      _setCurrentDatabase(data || []);
-    }
-  };
-
-  const setCurrentChatHistory = async (data: TypesMessage[]) => {
-    if (!currentChat) return;
-    _setCurrentChat({
-      ...currentChat,
-      history: data,
-    });
-  };
-
-  // get collections
   const getCollections = async () => {
-    _setCollectionLoading(true);
+    setCollectionLoading(true);
     const { data } = await GetCollections();
-    _setCollectionLoading(false);
+    setCollectionLoading(false);
 
-    _setCollections(data);
+    setCollections(data);
   };
 
-  // get collection by id
   const getCollection = (id?: string): TypesCollection | undefined => {
     if (!id) return;
     return collections?.find((c) => String(c.id) === String(id));
   };
 
-  // create a collection
+  const deleteCollection = async (id: string) => {
+    if (!collections) return;
+    const { code } = await DeleteCollection(id);
+    if (code === '200') {
+      setCollections(collections.filter((c) => c.id !== id));
+      history.push('/collections');
+    } else {
+      message.error('delete error');
+    }
+  };
+
+  const getLocalCollection = (): TypesCollection | undefined => {
+    const localCollectionString = localStorage.getItem('collection');
+    let localCollection: TypesCollection | undefined = undefined;
+    if (localCollectionString) {
+      try {
+        localCollection = JSON.parse(localCollectionString);
+      } catch (err) {}
+    }
+    return localCollection;
+  };
+
   const createColection = async (params: TypesCollection) => {
-    _setCollectionLoading(true);
+    setCollectionLoading(true);
     const { data } = await CreateCollection(params);
-    _setCollectionLoading(false);
+    setCollectionLoading(false);
 
     if (data.id) {
       message.success('create success');
-      _setCollections(collections?.concat(data));
+      setCollections(collections?.concat(data));
       history.push(getCollectionUrl(data));
     } else {
       message.error('create error');
     }
   };
 
-  // update a collection
   const updateCollection = async (
     collectionId: string,
     params: TypesCollection,
   ) => {
-    _setCollectionLoading(true);
+    setCollectionLoading(true);
     const { data } = await UpdateCollection(collectionId, params);
-    _setCollectionLoading(false);
+    setCollectionLoading(false);
 
     if (data.id) {
       message.success('update success');
       const index = collections?.findIndex(
         (c) => String(c.id) === String(collectionId),
       );
-      if (index !== -1 && index !== undefined && collections?.length) {
+      if (index !== -1 && collections?.length && index !== undefined) {
         const items = _.update(collections, index, (origin) => ({
           ...origin,
           ...data,
         }));
-        _setCollections(items);
+        setCollections(items);
       }
     } else {
       message.error('update error');
     }
   };
 
-  const setCurrentCollection = async (collection?: TypesCollection) => {
-    if (collection) {
-      localStorage.setItem('collection', JSON.stringify(collection));
-      _setCurrentCollection(collection);
-    } else {
-      localStorage.removeItem('collection');
-      _setCurrentCollection(undefined);
-    }
-  };
-
   useEffect(() => {
     if (collections === undefined) return;
-    const localCollection = localStorage.getItem('collection');
-    let current: TypesCollection | undefined;
-    if (localCollection) {
-      try {
-        current = JSON.parse(localCollection);
-      } catch (err) {}
+
+    let localCollection = getLocalCollection();
+    const item = collections.find((c) => c.id === localCollection?.id);
+    if (localCollection?.id === item?.id) {
+      setCurrentCollection(item);
+    } else {
+      const current = _.first(collections);
+      if (current) {
+        setCurrentCollection(current);
+      } else {
+        setCurrentCollection(undefined);
+        localStorage.removeItem('collection');
+      }
     }
-    const isExsited = !!collections.find((c) => c.id === current?.id);
-    if (!isExsited) {
-      current = _.first(collections);
-    }
-    setCurrentCollection(current);
   }, [collections]);
 
   useEffect(() => {
     if (currentCollection) {
-      _getChats();
-      _getDatabase();
-    } else {
-      _setCurrentChat(undefined);
+      localStorage.setItem('collection', JSON.stringify(currentCollection));
     }
   }, [currentCollection]);
 
   return {
     collections,
     currentCollection,
-    currentChat,
-    currentDatabase,
     collectionLoading,
-    chatLoading,
 
     hasDatabaseSelector,
     getCollectionUrl,
     parseCollectionConfig,
 
-    setCurrentChatHistory,
     getCollections,
     getCollection,
+    deleteCollection,
+    getLocalCollection,
     createColection,
     updateCollection,
     setCurrentCollection,

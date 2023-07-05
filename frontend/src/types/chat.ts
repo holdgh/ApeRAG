@@ -27,6 +27,7 @@ export type TypesMessage = {
 
 export type TypesChat = {
   id: string;
+  collectionId: string;
   summary: string;
   history: TypesMessage[];
   created: string;

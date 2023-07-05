@@ -2,7 +2,7 @@ import {
   CODE_DEFAULT_CONFIG,
   DATABASE_DEFAULT_CONFIG,
   DOCUMENT_DEFAULT_CONFIG,
-} from '@/models/collection';
+} from '@/constants';
 import type {
   TypesCollection,
   TypesDatabaseConfig,
@@ -44,7 +44,7 @@ export default () => {
       }
     }
   };
-  
+
   useEffect(() => {
     if (collection?.type === 'document') {
       form.setFieldsValue({

@@ -100,7 +100,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
             },
           }}
         >
-          {displayText.replace(/\n{1}/g, '\n\n')}
+          {displayText}
         </ReactMarkdown>
       );
     }
@@ -139,7 +139,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
   };
 
   useEffect(() => {
-    let data = (item.data || '').replace(/^\n*/, '');
+    let data = (item.data || '').replace(/^\n*/, '').replace(/\n{1}/g, '\n\n');
     if (!loading || !item._typeWriter) {
       setDisplayText(data);
     } else {

@@ -1,4 +1,4 @@
-import { DATABASE_TYPE_OPTIONS } from '@/models/collection';
+import { DATABASE_TYPE_OPTIONS } from '@/constants';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
 import type { TypesDatabaseConfig, TypesDatabaseConfigCerify } from '@/types';
