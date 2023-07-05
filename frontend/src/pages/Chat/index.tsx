@@ -256,11 +256,7 @@ export default () => {
                 onClear={onClear}
               />
             </div>
-            {chatLoading ? (
-              <div style={{ marginTop: '30%' }}>
-                <PageLoading />
-              </div>
-            ) : null}
+            {chatLoading ? <PageLoading mask={false} /> : null}
           </div>
         );
       }}

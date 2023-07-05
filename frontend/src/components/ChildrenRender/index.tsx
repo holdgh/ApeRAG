@@ -5,7 +5,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, history, useModel } from '@umijs/max';
-import { Button, Card, CardProps, Result, Typography, theme } from 'antd';
+import { Button, Card, CardProps, Result, Typography } from 'antd';
 import { useEffect } from 'react';
 import PageLoading from '../PageLoading';
 import './index.less';
@@ -13,7 +13,6 @@ import './index.less';
 export default (): React.ReactNode => {
   const { collections, getCollections } = useModel('collection');
   const user = getUser();
-  const { token } = theme.useToken();
 
   const cardProps: CardProps = {
     bordered: false,
@@ -31,21 +30,7 @@ export default (): React.ReactNode => {
   );
 
   if (!user) {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0,
-          background: token.colorBgBase,
-          zIndex: 100,
-        }}
-      >
-        <PageLoading />
-      </div>
-    );
+    return <PageLoading mask={true} />;
   }
 
   if (!user.email_verified) {
