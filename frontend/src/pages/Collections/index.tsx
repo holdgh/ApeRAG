@@ -103,7 +103,9 @@ export default () => {
                       style={{ width: btnWidth, display: 'inline-block' }}
                       onClick={async () => {
                         await setCurrentCollection(collection);
-                        history.push('/chat');
+                        setTimeout(() => {
+                          history.push('/chat');
+                        }, 200);
                       }}
                     >
                       Chat
@@ -126,6 +128,7 @@ export default () => {
           );
         })}
       </Row>
-    </PageContainer>
+      </PageContainer>
+    
   );
 };

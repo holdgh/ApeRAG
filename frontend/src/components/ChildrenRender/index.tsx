@@ -8,8 +8,7 @@ import PageLoading from '../PageLoading';
 import './index.less';
 
 export default (): React.ReactNode => {
-  const { collections, getCollections, collectionLoading } =
-    useModel('collection');
+  const { collections, getCollections } = useModel('collection');
   const user = getUser();
 
   useEffect(() => {
@@ -64,7 +63,7 @@ export default (): React.ReactNode => {
   }
 
   if (collections === undefined) {
-    return <Result style={style} icon={TipIcon} />;
+    // return <Result style={style} icon={TipIcon} />;
   }
 
   if (collections?.length === 0 && !ignore) {
@@ -92,19 +91,21 @@ export default (): React.ReactNode => {
 
   if (history.location.pathname.match(/^\/chat/)) return <Outlet />;
 
-  return (
-    <div style={{ position: 'relative' }}>
-      <TransitionGroup component={null}>
-        <CSSTransition
-          key={history.location.pathname}
-          classNames="fade"
-          timeout={600}
-        >
-          <div style={{ position: 'absolute', left: 0, right: 0 }}>
-            <Outlet />
-          </div>
-        </CSSTransition>
-      </TransitionGroup>
-    </div>
-  );
+  return <Outlet />
+
+  // return (
+  //   <div style={{ position: 'relative' }}>
+  //     <TransitionGroup component={null}>
+  //       <CSSTransition
+  //         key={history.location.pathname}
+  //         classNames="fade"
+  //         timeout={600}
+  //       >
+  //         <div style={{ position: 'absolute', left: 0, right: 0 }}>
+  //           <Outlet />
+  //         </div>
+  //       </CSSTransition>
+  //     </TransitionGroup>
+  //   </div>
+  // );
 };

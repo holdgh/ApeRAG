@@ -1,5 +1,3 @@
-import type { TypesCollection } from './collection';
-
 export type TypesDocumentStatus =
   | 'PENDING'
   | 'RUNNING'
@@ -9,9 +7,9 @@ export type TypesDocumentStatus =
 
 export type TypesDocument = {
   id: string;
+  collectionId: string;
   name: string;
   user: string;
-  collection: TypesCollection;
   status: TypesDocumentStatus;
   size: number;
   created: string;

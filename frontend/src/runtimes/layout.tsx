@@ -5,10 +5,10 @@ import {
   LoginOutlined,
   LogoutOutlined,
   PlusOutlined,
-  QuestionCircleOutlined,
+  SettingFilled,
 } from '@ant-design/icons';
 import { Link } from '@umijs/max';
-import { Button, Tooltip } from 'antd';
+import { Button, Typography } from 'antd';
 import type { InitialStateType } from './getInitialState';
 
 let hasInit = localStorage.getItem('sidebarCollapsed') !== 'true';
@@ -28,6 +28,7 @@ export const layout = ({
     menu: {
       locale: false,
     },
+    contentWidth: 'Fixed', //'Fluid',
     disableMobile: false,
     collapsed: initialState?.collapsed,
     onCollapse: (collapsed: boolean) => {
@@ -39,13 +40,19 @@ export const layout = ({
       setInitialState((s: InitialStateType) => ({ ...s, collapsed }));
       hasInit = true;
     },
+    // disableMobile: true,
+    // collapsed: true,
+    collapsedButtonRender: () => null,
     token: {
       bgLayout: '#0A0A0A',
       sider: {
         colorMenuBackground: '#202027',
       },
       header: {},
-      pageContainer: {},
+      pageContainer: {
+        // paddingBlockPageContainerContent: 0,
+        // paddingInlinePageContainerContent: 0,
+      },
     },
     menuFooterRender: () => {
       if (initialState?.collapsed) return;
@@ -76,30 +83,33 @@ export const layout = ({
     },
     actionsRender: (props: any) => {
       if (props.isMobile) return [];
+      const actionTextStyle = {
+        paddingInline: 8,
+      };
       return [
-        <Tooltip title="Documents" key="docs">
-          <QuestionCircleOutlined style={{ color: '#FFF' }} />
-        </Tooltip>,
+        <Link key="settings" to="/settings">
+          <Typography.Text type="secondary" style={actionTextStyle}>
+            <SettingFilled />
+          </Typography.Text>
+        </Link>,
         user ? (
-          <Tooltip title="logout">
+          <Typography.Text type="secondary" style={actionTextStyle}>
             <LoginOutlined
               key="logout"
-              style={{ color: '#FFF' }}
               onClick={() => {
                 auth0.logout();
               }}
             />
-          </Tooltip>
+          </Typography.Text>
         ) : (
-          <Tooltip title="login">
+          <Typography.Text type="secondary" style={actionTextStyle}>
             <LogoutOutlined
               key="login"
-              style={{ color: '#FFF' }}
               onClick={() => {
                 auth0.loginWithRedirect();
               }}
             />
-          </Tooltip>
+          </Typography.Text>
         ),
       ];
     },

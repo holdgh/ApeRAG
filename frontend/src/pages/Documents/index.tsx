@@ -55,7 +55,9 @@ export default () => {
           type="primary"
           onClick={async () => {
             await setCurrentCollection(collection);
-            history.push('/chat');
+            setTimeout(() => {
+              history.push('/chat');
+            }, 200);
           }}
         >
           Chat
