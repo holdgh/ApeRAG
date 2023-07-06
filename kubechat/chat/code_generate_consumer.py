@@ -8,7 +8,7 @@ from kubechat.auth.validator import DEFAULT_USER
 import requests
 import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
-from kubechat.utils.db import query_code_chat, query_collection, query_chat
+from kubechat.utils.db import  query_collection, query_chat
 from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id
 from services.code.code_gerenate.chat_to_files import to_files
 from services.code.code_gerenate.storage import DBs, DB, archive
