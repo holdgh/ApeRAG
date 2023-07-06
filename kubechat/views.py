@@ -147,6 +147,15 @@ def create_collection(request, collection: CollectionIn):
         _, size = get_default_embedding_model(load=False)
         vector_db_conn.connector.create_collection(vector_size=size)
         scan_collection.delay(instance.id)
+    elif instance.type == CollectionType.CODE:
+        chat = Chat(
+            user=instance.user,
+            status=ChatStatus.ACTIVE,
+            collection=instance,
+            summary=instance.description,
+        )
+        chat.save()
+
     return success(instance.view())
 
 
@@ -350,59 +359,59 @@ def delete_chat(request, collection_id, chat_id):
     return success(chat.view())
 
 
-@api.post("/code/codegenerate")
-def create_code_generate_chat(request, codechat: CodeChatIn):
-    user = get_user(request)
-    instance = CodeChat(
-        user=user,
-        title=codechat.title,
-        status=CodeChatStatus.ACTIVE,
-    )
-    instance.save()
-    return success(instance.view())
-
-
-@api.get("/code/codegenerate/chats")
-def list_code_generate_chats(request):
-    user = get_user(request)
-    instances = query_code_chats(user)
-    response = []
-    for instance in instances:
-        response.append(instance.view())
-    return success(response)
-
-
-@api.get("/code/codegenerate/chats/{chat_id}")
-def get_code_generate_chat(request, chat_id):
-    user = get_user(request)
-    instance = query_code_chat(user, chat_id)
-    if instance is None:
-        return fail(HTTPStatus.NOT_FOUND, "chat not found")
-    # chat_id will conflict
-    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
-    messages = []
-    for message in history.messages:
-        try:
-            item = json.loads(message.content)
-        except Exception as e:
-            logger.exception(e)
-            continue
-        item["role"] = message.additional_kwargs["role"]
-        item["references"] = message.additional_kwargs.get("references") or []
-        messages.append(item)
-    return success(instance.view(messages))
-
-
-@api.delete("/code/codegenerate/chats/{chat_id}")
-def delete_code_generate_chat(request, chat_id):
-    user = get_user(request)
-    instance = query_code_chat(user, chat_id)
-    if instance is None:
-        return fail(HTTPStatus.NOT_FOUND, "chat not found")
-    instance.status = CodeChatStatus.DELETED
-    instance.gmt_deleted = datetime.now()
-    instance.save()
-    return success(instance.view())
+# @api.post("/code/codegenerate")
+# def create_code_generate_chat(request, codechat: CodeChatIn):
+#     user = get_user(request)
+#     instance = CodeChat(
+#         user=user,
+#         title=codechat.title,
+#         status=CodeChatStatus.ACTIVE,
+#     )
+#     instance.save()
+#     return success(instance.view())
+#
+#
+# @api.get("/code/codegenerate/chats")
+# def list_code_generate_chats(request):
+#     user = get_user(request)
+#     instances = query_code_chats(user)
+#     response = []
+#     for instance in instances:
+#         response.append(instance.view())
+#     return success(response)
+#
+#
+# @api.get("/code/codegenerate/chats/{chat_id}")
+# def get_code_generate_chat(request, chat_id):
+#     user = get_user(request)
+#     instance = query_code_chat(user, chat_id)
+#     if instance is None:
+#         return fail(HTTPStatus.NOT_FOUND, "chat not found")
+#     # chat_id will conflict
+#     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
+#     messages = []
+#     for message in history.messages:
+#         try:
+#             item = json.loads(message.content)
+#         except Exception as e:
+#             logger.exception(e)
+#             continue
+#         item["role"] = message.additional_kwargs["role"]
+#         item["references"] = message.additional_kwargs.get("references") or []
+#         messages.append(item)
+#     return success(instance.view(messages))
+#
+#
+# @api.delete("/code/codegenerate/chats/{chat_id}")
+# def delete_code_generate_chat(request, chat_id):
+#     user = get_user(request)
+#     instance = query_code_chat(user, chat_id)
+#     if instance is None:
+#         return fail(HTTPStatus.NOT_FOUND, "chat not found")
+#     instance.status = CodeChatStatus.DELETED
+#     instance.gmt_deleted = datetime.now()
+#     instance.save()
+#     return success(instance.view())
 
 
 def index(request):

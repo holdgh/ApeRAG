@@ -33,6 +33,13 @@ def extract_database_and_execute(path: str, db_type):
     raise ValueError(f"Invalid path format: {path}")
 
 
+def extract_code_chat(path: str):
+    match = re.match(r"/api/v1/code/(?P<chat_id>\w+)/connect$", path)
+    if match:
+        return match.group("chat_id")
+    else:
+        raise ValueError(f"Invalid path format: {path}")
+
 def now_unix_milliseconds():
     return int(datetime.utcnow().timestamp() * 1e3)
 

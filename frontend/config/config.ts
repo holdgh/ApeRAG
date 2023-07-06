@@ -55,6 +55,7 @@ export default defineConfig({
       name: 'Collections',
       path: '/collections',
       icon: 'AppstoreFilled',
+      // component: './Collections/layout.tsx',
       routes: [
         {
           path: '/collections',
@@ -93,6 +94,7 @@ export default defineConfig({
       path: '/settings',
       icon: 'SettingFilled',
       component: './Settings',
+      hideInMenu: true,
     },
   ],
   npmClient: 'yarn',

@@ -32,7 +32,7 @@ def read_file(bucket, filename):
     return file_content
 
 
-def scanning_oss_add_index(b_name: str, key_id, key_secret, ep, collection):
+def scanning_oss_add_index(b_name: str, key_id, key_secret, ep, dir, collection):
     collection.status = CollectionStatus.INACTIVE
     collection.save()
     bucket = connect_to_oss(
@@ -43,7 +43,7 @@ def scanning_oss_add_index(b_name: str, key_id, key_secret, ep, collection):
     )
 
     try:
-        for obj in oss2.ObjectIterator(bucket):
+        for obj in oss2.ObjectIterator(bucket, prefix=dir):  # get file in given directory
             filename = os.path.basename(obj.key)  # Extract filename from path
             file_suffix = os.path.splitext(filename)[1].lower()
             file_prefix = os.path.splitext(filename)[0] + "_"

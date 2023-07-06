@@ -40,12 +40,20 @@ class DocumentStatus(models.TextChoices):
 class ChatStatus(models.TextChoices):
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
-
-
-class CodeChatStatus(models.TextChoices):
-    ACTIVE = "ACTIVE"
     FINISHED = "FINISHED"
-    DELETED = "DELETED"
+
+
+class CodeChatType(models.TextChoices):
+    DEFAULT = "DEFAULT"
+    BENCHMARK = "BENCHMARK"
+    SIMPLE = "SIMPLE"
+    TDD = "TDD"
+    TDD_PLUS = "TDD+"
+    CLARIFY = "CLARIFY"
+    RESPEC = "RESPEC"
+    EXECUTE_ONLY = "EXECUTE_ONLY"
+    EVALUATE = "EVALUATE"
+    USE_FEEDBACK = "USE_FEEDBACK"
 
 
 class VerifyWay(models.TextChoices):
@@ -107,9 +115,11 @@ class Chat(models.Model):
     status = models.CharField(max_length=16, choices=ChatStatus.choices)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     # currently, we use the first message in the history as summary
+    codetype = models.CharField(max_length=16, choices=CodeChatType.choices)
     summary = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_finished = models.DateTimeField(null=True, blank=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     def view(self, messages=None):
@@ -124,25 +134,26 @@ class Chat(models.Model):
         }
 
 
-class CodeChat(models.Model):
-    user = models.CharField(max_length=256)
-    title = models.CharField(max_length=32)
-    status = models.CharField(max_length=16, choices=CodeChatStatus.choices)
-    summary = models.TextField()
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_finished = models.DateTimeField(null=True, blank=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    def view(self, history=None):
-        if history is None:
-            history = []
-        return {
-            "id": str(self.id),
-            "summary": self.summary,
-            "history": history,
-            "created": self.gmt_created.isoformat(),
-            "finished:": self.gmt_finished.isoformat(),
-        }
+# class CodeChat(models.Model):
+#     user = models.CharField(max_length=256)
+#     title = models.CharField(max_length=32)
+#     type = models.CharField(max_length=16, choices=CodeChatType.choices)
+#     status = models.CharField(max_length=16, choices=CodeChatStatus.choices)
+#     summary = models.TextField()
+#     gmt_created = models.DateTimeField(auto_now_add=True)
+#     gmt_finished = models.DateTimeField(null=True, blank=True)
+#     gmt_deleted = models.DateTimeField(null=True, blank=True)
+#
+#     def view(self, history=None):
+#         if history is None:
+#             history = []
+#         return {
+#             "id": str(self.id),
+#             "summary": self.summary,
+#             "history": history,
+#             "created": self.gmt_created.isoformat(),
+#             "finished:": self.gmt_finished.isoformat(),
+#         }
 
 
 class Settings(models.Model):

@@ -1,0 +1,33 @@
+.layout {
+  position: relative;
+  transition-duration: 0.3s;
+
+  .sidebar {
+    position: fixed;
+    top:0;
+    bottom:0;
+    display: flex;
+    flex-direction: row;
+    transition-duration: 0.3s;
+
+    .top {
+      height: 47px;
+      margin: 0 8px;
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      align-items: center;
+
+      .title {
+        font-weight: 500;
+        font-size: 20px;
+      }
+    }
+
+    .content {
+      flex: 1;
+      padding: 12px 0;
+    }
+  }
+
+}
