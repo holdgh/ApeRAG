@@ -38,7 +38,6 @@ spec:
             - -c
             - |
               ln -s /data/resources /app
-              sleep 1000000
               python /app/server/llmserver.py
           ports:
             - name: http
