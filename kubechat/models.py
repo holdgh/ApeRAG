@@ -115,6 +115,7 @@ class Chat(models.Model):
     status = models.CharField(max_length=16, choices=ChatStatus.choices)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     # currently, we use the first message in the history as summary
+    codetype = models.CharField(max_length=16, choices=CodeChatType.choices)
     summary = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)

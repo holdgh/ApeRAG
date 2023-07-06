@@ -8,8 +8,8 @@ from kubechat.auth.validator import DEFAULT_USER
 import requests
 import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
-from kubechat.utils.db import query_code_chat
-from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds
+from kubechat.utils.db import query_code_chat, query_collection, query_chat
+from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id
 from services.code.code_gerenate.chat_to_files import to_files
 from services.code.code_gerenate.storage import DBs, DB, archive
 
@@ -27,12 +27,6 @@ class TokenUsage:
     total_completion_tokens: int
     total_tokens: int
 
-
-status = ["init",
-          "wait_clarify"
-          "already_clarify",
-          "finish"
-          ]
 
 first_status = {
     "DEFAULT": "clarify",
@@ -100,9 +94,15 @@ class CodeGenerateConsumer(WebsocketConsumer):
         # 在连接建立时执行的代码
         self.user = self.scope["X-USER-ID"]
         # todo: reuse collection and chat
-        chat_id = extract_code_chat(self.scope["path"])
-        chat = query_code_chat(self.user, chat_id=chat_id)
-        self.type = chat.type
+        collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
+        collection = query_collection(self.user, collection_id)
+        if collection is None:
+            raise Exception("Collection not found")
+        chat = query_chat(self.user, collection_id, chat_id)
+        # chat_id = extract_code_chat(self.scope["path"])
+        # collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
+        # chat = query_code_chat(self.user, chat_id=chat_id)
+        self.type = chat.codetype
         project_path = Path.cwd() / self.user / (chat.title + str(chat_id))
         memory_path = project_path / "memory"
         workspace_path = project_path / "workspace"
@@ -116,7 +116,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
             preprompts=DB(code_default_path),  # 默认preprompts的路径
             archive=DB(archive_path),
         )
-        self.dbs.input["prompt"] = chat.summary  # write what user want
+        self.dbs.input["prompt"] = chat.summary  # write the core prompt for code-generate
         archive(self.dbs)
         self.current_status = first_status.get(self.type)
         # maybe more interact
