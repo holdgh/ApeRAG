@@ -14,6 +14,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+efsId: fs-000f009e5b2735fc4
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -75,12 +77,12 @@ django:
   auth0ClientId: wuYeG5UUnEyyoGDHbJSrLSaESwpg7T63
   auth0Domain: kubechat-dev.jp.auth0.com
   memoryRedisURL: redis://redis-redis:6379/1
-  modelServer: http://47.96.65.19:8000
+  modelServer: http://llmserver:8000
   metaDBHost: postgresql-postgresql
   metaDBPort: 5432
   metaDBDatabase: kubechat
   metaDBUser: postgres
-  metaDBPassword: kwzrnhq5
+  metaDBPassword: fgqgfql4
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   vectorDBType: qdrant
 

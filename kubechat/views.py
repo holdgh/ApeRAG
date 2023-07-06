@@ -17,31 +17,12 @@ import config.settings as settings
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.tasks.scan import scan_collection
-from kubechat.utils.db import (
-    add_ssl_file,
-    new_db_client,
-    query_chat,
-    query_chats,
-    query_collection,
-    query_collections,
-    query_document,
-    query_documents,
-)
+from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
-from .models import (
-    Chat,
-    ChatStatus,
-    Collection,
-    CollectionStatus,
-    CollectionType,
-    Document,
-    DocumentStatus,
-    VerifyWay,
-    ssl_temp_file_path,
-)
+from .models import *
 from .source.ftp import scanning_ftp_add_index
 from .utils.utils import generate_vector_db_collection_id
 
@@ -73,6 +54,10 @@ class ConnectionInfo(Schema):
     ca_cert: Optional[str]
     client_key: Optional[str]
     client_cert: Optional[str]
+
+
+class CodeChatIn(Schema):
+    title: str = ""
 
 
 class Auth(BaseModel):
@@ -123,10 +108,10 @@ def connection_test(request, connection: ConnectionInfo):
         return fail(HTTPStatus.NOT_FOUND, "db type not found or illegal")
 
     if not client.connect(
-        False,
-        ssl_temp_file_path(connection.ca_cert),
-        ssl_temp_file_path(connection.client_key),
-        ssl_temp_file_path(connection.client_cert),
+            False,
+            ssl_temp_file_path(connection.ca_cert),
+            ssl_temp_file_path(connection.client_key),
+            ssl_temp_file_path(connection.client_cert),
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -148,13 +133,6 @@ def create_collection(request, collection: CollectionIn):
         instance.config = collection.config
     instance.save()
 
-    # pre-create collection in vector db
-    vector_db_conn = get_vector_db_connector(
-        collection=generate_vector_db_collection_id(user=user, collection=instance.id)
-    )
-    _, size = get_default_embedding_model(load=False)
-    vector_db_conn.connector.create_collection(vector_size=size)
-
     config = json.loads(collection.config)
     if instance.type == CollectionType.DATABASE:
         if config["verify"] != VerifyWay.PREFERRED:
@@ -162,6 +140,12 @@ def create_collection(request, collection: CollectionIn):
             collection.config = json.dumps(config)
             instance.save()
     elif instance.type == CollectionType.DOCUMENT:
+        # pre-create collection in vector db
+        vector_db_conn = get_vector_db_connector(
+            collection=generate_vector_db_collection_id(user=user, collection=instance.id)
+        )
+        _, size = get_default_embedding_model(load=False)
+        vector_db_conn.connector.create_collection(vector_size=size)
         scan_collection.delay(instance.id)
     return success(instance.view())
 
@@ -193,7 +177,7 @@ def get_database_list(request, collection_id):
     client = new_db_client(config)
     # TODO:add SSL
     if not client.connect(
-        False,
+            False,
     ):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
 
@@ -269,7 +253,7 @@ def list_documents(request, collection_id):
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
 def update_document(
-    request, collection_id, document_id, file: UploadedFile = File(...)
+        request, collection_id, document_id, file: UploadedFile = File(...)
 ):
     user = get_user(request)
     document = query_document(user, collection_id, document_id)
@@ -364,6 +348,61 @@ def delete_chat(request, collection_id, chat_id):
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
     return success(chat.view())
+
+
+@api.post("/code/codegenerate")
+def create_code_generate_chat(request, codechat: CodeChatIn):
+    user = get_user(request)
+    instance = CodeChat(
+        user=user,
+        title=codechat.title,
+        status=CodeChatStatus.ACTIVE,
+    )
+    instance.save()
+    return success(instance.view())
+
+
+@api.get("/code/codegenerate/chats")
+def list_code_generate_chats(request):
+    user = get_user(request)
+    instances = query_code_chats(user)
+    response = []
+    for instance in instances:
+        response.append(instance.view())
+    return success(response)
+
+
+@api.get("/code/codegenerate/chats/{chat_id}")
+def get_code_generate_chat(request, chat_id):
+    user = get_user(request)
+    instance = query_code_chat(user, chat_id)
+    if instance is None:
+        return fail(HTTPStatus.NOT_FOUND, "chat not found")
+    # chat_id will conflict
+    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
+    messages = []
+    for message in history.messages:
+        try:
+            item = json.loads(message.content)
+        except Exception as e:
+            logger.exception(e)
+            continue
+        item["role"] = message.additional_kwargs["role"]
+        item["references"] = message.additional_kwargs.get("references") or []
+        messages.append(item)
+    return success(instance.view(messages))
+
+
+@api.delete("/code/codegenerate/chats/{chat_id}")
+def delete_code_generate_chat(request, chat_id):
+    user = get_user(request)
+    instance = query_code_chat(user, chat_id)
+    if instance is None:
+        return fail(HTTPStatus.NOT_FOUND, "chat not found")
+    instance.status = CodeChatStatus.DELETED
+    instance.gmt_deleted = datetime.now()
+    instance.save()
+    return success(instance.view())
 
 
 def index(request):
