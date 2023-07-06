@@ -37,6 +37,7 @@ def scan_collection(collection_id):
             config["access_key_id"],
             config["secret_access_key"],
             config["region"],
+            config["dir"],
             collection,
         )
     elif config["source"] == "ftp":
