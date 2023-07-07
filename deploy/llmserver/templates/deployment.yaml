@@ -11,7 +11,7 @@ metadata:
     {{- include "llmserver.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ $rangeItem.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -53,7 +53,7 @@ spec:
               name: models
           env:
             - name: LLM_MODEL
-              value: {{ $rangeItem | quote}}
+              value: {{ $rangeItem.name | quote}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
