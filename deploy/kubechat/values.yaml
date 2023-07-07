@@ -81,8 +81,8 @@ django:
   metaDBHost: postgresql-postgresql
   metaDBPort: 5432
   metaDBDatabase: kubechat
-  metaDBUser: postgres
-  metaDBPassword: fdnbcg56
+  metaDBUser: ""
+  metaDBPassword: ""
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   vectorDBType: qdrant
 
