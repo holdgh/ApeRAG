@@ -74,8 +74,8 @@ django:
     #   cpu: 100m
     #   memory: 128Mi
   authEnabled: True
-  auth0ClientId: wuYeG5UUnEyyoGDHbJSrLSaESwpg7T63
-  auth0Domain: kubechat-dev.jp.auth0.com
+  auth0ClientId: ""
+  auth0Domain: ""
   memoryRedisURL: redis://redis-redis:6379/1
   modelServer: http://llmserver:8000
   metaDBHost: postgresql-postgresql
