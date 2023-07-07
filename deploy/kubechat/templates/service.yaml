@@ -4,17 +4,13 @@ metadata:
   annotations:
     kompose.cmd: kompose convert -f compose.yml -c -o deploy/kubechat
     kompose.version: 1.26.0 (40646f47)
-    service.beta.kubernetes.io/aws-load-balancer-type: nlb
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:ap-northeast-1:873340272875:certificate/92950038-c89d-4f74-889e-6ca0a2cc89c7
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
   labels:
     {{- include "kubechat.labels" . | nindent 4 }}
     {{- include "django.labels" . | nindent 4 }}
   name: kubechat
 spec:
   ports:
-    - name: 443
+    - name: "80"
       port: {{ .Values.service.port }}
       targetPort: 8000
   type: LoadBalancer
