@@ -21,16 +21,16 @@ def extract_chat_id(path: str):
         raise ValueError(f"Invalid path format: {path}")
 
 
-def extract_database_and_execute(path: str, db_type):
+def extract_database(path: str, db_type):
     if db_type in ["mysql", "postgresql"]:
-        match = re.match(r"database=(?P<database>\w+)&execute=(?P<execute>\w+)", path)
+        match = re.match(r"database=(?P<database>\w+)", path)
         if match:
-            return match.group("database"), match.group("execute")
+            return match.group("database")
+        else:
+            raise ValueError(f"Invalid path format: {path}")
     else:
-        match = re.match(r"execute=(?P<execute>\w+)", path)
-        if match:
-            return None, match.group("execute")
-    raise ValueError(f"Invalid path format: {path}")
+        return None
+
 
 
 def extract_code_chat(path: str):
