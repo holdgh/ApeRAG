@@ -32,7 +32,7 @@ class Text2SQLConsumer(BaseConsumer):
             self.response_type = "sql"
             response = self.client.text_to_query(query)
 
-        if isinstance(response, list):
+        if isinstance(response, Generator):
             for tokens in response:
                 yield str(tokens)
         else:
