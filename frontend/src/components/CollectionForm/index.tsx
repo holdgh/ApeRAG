@@ -73,7 +73,7 @@ export default ({ onSubmit, action, values }: Props) => {
       multiple: false,
       showUploadList: false,
       maxCount: 1,
-      action: `/api/v1/collections/ca/upload`,
+      action: `${API_ENDPOINT}/api/v1/collections/ca/upload`,
       // accept: '.pem,.key,.crt,.csr',
       headers: {
         Authorization: 'Bearer ' + user?.__raw,

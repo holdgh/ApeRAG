@@ -145,7 +145,7 @@ export default () => {
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: true,
-    action: `/api/v1/collections/${collectionId}/documents`,
+    action: `${API_ENDPOINT}/api/v1/collections/${collectionId}/documents`,
     data: {},
     showUploadList: false,
     headers: {
