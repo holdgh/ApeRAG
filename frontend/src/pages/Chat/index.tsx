@@ -10,9 +10,7 @@ import {
   Form,
   Select,
   Space,
-  Switch,
   Tag,
-  Tooltip,
   Typography,
   theme,
 } from 'antd';
@@ -24,7 +22,7 @@ import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
 
-type DbChatFormFields = { database?: string; execute?: boolean };
+type DbChatFormFields = { database?: string; };
 
 export default () => {
   // const { message } = App.useApp();
@@ -120,7 +118,6 @@ export default () => {
     if (currentDatabase?.length) {
       const values: DbChatFormFields = {
         database: currentDatabase[0],
-        execute: false,
       };
       setSocketParams(values);
     } else {
@@ -217,7 +214,7 @@ export default () => {
           </Space>
 
           <Space split={<Divider type="vertical" />}>
-            {currentCollection?.type === 'database' ? (
+            {showSelector && !databaseLoading ? (
               <Form
                 form={dbSelectorForm}
                 layout="inline"
@@ -226,24 +223,17 @@ export default () => {
                   setSocketParams(allValues)
                 }
               >
-                {showSelector && !databaseLoading ? (
-                  <Form.Item name="database">
-                    <Select
-                      loading={databaseLoading}
-                      className={styles.selector}
-                      bordered={false}
-                      options={currentDatabase?.map((d) => ({
-                        label: d,
-                        value: d,
-                      }))}
-                    />
-                  </Form.Item>
-                ) : null}
-                <Tooltip title="Immediate Execute">
-                  <Form.Item name="execute" valuePropName="checked">
-                    <Switch className={styles.switch} />
-                  </Form.Item>
-                </Tooltip>
+                <Form.Item name="database">
+                  <Select
+                    loading={databaseLoading}
+                    className={styles.selector}
+                    bordered={false}
+                    options={currentDatabase?.map((d) => ({
+                      label: d,
+                      value: d,
+                    }))}
+                  />
+                </Form.Item>
               </Form>
             ) : null}
             <Link to={`/${currentCollection?.type}/${currentCollection?.id}`}>

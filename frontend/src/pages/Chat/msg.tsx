@@ -7,6 +7,9 @@ import {
   LoadingOutlined,
   RobotOutlined,
 } from '@ant-design/icons';
+import { sql } from '@codemirror/lang-sql';
+import { okaidiaInit } from '@uiw/codemirror-theme-okaidia';
+import CodeMirror from '@uiw/react-codemirror';
 import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
@@ -20,6 +23,17 @@ import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
+
+const EditorTheme = okaidiaInit({
+  theme: 'dark',
+  settings: {
+    background: 'transparent',
+    caret: '#FFF',
+    gutterBackground: 'transparent',
+    gutterForeground: 'rgba(255, 255, 255, 0.2)',
+    lineHighlight: 'transparent',
+  },
+});
 
 type Props = {
   item: TypesMessage;
@@ -66,14 +80,13 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
     };
     if (item.type === 'sql') {
       return (
-        <SyntaxHighlighter
-          style={dark}
-          language="sql"
-          PreTag="div"
-          customStyle={customStyle}
-        >
-          {String(displayText).replace(/\n$/, '')}
-        </SyntaxHighlighter>
+        <CodeMirror
+          value={displayText.replace(/\n+$/, '')}
+          minHeight="0"
+          extensions={[sql()]}
+          theme={EditorTheme}
+          // onChange={onChange}
+        />
       );
     } else {
       return (

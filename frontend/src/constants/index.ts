@@ -20,20 +20,6 @@ export const DATABASE_DEFAULT_CONFIG: TypesDatabaseConfig = {
 
 export const CODE_DEFAULT_CONFIG = {};
 
-export const DATABASE_EXECUTE_OPTIONS: {
-  label: string;
-  value: boolean;
-}[] = [
-  {
-    label: 'Immediate Execute',
-    value: true,
-  },
-  {
-    label: 'Execute on Request',
-    value: false,
-  },
-];
-
 export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
   {
     label: 'MySQL',
