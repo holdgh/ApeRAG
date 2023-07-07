@@ -42,8 +42,8 @@ class SQLBase(DataBase):
         try:
             self.conn = SQLDatabase(
                 create_engine(
-                    self._generate_db_url()
-                    + self._get_ssl_args(verify, ca_cert, client_key, client_cert)
+                    self._generate_db_url(),
+                    connect_args=self._get_ssl_args(verify, ca_cert, client_key, client_cert),
                 ),
                 sample_rows_in_table_info=3,
                 schema=self.db,
@@ -79,3 +79,7 @@ class SQLBase(DataBase):
         with self.conn.engine.connect() as connection:
             result = connection.execute(text(query))
         return result.all()
+
+    @abstractmethod
+    def get_database_list(self):
+        pass

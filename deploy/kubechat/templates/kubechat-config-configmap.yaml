@@ -20,4 +20,4 @@ kind: ConfigMap
 metadata:
   labels:
     {{- include "kubechat.labels" . | nindent 4 }}
-  name: docker-env
+  name: kubechat-config

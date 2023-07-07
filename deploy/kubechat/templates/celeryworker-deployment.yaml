@@ -29,53 +29,53 @@ spec:
             - -c
             - |
               ln -s /data/.cache/huggingface /root/.cache/
-              /app/scripts/start-celery-worker.sh
+              /app/scripts/entrypoint.sh /app/scripts/start-celery-worker.sh
           env:
             - name: CELERY_BROKER_URL
               valueFrom:
                 configMapKeyRef:
                   key: CELERY_BROKER_URL
-                  name: docker-env
+                  name: kubechat-config
             - name: DJANGO_LOG_LEVEL
               valueFrom:
                 configMapKeyRef:
                   key: DJANGO_LOG_LEVEL
-                  name: docker-env
+                  name: kubechat-config
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
                   key: POSTGRES_DB
-                  name: docker-env
+                  name: kubechat-config
             - name: POSTGRES_HOST
               valueFrom:
                 configMapKeyRef:
                   key: POSTGRES_HOST
-                  name: docker-env
+                  name: kubechat-config
             - name: POSTGRES_PASSWORD
               valueFrom:
                 configMapKeyRef:
                   key: POSTGRES_PASSWORD
-                  name: docker-env
+                  name: kubechat-config
             - name: POSTGRES_PORT
               valueFrom:
                 configMapKeyRef:
                   key: POSTGRES_PORT
-                  name: docker-env
+                  name: kubechat-config
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
                   key: POSTGRES_USER
-                  name: docker-env
+                  name: kubechat-config
             - name: VECTOR_DB_CONTEXT
               valueFrom:
                 configMapKeyRef:
                   key: VECTOR_DB_CONTEXT
-                  name: docker-env
+                  name: kubechat-config
             - name: VECTOR_DB_TYPE
               valueFrom:
                 configMapKeyRef:
                   key: VECTOR_DB_TYPE
-                  name: docker-env
+                  name: kubechat-config
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}
