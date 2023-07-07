@@ -66,10 +66,14 @@ def add_ssl_file(config, collection):
 def new_db_client(config):
     # only import class when it is needed
     match config["db_type"]:
-        case "postgresql" | "sqlite" | "oracle":
+        case "sqlite" | "oracle":
             from services.text2SQL.sql.sql import SQLBase
 
             new_client = SQLBase
+        case "postgresql":
+            from services.text2SQL.sql.postgresql import Postgresql
+
+            new_client = Postgresql
         case "mysql":
             from services.text2SQL.sql.mysql import Mysql
 

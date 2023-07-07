@@ -4,7 +4,7 @@ import {
   DeleteCollectionDocument,
   GetCollectionDocuments,
 } from '@/services/documents';
-import type { TypesDocument } from '@/types';
+import type { TypesDocument, TypesDocumentConfig } from '@/types';
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import { useModel, useParams } from '@umijs/max';
 import {
@@ -33,9 +33,9 @@ export default () => {
   const { collectionId } = useParams();
   const { modal, message } = App.useApp();
   const user = getUser();
-  const { getCollection, parseCollectionConfig } = useModel('collection');
+  const { getCollection } = useModel('collection');
   const collection = getCollection(collectionId);
-  const config = parseCollectionConfig(collection);
+  const config = collection?.config as TypesDocumentConfig;
 
   const dataSource = documents?.filter((d) =>
     new RegExp(searchKey || '').test(d.name),
@@ -181,7 +181,7 @@ export default () => {
           }}
         />
 
-        {collection?.type === 'document' && config.source === 'system' ? (
+        {collection?.type === 'document' && config?.source === 'system' ? (
           <Space>
             <Button disabled>Merge</Button>
             <Upload {...uploadProps}>

@@ -1,6 +1,5 @@
 @maxWidth: 980px;
-@leftWidth: 257px;
-@leftCollapsedWidth: 65px;
+@leftWidth: 325px;
 @leftMobileWidth: 0;
 .layout() {
   max-width: @maxWidth;
@@ -24,44 +23,12 @@
   backdrop-filter: blur(8px);
 
   .database-form {
-    position: absolute;
-    right: 16px;
-    top: 0;
-    transition-duration: 0.15s;
-
     .selector {
       width: 220px;
-      background-color: rgba(255, 255, 255, 5%);
-      margin-top: 12px;
+      background-color: rgba(255, 255, 255, 10%);
       padding: 0 12px 0 6px;
       border-radius: 50px;
-      transition-duration: 0.3s;
     }
-
-    .switch {
-      margin-top: 18px;
-    }
-  }
-
-  &.collapsed {
-    left: 65px;
-    height: 47px;
-    padding-block: 8px;
-
-    .selector {
-      margin-top: 8px;
-    }
-
-    .switch {
-      margin-top: 12px;
-    }
-  }
-
-  &.mobile {
-    height: 47px;
-    padding-block: 8px;
-    left: @leftMobileWidth;
-    top: 56px;
   }
 }
 
@@ -78,14 +45,6 @@
   padding-block: 20px;
   padding-inline: 40px;
   transition-duration: 0.15s;
-
-  &.collapsed {
-    left: @leftCollapsedWidth;
-  }
-
-  &.mobile {
-    left: @leftMobileWidth;
-  }
 
   .wrap {
     display: flex;

@@ -1,7 +1,8 @@
 import {
-  TypesCollection,
   TypesCollectionStatus,
+  TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
+  TypesDocumentConfig,
   TypesDocumentConfigSourceOption,
   TypesDocumentStatus,
   TypesSocketStatus,
@@ -9,20 +10,15 @@ import {
 import { PresetStatusColorType } from 'antd/es/_util/colors';
 import { ReadyState } from 'react-use-websocket';
 
-export const DOCUMENT_DEFAULT_CONFIG: TypesCollection = {
-  type: 'document',
-  config: '{"source": "system"}',
+export const DOCUMENT_DEFAULT_CONFIG: TypesDocumentConfig = {
+  source: 'system',
 };
 
-export const CODE_DEFAULT_CONFIG: TypesCollection = {
-  type: 'code',
-  config: '{}',
+export const DATABASE_DEFAULT_CONFIG: TypesDatabaseConfig = {
+  verify: 'prefered',
 };
 
-export const DATABASE_DEFAULT_CONFIG: TypesCollection = {
-  type: 'database',
-  config: '', // default is empty.
-};
+export const CODE_DEFAULT_CONFIG = {};
 
 export const DATABASE_EXECUTE_OPTIONS: {
   label: string;
@@ -54,6 +50,7 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
   {
     label: 'SQLite',
     value: 'sqlite',
+    icon: 'https://cdn.kubeblocks.com/img/sqlite.png',
   },
   {
     label: 'Redis',
@@ -63,6 +60,7 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
   {
     label: 'Oracle',
     value: 'oracle',
+    icon: 'https://cdn.kubeblocks.com/img/oracle.png',
   },
   {
     label: 'Mongo',
@@ -72,10 +70,12 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
   {
     label: 'ClickHouse',
     value: 'clickhouse',
+    icon: 'https://cdn.kubeblocks.com/img/clickhouse.png',
   },
   {
     label: 'ElasticSearch',
     value: 'elasticsearch',
+    icon: 'https://cdn.kubeblocks.com/img/elasticsearch.png',
   },
 ];
 
