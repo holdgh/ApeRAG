@@ -42,7 +42,7 @@ type Props = {
   onExecute: (msg: TypesMessage) => void;
 };
 
-const TYPE_WRITER_SPEED = 20;
+const TYPE_WRITER_SPEED = 40;
 
 export default ({ item, loading, onExecute = () => {} }: Props) => {
   const [runtimeText, setRuntimeText] = useState<string>('');
