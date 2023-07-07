@@ -23,9 +23,7 @@ export const rootContainer = (children: React.ReactElement) => {
       }}
     >
       <ProConfigProvider dark={true}>
-        <App>
-        {children}
-        </App>
+        <App>{children}</App>
       </ProConfigProvider>
     </ConfigProvider>
   );

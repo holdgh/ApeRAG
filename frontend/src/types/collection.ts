@@ -74,12 +74,14 @@ export type TypesCollectionStatus = 'INACTIVE' | 'ACTIVE' | 'DELETED';
 
 export type TypesCollectionType = 'document' | 'database' | 'code';
 
+export type TypesCollectionConfig = TypesDocumentConfig | TypesDatabaseConfig;
+
 export type TypesCollection = {
   id?: string;
   title?: string;
   status?: TypesCollectionStatus;
   type: TypesCollectionType;
-  config?: string;
+  config?: TypesCollectionConfig;
   description?: string;
   created?: string;
   updated?: string;

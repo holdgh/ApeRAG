@@ -43,47 +43,97 @@ export default defineConfig({
   routes: [
     {
       path: '/',
-      redirect: '/chat',
+      redirect: '/document',
     },
     {
-      name: 'Chat',
-      path: '/chat',
-      icon: 'MessageFilled',
-      component: './Chat',
-    },
-    {
-      name: 'Collections',
-      path: '/collections',
-      icon: 'AppstoreFilled',
-      // component: './Collections/layout.tsx',
+      name: 'Documents',
+      path: '/document',
+      icon: 'SnippetsOutlined',
+      component: './Document',
       routes: [
         {
-          path: '/collections',
-          component: './Collections',
+          path: '/document',
+          component: './Document/list',
         },
         {
-          name: 'New Collection',
-          path: '/collections/new',
-          component: './Collections/new',
-          hideInMenu: true,
-          hideInBreadcrumb: true,
+          path: '/document/new',
+          component: './Document/new',
         },
         {
-          name: 'Documents',
-          path: '/collections/:collectionId',
-          component: './Documents',
+          name: 'Document',
+          path: '/document/:collectionId',
           hideInMenu: true,
           hideInBreadcrumb: true,
           routes: [
             {
-              name: 'Documents',
-              path: '/collections/:collectionId/document',
-              component: './Documents/list',
+              name: 'Setting',
+              path: '/document/:collectionId',
+              component: './Document/detail',
             },
             {
+              name: 'Chat',
+              path: '/document/:collectionId/chat',
+              component: './Chat',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'Database',
+      path: '/database',
+      icon: 'ConsoleSqlOutlined',
+      component: './Database',
+      routes: [
+        {
+          path: '/database/new',
+          component: './Database/new',
+        },
+        {
+          name: 'Database',
+          path: '/database/:collectionId',
+          hideInMenu: true,
+          hideInBreadcrumb: true,
+          routes: [
+            {
               name: 'Setting',
-              path: '/collections/:collectionId/setting',
-              component: './Collections/edit',
+              path: '/database/:collectionId',
+              component: './Database/detail',
+            },
+            {
+              name: 'Chat',
+              path: '/database/:collectionId/chat',
+              component: './Chat',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'Code',
+      path: '/code',
+      icon: 'CodeOutlined',
+      component: './Code',
+      routes: [
+        {
+          path: '/code/new',
+          component: './Code/new',
+        },
+        {
+          name: 'Code',
+          path: '/code/:collectionId',
+          hideInMenu: true,
+          hideInBreadcrumb: true,
+          routes: [
+            {
+              name: 'Setting',
+              path: '/code/:collectionId',
+              component: './Code/detail',
+            },
+            {
+              name: 'Chat',
+              path: '/code/:collectionId/chat',
+              component: './Chat',
             },
           ],
         },
