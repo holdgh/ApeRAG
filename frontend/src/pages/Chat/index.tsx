@@ -1,11 +1,21 @@
-import CollectionTitle from '@/components/CollectionTitle';
-import { SOCKET_STATUS_MAP } from '@/constants';
+import { COLLECTION_STATUS_TAG_COLORS, SOCKET_STATUS_MAP } from '@/constants';
 import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
-import { RouteContext, RouteContextType } from '@ant-design/pro-components';
-import { useModel } from '@umijs/max';
-import { Form, Select, Switch, Tooltip, theme } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
+import { Link, useModel } from '@umijs/max';
+import {
+  Button,
+  Divider,
+  Form,
+  Select,
+  Space,
+  Switch,
+  Tag,
+  Tooltip,
+  Typography,
+  theme,
+} from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -27,9 +37,6 @@ export default () => {
 
   // websocket params
   const [socketParams, setSocketParams] = useState<DbChatFormFields>();
-
-  // initialState.collapsed for mobile adaptation;
-  const { initialState } = useModel('@@initialState');
 
   // login user;
   const user = getUser();
@@ -123,7 +130,7 @@ export default () => {
 
   useEffect(() => {
     updateSocketUrl();
-  }, [currentCollection, currentChat]);
+  }, [currentChat]);
 
   useEffect(() => {
     if (!_.isEmpty(socketParams)) {
@@ -187,76 +194,84 @@ export default () => {
   }, [lastJsonMessage]);
 
   return (
-    <RouteContext.Consumer>
-      {(value: RouteContextType) => {
-        const { isMobile } = value;
+    <>
+      <div
+        className={classNames({
+          [styles.header]: true,
+        })}
+        style={{
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        }}
+      >
+        <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Space split={<Divider type="vertical" />}>
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              {currentCollection?.title}
+            </Typography.Title>
+            {currentCollection?.status ? (
+              <Tag
+                className={styles.status}
+                color={COLLECTION_STATUS_TAG_COLORS[currentCollection.status]}
+              >
+                {_.capitalize(currentCollection?.status)}
+              </Tag>
+            ) : null}
+          </Space>
 
-        return (
-          <div style={{ position: 'relative' }}>
-            <div
-              className={classNames({
-                [styles.header]: true,
-                [styles.collapsed]: initialState?.collapsed,
-                [styles.mobile]: isMobile,
-              })}
-              style={{
-                borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              }}
-            >
-              <CollectionTitle status={true} collection={currentCollection} />
-              {currentCollection?.type === 'database' ? (
-                <Form
-                  form={dbSelectorForm}
-                  layout="inline"
-                  className={styles.databaseForm}
-                  onValuesChange={(changedValues, allValues) =>
-                    setSocketParams(allValues)
-                  }
-                >
-                  {showSelector ? (
-                    <Form.Item name="database">
-                      <Select
-                        loading={databaseLoading}
-                        className={styles.selector}
-                        bordered={false}
-                        options={currentDatabase?.map((d) => ({
-                          label: d,
-                          value: d,
-                        }))}
-                      />
-                    </Form.Item>
-                  ) : null}
-                  <Tooltip title="Immediate Execute">
-                    <Form.Item name="execute" valuePropName="checked">
-                      <Switch className={styles.switch} />
-                    </Form.Item>
-                  </Tooltip>
-                </Form>
-              ) : null}
-            </div>
-            <Chats
-              loading={loading}
-              status={SOCKET_STATUS_MAP[readyState]}
-              onExecute={onExecute}
-            />
-            <div
-              className={classNames({
-                [styles.footer]: true,
-                [styles.collapsed]: initialState?.collapsed,
-                [styles.mobile]: isMobile,
-              })}
-              style={{ background: '#0A0A0A' }}
-            >
-              <Footer
-                status={SOCKET_STATUS_MAP[readyState]}
-                loading={loading}
-                onSubmit={onSubmit}
-                onClear={onClear}
-              />
-            </div>
-          </div>
-        );
-      }}
-    </RouteContext.Consumer>
+          <Space split={<Divider type="vertical" />}>
+            {currentCollection?.type === 'database' ? (
+              <Form
+                form={dbSelectorForm}
+                layout="inline"
+                className={styles.databaseForm}
+                onValuesChange={(changedValues, allValues) =>
+                  setSocketParams(allValues)
+                }
+              >
+                {showSelector ? (
+                  <Form.Item name="database">
+                    <Select
+                      loading={databaseLoading}
+                      className={styles.selector}
+                      bordered={false}
+                      options={currentDatabase?.map((d) => ({
+                        label: d,
+                        value: d,
+                      }))}
+                    />
+                  </Form.Item>
+                ) : null}
+                <Tooltip title="Immediate Execute">
+                  <Form.Item name="execute" valuePropName="checked">
+                    <Switch className={styles.switch} />
+                  </Form.Item>
+                </Tooltip>
+              </Form>
+            ) : null}
+            <Link to={`/${currentCollection?.type}/${currentCollection?.id}`}>
+              <Button shape="circle" type="text" icon={<SettingOutlined />} />
+            </Link>
+          </Space>
+        </Space>
+      </div>
+      <Chats
+        loading={loading}
+        status={SOCKET_STATUS_MAP[readyState]}
+        onExecute={onExecute}
+      />
+      <div
+        className={classNames({
+          [styles.footer]: true,
+        })}
+        style={{ background: '#0A0A0A' }}
+      >
+        <Footer
+          status={SOCKET_STATUS_MAP[readyState]}
+          loading={loading}
+          onSubmit={onSubmit}
+          onClear={onClear}
+        />
+      </div>
+    </>
   );
 };
