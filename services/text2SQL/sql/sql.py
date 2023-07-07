@@ -76,9 +76,20 @@ class SQLBase(DataBase):
         return schema
 
     def execute_query(self, query):
-        with self.conn.engine.connect() as connection:
-            result = connection.execute(text(query))
-        return result.all()
+        response = []
+        try:
+            with self.conn.engine.connect() as connection:
+                result = connection.execute(text(query))
+            keys = list(result.keys())
+            for row in result.all():
+                temp_dict = {}
+                for i in range(len(keys)):
+                    temp_dict[keys[i]] = row[i]
+                response.append(temp_dict)
+        except BaseException as e:
+            response = {"error": e}
+
+        return response
 
     @abstractmethod
     def get_database_list(self):

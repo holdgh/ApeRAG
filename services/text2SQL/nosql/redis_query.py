@@ -49,9 +49,16 @@ class Redis(NoSQLBase):
         return {k: self.conn.type(k) for k in keys}
 
     def execute_query(self, query):
-        response = self.conn.execute_command(query)
-        if isinstance(response, str):
-            response = [response]
+        response = []
+        try:
+            result = self.conn.execute_command(query)
+            if not hasattr(result, "__iter__"):
+                response.append({"result": result})
+            else:
+                response.append({"results": str(result)})
+        except BaseException as e:
+            response = {"error": e}
+
         return response
 
     def _get_ssl_args(self, verify, ca_cert, client_key, client_cert):
