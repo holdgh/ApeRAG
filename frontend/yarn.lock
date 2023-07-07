@@ -2711,7 +2711,7 @@
   dependencies:
     "@uiw/codemirror-themes" "4.21.7"
 
-"@uiw/codemirror-themes@4.21.7", "@uiw/codemirror-themes@^4.21.7":
+"@uiw/codemirror-themes@4.21.7":
   version "4.21.7"
   resolved "https://registry.npmmirror.com/@uiw/codemirror-themes/-/codemirror-themes-4.21.7.tgz#eafcdfdf1c3cb30beb8227702fa1985a8daae78a"
   integrity sha512-IggpVo7R+GREBpmInhrGxYcmbcqMci/cbaBxMmjNtPILqDwlGgWNtc7F2gNQ+gfQ138l+KXtdamielrSEM1qeA==

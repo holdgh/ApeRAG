@@ -1,7 +1,16 @@
 import { SnippetsOutlined } from '@ant-design/icons';
+import { useModel, history } from '@umijs/max';
 import { Result, Typography } from 'antd';
+import _ from 'lodash';
+import { useEffect } from 'react';
 
 export default () => {
+  const { currentCollection } = useModel("collection")
+  useEffect(() => {
+    if(currentCollection?.type === 'document') {
+      history.push(`/document/${currentCollection.id}/chat`)
+    }
+  }, []);
   return (
     <Result
       style={{

@@ -78,9 +78,11 @@ export default () => {
       const query = _.map(socketParams, (value, key) => `${key}=${value}`);
       if (!_.isEmpty(query)) {
         url += `?${query.join('&')}`;
+        setSocketUrl(url);
       }
+    } else {
+      setSocketUrl(url);
     }
-    setSocketUrl(url);
   };
 
   const onExecute = async (msg: TypesMessage) => {
@@ -214,7 +216,7 @@ export default () => {
           </Space>
 
           <Space split={<Divider type="vertical" />}>
-            {showSelector && !databaseLoading ? (
+            {showSelector ? (
               <Form
                 form={dbSelectorForm}
                 layout="inline"
@@ -243,7 +245,7 @@ export default () => {
         </Space>
       </div>
       <Chats
-        loading={loading}
+        loading={loading || databaseLoading}
         status={SOCKET_STATUS_MAP[readyState]}
         onExecute={onExecute}
       />
@@ -255,7 +257,7 @@ export default () => {
       >
         <Footer
           status={SOCKET_STATUS_MAP[readyState]}
-          loading={loading}
+          loading={loading || databaseLoading}
           onSubmit={onSubmit}
           onClear={onClear}
         />

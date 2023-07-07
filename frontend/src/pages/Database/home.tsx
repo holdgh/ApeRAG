@@ -1,7 +1,15 @@
 import { ConsoleSqlOutlined } from '@ant-design/icons';
+import { useModel, history } from '@umijs/max';
 import { Result, Typography } from 'antd';
+import { useEffect } from 'react';
 
 export default () => {
+  const { currentCollection } = useModel("collection")
+  useEffect(() => {
+    if(currentCollection?.type === 'database') {
+      history.push(`/database/${currentCollection.id}/chat`)
+    }
+  }, []);
   return (
     <Result
       style={{
