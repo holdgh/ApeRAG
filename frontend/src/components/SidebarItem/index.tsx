@@ -9,14 +9,12 @@ import { Avatar, Divider, Space, Typography } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import styles from './index.less';
-import { useParams } from '@umijs/max';
 
 type Props = {
   collection: TypesCollection;
 };
 
 export default ({ collection }: Props) => {
-  const { collectionId } = useParams();
   const { setCurrentCollection, currentCollection } = useModel('collection');
   const onClick = async () => {
     await setCurrentCollection(collection);
@@ -58,7 +56,7 @@ export default ({ collection }: Props) => {
     <div
       className={classNames({
         [styles.item]: true,
-        [styles.selected]: collectionId === collection.id,
+        [styles.selected]: currentCollection?.id === collection.id,
       })}
       onClick={onClick}
     >

@@ -22,21 +22,20 @@ export default (
           <InputNumber style={{ width: '100%' }} placeholder="port" />
         </Form.Item>
       </Col>
-
     </Row>
 
     <Form.Item
-          name="config.db_name"
-          label="Database"
-          rules={[
-            {
-              required: true,
-              message: 'database name is required.',
-            },
-          ]}
-        >
-          <Input placeholder="database" />
-        </Form.Item>
+      name="config.db_name"
+      label="Database"
+      rules={[
+        {
+          required: true,
+          message: 'database name is required.',
+        },
+      ]}
+    >
+      <Input placeholder="database" />
+    </Form.Item>
 
     <Row gutter={[12, 0]}>
       <Col span={12}>

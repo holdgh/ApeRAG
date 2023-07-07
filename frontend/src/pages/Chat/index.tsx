@@ -22,7 +22,7 @@ import Chats from './chats';
 import Footer from './footer';
 import styles from './index.less';
 
-type DbChatFormFields = { database?: string; };
+type DbChatFormFields = { database?: string };
 
 export default () => {
   // const { message } = App.useApp();

@@ -53,7 +53,7 @@ export default defineConfig({
       routes: [
         {
           path: '/document',
-          component: './Document/new',
+          component: './Document/home',
         },
         {
           path: '/document/new',
@@ -87,7 +87,7 @@ export default defineConfig({
       routes: [
         {
           path: '/database',
-          component: './Database/new',
+          component: './Database/home',
         },
         {
           path: '/database/new',
@@ -121,7 +121,7 @@ export default defineConfig({
       routes: [
         {
           path: '/code',
-          component: './Code/new',
+          component: './Code/home',
         },
         {
           path: '/code/new',

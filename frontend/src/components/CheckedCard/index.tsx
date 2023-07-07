@@ -17,7 +17,7 @@ type PropsType = {
   onChange?: (str: string, record: any) => void;
   options?: OptionType[];
   disabled?: boolean;
-  block?: boolean
+  block?: boolean;
 };
 
 export default ({
@@ -44,7 +44,7 @@ export default ({
 
   const blockLayout = {
     span: 24,
-  }
+  };
 
   const inlineLayout = {
     xs: 24,
@@ -52,13 +52,13 @@ export default ({
     md: 12,
     lg: 8,
     xl: 8,
-    xxl: 6
-  }
+    xxl: 6,
+  };
   const layout = block ? blockLayout : inlineLayout;
   return (
     <Row gutter={[8, 8]}>
       {options.map((option, key) => (
-        <Col key={key} { ...layout }>
+        <Col key={key} {...layout}>
           <Card
             className={classNames({
               [styles.item]: true,
@@ -75,7 +75,11 @@ export default ({
             <Space className={styles.row}>
               <Space style={{ flex: 1 }}>
                 {option.icon ? (
-                  <Avatar style={{ fontSize: 24 }} size={30} src={option.icon} />
+                  <Avatar
+                    style={{ fontSize: 24 }}
+                    size={30}
+                    src={option.icon}
+                  />
                 ) : null}
                 <Space direction="vertical" style={{ flex: 1 }}>
                   <Typography.Text>{option.label}</Typography.Text>
