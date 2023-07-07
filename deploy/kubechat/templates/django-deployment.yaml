@@ -31,7 +31,7 @@ spec:
             - -c
             - |
               ln -s /data/.cache/huggingface /root/.cache/
-              /app/scripts/start-django.sh
+              /app/scripts/entrypoint.sh /app/scripts/start-django.sh
           env:
             - name: AUTH0_CLIENT_ID
               valueFrom:
