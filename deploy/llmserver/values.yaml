@@ -85,3 +85,8 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+
+models:
+  - "vicuna-13b"
+  - "chatglm2-6b"

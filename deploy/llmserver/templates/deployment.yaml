@@ -1,3 +1,8 @@
+{{- range .Values.models }}
+{{- $rangeItem := . -}}
+{{- with $ }}
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,6 +51,9 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: models
+          env:
+            - name: LLM_MODEL
+              value: {{ $rangeItem | quote}}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
@@ -64,3 +72,6 @@ spec:
         - name: models
           persistentVolumeClaim:
             claimName: llmserver-efs-claim
+
+{{- end }}
+{{- end }}

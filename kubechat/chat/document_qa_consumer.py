@@ -60,7 +60,7 @@ class DocumentQAConsumer(BaseConsumer):
         }
 
         response = requests.post(
-            "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True
+            "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True,
         )
         buffer = ""
         for c in response.iter_content():

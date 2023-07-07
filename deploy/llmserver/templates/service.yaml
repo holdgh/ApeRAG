@@ -1,7 +1,12 @@
+{{- range .Values.models }}
+{{- $rangeItem := . -}}
+{{- with $ }}
+
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "llmserver.fullname" . }}
+  name: {{ include "llmserver.fullname" . }}-{{ $rangeItem }}
   labels:
     {{- include "llmserver.labels" . | nindent 4 }}
 spec:
@@ -13,3 +18,6 @@ spec:
       name: http
   selector:
     {{- include "llmserver.selectorLabels" . | nindent 4 }}
+
+{{- end }}
+{{- end }}

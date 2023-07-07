@@ -1,0 +1,22 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llmserver
+spec:
+  rules:
+  {{- range .Values.models }}
+  {{- $rangeItem := . -}}
+  {{- with $ }}
+  - host: {{ $rangeItem }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "llmserver.fullname" . }}-{{ $rangeItem }}
+            port:
+              number: 8000
+  {{- end }}
+  {{- end }}

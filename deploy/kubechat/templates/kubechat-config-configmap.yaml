@@ -6,7 +6,7 @@ data:
   CELERY_BROKER_URL: {{ index .Values "celery-worker" "brokerURL" }}
   CELERY_FLOWER_USER: {{ .Values.flower.user }}
   CELERY_FLOWER_PASSWORD: {{ .Values.flower.password }}
-  DJANGO_LOG_LEVEL: INFO
+  DJANGO_LOG_LEVEL: "INFO"
   MEMORY_REDIS_URL: {{ .Values.django.memoryRedisURL }}
   MODEL_SERVER: {{ .Values.django.modelServer }}
   POSTGRES_DB: {{ .Values.django.metaDBDatabase }}

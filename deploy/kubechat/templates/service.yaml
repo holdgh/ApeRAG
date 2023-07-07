@@ -1,15 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "kubechat.fullname" . }}
+  annotations:
+    kompose.cmd: kompose convert -f compose.yml -c -o deploy/kubechat
+    kompose.version: 1.26.0 (40646f47)
   labels:
     {{- include "kubechat.labels" . | nindent 4 }}
+    {{- include "django.labels" . | nindent 4 }}
+  name: kubechat
 spec:
-  type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+    - name: "80"
+      port: 80
+      targetPort: 8000
+  type: LoadBalancer
   selector:
     {{- include "kubechat.selectorLabels" . | nindent 4 }}

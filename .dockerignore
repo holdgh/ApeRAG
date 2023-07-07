@@ -10,3 +10,6 @@ tests/
 frontend/node_modules
 resources/
 documents
+
+.env
+.docker-env
