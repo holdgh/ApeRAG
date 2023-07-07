@@ -52,10 +52,6 @@ export default defineConfig({
       component: './Document',
       routes: [
         {
-          path: '/document',
-          component: './Document/list',
-        },
-        {
           path: '/document/new',
           component: './Document/new',
         },

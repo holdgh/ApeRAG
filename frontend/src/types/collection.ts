@@ -13,7 +13,7 @@ export type TypesDatabaseConfigCerify = 'prefered' | 'ca_only' | 'full';
 export type TypesDatabaseConfigDbTypeOption = {
   label: string;
   value: TypesDatabaseConfigDbType;
-  icon?: string;
+  icon: string;
   showSelector?: boolean;
 };
 

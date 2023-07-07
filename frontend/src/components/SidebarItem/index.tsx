@@ -1,12 +1,13 @@
-import { DATABASE_TYPE_OPTIONS } from '@/constants';
+import { DATABASE_TYPE_OPTIONS, DOCUMENT_SOURCE_OPTIONS } from '@/constants';
 import {
   TypesCollection,
   TypesDatabaseConfig,
   TypesDocumentConfig,
 } from '@/types';
 import { history, useModel } from '@umijs/max';
-import { Avatar, Space, Tag, Typography } from 'antd';
+import { Avatar, Divider, Space, Typography } from 'antd';
 import classNames from 'classnames';
+import moment from 'moment';
 import styles from './index.less';
 
 type Props = {
@@ -23,29 +24,32 @@ export default ({ collection }: Props) => {
   };
 
   const renderDBIcon = () => {
-    if (collection.type === 'database') {
-      const config = collection.config as TypesDatabaseConfig;
-      const db = DATABASE_TYPE_OPTIONS.find((o) => o.value === config.db_type);
-      return <Avatar size={50} src={db?.icon} />;
-    }
-  };
-  const renderDBText = () => {
-    if (collection.type === 'database') {
-      const config = collection.config as TypesDatabaseConfig;
-      return (
-        <Typography.Text type="secondary">
-          {config?.host}
-          {config?.port ? `:${config?.port}` : ''}
-        </Typography.Text>
-      );
-    }
+    const config = collection.config as TypesDatabaseConfig;
+    const db = DATABASE_TYPE_OPTIONS.find((o) => o.value === config.db_type);
+    return <Avatar size={40} src={db?.icon} />;
   };
 
-  const renderDocumentTag = () => {
-    if (collection.type === 'document') {
-      const config = collection.config as TypesDocumentConfig;
-      return <Tag>{config.source}</Tag>;
+  const renderDocumentIcon = () => {
+    const config = collection.config as TypesDocumentConfig;
+    const item = DOCUMENT_SOURCE_OPTIONS.find((o) => o.value === config.source);
+    return (
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        {item?.label}
+      </Typography.Text>
+    );
+  };
+
+  const renderDBText = () => {
+    const config = collection.config as TypesDatabaseConfig;
+    let text = config?.host;
+    if (config?.port) {
+      text += `:${config?.port}`;
     }
+    return text;
+  };
+
+  const renderTimestampText = () => {
+    return moment(collection.updated).format('llll');
   };
 
   return (
@@ -56,20 +60,33 @@ export default ({ collection }: Props) => {
       })}
       onClick={onClick}
     >
-      <Space style={{ display: 'flex' }}>
-        {renderDBIcon()}
-        <Space direction="vertical" size="small">
-          <Space size="small">
-            {renderDocumentTag()}
+      <Space style={{ display: 'flex', width: '100%' }}>
+        {collection.type === 'database' ? renderDBIcon() : null}
+        <div>
+          <Space
+            style={{ display: 'flex' }}
+            split={<Divider type="vertical" />}
+          >
             <Typography.Text
+              strong
               ellipsis
-              style={{ maxWidth: 160, display: 'block' }}
+              style={{ maxWidth: 140, display: 'block' }}
             >
-              {collection.title} {}
+              {collection.title}
             </Typography.Text>
+            {collection.type === 'document' ? renderDocumentIcon() : null}
           </Space>
-          {renderDBText()}
-        </Space>
+          <Typography.Text
+            type="secondary"
+            ellipsis
+            style={{ maxWidth: 180, fontSize: 12 }}
+          >
+            {collection.type === 'database' ? renderDBText() : null}
+            {collection.type === 'document' || collection.type === 'code'
+              ? renderTimestampText()
+              : null}
+          </Typography.Text>
+        </div>
       </Space>
     </div>
   );

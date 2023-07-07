@@ -133,10 +133,8 @@ export default () => {
   }, [currentChat]);
 
   useEffect(() => {
-    if (!_.isEmpty(socketParams)) {
-      dbSelectorForm.setFieldsValue(socketParams);
-      updateSocketUrl();
-    }
+    dbSelectorForm.setFieldsValue(socketParams);
+    updateSocketUrl();
   }, [socketParams]);
 
   useEffect(() => {
@@ -228,7 +226,7 @@ export default () => {
                   setSocketParams(allValues)
                 }
               >
-                {showSelector ? (
+                {showSelector && !databaseLoading ? (
                   <Form.Item name="database">
                     <Select
                       loading={databaseLoading}

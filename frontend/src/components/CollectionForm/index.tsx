@@ -1,4 +1,4 @@
-import { DOCUMENT_SOURCE_OPTIONS } from '@/constants';
+import { DATABASE_TYPE_OPTIONS, DOCUMENT_SOURCE_OPTIONS } from '@/constants';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
 import { TypesCollection, TypesDatabaseConfig } from '@/types';
@@ -150,7 +150,10 @@ export default ({ onSubmit, action, values }: Props) => {
             ]}
             label="Source"
           >
-            <Radio.Group options={DOCUMENT_SOURCE_OPTIONS} />
+            <Radio.Group
+              disabled={action === 'edit'}
+              options={DOCUMENT_SOURCE_OPTIONS}
+            />
           </Form.Item>
           {source === 'local' ? DocumentLocalFormItems : null}
           {source === 'email' ? DocumentEmailFormItems : null}
@@ -161,7 +164,23 @@ export default ({ onSubmit, action, values }: Props) => {
 
       {values.type === 'database' ? (
         <>
+          <Form.Item
+            name="config.db_type"
+            rules={[
+              {
+                required: true,
+                message: 'database is required.',
+              },
+            ]}
+            label="Database Type"
+          >
+            <Radio.Group
+              disabled={action === 'edit'}
+              options={DATABASE_TYPE_OPTIONS}
+            />
+          </Form.Item>
           {DatabaseBaseFormItems}
+
           {dbVerify && dbVerify !== 'prefered' ? (
             <Form.Item
               name="config.ca_cert"

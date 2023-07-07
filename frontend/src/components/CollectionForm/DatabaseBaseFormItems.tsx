@@ -1,20 +1,7 @@
-import { DATABASE_TYPE_OPTIONS } from '@/constants';
 import { Col, Form, Input, InputNumber, Radio, Row } from 'antd';
 
 export default (
   <>
-    <Form.Item
-      name="config.db_type"
-      rules={[
-        {
-          required: true,
-          message: 'database is required.',
-        },
-      ]}
-      label="Database Type"
-    >
-      <Radio.Group options={DATABASE_TYPE_OPTIONS} />
-    </Form.Item>
     <Row gutter={[12, 0]}>
       <Col span={12}>
         <Form.Item

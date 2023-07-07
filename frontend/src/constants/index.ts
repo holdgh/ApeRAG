@@ -81,10 +81,9 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
 
 export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
   {
-    label: 'System',
+    label: 'File Upload',
     value: 'system',
   },
-
   {
     label: 'AWS S3',
     value: 's3',

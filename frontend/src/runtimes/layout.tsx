@@ -25,7 +25,7 @@ export const layout = () => {
     token: {
       bgLayout: '#0A0A0A',
       sider: {
-        colorMenuBackground: '#2A2A33',
+        colorMenuBackground: '#35363A',
       },
       header: {},
       pageContainer: {},
