@@ -87,7 +87,7 @@ class SQLBase(DataBase):
                     temp_dict[keys[i]] = row[i]
                 response.append(temp_dict)
         except BaseException as e:
-            response = {"error": e}
+            response = e
 
         return response
 

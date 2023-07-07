@@ -57,7 +57,7 @@ class Redis(NoSQLBase):
             else:
                 response.append({"results": str(result)})
         except BaseException as e:
-            response = {"error": e}
+            response = e
 
         return response
 

@@ -32,8 +32,8 @@ class Text2SQLConsumer(BaseConsumer):
             self.response_type = "sql"
             response = self.client.text_to_query(query)
 
-        if isinstance(response, Generator):
+        if hasattr(response, "__iter__"):
             for tokens in response:
                 yield str(tokens)
         else:
-            return str(response)
+            yield str(response)
