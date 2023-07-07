@@ -221,7 +221,7 @@ LOGGING = {
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 
 # Memory backend
-MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
+MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://kbadmin:86UL7E9BP5@127.0.0.1:6379/1")
 
 VECTOR_DB_TYPE = env.str("VECTOR_DB_TYPE", default="qdrant")
 VECTOR_DB_CONTEXT = env.str(
