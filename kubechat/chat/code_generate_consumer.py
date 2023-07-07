@@ -4,12 +4,15 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List
+
+import openai
+
 from kubechat.auth.validator import DEFAULT_USER
 import requests
 import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
-from kubechat.utils.db import  query_collection, query_chat
-from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id
+from kubechat.utils.db import query_collection, query_chat
+from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id, fix_path_name
 from services.code.code_gerenate.chat_to_files import to_files
 from services.code.code_gerenate.storage import DBs, DB, archive
 
@@ -83,7 +86,6 @@ class CodeGenerateConsumer(WebsocketConsumer):
     def __init__(self):
         super().__init__()
         self.user = DEFAULT_USER
-        self.status = {}
         self.current_status = "init"
         self.dbs = None
         self.type = ""
@@ -91,6 +93,12 @@ class CodeGenerateConsumer(WebsocketConsumer):
         self.message = None
 
     def connect(self):
+        headers = {}
+        token = self.scope.get("Sec-Websocket-Protocol", None)
+        if token is not None:
+            headers = {"SEC-WEBSOCKET-PROTOCOL": token}
+        self.accept(subprotocol=(None, headers))
+
         # 在连接建立时执行的代码
         self.user = self.scope["X-USER-ID"]
         # todo: reuse collection and chat
@@ -103,7 +111,8 @@ class CodeGenerateConsumer(WebsocketConsumer):
         # collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         # chat = query_code_chat(self.user, chat_id=chat_id)
         self.type = chat.codetype
-        project_path = Path.cwd() / self.user / (chat.title + str(chat_id))
+        project_path = Path.cwd() / "generated-code" / fix_path_name(self.user) / fix_path_name(
+            collection.title + str(chat_id))
         memory_path = project_path / "memory"
         workspace_path = project_path / "workspace"
         archive_path = project_path / "archive"
@@ -143,12 +152,17 @@ class CodeGenerateConsumer(WebsocketConsumer):
         messages = self.interact_with_LLM(messages=messages, prompt=user_input, step_name=curr_fn())
         if messages[-1]["content"].strip() == "Nothing more to clarify." or messages[-1][
             "content"].strip().lower().startswith("no"):
+            message_id = f"{now_unix_milliseconds()}"
+            self.send(text_data=self.stop_response(message_id, None))
             return messages, "clarified"
+
         message_id = f"{now_unix_milliseconds()}"
         response = self.success_response(
             message_id, '(answer in text, or "c" to move on)\n', issql=self.response_type == "sql"
         )
         self.send(text_data=response)
+        # send stop message
+        self.send(text_data=self.stop_response(message_id, None))
         return messages, "clarifying"
 
     def clarifying(self, user_input, massage: List[dict]):
@@ -158,6 +172,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
                 message_id, '(letting gpt-engineer make its own assumptions)\n', issql=self.response_type == "sql"
             )
             self.send(text_data=response)
+            self.send(text_data=self.stop_response(message_id, None))
             return massage, "clarified"
 
         user_input += (
@@ -170,6 +185,8 @@ class CodeGenerateConsumer(WebsocketConsumer):
         massage = self.interact_with_LLM(massage, user_input, step_name=curr_fn())
         if massage[-1]["content"].strip() == "Nothing more to clarify." or massage[-1][
             "content"].strip().lower().startswith("no"):
+            message_id = f"{now_unix_milliseconds()}"
+            self.send(text_data=self.stop_response(message_id, None))
             return massage, "clarified"
 
         message_id = f"{now_unix_milliseconds()}"
@@ -177,6 +194,8 @@ class CodeGenerateConsumer(WebsocketConsumer):
             message_id, '(answer in text, or "c" to move on)\n', issql=self.response_type == "sql"
         )
         self.send(text_data=response)
+        # send stop message
+        self.send(text_data=self.stop_response(message_id, None))
         return massage, "clarifying"
 
     def clarified(self):
@@ -185,19 +204,33 @@ class CodeGenerateConsumer(WebsocketConsumer):
             self.dbs.logs[step.__name__] = json.dumps(messages)
 
     def interact_with_LLM(self, messages: List[Dict[str, str]], prompt=None, *, step_name=None):
+        '''
+        interact_with_LLM is the hub between the front and LLM. self.send(text_data=self.stop_response(message_id)) must
+         be called after interact_with_LLM.
+        :param messages:
+        :param prompt:
+        :param step_name:
+        :return:
+        '''
         if prompt:
             messages += [{"role": "user", "content": prompt}]
-        input = {
-            "prompt": json.dumps(messages),
-            "temperature": 0,
-            "max_new_tokens": 2048,
-            "model": "vicuna-13b",
-            "stop": "\nSQLResult:",
-        }
-
-        response = requests.post(
-            "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True
+        response = openai.ChatCompletion.create(
+            messages=messages,
+            stream=True,
+            model="gpt-3.5-turbo",
+            temperature=0.1,
         )
+        # input = {
+        #     "prompt": json.dumps(messages),
+        #     "temperature": 0,
+        #     "max_new_tokens": 2048,
+        #     "model": "vicuna-13b",
+        #     "stop": "\nSQLResult:",
+        # }
+        #
+        # response = requests.post(
+        #     "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True
+        # )
         message_id = f"{now_unix_milliseconds()}"
         self.send(text_data=self.start_response(message_id))
         chat = []
@@ -219,6 +252,8 @@ class CodeGenerateConsumer(WebsocketConsumer):
                        fsystem(setup_sys_prompt(self.dbs)),
                    ] + messages[1:]
         messages = self.interact_with_LLM(messages, self.dbs.preprompts["use_qa"], step_name=curr_fn())
+        message_id = f"{now_unix_milliseconds()}"
+        self.send(text_data=self.stop_response(message_id, None))
         to_files(messages[-1]["content"], self.dbs.workspace)
         return messages
 
@@ -243,7 +278,13 @@ class CodeGenerateConsumer(WebsocketConsumer):
                 "content": "Information about the codebase:\n\n" + self.dbs.workspace["all_output.txt"]
             },
         ]
-        return self.interact_with_LLM(messages, step_name=curr_fn())
+        messages = self.interact_with_LLM(messages, step_name=curr_fn())
+        message_id = f"{now_unix_milliseconds()}"
+        self.send(text_data=self.stop_response(message_id))
+        return messages
+
+    def load_project(self):
+        pass
 
     @staticmethod
     def success_response(message_id, data, issql=False):

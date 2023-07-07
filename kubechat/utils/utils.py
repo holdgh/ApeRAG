@@ -40,9 +40,14 @@ def extract_code_chat(path: str):
     else:
         raise ValueError(f"Invalid path format: {path}")
 
+
 def now_unix_milliseconds():
     return int(datetime.utcnow().timestamp() * 1e3)
 
 
 def generate_vector_db_collection_id(user, collection) -> str:
     return str(user).replace("|", "-") + "-" + str(collection)
+
+
+def fix_path_name(path) -> str:
+    return str(path).replace("|", "-")
