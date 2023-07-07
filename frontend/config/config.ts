@@ -52,6 +52,10 @@ export default defineConfig({
       component: './Document',
       routes: [
         {
+          path: '/document',
+          component: './Document/new',
+        },
+        {
           path: '/document/new',
           component: './Document/new',
         },
@@ -82,6 +86,10 @@ export default defineConfig({
       component: './Database',
       routes: [
         {
+          path: '/database',
+          component: './Database/new',
+        },
+        {
           path: '/database/new',
           component: './Database/new',
         },
@@ -111,6 +119,10 @@ export default defineConfig({
       icon: 'CodeOutlined',
       component: './Code',
       routes: [
+        {
+          path: '/code',
+          component: './Code/new',
+        },
         {
           path: '/code/new',
           component: './Code/new',

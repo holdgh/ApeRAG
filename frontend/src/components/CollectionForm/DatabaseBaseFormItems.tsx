@@ -3,7 +3,7 @@ import { Col, Form, Input, InputNumber, Radio, Row } from 'antd';
 export default (
   <>
     <Row gutter={[12, 0]}>
-      <Col span={12}>
+      <Col span={16}>
         <Form.Item
           name="config.host"
           label="Host"
@@ -17,13 +17,15 @@ export default (
           <Input placeholder="host" />
         </Form.Item>
       </Col>
-      <Col span={4}>
+      <Col span={8}>
         <Form.Item name="config.port" label="Port">
           <InputNumber style={{ width: '100%' }} placeholder="port" />
         </Form.Item>
       </Col>
-      <Col span={8}>
-        <Form.Item
+
+    </Row>
+
+    <Form.Item
           name="config.db_name"
           label="Database"
           rules={[
@@ -35,8 +37,6 @@ export default (
         >
           <Input placeholder="database" />
         </Form.Item>
-      </Col>
-    </Row>
 
     <Row gutter={[12, 0]}>
       <Col span={12}>

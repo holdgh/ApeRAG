@@ -17,6 +17,7 @@ type PropsType = {
   onChange?: (str: string, record: any) => void;
   options?: OptionType[];
   disabled?: boolean;
+  block?: boolean
 };
 
 export default ({
@@ -25,6 +26,7 @@ export default ({
   onChange = () => {},
   options = [],
   disabled,
+  block = false,
 }: PropsType) => {
   const [currentValue, setCurrentValue] = useState<string | undefined>(
     value || defaultValue,
@@ -40,10 +42,23 @@ export default ({
     setCurrentValue(value);
   }, [value]);
 
+  const blockLayout = {
+    span: 24,
+  }
+
+  const inlineLayout = {
+    xs: 24,
+    sm: 24,
+    md: 12,
+    lg: 8,
+    xl: 8,
+    xxl: 6
+  }
+  const layout = block ? blockLayout : inlineLayout;
   return (
-    <Row gutter={[30, 30]}>
+    <Row gutter={[8, 8]}>
       {options.map((option, key) => (
-        <Col key={key} xs={24} sm={24} md={24} lg={12} xl={12} xxl={12}>
+        <Col key={key} { ...layout }>
           <Card
             className={classNames({
               [styles.item]: true,
@@ -51,19 +66,16 @@ export default ({
               [styles.disabled]: disabled,
             })}
             bodyStyle={{
-              minHeight: 30,
-              padding: '12px 20px',
+              padding: '8px 12px',
             }}
             onClick={() => {
               onClick(option);
             }}
           >
             <Space className={styles.row}>
-              <Space size="large" style={{ flex: 1 }}>
+              <Space style={{ flex: 1 }}>
                 {option.icon ? (
-                  <Avatar style={{ fontSize: 24 }} size={50}>
-                    {option.icon}
-                  </Avatar>
+                  <Avatar style={{ fontSize: 24 }} size={30} src={option.icon} />
                 ) : null}
                 <Space direction="vertical" style={{ flex: 1 }}>
                   <Typography.Text>{option.label}</Typography.Text>

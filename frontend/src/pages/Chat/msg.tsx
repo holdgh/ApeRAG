@@ -83,9 +83,10 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
         <CodeMirror
           value={displayText.replace(/\n+$/, '')}
           minHeight="0"
+          minWidth='300px'
           extensions={[sql()]}
           theme={EditorTheme}
-          // onChange={onChange}
+          onChange={(v) => item.data = v}
         />
       );
     } else {

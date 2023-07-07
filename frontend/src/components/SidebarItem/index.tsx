@@ -9,12 +9,14 @@ import { Avatar, Divider, Space, Typography } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import styles from './index.less';
+import { useParams } from '@umijs/max';
 
 type Props = {
   collection: TypesCollection;
 };
 
 export default ({ collection }: Props) => {
+  const { collectionId } = useParams();
   const { setCurrentCollection, currentCollection } = useModel('collection');
   const onClick = async () => {
     await setCurrentCollection(collection);
@@ -49,43 +51,42 @@ export default ({ collection }: Props) => {
   };
 
   const renderTimestampText = () => {
-    return moment(collection.updated).format('llll');
+    return moment(collection.updated).format('lll');
   };
 
   return (
     <div
       className={classNames({
         [styles.item]: true,
-        [styles.selected]: currentCollection?.id === collection.id,
+        [styles.selected]: collectionId === collection.id,
       })}
       onClick={onClick}
     >
       <Space style={{ display: 'flex', width: '100%' }}>
         {collection.type === 'database' ? renderDBIcon() : null}
         <div>
-          <Space
-            style={{ display: 'flex' }}
-            split={<Divider type="vertical" />}
-          >
+          <Space style={{ display: 'flex' }}>
             <Typography.Text
               strong
               ellipsis
-              style={{ maxWidth: 140, display: 'block' }}
+              style={{ maxWidth: 130, display: 'block' }}
             >
               {collection.title}
             </Typography.Text>
+          </Space>
+          <Space split={<Divider type="vertical" />} size="small">
+            <Typography.Text
+              type="secondary"
+              ellipsis
+              style={{ maxWidth: 180, fontSize: 12 }}
+            >
+              {collection.type === 'database' ? renderDBText() : null}
+              {collection.type === 'document' || collection.type === 'code'
+                ? renderTimestampText()
+                : null}
+            </Typography.Text>
             {collection.type === 'document' ? renderDocumentIcon() : null}
           </Space>
-          <Typography.Text
-            type="secondary"
-            ellipsis
-            style={{ maxWidth: 180, fontSize: 12 }}
-          >
-            {collection.type === 'database' ? renderDBText() : null}
-            {collection.type === 'document' || collection.type === 'code'
-              ? renderTimestampText()
-              : null}
-          </Typography.Text>
         </div>
       </Space>
     </div>

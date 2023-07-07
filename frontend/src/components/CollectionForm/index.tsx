@@ -1,3 +1,4 @@
+import CheckedCard from '@/components/CheckedCard';
 import { DATABASE_TYPE_OPTIONS, DOCUMENT_SOURCE_OPTIONS } from '@/constants';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
@@ -150,7 +151,7 @@ export default ({ onSubmit, action, values }: Props) => {
             ]}
             label="Source"
           >
-            <Radio.Group
+            <CheckedCard
               disabled={action === 'edit'}
               options={DOCUMENT_SOURCE_OPTIONS}
             />
@@ -174,7 +175,7 @@ export default ({ onSubmit, action, values }: Props) => {
             ]}
             label="Database Type"
           >
-            <Radio.Group
+            <CheckedCard
               disabled={action === 'edit'}
               options={DATABASE_TYPE_OPTIONS}
             />

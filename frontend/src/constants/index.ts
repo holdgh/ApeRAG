@@ -16,6 +16,7 @@ export const DOCUMENT_DEFAULT_CONFIG: TypesDocumentConfig = {
 
 export const DATABASE_DEFAULT_CONFIG: TypesDatabaseConfig = {
   verify: 'prefered',
+  db_type: 'mysql',
 };
 
 export const CODE_DEFAULT_CONFIG = {};
@@ -90,7 +91,7 @@ export const DOCUMENT_SOURCE_OPTIONS: TypesDocumentConfigSourceOption[] = [
 
 if (process.env.NODE_ENV === 'development') {
   DOCUMENT_SOURCE_OPTIONS.splice(1, 0, {
-    label: 'Local',
+    label: 'Local Path',
     value: 'local',
   });
 }
