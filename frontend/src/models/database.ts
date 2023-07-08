@@ -13,8 +13,6 @@ export default () => {
   const { message } = App.useApp();
 
   const getCollectionDatabases = async () => {
-    setCurrentDatabases(undefined);
-
     if (!currentCollection?.id || !hasDatabaseSelector(currentCollection)) {
       return;
     }
@@ -34,10 +32,10 @@ export default () => {
     } else {
       setCurrentDatabases(currentCollectionDatabases);
     }
-    
   };
 
   useEffect(() => {
+    setCurrentDatabases(undefined);
     getCollectionDatabases();
   }, [currentCollection]);
 

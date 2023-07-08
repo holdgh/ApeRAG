@@ -4,16 +4,7 @@ import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { SettingOutlined } from '@ant-design/icons';
 import { Link, useModel } from '@umijs/max';
-import {
-  Button,
-  Divider,
-  Form,
-  Select,
-  Space,
-  Tag,
-  Typography,
-  theme,
-} from 'antd';
+import { Button, Divider, Select, Space, Tag, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -25,22 +16,15 @@ import styles from './index.less';
 type DbChatFormFields = { database?: string };
 
 export default () => {
-  // const { message } = App.useApp();
+  const user = getUser();
+  const { token } = theme.useToken();
 
   // the data stream in the loading state
   const [loading, setLoading] = useState<boolean>(false);
 
-  // websocket url
+  // websocket url & params
   const [socketUrl, setSocketUrl] = useState<string>('');
-
-  // websocket params
-  const [socketParams, setSocketParams] = useState<DbChatFormFields>();
-
-  // login user;
-  const user = getUser();
-
-  // theme tokens;
-  const { token } = theme.useToken();
+  const [socketParams, setSocketParams] = useState<DbChatFormFields>({});
 
   // model data;
   const { hasDatabaseSelector, currentCollection } = useModel('collection');
@@ -62,9 +46,6 @@ export default () => {
     },
   );
 
-  // db form instance;
-  const [dbSelectorForm] = Form.useForm();
-
   const showSelector = hasDatabaseSelector(currentCollection);
 
   const updateSocketUrl = () => {
@@ -76,7 +57,7 @@ export default () => {
 
     if (currentCollection.type === 'database') {
       const query = _.map(socketParams, (value, key) => `${key}=${value}`);
-      if (!_.isEmpty(query)) {
+      if (_.includes(currentDatabases, socketParams.database)) {
         url += `?${query.join('&')}`;
         setSocketUrl(url);
       }
@@ -117,30 +98,18 @@ export default () => {
   };
 
   useEffect(() => {
-    if (currentDatabases?.length) {
-      const values: DbChatFormFields = {
-        database: currentDatabases[0],
-      };
-      setSocketParams(values);
-    } else {
-      setSocketParams({});
+    const params: DbChatFormFields = {};
+    if (!_.isEmpty(currentDatabases)) {
+      Object.assign(params, {
+        database: _.first(currentDatabases),
+      })
     }
+    setSocketParams(params);
   }, [currentDatabases]);
 
   useEffect(() => {
     updateSocketUrl();
-  }, [currentChat]);
-
-  useEffect(() => {
-    dbSelectorForm.setFieldsValue(socketParams);
-    updateSocketUrl();
-  }, [socketParams]);
-
-  useEffect(() => {
-    if (SOCKET_STATUS_MAP[readyState] !== 'Open') {
-      setLoading(false);
-    }
-  }, [readyState]);
+  }, [currentChat, socketParams])
 
   useEffect(() => {
     if (_.isEmpty(lastJsonMessage)) return;
@@ -217,26 +186,19 @@ export default () => {
 
           <Space split={<Divider type="vertical" />}>
             {showSelector ? (
-              <Form
-                form={dbSelectorForm}
-                layout="inline"
-                className={styles.databaseForm}
-                onValuesChange={(changedValues, allValues) =>
-                  setSocketParams(allValues)
+              <Select
+                loading={databaseLoading}
+                className={styles.selector}
+                bordered={false}
+                value={socketParams?.database}
+                onChange={(database) =>
+                  setSocketParams({ ...socketParams, database })
                 }
-              >
-                <Form.Item name="database">
-                  <Select
-                    loading={databaseLoading}
-                    className={styles.selector}
-                    bordered={false}
-                    options={currentDatabases?.map((d) => ({
-                      label: d,
-                      value: d,
-                    }))}
-                  />
-                </Form.Item>
-              </Form>
+                options={currentDatabases?.map((d) => ({
+                  label: d,
+                  value: d,
+                }))}
+              />
             ) : null}
             <Link to={`/${currentCollection?.type}/${currentCollection?.id}`}>
               <Button shape="circle" type="text" icon={<SettingOutlined />} />
@@ -245,7 +207,7 @@ export default () => {
         </Space>
       </div>
       <Chats
-        loading={loading || databaseLoading}
+        loading={loading || databaseLoading || SOCKET_STATUS_MAP[readyState] !== 'Open'}
         status={SOCKET_STATUS_MAP[readyState]}
         onExecute={onExecute}
       />
@@ -256,8 +218,7 @@ export default () => {
         style={{ background: '#0A0A0A' }}
       >
         <Footer
-          status={SOCKET_STATUS_MAP[readyState]}
-          loading={loading || databaseLoading}
+          loading={loading || databaseLoading || SOCKET_STATUS_MAP[readyState] !== 'Open'}
           onSubmit={onSubmit}
           onClear={onClear}
         />

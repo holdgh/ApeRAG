@@ -38,7 +38,7 @@ export default () => {
     }
   };
 
-  const getChats = async () => {
+  const getCollectionChats = async () => {
     if (!currentCollection?.id) return;
     setChatLoading(true);
     let items = chats.filter((c) => c.collectionId === currentCollection.id);
@@ -64,7 +64,8 @@ export default () => {
   };
 
   useEffect(() => {
-    getChats();
+    setCurrentChat(undefined);
+    getCollectionChats();
   }, [currentCollection]);
 
   useEffect(() => {

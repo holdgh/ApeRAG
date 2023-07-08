@@ -1,4 +1,3 @@
-import { TypesSocketStatus } from '@/types';
 import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
@@ -6,14 +5,12 @@ import styles from './index.less';
 
 type Props = {
   loading: boolean;
-  status: TypesSocketStatus;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
 
 export default ({
   loading,
-  status,
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
@@ -21,7 +18,7 @@ export default ({
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);
-    if (message && !reg.test(message) && !loading && status === 'Open') {
+    if (message && !reg.test(message) && !loading) {
       onSubmit(message);
       setMessage('');
     }
@@ -55,7 +52,7 @@ export default ({
         size="large"
         onClick={() => _onSubmit()}
         shape="circle"
-        loading={loading || status !== 'Open'}
+        loading={loading}
         icon={<ArrowRightOutlined />}
       />
     </div>

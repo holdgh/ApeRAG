@@ -18,9 +18,7 @@ export default ({ collection }: Props) => {
   const { setCurrentCollection, currentCollection } = useModel('collection');
   const onClick = async () => {
     await setCurrentCollection(collection);
-    setTimeout(() => {
-      history.push(`/${collection.type}/${collection.id}/chat`);
-    }, 100);
+    history.push(`/${collection.type}/${collection.id}/chat`);
   };
 
   const renderDBIcon = () => {
