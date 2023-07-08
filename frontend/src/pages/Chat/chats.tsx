@@ -1,5 +1,5 @@
 import type { TypesMessage, TypesSocketStatus } from '@/types';
-import { useModel } from '@umijs/max';
+import { useModel, useParams } from '@umijs/max';
 import { useEffect } from 'react';
 import { animateScroll } from 'react-scroll';
 import styles from './index.less';
@@ -12,8 +12,9 @@ type Props = {
 };
 
 export default ({ loading, onExecute, status }: Props) => {
-  const { currentChat, chatLoading } = useModel('chat');
+  const { currentChat } = useModel('chat');
   const messages = currentChat?.history || [];
+  const { collectionId } = useParams();
 
   useEffect(() => {
     animateScroll.scrollToBottom({
@@ -26,7 +27,7 @@ export default ({ loading, onExecute, status }: Props) => {
     };
   }, [currentChat]);
 
-  if (chatLoading) {
+  if (collectionId !== currentChat?.collectionId) {
     return null;
   }
 
@@ -36,11 +37,12 @@ export default ({ loading, onExecute, status }: Props) => {
         return (
           <MessageItem
             onExecute={onExecute}
-            loading={
-              (loading && key === messages.length - 1 && item.role === 'ai') ||
-              chatLoading
+            isTyping={
+              loading &&
+              key === messages.length - 1 &&
+              item.role === 'ai' &&
+              status === 'Open'
             }
-            status={status}
             key={key}
             item={item}
           />

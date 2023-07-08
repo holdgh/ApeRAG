@@ -1,25 +1,32 @@
+import { TypesSocketStatus } from '@/types';
 import { ArrowRightOutlined, ClearOutlined } from '@ant-design/icons';
+import { useModel } from '@umijs/max';
 import { Button, Input } from 'antd';
 import { useState } from 'react';
 import styles from './index.less';
 
 type Props = {
-  loading: boolean;
+  isTyping: boolean;
+  status: TypesSocketStatus;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
 
 export default ({
-  loading,
+  isTyping,
+  status,
   onClear = () => {},
   onSubmit = () => {},
 }: Props) => {
   const [message, setMessage] = useState<string>('');
+  const { databaseLoading } = useModel('database');
+
+  const disabled = isTyping || databaseLoading || status !== 'Open';
 
   const _onSubmit = () => {
     const reg = new RegExp(/^\n+$/);
-    if (message && !reg.test(message) && !loading) {
-      onSubmit(message);
+    if (message && !reg.test(message) && !disabled) {
+      onSubmit(message.replace(/\n+$/, ''));
       setMessage('');
     }
   };
@@ -52,7 +59,7 @@ export default ({
         size="large"
         onClick={() => _onSubmit()}
         shape="circle"
-        loading={loading}
+        loading={disabled}
         icon={<ArrowRightOutlined />}
       />
     </div>

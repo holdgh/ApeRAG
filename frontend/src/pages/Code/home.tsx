@@ -1,31 +1,24 @@
-import { CodeOutlined } from '@ant-design/icons';
-import { useModel, history } from '@umijs/max';
-import { Result, Typography } from 'antd';
+import { TypesCollectionType } from '@/types';
+import { history, useModel } from '@umijs/max';
+import _ from 'lodash';
 import { useEffect } from 'react';
 
 export default () => {
-  const { currentCollection } = useModel("collection")
+  const { currentCollection, collections, setCurrentCollection } =
+    useModel('collection');
+  const { currentChat } = useModel('chat');
+
   useEffect(() => {
-    if(currentCollection?.type === 'code') {
-      history.push(`/code/${currentCollection.id}/chat`)
+    if (!currentCollection?.id || !currentChat?.id) return;
+    const type: TypesCollectionType = 'code';
+    const first = _.first(collections?.filter((c) => c.type === type));
+    if (currentCollection?.type === type) {
+      history.push(`/${type}/${currentCollection.id}/chat`);
+    } else if (first) {
+      setCurrentCollection(first);
+      history.push(`/${type}/${first.id}/chat`);
     }
   }, []);
 
-  return (
-    <Result
-      style={{
-        marginTop: 100,
-      }}
-      icon={
-        <Typography.Text>
-          <CodeOutlined style={{ opacity: 0.1, fontSize: 200 }} />
-        </Typography.Text>
-      }
-      title={
-        <Typography.Text strong style={{ fontSize: 80, opacity: 0.1 }}>
-          CodeChat
-        </Typography.Text>
-      }
-    />
-  );
+  return null;
 };

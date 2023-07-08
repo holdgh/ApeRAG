@@ -3,7 +3,7 @@ import { getUser } from '@/models/user';
 import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { SettingOutlined } from '@ant-design/icons';
-import { Link, useModel } from '@umijs/max';
+import { Link, useModel, useParams } from '@umijs/max';
 import { Button, Divider, Select, Space, Tag, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
@@ -18,9 +18,10 @@ type DbChatFormFields = { database?: string };
 export default () => {
   const user = getUser();
   const { token } = theme.useToken();
+  const { collectionId } = useParams();
 
   // the data stream in the loading state
-  const [loading, setLoading] = useState<boolean>(false);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
 
   // websocket url & params
   const [socketUrl, setSocketUrl] = useState<string>('');
@@ -49,7 +50,12 @@ export default () => {
   const showSelector = hasDatabaseSelector(currentCollection);
 
   const updateSocketUrl = () => {
-    if (!currentCollection || !currentChat) return;
+    if (
+      !currentCollection ||
+      !currentChat ||
+      collectionId !== currentChat?.collectionId
+    )
+      return;
 
     const protocol = API_ENDPOINT.indexOf('https') > -1 ? 'wss' : 'ws';
     const hostname = API_ENDPOINT.replace(/^(http|https):\/\//, '');
@@ -84,7 +90,7 @@ export default () => {
   };
 
   const onSubmit = async (data: string) => {
-    if (loading) return;
+    if (isTyping) return;
     const timestamp = new Date().getTime();
     const msg: TypesMessage = {
       type: 'message',
@@ -93,7 +99,6 @@ export default () => {
       timestamp,
     };
     await setCurrentChatHistory(historyMessages.concat(msg));
-    await setLoading(true);
     sendJsonMessage(msg);
   };
 
@@ -102,14 +107,14 @@ export default () => {
     if (!_.isEmpty(currentDatabases)) {
       Object.assign(params, {
         database: _.first(currentDatabases),
-      })
+      });
     }
     setSocketParams(params);
   }, [currentDatabases]);
 
   useEffect(() => {
     updateSocketUrl();
-  }, [currentChat, socketParams])
+  }, [currentChat, socketParams]);
 
   useEffect(() => {
     if (_.isEmpty(lastJsonMessage)) return;
@@ -123,12 +128,12 @@ export default () => {
 
     // message stream is error.
     if (msg.type === 'error') {
-      setLoading(false);
+      setIsTyping(false);
     }
 
     // set history references when all stream has been received.
     if (msg.type === 'stop') {
-      setLoading(false);
+      setIsTyping(false);
       const references = msg.data as unknown as TypesMessageReferences[];
       if (msg.data) {
         _.update(historyMessages, index, (origin) => ({
@@ -147,7 +152,7 @@ export default () => {
         _typeWriter: true,
       };
       if (msg.type === 'start') {
-        setLoading(true);
+        setIsTyping(true);
         historyMessages.push(message);
       } else {
         _.update(historyMessages, index, (origin) => ({
@@ -207,7 +212,7 @@ export default () => {
         </Space>
       </div>
       <Chats
-        loading={loading || databaseLoading || SOCKET_STATUS_MAP[readyState] !== 'Open'}
+        loading={isTyping}
         status={SOCKET_STATUS_MAP[readyState]}
         onExecute={onExecute}
       />
@@ -218,7 +223,8 @@ export default () => {
         style={{ background: '#0A0A0A' }}
       >
         <Footer
-          loading={loading || databaseLoading || SOCKET_STATUS_MAP[readyState] !== 'Open'}
+          isTyping={isTyping}
+          status={SOCKET_STATUS_MAP[readyState]}
           onSubmit={onSubmit}
           onClear={onClear}
         />

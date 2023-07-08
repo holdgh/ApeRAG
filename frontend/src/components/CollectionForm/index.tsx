@@ -3,7 +3,11 @@ import { DATABASE_TYPE_OPTIONS, DOCUMENT_SOURCE_OPTIONS } from '@/constants';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
 import { TypesCollection, TypesDatabaseConfig } from '@/types';
-import { ApiOutlined, UploadOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined,
+  LoadingOutlined,
+  UploadOutlined,
+} from '@ant-design/icons';
 import { useModel } from '@umijs/max';
 import {
   App,
@@ -31,6 +35,7 @@ type Props = {
 };
 
 export default ({ onSubmit, action, values }: Props) => {
+  const [testing, setTesting] = useState<boolean>(false);
   const [remoteValid, setRemoteValid] = useState<boolean>(
     values.type !== 'database',
   );
@@ -55,6 +60,8 @@ export default ({ onSubmit, action, values }: Props) => {
     const values = await form.validateFields();
     const d: TypesCollection = flat.unflatten(values);
     const config = d.config as TypesDatabaseConfig;
+
+    setTesting(true);
     const res = await TestCollection(config);
     if (res.code === '200') {
       setRemoteValid(true);
@@ -63,6 +70,7 @@ export default ({ onSubmit, action, values }: Props) => {
       setRemoteValid(false);
       message.error(res.message || 'connected error');
     }
+    setTesting(false);
   };
 
   const renderUpload = (
@@ -251,7 +259,10 @@ export default ({ onSubmit, action, values }: Props) => {
 
         {values.type === 'database' ? (
           <Typography.Link onClick={onConnectTest}>
-            <ApiOutlined /> Connection Test
+            <Space>
+              {testing ? <LoadingOutlined /> : <ApiOutlined />}
+              Connection Test
+            </Space>
           </Typography.Link>
         ) : null}
       </Space>

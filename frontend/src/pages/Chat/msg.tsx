@@ -1,7 +1,7 @@
 import ChatRobot from '@/assets/chatbot.png';
 import EllipsisAnimate from '@/components/EllipsisAnimate';
 import { getUser } from '@/models/user';
-import type { TypesMessage, TypesSocketStatus } from '@/types';
+import type { TypesMessage } from '@/types';
 import {
   LinkOutlined,
   LoadingOutlined,
@@ -37,14 +37,13 @@ const EditorTheme = okaidiaInit({
 
 type Props = {
   item: TypesMessage;
-  loading: boolean;
-  status: TypesSocketStatus;
+  isTyping: boolean;
   onExecute: (msg: TypesMessage) => void;
 };
 
 const TYPE_WRITER_SPEED = 40;
 
-export default ({ item, loading, onExecute = () => {} }: Props) => {
+export default ({ item, isTyping, onExecute = () => {} }: Props) => {
   const [runtimeText, setRuntimeText] = useState<string>('');
   const [displayText, setDisplayText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
@@ -58,10 +57,10 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
     const AiAvatar = (
       <Avatar
         size={size}
-        src={loading ? null : ChatRobot}
+        src={isTyping ? null : ChatRobot}
         style={{ minWidth: size, background: token.volcano5 }}
       >
-        {loading ? <LoadingOutlined /> : <RobotOutlined />}
+        {isTyping ? <LoadingOutlined /> : <RobotOutlined />}
       </Avatar>
     );
     const HummanAvatar = (
@@ -154,12 +153,12 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
 
   useEffect(() => {
     let data = (item.data || '').replace(/^\n*/, '').replace(/\n{1}/g, '\n\n');
-    if (!loading || !item._typeWriter) {
+    if (!isTyping || !item._typeWriter) {
       setDisplayText(data);
     } else {
       setRuntimeText(data);
     }
-  }, [item, loading]);
+  }, [item, isTyping]);
 
   return (
     <div
@@ -169,7 +168,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
         [styles.human]: item.role === 'human',
       })}
     >
-      {item._typeWriter && loading ? (
+      {item._typeWriter && isTyping ? (
         <ReactInterval
           timeout={TYPE_WRITER_SPEED}
           enabled={true}
@@ -189,7 +188,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
           })}
           style={{ background: msgBgColor }}
         >
-          {_.isEmpty(displayText) && loading ? (
+          {_.isEmpty(displayText) && isTyping ? (
             <EllipsisAnimate />
           ) : (
             renderContent()
@@ -203,7 +202,7 @@ export default ({ item, loading, onExecute = () => {} }: Props) => {
           <Space split={<Divider type="vertical" />}>
             <div>{moment(item.timestamp).format('llll')}</div>
             {renderReferences()}
-            {item.type === 'sql' && !loading ? (
+            {item.type === 'sql' && !isTyping ? (
               <Typography.Link
                 style={{ fontSize: 12 }}
                 onClick={() => onExecute(item)}

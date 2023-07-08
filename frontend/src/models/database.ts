@@ -18,7 +18,7 @@ export default () => {
     }
 
     const currentCollectionDatabases = databases[currentCollection.id];
-    if(_.isEmpty(currentCollectionDatabases)) {
+    if (_.isEmpty(currentCollectionDatabases)) {
       setDatabaseLoading(true);
       const res = await GetCollectionDatabase(currentCollection.id);
       if (res.code !== '200') {

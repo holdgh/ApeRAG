@@ -17,6 +17,7 @@ export default () => {
   const createChat = async () => {
     if (!currentCollection?.id) return;
     const { data } = await CreateCollectionChat(currentCollection.id);
+    data.collectionId = currentCollection.id;
     setCurrentChat(data);
   };
 
@@ -28,12 +29,8 @@ export default () => {
       setCurrentChat(item);
     } else {
       const { data } = await GetCollectionChat(currentCollection.id, id);
-      setChats(
-        chats.concat({
-          ...data,
-          collectionId: currentCollection.id,
-        }),
-      );
+      data.collectionId = currentCollection.id;
+      setChats(chats.concat(data));
       setCurrentChat(data);
     }
   };
