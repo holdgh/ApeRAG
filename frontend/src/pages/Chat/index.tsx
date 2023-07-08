@@ -44,7 +44,7 @@ export default () => {
 
   // model data;
   const { hasDatabaseSelector, currentCollection } = useModel('collection');
-  const { currentDatabase, databaseLoading } = useModel('database');
+  const { currentDatabases, databaseLoading } = useModel('database');
   const { currentChat, setCurrentChatHistory } = useModel('chat');
 
   // history list;
@@ -117,15 +117,15 @@ export default () => {
   };
 
   useEffect(() => {
-    if (currentDatabase?.length) {
+    if (currentDatabases?.length) {
       const values: DbChatFormFields = {
-        database: currentDatabase[0],
+        database: currentDatabases[0],
       };
       setSocketParams(values);
     } else {
       setSocketParams({});
     }
-  }, [currentDatabase]);
+  }, [currentDatabases]);
 
   useEffect(() => {
     updateSocketUrl();
@@ -230,7 +230,7 @@ export default () => {
                     loading={databaseLoading}
                     className={styles.selector}
                     bordered={false}
-                    options={currentDatabase?.map((d) => ({
+                    options={currentDatabases?.map((d) => ({
                       label: d,
                       value: d,
                     }))}

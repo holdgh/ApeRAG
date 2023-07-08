@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 export default () => {
   const [databases, setDatabases] = useState<{ [key in string]: string[] }>({});
-  const [currentDatabase, setCurrentDatabase] = useState<string[]>();
+  const [currentDatabases, setCurrentDatabases] = useState<string[]>();
   const [databaseLoading, setDatabaseLoading] = useState<boolean>(false);
   const { currentCollection, hasDatabaseSelector } = useModel('collection');
 
@@ -19,12 +19,12 @@ export default () => {
 
     if(_.isEmpty(databases[currentCollection.id])) {
       setDatabaseLoading(true);
-      setCurrentDatabase(undefined);
+      setCurrentDatabases(undefined);
       const res = await GetCollectionDatabase(currentCollection.id);
       if (res.code !== '200') {
         message.error(res.message || "can't connect database.");
       } else {
-        setCurrentDatabase(res.data || []);
+        setCurrentDatabases(res.data || []);
   
         _.set(databases, currentCollection.id, res.data || []);
         setDatabases(databases);
@@ -32,7 +32,7 @@ export default () => {
         setDatabaseLoading(false);
       }
     } else {
-      setCurrentDatabase(databases[currentCollection.id]);
+      setCurrentDatabases(databases[currentCollection.id]);
     }
     
   };
@@ -43,6 +43,6 @@ export default () => {
 
   return {
     databaseLoading,
-    currentDatabase,
+    currentDatabases,
   };
 };
