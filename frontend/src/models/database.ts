@@ -12,33 +12,33 @@ export default () => {
 
   const { message } = App.useApp();
 
-  const getDatabase = async () => {
+  const getCollectionDatabases = async () => {
+    setCurrentDatabases(undefined);
+
     if (!currentCollection?.id || !hasDatabaseSelector(currentCollection)) {
       return;
     }
 
-    if(_.isEmpty(databases[currentCollection.id])) {
+    const currentCollectionDatabases = databases[currentCollection.id];
+    if(_.isEmpty(currentCollectionDatabases)) {
       setDatabaseLoading(true);
-      setCurrentDatabases(undefined);
       const res = await GetCollectionDatabase(currentCollection.id);
       if (res.code !== '200') {
         message.error(res.message || "can't connect database.");
       } else {
-        setCurrentDatabases(res.data || []);
-  
-        _.set(databases, currentCollection.id, res.data || []);
+        setCurrentDatabases(res.data);
+        _.set(databases, currentCollection.id, res.data);
         setDatabases(databases);
-  
-        setDatabaseLoading(false);
       }
+      setDatabaseLoading(false);
     } else {
-      setCurrentDatabases(databases[currentCollection.id]);
+      setCurrentDatabases(currentCollectionDatabases);
     }
     
   };
 
   useEffect(() => {
-    getDatabase();
+    getCollectionDatabases();
   }, [currentCollection]);
 
   return {
