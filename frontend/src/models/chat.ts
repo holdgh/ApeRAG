@@ -3,7 +3,7 @@ import {
   GetCollectionChat,
   GetCollectionChats,
 } from '@/services/chats';
-import { TypesChat, TypesMessage } from '@/types';
+import { TypesChat, TypesChatStatus, TypesMessage } from '@/types';
 import { useModel } from '@umijs/max';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -60,6 +60,14 @@ export default () => {
     });
   };
 
+  const setCurrentChatStatus = (status: TypesChatStatus) => {
+    if (!currentChat) return;
+    setCurrentChat({
+      ...currentChat,
+      status,
+    });
+  }
+
   useEffect(() => {
     getCollectionChats();
   }, [currentCollection]);
@@ -78,5 +86,6 @@ export default () => {
     currentChat,
     chatLoading,
     setCurrentChatHistory,
+    setCurrentChatStatus,
   };
 };

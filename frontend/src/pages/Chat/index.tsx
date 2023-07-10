@@ -17,7 +17,6 @@ type DbChatFormFields = { database?: string };
 
 export default () => {
   const user = getUser();
-  const { token } = theme.useToken();
   const { collectionId } = useParams();
 
   // the data stream in the loading state
@@ -30,7 +29,7 @@ export default () => {
   // model data;
   const { hasDatabaseSelector, currentCollection } = useModel('collection');
   const { currentDatabases, databaseLoading } = useModel('database');
-  const { currentChat, setCurrentChatHistory } = useModel('chat');
+  const { currentChat, setCurrentChatHistory, setCurrentChatStatus } = useModel('chat');
 
   // history list;
   const historyMessages = currentChat?.history || [];
@@ -129,6 +128,11 @@ export default () => {
     // message stream is error.
     if (msg.type === 'error') {
       setIsTyping(false);
+    }
+
+    if (msg.type === 'finish') {
+      setIsTyping(false);
+      setCurrentChatStatus('finish');
     }
 
     // set history references when all stream has been received.

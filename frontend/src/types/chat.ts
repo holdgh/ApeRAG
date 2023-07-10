@@ -4,7 +4,8 @@ export type TypesSocketStatus =
   | 'Connecting'
   | 'Closing'
   | 'Uninstantiated';
-export type TypesMessageType = 'start' | 'stop' | 'message' | 'sql' | 'error';
+export type TypesMessageType = 'start' | 'stop' | 'message' | 'sql' | 'error' | 'finish';
+export type TypesChatStatus = 'finish';
 export type TypesMessageRole = 'ai' | 'human';
 
 export type TypesMessageReferences = {
@@ -30,6 +31,7 @@ export type TypesChat = {
   collectionId: string;
   summary: string;
   history: TypesMessage[];
+  status: TypesChatStatus,
   created: string;
   updated: string;
 };
