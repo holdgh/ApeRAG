@@ -103,7 +103,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
                   language={match[1]}
                   PreTag="div"
                 >
-                  {String(children).replace(/\n$/, '').replace(/^\n*/, '').replace(/\n+/, '\n')}
+                  {String(children).replace(/\n$/, '').replace(/^\n*/, '').replace(/\n+/g, '\n')}
                 </SyntaxHighlighter>
               ) : (
                 <code className={className} {...props}>
