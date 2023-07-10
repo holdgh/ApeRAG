@@ -84,8 +84,10 @@ class SQLBase(DataBase):
             for row in result.all():
                 temp_dict = {}
                 for i in range(len(keys)):
-                    temp_dict[keys[i]] = row[i]
+                    temp_dict[keys[i]] = str(row[i]) if row[i] is not None else ""
                 response.append(temp_dict)
+                if len(response) >= 50:
+                    break
         except BaseException as e:
             response = e
 

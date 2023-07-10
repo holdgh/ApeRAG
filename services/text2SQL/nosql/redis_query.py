@@ -53,7 +53,7 @@ class Redis(NoSQLBase):
         try:
             result = self.conn.execute_command(query)
             if not hasattr(result, "__iter__"):
-                response.append({"result": result})
+                response.append({"result": str(result)})
             else:
                 response.append({"results": str(result)})
         except BaseException as e:
