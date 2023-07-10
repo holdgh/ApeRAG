@@ -61,7 +61,6 @@ export default () => {
   };
 
   useEffect(() => {
-    setCurrentChat(undefined);
     getCollectionChats();
   }, [currentCollection]);
 

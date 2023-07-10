@@ -65,7 +65,7 @@ export default ({ collection }: Props) => {
             <Typography.Text
               strong
               ellipsis
-              style={{ maxWidth: 130, display: 'block' }}
+              style={{ maxWidth: 200, display: 'block' }}
             >
               {collection.title}
             </Typography.Text>

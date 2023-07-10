@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default ({ sidebar, children }: Props) => {
-  const mainNavWidth = 65;
+  const mainNavWidth = 64;
   const hasSidebar = !_.isEmpty(sidebar);
   const subNavWidth = hasSidebar ? 260 : 0;
   return (

@@ -20,11 +20,6 @@ export default ({ loading, onExecute, status }: Props) => {
     animateScroll.scrollToBottom({
       duration: 0,
     });
-    return () => {
-      animateScroll.scrollToTop({
-        duration: 0,
-      });
-    };
   }, [currentChat]);
 
   if (collectionId !== currentChat?.collectionId) {

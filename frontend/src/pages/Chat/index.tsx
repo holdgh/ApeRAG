@@ -170,9 +170,6 @@ export default () => {
         className={classNames({
           [styles.header]: true,
         })}
-        style={{
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-        }}
       >
         <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Space split={<Divider type="vertical" />}>

@@ -23,7 +23,6 @@ export const layout = () => {
     collapsed: true,
     collapsedButtonRender: () => null,
     token: {
-      bgLayout: '#0A0A0A',
       sider: {
         colorMenuBackground: '#35363A',
       },
