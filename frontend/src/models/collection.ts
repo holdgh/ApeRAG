@@ -74,7 +74,9 @@ export default () => {
     const { code } = await DeleteCollection(collection.id);
     if (code === '200') {
       setCollections(collections.filter((c) => c.id !== collection.id));
-      history.push(`/${collection.type}/${collection.id}`);
+      setTimeout(() => {
+        history.push(`/${collection.type}`);
+      })
     } else {
       message.error('delete error');
     }
