@@ -68,7 +68,7 @@ export default defineConfig({
             {
               name: 'Setting',
               path: '/document/:collectionId',
-              component: './Document/detail',
+              component: './Collection/settings',
             },
             {
               name: 'Chat',
@@ -102,7 +102,7 @@ export default defineConfig({
             {
               name: 'Setting',
               path: '/database/:collectionId',
-              component: './Database/detail',
+              component: './Collection/settings',
             },
             {
               name: 'Chat',
@@ -136,7 +136,7 @@ export default defineConfig({
             {
               name: 'Setting',
               path: '/code/:collectionId',
-              component: './Code/detail',
+              component: './Collection/settings',
             },
             {
               name: 'Chat',

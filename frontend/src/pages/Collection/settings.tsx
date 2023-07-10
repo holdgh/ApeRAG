@@ -4,6 +4,9 @@ import { App, Button, Tabs, TabsProps, Typography } from 'antd';
 
 import Edit from './edit';
 
+import DocList from './docs';
+import _ from 'lodash';
+
 export default () => {
   const { collectionId } = useParams();
   const { getCollection, deleteCollection } = useModel('collection');
@@ -22,9 +25,15 @@ export default () => {
     });
   };
 
-  const items: TabsProps['items'] = [
-    { label: 'Setting', key: 'setting', children: <Edit /> },
-  ];
+  if(!collection) return;
+
+  const items: TabsProps['items'] = [];
+  if(collection.type === 'document') {
+    items.push({ label: 'Documents', key: 'document', children: <DocList /> })
+  }
+
+  items.push({ label: 'Setting', key: 'setting', children: <Edit /> })
+  
 
   return (
     <PageContainer
@@ -41,7 +50,7 @@ export default () => {
         </Button>,
       ]}
     >
-      <Tabs defaultActiveKey="setting" items={items} />
+      <Tabs defaultActiveKey={_.first(items)?.key} items={items} />
     </PageContainer>
   );
 };

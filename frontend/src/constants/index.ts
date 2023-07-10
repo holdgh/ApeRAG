@@ -1,4 +1,5 @@
 import {
+  TypesCollectionConfigModels,
   TypesCollectionStatus,
   TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
@@ -9,15 +10,29 @@ import {
 } from '@/types';
 import { PresetStatusColorType } from 'antd/es/_util/colors';
 import { ReadyState } from 'react-use-websocket';
+import VicunaIcon from '@/assets/vicuna.jpg';
+import ChatglmIcon from '@/assets/chatglm.png'
 
 export const DOCUMENT_DEFAULT_CONFIG: TypesDocumentConfig = {
   source: 'system',
+  model: 'vicuna-13b'
 };
 
 export const DATABASE_DEFAULT_CONFIG: TypesDatabaseConfig = {
   verify: 'prefered',
   db_type: 'mysql',
+  model: 'vicuna-13b'
 };
+
+export const COLLECTION_MODEL_OPTIONS: {label: TypesCollectionConfigModels, value: TypesCollectionConfigModels, icon?: string}[] = [{
+  label: 'vicuna-13b',
+  value: 'vicuna-13b',
+  icon: VicunaIcon,
+}, {
+  label: 'chatglm2-6b',
+  value: 'chatglm2-6b',
+  icon: ChatglmIcon,
+}]
 
 export const CODE_DEFAULT_CONFIG = {};
 

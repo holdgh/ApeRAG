@@ -3,10 +3,9 @@ import { DOCUMENT_DEFAULT_CONFIG } from '@/constants';
 import type { TypesCollection } from '@/types';
 import { PageContainer } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { Card, Form } from 'antd';
+import { Card } from 'antd';
 
 export default () => {
-  const [form] = Form.useForm();
   const { createColection } = useModel('collection');
 
   return (
@@ -16,7 +15,6 @@ export default () => {
           onSubmit={(values: TypesCollection) => {
             createColection(values);
           }}
-          form={form}
           action="add"
           values={{
             type: 'document',

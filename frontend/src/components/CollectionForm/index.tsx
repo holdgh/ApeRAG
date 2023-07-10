@@ -1,5 +1,9 @@
 import CheckedCard from '@/components/CheckedCard';
-import { DATABASE_TYPE_OPTIONS, DOCUMENT_SOURCE_OPTIONS } from '@/constants';
+import {
+  COLLECTION_MODEL_OPTIONS,
+  DATABASE_TYPE_OPTIONS,
+  DOCUMENT_SOURCE_OPTIONS,
+} from '@/constants';
 import { getUser } from '@/models/user';
 import { TestCollection } from '@/services/collections';
 import { TypesCollection, TypesDatabaseConfig } from '@/types';
@@ -146,6 +150,24 @@ export default ({ onSubmit, action, values }: Props) => {
       </Form.Item>
       <Form.Item name="type" style={{ display: 'none' }} />
 
+      {['document', 'database'].includes(values.type) ? (
+        <Form.Item
+          name="config.model"
+          rules={[
+            {
+              required: true,
+              message: 'model is required.',
+            },
+          ]}
+          label="Model"
+        >
+          <CheckedCard
+            disabled={action === 'edit'}
+            options={COLLECTION_MODEL_OPTIONS}
+          />
+        </Form.Item>
+      ) : null}
+
       {values.type === 'document' ? (
         <>
           <Form.Item
@@ -163,6 +185,7 @@ export default ({ onSubmit, action, values }: Props) => {
               options={DOCUMENT_SOURCE_OPTIONS}
             />
           </Form.Item>
+
           {source === 'local' ? DocumentLocalFormItems : null}
           {source === 'email' ? DocumentEmailFormItems : null}
           {source === 's3' || source === 'oss' ? DocumentCloudFormItems : null}
