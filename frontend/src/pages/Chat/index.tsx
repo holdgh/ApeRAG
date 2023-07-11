@@ -125,11 +125,6 @@ export default () => {
       index = 0;
     }
 
-    // message stream is error.
-    if (msg.type === 'error') {
-      setIsTyping(false);
-    }
-
     if (msg.type === 'finish') {
       setIsTyping(false);
       setCurrentChatStatus('finish');
@@ -149,7 +144,7 @@ export default () => {
     }
 
     // create a new message or update a old message.
-    if (_.includes(['start', 'sql', 'message'], msg.type)) {
+    if (_.includes(['start', 'sql', 'message', 'error'], msg.type)) {
       const message: TypesMessage = {
         ...msg,
         role: 'ai',

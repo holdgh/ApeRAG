@@ -10,6 +10,7 @@ import {
 import { sql } from '@codemirror/lang-sql';
 import { okaidiaInit } from '@uiw/codemirror-theme-okaidia';
 import CodeMirror from '@uiw/react-codemirror';
+import { useModel } from '@umijs/max';
 import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
@@ -23,6 +24,7 @@ import rehypeInferTitleMeta from 'rehype-infer-title-meta';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
+import TableData from './table';
 
 const EditorTheme = okaidiaInit({
   theme: 'dark',
@@ -47,6 +49,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
   const [runtimeText, setRuntimeText] = useState<string>('');
   const [displayText, setDisplayText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
+  const { currentCollection } = useModel('collection');
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
@@ -77,6 +80,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
       margin: 0,
       lineHeight: 'inherit',
     };
+    
     if (item.type === 'sql') {
       return (
         <CodeMirror
@@ -88,35 +92,50 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
           onChange={(v) => (item.data = v)}
         />
       );
-    } else {
-      return (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
-          components={{
-            code({ inline, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '');
-              return !inline && match ? (
-                <SyntaxHighlighter
-                  style={dark}
-                  customStyle={customStyle}
-                  language={match[1]}
-                  PreTag="div"
-                >
-                  {String(children).replace(/\n$/, '').replace(/^\n*/, '').replace(/\n+/g, '\n')}
-                </SyntaxHighlighter>
-              ) : (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
-            },
-          }}
-        >
-          {displayText}
-        </ReactMarkdown>
-      );
     }
+
+    if (currentCollection?.type === 'database' && item.role === 'ai' && item.type !== 'error') {
+      let data = [];
+      try {
+        data = JSON.parse(item.data || '[]');
+        return <TableData loading={false} dataSource={data} />;
+      } catch (err) {}
+    }
+
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
+        className={classNames({
+          [styles.markdown]: true,
+          [styles.error]: item.type === 'error',
+        })}
+        components={{
+          code({ inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline && match ? (
+              <SyntaxHighlighter
+                style={dark}
+                customStyle={customStyle}
+                language={match[1]}
+                PreTag="div"
+              >
+                {String(children)
+                  .replace(/\n$/, '')
+                  .replace(/^\n*/, '')
+                  .replace(/\n+/g, '\n')}
+              </SyntaxHighlighter>
+            ) : (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          },
+        }}
+      >
+        {displayText}
+      </ReactMarkdown>
+    );
   };
 
   const renderReferences = () => {
@@ -221,11 +240,12 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
       >
         {item.references?.map((reference, key) => {
           return (
-            <div key={key} className={styles.markdown}>
+            <div key={key}>
               <Typography.Title ellipsis level={4}>
                 <LinkOutlined /> {key + 1}、 {reference.metadata?.source}
               </Typography.Title>
               <ReactMarkdown
+                className={styles.markdown}
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw, rehypeInferTitleMeta]}
                 components={{
