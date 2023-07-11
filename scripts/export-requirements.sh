@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-poetry export --with=llmserver -o requirements.txt
+poetry export --with=llmserver --without-urls -o requirements.txt

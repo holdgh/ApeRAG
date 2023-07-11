@@ -362,16 +362,16 @@ def download_code(request, chat_id):
     chat = Chat.objects.exclude(status=DocumentStatus.DELETED).get(
         user=user, pk=chat_id
     )
-    collections = chat.collection
+    collection = chat.collection
     if chat.user != user:
         return success("No access to the file")
     if chat.status != ChatStatus.UPLOADED:
         return success("The file is not ready for download")
     file_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
-        collections.title + str(chat_id)) / "workspace" / f"{collections.title}.zip"
+        collection.title + str(chat_id)) / "workspace" / f"{collection.title}.zip"
     with open(str(file_path), "rb") as f:
         response = HttpResponse(f.read())
-    response['Content-Disposition'] = f"attachment; filename=\"{collections.title}.zip\""
+    response['Content-Disposition'] = f"attachment; filename=\"{collection.title}.zip\""
     response['Content-Type'] = 'application/zip'
     return response
 

@@ -72,6 +72,7 @@ make run-frontend
 * [ ] 单模型实例服务能力测试
 * [ ] celery超时时间控制
 * [ ] 后端查询接口支持过滤和分页
+* [ ] celery和django共享存储
 
 # 依赖管理原则
 

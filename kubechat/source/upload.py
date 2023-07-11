@@ -1,3 +1,5 @@
+import os
+import tempfile
 from typing import Dict, Any
 
 from kubechat.models import Document, Collection
@@ -13,10 +15,16 @@ class UploadSource(Source):
         return []
 
     def prepare_document(self, doc: Document):
-        return doc.file.name
+        suffix = os.path.splitext(doc.name)[1].lower()
+        with doc.file.open("rb") as f:
+            content = f.read()
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        temp_file.write(content)
+        temp_file.close()
+        return temp_file.name
 
     def cleanup_document(self, file_path: str, doc: Document):
-        pass
+        os.remove(file_path)
 
     def close(self):
         pass
