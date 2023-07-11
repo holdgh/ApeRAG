@@ -41,7 +41,7 @@ export default () => {
       share: true,
       protocols: user?.__raw,
       shouldReconnect: () => true,
-      reconnectInterval: 5000,
+      reconnectInterval: 5000 * 60,
       reconnectAttempts: 5,
     },
   );
