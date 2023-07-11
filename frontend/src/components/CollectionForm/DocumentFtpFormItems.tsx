@@ -1,9 +1,9 @@
-import { Col, Form, Input, Row } from 'antd';
+import { Col, Form, Input, InputNumber, Row } from 'antd';
 
 export default (
   <>
     <Row gutter={[12, 0]}>
-      <Col span={12}>
+      <Col span={16}>
         <Form.Item
           name="config.host"
           rules={[
@@ -17,18 +17,18 @@ export default (
           <Input />
         </Form.Item>
       </Col>
-      <Col span={12}>
+      <Col span={8}>
         <Form.Item
-          name="config.path"
+          name="config.port"
           rules={[
             {
               required: true,
-              message: 'path is required.',
+              message: 'port is required.',
             },
           ]}
-          label="Path"
+          label="Port"
         >
-          <Input />
+          <InputNumber style={{ width: '100%' }} placeholder="port" />
         </Form.Item>
       </Col>
     </Row>
@@ -62,5 +62,17 @@ export default (
         </Form.Item>
       </Col>
     </Row>
+    <Form.Item
+      name="config.path"
+      rules={[
+        {
+          required: true,
+          message: 'path is required.',
+        },
+      ]}
+      label="Path"
+    >
+      <Input />
+    </Form.Item>
   </>
 );
