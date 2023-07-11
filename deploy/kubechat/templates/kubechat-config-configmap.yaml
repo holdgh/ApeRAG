@@ -16,6 +16,7 @@ data:
   POSTGRES_PASSWORD: {{ .Values.django.metaDBPassword }}
   VECTOR_DB_CONTEXT: '{{ .Values.django.vectorDBContext }}'
   VECTOR_DB_TYPE: {{ .Values.django.vectorDBType }}
+  OPENAI_API_KEY: {{ .Values.django.openaiAPIKey }}
 kind: ConfigMap
 metadata:
   labels:
