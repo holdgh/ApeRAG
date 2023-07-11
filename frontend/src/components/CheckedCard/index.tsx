@@ -10,7 +10,7 @@ type OptionType = {
   label: ReactNode;
   value: string;
   description?: string;
-  disabled?: boolean,
+  disabled?: boolean;
 };
 type PropsType = {
   value?: string;
@@ -89,7 +89,11 @@ export default ({
                   />
                 ) : null}
                 <Space direction="vertical" style={{ flex: 1 }}>
-                  <Typography.Text type={disabled || option.disabled ? 'secondary' : undefined}>{option.label}</Typography.Text>
+                  <Typography.Text
+                    type={disabled || option.disabled ? 'secondary' : undefined}
+                  >
+                    {option.label}
+                  </Typography.Text>
                   {option.description ? (
                     <Typography.Text type="secondary" ellipsis>
                       {option.description}

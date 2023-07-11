@@ -17,9 +17,11 @@ export default ({ loading, onExecute, status }: Props) => {
   const { collectionId } = useParams();
 
   useEffect(() => {
-    animateScroll.scrollToBottom({
-      duration: 200,
-    });
+    setTimeout(() => {
+      animateScroll.scrollToBottom({
+        duration: 600,
+      });
+    }, 100);
   }, [currentChat]);
 
   if (collectionId !== currentChat?.collectionId) {

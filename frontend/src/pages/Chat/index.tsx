@@ -145,9 +145,9 @@ export default () => {
       return;
     }
 
-    if(msg.type === 'download') {
+    if (msg.type === 'download') {
       setDisabled(true);
-      if(!historyMessages.find(h => h.type === 'download')) {
+      if (!historyMessages.find((h) => h.type === 'download')) {
         historyMessages.push(msg);
       }
       return;

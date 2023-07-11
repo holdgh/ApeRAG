@@ -62,3 +62,9 @@ export const DeleteCollection = (
     method: 'DELETE',
   });
 };
+
+export const CodeDownload = (chatId: string) => {
+  return request(`/api/v1/code/codegenerate/download/${chatId}`, {
+    method: 'GET',
+  });
+};

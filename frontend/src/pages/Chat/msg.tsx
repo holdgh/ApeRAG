@@ -1,6 +1,7 @@
 import ChatRobot from '@/assets/chatbot.png';
 import EllipsisAnimate from '@/components/EllipsisAnimate';
 import { getUser } from '@/models/user';
+import { CodeDownload } from '@/services/collections';
 import type { TypesMessage } from '@/types';
 import {
   CloudDownloadOutlined,
@@ -35,7 +36,6 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import styles from './index.less';
 import TableData from './table';
-
 const EditorTheme = okaidiaInit({
   theme: 'dark',
   settings: {
@@ -61,10 +61,30 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const { currentCollection } = useModel('collection');
   const { currentChat } = useModel('chat');
+  const [downloading, setDownloading] = useState<boolean>(false);
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
     item.role === 'human' ? token.colorPrimary : token.colorBgContainerDisabled;
+
+  const onDownload = async () => {
+    if (!currentChat || !currentCollection) return;
+    setDownloading(true);
+
+    const filename = `${currentCollection?.title}_${new Date().getTime()}.zip`;
+    const data = await CodeDownload(currentChat.id);
+    const blob = new Blob([data], {type: "text/plain"});
+
+    let link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = window.URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(link.href);
+    setDownloading(false);
+  };
 
   const renderAvatar = () => {
     const size = 50;
@@ -110,9 +130,9 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
         <Button
           type="link"
           block
+          loading={downloading}
           icon={<CloudDownloadOutlined />}
-          target="_blank"
-          href={`${API_ENDPOINT}/api/v1/code/codegenerate/download/${currentChat?.id}`}
+          onClick={onDownload}
         >
           Download Project
         </Button>

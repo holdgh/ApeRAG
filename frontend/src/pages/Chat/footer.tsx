@@ -8,7 +8,7 @@ import styles from './index.less';
 type Props = {
   isTyping: boolean;
   status: TypesSocketStatus;
-  disabled: boolean,
+  disabled: boolean;
   onSubmit: (val: string) => void;
   onClear: () => void;
 };
@@ -32,7 +32,7 @@ export default ({
       setMessage('');
     }
   };
-  
+
   return (
     <div className={styles.wrap}>
       <Button
