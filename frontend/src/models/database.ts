@@ -6,41 +6,40 @@ import { useEffect, useState } from 'react';
 
 export default () => {
   const [databases, setDatabases] = useState<{ [key in string]: string[] }>({});
-  const [currentDatabases, setCurrentDatabases] = useState<string[]>();
   const [databaseLoading, setDatabaseLoading] = useState<boolean>(false);
-  const { currentCollection, hasDatabaseSelector } = useModel('collection');
+  const { currentCollection, hasDatabaseSelector, getCollection } =
+    useModel('collection');
 
   const { message } = App.useApp();
 
-  const getCollectionDatabases = async () => {
-    if (!currentCollection?.id || !hasDatabaseSelector(currentCollection)) {
+  const getCollectionDatabases = async (collectionId?: string) => {
+    if (!collectionId || !hasDatabaseSelector(getCollection(collectionId))) {
       return;
     }
 
-    const currentCollectionDatabases = databases[currentCollection.id];
+    const currentCollectionDatabases = databases[collectionId];
     if (_.isEmpty(currentCollectionDatabases)) {
       setDatabaseLoading(true);
-      const res = await GetCollectionDatabase(currentCollection.id);
+      const res = await GetCollectionDatabase(collectionId);
       if (res.code !== '200') {
         message.error(res.message || "can't connect database.");
       } else {
-        setCurrentDatabases(res.data);
-        _.set(databases, currentCollection.id, res.data);
+        _.set(databases, collectionId, res.data);
         setDatabases(databases);
       }
       setDatabaseLoading(false);
     } else {
-      setCurrentDatabases(currentCollectionDatabases);
     }
   };
 
   useEffect(() => {
-    setCurrentDatabases(undefined);
-    getCollectionDatabases();
+    if (currentCollection) {
+      getCollectionDatabases(currentCollection.id);
+    }
   }, [currentCollection]);
 
   return {
+    databases,
     databaseLoading,
-    currentDatabases,
   };
 };

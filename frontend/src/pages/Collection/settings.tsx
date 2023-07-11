@@ -4,8 +4,8 @@ import { App, Button, Tabs, TabsProps, Typography } from 'antd';
 
 import Edit from './edit';
 
-import DocList from './docs';
 import _ from 'lodash';
+import DocList from './docs';
 
 export default () => {
   const { collectionId } = useParams();
@@ -25,15 +25,14 @@ export default () => {
     });
   };
 
-  if(!collection) return;
+  if (!collection) return;
 
   const items: TabsProps['items'] = [];
-  if(collection.type === 'document') {
-    items.push({ label: 'Documents', key: 'document', children: <DocList /> })
+  if (collection.type === 'document') {
+    items.push({ label: 'Documents', key: 'document', children: <DocList /> });
   }
 
-  items.push({ label: 'Setting', key: 'setting', children: <Edit /> })
-  
+  items.push({ label: 'Setting', key: 'setting', children: <Edit /> });
 
   return (
     <PageContainer

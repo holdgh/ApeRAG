@@ -18,7 +18,7 @@ type PropsType = {
   options?: OptionType[];
   disabled?: boolean;
   block?: boolean;
-  size?: 'middle' | 'large'
+  size?: 'middle' | 'large';
 };
 
 export default ({
@@ -76,7 +76,10 @@ export default ({
             }}
           >
             <Space className={styles.row}>
-              <Space style={{ flex: 1 }} size={size === 'middle' ? 'middle' : 'large'}>
+              <Space
+                style={{ flex: 1 }}
+                size={size === 'middle' ? 'middle' : 'large'}
+              >
                 {option.icon ? (
                   <Avatar
                     style={{ fontSize: 24 }}

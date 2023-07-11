@@ -80,7 +80,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
       margin: 0,
       lineHeight: 'inherit',
     };
-    
+
     if (item.type === 'sql') {
       return (
         <CodeMirror
@@ -94,7 +94,11 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
       );
     }
 
-    if (currentCollection?.type === 'database' && item.role === 'ai' && item.type !== 'error') {
+    if (
+      currentCollection?.type === 'database' &&
+      item.role === 'ai' &&
+      item.type !== 'error'
+    ) {
       let data = [];
       try {
         data = JSON.parse(item.data || '[]');

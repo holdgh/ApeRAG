@@ -76,7 +76,7 @@ export default () => {
       setCollections(collections.filter((c) => c.id !== collection.id));
       setTimeout(() => {
         history.push(`/${collection.type}`);
-      })
+      });
     } else {
       message.error('delete error');
     }

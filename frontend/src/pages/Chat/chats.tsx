@@ -18,7 +18,7 @@ export default ({ loading, onExecute, status }: Props) => {
 
   useEffect(() => {
     animateScroll.scrollToBottom({
-      duration: 0,
+      duration: 200,
     });
   }, [currentChat]);
 

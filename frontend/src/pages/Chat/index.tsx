@@ -4,7 +4,7 @@ import { UpdateCollectionChat } from '@/services/chats';
 import type { TypesMessage, TypesMessageReferences } from '@/types';
 import { SettingOutlined } from '@ant-design/icons';
 import { Link, useModel, useParams } from '@umijs/max';
-import { Button, Divider, Select, Space, Tag, Typography, theme } from 'antd';
+import { Button, Divider, Select, Space, Tag, Typography } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { useEffect, useState } from 'react';
@@ -28,8 +28,10 @@ export default () => {
 
   // model data;
   const { hasDatabaseSelector, currentCollection } = useModel('collection');
-  const { currentDatabases, databaseLoading } = useModel('database');
-  const { currentChat, setCurrentChatHistory, setCurrentChatStatus } = useModel('chat');
+  const { databaseLoading, databases } = useModel('database');
+  const { currentChat, setCurrentChatHistory } = useModel('chat');
+
+  const currentDatabases = collectionId ? _.get(databases, collectionId) : [];
 
   // history list;
   const historyMessages = currentChat?.history || [];
@@ -125,11 +127,6 @@ export default () => {
       index = 0;
     }
 
-    if (msg.type === 'finish') {
-      setIsTyping(false);
-      setCurrentChatStatus('finish');
-    }
-
     // set history references when all stream has been received.
     if (msg.type === 'stop') {
       setIsTyping(false);
@@ -144,7 +141,9 @@ export default () => {
     }
 
     // create a new message or update a old message.
-    if (_.includes(['start', 'sql', 'message', 'error'], msg.type)) {
+    if (
+      _.includes(['start', 'sql', 'message', 'error', 'download'], msg.type)
+    ) {
       const message: TypesMessage = {
         ...msg,
         role: 'ai',

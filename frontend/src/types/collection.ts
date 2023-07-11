@@ -17,11 +17,11 @@ export type TypesDatabaseConfigDbTypeOption = {
   showSelector?: boolean;
 };
 
-export type TypesCollectionConfigModels = 'vicuna-13b' | 'chatglm2-6b'
+export type TypesCollectionConfigModels = 'vicuna-13b' | 'chatglm2-6b';
 
 export type TypesDatabaseConfig = {
   host?: string;
-  model?: TypesCollectionConfigModels,
+  model?: TypesCollectionConfigModels;
 
   // database
   db_type?: TypesDatabaseConfigDbType;
@@ -45,7 +45,7 @@ export type DocumentConfigSource =
 
 export type TypesDocumentConfig = {
   source?: DocumentConfigSource;
-  model?: TypesCollectionConfigModels,
+  model?: TypesCollectionConfigModels;
 
   // local and ftp
   path?: string;

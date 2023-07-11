@@ -44,7 +44,7 @@
   padding-inline: 40px;
   transition-duration: 0.15s;
   z-index: 10;
-  
+
   .wrap {
     display: flex;
     .layout();
@@ -132,16 +132,21 @@
   p {
     color: rgba(255, 255, 255, 70%);
     margin-bottom: 8px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   pre {
     padding: 0;
-    
-    > div, > code {
+
+    > div,
+    > code {
       line-height: 1.2em;
       border-radius: 4px;
       padding: 12px 16px !important;
-      background: #0A0A0A !important;
+      background: #0a0a0a !important;
     }
 
     > code {

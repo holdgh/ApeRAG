@@ -165,10 +165,7 @@ export default ({ onSubmit, action, values }: Props) => {
           ]}
           label="Model"
         >
-          <CheckedCard
-            size="large"
-            options={COLLECTION_MODEL_OPTIONS}
-          />
+          <CheckedCard size="large" options={COLLECTION_MODEL_OPTIONS} />
         </Form.Item>
       ) : null}
 
