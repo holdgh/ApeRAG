@@ -15,6 +15,7 @@ export type TypesDatabaseConfigDbTypeOption = {
   value: TypesDatabaseConfigDbType;
   icon: string;
   showSelector?: boolean;
+  disabled?: boolean,
 };
 
 export type TypesCollectionConfigModels = 'vicuna-13b' | 'chatglm2-6b';

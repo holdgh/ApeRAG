@@ -60,31 +60,37 @@ export const DATABASE_TYPE_OPTIONS: TypesDatabaseConfigDbTypeOption[] = [
     label: 'SQLite',
     value: 'sqlite',
     icon: 'https://cdn.kubeblocks.com/img/sqlite.png',
+    disabled: true,
   },
   {
     label: 'Redis',
     value: 'redis',
     icon: 'https://cdn.kubeblocks.com/img/redis.svg',
+    disabled: true,
   },
   {
     label: 'Oracle',
     value: 'oracle',
     icon: 'https://cdn.kubeblocks.com/img/oracle.png',
+    disabled: true,
   },
   {
     label: 'Mongo',
     value: 'mongo',
     icon: 'https://cdn.kubeblocks.com/img/mongodb.svg',
+    disabled: true,
   },
   {
     label: 'ClickHouse',
     value: 'clickhouse',
     icon: 'https://cdn.kubeblocks.com/img/clickhouse.png',
+    disabled: true,
   },
   {
     label: 'ElasticSearch',
     value: 'elasticsearch',
     icon: 'https://cdn.kubeblocks.com/img/elasticsearch.png',
+    disabled: true,
   },
 ];
 

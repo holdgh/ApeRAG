@@ -10,6 +10,7 @@ type OptionType = {
   label: ReactNode;
   value: string;
   description?: string;
+  disabled?: boolean,
 };
 type PropsType = {
   value?: string;
@@ -35,7 +36,7 @@ export default ({
   );
   const { token } = theme.useToken();
   const onClick = (record: OptionType) => {
-    if (disabled) return;
+    if (disabled || record.disabled) return;
     setCurrentValue(record.value);
     onChange(record.value, record);
   };
@@ -66,7 +67,7 @@ export default ({
             className={classNames({
               [styles.item]: true,
               [styles.selected]: currentValue === option.value,
-              [styles.disabled]: disabled,
+              [styles.disabled]: disabled || option.disabled,
             })}
             bodyStyle={{
               padding: size === 'middle' ? '8px 12px' : '12px 20px',
@@ -88,7 +89,7 @@ export default ({
                   />
                 ) : null}
                 <Space direction="vertical" style={{ flex: 1 }}>
-                  <Typography.Text>{option.label}</Typography.Text>
+                  <Typography.Text type={disabled || option.disabled ? 'secondary' : undefined}>{option.label}</Typography.Text>
                   {option.description ? (
                     <Typography.Text type="secondary" ellipsis>
                       {option.description}
