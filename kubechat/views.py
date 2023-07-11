@@ -12,7 +12,8 @@ from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
-from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
+from kubechat.tasks.code_generate import pre_clarify, \
+    CELERY_PROJECT_DIR  # can't remove or pre_clarify task will be NotRegister
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
@@ -23,7 +24,7 @@ from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
 from .models import *
-from .utils.utils import generate_vector_db_collection_id
+from .utils.utils import generate_vector_db_collection_id, fix_path_name
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +54,6 @@ class ConnectionInfo(Schema):
     ca_cert: Optional[str]
     client_key: Optional[str]
     client_cert: Optional[str]
-
-
-class CodeChatIn(Schema):
-    title: str = ""
 
 
 class Auth(BaseModel):
@@ -359,59 +356,24 @@ def delete_chat(request, collection_id, chat_id):
     return success(chat.view())
 
 
-# @api.post("/code/codegenerate")
-# def create_code_generate_chat(request, codechat: CodeChatIn):
-#     user = get_user(request)
-#     instance = CodeChat(
-#         user=user,
-#         title=codechat.title,
-#         status=CodeChatStatus.ACTIVE,
-#     )
-#     instance.save()
-#     return success(instance.view())
-#
-#
-# @api.get("/code/codegenerate/chats")
-# def list_code_generate_chats(request):
-#     user = get_user(request)
-#     instances = query_code_chats(user)
-#     response = []
-#     for instance in instances:
-#         response.append(instance.view())
-#     return success(response)
-#
-#
-# @api.get("/code/codegenerate/chats/{chat_id}")
-# def get_code_generate_chat(request, chat_id):
-#     user = get_user(request)
-#     instance = query_code_chat(user, chat_id)
-#     if instance is None:
-#         return fail(HTTPStatus.NOT_FOUND, "chat not found")
-#     # chat_id will conflict
-#     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
-#     messages = []
-#     for message in history.messages:
-#         try:
-#             item = json.loads(message.content)
-#         except Exception as e:
-#             logger.exception(e)
-#             continue
-#         item["role"] = message.additional_kwargs["role"]
-#         item["references"] = message.additional_kwargs.get("references") or []
-#         messages.append(item)
-#     return success(instance.view(messages))
-#
-#
-# @api.delete("/code/codegenerate/chats/{chat_id}")
-# def delete_code_generate_chat(request, chat_id):
-#     user = get_user(request)
-#     instance = query_code_chat(user, chat_id)
-#     if instance is None:
-#         return fail(HTTPStatus.NOT_FOUND, "chat not found")
-#     instance.status = CodeChatStatus.DELETED
-#     instance.gmt_deleted = datetime.now()
-#     instance.save()
-#     return success(instance.view())
+@api.get("/code/codegenerate/download/{chat_id}")
+def download_code(request, chat_id):
+    user = get_user(request)
+    chat = Chat.objects.exclude(status=DocumentStatus.DELETED).get(
+        user=user, pk=chat_id
+    )
+    collections = chat.collection
+    if chat.user != user:
+        return success("No access to the file")
+    if chat.status != ChatStatus.UPLOADED:
+        return success("The file is not ready for download")
+    file_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+        collections.title + str(chat_id)) / "workspace" / f"{collections.title}.zip"
+    with open(str(file_path), "rb") as f:
+        response = HttpResponse(f.read())
+    response['Content-Disposition'] = f"attachment; filename=\"{collections.title}.zip\""
+    response['Content-Type'] = 'application/zip'
+    return response
 
 
 def index(request):

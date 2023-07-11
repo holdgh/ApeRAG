@@ -92,12 +92,10 @@ class CodeGenerateConsumer(WebsocketConsumer):
             # already finish the task and generate the project zip
             message_id = f"{now_unix_milliseconds()}"
             project_upload = self.dbs.workspace.path / f"{self.title}.zip"
-            self.send(text_data=self.upload_response(message_id, str(project_upload)))
+            self.send(text_data=self.upload_response(message_id))
         elif chat.status == ChatStatus.FINISHED:
             # already finish the task but not generate the project zip
             self.load_project()
-            chat.status = ChatStatus.UPLOADED
-            chat.save()
         elif chat.status == ChatStatus.CLARIFIED:
             # already finish the CLARIFYING
             self.clarified()
@@ -183,8 +181,6 @@ class CodeGenerateConsumer(WebsocketConsumer):
         chat.status = ChatStatus.FINISHED
         chat.save()
         self.load_project()
-        chat.status = ChatStatus.UPLOADED
-        chat.save()
 
     def interact_with_LLM(self, messages: List[Dict[str, str]], prompt=None, *, step_name=None):
         '''
@@ -286,7 +282,10 @@ class CodeGenerateConsumer(WebsocketConsumer):
         zip.close()
         message_id = f"{now_unix_milliseconds()}"
         # project_upload = self.dbs.workspace.path + f"{self.title}.zip"
-        self.send(text_data=self.upload_response(message_id, str(project_upload)))
+        self.send(text_data=self.upload_response(message_id))
+        chat = query_chat(self.user, self.collection_id, self.chat_id)
+        chat.status = ChatStatus.UPLOADED
+        chat.save()
         # change the status to
         # self.send(bytes_data=zip)
 
@@ -336,12 +335,12 @@ class CodeGenerateConsumer(WebsocketConsumer):
         )
 
     @staticmethod
-    def upload_response(message_id, url):
+    def upload_response(message_id):
         return json.dumps(
             {
                 "type": "download",
                 "id": message_id,
-                "data": url,
+                "data": "",
                 "timestamp": now_unix_milliseconds(),
             }
         )

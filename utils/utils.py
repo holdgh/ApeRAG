@@ -5,6 +5,7 @@ import logging
 import logging.handlers
 import os
 import sys
+from pathlib import Path
 
 import requests
 import torch
@@ -16,6 +17,7 @@ server_error_msg = (
 )
 
 handler = None
+
 
 
 def get_gpu_memory(max_gpus=None):
@@ -30,8 +32,8 @@ def get_gpu_memory(max_gpus=None):
         with torch.cuda.device(gpu_id):
             device = torch.cuda.current_device()
             gpu_properties = torch.cuda.get_device_properties(device)
-            total_memory = gpu_properties.total_memory / (1024**3)
-            allocated_memory = torch.cuda.memory_allocated() / (1024**3)
+            total_memory = gpu_properties.total_memory / (1024 ** 3)
+            allocated_memory = torch.cuda.memory_allocated() / (1024 ** 3)
             available_memory = total_memory - allocated_memory
             gpu_memory.append(available_memory)
     return gpu_memory
