@@ -21,6 +21,7 @@ export default () => {
 
   // the data stream in the loading state
   const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [disabled, setDisabled] = useState<boolean>(false);
 
   // websocket url & params
   const [socketUrl, setSocketUrl] = useState<string>('');
@@ -119,8 +120,11 @@ export default () => {
 
   useEffect(() => {
     if (_.isEmpty(lastJsonMessage)) return;
-
-    let msg: TypesMessage = lastJsonMessage as TypesMessage;
+    const msg: TypesMessage = {
+      ...lastJsonMessage,
+      role: 'ai',
+      _typeWriter: true,
+    };
 
     let index = historyMessages.findLastIndex((m) => m.id === msg.id);
     if (index === -1) {
@@ -138,28 +142,27 @@ export default () => {
         }));
         setCurrentChatHistory(historyMessages);
       }
+      return;
+    }
+
+    if(msg.type === 'download') {
+      setDisabled(true);
+      historyMessages.push(msg);
+      return;
     }
 
     // create a new message or update a old message.
-    if (
-      _.includes(['start', 'sql', 'message', 'error', 'download'], msg.type)
-    ) {
-      const message: TypesMessage = {
+    if (msg.type === 'start') {
+      setIsTyping(true);
+      historyMessages.push(msg);
+    } else {
+      _.update(historyMessages, index, (origin) => ({
         ...msg,
-        role: 'ai',
-        _typeWriter: true,
-      };
-      if (msg.type === 'start') {
-        setIsTyping(true);
-        historyMessages.push(message);
-      } else {
-        _.update(historyMessages, index, (origin) => ({
-          ...message,
-          data: (origin?.data || '') + msg.data, // append new stream data
-        }));
-      }
-      setCurrentChatHistory(historyMessages);
+        data: (origin?.data || '') + msg.data, // append new stream data
+      }));
     }
+    setCurrentChatHistory(historyMessages);
+    setDisabled(false);
   }, [lastJsonMessage]);
 
   return (
@@ -219,6 +222,7 @@ export default () => {
       >
         <Footer
           isTyping={isTyping}
+          disabled={disabled}
           status={SOCKET_STATUS_MAP[readyState]}
           onSubmit={onSubmit}
           onClear={onClear}

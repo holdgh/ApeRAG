@@ -3,6 +3,7 @@ import EllipsisAnimate from '@/components/EllipsisAnimate';
 import { getUser } from '@/models/user';
 import type { TypesMessage } from '@/types';
 import {
+  CloudDownloadOutlined,
   LinkOutlined,
   LoadingOutlined,
   RobotOutlined,
@@ -11,7 +12,16 @@ import { sql } from '@codemirror/lang-sql';
 import { okaidiaInit } from '@uiw/codemirror-theme-okaidia';
 import CodeMirror from '@uiw/react-codemirror';
 import { useModel } from '@umijs/max';
-import { Avatar, Badge, Divider, Drawer, Space, Typography, theme } from 'antd';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Divider,
+  Drawer,
+  Space,
+  Typography,
+  theme,
+} from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import moment from 'moment';
@@ -50,6 +60,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
   const [displayText, setDisplayText] = useState<string>('');
   const [showReferences, setShowReferences] = useState<boolean>(false);
   const { currentCollection } = useModel('collection');
+  const { currentChat } = useModel('chat');
   const user = getUser();
   const { token } = theme.useToken();
   const msgBgColor =
@@ -91,6 +102,20 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
           theme={EditorTheme}
           onChange={(v) => (item.data = v)}
         />
+      );
+    }
+
+    if (item.type === 'download') {
+      return (
+        <Button
+          type="link"
+          block
+          icon={<CloudDownloadOutlined />}
+          target="_blank"
+          href={`/api/v1/code/codegenerate/download/${currentChat?.id}`}
+        >
+          Download Project
+        </Button>
       );
     }
 
