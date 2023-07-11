@@ -89,12 +89,11 @@ class CodeGenerateConsumer(WebsocketConsumer):
         self.current_status = chat.status
         self.dbs = DB_init(self.user, collection.title, chat_id)
 
-        self.load_project()
+        # self.load_project()  # for test
 
         if chat.status == ChatStatus.UPLOADED:
             # already finish the task and generate the project zip
             message_id = f"{now_unix_milliseconds()}"
-            project_upload = self.dbs.workspace.path / f"{self.title}.zip"
             self.send(text_data=self.upload_response(message_id))
         elif chat.status == ChatStatus.FINISHED:
             # already finish the task but not generate the project zip
