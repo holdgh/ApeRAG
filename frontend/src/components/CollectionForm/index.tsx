@@ -1,5 +1,6 @@
 import CheckedCard from '@/components/CheckedCard';
 import {
+  CODE_PROMOT_EXAMPLE,
   COLLECTION_MODEL_OPTIONS,
   DATABASE_TYPE_OPTIONS,
   DOCUMENT_SOURCE_OPTIONS,
@@ -16,13 +17,17 @@ import { useModel } from '@umijs/max';
 import {
   App,
   Button,
+  Card,
+  Col,
   Divider,
   Form,
   Input,
+  Row,
   Space,
   Typography,
   Upload,
   UploadProps,
+  theme,
 } from 'antd';
 import flat from 'flat';
 import { useEffect, useState } from 'react';
@@ -47,6 +52,7 @@ export default ({ onSubmit, action, values }: Props) => {
 
   const { message } = App.useApp();
   const user = getUser();
+  const { token } = theme.useToken();
 
   const [form] = Form.useForm();
   const source = Form.useWatch('config.source', form);
@@ -140,19 +146,53 @@ export default ({ onSubmit, action, values }: Props) => {
       >
         <Input />
       </Form.Item>
-      <Form.Item name="description" label="Description">
+      <Form.Item
+        name="description"
+        label="Description"
+        required={values.type === 'code'}
+      >
         <Input.TextArea
           rows={2}
           autoSize={{
-            minRows: 2,
+            minRows: 3,
             maxRows: 6,
           }}
-          maxLength={200}
+          maxLength={300}
+          required={values.type === 'code'}
           showCount
           style={{ resize: 'none' }}
         />
       </Form.Item>
       <Form.Item name="type" style={{ display: 'none' }} />
+
+      {values.type === 'code' ? (
+        <Form.Item label="Examples">
+          <Row gutter={[24, 24]}>
+            {CODE_PROMOT_EXAMPLE.map((item, key) => (
+              <Col key={key} span="8">
+                <Card
+                  hoverable
+                  bodyStyle={{ height: 160 }}
+                  size="small"
+                  onClick={() => {
+                    form.setFieldValue('description', item.text);
+                    form.setFieldValue('title', item.title);
+                  }}
+                  style={{
+                    marginBottom: 12,
+                    borderColor: token.colorBorderSecondary,
+                    background: token.colorBorderBg
+                  }}
+                >
+                  <Typography.Text type="secondary">
+                    {item.text}
+                  </Typography.Text>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Form.Item>
+      ) : null}
 
       {['document', 'database'].includes(values.type) ? (
         <Form.Item
