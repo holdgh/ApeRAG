@@ -143,6 +143,10 @@ export default ({ onSubmit, action, values }: Props) => {
       <Form.Item name="description" label="Description">
         <Input.TextArea
           rows={2}
+          autoSize={{
+            minRows: 2,
+            maxRows: 6,
+          }}
           maxLength={200}
           showCount
           style={{ resize: 'none' }}
@@ -162,7 +166,7 @@ export default ({ onSubmit, action, values }: Props) => {
           label="Model"
         >
           <CheckedCard
-            disabled={action === 'edit'}
+            size="large"
             options={COLLECTION_MODEL_OPTIONS}
           />
         </Form.Item>

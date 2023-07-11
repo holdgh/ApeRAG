@@ -18,6 +18,7 @@ type PropsType = {
   options?: OptionType[];
   disabled?: boolean;
   block?: boolean;
+  size?: 'middle' | 'large'
 };
 
 export default ({
@@ -27,6 +28,7 @@ export default ({
   options = [],
   disabled,
   block = false,
+  size = 'middle',
 }: PropsType) => {
   const [currentValue, setCurrentValue] = useState<string | undefined>(
     value || defaultValue,
@@ -55,6 +57,7 @@ export default ({
     xxl: 6,
   };
   const layout = block ? blockLayout : inlineLayout;
+
   return (
     <Row gutter={[8, 8]}>
       {options.map((option, key) => (
@@ -66,18 +69,18 @@ export default ({
               [styles.disabled]: disabled,
             })}
             bodyStyle={{
-              padding: '8px 12px',
+              padding: size === 'middle' ? '8px 12px' : '12px 20px',
             }}
             onClick={() => {
               onClick(option);
             }}
           >
             <Space className={styles.row}>
-              <Space style={{ flex: 1 }}>
+              <Space style={{ flex: 1 }} size={size === 'middle' ? 'middle' : 'large'}>
                 {option.icon ? (
                   <Avatar
                     style={{ fontSize: 24 }}
-                    size={30}
+                    size={size === 'middle' ? 30 : 45}
                     src={option.icon}
                   />
                 ) : null}
