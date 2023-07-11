@@ -8,7 +8,9 @@ export const request: RequestConfig = {
       if (user) {
         options.headers['Authorization'] = 'Bearer ' + user.__raw;
       }
-      options.url = `${API_ENDPOINT}${options.url}`;
+      if(!options.url.match(/^http/)) {
+        options.url = `${API_ENDPOINT}${options.url}`;
+      }
       return options;
     },
   ],
