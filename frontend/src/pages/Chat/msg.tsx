@@ -112,7 +112,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
           block
           icon={<CloudDownloadOutlined />}
           target="_blank"
-          href={`/api/v1/code/codegenerate/download/${currentChat?.id}`}
+          href={`${API_ENDPOINT}/api/v1/code/codegenerate/download/${currentChat?.id}`}
         >
           Download Project
         </Button>
