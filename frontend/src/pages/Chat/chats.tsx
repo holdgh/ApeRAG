@@ -19,7 +19,7 @@ export default ({ loading, onExecute, status }: Props) => {
   useEffect(() => {
     setTimeout(() => {
       animateScroll.scrollToBottom({
-        duration: 600,
+        duration: 0,
       });
     }, 100);
   }, [currentChat]);

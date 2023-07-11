@@ -7,16 +7,16 @@ export default () => {
   const { currentCollection, collections, setCurrentCollection } =
     useModel('collection');
   const { currentChat } = useModel('chat');
-
   useEffect(() => {
     if (!currentCollection?.id || !currentChat?.id) return;
+
     const type: TypesCollectionType = 'code';
     const first = _.first(collections?.filter((c) => c.type === type));
     if (currentCollection?.type === type) {
-      history.push(`/${type}/${currentCollection.id}/chat`);
+      history.replace(`/${type}/${currentCollection.id}/chat`);
     } else if (first) {
       setCurrentCollection(first);
-      history.push(`/${type}/${first.id}/chat`);
+      history.replace(`/${type}/${first.id}/chat`);
     }
   }, []);
 

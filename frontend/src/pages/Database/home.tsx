@@ -13,10 +13,10 @@ export default () => {
     const type: TypesCollectionType = 'database';
     const first = _.first(collections?.filter((c) => c.type === type));
     if (currentCollection?.type === type) {
-      history.push(`/${type}/${currentCollection.id}/chat`);
+      history.replace(`/${type}/${currentCollection.id}/chat`);
     } else if (first) {
       setCurrentCollection(first);
-      history.push(`/${type}/${first.id}/chat`);
+      history.replace(`/${type}/${first.id}/chat`);
     }
   }, []);
 

@@ -9,13 +9,17 @@ import { Avatar, Divider, Space, Typography } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import styles from './index.less';
+import { useParams } from '@umijs/max';
 
 type Props = {
   collection: TypesCollection;
 };
 
 export default ({ collection }: Props) => {
-  const { setCurrentCollection, currentCollection } = useModel('collection');
+  const { setCurrentCollection } = useModel('collection');
+
+  const { collectionId } = useParams();
+
   const onClick = async () => {
     await setCurrentCollection(collection);
     history.push(`/${collection.type}/${collection.id}/chat`);
@@ -54,7 +58,7 @@ export default ({ collection }: Props) => {
     <div
       className={classNames({
         [styles.item]: true,
-        [styles.selected]: currentCollection?.id === collection.id,
+        [styles.selected]: collectionId === collection.id,
       })}
       onClick={onClick}
     >
