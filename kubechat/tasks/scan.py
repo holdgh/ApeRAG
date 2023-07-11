@@ -47,6 +47,7 @@ def scan_collection(collection_id):
             scanning_ftp_add_index(
                 config["path"],
                 config["host"],
+                config["port"],
                 config["username"],
                 config["password"],
                 collection,

@@ -62,7 +62,7 @@ def deal_the_path(ftp, collection, path="/"):
 
 
 def scanning_ftp_add_index(
-    ftp_path, ftp_host, ftp_user, ftp_password, collection, ftp_port=21
+    ftp_path, ftp_host, ftp_port, ftp_user, ftp_password, collection
 ):
     collection.status = CollectionStatus.INACTIVE
     collection.save()
@@ -75,7 +75,7 @@ def scanning_ftp_add_index(
     try:
         deal_the_path(ftp, collection, ftp_path)
     except Exception as e:
-        logger.error(f"scanning_s3_add_index() error {e}")
+        logger.error(f"scanning_ftp_add_index() error {e}")
 
     # Close the FTP connection
     ftp.quit()
