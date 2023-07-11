@@ -1,67 +1,31 @@
 import json
 
 from config.celery import app
-from kubechat.models import Collection
+from kubechat.models import Collection, CollectionStatus
 
 from .index import CustomLoadDocumentTask
 from .local_directory_task import update_local_directory_index
+from kubechat.tasks.index import add_index_for_document
+from kubechat.source.base import Source, get_source
 
 
 @app.task(base=CustomLoadDocumentTask, time_limit=300, soft_time_limit=180)
 def scan_collection(collection_id):
     collection = Collection.objects.get(id=collection_id)
+    collection.status = CollectionStatus.INACTIVE
+    collection.save()
 
-    config = json.loads(collection.config)
+    source = get_source(collection, json.loads(collection.config))
+    if source is None:
+        return
 
-    match config["source"]:
-        case "system":
-            pass
-        case "local":
-            from kubechat.source.local import scanning_dir_add_index
+    for document in source.scan_documents():
+        document.save()
+        add_index_for_document.delay(document.id)
+    source.close()
 
-            scanning_dir_add_index(config["path"], collection)
-        case "s3":
-            from kubechat.source.s3 import scanning_s3_add_index
-
-            scanning_s3_add_index(
-                config["bucket"],
-                config["access_key_id"],
-                config["secret_access_key"],
-                config["region"],
-                collection,
-            )
-        case "oss":
-            from kubechat.source.oss import scanning_oss_add_index
-
-            scanning_oss_add_index(
-                config["bucket"],
-                config["access_key_id"],
-                config["secret_access_key"],
-                config["region"],
-                config["dir"],
-                collection,
-            )
-        case "ftp":
-            from kubechat.source.ftp import scanning_ftp_add_index
-
-            scanning_ftp_add_index(
-                config["path"],
-                config["host"],
-                config["port"],
-                config["username"],
-                config["password"],
-                collection,
-            )
-        case "email":
-            from kubechat.source.email import scanning_email_add_index
-
-            scanning_email_add_index(
-                config["pop_server"],
-                config["port"],
-                config["email_address"],
-                config["email_password"],
-                collection,
-            )
+    collection.status = CollectionStatus.ACTIVE
+    collection.save()
 
 
 @app.task(base=CustomLoadDocumentTask)

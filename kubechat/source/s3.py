@@ -1,62 +1,67 @@
 import logging
 import os
 import tempfile
-import time
+from typing import Dict, Any
 
 import boto3
 
-from kubechat.models import CollectionStatus, Document, DocumentStatus
-from kubechat.tasks.index import add_index_for_document
+from kubechat.models import Collection, Document, DocumentStatus
+from kubechat.source.base import Source
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
 
-def connect_to_s3(access_key_id, access_key_secret, bucket_name, region):
-    s3 = boto3.resource(
-        "s3",
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=access_key_secret,
-        region_name=region,
-    )
-    bucket = s3.Bucket(bucket_name)
-    return bucket
+class S3Source(Source):
 
+    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+        super().__init__(ctx)
+        self.access_key_id = ctx["access_key_id"]
+        self.access_key_secret = ctx["secret_access_key"]
+        self.bucket_name = ctx["bucket"]
+        self.region = ctx["region"]
+        self.collection = collection
+        self.bucket = self._connect_bucket()
 
-def list_files(bucket):
-    for obj in bucket.objects.all():
-        print(obj.key)
+    def _connect_bucket(self):
+        s3 = boto3.resource(
+            "s3",
+            aws_access_key_id=self.access_key_id,
+            aws_secret_access_key=self.access_key_secret,
+            region_name=self.region,
+        )
+        return s3.Bucket(self.bucket_name)
 
+    def scan_documents(self):
+        documents = []
+        try:
+            for obj in self.bucket.objects.all():
+                file_suffix = os.path.splitext(obj.key)[1].lower()
+                if file_suffix in DEFAULT_FILE_READER_CLS.keys():
+                    document = Document(
+                        user=self.collection.user,
+                        name=obj.key,
+                        status=DocumentStatus.PENDING,
+                        size=obj.size,
+                        collection=self.collection,
+                        metadata=obj.last_modified.strftime("%Y-%m-%d %H:%M:%S"),
+                    )
+                    documents.append(document)
+        except Exception as e:
+            logger.error(f"scanning_s3_add_index() error {e}")
+        return documents
 
-def scanning_s3_add_index(
-    bucket_name, access_key_id, access_key_secret, region, collection
-):
-    collection.status = CollectionStatus.INACTIVE
-    collection.save()
-    bucket = connect_to_s3(access_key_id, access_key_secret, bucket_name, region)
+    def prepare_document(self, doc: Document):
+        obj = self.bucket.Object(doc.name)
+        content = obj.get()["Body"].read()
+        suffix = os.path.splitext(doc.name)[1].lower()
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        temp_file.write(content)
+        temp_file.close()
+        return temp_file.name
 
-    try:
-        for obj in bucket.objects.all():
-            file_suffix = os.path.splitext(obj.key)[1].lower()
-            if file_suffix in DEFAULT_FILE_READER_CLS.keys():
-                file_content = obj.get()["Body"].read()
-                temp_file = tempfile.NamedTemporaryFile(
-                    delete=False, suffix=file_suffix
-                )
-                temp_file.write(file_content)
-                temp_file.close()
-                document_instance = Document(
-                    user=collection.user,
-                    name=obj.key,
-                    status=DocumentStatus.PENDING,
-                    size=obj.size,
-                    collection=collection,
-                    metadata=obj.last_modified.strftime("%Y-%m-%d %H:%M:%S"),
-                )
-                document_instance.save()
-                add_index_for_document.delay(document_instance.id, temp_file.name)
-    except Exception as e:
-        logger.error(f"scanning_s3_add_index() error {e}")
+    def cleanup_document(self, file_path: str, doc: Document):
+        os.remove(file_path)
 
-    collection.status = CollectionStatus.ACTIVE
-    collection.save()
+    def close(self):
+        pass

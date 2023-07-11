@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 
@@ -6,6 +7,7 @@ from config.celery import app
 
 from config.vector_db import get_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
+from kubechat.source.base import get_source
 from kubechat.utils.utils import generate_vector_db_collection_id
 from kubechat.models import Document, DocumentStatus, CollectionStatus
 
@@ -31,7 +33,7 @@ class CustomLoadDocumentTask(Task):
 
 
 @app.task(base=CustomLoadDocumentTask, time_limit=300, soft_time_limit=180)
-def add_index_for_document(document_id, file_path):
+def add_index_for_document(document_id):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
@@ -44,6 +46,10 @@ def add_index_for_document(document_id, file_path):
     document.save()
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
+
+    source = get_source(document.collection, json.loads(document.collection.config))
+    file_path = source.prepare_document(document)
+
     try:
         loader = LocalPathEmbedding(input_files=[file_path],
                                     vector_store_adaptor=get_vector_db_connector(
@@ -66,6 +72,8 @@ def add_index_for_document(document_id, file_path):
     document.collection.status = CollectionStatus.ACTIVE
     document.collection.save()
     logger.debug(f"add qdrant points for document {file_path} success")
+
+    source.cleanup_document(file_path, document)
     return True
 
 

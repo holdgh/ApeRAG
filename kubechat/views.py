@@ -23,7 +23,6 @@ from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
 from .models import *
-from .source.ftp import scanning_ftp_add_index
 from .utils.utils import generate_vector_db_collection_id
 
 logger = logging.getLogger(__name__)
@@ -211,6 +210,7 @@ def update_collection(request, collection_id, collection: CollectionIn):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.title = collection.title
     instance.description = collection.description
+    instance.config = collection.config
     instance.save()
     return success(instance.view())
 
@@ -246,7 +246,7 @@ def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
         )
         document_instance.save()
         response.append(document_instance.view())
-        add_index_for_document.delay(document_instance.id, document_instance.file.name)
+        add_index_for_document.delay(document_instance.id)
     return success(response)
 
 
