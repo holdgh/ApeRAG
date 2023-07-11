@@ -144,7 +144,7 @@ export default ({ onSubmit, action, values }: Props) => {
           },
         ]}
       >
-        <Input />
+        <Input disabled= {values.type === 'code' && action === 'edit'} />
       </Form.Item>
       <Form.Item
         name="description"
@@ -157,6 +157,7 @@ export default ({ onSubmit, action, values }: Props) => {
             minRows: 3,
             maxRows: 6,
           }}
+          disabled= {values.type === 'code' && action === 'edit'}
           maxLength={300}
           required={values.type === 'code'}
           showCount
@@ -175,6 +176,7 @@ export default ({ onSubmit, action, values }: Props) => {
                   bodyStyle={{ height: 160 }}
                   size="small"
                   onClick={() => {
+                    if(action === 'edit') return;
                     form.setFieldValue('description', item.text);
                     form.setFieldValue('title', item.title);
                   }}
