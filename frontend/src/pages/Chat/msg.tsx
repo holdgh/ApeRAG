@@ -70,14 +70,13 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
   const onDownload = async () => {
     if (!currentChat || !currentCollection) return;
     setDownloading(true);
-
     const filename = `${currentCollection?.title}_${new Date().getTime()}.zip`;
     const data = await CodeDownload(currentChat.id);
-    const blob = new Blob([data], {type: "text/plain"});
-
+    const blob = new Blob([data], { type: "application/zip" });
+    const url = window.URL.createObjectURL(blob);
     let link = document.createElement('a');
     link.style.display = 'none';
-    link.href = window.URL.createObjectURL(blob);
+    link.href = url;
     link.download = filename;
     document.body.appendChild(link);
     link.click();

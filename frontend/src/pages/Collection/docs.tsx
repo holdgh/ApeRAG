@@ -167,7 +167,7 @@ export default () => {
     return () => {
       clearInterval(timer);
     };
-  }, []);
+  }, [collectionId]);
 
   return (
     <Card bordered={false}>

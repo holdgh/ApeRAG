@@ -46,7 +46,7 @@ export default defineConfig({
       redirect: '/document',
     },
     {
-      name: 'Documents',
+      name: 'DocChat',
       path: '/document',
       icon: 'SnippetsOutlined',
       component: './Document',
@@ -80,7 +80,7 @@ export default defineConfig({
       ],
     },
     {
-      name: 'Database',
+      name: 'SqlChat',
       path: '/database',
       icon: 'ConsoleSqlOutlined',
       component: './Database',
@@ -114,7 +114,7 @@ export default defineConfig({
       ],
     },
     {
-      name: 'Code',
+      name: 'CodeGenerator',
       path: '/code',
       icon: 'CodeOutlined',
       component: './Code',
