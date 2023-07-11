@@ -6,6 +6,7 @@ from langchain import PromptTemplate
 
 import config.settings as settings
 from kubechat.utils.utils import generate_vector_db_collection_id
+from kubechat.utils.db import query_collection
 from query.query import QueryWithEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
@@ -51,17 +52,30 @@ class DocumentQAConsumer(BaseConsumer):
         prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
         prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
 
+        collection = query_collection(self.user, self.collection_id)
+        config = json.loads(collection.config)
+        model = config["model"]
+
         input = {
             "prompt": prompt_str,
             "temperature": 0,
             "max_new_tokens": 2048,
-            "model": "vicuna-13b",
+            "model": model,
             "stop": "\nSQLResult:",
         }
 
-        response = requests.post(
-            "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True,
-        )
+        # choose llm model
+        response = None
+        match model:
+            case "vicuna-13b":
+                response = requests.post(
+                    "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True,
+                )
+            case "chatglm2-6b":
+                response = requests.post(
+                    "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True,
+                )
+
         buffer = ""
         for c in response.iter_content():
             if c == b"\x00":
