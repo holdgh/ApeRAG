@@ -28,7 +28,7 @@ spec:
             - /bin/sh
             - -c
             - |
-              ln -s /data/.cache/huggingface /root/.cache/
+              ln -s /data/torch /root/.cache/torch
               /app/scripts/entrypoint.sh /app/scripts/start-celery-worker.sh
           env:
             - name: CELERY_BROKER_URL
@@ -76,13 +76,15 @@ spec:
                 configMapKeyRef:
                   key: VECTOR_DB_TYPE
                   name: kubechat-config
+            - name: MEDIA_ROOT
+              value: /data/media
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - mountPath: /root/.cache
+            - mountPath: /data
               name: data
       restartPolicy: Always
       volumes:
