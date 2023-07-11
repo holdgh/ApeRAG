@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Dict, List
 
 import openai
-from celery import Task
 from config.celery import app
 
 import logging
@@ -18,6 +17,46 @@ CELERY_PROJECT_DIR = Path.cwd()
 prompt_default_path = CELERY_PROJECT_DIR / "utils" / "codeprompt"
 
 logger = logging.getLogger(__name__)
+
+
+@app.task(base=CustomLoadDocumentTask)
+def pre_clarify(user, collection_id, chat_id):
+    collection = query_collection(user, collection_id)
+    chat = query_chat(user, collection_id, chat_id)
+    if collection == None:
+        logger.error("Collection not found")
+    if chat == None:
+        logger.error("Chat not found")
+    dbs = DB_init(user, collection.title, chat_id)
+    # project_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+    #     collection.title + str(chat_id))
+    # memory_path = project_path / "memory"
+    # workspace_path = project_path / "workspace"
+    # archive_path = project_path / "archive"
+    # dbs = DBs(
+    #     memory=DB(memory_path),  # 对话记录
+    #     logs=DB(memory_path / "logs"),  # 日志
+    #     input=DB(project_path),
+    #     workspace=DB(workspace_path),  # code项目存放路径
+    #     preprompts=DB(prompt_default_path),  # 默认preprompts的路径
+    #     archive=DB(archive_path),
+    # )
+    dbs.input["prompt"] = chat.summary  # write the core prompt for code-generate
+
+    messages = [fsystem(msg=dbs.preprompts["qa"])]
+    user_input = get_prompt(dbs)
+    messages = interact_with_LLM(messages=messages, prompt=user_input, step_name=curr_fn())
+
+    if messages[-1]["content"].strip() == "Nothing more to clarify." or messages[-1][
+        "content"].strip().lower().startswith("no"):
+        chat.status = ChatStatus.CLARIFIED
+        chat.save()
+        return messages
+        # message_id = f"{now_unix_milliseconds()}"
+        # self.send(text_data=self.stop_response(message_id, None))
+    chat.status = ChatStatus.CLARIFYING
+    chat.save()
+    return messages
 
 
 def fsystem(msg):
@@ -73,46 +112,6 @@ def DB_init(user, title, chat_id):
         preprompts=DB(prompt_default_path),  # 默认preprompts的路径
         archive=DB(archive_path),
     )
-
-
-@app.task(base=CustomLoadDocumentTask)
-def pre_clarify(user, collection_id, chat_id):
-    collection = query_collection(user, collection_id)
-    chat = query_chat(user, collection_id, chat_id)
-    if collection == None:
-        logger.error("Collection not found")
-    if chat == None:
-        logger.error("Chat not found")
-    dbs = DB_init(user, collection.title, chat_id)
-    # project_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
-    #     collection.title + str(chat_id))
-    # memory_path = project_path / "memory"
-    # workspace_path = project_path / "workspace"
-    # archive_path = project_path / "archive"
-    # dbs = DBs(
-    #     memory=DB(memory_path),  # 对话记录
-    #     logs=DB(memory_path / "logs"),  # 日志
-    #     input=DB(project_path),
-    #     workspace=DB(workspace_path),  # code项目存放路径
-    #     preprompts=DB(prompt_default_path),  # 默认preprompts的路径
-    #     archive=DB(archive_path),
-    # )
-    dbs.input["prompt"] = chat.summary  # write the core prompt for code-generate
-
-    messages = [fsystem(msg=dbs.preprompts["qa"])]
-    user_input = get_prompt(dbs)
-    messages = interact_with_LLM(messages=messages, prompt=user_input, step_name=curr_fn())
-
-    if messages[-1]["content"].strip() == "Nothing more to clarify." or messages[-1][
-        "content"].strip().lower().startswith("no"):
-        chat.status = ChatStatus.CLARIFIED
-        chat.save()
-        return messages
-        # message_id = f"{now_unix_milliseconds()}"
-        # self.send(text_data=self.stop_response(message_id, None))
-    chat.status = ChatStatus.CLARIFYING
-    chat.save()
-    return messages
 
 
 def interact_with_LLM(messages: List[Dict[str, str]], prompt=None, *, step_name=None):

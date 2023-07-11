@@ -18,8 +18,7 @@ import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
 
 from kubechat.models import ChatStatus
-from kubechat.tasks.code_generate import pre_clarify, fsystem, get_prompt, curr_fn, setup_sys_prompt, \
-    prompt_default_path, DB_init
+from kubechat.tasks.code_generate import *
 from kubechat.utils.db import query_collection, query_chat
 from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id, fix_path_name
 from services.code.code_gerenate.chat_to_files import to_files
@@ -66,11 +65,13 @@ class CodeGenerateConsumer(WebsocketConsumer):
         self.history = None
 
     def connect(self):
+        # accept the websocket
         headers = {}
         token = self.scope.get("Sec-Websocket-Protocol", None)
         if token is not None:
             headers = {"SEC-WEBSOCKET-PROTOCOL": token}
         self.accept(subprotocol=(None, headers))
+        # build code generate task config
         self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         collection = query_collection(self.user, collection_id)
@@ -86,84 +87,34 @@ class CodeGenerateConsumer(WebsocketConsumer):
             session_id=chat_id, url=settings.MEMORY_REDIS_URL
         )
         self.current_status = chat.status
-        # project_path = Path.cwd() / "generated-code" / fix_path_name(self.user) / fix_path_name(
-        #     collection.title + str(chat_id))
-        # memory_path = project_path / "memory"
-        # workspace_path = project_path / "workspace"
-        # archive_path = project_path / "archive"
-        #
-        # self.dbs = DBs(
-        #     memory=DB(memory_path),  # 对话记录
-        #     logs=DB(memory_path / "logs"),  # 日志
-        #     input=DB(project_path),
-        #     workspace=DB(workspace_path),  # code项目存放路径
-        #     preprompts=DB(prompt_default_path),  # 默认preprompts的路径
-        #     archive=DB(archive_path),
-        # )
         self.dbs = DB_init(self.user, collection.title, chat_id)
-        if chat.status == ChatStatus.FINISHED:
+        if chat.status == ChatStatus.UPLOADED:
+            # already finish the task and generate the project zip
+            message_id = f"{now_unix_milliseconds()}"
+            project_upload = self.dbs.workspace.path / f"{self.title}.zip"
+            self.send(text_data=self.upload_response(message_id, str(project_upload)))
+        elif chat.status == ChatStatus.FINISHED:
+            # already finish the task but not generate the project zip
             self.load_project()
             chat.status = ChatStatus.UPLOADED
             chat.save()
-            return
         elif chat.status == ChatStatus.CLARIFIED:
+            # already finish the CLARIFYING
             self.clarified()
         elif chat.status == ChatStatus.CLARIFYING:
+            # during the CLARIFYING
             self.message = json.loads(self.dbs.logs["pre_clarify"])
-            # pass
         else:  # chat.status == ChatStatus.ACTIVE:
             pre_clarify_task_id = pre_clarify.delay(self.user, collection_id, chat_id)
-            # chat.pre_clarify_task_id = pre_clarify_task_id
-            # chat.save()
             task = AsyncResult(id=str(pre_clarify_task_id))
             message_id = f"{now_unix_milliseconds()}"
             self.send(self.start_response(message_id))
             self.message = task.get()
+            self.send(self.stop_response(message_id, None))
             self.dbs.logs["pre_clarify"] = json.dumps(self.message)
             self.send_openAI_message(self.message)
             chat = query_chat(self.user, collection_id, chat_id)
             self.current_status = chat.status
-
-        # # else:
-        # #     if chat.task_id == "":
-        # #         chat.task_id = prompt_ask_for_clarify.delay(self.user, collection_id, chat_id)
-        # #         chat.save()
-        # #     task = AsyncResult(id=chat.task_id)
-        # #
-        # #     if task.ready():
-        # #         self.message = task.result()
-        # #     else:
-        # #         self.message = task.get()
-        # #         message_id = f"{now_unix_milliseconds()}"
-        # #         self.history.add_message(
-        # #             AIMessage(content=self.success_response(
-        # #                 message_id, self.message, issql=self.response_type == "sql"
-        # #             ), additional_kwargs={"role": "ai"})
-        # #         )
-        # self.current_status = chat.status
-        #
-        # project_path = Path.cwd() / "generated-code" / fix_path_name(self.user) / fix_path_name(
-        #     collection.title + str(chat_id))
-        # memory_path = project_path / "memory"
-        # workspace_path = project_path / "workspace"
-        # archive_path = project_path / "archive"
-        #
-        # self.dbs = DBs(
-        #     memory=DB(memory_path),  # 对话记录
-        #     logs=DB(memory_path / "logs"),  # 日志
-        #     input=DB(project_path),
-        #     workspace=DB(workspace_path),  # code项目存放路径
-        #     preprompts=DB(prompt_default_path),  # 默认preprompts的路径
-        #     archive=DB(archive_path),
-        # )
-        # self.dbs.input["prompt"] = chat.summary  # write the core prompt for code-generate
-        # # # archive(self.dbs)
-        # # self.current_status = first_status.get(self.type)
-        # # # maybe more interact
-        # # self.message, self.current_status = self.clarify_start()
-        # # if self.current_status == "clarified":
-        # #     self.dbs.logs["clarify"] = json.dumps(self.message)
-        # #     self.clarified()
 
     def disconnect(self, close_code):
         # 在连接关闭时执行的代码
@@ -177,17 +128,18 @@ class CodeGenerateConsumer(WebsocketConsumer):
         self.history.add_message(
             HumanMessage(content=text_data, additional_kwargs={"role": "human"})
         )
+        chat = query_chat(self.user, self.collection_id, self.chat_id)
+        if chat.status == ChatStatus.UPLOADED:
+            pass
 
-        if self.current_status == ChatStatus.CLARIFYING:
+        if chat.status == ChatStatus.CLARIFYING:
             data = json.loads(text_data)
-            self.message, self.current_status = self.clarifying(data["data"], self.message)
-        if self.current_status == ChatStatus.CLARIFIED:
+            self.message, chat.status = self.clarifying(data["data"], self.message)
+            chat.save()
+        if chat.status == ChatStatus.CLARIFIED:
             # todo add history
             self.dbs.logs["clarify"] = json.dumps(self.message)
-            chat = query_chat(self.user, self.collection_id, self.chat_id)
             # chat.task
-            chat.status = ChatStatus.CLARIFIED
-            chat.save()
             self.clarified()
 
     def clarifying(self, user_input, massage: List[dict]):
