@@ -15,7 +15,7 @@ from kubechat.source.base import Source
 logger = logging.getLogger(__name__)
 
 
-def download_email_body_to_temp_file(pop_conn, email_index):
+def download_email_body_to_temp_file(pop_conn, email_index, name):
     _, message_lines, _ = pop_conn.retr(email_index)
     message_content = b"\r\n".join(message_lines)
     message = message_from_bytes(message_content)
@@ -24,8 +24,10 @@ def download_email_body_to_temp_file(pop_conn, email_index):
         if part.get_content_maintype() == "text":
             body += part.get_payload(decode=True).decode("utf-8")
     plain_text = extract_plain_text_from_email_body(body)
+    prefix = name.strip("/").replace("/", "--")
     if plain_text:
         temp_file = tempfile.NamedTemporaryFile(
+            prefix=prefix,
             delete=False,
             suffix=".txt",
         )
@@ -108,10 +110,9 @@ class EmailSource(Source):
         order_and_name = doc.name
         under_line = order_and_name.find('_')
         order = order_and_name[:under_line]
-        # name = order_and_name[under_line + 1:]
-        # doc.name = name
+        name = order_and_name[under_line + 1:]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order
+            self.conn, order, name
         )
         return temp_file_path
 
