@@ -1,9 +1,12 @@
+import io
 import json
 import logging
 import os
 import uuid
+import zipfile
 from datetime import datetime
 from http import HTTPStatus
+
 from typing import List, Optional
 
 from django.core.files.base import ContentFile
@@ -367,10 +370,17 @@ def download_code(request, chat_id):
         return success("No access to the file")
     if chat.status != ChatStatus.UPLOADED:
         return success("The file is not ready for download")
-    file_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
-        collection.title + str(chat_id)) / "workspace" / f"{collection.title}.zip"
-    with open(str(file_path), "rb") as f:
-        response = HttpResponse(f.read())
+    buffer = io.BytesIO()
+    zip = zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED)
+    workspace = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+        collection.title + str(chat_id)) / "workspace"
+
+    for root, dirs, files in os.walk(str(workspace)):
+        for file in files:
+            zip.write(os.path.join(root, file), arcname=file)
+    zip.close()
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue())
     response['Content-Disposition'] = f"attachment; filename=\"{collection.title}.zip\""
     response['Content-Type'] = 'application/zip'
     return response
