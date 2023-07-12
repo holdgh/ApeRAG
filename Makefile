@@ -43,3 +43,6 @@ lint lint_diff:
 	poetry run mypy $(PYTHON_FILES)
 	poetry run black $(PYTHON_FILES) --check
 	poetry run ruff .
+
+test:
+	echo "mock"
