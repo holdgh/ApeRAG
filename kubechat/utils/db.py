@@ -15,35 +15,35 @@ from kubechat.models import (
 )
 
 
-def query_collection(user, collection_id: str):
-    return Collection.objects.exclude(status=CollectionStatus.DELETED).get(
+async def query_collection(user, collection_id: str):
+    return await Collection.objects.exclude(status=CollectionStatus.DELETED).aget(
         user=user, pk=collection_id
     )
 
 
-def query_collections(user):
+async def query_collections(user):
     return Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user)
 
 
-def query_document(user, collection_id: str, document_id: str):
-    return Document.objects.exclude(status=DocumentStatus.DELETED).get(
+async def query_document(user, collection_id: str, document_id: str):
+    return await Document.objects.exclude(status=DocumentStatus.DELETED).aget(
         user=user, collection_id=collection_id, pk=document_id
     )
 
 
-def query_documents(user, collection_id: str):
+async def query_documents(user, collection_id: str):
     return Document.objects.exclude(status=DocumentStatus.DELETED).filter(
         user=user, collection_id=collection_id
     )
 
 
-def query_chat(user, collection_id: str, chat_id: str):
-    return Chat.objects.exclude(status=DocumentStatus.DELETED).get(
+async def query_chat(user, collection_id: str, chat_id: str):
+    return await Chat.objects.exclude(status=DocumentStatus.DELETED).aget(
         user=user, collection_id=collection_id, pk=chat_id
     )
 
 
-def query_chats(user, collection_id: str):
+async def query_chats(user, collection_id: str):
     return Chat.objects.exclude(status=DocumentStatus.DELETED).filter(
         user=user, collection_id=collection_id
     )

@@ -2,8 +2,8 @@ import datetime
 import json
 import logging
 from abc import abstractmethod
-
-from channels.generic.websocket import WebsocketConsumer
+from asgiref.sync import sync_to_async
+from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from langchain.memory import RedisChatMessageHistory
 from langchain.schema import AIMessage, BaseChatMessageHistory, HumanMessage
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
 
 
-class BaseConsumer(WebsocketConsumer):
+class BaseConsumer(AsyncWebsocketConsumer):
     def __init__(self):
         super().__init__()
         self.collection_id = None
@@ -27,17 +27,17 @@ class BaseConsumer(WebsocketConsumer):
         self.history = None
         self.user = DEFAULT_USER
 
-    def connect(self):
+    async def connect(self):
         from kubechat.utils.db import query_chat, query_collection
 
         self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         self.collection_id = collection_id
-        collection = query_collection(self.user, collection_id)
+        collection = await query_collection(self.user, collection_id)
         if collection is None:
             raise Exception("Collection not found")
 
-        chat = query_chat(self.user, collection_id, chat_id)
+        chat = await query_chat(self.user, collection_id, chat_id)
         if chat is None:
             raise Exception("Chat not found")
 
@@ -51,16 +51,16 @@ class BaseConsumer(WebsocketConsumer):
         token = self.scope.get("Sec-Websocket-Protocol", None)
         if token is not None:
             headers = {"SEC-WEBSOCKET-PROTOCOL": token}
-        self.accept(subprotocol=(None, headers))
+        await self.accept(subprotocol=(None, headers))
 
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         pass
 
     @abstractmethod
     def predict(self, query):
         pass
 
-    def receive(self, text_data, **kwargs):
+    async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
         self.msg_type = data["type"]
         self.response_type = "message"
@@ -75,10 +75,10 @@ class BaseConsumer(WebsocketConsumer):
         message_id = f"{now_unix_milliseconds()}"
 
         # send start message
-        self.send(text_data=self.start_response(message_id))
+        await self.send(text_data=self.start_response(message_id))
 
         references = []
-        for tokens in self.predict(data["data"]):
+        async for tokens in self.predict(data["data"]):
             if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
                 references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES) :])
                 continue
@@ -87,13 +87,13 @@ class BaseConsumer(WebsocketConsumer):
             response = self.success_response(
                 message_id, tokens, issql=self.response_type == "sql"
             )
-            self.send(text_data=response)
+            await self.send(text_data=response)
 
             # concat response tokens
             message += tokens
 
         # send stop message
-        self.send(text_data=self.stop_response(message_id, references))
+        await self.send(text_data=self.stop_response(message_id, references))
 
         # save all tokens as a message to history
         self.history.add_message(

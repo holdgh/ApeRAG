@@ -10,9 +10,9 @@ from .base_consumer import BaseConsumer
 
 
 class Text2SQLConsumer(BaseConsumer):
-    def connect(self):
-        super().connect()
-        collection = query_collection(self.user, self.collection_id)
+    async def connect(self):
+        await super().connect()
+        collection = await query_collection(self.user, self.collection_id)
         config = json.loads(collection.config)
         database = extract_database(
             self.scope["query_string"].decode(), config["db_type"]
@@ -25,7 +25,7 @@ class Text2SQLConsumer(BaseConsumer):
         if not self.client.connect(False, test_only=False):
             raise Exception("can not connect to db")
 
-    def predict(self, query):
+    async def predict(self, query):
         if self.msg_type == "sql":
             response = self.client.execute_query(query)
         else:

@@ -27,7 +27,7 @@ VICUNA_REFINE_TEMPLATE = (
 
 
 class DocumentQAConsumer(BaseConsumer):
-    def predict(self, query):
+    async def predict(self, query):
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         vector_db_collection_id = generate_vector_db_collection_id(
             self.user, self.collection_id
@@ -45,6 +45,7 @@ class DocumentQAConsumer(BaseConsumer):
             limit=query_embedding.top_k,
             consistency="majority",
             search_params={"hnsw_ef": 128, "exact": False},
+            score_threshold=0.5,
         )
 
         answer_text = results.get_packed_answer(1900)
@@ -52,7 +53,7 @@ class DocumentQAConsumer(BaseConsumer):
         prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
         prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
 
-        collection = query_collection(self.user, self.collection_id)
+        collection = await query_collection(self.user, self.collection_id)
         config = json.loads(collection.config)
         model = config["model"]
 
