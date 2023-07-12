@@ -32,12 +32,12 @@ jobs:
 
   release-chart:
     needs: chart-version
-    uses: apecloud/apecloud-cd/.github/workflows/release-charts.yml@v0.1.8
+    uses: apecloud/apecd/.github/workflows/release-charts.yml@v0.7.1
     with:
       VERSION: "${{ needs.chart-version.outputs.chart-version }}"
       CHART_NAME: "kubechat"
       CHART_DIR: "deploy/helm"
-      APECD_REF: "v0.1.8"
+      APECD_REF: "v0.7.1"
     secrets: inherit
 
 

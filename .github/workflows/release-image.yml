@@ -38,10 +38,10 @@ jobs:
 
   release-image:
     needs: image-tag
-    uses: apecloud/apecloud-cd/.github/workflows/release-image.yml@v0.1.0
+    uses: apecloud/apecd/.github/workflows/release-image.yml@v0.7.1
     with:
       MAKE_OPS: "push-manager-image"
       IMG: "apecloud/kubechat"
       VERSION: "${{ needs.image-tag.outputs.tag-name }}"
-      APECD_REF: "v0.1.0"
+      APECD_REF: "v0.7.1"
     secrets: inherit
