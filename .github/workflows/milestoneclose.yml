@@ -5,11 +5,11 @@ on:
     types: [closed]
 
 env:
-  GITHUB_TOKEN: ${{ secrets.KUBEBLOCKS_TOKEN }}
-  REPO: kubeblocks
-  milestone: 5
+  GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+  REPO: KubeChat
+  milestone: 1
   ORGANIZATION: apecloud
-  PROJECT_NUMBER: 2
+  PROJECT_NUMBER: 18
 
 jobs:
    move_issues:

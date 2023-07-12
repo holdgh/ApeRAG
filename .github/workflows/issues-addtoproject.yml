@@ -12,6 +12,6 @@ jobs:
     steps:
       - uses: actions/add-to-project@v0.4.0
         with:
-          project-url: https://github.com/orgs/apecloud/projects/2
+          project-url: https://github.com/orgs/apecloud/projects/18
           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
          

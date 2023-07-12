@@ -1,6 +1,5 @@
 import logging
 import os
-import tempfile
 import time
 from typing import Dict, Any
 
@@ -8,6 +7,7 @@ import oss2
 
 from kubechat.models import Collection, Document, DocumentStatus
 from kubechat.source.base import Source
+from kubechat.source.utils import gen_temporary_file
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,8 @@ class OSSSource(Source):
 
     def scan_documents(self):
         documents = []
-        try:
-            for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory
+        for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory
+            try:
                 file_suffix = os.path.splitext(obj.key)[1].lower()
                 if file_suffix in DEFAULT_FILE_READER_CLS.keys():
                     document = Document(
@@ -47,14 +47,13 @@ class OSSSource(Source):
                         ),
                     )
                     documents.append(document)
-        except Exception as e:
-            logger.error(f"scanning_oss_add_index() error {e}")
+            except Exception as e:
+                logger.error(f"scanning_oss_add_index() {obj.key} error {e}")
         return documents
 
     def prepare_document(self, doc: Document):
         content = self.bucket.get_object(doc.name).read()
-        suffix = os.path.splitext(doc.name)[1].lower()
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        temp_file = gen_temporary_file(doc.name)
         temp_file.write(content)
         temp_file.close()
         return temp_file.name

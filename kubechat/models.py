@@ -92,7 +92,7 @@ class Collection(models.Model):
 
 
 class Document(models.Model):
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=1024)
     user = models.CharField(max_length=256)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)

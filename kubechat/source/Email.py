@@ -1,21 +1,21 @@
+import datetime
 import logging
 import os
 import poplib
 import tempfile
+from email import message_from_bytes, parser
+from email.header import decode_header
 from typing import Dict, Any
 
 from bs4 import BeautifulSoup
-from email import message_from_bytes, parser
-from email.header import decode_header
-import datetime
 
-from kubechat.models import CollectionStatus, Document, DocumentStatus, Collection
+from kubechat.models import Document, DocumentStatus, Collection
 from kubechat.source.base import Source
 
 logger = logging.getLogger(__name__)
 
 
-def download_email_body_to_temp_file(pop_conn, email_index):
+def download_email_body_to_temp_file(pop_conn, email_index, name):
     _, message_lines, _ = pop_conn.retr(email_index)
     message_content = b"\r\n".join(message_lines)
     message = message_from_bytes(message_content)
@@ -24,8 +24,10 @@ def download_email_body_to_temp_file(pop_conn, email_index):
         if part.get_content_maintype() == "text":
             body += part.get_payload(decode=True).decode("utf-8")
     plain_text = extract_plain_text_from_email_body(body)
+    prefix = name.strip("/").replace("/", "--")
     if plain_text:
         temp_file = tempfile.NamedTemporaryFile(
+            prefix=prefix,
             delete=False,
             suffix=".txt",
         )
@@ -74,8 +76,8 @@ class EmailSource(Source):
     def scan_documents(self):
         documents = []
         self.email_num = len(self.conn.list()[1])
-        try:
-            for i in range(self.email_num):
+        for i in range(self.email_num):
+            try:
                 response, msg_lines, octets = self.conn.retr(i + 1)
 
                 msg_lines_to_str = b"\r\n".join(msg_lines).decode("utf8", "ignore")
@@ -99,8 +101,8 @@ class EmailSource(Source):
                                                                                                        "%H:%M:%S"),
                 )
                 documents.append(document)
-        except Exception as e:
-            logger.error(f"scan_email_documents {e}")
+            except Exception as e:
+                logger.error(f"scan_email_documents {e}")
         return documents
 
     def prepare_document(self, doc: Document):
@@ -108,10 +110,9 @@ class EmailSource(Source):
         order_and_name = doc.name
         under_line = order_and_name.find('_')
         order = order_and_name[:under_line]
-        # name = order_and_name[under_line + 1:]
-        # doc.name = name
+        name = order_and_name[under_line + 1:]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order
+            self.conn, order, name
         )
         return temp_file_path
 

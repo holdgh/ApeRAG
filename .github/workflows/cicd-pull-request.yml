@@ -21,7 +21,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.11.0
         with:
           all_but_latest: true
-          access_token: ${{ github.token }}
+          access_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - uses: actions/checkout@v3
         with:
@@ -37,66 +37,12 @@ jobs:
               --base-branch "${{ env.BASE_BRANCH }}"`
           echo $TRIGGER_MODE
           echo trigger_mode=$TRIGGER_MODE >> $GITHUB_OUTPUT
-          
-          TEST_PACKAGES=`bash .github/utils/utils.sh --type 16 \
-              --trigger-type "$TRIGGER_MODE" \
-              --test-pkgs "internal|apis|controllers|cmd" \
-              --test-check "mod-vendor|lint|staticcheck"`
-          echo "$TEST_PACKAGES"
-          echo "matrix={\"include\":[$TEST_PACKAGES]}" >> $GITHUB_OUTPUT
-
-  test-parallel:
-    name: test
-    needs: trigger-mode
-    if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[test]') && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix: ${{ fromJSON(needs.trigger-mode.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: install lib
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libbtrfs-dev \
-            libdevmapper-dev
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "${{ env.GO_VERSION }}"
-
-      - name: Install golangci-lint
-        if: matrix.ops == 'lint'
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.51.2
-
-      - name: make test ${{ matrix.ops }}
-        if: ${{ ! contains(matrix.ops, '/') }}
-        run: |
-          make ${{ matrix.ops }}
-
-      - name: make ${{ matrix.ops }}
-        if: ${{ contains(matrix.ops, '/') }}
-        run: |
-          make test TEST_PACKAGES=./${{ matrix.ops }}/...
 
   make-test:
     needs: trigger-mode
-    if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[test]') && github.event.pull_request.head.repo.full_name != github.repository }}
-    outputs:
-      runner-name: ${{ steps.get_runner_name.outputs.runner_name }}
-    runs-on: [ self-hosted, kubeblocks-runner ]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: make mod-vendor
-        run: |
-          mkdir -p ./bin
-          cp -r /go/bin/controller-gen ./bin/controller-gen
-          cp -r /go/bin/setup-envtest ./bin/setup-envtest
-          make mod-vendor
-
       - name: make lint
         run: |
           make lint
@@ -105,132 +51,37 @@ jobs:
         run: |
           make test
 
-      - name: ignore cover pkgs
-        run: |
-          bash .github/utils/utils.sh --type 14 \
-              --file cover.out \
-              --ignore-pkgs "cmd/|internal/cli|internal/controller/consensusset|internal/controller/model|controllers/k8score" 
-
-      - name: upload coverage report
-        uses: codecov/codecov-action@v3
-        continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./cover_new.out
-          flags: unittests
-          name: codecov-report
-          verbose: true
-
-      - name: kill kube-apiserver and etcd
-        id: get_runner_name
-        if: ${{ always() }}
-        run: |
-          echo runner_name=${RUNNER_NAME} >> $GITHUB_OUTPUT
-          bash .github/utils/utils.sh --type 8
-
-  remove-runner:
-    needs: [ trigger-mode, make-test ]
-    runs-on: ubuntu-latest
-    if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[test]') && github.event.pull_request.head.repo.full_name != github.repository && always()  }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: remove runner
-        run: |
-          bash .github/utils/utils.sh --type 9 \
-              --github-token ${{ env.GITHUB_TOKEN }} \
-              --runner-name ${{ needs.make-test.outputs.runner-name }}
-
   check-image:
     name: check image
     needs: trigger-mode
     if: contains(needs.trigger-mode.outputs.trigger-mode, '[docker]')
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-check.yml@v0.1.2
+    uses: apecloud/apecd/.github/workflows/release-image-check.yml@v0.7.1
     with:
-      MAKE_OPS_PRE: "generate"
       MAKE_OPS: "build-manager-image"
-      IMG: "apecloud/kubeblocks"
-      VERSION: "check"
-      GO_VERSION: "1.20"
+      IMG: "apecloud/kubechat"
+      VERSION: "latest"
       BUILDX_PLATFORMS: "linux/amd64"
-      APECD_REF: "v0.1.2"
-    secrets: inherit
-
-  check-tools-image:
-    name: check image
-    needs: trigger-mode
-    if: contains(needs.trigger-mode.outputs.trigger-mode, '[docker]')
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-check.yml@v0.1.2
-    with:
-      MAKE_OPS_PRE: "generate"
-      MAKE_OPS: "build-tools-image"
-      IMG: "apecloud/kubeblocks-tools"
-      VERSION: "check"
-      GO_VERSION: "1.20"
-      BUILDX_PLATFORMS: "linux/amd64"
-      APECD_REF: "v0.1.2"
+      APECD_REF: "v0.7.1"
     secrets: inherit
 
   check-helm:
     name: check helm
     needs: trigger-mode
     if: contains(needs.trigger-mode.outputs.trigger-mode, '[deploy]')
-    uses: apecloud/apecloud-cd/.github/workflows/release-charts-check.yml@v0.1.9
+    uses: apecloud/apecd/.github/workflows/release-charts-check.yml@v0.7.1
     with:
-      MAKE_OPS: "bump-chart-ver"
-      VERSION: "v0.6.0-check"
-      CHART_NAME: "kubeblocks"
-      CHART_DIR: "deploy/helm"
-      APECD_REF: "v0.1.9"
+      VERSION: "v0.1.0-check"
+      CHART_NAME: "kubechat"
+      CHART_DIR: "deploy/kubechat"
+      APECD_REF: "v0.7.1"
     secrets: inherit
-
-  check-kbcli:
-    name: check kbcli
-    needs: trigger-mode
-    runs-on: ubuntu-latest
-    if: contains(needs.trigger-mode.outputs.trigger-mode, '[cli]')
-    strategy:
-      matrix:
-        os: [linux-amd64, darwin-arm64]
-    steps:
-      - uses: actions/checkout@v3
-      - name: install lib
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libbtrfs-dev \
-            libdevmapper-dev \
-            libgpgme-dev
-
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "${{ env.GO_VERSION }}"
-
-      - name: make generate
-        run: make generate
-
-      - name: build cli
-        run: |
-          CLI_OS_ARCH=`bash .github/utils/utils.sh \
-            --tag-name ${{ matrix.os }} \
-            --type 2`
-
-          make bin/kbcli.$CLI_OS_ARCH
 
   pr-check:
     name: make test
-    needs: [ trigger-mode, test-parallel, make-test, check-image, check-tools-image, check-helm, check-kbcli ]
+    needs: [ trigger-mode, make-test, check-image, check-helm ]
     if: ${{ github.event.review.state == 'approved' && always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: test parallel check
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if [[ "${{ needs.test-parallel.result }}" == "failure" || "${{ needs.test-parallel.result }}" == "cancelled" ]]; then
-              echo "test parallel fail"
-              exit 1
-          fi
-
       - name: make test check
         if: github.event.pull_request.head.repo.full_name != github.repository
         run: |
@@ -245,22 +96,10 @@ jobs:
               echo "release image fail"
               exit 1
           fi
-          
-          if [[ "${{ needs.check-tools-image.result }}" == "failure" || "${{ needs.check-tools-image.result }}" == "cancelled" ]]; then
-              echo "release tools image fail"
-              exit 1
-          fi
 
       - name: release helm check
         run: |
           if [[ "${{ needs.check-helm.result }}" == "failure" || "${{ needs.check-helm.result }}" == "cancelled" ]]; then
               echo "release helm fail"
-              exit 1
-          fi
-
-      - name: release kbcli check
-        run: |
-          if [[ "${{ needs.check-kbcli.result }}" == "failure" || "${{ needs.check-kbcli.result }}" == "cancelled" ]]; then
-              echo "release kbcli fail"
               exit 1
           fi
