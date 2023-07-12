@@ -1,15 +1,15 @@
+import datetime
 import logging
 import os
 import poplib
 import tempfile
+from email import message_from_bytes, parser
+from email.header import decode_header
 from typing import Dict, Any
 
 from bs4 import BeautifulSoup
-from email import message_from_bytes, parser
-from email.header import decode_header
-import datetime
 
-from kubechat.models import CollectionStatus, Document, DocumentStatus, Collection
+from kubechat.models import Document, DocumentStatus, Collection
 from kubechat.source.base import Source
 
 logger = logging.getLogger(__name__)

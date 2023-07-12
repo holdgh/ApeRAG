@@ -1,13 +1,12 @@
 import logging
 import os
-import tempfile
-import time
+from datetime import datetime
 from ftplib import FTP, error_perm
 from typing import Dict, Any
 
-from datetime import datetime
 from kubechat.models import Document, DocumentStatus, Collection
 from kubechat.source.base import Source
+from kubechat.source.utils import gen_temporary_file
 from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
@@ -59,8 +58,7 @@ class FTPSource(Source):
         return self._deal_the_path(self.ftp, self.collection, self.path)
 
     def prepare_document(self, doc: Document):
-        suffix = os.path.splitext(doc.name)[1].lower()
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        temp_file = gen_temporary_file(doc.name)
         self.ftp.retrbinary("RETR " + doc.name, temp_file.write)
         temp_file.close()
         return temp_file.name
