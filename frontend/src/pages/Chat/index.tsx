@@ -38,7 +38,7 @@ export default () => {
   const historyMessages = currentChat?.history || [];
 
   // web socket instance
-  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
+  const { sendJsonMessage, lastJsonMessage, readyState, getWebSocket } = useWebSocket(
     socketUrl,
     {
       share: true,
@@ -103,6 +103,18 @@ export default () => {
     await setCurrentChatHistory(historyMessages.concat(msg));
     sendJsonMessage(msg);
   };
+
+  const closeSocket = () => {
+    const socket = getWebSocket();
+    socket?.close()
+  }
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', () => closeSocket())
+    return () => {
+      window.removeEventListener('beforeunload', () => closeSocket())
+    }
+  }, [])
 
   useEffect(() => {
     const params: DbChatFormFields = {};
