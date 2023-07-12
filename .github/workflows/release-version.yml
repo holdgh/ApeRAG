@@ -12,69 +12,19 @@ run-name: ref_name:${{ github.ref_name }} release_version:${{ inputs.release_ver
 
 env:
   GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-  RELEASE_BOT_WEBHOOK: ${{ secrets.RELEASE_BOT_WEBHOOK }}
-
 
 jobs:
-  merge-releasing-branch:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Auto merge releasing PR
-        run: ./.github/utils/merge_releasing_pr.sh
-
-  release-message:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.get_trigger_mode.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: release message
-        id: get_trigger_mode
-        run: |
-          bash .github/utils/utils.sh --type 11 \
-            --tag-name "${{ inputs.release_version }}" \
-            --bot-webhook ${{ env.RELEASE_BOT_WEBHOOK }}
-
-          TEST_PACKAGES=`bash .github/utils/utils.sh --type 16 \
-              --trigger-type "[test]" \
-              --test-pkgs "internal|apis|controllers|cmd" \
-              --test-check "mod-vendor|lint"`
-          echo "matrix={\"include\":[$TEST_PACKAGES]}" >> $GITHUB_OUTPUT
-
   release-test:
-    needs: release-message
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix: ${{ fromJSON(needs.release-message.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
-      - name: install lib
+      - name: make lint
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libbtrfs-dev \
-            libdevmapper-dev
+          make lint
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "${{ env.GO_VERSION }}"
-
-      - name: Install golangci-lint
-        if: matrix.ops == 'lint'
+      - name: make test
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.51.2
+          make test
 
-      - name: make test ${{ matrix.ops }}
-        run: |
-          make ${{ matrix.ops }}
-
-      - name: make ${{ matrix.ops }}
-        if: ${{ contains(matrix.ops, '/') }}
-        run: |
-          make test TEST_PACKAGES=./${{ matrix.ops }}/...
 
   release-version:
     needs: release-test
@@ -88,17 +38,3 @@ jobs:
           custom_tag: ${{ inputs.release_version }}
           github_token: ${{ env.GITHUB_TOKEN }}
           tag_prefix: ""
-
-  send-message:
-    runs-on: ubuntu-latest
-    needs: release-version
-    if: ${{ failure() || cancelled() }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: send message
-        run: |
-          bash .github/utils/utils.sh --type 12 \
-            --tag-name ${{ inputs.release_version }} \
-            --content "release\u00a0${{ inputs.release_version }}\u00a0error"\
-            --bot-webhook ${{ env.RELEASE_BOT_WEBHOOK }} \
-            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
