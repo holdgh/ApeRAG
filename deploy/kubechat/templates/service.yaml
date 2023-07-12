@@ -14,5 +14,7 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: 8000
   type: LoadBalancer
+  externalTrafficPolicy: Local
   selector:
     {{- include "kubechat.selectorLabels" . | nindent 4 }}
+    {{- include "django.labels" . | nindent 4 }}
