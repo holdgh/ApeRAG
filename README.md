@@ -55,10 +55,9 @@ make run-frontend
 # TODO
 
 * [ ] 前端支持批量上传文件
-* [ ] 静态文件服务器和API服务器分离，支持跨域
+* [x] 静态文件服务器和API服务器分离，支持跨域
 * [x] 支持数据库类型Collection
 * [ ] 支持切换LLM
-* [ ] Collection支持多个Chat
 * [x] websocket auth0认证
 * [ ] 异步优化
 * [ ] 错误和异常处理优化
@@ -73,6 +72,7 @@ make run-frontend
 * [ ] celery超时时间控制
 * [ ] 后端查询接口支持过滤和分页
 * [ ] celery和django共享存储
+* [ ] 监控
 
 # 依赖管理原则
 

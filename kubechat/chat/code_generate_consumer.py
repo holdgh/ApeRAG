@@ -1,28 +1,17 @@
-import inspect
 import json
-import logging
 import os
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List
-
-import openai
-from celery.result import AsyncResult
 from langchain.memory import RedisChatMessageHistory
 from langchain.schema import AIMessage, HumanMessage
-
 from kubechat.auth.validator import DEFAULT_USER
-import requests
 import config.settings as settings
 from channels.generic.websocket import WebsocketConsumer
 
-from kubechat.models import ChatStatus
 from kubechat.tasks.code_generate import *
 from kubechat.utils.db import query_collection, query_chat
 from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id, fix_path_name
 from services.code.code_gerenate.chat_to_files import to_files
-from services.code.code_gerenate.storage import DBs, DB, archive
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +94,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
             # during the CLARIFYING
             self.message = json.loads(self.dbs.logs["pre_clarify"])
         else:  # chat.status == ChatStatus.ACTIVE  pre clarify
+            # 异步请求
             # pre_clarify_task_id = pre_clarify.delay(self.user, collection_id, chat_id)
             # task = AsyncResult(id=str(pre_clarify_task_id))
             # message_id = f"{now_unix_milliseconds()}"
@@ -122,10 +112,11 @@ class CodeGenerateConsumer(WebsocketConsumer):
                 chat.save()
                 self.clarified()
             else:
+                self.dbs.logs["pre_clarify"] = json.dumps(self.message)
+                self.send_clarify_tips()
                 chat.status = ChatStatus.CLARIFYING
                 chat.save()
-                self.dbs.logs["pre_clarify"] = json.dumps(self.message)
-            self.send_openAI_message(self.message)
+            self.remember_openAI_message(self.message)
             self.current_status = chat.status
 
     def disconnect(self, close_code):
@@ -133,17 +124,11 @@ class CodeGenerateConsumer(WebsocketConsumer):
         pass
 
     def receive(self, text_data):
-        # 在接收到消息时执行的代码
-        # todo: decide whether clarified or download zip
-        data = json.loads(text_data)
-
+        # only in clarifying status could step in this func
         self.history.add_message(
             HumanMessage(content=text_data, additional_kwargs={"role": "human"})
         )
         chat = query_chat(self.user, self.collection_id, self.chat_id)
-        if chat.status == ChatStatus.UPLOADED:
-            pass
-
         if chat.status == ChatStatus.CLARIFYING:
             data = json.loads(text_data)
             self.message, chat.status = self.clarifying(data["data"], self.message)
@@ -177,14 +162,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
             "content"].strip().lower().startswith("no"):
             return massage, ChatStatus.CLARIFIED
 
-        message_id = f"{now_unix_milliseconds()}"
-        self.send(text_data=self.start_response(message_id))
-        response = self.success_response(
-            message_id, '(answer in text, or "c" to move on)\n', issql=self.response_type == "sql"
-        )
-        self.send(text_data=response)
-        # send stop message
-        self.send(text_data=self.stop_response(message_id, None))
+        self.send_clarify_tips()
         return massage, ChatStatus.CLARIFYING
 
     def clarified(self):
@@ -206,6 +184,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
         '''
         if prompt:
             messages += [{"role": "user", "content": prompt}]
+        # todo: support chose different model here
         response = openai.ChatCompletion.create(
             messages=messages,
             stream=True,
@@ -277,12 +256,13 @@ class CodeGenerateConsumer(WebsocketConsumer):
         return messages
 
     def load_project(self):
-        project_upload = self.dbs.workspace.path / f"{self.title}.zip"
-        zip = zipfile.ZipFile(str(project_upload), 'w', zipfile.ZIP_DEFLATED)
-        for root, dirs, files in os.walk(str(self.dbs.workspace.path)):
-            for file in files:
-                zip.write(os.path.join(root, file),arcname=file)
-        zip.close()
+        # project_upload = self.dbs.workspace.path / f"{self.title}.zip"
+        # zip = zipfile.ZipFile(str(project_upload), 'w', zipfile.ZIP_DEFLATED)
+        # for root, dirs, files in os.walk(str(self.dbs.workspace.path)):
+        #     for file in files:
+        #         zip.write(os.path.join(root, file), arcname=file)
+        #
+        # zip.close()
         message_id = f"{now_unix_milliseconds()}"
         # project_upload = self.dbs.workspace.path + f"{self.title}.zip"
         self.send(text_data=self.upload_response(message_id))
@@ -348,7 +328,17 @@ class CodeGenerateConsumer(WebsocketConsumer):
             }
         )
 
-    def send_openAI_message(self, messages):
+    def send_clarify_tips(self):
+        message_id = f"{now_unix_milliseconds()}"
+        self.send(text_data=self.start_response(message_id))
+        response = self.success_response(
+            message_id, '(answer in text, or "c" to move on)\n', issql=self.response_type == "sql"
+        )
+        self.send(text_data=response)
+        # send stop message
+        self.send(text_data=self.stop_response(message_id, None))
+
+    def remember_openAI_message(self, messages):
         for elem in messages:
             if elem["role"] == "system":
                 pass
