@@ -109,13 +109,13 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
                 "content"].strip().lower().startswith("no"):
                 self.dbs.logs["clarify"] = json.dumps(self.message)
                 chat.status = ChatStatus.CLARIFIED
-                chat.save()
+                await chat.asave()
                 self.clarified()
             else:
                 self.dbs.logs["pre_clarify"] = json.dumps(self.message)
                 self.send_clarify_tips()
                 chat.status = ChatStatus.CLARIFYING
-                chat.save()
+                await chat.asave()
             self.remember_openAI_message(self.message)
             self.current_status = chat.status
 
