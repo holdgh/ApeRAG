@@ -6,7 +6,7 @@ You will first lay out the names of the core classes, functions, methods that wi
 
 Then you will output the content of each file including ALL code.
 Each file must strictly follow a markdown code block format, where the following tokens must be replaced such that
-FILENAME is the lowercase file name including the file extension,
+FILENAME is the lowercase file name including the file extension. The line that contains the FILENAME should only include the FILENAME itself, without any additional information such as a serial number or a colon. For instance, "1. app.js:" should be transformed to "app.js".
 LANG is the markup code block language for the code's language, and CODE is the code:
 
 FILENAME

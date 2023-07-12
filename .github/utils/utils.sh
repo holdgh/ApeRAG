@@ -48,7 +48,7 @@ EOF
 }
 
 GITHUB_API="https://api.github.com"
-LATEST_REPO=apecloud/kubeblocks
+LATEST_REPO=apecloud/KubeChat
 
 main() {
     local TYPE=""

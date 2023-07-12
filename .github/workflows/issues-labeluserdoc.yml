@@ -4,7 +4,7 @@ on:
     types: [labeled]
 
 env:
-  GITHUB_TOKEN: ${{ secrets.KUBEBLOCKS_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
 jobs:
   User_doc:
@@ -22,7 +22,7 @@ jobs:
      - name: Get project data
        env:
          ORGANIZATION: apecloud
-         PROJECT_NUMBER: 2
+         PROJECT_NUMBER: 18
        run: |
           gh api graphql -f query='
             query($org: String!, $number: Int!) {
