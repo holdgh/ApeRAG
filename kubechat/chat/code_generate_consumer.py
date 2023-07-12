@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import zipfile
@@ -59,7 +60,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         token = self.scope.get("Sec-Websocket-Protocol", None)
         if token is not None:
             headers = {"SEC-WEBSOCKET-PROTOCOL": token}
-        self.accept(subprotocol=(None, headers))
+        await self.accept(subprotocol=(None, headers))
         # build code generate task config
         self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
@@ -83,13 +84,13 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         if chat.status == ChatStatus.UPLOADED:
             # already finish the task and generate the project zip
             message_id = f"{now_unix_milliseconds()}"
-            self.send(text_data=self.upload_response(message_id))
+            await self.send(text_data=self.upload_response(message_id))
         elif chat.status == ChatStatus.FINISHED:
             # already finish the task but not generate the project zip
-            self.load_project()
+            await self.load_project()
         elif chat.status == ChatStatus.CLARIFIED:
             # already finish the CLARIFYING
-            self.clarified()
+            await self.clarified()
         elif chat.status == ChatStatus.CLARIFYING:
             # during the CLARIFYING
             self.message = json.loads(self.dbs.logs["pre_clarify"])
@@ -104,16 +105,16 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             self.dbs.input["prompt"] = chat.summary
             self.message = [fsystem(msg=self.dbs.preprompts["qa"])]
             user_input = get_prompt(self.dbs)
-            self.message = self.interact_with_LLM(self.message, user_input)
+            self.message = await self.interact_with_LLM(self.message, user_input)
             if self.message[-1]["content"].strip() == "Nothing more to clarify." or self.message[-1][
                 "content"].strip().lower().startswith("no"):
                 self.dbs.logs["clarify"] = json.dumps(self.message)
                 chat.status = ChatStatus.CLARIFIED
                 await chat.asave()
-                self.clarified()
+                await self.clarified()
             else:
                 self.dbs.logs["pre_clarify"] = json.dumps(self.message)
-                self.send_clarify_tips()
+                await self.send_clarify_tips()
                 chat.status = ChatStatus.CLARIFYING
                 await chat.asave()
             self.remember_openAI_message(self.message)
@@ -131,23 +132,23 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         chat = await query_chat(self.user, self.collection_id, self.chat_id)
         if chat.status == ChatStatus.CLARIFYING:
             data = json.loads(text_data)
-            self.message, chat.status = self.clarifying(data["data"], self.message)
-            chat.save()
+            self.message, chat.status = await self.clarifying(data["data"], self.message)
+            await chat.asave()
             if chat.status == ChatStatus.CLARIFIED:
                 # todo add history
                 self.dbs.logs["clarify"] = json.dumps(self.message)
                 # chat.task
-                self.clarified()
+                await self.clarified()
 
-    def clarifying(self, user_input, massage: List[dict]):
+    async def clarifying(self, user_input, massage: List[dict]):
         if not user_input or user_input == "c":
             message_id = f"{now_unix_milliseconds()}"
-            self.send(text_data=self.start_response(message_id))
+            await self.send(text_data=self.start_response(message_id))
             response = self.success_response(
                 message_id, '(letting gpt-engineer make its own assumptions)\n', issql=self.response_type == "sql"
             )
-            self.send(text_data=response)
-            self.send(text_data=self.stop_response(message_id, None))
+            await self.send(text_data=response)
+            await self.send(text_data=self.stop_response(message_id, None))
             return massage, ChatStatus.CLARIFIED
 
         user_input += (
@@ -157,24 +158,24 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             "{Next question}\n"
             'If everything is sufficiently clear, only answer "Nothing more to clarify.".'
         )
-        massage = self.interact_with_LLM(massage, user_input, step_name=curr_fn())
+        massage = await self.interact_with_LLM(massage, user_input, step_name=curr_fn())
         if massage[-1]["content"].strip() == "Nothing more to clarify." or massage[-1][
             "content"].strip().lower().startswith("no"):
             return massage, ChatStatus.CLARIFIED
 
-        self.send_clarify_tips()
+        await self.send_clarify_tips()
         return massage, ChatStatus.CLARIFYING
 
-    def clarified(self):
+    async def clarified(self):
         for step in [self.gen_clarified_code, self.gen_entrypoint]:
-            messages = step()
+            messages = await step()
             self.dbs.logs[step.__name__] = json.dumps(messages)
         chat = await query_chat(self.user, self.collection_id, self.chat_id)
         chat.status = ChatStatus.FINISHED
-        chat.save()
-        self.load_project()
+        await chat.asave()
+        await self.load_project()
 
-    def interact_with_LLM(self, messages: List[Dict[str, str]], prompt=None, *, step_name=None):
+    async def interact_with_LLM(self, messages: List[Dict[str, str]], prompt=None, *, step_name=None):
         '''
         interact_with_LLM is the hub between the front and LLM.
         :param messages:
@@ -192,7 +193,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             temperature=0.1,
         )
         message_id = f"{now_unix_milliseconds()}"
-        self.send(text_data=self.start_response(message_id))
+        await self.send(text_data=self.start_response(message_id))
         chat = []
         for chunk in response:
             delta = chunk["choices"][0]["delta"]  # type: ignore
@@ -200,19 +201,20 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             response = self.success_response(
                 message_id, msg, issql=self.response_type == "sql"
             )
-            self.send(text_data=response)
+            await asyncio.sleep(0.1)
+            await self.send(text_data=response)
             chat.append(msg)
-        self.send(text_data=self.stop_response(message_id, None))
+        await self.send(text_data=self.stop_response(message_id, None))
         messages += [{"role": "assistant", "content": "".join(chat)}]
         logger.debug(f"Chat completion finished: {messages}")
         return messages
 
-    def gen_clarified_code(self) -> List[dict]:
+    async def gen_clarified_code(self) -> List[dict]:
         messages = json.loads(self.dbs.logs["clarify"])
         messages = [
                        fsystem(setup_sys_prompt(self.dbs)),
                    ] + messages[1:]
-        messages = self.interact_with_LLM(messages, self.dbs.preprompts["use_qa"], step_name=curr_fn())
+        messages = await self.interact_with_LLM(messages, self.dbs.preprompts["use_qa"], step_name=curr_fn())
         message_id = f"{now_unix_milliseconds()}"
         self.history.add_message(
             AIMessage(
@@ -223,7 +225,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         to_files(messages[-1]["content"], self.dbs.workspace)
         return messages
 
-    def gen_entrypoint(self) -> List[dict]:
+    async def gen_entrypoint(self) -> List[dict]:
         messages = [
             {
                 "role": "system",
@@ -244,7 +246,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
                 "content": "Information about the codebase:\n\n" + self.dbs.workspace["all_output.txt"]
             },
         ]
-        messages = self.interact_with_LLM(messages, step_name=curr_fn())
+        messages = await self.interact_with_LLM(messages, step_name=curr_fn())
         message_id = f"{now_unix_milliseconds()}"
         self.history.add_message(
             AIMessage(
@@ -255,7 +257,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
 
         return messages
 
-    def load_project(self):
+    async def load_project(self):
         # project_upload = self.dbs.workspace.path / f"{self.title}.zip"
         # zip = zipfile.ZipFile(str(project_upload), 'w', zipfile.ZIP_DEFLATED)
         # for root, dirs, files in os.walk(str(self.dbs.workspace.path)):
@@ -265,10 +267,10 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         # zip.close()
         message_id = f"{now_unix_milliseconds()}"
         # project_upload = self.dbs.workspace.path + f"{self.title}.zip"
-        self.send(text_data=self.upload_response(message_id))
+        await self.send(text_data=self.upload_response(message_id))
         chat = await query_chat(self.user, self.collection_id, self.chat_id)
         chat.status = ChatStatus.UPLOADED
-        chat.save()
+        await chat.asave()
         # change the status to
         # self.send(bytes_data=zip)
 
@@ -328,15 +330,15 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    def send_clarify_tips(self):
+    async def send_clarify_tips(self):
         message_id = f"{now_unix_milliseconds()}"
-        self.send(text_data=self.start_response(message_id))
+        await self.send(text_data=self.start_response(message_id))
         response = self.success_response(
             message_id, '(answer in text, or "c" to move on)\n', issql=self.response_type == "sql"
         )
-        self.send(text_data=response)
+        await self.send(text_data=response)
         # send stop message
-        self.send(text_data=self.stop_response(message_id, None))
+        await self.send(text_data=self.stop_response(message_id, None))
 
     def remember_openAI_message(self, messages):
         for elem in messages:

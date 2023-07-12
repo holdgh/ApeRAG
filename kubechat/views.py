@@ -9,8 +9,10 @@ from http import HTTPStatus
 
 from typing import List, Optional
 
+from asgiref.sync import sync_to_async
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
+from fsspec.asyn import loop
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
@@ -365,7 +367,12 @@ async def download_code(request, chat_id):
     chat = await Chat.objects.exclude(status=DocumentStatus.DELETED).aget(
         user=user, pk=chat_id
     )
-    collection = chat.collection
+
+    @sync_to_async
+    def get_collection():
+        return chat.collection
+
+    collection = await get_collection()
     if chat.user != user:
         return success("No access to the file")
     if chat.status != ChatStatus.UPLOADED:
