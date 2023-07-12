@@ -74,8 +74,8 @@ class EmailSource(Source):
     def scan_documents(self):
         documents = []
         self.email_num = len(self.conn.list()[1])
-        try:
-            for i in range(self.email_num):
+        for i in range(self.email_num):
+            try:
                 response, msg_lines, octets = self.conn.retr(i + 1)
 
                 msg_lines_to_str = b"\r\n".join(msg_lines).decode("utf8", "ignore")
@@ -99,8 +99,8 @@ class EmailSource(Source):
                                                                                                        "%H:%M:%S"),
                 )
                 documents.append(document)
-        except Exception as e:
-            logger.error(f"scan_email_documents {e}")
+            except Exception as e:
+                logger.error(f"scan_email_documents {e}")
         return documents
 
     def prepare_document(self, doc: Document):

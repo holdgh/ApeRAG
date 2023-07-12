@@ -24,15 +24,15 @@ class LocalSource(Source):
 
         documents = []
         logger.debug(f"phrase dir is {self.path}")
-        try:
-            for root, dirs, files in os.walk(self.path):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    if (
-                            os.path.splitext(file_path)[1].lower()
-                            in DEFAULT_FILE_READER_CLS.keys()
-                    ):
-                        # maybe add a field to record the local file ref rather than upload local file
+        for root, dirs, files in os.walk(self.path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if (
+                        os.path.splitext(file_path)[1].lower()
+                        in DEFAULT_FILE_READER_CLS.keys()
+                ):
+                    # maybe add a field to record the local file ref rather than upload local file
+                    try:
                         file_stat = os.stat(file_path)
                         document = Document(
                             user=self.collection.user,
@@ -45,9 +45,8 @@ class LocalSource(Source):
                             ),
                         )
                         documents.append(document)
-
-        except Exception as e:
-            logger.error(f"scanning local source error {e}")
+                    except Exception as e:
+                        logger.error(f"scanning local source {file_path} error {e}")
         return documents
 
     def prepare_document(self, doc: Document):

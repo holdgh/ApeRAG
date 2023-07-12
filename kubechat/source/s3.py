@@ -34,8 +34,8 @@ class S3Source(Source):
 
     def scan_documents(self):
         documents = []
-        try:
-            for obj in self.bucket.objects.all():
+        for obj in self.bucket.objects.all():
+            try:
                 file_suffix = os.path.splitext(obj.key)[1].lower()
                 if file_suffix in DEFAULT_FILE_READER_CLS.keys():
                     document = Document(
@@ -47,8 +47,8 @@ class S3Source(Source):
                         metadata=obj.last_modified.strftime("%Y-%m-%d %H:%M:%S"),
                     )
                     documents.append(document)
-        except Exception as e:
-            logger.error(f"scanning_s3_add_index() error {e}")
+            except Exception as e:
+                logger.error(f"scanning_s3_add_index() {obj.key} error {e}")
         return documents
 
     def prepare_document(self, doc: Document):

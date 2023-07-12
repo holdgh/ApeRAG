@@ -32,8 +32,8 @@ class OSSSource(Source):
 
     def scan_documents(self):
         documents = []
-        try:
-            for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory
+        for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory
+            try:
                 file_suffix = os.path.splitext(obj.key)[1].lower()
                 if file_suffix in DEFAULT_FILE_READER_CLS.keys():
                     document = Document(
@@ -47,8 +47,8 @@ class OSSSource(Source):
                         ),
                     )
                     documents.append(document)
-        except Exception as e:
-            logger.error(f"scanning_oss_add_index() error {e}")
+            except Exception as e:
+                logger.error(f"scanning_oss_add_index() {obj.key} error {e}")
         return documents
 
     def prepare_document(self, doc: Document):
