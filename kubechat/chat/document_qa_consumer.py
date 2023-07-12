@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -35,8 +36,8 @@ class DocumentQAConsumer(BaseConsumer):
         )
         vectordb_ctx["collection"] = vector_db_collection_id
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
-        vector = await self.embedding_model.aget_queued_text_embeddings([Tuple["", query]])
-        query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector[0][1])
+        vector = self.embedding_model.get_text_embedding(query)
+        query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
         results = adaptor.connector.search(
             query_embedding,
@@ -94,6 +95,7 @@ class DocumentQAConsumer(BaseConsumer):
                 except Exception as e:
                     continue
                 yield msg["text"]
+                await asyncio.sleep(0.1)
                 buffer = buffer[idx + 1 :]
 
         references = []

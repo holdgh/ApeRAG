@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 from abc import abstractmethod
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from langchain.memory import RedisChatMessageHistory
 from langchain.schema import AIMessage, BaseChatMessageHistory, HumanMessage
