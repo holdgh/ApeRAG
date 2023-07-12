@@ -24,7 +24,7 @@ export default () => {
   const [disabled, setDisabled] = useState<boolean>(false);
 
   // websocket url & params
-  const [socketUrl, setSocketUrl] = useState<string>('');
+  const [socketUrl, setSocketUrl] = useState<string | null>(null);
   const [socketParams, setSocketParams] = useState<DbChatFormFields>({});
 
   // model data;
@@ -38,7 +38,7 @@ export default () => {
   const historyMessages = currentChat?.history || [];
 
   // web socket instance
-  const { sendJsonMessage, lastJsonMessage, readyState, getWebSocket } = useWebSocket(
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
     socketUrl,
     {
       share: true,
@@ -103,18 +103,6 @@ export default () => {
     await setCurrentChatHistory(historyMessages.concat(msg));
     sendJsonMessage(msg);
   };
-
-  const closeSocket = () => {
-    const socket = getWebSocket();
-    socket?.close()
-  }
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', () => closeSocket())
-    return () => {
-      window.removeEventListener('beforeunload', () => closeSocket())
-    }
-  }, [])
 
   useEffect(() => {
     const params: DbChatFormFields = {};

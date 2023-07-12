@@ -5,7 +5,7 @@ import {
   TypesDocumentConfig,
 } from '@/types';
 import { history, useModel } from '@umijs/max';
-import { Avatar, Divider, Space, Typography } from 'antd';
+import { Avatar, Divider, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import styles from './index.less';
@@ -17,7 +17,7 @@ type Props = {
 
 export default ({ collection }: Props) => {
   const { setCurrentCollection } = useModel('collection');
-
+  const { token } = theme.useToken();
   const { collectionId } = useParams();
 
   const onClick = async () => {
@@ -60,6 +60,9 @@ export default ({ collection }: Props) => {
         [styles.item]: true,
         [styles.selected]: collectionId === collection.id,
       })}
+      style={{
+        borderBottom: `1px solid ${token.colorBorderSecondary}`
+      }}
       onClick={onClick}
     >
       <Space style={{ display: 'flex', width: '100%' }}>
