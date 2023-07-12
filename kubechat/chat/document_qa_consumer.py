@@ -9,6 +9,7 @@ from kubechat.utils.utils import generate_vector_db_collection_id
 from kubechat.utils.db import query_collection
 from query.query import QueryWithEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
+from typing import Callable, Coroutine, List, Optional, Tuple
 
 from .base_consumer import KUBE_CHAT_DOC_QA_REFERENCES, BaseConsumer
 
@@ -34,8 +35,8 @@ class DocumentQAConsumer(BaseConsumer):
         )
         vectordb_ctx["collection"] = vector_db_collection_id
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
-        vector = self.embedding_model.get_query_embedding(query)
-        query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
+        vector = await self.embedding_model.aget_queued_text_embeddings([Tuple["", query]])
+        query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector[0][1])
 
         results = adaptor.connector.search(
             query_embedding,

@@ -6,7 +6,7 @@ from langchain.memory import RedisChatMessageHistory
 from langchain.schema import AIMessage, HumanMessage
 from kubechat.auth.validator import DEFAULT_USER
 import config.settings as settings
-from channels.generic.websocket import WebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
 
 from kubechat.tasks.code_generate import *
 from kubechat.utils.db import query_collection, query_chat
@@ -39,7 +39,7 @@ first_status = {
 }
 
 
-class CodeGenerateConsumer(WebsocketConsumer):
+class CodeGenerateConsumer(AsyncWebsocketConsumer):
     def __init__(self):
         super().__init__()
         self.user = DEFAULT_USER
@@ -53,7 +53,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
         self.title = ""
         self.history = None
 
-    def connect(self):
+    async def connect(self):
         # accept the websocket
         headers = {}
         token = self.scope.get("Sec-Websocket-Protocol", None)
@@ -63,10 +63,10 @@ class CodeGenerateConsumer(WebsocketConsumer):
         # build code generate task config
         self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
-        collection = query_collection(self.user, collection_id)
+        collection = await query_collection(self.user, collection_id)
         if collection is None:
             raise Exception("Collection not found")
-        chat = query_chat(self.user, collection_id, chat_id)
+        chat = await query_chat(self.user, collection_id, chat_id)
 
         self.collection_id = collection_id
         self.chat_id = chat_id
@@ -119,16 +119,16 @@ class CodeGenerateConsumer(WebsocketConsumer):
             self.remember_openAI_message(self.message)
             self.current_status = chat.status
 
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         # 在连接关闭时执行的代码
         pass
 
-    def receive(self, text_data):
+    async def receive(self, text_data=None, bytes_data=None):
         # only in clarifying status could step in this func
         self.history.add_message(
             HumanMessage(content=text_data, additional_kwargs={"role": "human"})
         )
-        chat = query_chat(self.user, self.collection_id, self.chat_id)
+        chat = await query_chat(self.user, self.collection_id, self.chat_id)
         if chat.status == ChatStatus.CLARIFYING:
             data = json.loads(text_data)
             self.message, chat.status = self.clarifying(data["data"], self.message)
@@ -169,7 +169,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
         for step in [self.gen_clarified_code, self.gen_entrypoint]:
             messages = step()
             self.dbs.logs[step.__name__] = json.dumps(messages)
-        chat = query_chat(self.user, self.collection_id, self.chat_id)
+        chat = await query_chat(self.user, self.collection_id, self.chat_id)
         chat.status = ChatStatus.FINISHED
         chat.save()
         self.load_project()
@@ -266,7 +266,7 @@ class CodeGenerateConsumer(WebsocketConsumer):
         message_id = f"{now_unix_milliseconds()}"
         # project_upload = self.dbs.workspace.path + f"{self.title}.zip"
         self.send(text_data=self.upload_response(message_id))
-        chat = query_chat(self.user, self.collection_id, self.chat_id)
+        chat = await query_chat(self.user, self.collection_id, self.chat_id)
         chat.status = ChatStatus.UPLOADED
         chat.save()
         # change the status to

@@ -23,7 +23,7 @@ async def collection_consumer_router(scope, receive, send):
         from .document_qa_consumer import DocumentQAConsumer
         from .mock_consumer import MockConsumer
 
-        return await MockConsumer.as_asgi()(scope, receive, send)
+        return await DocumentQAConsumer.as_asgi()(scope, receive, send)
     elif collection.type == CollectionType.DATABASE:
         from .text_2_sql_consumer import Text2SQLConsumer
 
