@@ -66,14 +66,13 @@ class DocumentQAConsumer(BaseConsumer):
 
         # choose llm model
         response = None
-        match model:
-            case "vicuna-13b":
+        model_servers = json.loads(settings.MODEL_SERVERS)
+        for model_server in model_servers:
+            model_name = model_server["name"]
+            model_endpoint = model_server["endpoint"]
+            if model == model_name:
                 response = requests.post(
-                    "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True,
-                )
-            case "chatglm2-6b":
-                response = requests.post(
-                    "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True,
+                    "%s/generate_stream" % model_endpoint, json=input, stream=True,
                 )
 
         buffer = ""
@@ -92,7 +91,7 @@ class DocumentQAConsumer(BaseConsumer):
                 except Exception as e:
                     continue
                 yield msg["text"]
-                buffer = buffer[idx + 1 :]
+                buffer = buffer[idx + 1:]
 
         references = []
         for result in results.results:
