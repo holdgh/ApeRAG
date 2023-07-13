@@ -82,11 +82,19 @@ nodeSelector: {}
 
 tolerations: []
 
-affinity: {}
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: "llmserver"
+        topologyKey: kubernetes.io/hostname
 
 
 models:
   - name: vicuna-13b
-    replicaCount: 2
+    replicaCount: 1
   - name: chatglm2-6b
-    replicaCount: 3
+    replicaCount: 1

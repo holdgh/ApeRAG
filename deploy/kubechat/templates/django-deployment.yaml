@@ -31,7 +31,7 @@ spec:
             - -c
             - |
               ln -s /data/torch /root/.cache/torch
-              /app/scripts/entrypoint.sh /app/scripts/start-django.sh
+              /app/scripts/entrypoint.sh /app/scripts/start-django.sh >> /data/django.log 2>&1
           env:
             - name: AUTH0_CLIENT_ID
               valueFrom:
@@ -125,6 +125,10 @@ spec:
                   name: kubechat-config
             - name: MEDIA_ROOT
               value: /data/media
+            - name: CODE_STORAGE_DIR
+              value: /data/codegen
+            - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+              value: python
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}

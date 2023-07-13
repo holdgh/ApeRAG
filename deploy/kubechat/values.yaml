@@ -78,7 +78,7 @@ django:
   auth0Domain: ""
   memoryRedisURL: redis://redis-redis:6379/1
   modelServer: http://llmserver:8000
-  modelServers: '[{"name": "vicuna-13b", "endpoint": "http://llmserver:8000"}]'
+  modelServers: '[{"name": "vicuna-13b", "endpoint": "http://llmserver-vicuna-13b:8000"},{"name": "chatglm2-6b", "endpoint": "http://llmserver-chatglm2-6b:8000"}]'
   metaDBHost: postgresql-postgresql
   metaDBPort: 5432
   metaDBDatabase: kubechat

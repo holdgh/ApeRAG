@@ -57,7 +57,7 @@ class DocumentQAConsumer(BaseConsumer):
 
         collection = await query_collection(self.user, self.collection_id)
         config = json.loads(collection.config)
-        model = config["model"]
+        model = config.get("model", "")
 
         input = {
             "prompt": prompt_str,
@@ -68,16 +68,18 @@ class DocumentQAConsumer(BaseConsumer):
         }
 
         # choose llm model
-        response = None
         model_servers = json.loads(settings.MODEL_SERVERS)
+        if len(model_servers) == 0:
+            raise Exception("No model server available")
+        endpoint = model_servers[0]["endpoint"]
         for model_server in model_servers:
             model_name = model_server["name"]
             model_endpoint = model_server["endpoint"]
             if model == model_name:
-                response = requests.post(
-                    "%s/generate_stream" % model_endpoint, json=input, stream=True,
-                )
+                endpoint = model_endpoint
+                break
 
+        response = requests.post("%s/generate_stream" % endpoint, json=input, stream=True, )
         buffer = ""
         for c in response.iter_content():
             if c == b"\x00":
