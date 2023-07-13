@@ -1,4 +1,5 @@
 import inspect
+import pathlib
 from pathlib import Path
 from typing import Dict, List
 
@@ -93,7 +94,7 @@ def DB_init(user, title, chat_id):
     memory_path = project_path / "memory"
     workspace_path = project_path / "workspace"
     archive_path = project_path / "archive"
-    prompt_default_path = base_dir / "utils" / "codeprompt"
+    prompt_default_path = Path.cwd() / "utils" / "codeprompt"
     return DBs(
         memory=DB(memory_path),  # 对话记录
         logs=DB(memory_path / "logs"),  # 日志
