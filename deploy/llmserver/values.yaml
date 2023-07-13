@@ -95,6 +95,8 @@ affinity:
 
 models:
   - name: vicuna-13b
-    replicaCount: 2
+    replicaCount: 1
   - name: chatglm2-6b
     replicaCount: 0
+  - name: baichuan-13b
+    replicaCount: 1
