@@ -78,6 +78,11 @@ spec:
                 configMapKeyRef:
                   key: MODEL_SERVER
                   name: kubechat-config
+            - name: MODEL_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_SERVERS
+                  name: kubechat-config
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
