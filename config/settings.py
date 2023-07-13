@@ -224,4 +224,4 @@ VECTOR_DB_CONTEXT = env.str(
     "VECTOR_DB_CONTEXT", '{"url":"http://localhost", "port":6333, "distance":"Cosine"}'
 )
 
-CODE_STORAGE_DIR = env.path("CODE_STORAGE_DIR", default=BASE_DIR)
+CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
