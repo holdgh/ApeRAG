@@ -19,6 +19,7 @@ export default ({ collection }: Props) => {
   const { setCurrentCollection } = useModel('collection');
   const { token } = theme.useToken();
   const { collectionId } = useParams();
+  const { currentChat } = useModel('chat');
 
   const onClick = async () => {
     await setCurrentCollection(collection);
@@ -58,7 +59,7 @@ export default ({ collection }: Props) => {
     <div
       className={classNames({
         [styles.item]: true,
-        [styles.selected]: collectionId === collection.id,
+        [styles.selected]: currentChat?.collectionId === collection.id && collectionId === collection.id,
       })}
       style={{
         borderBottom: `1px solid ${token.colorBorderSecondary}`
