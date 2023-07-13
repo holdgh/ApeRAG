@@ -19,6 +19,7 @@ from llama_index import (
 )
 
 from vectorstore.connector import VectorStoreConnectorAdaptor
+from config.settings import EMBEDDING_DEVICE
 
 
 def get_embedding_model(
@@ -30,16 +31,22 @@ def get_embedding_model(
 
     if not type or type == "huggingface":
         if load:
+            model_kwargs = {'device': EMBEDDING_DEVICE}
             embedding_model = LangchainEmbedding(
                 HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-mpnet-base-v2"
+                    model_name="sentence-transformers/all-mpnet-base-v2",
+                    model_kwargs=model_kwargs,
                 )
             )
         vector_size = 768
     elif type == "huggingface_instruct":
         if load:
+            model_kwargs = {'device': EMBEDDING_DEVICE}
             embedding_model = LangchainEmbedding(
-                HuggingFaceInstructEmbeddings("hkunlp/instructor-large")
+                HuggingFaceInstructEmbeddings(
+                    model_name="hkunlp/instructor-large",
+                    model_kwargs=model_kwargs,
+                )
             )
         vector_size = 768
     elif type == "openai":
