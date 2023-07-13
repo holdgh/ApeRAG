@@ -147,13 +147,6 @@ export default defineConfig({
         },
       ],
     },
-    {
-      name: 'Bot Settings',
-      path: '/settings',
-      icon: 'SettingFilled',
-      component: './Settings',
-      hideInMenu: true,
-    },
   ],
   npmClient: 'yarn',
   esbuildMinifyIIFE: true,
