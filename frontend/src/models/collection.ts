@@ -139,11 +139,10 @@ export default () => {
   };
 
   useEffect(() => {
-    if (collections === undefined) return;
+    const localCollection = getLocalCollection();
+    const item = collections?.find((c) => c.id === localCollection?.id);
 
-    let localCollection = getLocalCollection();
-    const item = collections.find((c) => c.id === localCollection?.id);
-    if (localCollection?.id === item?.id) {
+    if (item) {
       setCurrentCollection(item);
     } else {
       const current = _.first(collections);

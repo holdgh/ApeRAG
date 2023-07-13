@@ -183,7 +183,6 @@ export default () => {
 
         {collection?.type === 'document' && config?.source === 'system' ? (
           <Space>
-            <Button disabled>Merge</Button>
             <Upload {...uploadProps}>
               <Button type="primary" icon={<UploadOutlined />}>
                 Add Documents
