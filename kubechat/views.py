@@ -4,6 +4,7 @@ import logging
 import os
 import uuid
 import zipfile
+from pathlib import Path
 from datetime import datetime
 from http import HTTPStatus
 
@@ -17,8 +18,7 @@ from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
-from kubechat.tasks.code_generate import pre_clarify, \
-    CELERY_PROJECT_DIR  # can't remove or pre_clarify task will be NotRegister
+from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
@@ -377,9 +377,10 @@ async def download_code(request, chat_id):
         return success("No access to the file")
     if chat.status != ChatStatus.UPLOADED:
         return success("The file is not ready for download")
+    base_dir = Path(settings.CODE_STORAGE_DIR)
     buffer = io.BytesIO()
     zip = zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED)
-    workspace = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+    workspace = base_dir / "generated-code" / fix_path_name(user) / fix_path_name(
         collection.title + str(chat_id)) / "workspace"
 
     for root, dirs, files in os.walk(str(workspace)):

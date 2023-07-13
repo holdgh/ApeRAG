@@ -15,8 +15,6 @@ from kubechat.utils.db import query_collection, query_chat
 from kubechat.utils.utils import fix_path_name, now_unix_milliseconds
 from services.code.code_gerenate.storage import DBs, DB
 
-CELERY_PROJECT_DIR = Path.cwd()
-prompt_default_path = CELERY_PROJECT_DIR / "utils" / "codeprompt"
 
 logger = logging.getLogger(__name__)
 
