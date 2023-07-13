@@ -24,7 +24,7 @@ export default () => {
   const [disabled, setDisabled] = useState<boolean>(false);
 
   // websocket url & params
-  const [socketUrl, setSocketUrl] = useState<string>('');
+  const [socketUrl, setSocketUrl] = useState<string | null>(null);
   const [socketParams, setSocketParams] = useState<DbChatFormFields>({});
 
   // model data;

@@ -20,6 +20,7 @@ class S3Source(Source):
         self.access_key_secret = ctx["secret_access_key"]
         self.bucket_name = ctx["bucket"]
         self.region = ctx["region"]
+        self.dir = ctx.get("dir", "")
         self.collection = collection
         self.bucket = self._connect_bucket()
 
@@ -34,7 +35,7 @@ class S3Source(Source):
 
     def scan_documents(self):
         documents = []
-        for obj in self.bucket.objects.all():
+        for obj in self.bucket.objects.filter(Prefix=self.dir):
             try:
                 file_suffix = os.path.splitext(obj.key)[1].lower()
                 if file_suffix in DEFAULT_FILE_READER_CLS.keys():

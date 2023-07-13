@@ -221,7 +221,8 @@ LOGGING = {
 # LLM Model
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 
-MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"}]')
+MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"},'
+                                                 ' {"name": "chatglm2-6b", "endpoint": "http://127.0.0.1:8000"}]')
 
 # Memory backend
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")

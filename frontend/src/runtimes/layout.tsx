@@ -26,6 +26,7 @@ export const layout = () => {
       bgLayout: '#0A0A0A',
       sider: {
         colorMenuBackground: '#35363A',
+        colorBgMenuItemSelected: 'rgba(255, 255, 255, 0.1)',
       },
       header: {},
       pageContainer: {},
