@@ -140,18 +140,21 @@ export default () => {
 
   useEffect(() => {
     const localCollection = getLocalCollection();
-    const item = collections?.find((c) => c.id === localCollection?.id);
-
-    if (item) {
-      setCurrentCollection(item);
-    } else {
-      const current = _.first(collections);
-      if (current) {
-        setCurrentCollection(current);
+    if(!_.isEmpty(collections)) {
+      const item = collections?.find((c) => c.id === localCollection?.id);
+      if(!item) {
+        const current = _.first(collections);
+        if (current) {
+          setCurrentCollection(current);
+        } else {
+          setCurrentCollection(undefined);
+          localStorage.removeItem('collection');
+        }
       } else {
-        setCurrentCollection(undefined);
-        localStorage.removeItem('collection');
+        setCurrentCollection(item);
       }
+    } else {
+      setCurrentCollection(localCollection);
     }
   }, [collections]);
 

@@ -145,7 +145,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
     ) {
       let data = [];
       try {
-        data = JSON.parse(item.data || '[]');
+        data = JSON.parse(item.data || '');
         return <TableData loading={false} dataSource={data} />;
       } catch (err) {}
     }
