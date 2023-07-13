@@ -27,7 +27,6 @@ import moment from 'moment';
 import { useEffect, useState } from 'react';
 
 export default () => {
-  const [loading, setLoading] = useState<boolean>(false);
   const [searchKey, setSearchKey] = useState<string | undefined>();
   const [documents, setDocuments] = useState<TypesDocument[] | undefined>();
   const { collectionId } = useParams();
@@ -42,10 +41,8 @@ export default () => {
   );
 
   const getDocuments = async () => {
-    setLoading(true);
     const { data } = await GetCollectionDocuments(String(collectionId));
     setDocuments(data);
-    setLoading(false);
   };
 
   const onDelete = (record: TypesDocument) => {
@@ -194,7 +191,6 @@ export default () => {
       <br />
       <br />
       <Table
-        loading={loading}
         rowKey="id"
         columns={columns}
         dataSource={dataSource}
