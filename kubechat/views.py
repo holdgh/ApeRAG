@@ -117,6 +117,17 @@ def connection_test(request, connection: ConnectionInfo):
     return success("successfully connected")
 
 
+@api.get("/collections/model_name")
+def list_model_name(request):
+    response = []
+    model_servers = json.loads(settings.MODEL_SERVERS)
+    if model_servers is None:
+        return fail(HTTPStatus.NOT_FOUND, "model name not found")
+    for model_server in model_servers:
+        response.append(model_server["name"])
+    return success(response)
+
+
 @api.post("/collections")
 def create_collection(request, collection: CollectionIn):
     user = get_user(request)
