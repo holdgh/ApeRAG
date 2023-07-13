@@ -7,6 +7,7 @@ from config.celery import app
 
 import logging
 
+from config.settings import CODE_STORAGE_DIR
 from kubechat.models import ChatStatus
 from kubechat.tasks.index import CustomLoadDocumentTask
 from kubechat.utils.db import query_collection, query_chat
@@ -98,12 +99,14 @@ def curr_fn() -> str:
     return inspect.stack()[1].function
 
 
+
 def DB_init(user, title, chat_id):
-    project_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+    project_path = CODE_STORAGE_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
         title + str(chat_id))
     memory_path = project_path / "memory"
     workspace_path = project_path / "workspace"
     archive_path = project_path / "archive"
+    prompt_default_path = CODE_STORAGE_DIR / "utils" / "codeprompt"
     return DBs(
         memory=DB(memory_path),  # 对话记录
         logs=DB(memory_path / "logs"),  # 日志
