@@ -4,4 +4,4 @@ set -o errexit
 set -o nounset
 
 
-exec celery -A config.celery worker -l INFO --concurrency 10
+exec celery -A config.celery worker -l INFO --concurrency 4
