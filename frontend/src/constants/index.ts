@@ -28,6 +28,7 @@ export const COLLECTION_MODEL_OPTIONS: {
   label: TypesCollectionConfigModels;
   value: TypesCollectionConfigModels;
   icon?: string;
+  disabled?: boolean;
 }[] = [
   {
     label: 'vicuna-13b',
@@ -38,6 +39,7 @@ export const COLLECTION_MODEL_OPTIONS: {
     label: 'chatglm2-6b',
     value: 'chatglm2-6b',
     icon: ChatglmIcon,
+    disabled: true,
   },
 ];
 
