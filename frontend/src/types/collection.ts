@@ -18,7 +18,11 @@ export type TypesDatabaseConfigDbTypeOption = {
   disabled?: boolean;
 };
 
-export type TypesCollectionConfigModels = string  //'vicuna-13b' | 'chatglm2-6b';
+export type TypesModels = {
+  label: string,
+  value: string,
+  enabled: boolean,
+}
 
 export type TypesDatabaseConfig = {
   host?: string;
@@ -46,7 +50,7 @@ export type DocumentConfigSource =
 
 export type TypesDocumentConfig = {
   source?: DocumentConfigSource;
-  model?: TypesCollectionConfigModels;
+  model?: string;
 
   // local and ftp
   path?: string;
