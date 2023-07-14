@@ -1,4 +1,8 @@
-import type { TypesCollection, TypesDatabaseConfig, TypesModels } from '@/types';
+import type {
+  TypesCollection,
+  TypesDatabaseConfig,
+  TypesModels,
+} from '@/types';
 import { request } from '@umijs/max';
 
 export const GetCollections = (): Promise<{
@@ -66,11 +70,11 @@ export const DeleteCollection = (
 export const CodeDownload = (chatId: string) => {
   return request(`/api/v1/code/codegenerate/download/${chatId}`, {
     method: 'GET',
-    responseType: 'blob'
+    responseType: 'blob',
   });
 };
 
-export const GetModels = (): Promise<{ code: string, data: TypesModels[] }> => {
+export const GetModels = (): Promise<{ code: string; data: TypesModels[] }> => {
   return request(`/api/v1/collections/models`, {
     method: 'GET',
   });

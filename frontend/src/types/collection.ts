@@ -19,10 +19,10 @@ export type TypesDatabaseConfigDbTypeOption = {
 };
 
 export type TypesModels = {
-  label: string,
-  value: string,
-  enabled: boolean,
-}
+  label: string;
+  value: string;
+  enabled: boolean;
+};
 
 export type TypesDatabaseConfig = {
   host?: string;

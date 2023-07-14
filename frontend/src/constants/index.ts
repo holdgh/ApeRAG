@@ -1,5 +1,7 @@
 import ChatglmIcon from '@/assets/chatglm.png';
 import VicunaIcon from '@/assets/vicuna.jpg';
+import ChatGPTIcon from '@/assets/chat-gpt.png';
+import BaiChuan12bIcon from '@/assets/baichuan-13b.png';
 import {
   TypesCollectionStatus,
   TypesDatabaseConfig,
@@ -33,6 +35,15 @@ export const COLLECTION_MODEL_OPTIONS_CONFIG: {
   },
   'chatglm2-6b': {
     icon: ChatglmIcon,
+  },
+  'chatgpt-3.5': {
+    icon: ChatGPTIcon,
+  },
+  'chatgpt-4': {
+    icon: ChatGPTIcon,
+  },
+  'baichuan-13b': {
+    icon: BaiChuan12bIcon,
   },
 };
 

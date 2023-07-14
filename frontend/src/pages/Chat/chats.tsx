@@ -1,10 +1,9 @@
 import type { TypesMessage, TypesSocketStatus } from '@/types';
-import { useModel } from '@umijs/max';
+import { useModel, useParams } from '@umijs/max';
 import { useEffect } from 'react';
 import { animateScroll } from 'react-scroll';
 import styles from './index.less';
 import MessageItem from './msg';
-import { useParams } from '@umijs/max';
 
 type Props = {
   status: TypesSocketStatus;
@@ -18,7 +17,7 @@ export default ({ loading, onExecute, status }: Props) => {
   const { collectionId } = useParams();
 
   useEffect(() => {
-    if(currentChat?.collectionId !== collectionId) return;
+    if (currentChat?.collectionId !== collectionId) return;
     setTimeout(() => {
       animateScroll.scrollToBottom({
         duration: 0,

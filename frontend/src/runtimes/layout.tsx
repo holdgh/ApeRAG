@@ -1,11 +1,6 @@
 import { getUser } from '@/models/user';
 import auth0 from '@/utils/auth0';
-import {
-  LoginOutlined,
-  LogoutOutlined,
-  SettingFilled,
-} from '@ant-design/icons';
-import { Link } from '@umijs/max';
+import { LoginOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Typography } from 'antd';
 
 export const layout = () => {

@@ -55,11 +55,11 @@ export default () => {
   };
 
   const getModels = async () => {
-    if(_.isEmpty(models)) {
+    if (_.isEmpty(models)) {
       const { data } = await GetModels();
       setModels(data);
     }
-  }
+  };
 
   const getCollections = async () => {
     setCollectionLoading(true);
