@@ -12,12 +12,12 @@ export default () => {
 
     const type: TypesCollectionType = 'document';
     const first = _.first(collections?.filter((c) => c.type === type));
-    
+
     if (currentCollection?.type === type) {
       history.replace(`/${type}/${currentCollection.id}/chat`);
     } else if (first) {
       setCurrentCollection(first);
-      
+
       history.replace(`/${type}/${first.id}/chat`);
     }
   }, []);

@@ -1,8 +1,8 @@
+import { theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
 import { ReactNode } from 'react';
 import styles from './index.less';
-import { theme } from 'antd';
 
 type Props = {
   sidebar?: {
@@ -34,7 +34,10 @@ export default ({ sidebar, children }: Props) => {
           left: mainNavWidth,
         }}
       >
-        <div className={styles.top} style={{borderBottom: `1px solid ${token.colorBorderSecondary}`}}>
+        <div
+          className={styles.top}
+          style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}
+        >
           <div className={styles.title}>{sidebar?.title}</div>
           <div className={styles.extra}>{sidebar?.extra}</div>
         </div>

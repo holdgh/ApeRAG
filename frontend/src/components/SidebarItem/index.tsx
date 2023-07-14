@@ -4,12 +4,11 @@ import {
   TypesDatabaseConfig,
   TypesDocumentConfig,
 } from '@/types';
-import { history, useModel } from '@umijs/max';
+import { history, useModel, useParams } from '@umijs/max';
 import { Avatar, Divider, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
 import styles from './index.less';
-import { useParams } from '@umijs/max';
 
 type Props = {
   collection: TypesCollection;
@@ -59,10 +58,12 @@ export default ({ collection }: Props) => {
     <div
       className={classNames({
         [styles.item]: true,
-        [styles.selected]: currentChat?.collectionId === collection.id && collectionId === collection.id,
+        [styles.selected]:
+          currentChat?.collectionId === collection.id &&
+          collectionId === collection.id,
       })}
       style={{
-        borderBottom: `1px solid ${token.colorBorderSecondary}`
+        borderBottom: `1px solid ${token.colorBorderSecondary}`,
       }}
       onClick={onClick}
     >

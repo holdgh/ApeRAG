@@ -190,11 +190,7 @@ export default () => {
       </Space>
       <br />
       <br />
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={dataSource}
-      />
+      <Table rowKey="id" columns={columns} dataSource={dataSource} />
     </Card>
   );
 };

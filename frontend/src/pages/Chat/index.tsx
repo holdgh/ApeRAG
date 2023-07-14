@@ -167,7 +167,7 @@ export default () => {
     setDisabled(false);
   }, [lastJsonMessage]);
 
-  if(collectionId !== currentChat?.collectionId) return;
+  if (collectionId !== currentChat?.collectionId) return;
 
   return (
     <>

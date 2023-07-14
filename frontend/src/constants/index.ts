@@ -1,7 +1,8 @@
 import ChatglmIcon from '@/assets/chatglm.png';
 import VicunaIcon from '@/assets/vicuna.jpg';
+import ChatGPTIcon from '@/assets/chat-gpt.png';
+import BaiChuan12bIcon from '@/assets/baichuan-13b.png';
 import {
-  TypesCollectionConfigModels,
   TypesCollectionStatus,
   TypesDatabaseConfig,
   TypesDatabaseConfigDbTypeOption,
@@ -25,9 +26,8 @@ export const DATABASE_DEFAULT_CONFIG: TypesDatabaseConfig = {
 };
 
 export const COLLECTION_MODEL_OPTIONS_CONFIG: {
-  [key in TypesCollectionConfigModels]: {
+  [key in string]: {
     icon?: string;
-    disabled?: boolean;
   };
 } = {
   'vicuna-13b': {
@@ -35,7 +35,15 @@ export const COLLECTION_MODEL_OPTIONS_CONFIG: {
   },
   'chatglm2-6b': {
     icon: ChatglmIcon,
-    disabled: true,
+  },
+  'chatgpt-3.5': {
+    icon: ChatGPTIcon,
+  },
+  'chatgpt-4': {
+    icon: ChatGPTIcon,
+  },
+  'baichuan-13b': {
+    icon: BaiChuan12bIcon,
   },
 };
 

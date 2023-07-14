@@ -72,7 +72,7 @@ export default ({ item, isTyping, onExecute = () => {} }: Props) => {
     setDownloading(true);
     const filename = `${currentCollection?.title}_${new Date().getTime()}.zip`;
     const data = await CodeDownload(currentChat.id);
-    const blob = new Blob([data], { type: "application/zip" });
+    const blob = new Blob([data], { type: 'application/zip' });
     const url = window.URL.createObjectURL(blob);
     let link = document.createElement('a');
     link.style.display = 'none';
