@@ -51,6 +51,7 @@ oss2 = "^2.18.0"
 mypy = "^1.4.1"
 django-cors-headers = "^4.1.0"
 socksio = "^1.0.0"
+transformers-stream-generator = "^0.0.4"
 
 [tool.poetry.group.llmserver]
 optional = true

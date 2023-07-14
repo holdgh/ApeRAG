@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import torch
 from functools import cache
 from typing import List
 from transformers.generation.utils import GenerationConfig
@@ -160,10 +161,11 @@ class BaiChuanAdapter(BaseLLMAdaper):
         return "baichuan" in model_path
 
     def loader(self, model_path: str, from_pretrained_kwargs: dict):
-        tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+        tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, trust_remote_code=True)
         model = AutoModelForCausalLM.from_pretrained(
-            model_path, low_cpu_mem_usage=True, **from_pretrained_kwargs
+            model_path, low_cpu_mem_usage=True, trust_remote_code=True, **from_pretrained_kwargs
         )
+        model = model.quantize(8).cuda()
         model.generation_config = GenerationConfig.from_pretrained(model_path)
         return model, tokenizer
 

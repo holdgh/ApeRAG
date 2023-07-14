@@ -5756,6 +5756,24 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "transformers-stream-generator"
+version = "0.0.4"
+description = "This is a text generation method which returns a generator, streaming out each token in real-time during inference, based on Huggingface/Transformers."
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "transformers-stream-generator-0.0.4.tar.gz", hash = "sha256:165ec99798aca106e888c772c8b5f10ba95ab8bd103542bf304b93ed8c300b38"},
+]
+
+[package.dependencies]
+transformers = ">=4.26.1"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "triton"
 version = "2.0.0"
 description = "A language and compiler for custom Deep Learning operations"
@@ -6714,4 +6732,4 @@ all = ["chromadb", "clickhouse-connect", "elasticsearch", "pymilvus", "pymongo",
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "cf39d5051f8488f17728f4d806cc5ba15e6c33fadf3296d76839b4985aad0abe"
+content-hash = "315c92d55ca15f0b00a7bf4ae292f9bce24b8c8cbd709d3388831da19a970a7a"
