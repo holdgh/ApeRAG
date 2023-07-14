@@ -3,6 +3,7 @@ import {
   CreateCollection,
   DeleteCollection,
   GetCollections,
+  GetModels,
   UpdateCollection,
 } from '@/services/collections';
 import type {
@@ -33,6 +34,7 @@ const stringifyConfig = (config?: TypesCollectionConfig): string => {
 
 export default () => {
   const [collections, setCollections] = useState<TypesCollection[]>();
+  const [models, setModels] = useState<string[]>([]);
   const [currentCollection, setCurrentCollection] = useState<TypesCollection>();
   const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
   const { message } = App.useApp();
@@ -50,6 +52,13 @@ export default () => {
       new RegExp(`^(${whiteList.join('|')})$`).test(config.db_type);
     return isInWhiteList;
   };
+
+  const getModels = async () => {
+    if(_.isEmpty(models)) {
+      const { data } = await GetModels();
+      setModels(data);
+    }
+  }
 
   const getCollections = async () => {
     setCollectionLoading(true);
@@ -154,6 +163,8 @@ export default () => {
         localStorage.removeItem('collection');
       }
     }
+
+    getModels();
   }, [collections]);
 
   useEffect(() => {
@@ -163,6 +174,7 @@ export default () => {
   }, [currentCollection]);
 
   return {
+    models,
     collections,
     currentCollection,
     collectionLoading,

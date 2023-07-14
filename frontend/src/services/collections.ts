@@ -69,3 +69,9 @@ export const CodeDownload = (chatId: string) => {
     responseType: 'blob'
   });
 };
+
+export const GetModels = (): Promise<{ code: string, data: string[] }> => {
+  return request(`/api/v1/collections/model_name`, {
+    method: 'GET',
+  });
+};
