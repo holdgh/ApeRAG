@@ -209,11 +209,11 @@ export default ({ onSubmit, action, values }: Props) => {
         >
           <CheckedCard
             size="large"
-            options={models.map((name) => ({
-              label: name,
-              value: name,
-              icon: COLLECTION_MODEL_OPTIONS_CONFIG[name].icon,
-              disabled: COLLECTION_MODEL_OPTIONS_CONFIG[name].disabled,
+            options={models.map((model) => ({
+              label: model.label,
+              value: model.value,
+              icon: COLLECTION_MODEL_OPTIONS_CONFIG[model.value].icon,
+              disabled: !model.enabled,
             }))}
           />
         </Form.Item>

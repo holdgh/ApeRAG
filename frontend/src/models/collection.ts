@@ -10,6 +10,7 @@ import type {
   TypesCollection,
   TypesCollectionConfig,
   TypesDatabaseConfig,
+  TypesModels,
 } from '@/types';
 import { history } from '@umijs/max';
 import { App } from 'antd';
@@ -34,7 +35,7 @@ const stringifyConfig = (config?: TypesCollectionConfig): string => {
 
 export default () => {
   const [collections, setCollections] = useState<TypesCollection[]>();
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<TypesModels[]>([]);
   const [currentCollection, setCurrentCollection] = useState<TypesCollection>();
   const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
   const { message } = App.useApp();
@@ -54,11 +55,11 @@ export default () => {
   };
 
   const getModels = async () => {
-    if(_.isEmpty(models)) {
+    if (_.isEmpty(models)) {
       const { data } = await GetModels();
       setModels(data);
     }
-  }
+  };
 
   const getCollections = async () => {
     setCollectionLoading(true);

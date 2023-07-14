@@ -72,6 +72,15 @@ export default {
   'GET /api/v1/collections': (req: any, res: any) => {
     res.json({ data: collections });
   },
+  'GET frontend/src/services/collections.ts': (req: any, res: any) => {
+    res.json({
+      code: '200',
+      data: [
+        { label: 'vicuna-13b', value: 'vicuna-13b', disabled: false },
+        { label: 'chatglm2-6b', value: 'chatglm2-6b', disabled: true },
+      ],
+    });
+  },
   'POST /api/v1/collections/test_connection': (req: any, res: any) => {
     res.json({ code: '', data: Boolean(_.random(1)) });
   },
