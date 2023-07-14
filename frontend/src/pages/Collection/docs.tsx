@@ -148,10 +148,10 @@ export default () => {
     headers: {
       Authorization: 'Bearer ' + user?.__raw,
     },
-    maxCount:1,
+    maxCount: 1,
     beforeUpload: (file, fileList) => {
-      const invalidFile = fileList.find(f => f.size > 1024 * 50);
-      if(invalidFile) {
+      const invalidFile = fileList.find((f) => f.size > 1024 * 50);
+      if (invalidFile) {
         message.error(`The file '${invalidFile.name}' is larger than 50M.`);
       }
       return !invalidFile;

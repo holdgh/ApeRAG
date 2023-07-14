@@ -14,40 +14,37 @@ export default () => {
   const [chatLoading, setChatLoading] = useState<boolean>(false);
   const { currentCollection } = useModel('collection');
 
-  const createChat = async () => {
-    if (!currentCollection?.id) return;
-    const { data } = await CreateCollectionChat(currentCollection.id);
-    data.collectionId = currentCollection.id;
+  const createChat = async (collectionId: string) => {
+    const { data } = await CreateCollectionChat(collectionId);
+    data.collectionId = collectionId;
     setCurrentChat(data);
   };
 
-  const getChat = async (id: string) => {
-    if (!currentCollection?.id) return;
-    let item = _.find(chats, (c) => c.id === id);
+  const getChat = async (collectionId: string, chatId: string) => {
+    let item = _.find(chats, (c) => c.id === chatId);
 
     if (item) {
       setCurrentChat(item);
     } else {
-      const { data } = await GetCollectionChat(currentCollection.id, id);
-      data.collectionId = currentCollection.id;
+      const { data } = await GetCollectionChat(collectionId, chatId);
+      data.collectionId = collectionId;
       setChats(chats.concat(data));
       setCurrentChat(data);
     }
   };
 
-  const getCollectionChats = async () => {
-    if (!currentCollection?.id) return;
+  const getCollectionChats = async (collectionId: string) => {
     setChatLoading(true);
-    let items = chats.filter((c) => c.collectionId === currentCollection.id);
+    let items = chats.filter((c) => c.collectionId === collectionId);
     if (_.isEmpty(items)) {
-      const { data } = await GetCollectionChats(currentCollection.id);
+      const { data } = await GetCollectionChats(collectionId);
       items = data;
     }
     const item = _.first(items);
     if (item) {
-      await getChat(item.id);
+      await getChat(collectionId, item.id);
     } else {
-      await createChat();
+      await createChat(collectionId);
     }
     setChatLoading(false);
   };
@@ -61,7 +58,9 @@ export default () => {
   };
 
   useEffect(() => {
-    getCollectionChats();
+    if (currentCollection?.id) {
+      getCollectionChats(currentCollection.id);
+    }
   }, [currentCollection]);
 
   useEffect(() => {

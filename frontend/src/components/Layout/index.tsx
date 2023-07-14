@@ -1,7 +1,8 @@
+import { useModel, useParams } from '@umijs/max';
 import { theme } from 'antd';
 import classNames from 'classnames';
 import _ from 'lodash';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import styles from './index.less';
 
 type Props = {
@@ -14,10 +15,21 @@ type Props = {
 };
 
 export default ({ sidebar, children }: Props) => {
+  const { collectionId } = useParams();
+  const { getCollection, setCurrentCollection } = useModel('collection');
+
   const mainNavWidth = 64;
   const hasSidebar = !_.isEmpty(sidebar);
   const subNavWidth = hasSidebar ? 260 : 0;
   const { token } = theme.useToken();
+
+  useEffect(() => {
+    const collection = getCollection(collectionId);
+    if (collection) {
+      setCurrentCollection(collection);
+    }
+  }, [collectionId]);
+
   return (
     <div
       className={classNames({

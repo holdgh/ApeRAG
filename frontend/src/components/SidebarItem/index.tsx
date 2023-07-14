@@ -4,7 +4,7 @@ import {
   TypesDatabaseConfig,
   TypesDocumentConfig,
 } from '@/types';
-import { history, useModel, useParams } from '@umijs/max';
+import { Link, useModel } from '@umijs/max';
 import { Avatar, Divider, Space, Typography, theme } from 'antd';
 import classNames from 'classnames';
 import moment from 'moment';
@@ -15,15 +15,8 @@ type Props = {
 };
 
 export default ({ collection }: Props) => {
-  const { setCurrentCollection } = useModel('collection');
   const { token } = theme.useToken();
-  const { collectionId } = useParams();
   const { currentChat } = useModel('chat');
-
-  const onClick = async () => {
-    await setCurrentCollection(collection);
-    history.push(`/${collection.type}/${collection.id}/chat`);
-  };
 
   const renderDBIcon = () => {
     const config = collection.config as TypesDatabaseConfig;
@@ -55,17 +48,15 @@ export default ({ collection }: Props) => {
   };
 
   return (
-    <div
+    <Link
       className={classNames({
         [styles.item]: true,
-        [styles.selected]:
-          currentChat?.collectionId === collection.id &&
-          collectionId === collection.id,
+        [styles.selected]: currentChat?.collectionId === collection.id,
       })}
       style={{
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
       }}
-      onClick={onClick}
+      to={`/${collection?.type}/${collection?.id}/chat`}
     >
       <Space style={{ display: 'flex', width: '100%' }}>
         {collection.type === 'database' ? renderDBIcon() : null}
@@ -94,6 +85,6 @@ export default ({ collection }: Props) => {
           </Space>
         </div>
       </Space>
-    </div>
+    </Link>
   );
 };
