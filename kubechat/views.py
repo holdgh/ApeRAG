@@ -29,7 +29,7 @@ from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
 from .models import *
-from .utils.utils import generate_vector_db_collection_id, fix_path_name
+from .utils.utils import generate_vector_db_collection_id, fix_path_name, validate_document_config
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +157,8 @@ async def create_collection(request, collection: CollectionIn):
             await instance.asave()
     elif instance.type == CollectionType.DOCUMENT:
         # pre-create collection in vector db
+        if not validate_document_config(config):
+            return fail(HTTPStatus.BAD_REQUEST,"config invaliate")
         vector_db_conn = get_vector_db_connector(
             collection=generate_vector_db_collection_id(user=user, collection=instance.id)
         )
