@@ -212,8 +212,7 @@ LOGGING = {
 
 # LLM Model
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
-MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"},'
-                                                 ' {"name": "chatglm2-6b", "endpoint": "http://127.0.0.1:8000"}]')
+MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"}]')
 
 EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
 

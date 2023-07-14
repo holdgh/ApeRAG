@@ -95,7 +95,7 @@ affinity:
 
 models:
   - name: vicuna-13b
-    replicaCount: 1
+    replicaCount: 2
     nodeSelector:
       chat.kubeblocks.io/model-name: vicuna-13b
     resources:
