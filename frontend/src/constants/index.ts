@@ -1,7 +1,7 @@
+import BaiChuan12bIcon from '@/assets/baichuan-13b.png';
+import ChatGPTIcon from '@/assets/chat-gpt.png';
 import ChatglmIcon from '@/assets/chatglm.png';
 import VicunaIcon from '@/assets/vicuna.jpg';
-import ChatGPTIcon from '@/assets/chat-gpt.png';
-import BaiChuan12bIcon from '@/assets/baichuan-13b.png';
 import {
   TypesCollectionStatus,
   TypesDatabaseConfig,

@@ -84,23 +84,10 @@ export default () => {
     const { code } = await DeleteCollection(collection.id);
     if (code === '200') {
       setCollections(collections.filter((c) => c.id !== collection.id));
-      setTimeout(() => {
-        history.push(`/${collection.type}`);
-      });
+      history.push(`/${collection.type}`);
     } else {
       message.error('delete error');
     }
-  };
-
-  const getLocalCollection = (): TypesCollection | undefined => {
-    const localCollectionString = localStorage.getItem('collection');
-    let localCollection: TypesCollection | undefined = undefined;
-    if (localCollectionString) {
-      try {
-        localCollection = JSON.parse(localCollectionString);
-      } catch (err) {}
-    }
-    return localCollection;
   };
 
   const createColection = async (params: TypesCollection) => {
@@ -151,28 +138,8 @@ export default () => {
   useEffect(() => {
     if (collections === undefined) return;
 
-    const localCollection = getLocalCollection();
-    const item = collections?.find((c) => c.id === localCollection?.id);
-    if (item) {
-      setCurrentCollection(item);
-    } else {
-      const current = _.first(collections);
-      if (current) {
-        setCurrentCollection(current);
-      } else {
-        setCurrentCollection(undefined);
-        localStorage.removeItem('collection');
-      }
-    }
-
     getModels();
   }, [collections]);
-
-  useEffect(() => {
-    if (currentCollection) {
-      localStorage.setItem('collection', JSON.stringify(currentCollection));
-    }
-  }, [currentCollection]);
 
   return {
     models,
@@ -185,7 +152,6 @@ export default () => {
     getCollections,
     getCollection,
     deleteCollection,
-    getLocalCollection,
     createColection,
     updateCollection,
     setCurrentCollection,

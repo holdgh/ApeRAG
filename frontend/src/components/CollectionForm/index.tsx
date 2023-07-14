@@ -96,6 +96,13 @@ export default ({ onSubmit, action, values }: Props) => {
       headers: {
         Authorization: 'Bearer ' + user?.__raw,
       },
+      beforeUpload: (file, fileList) => {
+        const invalidFile = fileList.find((f) => f.size > 1024 * 1);
+        if (invalidFile) {
+          message.error(`The file '${invalidFile.name}' is larger than 1M.`);
+        }
+        return !invalidFile;
+      },
       onChange(info) {
         const { status } = info.file;
         const code = info?.file?.response?.code;
