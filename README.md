@@ -35,20 +35,12 @@ make run-backend
 
 * run the frontend server
 
-put the .env file to /path/to/frontend/.env
-
 ```
-AUTH0_DOMAIN=kubechat-dev.jp.auth0.com
-AUTH0_CLIENT_ID=wuYeG5UUnEyyoGDHbJSrLSaESwpg7T63
-ASSETS_ENDPOINT=http://localhost:8001
-API_ENDPOINT=http://127.0.0.1:8000
-PORT=8001
-PUBLIC_PATH=/
-DATA_MOCK=true
+git clone https://github.com/apecloud/KubeChat-FrontEnd.git
 ```
 
 ```bash
-make run-frontend
+cd KubeChat-FrontEnd && yarn dev
 ```
 
 
