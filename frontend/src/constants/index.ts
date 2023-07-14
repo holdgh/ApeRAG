@@ -24,22 +24,20 @@ export const DATABASE_DEFAULT_CONFIG: TypesDatabaseConfig = {
   model: 'vicuna-13b',
 };
 
-export const COLLECTION_MODEL_OPTIONS: {
-  label: TypesCollectionConfigModels;
-  value: TypesCollectionConfigModels;
-  icon?: string;
-}[] = [
-  {
-    label: 'vicuna-13b',
-    value: 'vicuna-13b',
+export const COLLECTION_MODEL_OPTIONS_CONFIG: {
+  [key in TypesCollectionConfigModels]: {
+    icon?: string;
+    disabled?: boolean;
+  };
+} = {
+  'vicuna-13b': {
     icon: VicunaIcon,
   },
-  {
-    label: 'chatglm2-6b',
-    value: 'chatglm2-6b',
+  'chatglm2-6b': {
     icon: ChatglmIcon,
+    disabled: true,
   },
-];
+};
 
 export const CODE_DEFAULT_CONFIG = {};
 
@@ -150,13 +148,17 @@ export const SOCKET_STATUS_MAP: { [key in ReadyState]: TypesSocketStatus } = {
   [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
 };
 
-export const CODE_PROMOT_EXAMPLE = [{
-  title: 'Snake Game',
-  text: 'Build a console-based Snake game implemented in C++.'
-}, {
-  title: 'Currency Converter',
-  text: 'Build a currency converter app using an API for exchange rates.Use HTML, CSS, and JavaScript for the frontend and Node.js for the backend. Allow users to convert between different currencies.'
-}, {
-  title: 'File Organizer',
-  text: 'Create a file organizer CLI tool in Golang that sorts files in a directory based on their file types (e.g., images, documents, audio) and moves them into corresponding folders.'
-}]
+export const CODE_PROMOT_EXAMPLE = [
+  {
+    title: 'Snake Game',
+    text: 'Build a console-based Snake game implemented in C++.',
+  },
+  {
+    title: 'Currency Converter',
+    text: 'Build a currency converter app using an API for exchange rates.Use HTML, CSS, and JavaScript for the frontend and Node.js for the backend. Allow users to convert between different currencies.',
+  },
+  {
+    title: 'File Organizer',
+    text: 'Create a file organizer CLI tool in Golang that sorts files in a directory based on their file types (e.g., images, documents, audio) and moves them into corresponding folders.',
+  },
+];

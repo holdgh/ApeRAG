@@ -18,11 +18,11 @@ export type TypesDatabaseConfigDbTypeOption = {
   disabled?: boolean;
 };
 
-export type TypesCollectionConfigModels = 'vicuna-13b' | 'chatglm2-6b';
+export type TypesCollectionConfigModels = string  //'vicuna-13b' | 'chatglm2-6b';
 
 export type TypesDatabaseConfig = {
   host?: string;
-  model?: TypesCollectionConfigModels;
+  model?: string;
 
   // database
   db_type?: TypesDatabaseConfigDbType;

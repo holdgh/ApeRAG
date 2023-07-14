@@ -1,7 +1,7 @@
 import CheckedCard from '@/components/CheckedCard';
 import {
   CODE_PROMOT_EXAMPLE,
-  COLLECTION_MODEL_OPTIONS,
+  COLLECTION_MODEL_OPTIONS_CONFIG,
   DATABASE_TYPE_OPTIONS,
   DOCUMENT_SOURCE_OPTIONS,
 } from '@/constants';
@@ -48,7 +48,7 @@ export default ({ onSubmit, action, values }: Props) => {
   const [remoteValid, setRemoteValid] = useState<boolean>(
     values.type !== 'database',
   );
-  const { collectionLoading } = useModel('collection');
+  const { collectionLoading, models } = useModel('collection');
 
   const { message } = App.useApp();
   const user = getUser();
@@ -144,7 +144,7 @@ export default ({ onSubmit, action, values }: Props) => {
           },
         ]}
       >
-        <Input disabled= {values.type === 'code' && action === 'edit'} />
+        <Input disabled={values.type === 'code' && action === 'edit'} />
       </Form.Item>
       <Form.Item
         name="description"
@@ -157,7 +157,7 @@ export default ({ onSubmit, action, values }: Props) => {
             minRows: 3,
             maxRows: 6,
           }}
-          disabled= {values.type === 'code' && action === 'edit'}
+          disabled={values.type === 'code' && action === 'edit'}
           maxLength={300}
           required={values.type === 'code'}
           showCount
@@ -176,14 +176,14 @@ export default ({ onSubmit, action, values }: Props) => {
                   bodyStyle={{ height: 160 }}
                   size="small"
                   onClick={() => {
-                    if(action === 'edit') return;
+                    if (action === 'edit') return;
                     form.setFieldValue('description', item.text);
                     form.setFieldValue('title', item.title);
                   }}
                   style={{
                     marginBottom: 12,
                     borderColor: token.colorBorderSecondary,
-                    background: token.colorBorderBg
+                    background: token.colorBorderBg,
                   }}
                 >
                   <Typography.Text type="secondary">
@@ -207,7 +207,15 @@ export default ({ onSubmit, action, values }: Props) => {
           ]}
           label="Model"
         >
-          <CheckedCard size="large" options={COLLECTION_MODEL_OPTIONS} />
+          <CheckedCard
+            size="large"
+            options={models.map((name) => ({
+              label: name,
+              value: name,
+              icon: COLLECTION_MODEL_OPTIONS_CONFIG[name].icon,
+              disabled: COLLECTION_MODEL_OPTIONS_CONFIG[name].disabled,
+            }))}
+          />
         </Form.Item>
       ) : null}
 

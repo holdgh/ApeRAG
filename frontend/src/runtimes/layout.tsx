@@ -41,11 +41,6 @@ export const layout = () => {
         paddingInline: 8,
       };
       return [
-        <Link key="settings" to="/settings">
-          <Typography.Text type="secondary" style={actionTextStyle}>
-            <SettingFilled />
-          </Typography.Text>
-        </Link>,
         user ? (
           <Typography.Text type="secondary" style={actionTextStyle}>
             <LoginOutlined
