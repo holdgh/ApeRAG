@@ -6,7 +6,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "llmserver.fullname" . }}
+  name: {{ include "llmserver.fullname" . }}-{{ $rangeItem.name }}
   labels:
     {{- include "llmserver.labels" . | nindent 4 }}
 spec:
@@ -16,6 +16,7 @@ spec:
   selector:
     matchLabels:
       {{- include "llmserver.selectorLabels" . | nindent 6 }}
+      chat.kubeblocks.io/model-name: {{ $rangeItem.name }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -24,6 +25,7 @@ spec:
       {{- end }}
       labels:
         {{- include "llmserver.selectorLabels" . | nindent 8 }}
+        chat.kubeblocks.io/model-name: {{ $rangeItem.name }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -55,11 +57,9 @@ spec:
             - name: LLM_MODEL
               value: {{ $rangeItem.name | quote}}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+            {{- toYaml $rangeItem.resources | nindent 12 }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- toYaml $rangeItem.nodeSelector | nindent 8 }}
       {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

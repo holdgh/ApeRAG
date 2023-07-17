@@ -11,11 +11,11 @@ async def collection_consumer_router(scope, receive, send):
     user = scope["X-USER-ID"]
     path = scope["path"]
     collection_id, chat_id = extract_collection_and_chat_id(path)
-    collection = await sync_to_async(query_collection)(user, collection_id)
+    collection = await query_collection(user, collection_id)
     if collection is None:
         raise Exception("Collection not found")
 
-    chat = await sync_to_async(query_chat)(user, collection_id, chat_id)
+    chat = await query_chat(user, collection_id, chat_id)
     if chat is None:
         raise Exception("Chat not found")
 

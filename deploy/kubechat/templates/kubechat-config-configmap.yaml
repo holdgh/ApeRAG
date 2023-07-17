@@ -9,6 +9,7 @@ data:
   DJANGO_LOG_LEVEL: "INFO"
   MEMORY_REDIS_URL: {{ .Values.django.memoryRedisURL }}
   MODEL_SERVER: {{ .Values.django.modelServer }}
+  MODEL_SERVERS: '{{ .Values.django.modelServers }}'
   POSTGRES_DB: {{ .Values.django.metaDBDatabase }}
   POSTGRES_HOST: {{ .Values.django.metaDBHost }}
   POSTGRES_PORT: "{{ .Values.django.metaDBPort}}"

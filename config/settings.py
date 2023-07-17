@@ -17,7 +17,6 @@ import environ
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 env = environ.Env()
 env_file = os.path.join(BASE_DIR, ".env")
 if os.path.exists(env_file):
@@ -33,7 +32,6 @@ SECRET_KEY = "django-insecure-!_e+#j5vn=jg9fd(i#3jn0-eypw-62om4^gn*s$xq7(%4w-w@t
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
 
 # Application definition
 
@@ -80,7 +78,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -110,7 +107,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -121,7 +117,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -151,7 +146,6 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 AUTH_ENABLED = env.bool("AUTH_ENABLED", default=True)
 AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat-dev.jp.auth0.com")
 AUTH0_CLIENT_ID = env.str("AUTH0_CLIENT_ID", default="")
-
 
 # Celery
 # ------------------------------------------------------------------------------
@@ -190,11 +184,9 @@ CELERY_WORKER_SEND_TASK_EVENTS = True
 CELERY_TASK_SEND_SENT_EVENT = True
 INSTALLED_APPS += ["django_celery_beat"]
 
-
 # WebSockets
 INSTALLED_APPS += ["channels"]
 ASGI_APPLICATION = "config.asgi.application"
-
 
 # Logging
 LOGGING = {
@@ -220,9 +212,9 @@ LOGGING = {
 
 # LLM Model
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
+MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"}]')
 
-MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"},'
-                                                 ' {"name": "chatglm2-6b", "endpoint": "http://127.0.0.1:8000"}]')
+EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
 
 # Memory backend
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
@@ -231,3 +223,5 @@ VECTOR_DB_TYPE = env.str("VECTOR_DB_TYPE", default="qdrant")
 VECTOR_DB_CONTEXT = env.str(
     "VECTOR_DB_CONTEXT", '{"url":"http://localhost", "port":6333, "distance":"Cosine"}'
 )
+
+CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))

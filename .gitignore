@@ -143,6 +143,7 @@ dmypy.json
 
 
 *.bin
+deploy/kubechat/production.yaml
 documents
 
 # ssl file

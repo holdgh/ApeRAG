@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 import time
@@ -43,7 +44,7 @@ To address these challenges, and solve the problem of complexity, KubeBlocks int
 - Sets up a full-stack, production-ready data infrastructure in minutes.
 """
 
-    def predict(self, query):
+    async def predict(self, query):
         tokens = self.response.split(" ")
         start = 0
         length = len(tokens)
@@ -54,4 +55,4 @@ To address these challenges, and solve the problem of complexity, KubeBlocks int
                 end = length
             yield " ".join(tokens[start:end])
             start = end
-            time.sleep(random.uniform(0.1, 0.5))
+            await asyncio.sleep(random.uniform(0.1, 0.5))

@@ -1,4 +1,5 @@
 import inspect
+import pathlib
 from pathlib import Path
 from typing import Dict, List
 
@@ -7,14 +8,13 @@ from config.celery import app
 
 import logging
 
+from config.settings import CODE_STORAGE_DIR
 from kubechat.models import ChatStatus
 from kubechat.tasks.index import CustomLoadDocumentTask
 from kubechat.utils.db import query_collection, query_chat
 from kubechat.utils.utils import fix_path_name, now_unix_milliseconds
 from services.code.code_gerenate.storage import DBs, DB
 
-CELERY_PROJECT_DIR = Path.cwd()
-prompt_default_path = CELERY_PROJECT_DIR / "utils" / "codeprompt"
 
 logger = logging.getLogger(__name__)
 
@@ -28,19 +28,6 @@ def pre_clarify(user, collection_id, chat_id):
     if chat == None:
         logger.error("Chat not found")
     dbs = DB_init(user, collection.title, chat_id)
-    # project_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
-    #     collection.title + str(chat_id))
-    # memory_path = project_path / "memory"
-    # workspace_path = project_path / "workspace"
-    # archive_path = project_path / "archive"
-    # dbs = DBs(
-    #     memory=DB(memory_path),  # 对话记录
-    #     logs=DB(memory_path / "logs"),  # 日志
-    #     input=DB(project_path),
-    #     workspace=DB(workspace_path),  # code项目存放路径
-    #     preprompts=DB(prompt_default_path),  # 默认preprompts的路径
-    #     archive=DB(archive_path),
-    # )
     dbs.input["prompt"] = chat.summary  # write the core prompt for code-generate
 
     messages = [fsystem(msg=dbs.preprompts["qa"])]
@@ -99,11 +86,13 @@ def curr_fn() -> str:
 
 
 def DB_init(user, title, chat_id):
-    project_path = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+    base_dir = Path(CODE_STORAGE_DIR)
+    project_path = base_dir / "generated-code" / fix_path_name(user) / fix_path_name(
         title + str(chat_id))
     memory_path = project_path / "memory"
     workspace_path = project_path / "workspace"
     archive_path = project_path / "archive"
+    prompt_default_path = Path.cwd() / "utils" / "codeprompt"
     return DBs(
         memory=DB(memory_path),  # 对话记录
         logs=DB(memory_path / "logs"),  # 日志

@@ -10,9 +10,11 @@ metadata:
   name: kubechat
 spec:
   ports:
-    - name: "80"
+    - name: "{{ .Values.service.port }}"
       port: {{ .Values.service.port }}
       targetPort: 8000
   type: LoadBalancer
+  externalTrafficPolicy: Local
   selector:
     {{- include "kubechat.selectorLabels" . | nindent 4 }}
+    {{- include "django.labels" . | nindent 4 }}

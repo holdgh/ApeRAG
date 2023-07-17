@@ -49,6 +49,7 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         limit = kwargs.get("limit", 3)
         consistency = kwargs.get("consistency", "majority")
         search_params = kwargs.get("search_params")
+        score_threshold = kwargs.get("score_threshold", 0.1)
 
         hits = self.client.search(
             collection_name=self.collection_name,
@@ -57,6 +58,7 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
             limit=query.top_k,
             consistency=consistency,
             search_params=search_params,
+            score_threshold=score_threshold,
         )
 
         return QueryResult(

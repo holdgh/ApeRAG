@@ -4,19 +4,21 @@ import logging
 import os
 import uuid
 import zipfile
+from pathlib import Path
 from datetime import datetime
 from http import HTTPStatus
 
 from typing import List, Optional
 
+from asgiref.sync import sync_to_async
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
+from fsspec.asyn import loop
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
-from kubechat.tasks.code_generate import pre_clarify, \
-    CELERY_PROJECT_DIR  # can't remove or pre_clarify task will be NotRegister
+from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
 from kubechat.tasks.index import add_index_for_document, remove_index
@@ -27,7 +29,7 @@ from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
 from .models import *
-from .utils.utils import generate_vector_db_collection_id, fix_path_name
+from .utils.utils import generate_vector_db_collection_id, fix_path_name, validate_document_config
 
 logger = logging.getLogger(__name__)
 
@@ -117,19 +119,23 @@ def connection_test(request, connection: ConnectionInfo):
     return success("successfully connected")
 
 
-@api.get("/collections/model_name")
+@api.get("/collections/models")
 def list_model_name(request):
     response = []
     model_servers = json.loads(settings.MODEL_SERVERS)
     if model_servers is None:
         return fail(HTTPStatus.NOT_FOUND, "model name not found")
     for model_server in model_servers:
-        response.append(model_server["name"])
+        response.append({
+            "value": model_server["name"],
+            "label": model_server.get("label", model_server["name"]),
+            "enabled": model_server.get("enabled", "true").lower() == "true",
+        })
     return success(response)
 
 
 @api.post("/collections")
-def create_collection(request, collection: CollectionIn):
+async def create_collection(request, collection: CollectionIn):
     user = get_user(request)
     instance = Collection(
         user=user,
@@ -141,16 +147,18 @@ def create_collection(request, collection: CollectionIn):
 
     if collection.config is not None:
         instance.config = collection.config
-    instance.save()
+    await instance.asave()
 
     config = json.loads(collection.config)
     if instance.type == CollectionType.DATABASE:
         if config["verify"] != VerifyWay.PREFERRED:
             add_ssl_file(config, instance)
             collection.config = json.dumps(config)
-            instance.save()
+            await instance.asave()
     elif instance.type == CollectionType.DOCUMENT:
         # pre-create collection in vector db
+        if not validate_document_config(config):
+            return fail(HTTPStatus.BAD_REQUEST,"config invaliate")
         vector_db_conn = get_vector_db_connector(
             collection=generate_vector_db_collection_id(user=user, collection=instance.id)
         )
@@ -164,25 +172,25 @@ def create_collection(request, collection: CollectionIn):
             collection=instance,
             summary=instance.description,
         )
-        chat.save()
+        await chat.asave()
 
     return success(instance.view())
 
 
 @api.get("/collections")
-def list_collections(request):
+async def list_collections(request):
     user = get_user(request)
-    instances = query_collections(user)
+    instances = await query_collections(user)
     response = []
-    for instance in instances:
+    async for instance in instances:
         response.append(instance.view())
     return success(response)
 
 
 @api.get("/collections/{collection_id}/database")
-def get_database_list(request, collection_id):
+async def get_database_list(request, collection_id):
     user = get_user(request)
-    instance = query_collection(user, collection_id)
+    instance = await query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
@@ -205,43 +213,43 @@ def get_database_list(request, collection_id):
 
 
 @api.get("/collections/{collection_id}")
-def get_collection(request, collection_id):
+async def get_collection(request, collection_id):
     user = get_user(request)
-    instance = query_collection(user, collection_id)
+    instance = await query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     return success(instance.view())
 
 
 @api.put("/collections/{collection_id}")
-def update_collection(request, collection_id, collection: CollectionIn):
+async def update_collection(request, collection_id, collection: CollectionIn):
     user = get_user(request)
-    instance = query_collection(user, collection_id)
+    instance = await query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.title = collection.title
     instance.description = collection.description
     instance.config = collection.config
-    instance.save()
+    await instance.asave()
     return success(instance.view())
 
 
 @api.delete("/collections/{collection_id}")
-def delete_collection(request, collection_id):
+async def delete_collection(request, collection_id):
     user = get_user(request)
-    instance = query_collection(user, collection_id)
+    instance = await query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.status = CollectionStatus.DELETED
     instance.gmt_deleted = datetime.now()
-    instance.save()
+    await instance.asave()
     return success(instance.view())
 
 
 @api.post("/collections/{collection_id}/documents")
-def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
+async def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
     user = get_user(request)
-    collection = query_collection(user, collection_id)
+    collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
@@ -255,28 +263,28 @@ def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
             collection=collection,
             file=ContentFile(item.read(), item.name),
         )
-        document_instance.save()
+        await document_instance.asave()
         response.append(document_instance.view())
         add_index_for_document.delay(document_instance.id)
     return success(response)
 
 
 @api.get("/collections/{collection_id}/documents")
-def list_documents(request, collection_id):
+async def list_documents(request, collection_id):
     user = get_user(request)
-    documents = query_documents(user, collection_id)
+    documents = await query_documents(user, collection_id)
     response = []
-    for document in documents:
+    async for document in documents:
         response.append(document.view())
     return success(response)
 
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
-def update_document(
+async def update_document(
         request, collection_id, document_id, file: UploadedFile = File(...)
 ):
     user = get_user(request)
-    document = query_document(user, collection_id, document_id)
+    document = await query_document(user, collection_id, document_id)
     if document is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
 
@@ -284,14 +292,14 @@ def update_document(
     document.file = data
     document.size = len(data)
     document.status = DocumentStatus.PENDING
-    document.save()
+    await document.asave()
     return success(document.view())
 
 
 @api.delete("/collections/{collection_id}/documents/{document_id}")
-def delete_document(request, collection_id, document_id):
+async def delete_document(request, collection_id, document_id):
     user = get_user(request)
-    document = query_document(user, collection_id, document_id)
+    document = await query_document(user, collection_id, document_id)
     if document is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
     remove_index.delay(document.id)
@@ -299,46 +307,46 @@ def delete_document(request, collection_id, document_id):
 
 
 @api.post("/collections/{collection_id}/chats")
-def add_chat(request, collection_id):
+async def add_chat(request, collection_id):
     user = get_user(request)
-    collection_instance = query_collection(user, collection_id)
+    collection_instance = await query_collection(user, collection_id)
     if collection_instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance = Chat(
         user=user,
         collection=collection_instance,
     )
-    instance.save()
+    await instance.asave()
     return success(instance.view())
 
 
 @api.get("/collections/{collection_id}/chats")
-def list_chats(request, collection_id):
+async def list_chats(request, collection_id):
     user = get_user(request)
-    chats = query_chats(user, collection_id)
+    chats = await query_chats(user, collection_id)
     response = []
-    for chat in chats:
+    async for chat in chats:
         response.append(chat.view())
     return success(response)
 
 
 @api.put("/collections/{collection_id}/chats/{chat_id}")
-def update_chat(request, collection_id, chat_id):
+async def update_chat(request, collection_id, chat_id):
     user = get_user(request)
-    instance = query_chat(user, collection_id, chat_id)
+    instance = await query_chat(user, collection_id, chat_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     instance.summary = ""
-    instance.save()
+    await instance.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
     return success(instance.view())
 
 
 @api.get("/collections/{collection_id}/chats/{chat_id}")
-def get_chat(request, collection_id, chat_id):
+async def get_chat(request, collection_id, chat_id):
     user = get_user(request)
-    chat = query_chat(user, collection_id, chat_id)
+    chat = await query_chat(user, collection_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
@@ -357,33 +365,39 @@ def get_chat(request, collection_id, chat_id):
 
 
 @api.delete("/collections/{collection_id}/chats/{chat_id}")
-def delete_chat(request, collection_id, chat_id):
+async def delete_chat(request, collection_id, chat_id):
     user = get_user(request)
-    chat = query_chat(user, collection_id, chat_id)
+    chat = await query_chat(user, collection_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.status = ChatStatus.DELETED
     chat.gmt_deleted = datetime.now()
-    chat.save()
+    await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
     return success(chat.view())
 
 
 @api.get("/code/codegenerate/download/{chat_id}")
-def download_code(request, chat_id):
+async def download_code(request, chat_id):
     user = get_user(request)
-    chat = Chat.objects.exclude(status=DocumentStatus.DELETED).get(
+    chat = await Chat.objects.exclude(status=DocumentStatus.DELETED).aget(
         user=user, pk=chat_id
     )
-    collection = chat.collection
+
+    @sync_to_async
+    def get_collection():
+        return chat.collection
+
+    collection = await get_collection()
     if chat.user != user:
         return success("No access to the file")
     if chat.status != ChatStatus.UPLOADED:
         return success("The file is not ready for download")
+    base_dir = Path(settings.CODE_STORAGE_DIR)
     buffer = io.BytesIO()
     zip = zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED)
-    workspace = CELERY_PROJECT_DIR / "generated-code" / fix_path_name(user) / fix_path_name(
+    workspace = base_dir / "generated-code" / fix_path_name(user) / fix_path_name(
         collection.title + str(chat_id)) / "workspace"
 
     for root, dirs, files in os.walk(str(workspace)):

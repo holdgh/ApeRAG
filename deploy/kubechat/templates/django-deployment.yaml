@@ -78,6 +78,11 @@ spec:
                 configMapKeyRef:
                   key: MODEL_SERVER
                   name: kubechat-config
+            - name: MODEL_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_SERVERS
+                  name: kubechat-config
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
@@ -120,6 +125,10 @@ spec:
                   name: kubechat-config
             - name: MEDIA_ROOT
               value: /data/media
+            - name: CODE_STORAGE_DIR
+              value: /data/codegen
+            - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+              value: python
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}

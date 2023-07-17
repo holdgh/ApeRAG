@@ -1,5 +1,10 @@
+import json
 import re
 from datetime import datetime
+from typing import Dict
+
+AVAILABLE_MODEL = [""]
+AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email"]
 
 
 def extract_collection_and_chat_id(path: str):
@@ -32,7 +37,6 @@ def extract_database(path: str, db_type):
         return None
 
 
-
 def extract_code_chat(path: str):
     match = re.match(r"/api/v1/code/(?P<chat_id>\w+)/connect$", path)
     if match:
@@ -51,3 +55,11 @@ def generate_vector_db_collection_id(user, collection) -> str:
 
 def fix_path_name(path) -> str:
     return str(path).replace("|", "-")
+
+
+def validate_document_config(config: Dict) -> bool:
+    if "source" not in config.keys():
+        return False
+    if config.get("source") not in AVAILABLE_SOURCE:
+        return False
+    return True

@@ -61,7 +61,7 @@ tolerations: []
 affinity: {}
 
 django:
-  replicaCount: 1
+  replicaCount: 2
   resources: { }
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -78,6 +78,7 @@ django:
   auth0Domain: ""
   memoryRedisURL: redis://redis-redis:6379/1
   modelServer: http://llmserver:8000
+  modelServers: '[{"name": "vicuna-13b", "label": "Vicuna 13b", "endpoint": "http://llmserver-vicuna-13b:8000", "enabled": "true"}, {"name": "baichuan-13b", "label": "BaiChuan 13b", "endpoint": "http://llmserver-baichuan-13b:8000", "enabled": "true"}, {"name": "chatglm2-6b", "label": "ChatGLM2 6b", "endpoint": "http://llmserver-chatglm2-6b:8000", "enabled": "false"}, {"name": "chatgpt-3.5", "label": "ChatGPT 3.5", "enabled": "false"}, {"name": "chatgpt-4", "label": "ChatGPT 4", "enabled": "false"}]'
   metaDBHost: postgresql-postgresql
   metaDBPort: 5432
   metaDBDatabase: kubechat

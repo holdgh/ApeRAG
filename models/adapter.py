@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import os
+import torch
 from functools import cache
 from typing import List
+from transformers.generation.utils import GenerationConfig
+
 
 from transformers import (
     AutoModel,
@@ -153,6 +156,20 @@ class GorillaAdapter(BaseLLMAdaper):
         return model, tokenizer
 
 
+class BaiChuanAdapter(BaseLLMAdaper):
+    def match(self, model_path: str):
+        return "baichuan" in model_path
+
+    def loader(self, model_path: str, from_pretrained_kwargs: dict):
+        tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path, low_cpu_mem_usage=True, trust_remote_code=True, **from_pretrained_kwargs
+        )
+        model = model.quantize(8).cuda()
+        model.generation_config = GenerationConfig.from_pretrained(model_path)
+        return model, tokenizer
+
+
 class CodeGenAdapter(BaseLLMAdaper):
     pass
 
@@ -220,6 +237,7 @@ register_llm_model_adapters(GuanacoAdapter)
 register_llm_model_adapters(FalconAdapater)
 register_llm_model_adapters(GorillaAdapter)
 register_llm_model_adapters(GPT4AllAdapter)
+register_llm_model_adapters(BaiChuanAdapter)
 # TODO Default support vicuna, other model need to tests and Evaluate
 
 # just for test_py, remove this later
