@@ -21,20 +21,34 @@ def download_email_body_to_temp_file(pop_conn, email_index, name):
     message = message_from_bytes(message_content)
     body = ""
     for part in message.walk():
-        if part.get_content_maintype() == "text":
-            body += part.get_payload(decode=True).decode("utf-8")
+        content_type = part.get_content_type()
+        if content_type == 'text/plain' or content_type == 'text/html':
+            content = part.get_payload(decode=True)
+            charset = part.get_charset()
+            if charset is None:
+                content_type = part.get('Content-Type', '').lower()
+                position = content_type.find('charset=')
+                if position >= 0:
+                    charset = content_type[position + 8:].strip()
+                    if charset.find("utf-8") != -1:
+                        charset = '"utf-8"'
+            if charset:
+                text_content = content.decode(charset)
+                body += text_content
     plain_text = extract_plain_text_from_email_body(body)
     prefix = name.strip("/").replace("/", "--")
-    if plain_text:
-        temp_file = tempfile.NamedTemporaryFile(
-            prefix=prefix,
-            delete=False,
-            suffix=".txt",
-        )
-        temp_file.write(plain_text.encode("utf-8"))
-        temp_file.close()
-        return temp_file.name
-    return None
+
+    # when all email context is html, fill with its title
+    if plain_text == '':
+        plain_text = name
+    temp_file = tempfile.NamedTemporaryFile(
+        prefix=prefix,
+        delete=False,
+        suffix=".txt",
+    )
+    temp_file.write(plain_text.encode("utf-8"))
+    temp_file.close()
+    return temp_file.name
 
 
 def extract_plain_text_from_email_body(body):
@@ -52,6 +66,9 @@ def decode_msg_header(header):
     value, charset = decode_header(header)[0]
     if charset:
         value = value.decode(charset)
+    if type(value) == bytes:
+        value.decode()
+        value = value.decode()
     return value
 
 
@@ -68,7 +85,13 @@ class EmailSource(Source):
         self.email_num = 0
 
     def _connect_to_pop3_server(self):
-        pop_conn = poplib.POP3_SSL(self.pop_server, self.port)
+        pop_conn = None
+        if self.port == 110:
+            pop_conn = poplib.POP3(self.pop_server, self.port)
+        else:
+            pop_conn = poplib.POP3_SSL(self.pop_server, self.port)
+        if pop_conn is None:
+            logger.error(f"connect to pop server {self.pop_server} failed")
         pop_conn.user(self.email_address)
         pop_conn.pass_(self.email_password)
         return pop_conn
@@ -88,7 +111,7 @@ class EmailSource(Source):
                 order_and_name = str(i + 1) + '_' + decoded_subject + f".txt"
 
                 msg_date = str(message_object["date"])
-                if msg_date.find('(GMT)') != -1 or msg_date.find('(UTC)') != -1:
+                if msg_date.find('(GMT)') != -1 or msg_date.find('(UTC)') != -1 or msg_date.find('(CST)') != -1:
                     msg_date = msg_date[:-6]
 
                 document = Document(
@@ -106,13 +129,11 @@ class EmailSource(Source):
         return documents
 
     def prepare_document(self, doc: Document):
-
         order_and_name = doc.name
         under_line = order_and_name.find('_')
         order = order_and_name[:under_line]
-        name = order_and_name[under_line + 1:]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order, name
+            self.conn, order, order_and_name
         )
         return temp_file_path
 
