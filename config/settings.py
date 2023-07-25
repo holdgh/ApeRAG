@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
-
+import time
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,14 +29,16 @@ if os.path.exists(env_file):
 SECRET_KEY = "django-insecure-!_e+#j5vn=jg9fd(i#3jn0-eypw-62om4^gn*s$xq7(%4w-w@t"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne",
+    # 'smart_chart.smartui',
+    # 'smart_chart.echart',
+    "simpleui",
     "kubechat",
     "corsheaders",
     "django.contrib.admin",
@@ -48,14 +50,17 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware"
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -124,9 +129,6 @@ USE_TZ = True
 MEDIA_ROOT = env.str("MEDIA_ROOT", ".")
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [
-    BASE_DIR / "frontend/build",
-]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -140,6 +142,9 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://\w+\.kubeblocks\.io$",
     r"http://localhost:*",
 ]
+
+# CSRF
+CSRF_TRUSTED_ORIGINS = ["https://*.kubeblocks.io", "https://*.apecloud.com"]
 
 # Auth0
 # Load Auth0 application settings into memory
@@ -215,6 +220,7 @@ MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"}]')
 
 EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
+EMBEDDING_PRE_LOAD = env.bool("EMBEDDING_PRE_LOAD", default=True)
 
 # Memory backend
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
@@ -225,3 +231,28 @@ VECTOR_DB_CONTEXT = env.str(
 )
 
 CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
+
+
+# simpleui
+SIMPLEUI_CONFIG = {
+    'system_keep': True,
+    # 'menu_display': [],
+    'dynamic': False,    # Set whether to enable dynamic menus. Default is False.
+}
+# Hide the advertisement links on the right side of SimpleUI and the usage analysis.
+SIMPLEUI_HOME_INFO = False
+SIMPLEUI_ANALYSIS = False
+
+# Hide the quick operations and recent actions on the homepage.
+SIMPLEUI_HOME_QUICK = True
+SIMPLEUI_HOME_ACTION = True
+
+SIMPLEUI_HOME_ICON = 'fa fa-eye'
+
+# Set the Home icon redirect link. It will open in a new window.
+SIMPLEUI_INDEX = 'https://www.apecloud.com'
+
+# prometheus
+INSTALLED_APPS += ["django_prometheus"]
+
+STATIC_ROOT = BASE_DIR / "static"

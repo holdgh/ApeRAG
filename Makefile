@@ -18,7 +18,8 @@ clean:
 	/bin/rm -f db.sqlite3
 
 run-backend: migrate
-	daphne config.asgi:application -b 0.0.0.0
+	python manage.py collectstatic --noinput
+	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
 
 run-frontend:
 	cd frontend && yarn dev

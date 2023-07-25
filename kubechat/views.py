@@ -25,11 +25,15 @@ from kubechat.tasks.index import add_index_for_document, remove_index
 from kubechat.tasks.scan import scan_collection
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
+from readers.Readers import DEFAULT_FILE_READER_CLS
 from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
 from .models import *
 from .utils.utils import generate_vector_db_collection_id, fix_path_name, validate_document_config
+
+from django.contrib.auth.models import User
+from django.shortcuts import render
 
 logger = logging.getLogger(__name__)
 
@@ -255,17 +259,21 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
 
     response = []
     for item in file:
-        document_instance = Document(
-            user=user,
-            name=item.name,
-            status=DocumentStatus.PENDING,
-            size=item.size,
-            collection=collection,
-            file=ContentFile(item.read(), item.name),
-        )
-        await document_instance.asave()
-        response.append(document_instance.view())
-        add_index_for_document.delay(document_instance.id)
+        file_suffix = os.path.splitext(item.name)[1].lower()
+        if file_suffix in DEFAULT_FILE_READER_CLS.keys():
+            document_instance = Document(
+                user=user,
+                name=item.name,
+                status=DocumentStatus.PENDING,
+                size=item.size,
+                collection=collection,
+                file=ContentFile(item.read(), item.name),
+            )
+            await document_instance.asave()
+            response.append(document_instance.view())
+            add_index_for_document.delay(document_instance.id)
+        else:
+            logger.error("uploaded a file of unexpected file type.")
     return success(response)
 
 
@@ -326,7 +334,7 @@ async def list_chats(request, collection_id):
     chats = await query_chats(user, collection_id)
     response = []
     async for chat in chats:
-        response.append(chat.view())
+        response.append(chat.view(collection_id))
     return success(response)
 
 
@@ -361,7 +369,7 @@ async def get_chat(request, collection_id, chat_id):
         item["role"] = message.additional_kwargs["role"]
         item["references"] = message.additional_kwargs.get("references") or []
         messages.append(item)
-    return success(chat.view(messages))
+    return success(chat.view(collection_id, messages))
 
 
 @api.delete("/collections/{collection_id}/chats/{chat_id}")
@@ -413,3 +421,13 @@ async def download_code(request, chat_id):
 
 def index(request):
     return HttpResponse("KubeChat")
+
+
+def dashboard(request):
+    user_count = User.objects.count()
+    collection_count = Collection.objects.count()
+    document_count = Document.objects.count()
+    chat_count = Chat.objects.count()
+    context = {'user_count': user_count, 'Collection_count': collection_count,
+               'Document_count': document_count, 'Chat_count': chat_count}
+    return render(request, 'kubechat/dashboard.html', context)

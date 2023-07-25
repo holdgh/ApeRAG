@@ -22,4 +22,5 @@ from django.urls import include, path
 urlpatterns = [
     path("api/", include("kubechat.urls")),
     path("admin/", admin.site.urls),
+    path('', include('django_prometheus.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
