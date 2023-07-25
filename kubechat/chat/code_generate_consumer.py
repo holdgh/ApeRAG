@@ -56,11 +56,11 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         # accept the websocket
-        headers = {}
+        headers = []
         token = self.scope.get("Sec-Websocket-Protocol", None)
         if token is not None:
-            headers = {"SEC-WEBSOCKET-PROTOCOL": token}
-        await self.accept(subprotocol=(None, headers))
+            headers.append((b"Sec-Websocket-Protocol", token.encode("ascii")))
+        await super(AsyncWebsocketConsumer, self).send({"type": "websocket.accept", "headers": headers})
         # build code generate task config
         self.user = self.scope["X-USER-ID"]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
