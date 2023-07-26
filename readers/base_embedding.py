@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from abc import ABC, abstractmethod
 from threading import Lock, Thread
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from langchain.embeddings.google_palm import GooglePalmEmbeddings
 from langchain.embeddings.huggingface import (
@@ -75,6 +75,10 @@ def get_default_embedding_model(load=True) -> {LangchainEmbedding, int}:
                 {"model_type": "huggingface"}, load
             )
     return default_embedding_model, default_vector_size
+
+
+# preload embedding model will cause model hanging, so we load it when first time use
+# get_default_embedding_model()
 
 
 class DocumentBaseEmbedding(ABC):

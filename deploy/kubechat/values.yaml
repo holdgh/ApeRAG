@@ -87,7 +87,6 @@ django:
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   vectorDBType: qdrant
   openaiAPIKey: ""
-  embeddingPreLoad: True
 
 celery-worker:
   replicaCount: 1

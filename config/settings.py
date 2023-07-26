@@ -220,7 +220,6 @@ MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"}]')
 
 EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
-EMBEDDING_PRE_LOAD = env.bool("EMBEDDING_PRE_LOAD", default=True)
 
 # Memory backend
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")

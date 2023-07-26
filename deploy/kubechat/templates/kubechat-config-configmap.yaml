@@ -18,7 +18,6 @@ data:
   VECTOR_DB_CONTEXT: '{{ .Values.django.vectorDBContext }}'
   VECTOR_DB_TYPE: {{ .Values.django.vectorDBType }}
   OPENAI_API_KEY: {{ .Values.django.openaiAPIKey }}
-  EMBEDDING_PRE_LOAD: "{{ .Values.django.embeddingPreLoad }}"
 kind: ConfigMap
 metadata:
   labels:
