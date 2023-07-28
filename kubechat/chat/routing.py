@@ -31,6 +31,9 @@ async def collection_consumer_router(scope, receive, send):
     elif collection.type == CollectionType.CODE:
         from kubechat.chat.code_generate_consumer import CodeGenerateConsumer
         return await CodeGenerateConsumer.as_asgi()(scope, receive, send)
+    elif collection.type == CollectionType.KUBEBLOCKS:
+        from kubechat.chat.text_2_kubeblocks_consumer import Text2KubeblocksConsumer
+        return await Text2KubeblocksConsumer.as_asgi()(scope, receive, send)
     else:
         raise Exception("Invalid collection type")
 
