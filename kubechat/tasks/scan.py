@@ -9,7 +9,7 @@ from kubechat.tasks.index import add_index_for_document
 from kubechat.source.base import Source, get_source
 
 
-@app.task(base=CustomLoadDocumentTask, time_limit=300, soft_time_limit=180)
+@app.task(base=CustomLoadDocumentTask, time_limit=14400, soft_time_limit=7200)
 def scan_collection(collection_id):
     collection = Collection.objects.get(id=collection_id)
     collection.status = CollectionStatus.INACTIVE

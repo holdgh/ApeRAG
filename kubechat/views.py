@@ -325,7 +325,7 @@ async def add_chat(request, collection_id):
         collection=collection_instance,
     )
     await instance.asave()
-    return success(instance.view())
+    return success(instance.view(collection_id))
 
 
 @api.get("/collections/{collection_id}/chats")
@@ -348,7 +348,7 @@ async def update_chat(request, collection_id, chat_id):
     await instance.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
-    return success(instance.view())
+    return success(instance.view(collection_id))
 
 
 @api.get("/collections/{collection_id}/chats/{chat_id}")
