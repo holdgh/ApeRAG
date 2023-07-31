@@ -225,3 +225,6 @@ VECTOR_DB_CONTEXT = env.str(
 )
 
 CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
+
+KBCLIDOC_DIR = env.str("KBCLI_DOC_DIR", default=os.path.join(str(BASE_DIR), "documents/kbcli_doc"))
+KBCLIDOC_COLLECTION_NAME = env.str("KBCLIDOC_VECTORDB_COLLECTION_NAME", default="text2kbcli")

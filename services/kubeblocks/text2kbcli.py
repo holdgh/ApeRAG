@@ -89,21 +89,24 @@ TEXT_TO_CLUSTER_PROMPT = Prompt(
 )
 
 
-# get all filenames end with ".md"
-def list_markdown_files(directory: str):
-    markdown_files = []
+# get all filenames end with specific end
+def list_specific_end_files(directory: str, end: str):
+    specific_end_files = []
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if file.endswith(".md"):
-                markdown_files.append(os.path.join(root, file))
-    return markdown_files
+            if file.endswith(end):
+                specific_end_files.append(os.path.join(root, file))
+    return specific_end_files
 
 
 # store files to one specific collection in default vector db
-def inflate_doc(file_paths: List[str], collection_id: str):
+def inflate_doc_to_database(file_paths: List[str], collection_id: str):
     vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-    vector_db_collection_id = collection_id
-    vectordb_ctx["collection"] = vector_db_collection_id
+    vectordb_ctx["collection"] = collection_id
+    # delete previous existing kbcli doc in vector db, to update collection
+    last_adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
+    last_adaptor.connector.delete_collection(collection_id)
+    # store files in new collection with the same name
     adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
     for file_path in file_paths:
         try:
@@ -127,12 +130,13 @@ class Text2KBCLI(KubeBlocks):
 
     def predict(self, query):
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-        vector_db_collection_id = "text2kbcli"
+        vector_db_collection_id = settings.KBCLIDOC_COLLECTION_NAME
         vectordb_ctx["collection"] = vector_db_collection_id
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
         query_vector = self.embedding_model.get_text_embedding(query)
         query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=query_vector)
 
+        # search in kbcli doc in vector db
         results = adaptor.connector.search(
             query_embedding,
             collection_name=vector_db_collection_id,
@@ -155,11 +159,14 @@ class Text2KBCLI(KubeBlocks):
         return response
 
 
-# initialize：store kbcli documents to collections named "text2kbcli" in vector db
+# initialize：store kbcli documents to collections named "text2kbcli"(settings.KBCLIDOC_COLLECTION_NAME) in vector db
 # if __name__ == "__main__":
-    # kbcli_md = "/Users/lyf/kubeblocks/docs/user_docs/cli/"
-    # kbcli_md_list = list_markdown_files(directory=kbcli_md)
-    # h=inflate_doc(file_paths=kbcli_md_list, collection_id="text2kbcli")
-    # print(h)
-
-
+#     kbcli_md_path = settings.KBCLIDOC_DIR
+#     kbcli_md_list = list_specific_end_files(directory=kbcli_md_path, end=".md")
+#     if kbcli_md_list is []:
+#         logger.error("no kbcli was detected")
+#     success = inflate_doc_to_database(file_paths=kbcli_md_list, collection_id=settings.KBCLIDOC_COLLECTION_NAME)
+#     if success is False:
+#         logger.error("inserting kbcli doc to vector db failed")
+#     kb = Text2KBCLI()
+#     print(kb.predict("generate a kbcli command to list differences of kubeblocks version 0.4.0 and 0.5.0"))

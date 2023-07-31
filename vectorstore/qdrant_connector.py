@@ -70,7 +70,7 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         )
 
     def _convert_scored_point_to_document_with_score(
-        self, scored_point: ScoredPoint
+            self, scored_point: ScoredPoint
     ) -> DocumentWithScore | None:
         try:
             payload = scored_point.payload or {}
@@ -99,6 +99,9 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         ids = delete_kwargs.get("ids")
         for doc_id in ids:
             self.store.delete(ref_doc_id=doc_id, **delete_kwargs)
+
+    def delete_collection(self, name: str):
+        return self.client.delete_collection(collection_name=name)
 
     def create_collection(self, **kwargs: Any):
         vector_size = kwargs.get("vector_size")
