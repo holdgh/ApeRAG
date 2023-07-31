@@ -27,6 +27,7 @@ class CollectionType(models.TextChoices):
     DOCUMENT = "document"
     DATABASE = "database"
     CODE = "code"
+    KUBEBLOCKS = "kubeblocks"
 
 
 class DocumentStatus(models.TextChoices):
