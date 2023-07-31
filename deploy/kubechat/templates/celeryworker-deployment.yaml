@@ -23,7 +23,7 @@ spec:
       {{- end }}
       labels:
         {{- include "kubechat.selectorLabels" . | nindent 8 }}
-        {{- include "celeryworker.labels" . | nindent 6 }}
+        {{- include "celeryworker.labels" . | nindent 8 }}
     spec:
       containers:
         - command:
