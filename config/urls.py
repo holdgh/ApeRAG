@@ -19,8 +19,16 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+import kubechat.views
+from kubechat.views import default_page
+from django.conf.urls import handler404
+
+handler404 = kubechat.views.default_page
+
 urlpatterns = [
     path("api/", include("kubechat.urls")),
     path("admin/", admin.site.urls),
     path('', include('django_prometheus.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+

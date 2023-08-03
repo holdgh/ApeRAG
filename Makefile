@@ -19,6 +19,9 @@ clean:
 
 run-backend: migrate
 	python manage.py collectstatic --noinput
+	if [ -f "static/web/index.html" ]; then \
+  		cp static/web/index.html kubechat/templates/404.html; \
+  	fi
 	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
 
 run-frontend:

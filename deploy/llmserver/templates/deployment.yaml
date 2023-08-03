@@ -45,14 +45,14 @@ spec:
             - -c
             - |
               ln -s /data/resources /app
-              python /app/server/llmserver.py
+              uvicorn server.llmserver:app --host 0.0.0.0 --log-config uvicorn-log-config.yaml
           ports:
             - name: http
               containerPort: 8000
               protocol: TCP
           volumeMounts:
-            - mountPath: /data
-              name: models
+            - name: data
+              mountPath: /data
           env:
             - name: LLM_MODEL
               value: {{ $rangeItem.name | quote}}
@@ -60,7 +60,7 @@ spec:
             {{- toYaml $rangeItem.resources | nindent 12 }}
       nodeSelector:
         {{- toYaml $rangeItem.nodeSelector | nindent 8 }}
-      {{- with .Values.affinity }}
+      {{- with $rangeItem.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -69,9 +69,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        - name: models
+        {{- if and .Values.efsId (ne .Values.efsId "") }}
+        - name: data
           persistentVolumeClaim:
             claimName: llmserver-efs-claim
+        {{- else }}
+        - name: data
+          hostPath:
+            path: /data/kubechat
+        {{- end }}
 
 {{- end }}
 {{- end }}

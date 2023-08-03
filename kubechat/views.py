@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
-from kubechat.tasks.index import add_index_for_document, remove_index
+from kubechat.tasks.index import add_index_for_document, remove_index, add_index_for_local_document
 from kubechat.tasks.scan import scan_collection
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
@@ -271,7 +271,7 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
             )
             await document_instance.asave()
             response.append(document_instance.view())
-            add_index_for_document.delay(document_instance.id)
+            add_index_for_local_document.delay(document_instance.id)
         else:
             logger.error("uploaded a file of unexpected file type.")
     return success(response)
@@ -417,6 +417,10 @@ async def download_code(request, chat_id):
     response['Content-Disposition'] = f"attachment; filename=\"{collection.title}.zip\""
     response['Content-Type'] = 'application/zip'
     return response
+
+
+def default_page(request, exception):
+    return render(request, '404.html')
 
 
 def index(request):

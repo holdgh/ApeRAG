@@ -44,30 +44,28 @@ spec:
                   key: DJANGO_LOG_LEVEL
                   name: kubechat-config
             - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_DB
-                  name: kubechat-config
+              value: "{{ .Values.django.metaDBDatabase }}"
             - name: POSTGRES_HOST
               valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_HOST
-                  name: kubechat-config
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PASSWORD
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: host
             - name: POSTGRES_PORT
               valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PORT
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: port
             - name: POSTGRES_USER
               valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_USER
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: password
+
             - name: VECTOR_DB_CONTEXT
               valueFrom:
                 configMapKeyRef:
@@ -80,6 +78,10 @@ spec:
                   name: kubechat-config
             - name: MEDIA_ROOT
               value: /data/media
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -90,6 +92,12 @@ spec:
               name: data
       restartPolicy: Always
       volumes:
+        {{- if and .Values.efsId (ne .Values.efsId "") }}
         - name: data
           persistentVolumeClaim:
             claimName: kubechat-efs-claim
+        {{- else }}
+        - name: data
+          hostPath:
+            path: /data/kubechat
+        {{- end }}
