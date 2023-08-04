@@ -38,6 +38,7 @@ spec:
                 configMapKeyRef:
                   key: AUTH_TYPE
                   name: kubechat-config
+            {{ if eq .Values.django.authType "auth0" }}
             - name: AUTH0_CLIENT_ID
               valueFrom:
                 configMapKeyRef:
@@ -48,6 +49,7 @@ spec:
                 configMapKeyRef:
                   key: AUTH0_DOMAIN
                   name: kubechat-config
+            {{- end }}
             - name: CELERY_BROKER_URL
               valueFrom:
                 configMapKeyRef:
