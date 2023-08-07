@@ -18,6 +18,7 @@ clean:
 	/bin/rm -f db.sqlite3
 
 run-backend: migrate
+	python scripts/store_doc2vectordb.py
 	python manage.py collectstatic --noinput
 	if [ -f "static/web/index.html" ]; then \
   		cp static/web/index.html kubechat/templates/404.html; \
