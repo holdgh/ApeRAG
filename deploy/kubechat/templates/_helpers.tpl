@@ -65,3 +65,7 @@ Create the name of the service account to use
 {{- define "django.labels" -}}
 app.kubechat.io/component: django
 {{- end }}
+
+{{- define "celeryworker.labels" -}}
+app.kubechat.io/component: celery-worker
+{{- end }}

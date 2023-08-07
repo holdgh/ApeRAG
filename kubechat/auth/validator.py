@@ -6,6 +6,7 @@ from channels.middleware import BaseMiddleware
 from ninja.security import HttpBearer
 
 import config.settings as settings
+import base64
 
 jwks_url = "https://{}/.well-known/jwks.json".format(settings.AUTH0_DOMAIN)
 issuer = "https://{}/".format(settings.AUTH0_DOMAIN)
@@ -19,16 +20,17 @@ DEFAULT_USER = "kubechat"
 
 
 def get_user_from_token(token):
-    payload = tv.verify(token)
-    return payload["sub"]
+    if settings.AUTH_TYPE == "auth0":
+        payload = tv.verify(token)
+        user = payload["sub"]
+    else:
+        user = base64.b64decode(token).decode("ascii")
+    return user
 
 
 class GlobalAuth(HttpBearer):
     def authenticate(self, request, token):
-        if settings.AUTH_ENABLED:
-            request.META["X-USER-ID"] = get_user_from_token(token)
-        else:
-            request.META["X-USER-ID"] = DEFAULT_USER
+        request.META["X-USER-ID"] = get_user_from_token(token)
         return token
 
 
@@ -43,9 +45,5 @@ class TokenAuthMiddleware(BaseMiddleware):
         if token is not None:
             token = token.decode("ascii")
         scope["Sec-Websocket-Protocol"] = token
-
-        if settings.AUTH_ENABLED:
-            scope["X-USER-ID"] = get_user_from_token(token)
-        else:
-            scope["X-USER-ID"] = DEFAULT_USER
+        scope["X-USER-ID"] = get_user_from_token(token)
         return self.app(scope, receive, send)

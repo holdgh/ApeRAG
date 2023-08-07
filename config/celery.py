@@ -16,6 +16,12 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
+from config.settings import LOCAL_QUEUE_NAME
+if LOCAL_QUEUE_NAME != "":
+    app.conf.task_routes = {
+        "kubechat.tasks.index.add_index_for_local_document": {"queue": f"{LOCAL_QUEUE_NAME}"},
+    }
+
 app.conf.beat_schedule = {
     "file-update-cron-job": {
         "task": "kubechat.tasks.scan.get_collections_cron_job",

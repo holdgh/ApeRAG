@@ -1,4 +1,9 @@
 from django.db import models
+from django.contrib import admin
+from django.utils.html import format_html
+import re
+from django.db.models import IntegerField
+from django.db.models.functions import Cast
 
 
 def user_document_path(instance, filename):
@@ -99,7 +104,7 @@ class Document(models.Model):
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)
     size = models.BigIntegerField()
     file = models.FileField(upload_to=user_document_path)
-    relate_ids = models.CharField(max_length=4096)
+    relate_ids = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
@@ -115,6 +120,21 @@ class Document(models.Model):
             "updated": self.gmt_updated.isoformat(),
         }
 
+    # def collection_id(self):
+    #     if self.collection:
+    #         matches = re.findall(r'\d+', str(self.collection))
+    #         return matches[0] if matches else '-'
+    #     else:
+    #         return '-'
+
+    def collection_id(self):
+        if self.collection:
+            return Cast(self.collection, IntegerField())
+        else:
+            return None
+
+    collection_id.short_description = 'Collection ID'
+    collection_id.admin_order_field = 'collection'
 
 class Chat(models.Model):
     user = models.CharField(max_length=256)
@@ -128,12 +148,13 @@ class Chat(models.Model):
     gmt_finished = models.DateTimeField(null=True, blank=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
-    def view(self, messages=None):
+    def view(self, collection_id, messages=None):
         if messages is None:
             messages = []
         return {
             "id": str(self.id),
             "summary": self.summary,
+            "collection_id": collection_id,
             "history": messages,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),

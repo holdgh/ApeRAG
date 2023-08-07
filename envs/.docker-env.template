@@ -24,7 +24,7 @@ POSTGRES_PASSWORD=admin
 
 
 # Auth0
-AUTH_ENABLED=True
+AUTH_TYPE=auth0
 AUTH0_DOMAIN=kubechat-dev.jp.auth0.com
 AUTH0_CLIENT_ID=wuYeG5UUnEyyoGDHbJSrLSaESwpg7T63
 

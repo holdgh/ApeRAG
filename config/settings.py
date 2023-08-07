@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
-
+import time
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,14 +29,16 @@ if os.path.exists(env_file):
 SECRET_KEY = "django-insecure-!_e+#j5vn=jg9fd(i#3jn0-eypw-62om4^gn*s$xq7(%4w-w@t"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne",
+    # 'smart_chart.smartui',
+    # 'smart_chart.echart',
+    "simpleui",
     "kubechat",
     "corsheaders",
     "django.contrib.admin",
@@ -48,14 +50,17 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware"
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -124,9 +129,6 @@ USE_TZ = True
 MEDIA_ROOT = env.str("MEDIA_ROOT", ".")
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [
-    BASE_DIR / "frontend/build",
-]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -141,9 +143,13 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"http://localhost:*",
 ]
 
-# Auth0
+# CSRF
+CSRF_TRUSTED_ORIGINS = ["https://*.kubeblocks.io", "https://*.apecloud.com"]
+
+# Auth
+AUTH_TYPE = env.str("AUTH_TYPE", default="none")
+
 # Load Auth0 application settings into memory
-AUTH_ENABLED = env.bool("AUTH_ENABLED", default=True)
 AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat-dev.jp.auth0.com")
 AUTH0_CLIENT_ID = env.str("AUTH0_CLIENT_ID", default="")
 
@@ -172,10 +178,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-time-limit
 # TODO: set to whatever value is adequate in your circumstances
-CELERY_TASK_TIME_LIMIT = 5 * 60
+# CELERY_TASK_TIME_LIMIT = 5 * 60
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-soft-time-limit
 # TODO: set to whatever value is adequate in your circumstances
-CELERY_TASK_SOFT_TIME_LIMIT = 60
+# CELERY_TASK_SOFT_TIME_LIMIT = 60
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#beat-scheduler
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#worker-send-task-events
@@ -183,6 +189,8 @@ CELERY_WORKER_SEND_TASK_EVENTS = True
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-task_send_sent_event
 CELERY_TASK_SEND_SENT_EVENT = True
 INSTALLED_APPS += ["django_celery_beat"]
+
+LOCAL_QUEUE_NAME = env.str("LOCAL_QUEUE_NAME", default="")
 
 # WebSockets
 INSTALLED_APPS += ["channels"]
@@ -228,3 +236,27 @@ CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
 
 KBCLIDOC_DIR = env.str("KBCLI_DOC_DIR", default=os.path.join(str(BASE_DIR), "documents/kbcli_doc"))
 KBCLIDOC_COLLECTION_NAME = env.str("KBCLIDOC_VECTORDB_COLLECTION_NAME", default="text2kbcli")
+
+# simpleui
+SIMPLEUI_CONFIG = {
+    'system_keep': True,
+    # 'menu_display': [],
+    'dynamic': False,    # Set whether to enable dynamic menus. Default is False.
+}
+# Hide the advertisement links on the right side of SimpleUI and the usage analysis.
+SIMPLEUI_HOME_INFO = False
+SIMPLEUI_ANALYSIS = False
+
+# Hide the quick operations and recent actions on the homepage.
+SIMPLEUI_HOME_QUICK = True
+SIMPLEUI_HOME_ACTION = True
+
+SIMPLEUI_HOME_ICON = 'fa fa-eye'
+
+# Set the Home icon redirect link. It will open in a new window.
+SIMPLEUI_INDEX = 'https://www.apecloud.com'
+
+# prometheus
+INSTALLED_APPS += ["django_prometheus"]
+
+STATIC_ROOT = BASE_DIR / "static"

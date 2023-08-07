@@ -148,3 +148,7 @@ documents
 
 # ssl file
 ssl_file
+
+static
+
+*.tgz

@@ -33,6 +33,12 @@ spec:
               ln -s /data/torch /root/.cache/torch
               /app/scripts/entrypoint.sh /app/scripts/start-django.sh
           env:
+            - name: AUTH_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  key: AUTH_TYPE
+                  name: kubechat-config
+            {{ if eq .Values.django.authType "auth0" }}
             - name: AUTH0_CLIENT_ID
               valueFrom:
                 configMapKeyRef:
@@ -43,11 +49,7 @@ spec:
                 configMapKeyRef:
                   key: AUTH0_DOMAIN
                   name: kubechat-config
-            - name: AUTH_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  key: AUTH_ENABLED
-                  name: kubechat-config
+            {{- end }}
             - name: CELERY_BROKER_URL
               valueFrom:
                 configMapKeyRef:
@@ -84,30 +86,27 @@ spec:
                   key: MODEL_SERVERS
                   name: kubechat-config
             - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_DB
-                  name: kubechat-config
+              value: "{{ .Values.django.metaDBDatabase }}"
             - name: POSTGRES_HOST
               valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_HOST
-                  name: kubechat-config
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PASSWORD
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: host
             - name: POSTGRES_PORT
               valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PORT
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: port
             - name: POSTGRES_USER
               valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_USER
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.metaDBSecret }}
+                  key: password
             - name: VECTOR_DB_CONTEXT
               valueFrom:
                 configMapKeyRef:
@@ -129,6 +128,10 @@ spec:
               value: /data/codegen
             - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
               value: python
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -140,7 +143,17 @@ spec:
             - mountPath: /data
               name: data
       restartPolicy: Always
+      {{- with .Values.django.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
+        {{- if and .Values.efsId (ne .Values.efsId "") }}
         - name: data
           persistentVolumeClaim:
             claimName: kubechat-efs-claim
+        {{- else }}
+        - name: data
+          hostPath:
+            path: /data/kubechat
+        {{- end }}

@@ -32,7 +32,12 @@ class CustomLoadDocumentTask(Task):
         return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
 
-@app.task(base=CustomLoadDocumentTask, time_limit=300, soft_time_limit=180)
+@app.task(base=CustomLoadDocumentTask)
+def add_index_for_local_document(document_id):
+    add_index_for_document(document_id)
+
+
+@app.task(base=CustomLoadDocumentTask)
 def add_index_for_document(document_id):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
