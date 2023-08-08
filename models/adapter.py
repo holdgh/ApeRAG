@@ -165,10 +165,10 @@ class BaiChuanAdapter(BaseLLMAdaper):
         model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, trust_remote_code=True, **from_pretrained_kwargs
         )
-        if DEVICE == "cuda":
-            model = model.quantize(8).cuda()
-        else:
-            model = model.quantize(8)
+        # if DEVICE == "cuda":
+        #     model = model.quantize(8).cuda()
+        # else:
+        #     model = model.quantize(8)
         model.generation_config = GenerationConfig.from_pretrained(model_path)
         return model, tokenizer
 
