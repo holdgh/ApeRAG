@@ -24,7 +24,7 @@ ENGLISH_PROMPT_TEMPLATE = (
     "We have the opportunity to refine the existing answer "
     "(only if needed) with some more context below.\n"
     "Given the new context, refine and synthesize the original answer to better \n"
-    "answer the question. Make sure that the refine answer is less than 50 words. \n"
+    "answer the question. Please think it step by step and make sure that the refine answer is less than 50 words. \n"
     "### Assistant :\n"
 )
 
@@ -34,7 +34,7 @@ CHINESE_PROMPT_TEMPLATE = (
     "我们已经有了一个答案：{existing_answer}\n"
     "我们有机会完善现有的答案（仅在需要时），下面有更多上下文。\n"
     "根据新提供的上下文信息，优化现有的答案，以便更好的回答问题\n"
-    "确保优化后的答案少于 50个字。\n"
+    "请一步一步思考，并确保优化后的答案少于 50个字。\n"
     "### 助理："
 )
 

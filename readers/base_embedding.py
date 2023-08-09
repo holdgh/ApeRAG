@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from threading import Lock, Thread
 from typing import Any, Dict, List
 
+from langchain.embeddings.base import Embeddings
 from langchain.embeddings.google_palm import GooglePalmEmbeddings
 from langchain.embeddings.huggingface import (
     HuggingFaceEmbeddings,
@@ -17,9 +18,24 @@ from llama_index import (
     StorageContext,
     download_loader,
 )
+from text2vec import SentenceModel
 
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from config.settings import EMBEDDING_DEVICE
+
+
+class Text2VecEmbedding(Embeddings):
+    def __init__(self):
+        self.model = SentenceModel('shibing624/text2vec-base-chinese')
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        texts = list(map(lambda x: x.replace("\n", " "), texts))
+        embeddings = self.model.encode(texts)
+        return embeddings.tolist()
+
+    def embed_query(self, text: str) -> List[float]:
+        text = text.replace("\n", " ")
+        return self.model.encode(text)
 
 
 def get_embedding_model(
@@ -49,6 +65,10 @@ def get_embedding_model(
                 )
             )
         vector_size = 768
+    elif type == "text2vec":
+        if load:
+            embedding_model = LangchainEmbedding(Text2VecEmbedding())
+        vector_size = 768
     elif type == "openai":
         if load:
             embedding_model = LangchainEmbedding(OpenAIEmbeddings())
@@ -72,7 +92,7 @@ def get_default_embedding_model(load=True) -> {LangchainEmbedding, int}:
     with mutex:
         if default_embedding_model is None:
             default_embedding_model, default_vector_size = get_embedding_model(
-                {"model_type": "huggingface"}, load
+                {"model_type": "text2vec"}, load
             )
     return default_embedding_model, default_vector_size
 

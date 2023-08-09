@@ -55,6 +55,7 @@ django-simpleui = "^2023.3.1"
 django-prometheus = "^2.3.1"
 whitenoise = "^6.5.0"
 types-requests = "^2.31.0.2"
+text2vec = "^1.2.2"
 
 [tool.poetry.group.llmserver]
 optional = true
