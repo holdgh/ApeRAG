@@ -30,6 +30,8 @@ spec:
             - /bin/sh
             - -c
             - |
+              mkdir -p /root/.cache/huggingface
+              ln -s /data/huggingface/hub /root/.cache/huggingface/hub
               ln -s /data/torch /root/.cache/torch
               /app/scripts/entrypoint.sh /app/scripts/start-celery-worker.sh
           env:
