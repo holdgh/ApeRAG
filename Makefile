@@ -2,7 +2,7 @@ VERSION ?= v0.1.0
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 
-build:
+image:
 	sh scripts/export-requirements.sh
 	docker buildx build -t apecloud/kubechat:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
 

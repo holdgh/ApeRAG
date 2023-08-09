@@ -38,9 +38,30 @@ CHINESE_PROMPT_TEMPLATE = (
     "### 助理："
 )
 
+ENGLISH_PROMPT_TEMPLATE_V2 = """
+Context information is below. \n
+---------------------\n
+{context}
+\n---------------------\n
+Given the context information, please think step by step and answer the question: {query}\n
+
+Please make sure that the answer is accurate and concise.
+"""
+
+CHINESE_PROMPT_TEMPLATE_V2 = """
+上下文信息如下:
+----------------\n
+{context}
+\n--------------------\n
+
+根据提供的上下文信息，请一步一步思考，然后回答问题：{query}。
+
+请确保回答准确和简洁。
+"""
+
 MODEL_PROMPT_TEMPLATES = {
-    "vicuna-13b": ENGLISH_PROMPT_TEMPLATE,
-    "baichuan-13b": CHINESE_PROMPT_TEMPLATE
+    "vicuna-13b": ENGLISH_PROMPT_TEMPLATE_V2,
+    "baichuan-13b": CHINESE_PROMPT_TEMPLATE_V2,
 }
 
 
@@ -66,15 +87,15 @@ class DocumentQAConsumer(BaseConsumer):
             score_threshold=0.5,
         )
 
-        answer_text = results.get_packed_answer(1900)
+        query_context = results.get_packed_answer(1900)
 
         collection = await query_collection(self.user, self.collection_id)
         config = json.loads(collection.config)
         model = config.get("model", "")
 
-        prompt_template = MODEL_PROMPT_TEMPLATES.get(model, ENGLISH_PROMPT_TEMPLATE)
+        prompt_template = MODEL_PROMPT_TEMPLATES.get(model, CHINESE_PROMPT_TEMPLATE_V2)
         prompt = PromptTemplate.from_template(prompt_template)
-        prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
+        prompt_str = prompt.format(query=query, context=query_context)
 
         input = {
             "prompt": prompt_str,
