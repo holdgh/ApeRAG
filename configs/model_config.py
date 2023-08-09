@@ -20,7 +20,10 @@ current_directory = os.getcwd()
 
 new_directory = RESOURCES_PATH
 if not os.path.exists(new_directory):
-    os.makedirs(new_directory)
+    try:
+        os.makedirs(new_directory)
+    except FileExistsError:
+        pass
 os.chdir(new_directory)
 
 DEVICE = (
