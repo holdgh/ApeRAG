@@ -3,6 +3,7 @@ import logging
 import os
 import poplib
 import tempfile
+import re
 from email import message_from_bytes, parser
 from email.header import decode_header
 from typing import Dict, Any
@@ -11,6 +12,8 @@ from bs4 import BeautifulSoup
 
 from kubechat.models import Document, DocumentStatus, Collection
 from kubechat.source.base import Source
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,19 @@ logger = logging.getLogger(__name__)
 def download_email_body_to_temp_file(pop_conn, email_index, name):
     _, message_lines, _ = pop_conn.retr(email_index)
     message_content = b"\r\n".join(message_lines)
+    prefix, plain_text = get_email_plain_text(message_content, name)
+    temp_file = tempfile.NamedTemporaryFile(
+        prefix=prefix,
+        delete=False,
+        suffix=".txt",
+    )
+    temp_file.write(plain_text.encode("utf-8"))
+    temp_file.close()
+    return temp_file.name
+
+
+# get the plain text in email
+def get_email_plain_text(message_content, name):
     message = message_from_bytes(message_content)
     body = ""
     for part in message.walk():
@@ -38,17 +54,10 @@ def download_email_body_to_temp_file(pop_conn, email_index, name):
     plain_text = extract_plain_text_from_email_body(body)
     prefix = name.strip("/").replace("/", "--")
 
-    # when all email context is html, fill with its title
+    # when all email context is pure html without text, fill with its title
     if plain_text == '':
         plain_text = name
-    temp_file = tempfile.NamedTemporaryFile(
-        prefix=prefix,
-        delete=False,
-        suffix=".txt",
-    )
-    temp_file.write(plain_text.encode("utf-8"))
-    temp_file.close()
-    return temp_file.name
+    return prefix, plain_text
 
 
 def extract_plain_text_from_email_body(body):
@@ -72,6 +81,33 @@ def decode_msg_header(header):
     return value
 
 
+# check if text contain chinese character
+def contains_chinese(text):
+    pattern = re.compile(r'[\u4e00-\u9fa5]')  # search chinese character
+    result = re.search(pattern, text)
+    return result is not None
+
+
+# check if chinese/english email is spam
+def check_spam(title: str, body: str):
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    import torch
+    chinese = contains_chinese(title)
+    if chinese:
+        model_name = "paulkm/chinese_spam_detect"
+        max_length = 512
+    else:
+        model_name = "mrm8488/bert-tiny-finetuned-enron-spam-detection"
+        max_length = 512
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    inputs = tokenizer(body, truncation=True, max_length=max_length, return_tensors="pt")
+    outputs = model(**inputs)
+    probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
+    pred = torch.argmax(probs, dim=-1)
+    return pred.item() > 0
+
+
 class EmailSource(Source):
 
     def __init__(self, collection: Collection, ctx: Dict[str, Any]):
@@ -80,6 +116,7 @@ class EmailSource(Source):
         self.port = ctx["port"]
         self.email_address = ctx["email_address"]
         self.email_password = ctx["email_password"]
+        self.detect_spam = ctx.get("detect_spam", False)
         self.collection = collection
         self.conn = self._connect_to_pop3_server()
         self.email_num = 0
@@ -103,16 +140,22 @@ class EmailSource(Source):
             try:
                 response, msg_lines, octets = self.conn.retr(i + 1)
 
-                msg_lines_to_str = b"\r\n".join(msg_lines).decode("utf8", "ignore")
+                msg_lines_undecoded = b"\r\n".join(msg_lines)
+                msg_lines_to_str = msg_lines_undecoded.decode("utf8", "ignore")
                 message_object = parser.Parser().parsestr(msg_lines_to_str)
 
                 msg_header = message_object["Subject"]
                 decoded_subject = decode_msg_header(msg_header)
                 order_and_name = str(i + 1) + '_' + decoded_subject + f".txt"
 
-                msg_date = str(message_object["date"])
-                if msg_date.find('(GMT)') != -1 or msg_date.find('(UTC)') != -1 or msg_date.find('(CST)') != -1:
-                    msg_date = msg_date[:-6]
+                # check if spam,if it is spam, jump to next email
+                if self.detect_spam:
+                    _, message_content = get_email_plain_text(msg_lines_undecoded, decoded_subject)
+                    is_spam = check_spam(decoded_subject, message_content)
+                    if is_spam:
+                        logger.info(f"email {decoded_subject} is detected to be spam")
+                        continue
+                    logger.info(f"email {decoded_subject} is detected to be ham")
 
                 document = Document(
                     user=self.collection.user,
@@ -120,8 +163,7 @@ class EmailSource(Source):
                     status=DocumentStatus.PENDING,
                     size=octets,
                     collection=self.collection,
-                    metadata=datetime.datetime.strptime(msg_date, '%a, %d %b %Y %H:%M:%S %z').strftime("%Y-%m-%d "
-                                                                                                       "%H:%M:%S"),
+                    metadata=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 )
                 documents.append(document)
             except Exception as e:
