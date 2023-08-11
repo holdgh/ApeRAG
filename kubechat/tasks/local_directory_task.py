@@ -53,7 +53,7 @@ def update_local_directory_index(user, collection_id):
                 ),
             )
             document_instance.save()
-            add_index_for_document.delay(document_instance.id, filename)
+            add_index_for_document.delay(document_instance.id)
             # read from local direct
         else:
             # for update
@@ -64,7 +64,7 @@ def update_local_directory_index(user, collection_id):
                     latest_time=document_in_db.metadata, file_size=document_in_db.size
                 ),
             ):
-                update_index.delay(document_in_db.id, filename)
+                update_index.delay(document_in_db.id)
     # for delete
     for filename in documents_in_db.keys():
         if filename not in docments_in_direct.keys():

@@ -168,6 +168,7 @@ class EmailSource(Source):
                 documents.append(document)
             except Exception as e:
                 logger.error(f"scan_email_documents {e}")
+                raise e
         return documents
 
     def prepare_document(self, doc: Document):
