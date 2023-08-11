@@ -50,15 +50,15 @@ class CustomDeleteDocumentTask(Task):
         document.collection.save()
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        document_id = args[1]
+        document_id = args[0]
         document = Document.objects.get(id=document_id)
         document.status = DocumentStatus.FAILED
         document.save()
         logger.error(f"remove_index(): index delete from vector db failed:{exc}")
 
-    def after_return(self, status, retval, task_id, args, kwargs, einfo):
-        print(retval)
-        return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
+    # def after_return(self, status, retval, task_id, args, kwargs, einfo):
+    #     print(retval)
+    #     return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, ignore_result=True)
