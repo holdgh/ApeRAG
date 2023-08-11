@@ -49,7 +49,7 @@ class FTPSource(Source):
             return [document]
 
         documents = []
-        queue = [path]
+        queue = [path]  # dir queue
         while len(queue) > 0:
             curPath = queue[0]
             queue = queue[1:]
@@ -73,33 +73,14 @@ class FTPSource(Source):
                         metadata=modified_time.strftime("%Y-%m-%d %H:%M:%S"),
                     )
                     documents.append(document)
-
-        for file in files:
-            file_path = os.path.join(path, file)  # Build the full file path
-            try:
-                ftp.cwd(file_path)  # Try to switch to the specified path (if it's a folder)
-                results = self._deal_the_path(
-                    ftp, collection, file_path
-                )  # Recursively process the subdirectory
-                documents.extend(results)
-            except error_perm:  # If it's not a folder, process the file
-                if os.path.splitext(file)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
-                    size = ftp.size(file_path)
-                    mtime = ftp.sendcmd('MDTM ' + file_path)[4:]
-                    modified_time = datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S")
-                    document = Document(
-                        user=collection.user,
-                        name=file_path,
-                        status=DocumentStatus.PENDING,
-                        size=size,
-                        collection=collection,
-                        metadata=modified_time.strftime("%Y-%m-%d %H:%M:%S"),
-                    )
-                    documents.append(document)
         return documents
 
     def scan_documents(self):
-        return self._deal_the_path(self.ftp, self.collection, self.path)
+        try:
+            documents = self._deal_the_path(self.ftp, self.collection, self.path)
+        except Exception as e:
+            raise e
+        return documents
 
     def prepare_document(self, doc: Document):
         temp_file = gen_temporary_file(doc.name)
