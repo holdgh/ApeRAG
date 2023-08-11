@@ -47,6 +47,7 @@ class LocalSource(Source):
                         documents.append(document)
                     except Exception as e:
                         logger.error(f"scanning local source {file_path} error {e}")
+                        raise e
         return documents
 
     def prepare_document(self, doc: Document):

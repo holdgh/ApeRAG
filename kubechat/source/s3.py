@@ -50,6 +50,7 @@ class S3Source(Source):
                     documents.append(document)
             except Exception as e:
                 logger.error(f"scanning_s3_add_index() {obj.key} error {e}")
+                raise e
         return documents
 
     def prepare_document(self, doc: Document):

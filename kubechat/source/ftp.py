@@ -27,6 +27,7 @@ class FTPSource(Source):
         self.ftp.login(self.user, self.password)
 
     def _deal_the_path(self, ftp, collection, path="/"):
+        # _deal_the_path 这里用try ... except ... 实现递归不太妥当
         documents = []
         ftp.cwd(path)  # Switch to the specified path
         files = ftp.nlst()  # Get the list of files in the current path
