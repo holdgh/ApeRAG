@@ -13,60 +13,15 @@ from vectorstore.connector import VectorStoreConnectorAdaptor
 from typing import Callable, Coroutine, List, Optional, Tuple
 
 from .base_consumer import KUBE_CHAT_DOC_QA_REFERENCES, BaseConsumer
+from .prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 
 logger = logging.getLogger(__name__)
 
 
-ENGLISH_PROMPT_TEMPLATE = (
-    "### Human:\n"
-    "The original question is as follows: {query_str}\n"
-    "We have provided an existing answer: {existing_answer}\n"
-    "We have the opportunity to refine the existing answer "
-    "(only if needed) with some more context below.\n"
-    "Given the new context, refine and synthesize the original answer to better \n"
-    "answer the question. Please think it step by step and make sure that the refine answer is less than 50 words. \n"
-    "### Assistant :\n"
-)
-
-CHINESE_PROMPT_TEMPLATE = (
-    "### 人类：\n"
-    "原问题如下：{query_str}\n"
-    "我们已经有了一个答案：{existing_answer}\n"
-    "我们有机会完善现有的答案（仅在需要时），下面有更多上下文。\n"
-    "根据新提供的上下文信息，优化现有的答案，以便更好的回答问题\n"
-    "请一步一步思考，并确保优化后的答案少于 50个字。\n"
-    "### 助理："
-)
-
-ENGLISH_PROMPT_TEMPLATE_V2 = """
-Context information is below. \n
----------------------\n
-{context}
-\n---------------------\n
-Given the context information, please think step by step and answer the question: {query}\n
-
-Please make sure that the answer is accurate and concise.
-"""
-
-CHINESE_PROMPT_TEMPLATE_V2 = """
-上下文信息如下:
-----------------\n
-{context}
-\n--------------------\n
-
-根据提供的上下文信息，请一步一步思考，然后回答问题：{query}。
-
-请确保回答准确和简洁。
-"""
-
-MODEL_PROMPT_TEMPLATES = {
-    "vicuna-13b": ENGLISH_PROMPT_TEMPLATE_V2,
-    "baichuan-13b": CHINESE_PROMPT_TEMPLATE_V2,
-}
-
-
 class DocumentQAConsumer(BaseConsumer):
     async def predict(self, query):
+        collection_config = json.loads(self.collection.config)
+
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         vector_db_collection_id = generate_vector_db_collection_id(
             self.user, self.collection_id
@@ -74,8 +29,13 @@ class DocumentQAConsumer(BaseConsumer):
         vectordb_ctx["collection"] = vector_db_collection_id
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
         vector = self.embedding_model.get_text_embedding(query)
-        query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
+        llm_config = collection_config.get("llm", {})
+        score_threshold = llm_config.get("similarity_score_threshold", 0.5)
+        topk = llm_config.get("similarity_topk", 3)
+        context_window = llm_config.get("context_window", 1900)
+
+        query_embedding = QueryWithEmbedding(query=query, top_k=topk, embedding=vector)
         results = adaptor.connector.search(
             query_embedding,
             collection_name=vector_db_collection_id,
@@ -84,16 +44,14 @@ class DocumentQAConsumer(BaseConsumer):
             limit=query_embedding.top_k,
             consistency="majority",
             search_params={"hnsw_ef": 128, "exact": False},
-            score_threshold=0.5,
+            score_threshold=score_threshold,
         )
+        query_context = results.get_packed_answer(context_window)
 
-        query_context = results.get_packed_answer(1900)
-
-        collection = await query_collection(self.user, self.collection_id)
-        config = json.loads(collection.config)
-        model = config.get("model", "")
-
-        prompt_template = MODEL_PROMPT_TEMPLATES.get(model, CHINESE_PROMPT_TEMPLATE_V2)
+        model = collection_config.get("model", "")
+        prompt_template = collection_config.get("prompte_template", None)
+        if not prompt_template:
+            prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         prompt = PromptTemplate.from_template(prompt_template)
         prompt_str = prompt.format(query=query, context=query_context)
 
