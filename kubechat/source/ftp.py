@@ -26,10 +26,54 @@ class FTPSource(Source):
         self.ftp.connect(str(self.host), self.port)
         self.ftp.login(self.user, self.password)
 
+    def isDir(self, path):
+        try:
+            self.ftp.cwd(path)
+            return True
+        except Exception as e:
+            return False
+
     def _deal_the_path(self, ftp, collection, path="/"):
+        if not self.isDir(path):
+            size = ftp.size(path)
+            mtime = ftp.sendcmd('MDTM ' + path)[4:]
+            modified_time = datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S")
+            document = Document(
+                user=collection.user,
+                name=path,
+                status=DocumentStatus.PENDING,
+                size=size,
+                collection=collection,
+                metadata=modified_time.strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            return [document]
+
         documents = []
-        ftp.cwd(path)  # Switch to the specified path
-        files = ftp.nlst()  # Get the list of files in the current path
+        queue = [path]
+        while len(queue) > 0:
+            curPath = queue[0]
+            queue = queue[1:]
+            ftp.cwd(curPath)  # Switch to the specified path
+            files = ftp.nlst()  # Get the list of files in the current path
+            for file in files:
+                file_path = os.path.join(curPath, file)
+                if self.isDir(file_path):
+                    queue.append(file_path)
+                    self.ftp.cwd(curPath)
+                elif os.path.splitext(file)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
+                    size = ftp.size(file_path)
+                    mtime = ftp.sendcmd('MDTM ' + file_path)[4:]
+                    modified_time = datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S")
+                    document = Document(
+                        user=collection.user,
+                        name=file_path,
+                        status=DocumentStatus.PENDING,
+                        size=size,
+                        collection=collection,
+                        metadata=modified_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    )
+                    documents.append(document)
+
         for file in files:
             file_path = os.path.join(path, file)  # Build the full file path
             try:
