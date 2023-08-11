@@ -31,10 +31,10 @@ def scan_collection(self, collection_id):
     collection = Collection.objects.get(id=collection_id)
     collection.status = CollectionStatus.INACTIVE
     collection.save()
-    source = get_source(collection, json.loads(collection.config))
-    if source is None:
-        return
     try:
+        source = get_source(collection, json.loads(collection.config))
+        if source is None:
+            return
         documents = source.scan_documents()
     except Exception as e:
         raise self.retry(exc=e, countdown=5, max_retries=3)
