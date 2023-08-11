@@ -29,6 +29,7 @@ from readers.Readers import DEFAULT_FILE_READER_CLS
 from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalAuth
+from .chat.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from .models import *
 from .utils.utils import generate_vector_db_collection_id, fix_path_name, validate_document_config
 
@@ -134,6 +135,8 @@ def list_model_name(request):
             "value": model_server["name"],
             "label": model_server.get("label", model_server["name"]),
             "enabled": model_server.get("enabled", "true").lower() == "true",
+            "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"], DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+            "context_window": model_server.get("context_window", 2000),
         })
     return success(response)
 

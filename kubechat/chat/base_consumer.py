@@ -29,6 +29,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.vector_size = 0
         self.history = None
         self.user = DEFAULT_USER
+        self.collection = None
 
     async def connect(self):
         from kubechat.utils.db import query_chat, query_collection
@@ -39,6 +40,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         collection = await query_collection(self.user, collection_id)
         if collection is None:
             raise Exception("Collection not found")
+        self.collection = collection
 
         chat = await query_chat(self.user, collection_id, chat_id)
         if chat is None:
