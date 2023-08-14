@@ -323,12 +323,12 @@ reference = "aliyun"
 
 [[package]]
 name = "atlassian-python-api"
-version = "3.40.0"
+version = "3.40.1"
 description = "Python Atlassian REST API Wrapper"
 optional = false
 python-versions = "*"
 files = [
-    {file = "atlassian-python-api-3.40.0.tar.gz", hash = "sha256:35e75c20654463f3500edd7f3b90a3739de032456b6ee000d6fb06891a3d28a9"},
+    {file = "atlassian-python-api-3.40.1.tar.gz", hash = "sha256:4ce2ce839a4e02429c40f2dac153adc80d6fcf67505477709db82a97785022c2"},
 ]
 
 [package.dependencies]
@@ -537,17 +537,17 @@ reference = "aliyun"
 
 [[package]]
 name = "boto3"
-version = "1.28.23"
+version = "1.28.25"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.28.23-py3-none-any.whl", hash = "sha256:807d4a4698ba9a76d5901a1663ff1943d13efbc388908f38b60f209c3511f1d6"},
-    {file = "boto3-1.28.23.tar.gz", hash = "sha256:839deb868d1278dd5a3f87208cfc4a8e259c95ca3cbe607cc322d435f02f63b0"},
+    {file = "boto3-1.28.25-py3-none-any.whl", hash = "sha256:f08f6c83608721c2142abd2ccc5f15bd5c98c282ad9e0d39f9efc59d98604658"},
+    {file = "boto3-1.28.25.tar.gz", hash = "sha256:20feedb753e87d6dd55665e2e9dda08b031518291350c9c57b552c86a537fd4e"},
 ]
 
 [package.dependencies]
-botocore = ">=1.31.23,<1.32.0"
+botocore = ">=1.31.25,<1.32.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.6.0,<0.7.0"
 
@@ -561,13 +561,13 @@ reference = "aliyun"
 
 [[package]]
 name = "botocore"
-version = "1.31.23"
+version = "1.31.25"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.31.23-py3-none-any.whl", hash = "sha256:d0a95f74eb6bd99e8f52f16af0a430ba6cd1526744f40ffdd3fcccceeaf961c2"},
-    {file = "botocore-1.31.23.tar.gz", hash = "sha256:f3258feaebce48f138eb2675168c4d33cc3d99e9f45af13cb8de47bdc2b9c573"},
+    {file = "botocore-1.31.25-py3-none-any.whl", hash = "sha256:17cc6db84644251a5b519aeccd5eb1c313a18ef2e92616ec16182aa30c877152"},
+    {file = "botocore-1.31.25.tar.gz", hash = "sha256:b8a40b0ca1e3c8290a4c0d473c8e1575d2e8b2ddc3c61dd8814c3976357cac84"},
 ]
 
 [package.dependencies]
@@ -1066,28 +1066,28 @@ reference = "aliyun"
 
 [[package]]
 name = "cmake"
-version = "3.27.1"
+version = "3.27.2"
 description = "CMake is an open-source, cross-platform family of tools designed to build, test and package software"
 optional = false
 python-versions = "*"
 files = [
-    {file = "cmake-3.27.1-py2.py3-none-macosx_10_10_universal2.macosx_10_10_x86_64.macosx_11_0_arm64.macosx_11_0_universal2.whl", hash = "sha256:c62c5a6d42e68eb955fc321f7bc84290e4c4771ee7e5301c2eaa9586c874fd8e"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2010_i686.manylinux_2_12_i686.whl", hash = "sha256:18ef1c579cb4c94ece6bbb7c7f3e0170b078bf787f0a372194f0921e79f6098c"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:ad3aca0d94abe6313a7b1c65b8b3d7eb3158786fd1dd6a9f8c42f82850fb974c"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:50bfe69d369a61eb63e5b8af76a2383cf312d1e8449bd797d563f6c62809d317"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:7fb6d9183b90d4cc4db7b022aa7c9ef3431d281aea29ca259de7199bc75b7e09"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2014_ppc64le.manylinux_2_17_ppc64le.whl", hash = "sha256:2583464302ecc287619578627e26962386a41a98bbf1fb4c8c90d600ec1a1be5"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2014_s390x.manylinux_2_17_s390x.whl", hash = "sha256:7a5431c7ca0b7145b857dd0eab26f4f9ec42661bb67afa6d437b3e48532b8e3a"},
-    {file = "cmake-3.27.1-py2.py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:1fb6d882bbd7e77fad206dfdbcaf880f4bcd7e8d0c23b37058ee155715bd19ed"},
-    {file = "cmake-3.27.1-py2.py3-none-musllinux_1_1_aarch64.whl", hash = "sha256:cee7dd0bcc5bd14d94ecdbbf9883b17f3001adc5f696b7d8eba0482354e5e017"},
-    {file = "cmake-3.27.1-py2.py3-none-musllinux_1_1_i686.whl", hash = "sha256:82a6f57449e7bf9b510ed82b29982e4eec8b5c5e80a51208368dc1aa58b8181b"},
-    {file = "cmake-3.27.1-py2.py3-none-musllinux_1_1_ppc64le.whl", hash = "sha256:7052bb12c3492083169269fee7c7a11c053cae35949346b12d2998b971602b78"},
-    {file = "cmake-3.27.1-py2.py3-none-musllinux_1_1_s390x.whl", hash = "sha256:482e7018fc8d9bc98e7f30b5071c021ca0e27b131dd61900395abfd768c3fe29"},
-    {file = "cmake-3.27.1-py2.py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:a112dd298b8ac598fef3653dff1592ba4c0f9bf7fe75b77ab44a6edfcceb96d4"},
-    {file = "cmake-3.27.1-py2.py3-none-win32.whl", hash = "sha256:b9d68783ea01775d6d4ea220d3b4e90d5e287cf9a1db09c5a9b78c7748e1c3d0"},
-    {file = "cmake-3.27.1-py2.py3-none-win_amd64.whl", hash = "sha256:628f75286475b89d6566db62c0869de5f0a07ad9bba10bebe6a48012fa1ee777"},
-    {file = "cmake-3.27.1-py2.py3-none-win_arm64.whl", hash = "sha256:ee7a47e37a29b8124d9125a8c390fb94822a2695d80151560004d4f4f78c0ad7"},
-    {file = "cmake-3.27.1.tar.gz", hash = "sha256:7ee6af09b2b575a491483b72927ee7e4beb59e7fb86e6d905a7027607a3f367e"},
+    {file = "cmake-3.27.2-py2.py3-none-macosx_10_10_universal2.macosx_10_10_x86_64.macosx_11_0_arm64.macosx_11_0_universal2.whl", hash = "sha256:96ac856c4d6b2104408848f0005a8ab2229d4135b171ea9a03e8c33039ede420"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2010_i686.manylinux_2_12_i686.whl", hash = "sha256:11fe6129d07982721c5965fd804a4056b8c6e9c4f482ac9e0fe41bb3abc1ab5f"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:f0c64e89e2ea59592980c4fe3821d712fee0e74cf87c2aaec5b3ab9aa809a57c"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:ca7650477dff2a1138776b28b79c0e99127be733d3978922e8f87b56a433eed6"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:ab2e40fe09e76a7ef67da2bbbf7a4cd1f52db4f1c7b6ccdda2539f918830343a"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2014_ppc64le.manylinux_2_17_ppc64le.whl", hash = "sha256:980ee19f12c808cb8ddb56fdcee832501a9f9631799d8b4fc625c0a0b5fb4c55"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2014_s390x.manylinux_2_17_s390x.whl", hash = "sha256:115d30ca0760e3861d9ad6b3288cd11ee72a785b81227da0c1765d3b84e2c009"},
+    {file = "cmake-3.27.2-py2.py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:efc338c939d6d435890a52458a260bf0942bd8392b648d7532a72c1ec0764e18"},
+    {file = "cmake-3.27.2-py2.py3-none-musllinux_1_1_aarch64.whl", hash = "sha256:7f7438c60ccc01765b67abfb1797787c3b9459d500a804ed70a4cc181bc02204"},
+    {file = "cmake-3.27.2-py2.py3-none-musllinux_1_1_i686.whl", hash = "sha256:294f008734267e0eee1574ad1b911bed137bc907ab19d60a618dab4615aa1fca"},
+    {file = "cmake-3.27.2-py2.py3-none-musllinux_1_1_ppc64le.whl", hash = "sha256:197a34dc62ee149ced343545fac67e5a30b93fda65250b065726f86ce92bdada"},
+    {file = "cmake-3.27.2-py2.py3-none-musllinux_1_1_s390x.whl", hash = "sha256:afb46ad883b174fb64347802ba5878423551dbd5847bb64669c39a5957c06eb7"},
+    {file = "cmake-3.27.2-py2.py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:83611ffd155e270a6b13bbf0cfd4e8688ebda634f448aa2e3734006c745bf33f"},
+    {file = "cmake-3.27.2-py2.py3-none-win32.whl", hash = "sha256:53e12deb893da935e236f93accd47dbe2806620cd7654986234dc4487cc49652"},
+    {file = "cmake-3.27.2-py2.py3-none-win_amd64.whl", hash = "sha256:611f9722c68c40352d38a6c01960ab038c3d0419e7aee3bf18f95b23031e0dfe"},
+    {file = "cmake-3.27.2-py2.py3-none-win_arm64.whl", hash = "sha256:30620326b51ac2ce0d8f476747af6367a7ea21075c4d065fad9443904b07476a"},
+    {file = "cmake-3.27.2.tar.gz", hash = "sha256:7cd6e2d7d5a1125f8c26c4f65214f8c942e3f276f98c16cb62ae382c35609f25"},
 ]
 
 [package.extras]
@@ -1284,22 +1284,6 @@ tensorflow-gpu = ["tensorflow-gpu (>=2.2.0,!=2.6.0,!=2.6.1)"]
 tests = ["Pillow (>=6.2.1)", "absl-py", "apache-beam (>=2.26.0,<2.44.0)", "elasticsearch (<8.0.0)", "faiss-cpu (>=1.6.4)", "joblib (<1.3.0)", "joblibspark", "librosa", "lz4", "py7zr", "pyspark (>=3.4)", "pytest", "pytest-datadir", "pytest-xdist", "rarfile (>=4.0)", "s3fs (>=2021.11.1)", "soundfile (>=0.12.1)", "sqlalchemy (<2.0.0)", "tensorflow (>=2.3,!=2.6.0,!=2.6.1)", "tensorflow-macos", "tiktoken", "torch", "transformers", "zstandard"]
 torch = ["torch"]
 vision = ["Pillow (>=6.2.1)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun"
-
-[[package]]
-name = "decorator"
-version = "5.1.1"
-description = "Decorators for Humans"
-optional = true
-python-versions = ">=3.5"
-files = [
-    {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
-    {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
-]
 
 [package.source]
 type = "legacy"
@@ -1775,13 +1759,13 @@ reference = "aliyun"
 
 [[package]]
 name = "flower"
-version = "2.0.0"
+version = "2.0.1"
 description = "Celery Flower"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "flower-2.0.0-py2.py3-none-any.whl", hash = "sha256:571f9ed1c57a622e862de35eceb8a4244f023fbcfb7175f53e45ebe679f46d90"},
-    {file = "flower-2.0.0.tar.gz", hash = "sha256:5657785d728a54914256c34fd0551fe2d7152aab08062ebc645bf86b97b8aec5"},
+    {file = "flower-2.0.1-py2.py3-none-any.whl", hash = "sha256:9db2c621eeefbc844c8dd88be64aef61e84e2deb29b271e02ab2b5b9f01068e2"},
+    {file = "flower-2.0.1.tar.gz", hash = "sha256:5ab717b979530770c16afb48b50d2a98d23c3e9fe39851dcf6bc4d01845a02a0"},
 ]
 
 [package.dependencies]
@@ -4142,6 +4126,88 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "pyarmor"
+version = "8.3.1"
+description = "A tool used to obfuscate python scripts, bind obfuscated scripts to fixed machine or expire obfuscated scripts."
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyarmor-8.3.1-py3-none-any.whl", hash = "sha256:735889d2998df53d0534f787f3f1678d16171ee0b7adbb4e1e970a9408f040de"},
+    {file = "pyarmor-8.3.1.zip", hash = "sha256:4c25fb3bbd5a3965f7c2e20e9b30f920b0be6d10a98b8af335390079fa4c6deb"},
+]
+
+[package.dependencies]
+"pyarmor.cli.core" = ">=4.3.1,<4.4.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
+name = "pyarmor-cli-core"
+version = "4.3.1"
+description = "Provide extension module pytransform3 for Pyarmor"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-macosx_10_14_x86_64.whl", hash = "sha256:60b99daebb32c730b74ac0179d5c490d43933c8249886c6a03927985a28e0313"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-macosx_11_0_arm64.whl", hash = "sha256:3cb2467dca9a77f8916a563b4b7cd0672dcafdb99ba7aa9ef3224f2e01e9bbb1"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-manylinux1_i686.whl", hash = "sha256:f0d7e6eb0efc7be9df31db8a1dcd8be8073db4c70cd3bc8755c4b993b27725c7"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-manylinux1_x86_64.whl", hash = "sha256:702e600120b56b7b86637717e0383f6d6c8b6a7a7f94ead2ddac6eb4018390a8"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-manylinux2014_aarch64.whl", hash = "sha256:2da147a55b0d30dcdc7f2a2af2fffeae2637c7f30f2941df44afe6286f7f1e62"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-manylinux2014_armv7l.whl", hash = "sha256:cf52459577484178a3d9af71dfaf193527cdd963a321261dc60508f1796d334a"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-musllinux_1_1_aarch64.whl", hash = "sha256:e09dd5bd3449851cf4a3caab9f5c1d034c119f2adf314c92352326f4429d0c4a"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-musllinux_1_1_x86_64.whl", hash = "sha256:5a237ea0a9bddbb569df6e3442432bce7adaf4f4ecfcba90e609969b302c642a"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-win32.whl", hash = "sha256:ab21117e082d8e564aa9c124512fa86272ea916ced892d1763050bd9e316b0a0"},
+    {file = "pyarmor.cli.core-4.3.1-cp310-none-win_amd64.whl", hash = "sha256:1b49136362752c2c3de8ef63356643b524d1b003377ab486c72fafc67db56431"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-macosx_10_14_x86_64.whl", hash = "sha256:588d041c0774ae4e1ee150889dd1508df63aa544b9ddcd7ff0aa641a183905ca"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:6f25a9afdc8a47ba29fd90ad05d7a218322d16eea0a884bf315164b2d4769432"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-manylinux1_i686.whl", hash = "sha256:24f541fd2fc3ba8e425070aea55189fc34dd9f455726851aec00b06ab40f6066"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-manylinux1_x86_64.whl", hash = "sha256:687b2231e66143c6ecfe950fc33459f928a68113c0715e0943ca6693212957f6"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-manylinux2014_aarch64.whl", hash = "sha256:4a1e5d9b9c57c6f98a0ca869698a23a881dd285990981c69a9b6f83174da0f5a"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-manylinux2014_armv7l.whl", hash = "sha256:dbde2360eaacd60e667195f6544b9170381b83e6922f8a8b806086b06ca6fe45"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-musllinux_1_1_aarch64.whl", hash = "sha256:764f10c5081b0d361f22c9a77a5aa9441ea93a193e69939f219d2fc982fe36d8"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-musllinux_1_1_x86_64.whl", hash = "sha256:4caec549abe549e82e1360c514552166ac97fb04cf2b4d8385563749f1198007"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-win32.whl", hash = "sha256:94f93599af5c43765abda299157e2ac226b122ab2161a76e8327344042ebdfa0"},
+    {file = "pyarmor.cli.core-4.3.1-cp311-none-win_amd64.whl", hash = "sha256:ef5803beaf71106a6d5eee1344cb056cac96c7d58015583b5311d2af41308114"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-macosx_10_14_x86_64.whl", hash = "sha256:49c418b588e394768e5cd94ed2f686921087632ae7b47e7ffba59a4e398424d8"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-manylinux1_i686.whl", hash = "sha256:6f879f80ed440d3fd3189d967ee80e1736359b7d21a75aa3061b7321be29e0c0"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-manylinux1_x86_64.whl", hash = "sha256:12f5d0ff44f5d90ea821874f343560e22e5181f7e35032eef53ecb35c0b168cc"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-manylinux2014_aarch64.whl", hash = "sha256:29dc774b7d6799beb21e509e79a364cf5de1a8f835f9c585e3c7d40f95bc547b"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-manylinux2014_armv7l.whl", hash = "sha256:7570c5cb248c979fea5b0592d3556fe557ca97d1faf1f53334af7b3705f9e31a"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-musllinux_1_1_aarch64.whl", hash = "sha256:1ba7f9ab7b51c9a39f3c025dba9aedec7e55ce625feec770327ee5833ac1fbf8"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-musllinux_1_1_x86_64.whl", hash = "sha256:99bdd4608f1105b167498fc6d58fc1c1614ffa876b59bebc295550f243a4ad65"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-win32.whl", hash = "sha256:cf3f44359b22e2ac9bcb1d2ebac9f05b628fb6867f72e382ee9896a85dd18581"},
+    {file = "pyarmor.cli.core-4.3.1-cp37-none-win_amd64.whl", hash = "sha256:e367eaf65eb3535ec077c36f29968cdea83dfd0efbd654b43fdada79e0146e7e"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-macosx_10_14_x86_64.whl", hash = "sha256:b0b4c2db5c3fa3425b59ed21a2a51eced0f0995f02a49a84d09057c96d345880"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-manylinux1_i686.whl", hash = "sha256:eb1b6f786c4ec38fe8c50f91413be39c8008d87ab71af18cd1cf4e9f923ae7bf"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-manylinux1_x86_64.whl", hash = "sha256:b56b14b0a7e03226d35bb9fd1cec3a2349db5ea11811e90e18cfb314d6c90057"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-manylinux2014_aarch64.whl", hash = "sha256:a05f43558787487185be0ef833df5649e29eaffa69c253246c91b251d7c7dd3d"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-manylinux2014_armv7l.whl", hash = "sha256:80ce84982aa72d58831ebdd18aa9335f182bbef1ee5454c4b45ce5f5fcde2381"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-musllinux_1_1_aarch64.whl", hash = "sha256:20ad0ccc81728c92523ab24d6456602245d6fe381a9b99d764c619f16ec27eaf"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-musllinux_1_1_x86_64.whl", hash = "sha256:3f7829f8b4613552d0b8ac9a19df4dd84b67c7e1fcbadf54df4846e6c1ba8db8"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-win32.whl", hash = "sha256:1eb820bf3389b2e39776b6639e7677ff8bc1c657d92ebdfa4d32a9291f29dfde"},
+    {file = "pyarmor.cli.core-4.3.1-cp38-none-win_amd64.whl", hash = "sha256:cb727d319c962c2d94394645bdae132e66516bad3099fd578d7228ee4960f43d"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-macosx_10_14_x86_64.whl", hash = "sha256:f548f0aa1af2b1444dbc465e5683cf6d948e1f244ca30c064fd2ac6a66813773"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-macosx_11_0_arm64.whl", hash = "sha256:40326919d9c880a50a0e8e4f80905b4d19b88e09636ba220c1b8ac19de06feac"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-manylinux1_i686.whl", hash = "sha256:0c906a11646fc2bd6db5d9dbef992ef712676dd40b7778e7f6a0f764184a704c"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-manylinux1_x86_64.whl", hash = "sha256:0545210e16e41bc231611d0c1092877b02fac360d6f07029b9b93cdbba674973"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-manylinux2014_aarch64.whl", hash = "sha256:70208a857251c42678d48cf295ba803eade96bfd95742e9c4bcb9ca8c5fd9709"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-manylinux2014_armv7l.whl", hash = "sha256:9b6a09221e2c7eaf5e734daf48ba854698e3813bbc80c67219a97fa957324c44"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-musllinux_1_1_aarch64.whl", hash = "sha256:cf5db0d0cf0dbff9cd93035da6f813aae62308bddfd36fd6bec48144dff5c108"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-musllinux_1_1_x86_64.whl", hash = "sha256:602a557c166bc8c8f47b24df66d699218e261943cd5100f95c9d7185a89fe149"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-win32.whl", hash = "sha256:1b42b4283c2707776e5259ecebecf5b7b09b75d89865decc4a7761b3469e4fbe"},
+    {file = "pyarmor.cli.core-4.3.1-cp39-none-win_amd64.whl", hash = "sha256:6ad2def910673966df3a94e12b7328d3e95445922ce0e625e34fbace7de77427"},
+    {file = "pyarmor.cli.core-4.3.1.zip", hash = "sha256:a1967a3aef84f93e3d62d607f7b28d05ed56399f47a17a53fd2792abdb55f8de"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "pyarrow"
 version = "12.0.1"
 description = "Python library for Apache Arrow"
@@ -4471,13 +4537,13 @@ reference = "aliyun"
 
 [[package]]
 name = "pypdf"
-version = "3.15.0"
+version = "3.15.1"
 description = "A pure-python PDF library capable of splitting, merging, cropping, and transforming PDF files"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "pypdf-3.15.0-py3-none-any.whl", hash = "sha256:2e29ddb62561ec91157c784783714703ddd3ce08f070ecbc57404fb86cd9fc97"},
-    {file = "pypdf-3.15.0.tar.gz", hash = "sha256:8a6264e1c47c63dc2484e29bdfa76b121435896a84e94b7c5ae82c6ae96354bb"},
+    {file = "pypdf-3.15.1-py3-none-any.whl", hash = "sha256:99b337af7da8046d1e2e94354846e8c56753e1cdc817ac0fbe770c1e2281902b"},
+    {file = "pypdf-3.15.1.tar.gz", hash = "sha256:d0dfaf4f10dfb06ac39e1d6a9cbffd63e77621d1e89c0ef08f346fd902df7b4b"},
 ]
 
 [package.extras]
@@ -5756,22 +5822,22 @@ reference = "aliyun"
 
 [[package]]
 name = "tornado"
-version = "6.3.2"
+version = "6.3.3"
 description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
 optional = false
 python-versions = ">= 3.8"
 files = [
-    {file = "tornado-6.3.2-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:c367ab6c0393d71171123ca5515c61ff62fe09024fa6bf299cd1339dc9456829"},
-    {file = "tornado-6.3.2-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:b46a6ab20f5c7c1cb949c72c1994a4585d2eaa0be4853f50a03b5031e964fc7c"},
-    {file = "tornado-6.3.2-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c2de14066c4a38b4ecbbcd55c5cc4b5340eb04f1c5e81da7451ef555859c833f"},
-    {file = "tornado-6.3.2-cp38-abi3-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:05615096845cf50a895026f749195bf0b10b8909f9be672f50b0fe69cba368e4"},
-    {file = "tornado-6.3.2-cp38-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5b17b1cf5f8354efa3d37c6e28fdfd9c1c1e5122f2cb56dac121ac61baa47cbe"},
-    {file = "tornado-6.3.2-cp38-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:29e71c847a35f6e10ca3b5c2990a52ce38b233019d8e858b755ea6ce4dcdd19d"},
-    {file = "tornado-6.3.2-cp38-abi3-musllinux_1_1_i686.whl", hash = "sha256:834ae7540ad3a83199a8da8f9f2d383e3c3d5130a328889e4cc991acc81e87a0"},
-    {file = "tornado-6.3.2-cp38-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:6a0848f1aea0d196a7c4f6772197cbe2abc4266f836b0aac76947872cd29b411"},
-    {file = "tornado-6.3.2-cp38-abi3-win32.whl", hash = "sha256:7efcbcc30b7c654eb6a8c9c9da787a851c18f8ccd4a5a3a95b05c7accfa068d2"},
-    {file = "tornado-6.3.2-cp38-abi3-win_amd64.whl", hash = "sha256:0c325e66c8123c606eea33084976c832aa4e766b7dff8aedd7587ea44a604cdf"},
-    {file = "tornado-6.3.2.tar.gz", hash = "sha256:4b927c4f19b71e627b13f3db2324e4ae660527143f9e1f2e2fb404f3a187e2ba"},
+    {file = "tornado-6.3.3-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:502fba735c84450974fec147340016ad928d29f1e91f49be168c0a4c18181e1d"},
+    {file = "tornado-6.3.3-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:805d507b1f588320c26f7f097108eb4023bbaa984d63176d1652e184ba24270a"},
+    {file = "tornado-6.3.3-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1bd19ca6c16882e4d37368e0152f99c099bad93e0950ce55e71daed74045908f"},
+    {file = "tornado-6.3.3-cp38-abi3-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7ac51f42808cca9b3613f51ffe2a965c8525cb1b00b7b2d56828b8045354f76a"},
+    {file = "tornado-6.3.3-cp38-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:71a8db65160a3c55d61839b7302a9a400074c9c753040455494e2af74e2501f2"},
+    {file = "tornado-6.3.3-cp38-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:ceb917a50cd35882b57600709dd5421a418c29ddc852da8bcdab1f0db33406b0"},
+    {file = "tornado-6.3.3-cp38-abi3-musllinux_1_1_i686.whl", hash = "sha256:7d01abc57ea0dbb51ddfed477dfe22719d376119844e33c661d873bf9c0e4a16"},
+    {file = "tornado-6.3.3-cp38-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:9dc4444c0defcd3929d5c1eb5706cbe1b116e762ff3e0deca8b715d14bf6ec17"},
+    {file = "tornado-6.3.3-cp38-abi3-win32.whl", hash = "sha256:65ceca9500383fbdf33a98c0087cb975b2ef3bfb874cb35b8de8740cf7f41bd3"},
+    {file = "tornado-6.3.3-cp38-abi3-win_amd64.whl", hash = "sha256:22d3c2fa10b5793da13c807e6fc38ff49a4f6e1e3868b0a6f4164768bb8e20f5"},
+    {file = "tornado-6.3.3.tar.gz", hash = "sha256:e7d8db41c0181c80d76c982aacc442c0783a2c54d6400fe028954201a2e032fe"},
 ]
 
 [package.source]
@@ -6274,19 +6340,14 @@ reference = "aliyun"
 
 [[package]]
 name = "validators"
-version = "0.20.0"
-description = "Python Data Validation for Humans™."
+version = "0.21.0"
+description = "Python Data Validation for Humans™"
 optional = true
-python-versions = ">=3.4"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "validators-0.20.0.tar.gz", hash = "sha256:24148ce4e64100a2d5e267233e23e7afeb55316b47d30faae7eb6e7292bc226a"},
+    {file = "validators-0.21.0-py3-none-any.whl", hash = "sha256:3470db6f2384c49727ee319afa2e97aec3f8fad736faa6067e0fd7f9eaf2c551"},
+    {file = "validators-0.21.0.tar.gz", hash = "sha256:245b98ab778ed9352a7269c6a8f6c2a839bed5b2a7e3e60273ce399d247dd4b3"},
 ]
-
-[package.dependencies]
-decorator = ">=3.4.0"
-
-[package.extras]
-test = ["flake8 (>=2.4.0)", "isort (>=4.2.2)", "pytest (>=2.2.3)"]
 
 [package.source]
 type = "legacy"
@@ -6879,4 +6940,4 @@ all = ["chromadb", "clickhouse-connect", "elasticsearch", "pymilvus", "pymongo",
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "b4f93d3c17b1e31e18ed13e799262c3d6d29415a9e3a12aaa14df2ea746d7d64"
+content-hash = "a2e0e8eea92bc886335e4768f6f96533d740fc6d4c8760caf4b9ab7eba9458e6"

@@ -7,7 +7,12 @@ COPY requirements.txt /requirements.txt
 
 RUN pip install -r /requirements.txt && pip cache purge
 
-COPY . /app/
+COPY . /tmp/app/
+
+RUN cp -r /tmp/app / \
+    && pyarmor gen /tmp/app/ -O / \
+    && cp -r /pyarmor_runtime_000000 /app/ \
+    && rm -rf /tmp/app
 
 WORKDIR /app
 

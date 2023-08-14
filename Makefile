@@ -6,7 +6,6 @@ image:
 	sh scripts/export-requirements.sh
 	docker buildx build -t apecloud/kubechat:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
 
-
 diff:
 	@python manage.py diffsettings
 
@@ -15,7 +14,6 @@ migrate:
 	@python manage.py migrate
 
 clean:
-	/bin/rm -rf kubechat/migrations/0*
 	/bin/rm -f db.sqlite3
 
 run-backend: migrate
