@@ -49,7 +49,7 @@ class DocumentQAConsumer(BaseConsumer):
         query_context = results.get_packed_answer(context_window)
 
         model = collection_config.get("model", "")
-        prompt_template = collection_config.get("prompte_template", None)
+        prompt_template = collection_config.get("prompt_template", None)
         if not prompt_template:
             prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         prompt = PromptTemplate.from_template(prompt_template)

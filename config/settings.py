@@ -258,3 +258,8 @@ SIMPLEUI_INDEX = 'https://www.apecloud.com'
 INSTALLED_APPS += ["django_prometheus"]
 
 STATIC_ROOT = BASE_DIR / "static"
+
+# feishu app used for auth
+FEISHU_APP_ID = env.str("FEISHU_APP_ID", default="")
+FEISHU_APP_SECRET = env.str("FEISHU_APP_SECRET", default="")
+FEISHU_ENCRYPT_KEY = env.str("FEISHU_ENCRYPT_KEY", default="")

@@ -1,19 +1,16 @@
 import io
 import json
 import logging
-import os
 import uuid
 import zipfile
 from pathlib import Path
 from datetime import datetime
 from http import HTTPStatus
 
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from asgiref.sync import sync_to_async
-from django.core.files.base import ContentFile
 from django.http import HttpResponse
-from fsspec.asyn import loop
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
@@ -21,14 +18,15 @@ from pydantic import BaseModel
 from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
-from kubechat.tasks.index import add_index_for_document, remove_index, add_index_for_local_document
+from kubechat.tasks.index import remove_index, add_index_for_local_document
 from kubechat.tasks.scan import scan_collection
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.Readers import DEFAULT_FILE_READER_CLS
 from readers.base_embedding import get_default_embedding_model
 
-from .auth.validator import GlobalAuth
+
+from .auth.validator import GlobalHTTPAuth
 from .chat.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from .models import *
 from .utils.utils import generate_vector_db_collection_id, fix_path_name, validate_document_config
@@ -38,7 +36,7 @@ from django.shortcuts import render
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI(version="1.0.0", auth=GlobalAuth())
+api = NinjaAPI(version="1.0.0", auth=GlobalHTTPAuth(), urls_namespace="collection")
 
 
 class CollectionIn(Schema):
@@ -180,6 +178,8 @@ async def create_collection(request, collection: CollectionIn):
             summary=instance.description,
         )
         await chat.asave()
+    else:
+        return fail(HTTPStatus.BAD_REQUEST, "unknown collection type")
 
     return success(instance.view())
 
@@ -438,3 +438,4 @@ def dashboard(request):
     context = {'user_count': user_count, 'Collection_count': collection_count,
                'Document_count': document_count, 'Chat_count': chat_count}
     return render(request, 'kubechat/dashboard.html', context)
+

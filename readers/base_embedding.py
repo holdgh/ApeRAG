@@ -18,7 +18,6 @@ from llama_index import (
     StorageContext,
     download_loader,
 )
-from text2vec import SentenceModel
 
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from config.settings import EMBEDDING_DEVICE
@@ -26,6 +25,7 @@ from config.settings import EMBEDDING_DEVICE
 
 class Text2VecEmbedding(Embeddings):
     def __init__(self):
+        from text2vec import SentenceModel
         self.model = SentenceModel('shibing624/text2vec-base-chinese')
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:

@@ -2,9 +2,12 @@ import json
 import re
 from datetime import datetime
 from typing import Dict
+import hashlib
+import base64
+from Crypto.Cipher import AES
 
 AVAILABLE_MODEL = [""]
-AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email"]
+AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu"]
 
 
 def extract_collection_and_chat_id(path: str):
@@ -63,3 +66,29 @@ def validate_document_config(config: Dict) -> bool:
     if config.get("source") not in AVAILABLE_SOURCE:
         return False
     return True
+
+
+class AESCipher(object):
+    def __init__(self, key):
+        self.bs = AES.block_size
+        self.key = hashlib.sha256(AESCipher.str_to_bytes(key)).digest()
+
+    @staticmethod
+    def str_to_bytes(data):
+        u_type = type(b"".decode('utf8'))
+        if isinstance(data, u_type):
+            return data.encode('utf8')
+        return data
+
+    @staticmethod
+    def _unpadding(s):
+        return s[:-ord(s[len(s) - 1:])]
+
+    def decrypt(self, enc):
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpadding(cipher.decrypt(enc[AES.block_size:]))
+
+    def decrypt_string(self, enc):
+        enc = base64.b64decode(enc)
+        return self.decrypt(enc).decode('utf8')

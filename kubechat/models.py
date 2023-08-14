@@ -104,10 +104,10 @@ class Document(models.Model):
     size = models.BigIntegerField()
     file = models.FileField(upload_to=user_document_path)
     relate_ids = models.TextField()
+    metadata = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
-    metadata = models.CharField(max_length=256)  # for md5 or latest update time
 
     def view(self):
         return {

@@ -40,6 +40,9 @@ def get_source(collection, ctx: Dict[str, Any]):
         case "oss":
             from kubechat.source.oss import OSSSource
             source = OSSSource(collection, ctx)
+        case "feishu":
+            from kubechat.source.feishu import FeishuSource
+            source = FeishuSource(collection, ctx)
         case "ftp":
             from kubechat.source.ftp import FTPSource
             source = FTPSource(collection, ctx)
