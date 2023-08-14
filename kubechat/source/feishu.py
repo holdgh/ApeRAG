@@ -64,6 +64,7 @@ class FeishuClient(ABC):
 
     def request(self, method, path, **kwargs):
         url = f"https://open.feishu.cn/open-apis/{path}"
+        logger.info("request feishu api: %s %s", method, url)
         with self.mutex:
             if self.expire_at - datetime.datetime.now() < datetime.timedelta(minutes=15):
                 self.tenant_access_token, self.expire_at = self.get_tenant_access_token()
@@ -178,10 +179,20 @@ class FeishuClient(ABC):
 
     def get_space_nodes(self, space_id, parent_node_token=""):
         nodes = []
-        params = {"parent_node_token": parent_node_token}
-        resp = self.get(f"wiki/v2/spaces/{space_id}/nodes", params=params)
-        for node in resp["data"]["items"]:
-            nodes.append(node)
+        page_token = None
+        while True:
+            params = {
+                "parent_node_token": parent_node_token,
+                "page_size": 1,
+            }
+            if page_token is not None:
+                params["page_token"] = page_token
+            resp = self.get(f"wiki/v2/spaces/{space_id}/nodes", params=params)
+            for node in resp["data"]["items"]:
+                nodes.append(node)
+            if not resp["data"]["has_more"]:
+                break
+            page_token = resp["data"]["page_token"]
         return nodes
 
     def get_node(self, token):
