@@ -40,8 +40,8 @@ def sync_documents(**kwargs):
         documents_in_db[document.name] = document
 
     collection_sync_history.total_documents = len(documents_in_db)
-    collection_sync_history.update_execution_time()
     collection_sync_history.save()
+    collection_sync_history.update_execution_time()
     collection_sync_history_id = collection_sync_history.id
 
     for name_remote, document_remote in documents_in_remote.items():

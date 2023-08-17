@@ -207,6 +207,7 @@ class CollectionSyncHistory(models.Model):
     start_time = models.DateTimeField()
 
     def update_execution_time(self):
+        self.refresh_from_db()
         self.execution_time = timezone.now() - self.start_time
         self.save()
 
