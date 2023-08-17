@@ -1,7 +1,9 @@
 import json
 import logging
 from datetime import datetime
+from django.utils import timezone
 
+import time
 from celery import Task
 from config.celery import app
 
@@ -9,7 +11,7 @@ from config.vector_db import get_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
 from kubechat.source.base import get_source
 from kubechat.utils.utils import generate_vector_db_collection_id
-from kubechat.models import Document, DocumentStatus, CollectionStatus
+from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory
 
 logger = logging.getLogger(__name__)
 
@@ -68,15 +70,18 @@ def add_index_for_local_document(self, document_id):
     except Exception as e:
         raise self.retry(exc=e, countdown=5, max_retries=3)
 
-
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
-def add_index_for_document(self, document_id):
+def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
             document_id: the document in Django Module
             document_id:
     """
+    if collection_sync_history_id > 0:
+        collection_sync_history = CollectionSyncHistory.objects.get(id=collection_sync_history_id)
+        collection_sync_history.processing_documents = collection_sync_history.processing_documents + 1
+        collection_sync_history.save()
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -94,35 +99,68 @@ def add_index_for_document(self, document_id):
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
         logger.info(f"add qdrant points: {document.relate_ids} for document {file_path}")
+        if collection_sync_history_id > 0:
+            collection_sync_history.processing_documents = collection_sync_history.processing_documents - 1
+            collection_sync_history.successful_documents = collection_sync_history.successful_documents + 1
+            collection_sync_history.new_documents = collection_sync_history.new_documents + 1
+            collection_sync_history.total_documents = collection_sync_history.total_documents + 1
+            collection_sync_history.save()
+            collection_sync_history.update_execution_time()
     except Exception as e:
+        if collection_sync_history_id > 0:
+            collection_sync_history.processing_documents = collection_sync_history.processing_documents - 1
+            collection_sync_history.failed_documents = collection_sync_history.failed_documents + 1
+            collection_sync_history.save()
+            collection_sync_history.update_execution_time()
         raise self.retry(exc=e, countdown=5, max_retries=3)
 
     source.cleanup_document(file_path, document)
 
 
 @app.task(base=CustomDeleteDocumentTask, ignore_result=True, bind=True)
-def remove_index(self, document_id):
+def remove_index(self, document_id, collection_sync_history_id = -1):
     """
     remove the doc embedding index from vector store db
     :param self:
     :param document_id:
     """
+    if collection_sync_history_id > 0:
+        collection_sync_history = CollectionSyncHistory.objects.get(id=collection_sync_history_id)
+        collection_sync_history.processing_documents = collection_sync_history.processing_documents + 1
+        collection_sync_history.save()
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
-        logger.debug(f"remove qdrant points: {document.relate_ids} for document {document.file}")
+        logger.info(f"remove qdrant points: {document.relate_ids} for document {document.file}")
         vector_db = get_vector_db_connector(collection=generate_vector_db_collection_id(user=document.user,
                                                                                         collection=document.collection.id))
         vector_db.connector.delete(ids=str(document.relate_ids).split(','))
+        if collection_sync_history_id > 0:
+            collection_sync_history.processing_documents = collection_sync_history.processing_documents - 1
+            collection_sync_history.successful_documents = collection_sync_history.successful_documents + 1
+            collection_sync_history.deleted_documents = collection_sync_history.deleted_documents + 1
+            collection_sync_history.total_documents = collection_sync_history.total_documents - 1
+            collection_sync_history.save()
+            collection_sync_history.update_execution_time()
+
     except Exception as e:
+        if collection_sync_history_id > 0:
+            collection_sync_history.processing_documents = collection_sync_history.processing_documents - 1
+            collection_sync_history.failed_documents = collection_sync_history.failed_documents + 1
+            collection_sync_history.save()
+            collection_sync_history.update_execution_time()
         raise self.retry(exc=e, countdown=5, max_retries=3)
 
 
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
-def update_index(self, document_id):
+def update_index(self, document_id, colllection_sync_history_id=-1):
+    if colllection_sync_history_id > 0:
+        collection_sync_history = CollectionSyncHistory.objects.get(id=colllection_sync_history_id)
+        collection_sync_history.processing_documents = collection_sync_history.processing_documents + 1
+        collection_sync_history.save()
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -141,7 +179,17 @@ def update_index(self, document_id):
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
         logger.debug(f"update qdrant points: {document.relate_ids} for document {file_path}")
-
+        if colllection_sync_history_id > 0:
+            collection_sync_history.processing_documents = collection_sync_history.processing_documents - 1
+            collection_sync_history.successful_documents = collection_sync_history.successful_documents + 1
+            collection_sync_history.modified_documents = collection_sync_history.modified_documents + 1
+            collection_sync_history.save()
+            collection_sync_history.update_execution_time()
     except Exception as e:
+        if colllection_sync_history_id > 0:
+            collection_sync_history.processing_documents = collection_sync_history.processing_documents - 1
+            collection_sync_history.failed_documents = collection_sync_history.failed_documents + 1
+            collection_sync_history.save()
+            collection_sync_history.update_execution_time()
         raise self.retry(exc=e, countdown=5, max_retries=3)
     source.cleanup_document(file_path, document)

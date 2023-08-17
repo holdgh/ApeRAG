@@ -24,6 +24,10 @@ class Source(ABC):
     def close(self):
         pass
 
+    @abstractmethod
+    def sync_enabled(self):
+        pass
+
 
 def get_source(collection, ctx: Dict[str, Any]):
     source = None

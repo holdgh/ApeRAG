@@ -93,3 +93,6 @@ class FTPSource(Source):
 
     def close(self):
         self.ftp.quit()
+
+    def sync_enabled(self):
+        return True

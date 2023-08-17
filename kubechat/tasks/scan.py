@@ -1,13 +1,24 @@
 import json
+import logging
+from datetime import datetime, timezone
+
+import pytz
+
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from celery import Task
 
 from config.celery import app
-from kubechat.models import Collection, CollectionStatus
+from kubechat.models import Collection, CollectionStatus, CollectionSyncHistory
 
+from .index import CustomLoadDocumentTask
 from .local_directory_task import update_local_directory_index
 from kubechat.tasks.index import add_index_for_document
 from kubechat.source.base import Source, get_source
+from celery.schedules import crontab
+from kubechat.tasks.sync_documents_task import sync_documents
+
+logger = logging.getLogger(__name__)
 
 
 class CustomScanTask(Task):
@@ -46,12 +57,51 @@ def scan_collection(self, collection_id):
 
 
 @app.task()
-def get_collections_cron_job():
-    collections = Collection.objects.all()
-    for collection in collections:
-        # todo: need User Balanced Solutions to make sure that tasks are not filled with large users
+def sync_documents_cron_job(collection_id):
+    collection = Collection.objects.get(id=collection_id)
+    config = json.loads(collection.config)
+    crontab_create, _ = CrontabSchedule.objects.update_or_create(
+        minute=config["crontab"]["minute"],
+        hour=config["crontab"]["hour"],
+        day_of_week=config["crontab"]["day_of_week"],
+        day_of_month=config["crontab"]["day_of_month"],
+        # timezone="Etc/GMT-" + config["crontab"]["UTC"]
+    )
+    PeriodicTask.objects.update_or_create(
+        name="collection-" + str(collection.id) + "-sync-documents",
+        kwargs=json.dumps(
+            {"collection_id": str(collection.id)}),
+        task="kubechat.tasks.sync_documents_task.sync_documents",
+        crontab=crontab_create
+    )
+    logger.debug(f"create sync documents cronjob for collection{collection_id}")
+
+
+def get_schedule_task(collection_id):
+    return PeriodicTask.objects.filter(name="collection-" + str(collection_id) + "-sync-documents")
+
+
+@app.task(base=CustomLoadDocumentTask)
+def delete_sync_documents_cron_job(collection_id):
+    task = get_schedule_task(collection_id)
+    if task:
+        task.update(enabled=False)
+        task.delete()
+        logger.debug(f"delete sync documents cronjob for collection{collection_id}")
+
+
+@app.task(base=CustomLoadDocumentTask)
+def update_sync_documents_cron_job(collection_id):
+    task = get_schedule_task(collection_id)
+    if task:
+        collection = Collection.objects.get(id=collection_id)
         config = json.loads(collection.config)
-        if config["source"] == "system":
-            config
-        if config["source"] == "local":
-            update_local_directory_index.delay(collection.user, collection.id)
+        crontab_update, _ = CrontabSchedule.objects.update_or_create(
+            minute=config["crontab"]["minute"],
+            hour=config["crontab"]["hour"],
+            day_of_week=config["crontab"]["day_of_week"],
+            day_of_month=config["crontab"]["day_of_month"],
+            # timezone="Etc/GMT-" + config["crontab"]["UTC"]
+        )
+        task.update(crontab=crontab_update)
+        logger.debug(f"update sync documents cronjob for collection{collection_id}")

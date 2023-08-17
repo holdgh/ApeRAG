@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import Chat, Collection, Document
+from .models import Chat, Collection, Document, CollectionSyncHistory
 from django.utils.html import format_html
 
-
 admin.site.site_header = 'Kubechat admin'  # set header
-admin.site.site_title = 'Kubechat admin'   # set title
+admin.site.site_title = 'Kubechat admin'  # set title
 admin.site.index_title = 'Kubechat admin'
+
 
 class DocumentInline(admin.StackedInline):
     model = Document
@@ -17,7 +17,7 @@ class ChatInline(admin.StackedInline):
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description', 'user', 'status', 'type', 'created_date', 'updated_date')
+    list_display = ('id','title', 'description', 'user', 'status', 'type', 'created_date', 'updated_date')
     list_filter = ('status',)
     search_fields = ('title',)
     inlines = [DocumentInline]  # Associated models displayed inline
@@ -39,6 +39,7 @@ class CollectionAdmin(admin.ModelAdmin):
         )
 
     updated_date.short_description = 'updated'
+
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
@@ -81,3 +82,10 @@ class ChatAdmin(admin.ModelAdmin):
 
     collection.admin_order_field = 'collection__title'
     codetype.admin_order_field = 'codetype'
+
+
+@admin.register(CollectionSyncHistory)
+class SyncHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+    'id','user', 'collection','total_documents', 'new_documents', 'deleted_documents', 'processing_documents', 'modified_documents',
+    'failed_documents', 'successful_documents', 'total_documents_to_sync' ,'start_time', 'execution_time')

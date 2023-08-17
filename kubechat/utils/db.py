@@ -8,6 +8,7 @@ from kubechat.models import (
     ChatStatus,
     Collection,
     CollectionStatus,
+    CollectionSyncHistory,
     Document,
     DocumentStatus,
     ssl_file_path,
@@ -33,6 +34,18 @@ async def query_document(user, collection_id: str, document_id: str):
 
 async def query_documents(user, collection_id: str):
     return Document.objects.exclude(status=DocumentStatus.DELETED).filter(
+        user=user, collection_id=collection_id
+    )
+
+
+async def query_sync_history(user, collection_id: str, sync_history_id: str):
+    return CollectionSyncHistory.objects.aget(
+        user=user, collection_id=collection_id, pk=sync_history_id
+    )
+
+
+async def query_sync_histories(user, collection_id: str):
+    return CollectionSyncHistory.objects.filter(
         user=user, collection_id=collection_id
     )
 

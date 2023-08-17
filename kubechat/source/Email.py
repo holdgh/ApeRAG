@@ -185,3 +185,6 @@ class EmailSource(Source):
 
     def close(self):
         self.conn.quit()
+
+    def sync_enabled(self):
+        return True

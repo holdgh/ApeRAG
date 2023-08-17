@@ -23,7 +23,6 @@ class MilvusVectorStoreConnector(VectorStoreConnector):
         self.alias = f"{self.host}:{self.port}"
 
         connections.connect(self.alias, host=self.host, port=self.port)
-        print("connect successful")
 
         # be careful that connections is a single instance in pymilvus
         self.client = connections

@@ -255,3 +255,6 @@ class FeishuSource(Source):
 
     def close(self):
         pass
+
+    def sync_enabled(self):
+        return True

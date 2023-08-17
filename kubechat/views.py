@@ -8,9 +8,11 @@ from datetime import datetime
 from http import HTTPStatus
 
 from typing import List, Optional, Any
-
+from kubechat.source.base import Source, get_source
 from asgiref.sync import sync_to_async
 from django.http import HttpResponse
+from django_celery_beat.models import PeriodicTask
+from fsspec.asyn import loop
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
@@ -18,13 +20,17 @@ from pydantic import BaseModel
 from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
-from kubechat.tasks.index import remove_index, add_index_for_local_document
-from kubechat.tasks.scan import scan_collection
+from kubechat.tasks.index import add_index_for_local_document, remove_index
+from kubechat.tasks.scan import scan_collection, sync_documents_cron_job, delete_sync_documents_cron_job, \
+    update_sync_documents_cron_job
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.Readers import DEFAULT_FILE_READER_CLS
-from readers.base_embedding import get_default_embedding_model
+from kubechat.tasks.sync_documents_task import sync_documents
+from config.celery import app
+from celery.schedules import crontab
 
+from readers.base_embedding import get_default_embedding_model
 
 from .auth.validator import GlobalHTTPAuth
 from .chat.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
@@ -133,10 +139,38 @@ def list_model_name(request):
             "value": model_server["name"],
             "label": model_server.get("label", model_server["name"]),
             "enabled": model_server.get("enabled", "true").lower() == "true",
-            "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"], DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+            "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
+                                                                  DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
             "context_window": model_server.get("context_window", 2000),
         })
     return success(response)
+
+
+@api.post("/collections/{collection_id}/sync")
+def sync_immediately(request, collection_id):
+    user = get_user(request)
+    # collection = await query_collection(user, collection_id)
+    result = sync_documents.delay(collection_id=collection_id)
+    sync_history_id = result.get(timeout=300)
+    sync_history = CollectionSyncHistory.objects.get(id=sync_history_id)
+    return success(sync_history.view())
+
+
+@api.get("/collections/{collection_id}/sync/history")
+async def get_sync_histories(request, collection_id):
+    user = get_user(request)
+    sync_histories = await query_sync_histories(user, collection_id)
+    response = []
+    async for sync_history in sync_histories:
+        response.append(sync_history.view())
+    return success(response)
+
+
+@api.get("/collections/{collection_id}/sync/{sync_history_id}")
+async def get_sync_history(request, collection_id, sync_history_id):
+    user = get_user(request)
+    sync_history = await query_sync_history(user, collection_id, sync_history_id)
+    return success(sync_history.view())
 
 
 @api.post("/collections")
@@ -163,13 +197,18 @@ async def create_collection(request, collection: CollectionIn):
     elif instance.type == CollectionType.DOCUMENT:
         # pre-create collection in vector db
         if not validate_document_config(config):
-            return fail(HTTPStatus.BAD_REQUEST,"config invaliate")
+            return fail(HTTPStatus.BAD_REQUEST, "config invalidate")
         vector_db_conn = get_vector_db_connector(
             collection=generate_vector_db_collection_id(user=user, collection=instance.id)
         )
         _, size = get_default_embedding_model(load=False)
         vector_db_conn.connector.create_collection(vector_size=size)
         scan_collection.delay(instance.id)
+        # create a period_task to sync documents
+        source = get_source(collection, json.loads(collection.config))
+        if source.sync_enabled():
+            sync_documents_cron_job.delay(instance.id)
+
     elif instance.type == CollectionType.CODE:
         chat = Chat(
             user=instance.user,
@@ -238,6 +277,7 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     instance.description = collection.description
     instance.config = collection.config
     await instance.asave()
+    update_sync_documents_cron_job.delay(instance.id)
     return success(instance.view())
 
 
@@ -248,7 +288,8 @@ async def delete_collection(request, collection_id):
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     instance.status = CollectionStatus.DELETED
-    instance.gmt_deleted = datetime.now()
+    delete_sync_documents_cron_job.delay(instance.id)
+    instance.gmt_deleted = timezone.now()
     await instance.asave()
     return success(instance.view())
 
@@ -438,4 +479,3 @@ def dashboard(request):
     context = {'user_count': user_count, 'Collection_count': collection_count,
                'Document_count': document_count, 'Chat_count': chat_count}
     return render(request, 'kubechat/dashboard.html', context)
-

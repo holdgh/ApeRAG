@@ -1,6 +1,9 @@
 import os
 
 from celery import Celery
+from celery.schedules import crontab
+
+import kubechat
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -21,13 +24,6 @@ if LOCAL_QUEUE_NAME != "":
     app.conf.task_routes = {
         "kubechat.tasks.index.add_index_for_local_document": {"queue": f"{LOCAL_QUEUE_NAME}"},
     }
-
-app.conf.beat_schedule = {
-    "file-update-cron-job": {
-        "task": "kubechat.tasks.scan.get_collections_cron_job",
-        "schedule": 60 * 60 * 2,
-    }
-}
 
 if __name__ == "__main__":
     app.start()

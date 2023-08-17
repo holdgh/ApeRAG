@@ -1,4 +1,8 @@
+import datetime
+
 from django.db import models
+from django.utils import timezone
+
 from django.contrib import admin
 from django.utils.html import format_html
 import re
@@ -135,6 +139,7 @@ class Document(models.Model):
     collection_id.short_description = 'Collection ID'
     collection_id.admin_order_field = 'collection'
 
+
 class Chat(models.Model):
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=ChatStatus.choices)
@@ -185,3 +190,38 @@ class Chat(models.Model):
 class Settings(models.Model):
     key = models.CharField(max_length=512)
     value = models.TextField()
+
+
+class CollectionSyncHistory(models.Model):
+    user = models.CharField(max_length=256)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    total_documents = models.PositiveIntegerField()
+    new_documents = models.PositiveIntegerField(default=0)
+    deleted_documents = models.PositiveIntegerField(default=0)
+    modified_documents = models.PositiveIntegerField(default=0)
+    processing_documents = models.PositiveIntegerField(default=0)
+    failed_documents = models.PositiveIntegerField(default=0)
+    successful_documents = models.PositiveIntegerField(default=0)
+    total_documents_to_sync = models.PositiveIntegerField(default=0)
+    execution_time = models.DurationField(null=True)
+    start_time = models.DateTimeField()
+
+    def update_execution_time(self):
+        self.execution_time = timezone.now() - self.start_time
+        self.save()
+
+    def view(self):
+        return {
+            "id": str(self.id),
+            "user": str(self.user),
+            "total_documents": self.total_documents,
+            "new_documents": self.new_documents,
+            "deleted_documents": self.deleted_documents,
+            "processing_documents": self.processing_documents,
+            "modified_documents": self.modified_documents,
+            "failed_documents": self.failed_documents,
+            "successful_documents": self.successful_documents,
+            "total_documents_to_sync": self.total_documents_to_sync,
+            "start_time": self.start_time,
+            "execution_time": self.execution_time
+        }
