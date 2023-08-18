@@ -20,6 +20,9 @@ def sync_documents(**kwargs):
     collection = Collection.objects.exclude(status=CollectionStatus.DELETED).get(
         id=int(collection_id)
     )
+    source = get_source(collection, json.loads(collection.config))
+    if not source.sync_enabled():
+        return -1
     collection_sync_history = CollectionSyncHistory(
         user=collection.user,
         start_time=timezone.now(),

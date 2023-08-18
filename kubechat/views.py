@@ -149,9 +149,10 @@ def list_model_name(request):
 @api.post("/collections/{collection_id}/sync")
 def sync_immediately(request, collection_id):
     user = get_user(request)
-    # collection = await query_collection(user, collection_id)
     result = sync_documents.delay(collection_id=collection_id)
     sync_history_id = result.get(timeout=300)
+    if sync_history_id == -1:
+        return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
     sync_history = CollectionSyncHistory.objects.get(id=sync_history_id)
     return success(sync_history.view())
 
