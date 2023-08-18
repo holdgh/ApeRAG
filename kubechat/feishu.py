@@ -156,8 +156,9 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
         logger.warning("bot not found: %s", bot_id)
         return
     config = json.loads(bot.config)
+    feishu_config = config.get("feishu")
 
-    encrypt_key = config.get("encrypt_key")
+    encrypt_key = feishu_config.get("encrypt_key")
     if "encrypt" in data:
         cipher = AESCipher(encrypt_key)
         data = cipher.decrypt_string(data["encrypt"])
@@ -202,9 +203,10 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
         logger.warning("invalid event without collection_id")
         return
 
+    collection_config = json.loads(collection.config)
     ctx = {
-        "app_id": config.get("app_id", ""),
-        "app_secret": config.get("app_secret", ""),
+        "app_id": collection_config.get("app_id", ""),
+        "app_secret": collection_config.get("app_secret", ""),
     }
     client = FeishuClient(ctx)
 
