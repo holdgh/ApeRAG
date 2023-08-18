@@ -26,7 +26,7 @@ from config.settings import EMBEDDING_DEVICE
 class Text2VecEmbedding(Embeddings):
     def __init__(self):
         from text2vec import SentenceModel
-        self.model = SentenceModel('shibing624/text2vec-base-chinese')
+        self.model = SentenceModel('shibing624/text2vec-base-chinese', device=EMBEDDING_DEVICE)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         texts = list(map(lambda x: x.replace("\n", " "), texts))
