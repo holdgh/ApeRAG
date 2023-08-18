@@ -1,9 +1,8 @@
 import os
 import shutil
 
-from django.core.files.base import ContentFile
-
 from kubechat.models import (
+    Bot,
     Chat,
     ChatStatus,
     Collection,
@@ -12,7 +11,7 @@ from kubechat.models import (
     Document,
     DocumentStatus,
     ssl_file_path,
-    ssl_temp_file_path,
+    ssl_temp_file_path, BotStatus,
 )
 
 
@@ -38,8 +37,13 @@ async def query_documents(user, collection_id: str):
     )
 
 
+async def query_chat(user, bot_id: str, chat_id: str):
+    return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
+        user=user, bot_id=bot_id, pk=chat_id)
+
+
 async def query_sync_history(user, collection_id: str, sync_history_id: str):
-    return CollectionSyncHistory.objects.aget(
+    return await CollectionSyncHistory.objects.aget(
         user=user, collection_id=collection_id, pk=sync_history_id
     )
 
@@ -50,16 +54,18 @@ async def query_sync_histories(user, collection_id: str):
     )
 
 
-async def query_chat(user, collection_id: str, chat_id: str):
-    return await Chat.objects.exclude(status=DocumentStatus.DELETED).aget(
-        user=user, collection_id=collection_id, pk=chat_id
+async def query_chats(user, bot_id: str):
+    return Chat.objects.exclude(status=ChatStatus.DELETED).filter(
+        user=user, bot_id=bot_id
     )
 
 
-async def query_chats(user, collection_id: str):
-    return Chat.objects.exclude(status=DocumentStatus.DELETED).filter(
-        user=user, collection_id=collection_id
-    )
+async def query_bot(user, bot_id: str):
+    return await Bot.objects.exclude(status=BotStatus.DELETED).aget(user=user, pk=bot_id)
+
+
+async def query_bots(user):
+    return Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user)
 
 
 def add_ssl_file(config, collection):

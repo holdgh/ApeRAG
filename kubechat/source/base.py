@@ -1,3 +1,5 @@
+import json
+import os
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 
@@ -16,9 +18,9 @@ class Source(ABC):
     def prepare_document(self, doc: Document):
         pass
 
-    @abstractmethod
     def cleanup_document(self, file_path: str, doc: Document):
-        pass
+        os.remove(file_path)
+        os.remove(f"{file_path}.metadata")
 
     @abstractmethod
     def close(self):
@@ -27,6 +29,28 @@ class Source(ABC):
     @abstractmethod
     def sync_enabled(self):
         pass
+
+    @staticmethod
+    def get_metadata(file_path: str):
+        metadata_file = f"{file_path}.metadata"
+        if os.path.exists(metadata_file):
+            with open(metadata_file, "r") as f:
+                return json.loads(f.read())
+        return {}
+
+    @staticmethod
+    def prepare_metadata_file(file_path: str, doc: Document, metadata: Dict[str, Any] = None):
+        if not metadata:
+            metadata = {}
+
+        if doc.config:
+            config = json.loads(doc.config)
+            result = ["%s=%s" % (item["key"], item["value"]) for item in config["labels"] if item["key"] and item["value"]]
+            metadata["labels"] = ' '.join(result)
+
+        file_path = f"{file_path}.metadata"
+        with open(file_path, "w") as f:
+            f.write(json.dumps(metadata))
 
 
 def get_source(collection, ctx: Dict[str, Any]):

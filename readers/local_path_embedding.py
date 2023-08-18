@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import json
+import os.path
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional
 
@@ -12,6 +14,7 @@ from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores import qdrant
 from llama_index.vector_stores.types import NodeWithEmbedding
 
+from kubechat.source.base import Source
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from vectorstore.connector import VectorStoreConnectorAdaptor
@@ -43,11 +46,13 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 break
 
             nodes: List[NodeWithEmbedding] = []
+            prefix = "\n\n".join([f"{k}: {v}" for k, v in Source.get_metadata(file_name).items()])
             for doc in docs:
-                vector = embedding.get_text_embedding(doc.text)
+                text = f"{prefix}\n{doc.text}"
+                vector = embedding.get_text_embedding(text)
                 doc.embedding = vector
                 node = Node(
-                    text=doc.text,
+                    text=text,
                     doc_id=doc.doc_id,
                 )
                 node.relationships = {

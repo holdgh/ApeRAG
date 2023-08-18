@@ -57,10 +57,8 @@ class OSSSource(Source):
         temp_file = gen_temporary_file(doc.name)
         temp_file.write(content)
         temp_file.close()
+        self.prepare_metadata_file(temp_file.name, doc)
         return temp_file.name
-
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(file_path)
 
     def close(self):
         pass

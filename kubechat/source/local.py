@@ -51,10 +51,11 @@ class LocalSource(Source):
         return documents
 
     def prepare_document(self, doc: Document):
+        self.prepare_metadata_file(doc.name, doc)
         return doc.name
 
     def cleanup_document(self, file_path: str, doc: Document):
-        pass
+        os.remove(f"{file_path}.metadata")
 
     def close(self):
         pass

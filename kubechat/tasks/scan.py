@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 import pytz
+from asgiref.sync import sync_to_async
 
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
@@ -56,52 +57,44 @@ def scan_collection(self, collection_id):
     source.close()
 
 
-@app.task()
-def sync_documents_cron_job(collection_id):
-    collection = Collection.objects.get(id=collection_id)
+async def update_sync_documents_cron_job(collection_id):
+    collection = await Collection.objects.aget(id=collection_id)
+    task = await get_schedule_task(collection_id)
     config = json.loads(collection.config)
-    crontab_create, _ = CrontabSchedule.objects.update_or_create(
+    if "crontab" not in config:
+        if await task.acount():
+            await task.aupdate(enabled=False)
+            await task.adelete()
+        return
+
+    crontab, _ = await CrontabSchedule.objects.aupdate_or_create(
         minute=config["crontab"]["minute"],
         hour=config["crontab"]["hour"],
         day_of_week=config["crontab"]["day_of_week"],
         day_of_month=config["crontab"]["day_of_month"],
         # timezone="Etc/GMT-" + config["crontab"]["UTC"]
     )
-    PeriodicTask.objects.update_or_create(
-        name="collection-" + str(collection.id) + "-sync-documents",
-        kwargs=json.dumps(
-            {"collection_id": str(collection.id)}),
-        task="kubechat.tasks.sync_documents_task.sync_documents",
-        crontab=crontab_create
-    )
-    logger.debug(f"create sync documents cronjob for collection{collection_id}")
+    if await task.acount():
+        await task.aupdate(crontab=crontab)
+    else:
+        await PeriodicTask.objects.acreate(
+            name="collection-" + str(collection.id) + "-sync-documents",
+            kwargs=json.dumps({"collection_id": str(collection.id)}),
+            task="kubechat.tasks.sync_documents_task.sync_documents",
+            crontab=crontab
+        )
+    logger.info(f"update sync documents cronjob for collection{collection_id}")
 
 
-def get_schedule_task(collection_id):
+async def delete_sync_documents_cron_job(collection_id):
+    task = await get_schedule_task(collection_id)
+    if await task.acount():
+        await task.aupdate(enabled=False)
+        await task.adelete()
+        logger.info(f"delete sync documents cronjob for collection{collection_id}")
+
+
+async def get_schedule_task(collection_id):
     return PeriodicTask.objects.filter(name="collection-" + str(collection_id) + "-sync-documents")
 
 
-@app.task(base=CustomLoadDocumentTask)
-def delete_sync_documents_cron_job(collection_id):
-    task = get_schedule_task(collection_id)
-    if task:
-        task.update(enabled=False)
-        task.delete()
-        logger.debug(f"delete sync documents cronjob for collection{collection_id}")
-
-
-@app.task(base=CustomLoadDocumentTask)
-def update_sync_documents_cron_job(collection_id):
-    task = get_schedule_task(collection_id)
-    if task:
-        collection = Collection.objects.get(id=collection_id)
-        config = json.loads(collection.config)
-        crontab_update, _ = CrontabSchedule.objects.update_or_create(
-            minute=config["crontab"]["minute"],
-            hour=config["crontab"]["hour"],
-            day_of_week=config["crontab"]["day_of_week"],
-            day_of_month=config["crontab"]["day_of_month"],
-            # timezone="Etc/GMT-" + config["crontab"]["UTC"]
-        )
-        task.update(crontab=crontab_update)
-        logger.debug(f"update sync documents cronjob for collection{collection_id}")

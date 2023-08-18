@@ -68,8 +68,8 @@ class DocumentAdmin(admin.ModelAdmin):
 # admin.site.register(Chat)
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
-    list_display = ('user', 'status', 'collection', 'codetype', 'gmt_created', 'gmt_updated')
-    list_filter = ('status', 'codetype')
+    list_display = ('user', 'status', 'collection', 'gmt_created', 'gmt_updated')
+    list_filter = ['status']
     search_fields = ('user',)
     '''Replacement value for empty field'''
     empty_value_display = 'NA'
@@ -77,11 +77,7 @@ class ChatAdmin(admin.ModelAdmin):
     def collection(self, obj):
         return obj.collection.title
 
-    def codetype(self, obj):
-        return obj.get_codetype_display()
-
     collection.admin_order_field = 'collection__title'
-    codetype.admin_order_field = 'codetype'
 
 
 @admin.register(CollectionSyncHistory)

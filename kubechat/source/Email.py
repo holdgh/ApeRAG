@@ -178,10 +178,8 @@ class EmailSource(Source):
         temp_file_path = download_email_body_to_temp_file(
             self.conn, order, order_and_name
         )
+        self.prepare_metadata_file(temp_file_path, doc)
         return temp_file_path
-
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(file_path)
 
     def close(self):
         self.conn.quit()

@@ -5,17 +5,27 @@ from typing import Callable, Dict, Generator, List, Optional, Type
 
 from llama_index.readers.base import BaseReader
 from llama_index.readers.file.base import DEFAULT_FILE_READER_CLS, SimpleDirectoryReader
-from llama_index.readers.file.markdown_reader import MarkdownReader
 from llama_index.readers.schema.base import Document
 
 from .compose_image_reader import ComposeImageReader
+from .markdown_reader import MarkdownReader
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_FILE_READER_CLS[".txt"] = MarkdownReader
+DEFAULT_FILE_READER_CLS[".md"] = MarkdownReader
 DEFAULT_FILE_READER_CLS[".png"] = ComposeImageReader
 DEFAULT_FILE_READER_CLS[".jpg"] = ComposeImageReader
 DEFAULT_FILE_READER_CLS[".jpeg"] = ComposeImageReader
+
+
+def file_metadata_extractor(file: str) -> Dict:
+    result = {"name": file}
+    with open(file) as fd:
+        line = fd.readline()
+        if line.startswith("PARENT TITLES:"):
+            result["titles"] = line.split(":", 2)[1].strip()
+        return result
 
 
 class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
@@ -47,17 +57,17 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
     """
 
     def __init__(
-        self,
-        input_dir: Optional[str] = None,
-        input_files: Optional[List] = None,
-        exclude: Optional[List] = None,
-        exclude_hidden: bool = True,
-        errors: str = "ignore",
-        recursive: bool = False,
-        required_exts: Optional[List[str]] = None,
-        file_extractor: Optional[Dict[str, BaseReader]] = None,
-        num_files_limit: Optional[int] = None,
-        file_metadata: Optional[Callable[[str], Dict]] = None,
+            self,
+            input_dir: Optional[str] = None,
+            input_files: Optional[List] = None,
+            exclude: Optional[List] = None,
+            exclude_hidden: bool = True,
+            errors: str = "ignore",
+            recursive: bool = False,
+            required_exts: Optional[List[str]] = None,
+            file_extractor: Optional[Dict[str, BaseReader]] = None,
+            num_files_limit: Optional[int] = None,
+            file_metadata: Optional[Callable[[str], Dict]] = None,
     ) -> None:
         """Initialize with parameters."""
         super().__init__(
@@ -72,6 +82,7 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             num_files_limit,
             file_metadata,
         )
+        self.file_metadata = file_metadata
 
         self.process_files = self.input_files or self.phase_dir()
 

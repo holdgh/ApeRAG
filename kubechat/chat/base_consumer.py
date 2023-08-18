@@ -12,7 +12,8 @@ from langchain.schema import AIMessage, BaseChatMessageHistory, HumanMessage
 
 import config.settings as settings
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds
+from kubechat.utils.db import query_bot
+from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, extract_bot_and_chat_id
 from readers.base_embedding import get_default_embedding_model
 
 logger = logging.getLogger(__name__)
@@ -30,19 +31,24 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.history = None
         self.user = DEFAULT_USER
         self.collection = None
+        self.bot = None
 
     async def connect(self):
         from kubechat.utils.db import query_chat, query_collection
 
         self.user = self.scope["X-USER-ID"]
-        collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
-        self.collection_id = collection_id
-        collection = await query_collection(self.user, collection_id)
-        if collection is None:
-            raise Exception("Collection not found")
-        self.collection = collection
+        bot_id, chat_id = extract_bot_and_chat_id(self.scope["path"])
+        self.bot = await query_bot(self.user, bot_id)
+        self.collection = await sync_to_async(self.bot.collections.first)()
+        self.collection_id = self.collection.id
+        # collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
+        # self.collection_id = collection_id
+        # collection = await query_collection(self.user, collection_id)
+        # if collection is None:
+        #     raise Exception("Collection not found")
+        # self.collection = collection
 
-        chat = await query_chat(self.user, collection_id, chat_id)
+        chat = await query_chat(self.user, bot_id, chat_id)
         if chat is None:
             raise Exception("Chat not found")
 

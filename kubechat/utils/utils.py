@@ -10,6 +10,17 @@ AVAILABLE_MODEL = [""]
 AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu"]
 
 
+def extract_bot_and_chat_id(path: str):
+    match = re.match(
+        r"/api/v1/bots/(?P<bot_id>\w+)/chats/(?P<chat_id>\w+)/connect$",
+        path,
+    )
+    if match:
+        return match.group("bot_id"), match.group("chat_id")
+    else:
+        raise ValueError(f"Invalid path format: {path}")
+
+
 def extract_collection_and_chat_id(path: str):
     match = re.match(
         r"/api/v1/collections/(?P<collection_id>\w+)/chats/(?P<chat_id>\w+)/connect$",

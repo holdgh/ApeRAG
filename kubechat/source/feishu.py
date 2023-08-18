@@ -1,10 +1,11 @@
 import datetime
+import io
 import json
 import logging
 import os
 from threading import Lock
-from urllib.parse import urlencode
 
+import pytablewriter
 from pydantic import BaseModel
 from abc import ABC
 from typing import Dict, Any
@@ -13,7 +14,7 @@ import requests
 
 from kubechat.source.base import Source
 from kubechat.models import Collection, Document, DocumentStatus
-from kubechat.source.utils import gen_temporary_file
+from kubechat.source.utils import gen_temporary_file, feishu_lang_code_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,139 @@ class UserAccessToken(BaseModel):
     refresh_expires_in: int
     refresh_token: str
     sid: str
+
+
+class Feishu2Markdown(ABC):
+    def __init__(self, doc_id, blocks):
+        self.text = ""
+        self.block_map = {}
+        self.doc_id = doc_id
+        for block in blocks:
+            self.block_map[block["block_id"]] = block
+
+    def gen(self):
+        self.handle_block(self.block_map[self.doc_id])
+        return self.text
+
+    # https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/document-docx/docx-v1/data-structure/block#e8ce4e8e
+    def handle_block(self, block):
+        block_type = block["block_type"]
+        match block_type:
+            case 1:
+                # page
+                self.text += "# "
+                self.parse_block_text(block["page"]["elements"], block.get("children", []))
+            case 2:
+                # text
+                self.parse_block_text(block["text"]["elements"], block.get("children", []))
+            case 3:
+                # heading 1
+                self.text += "# "
+                self.parse_block_text(block["heading1"]["elements"], block.get("children", []))
+            case 4:
+                # heading 2
+                self.text += "## "
+                self.parse_block_text(block["heading2"]["elements"], block.get("children", []))
+            case 5:
+                # heading 3
+                self.text += "### "
+                self.parse_block_text(block["heading3"]["elements"], block.get("children", []))
+            case 6:
+                # heading 4
+                self.text += "#### "
+                self.parse_block_text(block["heading4"]["elements"], block.get("children", []))
+            case 7:
+                # heading 5
+                self.text += "##### "
+                self.parse_block_text(block["heading5"]["elements"], block.get("children", []))
+            case 8:
+                # heading 6
+                self.text += "###### "
+                self.parse_block_text(block["heading6"]["elements"], block.get("children", []))
+            case 9:
+                # heading 7
+                self.text += "####### "
+                self.parse_block_text(block["heading7"]["elements"], block.get("children", []))
+            case 10:
+                # heading 8
+                self.text += "######## "
+                self.parse_block_text(block["heading8"]["elements"], block.get("children", []))
+            case 11:
+                # heading 9
+                self.text += "######### "
+                self.parse_block_text(block["heading9"]["elements"], block.get("children", []))
+            case 12:
+                # bullet
+                self.text += "- "
+                self.parse_block_text(block["bullet"]["elements"], block.get("children", []))
+                self.text += "\n"
+            case 13:
+                # ordered list
+                # TODO optimize ordered list parsing
+                self.text += "1. "
+                self.parse_block_text(block["ordered"]["elements"], block.get("children", []))
+                self.text += "\n"
+            case 14:
+                # code
+                lang = feishu_lang_code_mapping[block["code"]["style"]["language"]]
+                self.text += f"```{lang}\n"
+                self.parse_block_text(block["code"]["elements"], block.get("children", []))
+                self.text += "\n```\n"
+            case 15:
+                # quote
+                self.text += "> "
+                self.parse_block_text(block["quote"]["elements"], block.get("children", []))
+            case 22:
+                # divider
+                self.text += "---\n"
+            case 34:
+                # quote container
+                for child in block.get("children", []):
+                    child_block = self.block_map[child]
+                    self.text += "> "
+                    self.handle_block(child_block)
+            case _:
+                print(f"Unhandled block type {block_type}")
+                print(block)
+
+    def parse_block_text(self, elements, children):
+        inline = len(elements) > 1
+        for element in elements:
+            self.parse_block_text_element(element, inline)
+        self.text += "\n"
+        for child in children:
+            child_block = self.block_map[child]
+            self.handle_block(child_block)
+
+    def parse_block_text_element(self, element, inline):
+        text_run = element.get("text_run", "")
+        if text_run:
+            self.text += text_run["content"]
+
+        mention_user = element.get("mention_user", "")
+        if mention_user:
+            self.text += mention_user["user_id"]
+
+        mention_doc = element.get("mention_doc", "")
+        if mention_doc:
+            self.text += "[%s](%s)" % (mention_doc.get("title", ""), mention_doc.get("url", ""))
+
+        equation = element.get("equation", "")
+        if equation:
+            symbol = "$$"
+            if inline:
+                symbol = "$"
+            self.text += "%s%s%s" % (symbol, equation, symbol)
+
+    @staticmethod
+    def renderMarkdownTable(data):
+        buf = io.StringIO()
+        writer = pytablewriter.MarkdownTableWriter()
+        writer.stream = buf
+        writer.headers = data[0]
+        writer.value_matrix = data[1:]
+        writer.write_table()
+        return buf.getvalue()
 
 
 class FeishuClient(ABC):
@@ -208,6 +342,12 @@ class FeishuClient(ABC):
         resp = self.get(f"docx/v1/documents/{doc_id}/raw_content?lang=0")
         return resp["data"]["content"]
 
+    def get_docx_blocks(self, doc_id):
+        if doc_id is None:
+            raise Exception("doc_id is None")
+        resp = self.get(f"docx/v1/documents/{doc_id}/blocks")
+        return resp["data"]["items"]
+
 
 class FeishuSource(Source):
     def __init__(self, collection: Collection, ctx: Dict[str, Any]):
@@ -219,19 +359,37 @@ class FeishuSource(Source):
 
     def get_node_documents(self, space_id, node_token):
         documents = []
+        node_mapping = {}
+
+        # find parent titles from bottom to top
+        def get_parent_titles(current_node):
+            result = []
+            while True:
+                parent_node = node_mapping.get(current_node["parent_node_token"], None)
+                if not parent_node:
+                    break
+                result.insert(0, parent_node["title"])
+                current_node = parent_node
+            return result
+
         root_node = self.client.get_node(node_token)
+        # iterate the nodes in the BFS(Breadth First Search) way
         nodes = [root_node]
         for node in nodes:
+            node_token = node["node_token"]
+            node_mapping[node_token] = node
             if node["has_child"]:
-                nodes.extend(self.client.get_space_nodes(space_id, node["node_token"]))
+                nodes.extend(self.client.get_space_nodes(space_id, node_token))
 
             if node["obj_type"] == "docx":
+                metadata = node.copy()
+                metadata["titles"] = get_parent_titles(node)
                 doc = Document(
                     user=self.collection.user,
-                    name=node["title"] + ".txt",
+                    name=node["title"] + ".md",
                     status=DocumentStatus.PENDING,
                     collection=self.collection,
-                    metadata=json.dumps(node),
+                    metadata=json.dumps(metadata),
                     size=0,
                 )
                 documents.append(doc)
@@ -244,14 +402,22 @@ class FeishuSource(Source):
 
     def prepare_document(self, doc: Document):
         node = json.loads(doc.metadata)
-        content = self.client.get_doc_plain_content(node["obj_token"])
+        node_id = node["obj_token"]
+        blocks = self.client.get_docx_blocks(node_id)
+        content = Feishu2Markdown(node_id, blocks).gen()
         temp_file = gen_temporary_file(doc.name)
         temp_file.write(content.encode("utf-8"))
         temp_file.close()
-        return temp_file.name
 
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(file_path)
+        metadata = {}
+        if node["titles"]:
+            titles = " ".join(node["titles"])
+            metadata = {
+                "PARENT TITLES":  titles
+            }
+        self.prepare_metadata_file(temp_file.name, doc, metadata)
+
+        return temp_file.name
 
     def close(self):
         pass

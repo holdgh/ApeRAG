@@ -13,6 +13,8 @@ from config.vector_db import get_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
 from kubechat.source.base import get_source
 from kubechat.utils.utils import generate_vector_db_collection_id
+from kubechat.models import Document, DocumentStatus, CollectionStatus
+from readers.local_path_reader import file_metadata_extractor
 from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,7 @@ def add_index_for_local_document(self, document_id):
     except Exception as e:
         raise self.retry(exc=e, countdown=5, max_retries=3)
 
+
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
 def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     """
@@ -86,6 +89,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
+    # there is no need to update collection status as it's useless
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
 
@@ -93,12 +97,14 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         source = get_source(document.collection, json.loads(document.collection.config))
         file_path = source.prepare_document(document)
         loader = LocalPathEmbedding(input_files=[file_path],
+                                    file_metadata=file_metadata_extractor,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_qdrant_collection_id(
                                             user=document.user,
                                             collection=document.collection.id)))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
+        document.save()
         logger.info(f"add qdrant points: {document.relate_ids} for document {file_path}")
         if collection_sync_history_id > 0:
             collection_sync_history.refresh_from_db()
@@ -183,7 +189,8 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         loader.connector.delete(ids=str(document.relate_ids).split(','))
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
-        logger.debug(f"update qdrant points: {document.relate_ids} for document {file_path}")
+        document.save()
+        logger.info(f"update qdrant points: {document.relate_ids} for document {file_path}")
         if collection_sync_history_id > 0:
             collection_sync_history.refresh_from_db()
             collection_sync_history.processing_documents = F("processing_documents") - 1

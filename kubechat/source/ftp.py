@@ -86,10 +86,8 @@ class FTPSource(Source):
         temp_file = gen_temporary_file(doc.name)
         self.ftp.retrbinary("RETR " + doc.name, temp_file.write)
         temp_file.close()
+        self.prepare_metadata_file(temp_file.name, doc)
         return temp_file.name
-
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(file_path)
 
     def close(self):
         self.ftp.quit()

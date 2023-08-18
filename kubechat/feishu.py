@@ -5,6 +5,7 @@ from http import HTTPStatus
 from typing import Optional
 
 import requests
+from asgiref.sync import sync_to_async
 from langchain import PromptTemplate
 from ninja import NinjaAPI
 
@@ -148,13 +149,13 @@ async def feishu_streaming_response(client, user, collection_id, msg_id, msg):
 
 
 @api.post("/webhook/event")
-async def feishu_webhook_event(request, user=None, collection_id=None):
+async def feishu_webhook_event(request, user=None, bot_id=None):
     data = json.loads(request.body)
-    collection = await query_collection(user, collection_id)
-    if collection is None:
-        logger.warning("collection not found: %s", collection_id)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        logger.warning("bot not found: %s", bot_id)
         return
-    config = json.loads(collection.config)
+    config = json.loads(bot.config)
 
     encrypt_key = config.get("encrypt_key")
     if "encrypt" in data:
@@ -196,7 +197,8 @@ async def feishu_webhook_event(request, user=None, collection_id=None):
         logger.warning("invalid event without user")
         return
 
-    if not collection_id:
+    collection = await sync_to_async(bot.collections.first)()
+    if not collection:
         logger.warning("invalid event without collection_id")
         return
 
@@ -206,5 +208,5 @@ async def feishu_webhook_event(request, user=None, collection_id=None):
     }
     client = FeishuClient(ctx)
 
-    asyncio.create_task(feishu_streaming_response(client, user, collection_id, msg_id, message))
+    asyncio.create_task(feishu_streaming_response(client, user, collection.id, msg_id, message))
     return success({"code": 0})

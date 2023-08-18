@@ -7,10 +7,8 @@ from langchain import PromptTemplate
 
 import config.settings as settings
 from kubechat.utils.utils import generate_vector_db_collection_id
-from kubechat.utils.db import query_collection
 from query.query import QueryWithEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
-from typing import Callable, Coroutine, List, Optional, Tuple
 
 from .base_consumer import KUBE_CHAT_DOC_QA_REFERENCES, BaseConsumer
 from .prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
@@ -20,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DocumentQAConsumer(BaseConsumer):
     async def predict(self, query):
-        collection_config = json.loads(self.collection.config)
+        bot_config = json.loads(self.bot.config)
 
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         vector_db_collection_id = generate_vector_db_collection_id(
@@ -30,7 +28,7 @@ class DocumentQAConsumer(BaseConsumer):
         adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
         vector = self.embedding_model.get_text_embedding(query)
 
-        llm_config = collection_config.get("llm", {})
+        llm_config = bot_config.get("llm", {})
         score_threshold = llm_config.get("similarity_score_threshold", 0.5)
         topk = llm_config.get("similarity_topk", 3)
         context_window = llm_config.get("context_window", 1900)
@@ -48,8 +46,8 @@ class DocumentQAConsumer(BaseConsumer):
         )
         query_context = results.get_packed_answer(context_window)
 
-        model = collection_config.get("model", "")
-        prompt_template = collection_config.get("prompt_template", None)
+        model = bot_config.get("model", "")
+        prompt_template = bot_config.get("prompt_template", None)
         if not prompt_template:
             prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         prompt = PromptTemplate.from_template(prompt_template)

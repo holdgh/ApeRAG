@@ -18,10 +18,11 @@ from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
 from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
+from django.core.files.base import ContentFile
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
-from kubechat.tasks.index import add_index_for_local_document, remove_index
-from kubechat.tasks.scan import scan_collection, sync_documents_cron_job, delete_sync_documents_cron_job, \
+from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index
+from kubechat.tasks.scan import scan_collection, delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
@@ -54,7 +55,7 @@ class CollectionIn(Schema):
 
 class DocumentIn(Schema):
     name: str
-    type: str
+    config: Optional[str]
 
 
 class ConnectionInfo(Schema):
@@ -128,7 +129,7 @@ def connection_test(request, connection: ConnectionInfo):
     return success("successfully connected")
 
 
-@api.get("/collections/models")
+@api.get("/models")
 def list_model_name(request):
     response = []
     model_servers = json.loads(settings.MODEL_SERVERS)
@@ -147,13 +148,18 @@ def list_model_name(request):
 
 
 @api.post("/collections/{collection_id}/sync")
-def sync_immediately(request, collection_id):
+async def sync_immediately(request, collection_id):
     user = get_user(request)
+    collection = await query_collection(user, collection_id)
+    source = get_source(collection, json.loads(collection.config))
+    if not source.sync_enabled():
+        return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
+
     result = sync_documents.delay(collection_id=collection_id)
     sync_history_id = result.get(timeout=300)
     if sync_history_id == -1:
         return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
-    sync_history = CollectionSyncHistory.objects.get(id=sync_history_id)
+    sync_history = await CollectionSyncHistory.objects.aget(id=sync_history_id)
     return success(sync_history.view())
 
 
@@ -208,7 +214,7 @@ async def create_collection(request, collection: CollectionIn):
         # create a period_task to sync documents
         source = get_source(collection, json.loads(collection.config))
         if source.sync_enabled():
-            sync_documents_cron_job.delay(instance.id)
+            await update_sync_documents_cron_job(instance.id)
 
     elif instance.type == CollectionType.CODE:
         chat = Chat(
@@ -227,10 +233,14 @@ async def create_collection(request, collection: CollectionIn):
 @api.get("/collections")
 async def list_collections(request):
     user = get_user(request)
-    instances = await query_collections(user)
+    collections = await query_collections(user)
     response = []
-    async for instance in instances:
-        response.append(instance.view())
+    async for collection in collections:
+        bots = await sync_to_async(collection.bot_set.all)()
+        bot_ids = []
+        async for bot in bots:
+            bot_ids.append(bot.id)
+        response.append(collection.view(bot_ids=bot_ids))
     return success(response)
 
 
@@ -278,7 +288,9 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     instance.description = collection.description
     instance.config = collection.config
     await instance.asave()
-    update_sync_documents_cron_job.delay(instance.id)
+    source = get_source(collection, json.loads(collection.config))
+    if source.sync_enabled():
+        await update_sync_documents_cron_job(instance.id)
     return success(instance.view())
 
 
@@ -288,8 +300,9 @@ async def delete_collection(request, collection_id):
     instance = await query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    await delete_sync_documents_cron_job(instance.id)
+    # TODO remove the related collection in the vector db
     instance.status = CollectionStatus.DELETED
-    delete_sync_documents_cron_job.delay(instance.id)
     instance.gmt_deleted = timezone.now()
     await instance.asave()
     return success(instance.view())
@@ -334,19 +347,22 @@ async def list_documents(request, collection_id):
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
 async def update_document(
-        request, collection_id, document_id, file: UploadedFile = File(...)
-):
+        request, collection_id, document_id, document: DocumentIn):
     user = get_user(request)
-    document = await query_document(user, collection_id, document_id)
-    if document is None:
+    instance = await query_document(user, collection_id, document_id)
+    if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
 
-    data = file.read()
-    document.file = data
-    document.size = len(data)
-    document.status = DocumentStatus.PENDING
-    await document.asave()
-    return success(document.view())
+    if document.config:
+        try:
+            json.loads(document.config)
+            instance.config = document.config
+        except Exception:
+            return fail(HTTPStatus.BAD_REQUEST, "invalid document config")
+    await instance.asave()
+    # if user add labels for a document, we need to update index
+    update_index.delay(instance.id)
+    return success(instance.view())
 
 
 @api.delete("/collections/{collection_id}/documents/{document_id}")
@@ -359,47 +375,44 @@ async def delete_document(request, collection_id, document_id):
     return success(document.view())
 
 
-@api.post("/collections/{collection_id}/chats")
-async def add_chat(request, collection_id):
+@api.post("/bots/{bot_id}/chats")
+async def add_chat(request, bot_id):
     user = get_user(request)
-    collection_instance = await query_collection(user, collection_id)
-    if collection_instance is None:
-        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    instance = Chat(
-        user=user,
-        collection=collection_instance,
-    )
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    instance = Chat(user=user, bot=bot)
     await instance.asave()
-    return success(instance.view(collection_id))
+    return success(instance.view(bot_id))
 
 
-@api.get("/collections/{collection_id}/chats")
-async def list_chats(request, collection_id):
+@api.get("/bots/{bot_id}/chats")
+async def list_chats(request, bot_id):
     user = get_user(request)
-    chats = await query_chats(user, collection_id)
+    chats = await query_chats(user, bot_id)
     response = []
     async for chat in chats:
-        response.append(chat.view(collection_id))
+        response.append(chat.view(bot_id))
     return success(response)
 
 
-@api.put("/collections/{collection_id}/chats/{chat_id}")
-async def update_chat(request, collection_id, chat_id):
+@api.put("/bots/{bot_id}/chats/{chat_id}")
+async def update_chat(request, bot_id, chat_id):
     user = get_user(request)
-    instance = await query_chat(user, collection_id, chat_id)
-    if instance is None:
+    chat = await query_chat(user, bot_id, chat_id)
+    if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
-    instance.summary = ""
-    await instance.asave()
+    chat.summary = ""
+    await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
-    return success(instance.view(collection_id))
+    return success(chat.view(bot_id))
 
 
-@api.get("/collections/{collection_id}/chats/{chat_id}")
-async def get_chat(request, collection_id, chat_id):
+@api.get("/bots/{bot_id}/chats/{chat_id}")
+async def get_chat(request, bot_id, chat_id):
     user = get_user(request)
-    chat = await query_chat(user, collection_id, chat_id)
+    chat = await query_chat(user, bot_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
@@ -414,13 +427,13 @@ async def get_chat(request, collection_id, chat_id):
         item["role"] = message.additional_kwargs["role"]
         item["references"] = message.additional_kwargs.get("references") or []
         messages.append(item)
-    return success(chat.view(collection_id, messages))
+    return success(chat.view(bot_id, messages))
 
 
-@api.delete("/collections/{collection_id}/chats/{chat_id}")
-async def delete_chat(request, collection_id, chat_id):
+@api.delete("/bots/{bot_id}/chats/{chat_id}")
+async def delete_chat(request, bot_id, chat_id):
     user = get_user(request)
-    chat = await query_chat(user, collection_id, chat_id)
+    chat = await query_chat(user, bot_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.status = ChatStatus.DELETED
@@ -462,6 +475,94 @@ async def download_code(request, chat_id):
     response['Content-Disposition'] = f"attachment; filename=\"{collection.title}.zip\""
     response['Content-Type'] = 'application/zip'
     return response
+
+
+class BotIn(Schema):
+    title: str
+    description: Optional[str]
+    config: Optional[str]
+    collection_ids: Optional[List[str]]
+
+
+@api.post("/bots")
+async def create_bot(request, bot_in: BotIn):
+    user = get_user(request)
+    bot = Bot(
+        user=user,
+        title=bot_in.title,
+        status=BotStatus.ACTIVE,
+        description=bot_in.description,
+        config=bot_in.config,
+    )
+    await bot.asave()
+    collections = []
+    for cid in bot_in.collection_ids:
+        collection = await query_collection(user, cid)
+        if not collection:
+            return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
+        await sync_to_async(bot.collections.add)(collection)
+        collections.append(collection.view())
+    await bot.asave()
+    return success(bot.view(collections))
+
+
+@api.get("/bots")
+async def list_bots(request):
+    user = get_user(request)
+    bots = await query_bots(user)
+    response = []
+    async for bot in bots:
+        collections = []
+        async for collection in await sync_to_async(bot.collections.all)():
+            collections.append(collection.view())
+        response.append(bot.view(collections))
+    return success(response)
+
+
+@api.get("/bots/{bot_id}")
+async def get_bot(request, bot_id):
+    user = get_user(request)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    collections = []
+    async for collection in await sync_to_async(bot.collections.all)():
+        collections.append(collection.view())
+    return success(bot.view(collections))
+
+
+@api.put("/bots/{bot_id}")
+async def update_bot(request, bot_id, bot_in: BotIn):
+    user = get_user(request)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    bot.title = bot_in.title
+    bot.description = bot_in.description
+    bot.config = bot_in.config
+    await sync_to_async(bot.collections.clear)()
+    for cid in bot_in.collection_ids:
+        collection = await query_collection(user, cid)
+        if not collection:
+            return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
+        await sync_to_async(bot.collections.add)(collection)
+    await bot.asave()
+    collections = []
+    async for collection in await sync_to_async(bot.collections.all)():
+        collections.append(collection.view())
+    return success(bot.view(collections))
+
+
+@api.delete("/bots/{bot_id}")
+async def delete_bot(request, bot_id):
+    user = get_user(request)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    bot.status = BotStatus.DELETED
+    bot.gmt_deleted = datetime.now()
+    await bot.asave()
+    return success(bot.view())
 
 
 def default_page(request, exception):

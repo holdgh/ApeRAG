@@ -1,21 +1,23 @@
 from asgiref.sync import sync_to_async
 from django.urls import re_path
 
-from kubechat.utils.utils import extract_collection_and_chat_id
+from kubechat.utils.utils import extract_bot_and_chat_id
 
 
-async def collection_consumer_router(scope, receive, send):
+async def bot_consumer_router(scope, receive, send):
     from kubechat.models import CollectionType
-    from kubechat.utils.db import query_chat, query_collection
+    from kubechat.utils.db import query_chat
+    from kubechat.utils.db import query_bot
 
     user = scope["X-USER-ID"]
     path = scope["path"]
-    collection_id, chat_id = extract_collection_and_chat_id(path)
-    collection = await query_collection(user, collection_id)
-    if collection is None:
+    bot_id, chat_id = extract_bot_and_chat_id(path)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
         raise Exception("Collection not found")
+    collection = await sync_to_async(bot.collections.first)()
 
-    chat = await query_chat(user, collection_id, chat_id)
+    chat = await query_chat(user, bot_id, chat_id)
     if chat is None:
         raise Exception("Chat not found")
 
@@ -49,8 +51,8 @@ async def code_generate_chat_consumer_router(scope, receive, send):
 
 websocket_urlpatterns = [
     re_path(
-        r"api/v1/collections/(?P<collection_id>\w+)/chats/(?P<chat_id>\w+)/connect$",
-        collection_consumer_router,
+        r"api/v1/bots/(?P<bot_id>\w+)/chats/(?P<chat_id>\w+)/connect$",
+        bot_consumer_router,
     ),
     re_path(
         r"api/v1/bot/(?P<chat_id>\w+)/connect$",

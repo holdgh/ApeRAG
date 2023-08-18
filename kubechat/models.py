@@ -1,11 +1,9 @@
 import datetime
+import json
 
 from django.db import models
 from django.utils import timezone
 
-from django.contrib import admin
-from django.utils.html import format_html
-import re
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
 
@@ -50,11 +48,10 @@ class ChatStatus(models.TextChoices):
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
 
-    # for code-generate
-    CLARIFYING = "CLARIFYING"
-    CLARIFIED = "CLARIFIED"
-    FINISHED = "FINISHED"
-    UPLOADED = "UPLOADED"
+
+class BotStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
 
 class CodeChatType(models.TextChoices):
@@ -87,13 +84,16 @@ class Collection(models.Model):
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
-    def view(self):
+    def view(self, bot_ids=None):
+        if not bot_ids:
+            bot_ids = []
         return {
             "id": str(self.id),
             "title": self.title,
             "description": self.description,
             "status": self.status,
             "type": self.type,
+            "bot_ids": bot_ids,
             "config": self.config,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
@@ -103,6 +103,7 @@ class Collection(models.Model):
 class Document(models.Model):
     name = models.CharField(max_length=1024)
     user = models.CharField(max_length=256)
+    config = models.TextField(null=True)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)
     size = models.BigIntegerField()
@@ -118,6 +119,7 @@ class Document(models.Model):
             "id": str(self.id),
             "name": self.name,
             "status": self.status,
+            "config": self.config,
             "size": self.size,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
@@ -140,25 +142,47 @@ class Document(models.Model):
     collection_id.admin_order_field = 'collection'
 
 
+class Bot(models.Model):
+    user = models.CharField(max_length=256)
+    title = models.CharField(max_length=256)
+    description = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=BotStatus.choices)
+    config = models.TextField()
+    collections = models.ManyToManyField(Collection)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    def view(self, collections=None):
+        if collections is None:
+            collections = []
+        return {
+            "id": str(self.id),
+            "title": self.title,
+            "description": self.description,
+            "config": self.config,
+            "collections": collections,
+            "created": self.gmt_created.isoformat(),
+            "updated": self.gmt_updated.isoformat(),
+        }
+
+
 class Chat(models.Model):
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=ChatStatus.choices)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    # currently, we use the first message in the history as summary
-    codetype = models.CharField(max_length=16, choices=CodeChatType.choices)
+    bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
     summary = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_finished = models.DateTimeField(null=True, blank=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
-    def view(self, collection_id, messages=None):
+    def view(self, bot_id, messages=None):
         if messages is None:
             messages = []
         return {
             "id": str(self.id),
             "summary": self.summary,
-            "collection_id": collection_id,
+            "bot_id": bot_id,
             "history": messages,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
