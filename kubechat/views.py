@@ -211,11 +211,6 @@ async def create_collection(request, collection: CollectionIn):
         _, size = get_default_embedding_model(load=False)
         vector_db_conn.connector.create_collection(vector_size=size)
         scan_collection.delay(instance.id)
-        # create a period_task to sync documents
-        source = get_source(collection, json.loads(collection.config))
-        if source.sync_enabled():
-            await update_sync_documents_cron_job(instance.id)
-
     elif instance.type == CollectionType.CODE:
         chat = Chat(
             user=instance.user,
@@ -437,7 +432,7 @@ async def delete_chat(request, bot_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.status = ChatStatus.DELETED
-    chat.gmt_deleted = datetime.now()
+    chat.gmt_deleted = timezone.now()
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
@@ -560,7 +555,7 @@ async def delete_bot(request, bot_id):
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
     bot.status = BotStatus.DELETED
-    bot.gmt_deleted = datetime.now()
+    bot.gmt_deleted = timezone.now()
     await bot.asave()
     return success(bot.view())
 

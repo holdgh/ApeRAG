@@ -27,17 +27,20 @@ Context information is below. \n
 Given the context information, please think step by step and answer the question: {query}\n
 
 Please make sure that the answer is accurate and concise.
+
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
 """
 
 DEFAULT_CHINESE_PROMPT_TEMPLATE_V2 = """
-上下文信息如下:
+上下文信息如下:\n
 ----------------\n
 {context}
 \n--------------------\n
 
-根据提供的上下文信息，请一步一步思考，然后回答问题：{query}。
+根据提供的markdown格式的上下文信息，请一步一步思考，然后回答问题：{query}。
 
-请确保回答准确和简洁。
+请确保回答准确和简洁，如果你不知道答案，就直接说你不知道，不要试图编造一个答案 。
+
 """
 
 DEFAULT_MODEL_PROMPT_TEMPLATES = {
