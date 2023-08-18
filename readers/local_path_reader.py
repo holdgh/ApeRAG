@@ -19,15 +19,6 @@ DEFAULT_FILE_READER_CLS[".jpg"] = ComposeImageReader
 DEFAULT_FILE_READER_CLS[".jpeg"] = ComposeImageReader
 
 
-def file_metadata_extractor(file: str) -> Dict:
-    result = {"name": file}
-    with open(file) as fd:
-        line = fd.readline()
-        if line.startswith("PARENT TITLES:"):
-            result["titles"] = line.split(":", 2)[1].strip()
-        return result
-
-
 class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
     """Simple directory reader.
 
@@ -82,8 +73,6 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             num_files_limit,
             file_metadata,
         )
-        self.file_metadata = file_metadata
-
         self.process_files = self.input_files or self.phase_dir()
 
     def load_data(self) -> {List[Document], str}:
