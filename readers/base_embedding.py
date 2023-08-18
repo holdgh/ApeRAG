@@ -20,7 +20,7 @@ from llama_index import (
 )
 
 from vectorstore.connector import VectorStoreConnectorAdaptor
-from config.settings import EMBEDDING_DEVICE
+from config.settings import EMBEDDING_DEVICE, EMBEDDING_MODEL
 
 
 class Text2VecEmbedding(Embeddings):
@@ -92,7 +92,7 @@ def get_default_embedding_model(load=True) -> {LangchainEmbedding, int}:
     with mutex:
         if default_embedding_model is None:
             default_embedding_model, default_vector_size = get_embedding_model(
-                {"model_type": "text2vec"}, load
+                {"model_type": EMBEDDING_MODEL}, load
             )
     return default_embedding_model, default_vector_size
 

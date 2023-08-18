@@ -149,6 +149,11 @@ spec:
                 configMapKeyRef:
                   key: FEISHU_ENCRYPT_KEY
                   name: kubechat-config
+            - name: EMBEDDING_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_MODEL
+                  name: kubechat-config
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}

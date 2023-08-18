@@ -18,6 +18,7 @@ data:
   FEISHU_APP_ID: "{{ .Values.django.feishu.appID }}"
   FEISHU_APP_SECRET: "{{ .Values.django.feishu.appSecret }}"
   FEISHU_ENCRYPT_KEY: "{{ .Values.django.feishu.encryptKey }}"
+  EMBEDDING_MODEL: "{{ .Values.django.embeddingModel }}"
 kind: ConfigMap
 metadata:
   labels:
