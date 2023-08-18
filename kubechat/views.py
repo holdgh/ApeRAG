@@ -231,7 +231,7 @@ async def list_collections(request):
     collections = await query_collections(user)
     response = []
     async for collection in collections:
-        bots = await sync_to_async(collection.bot_set.all)()
+        bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
         bot_ids = []
         async for bot in bots:
             bot_ids.append(bot.id)
