@@ -11,9 +11,9 @@ from config.celery import app
 
 from config.vector_db import get_vector_db_connector
 from readers.local_path_embedding import LocalPathEmbedding
+from readers.base_embedding import get_collection_embedding_model
 from kubechat.source.base import get_source
 from kubechat.utils.utils import generate_vector_db_collection_id
-from kubechat.models import Document, DocumentStatus, CollectionStatus
 from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,9 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     try:
         source = get_source(document.collection, json.loads(document.collection.config))
         file_path = source.prepare_document(document)
+        embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[file_path],
+                                    embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_qdrant_collection_id(
                                             user=document.user,
@@ -179,7 +181,9 @@ def update_index(self, document_id, collection_sync_history_id=-1):
     try:
         source = get_source(document.collection, json.loads(document.collection.config))
         file_path = source.prepare_document(document)
+        embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[file_path],
+                                    embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_qdrant_collection_id(
                                             user=document.user,

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import json
 from abc import ABC, abstractmethod
 from threading import Lock, Thread
 from typing import Any, Dict, List
@@ -38,53 +39,59 @@ class Text2VecEmbedding(Embeddings):
         return self.model.encode(text)
 
 
+mutex = Lock()
+default_embedding_model, default_vector_size = None, 0
+embedding_model_cache = {}
+
+
 def get_embedding_model(
-    embedding_config: Dict[str, Any], load=True
+    model_type: str, load=True
 ) -> {LangchainEmbedding, int}:
-    type = embedding_config["model_type"]
     embedding_model = None
     vector_size = 0
 
-    if not type or type == "huggingface":
-        if load:
-            model_kwargs = {'device': EMBEDDING_DEVICE}
-            embedding_model = LangchainEmbedding(
-                HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-mpnet-base-v2",
-                    model_kwargs=model_kwargs,
+    with mutex:
+        if model_type in embedding_model_cache:
+            return embedding_model_cache[model_type]
+
+        if not model_type or model_type == "huggingface":
+            if load:
+                model_kwargs = {'device': EMBEDDING_DEVICE}
+                embedding_model = LangchainEmbedding(
+                    HuggingFaceEmbeddings(
+                        model_name="sentence-transformers/all-mpnet-base-v2",
+                        model_kwargs=model_kwargs,
+                    )
                 )
-            )
-        vector_size = 768
-    elif type == "huggingface_instruct":
-        if load:
-            model_kwargs = {'device': EMBEDDING_DEVICE}
-            embedding_model = LangchainEmbedding(
-                HuggingFaceInstructEmbeddings(
-                    model_name="hkunlp/instructor-large",
-                    model_kwargs=model_kwargs,
+            vector_size = 768
+        elif model_type == "huggingface_instruct":
+            if load:
+                model_kwargs = {'device': EMBEDDING_DEVICE}
+                embedding_model = LangchainEmbedding(
+                    HuggingFaceInstructEmbeddings(
+                        model_name="hkunlp/instructor-large",
+                        model_kwargs=model_kwargs,
+                    )
                 )
-            )
-        vector_size = 768
-    elif type == "text2vec":
-        if load:
-            embedding_model = LangchainEmbedding(Text2VecEmbedding())
-        vector_size = 768
-    elif type == "openai":
-        if load:
-            embedding_model = LangchainEmbedding(OpenAIEmbeddings())
-        vector_size = 1536
-    elif type == "google":
-        if load:
-            embedding_model = LangchainEmbedding(GooglePalmEmbeddings())
-        vector_size = 768
-    else:
-        raise ValueError("unsupported embedding model ", type)
+            vector_size = 768
+        elif model_type == "text2vec":
+            if load:
+                embedding_model = LangchainEmbedding(Text2VecEmbedding())
+            vector_size = 768
+        elif model_type == "openai":
+            if load:
+                embedding_model = LangchainEmbedding(OpenAIEmbeddings(max_retries=1, request_timeout=60))
+            vector_size = 1536
+        elif model_type == "google":
+            if load:
+                embedding_model = LangchainEmbedding(GooglePalmEmbeddings())
+            vector_size = 768
+        else:
+            raise ValueError("unsupported embedding model ", model_type)
+
+        embedding_model_cache[model_type] = (embedding_model, vector_size)
 
     return embedding_model, vector_size
-
-
-mutex = Lock()
-default_embedding_model, default_vector_size = None, 0
 
 
 def get_default_embedding_model(load=True) -> {LangchainEmbedding, int}:
@@ -92,10 +99,15 @@ def get_default_embedding_model(load=True) -> {LangchainEmbedding, int}:
     with mutex:
         if default_embedding_model is None:
             default_embedding_model, default_vector_size = get_embedding_model(
-                {"model_type": EMBEDDING_MODEL}, load
+                EMBEDDING_MODEL, load
             )
     return default_embedding_model, default_vector_size
 
+
+def get_collection_embedding_model(collection):
+    config = json.loads(collection.config)
+    model_name = config.get("embedding_model", "text2vec")
+    return get_embedding_model(model_name)
 
 # preload embedding model will cause model hanging, so we load it when first time use
 # get_default_embedding_model()

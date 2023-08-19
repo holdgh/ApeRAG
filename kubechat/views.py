@@ -31,7 +31,7 @@ from kubechat.tasks.sync_documents_task import sync_documents
 from config.celery import app
 from celery.schedules import crontab
 
-from readers.base_embedding import get_default_embedding_model
+from readers.base_embedding import get_default_embedding_model, get_embedding_model
 
 from .auth.validator import GlobalHTTPAuth
 from .chat.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
@@ -208,7 +208,14 @@ async def create_collection(request, collection: CollectionIn):
         vector_db_conn = get_vector_db_connector(
             collection=generate_vector_db_collection_id(user=user, collection=instance.id)
         )
-        _, size = get_default_embedding_model(load=False)
+        embedding_model = config.get("embedding_model", "")
+        if not embedding_model:
+            _, size = get_embedding_model(settings.EMBEDDING_MODEL, load=False)
+            config["embedding_model"] = settings.EMBEDDING_MODEL
+            instance.config = json.dumps(config)
+            await instance.asave()
+        else:
+            _, size = get_embedding_model(embedding_model, load=False)
         vector_db_conn.connector.create_collection(vector_size=size)
         scan_collection.delay(instance.id)
     elif instance.type == CollectionType.CODE:

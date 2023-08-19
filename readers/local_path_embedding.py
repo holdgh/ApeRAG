@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import json
+import logging
 import os.path
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional
@@ -18,6 +19,9 @@ from kubechat.source.base import Source
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from vectorstore.connector import VectorStoreConnectorAdaptor
+
+
+logger = logging.getLogger(__name__)
 
 
 class LocalPathEmbedding(DocumentBaseEmbedding):

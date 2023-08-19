@@ -14,7 +14,7 @@ import config.settings as settings
 from kubechat.auth.validator import DEFAULT_USER
 from kubechat.utils.db import query_bot
 from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, extract_bot_and_chat_id
-from readers.base_embedding import get_default_embedding_model
+from readers.base_embedding import get_default_embedding_model, get_collection_embedding_model
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +52,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         if chat is None:
             raise Exception("Chat not found")
 
-        self.embedding_model, self.vector_size = get_default_embedding_model()
-
+        self.embedding_model, self.vector_size = get_collection_embedding_model(self.collection)
         self.history = RedisChatMessageHistory(
             session_id=chat_id, url=settings.MEMORY_REDIS_URL
         )
