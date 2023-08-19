@@ -13,7 +13,7 @@ import config.settings as settings
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, success
 from query.query import QueryWithEmbedding
-from readers.base_embedding import get_default_embedding_model
+from readers.base_embedding import get_collection_embedding_model
 from vectorstore.connector import VectorStoreConnectorAdaptor
 from .auth.validator import FeishuEventVerification
 from .source.feishu import FeishuClient
@@ -139,11 +139,11 @@ def get_user_access_token(request, code, redirect_uri):
     return success({"token": token})
 
 
-async def feishu_streaming_response(client, user, collection_id, msg_id, msg):
-    model, _ = get_default_embedding_model()
+async def feishu_streaming_response(client, user, collection, msg_id, msg):
+    model, _ = get_collection_embedding_model(collection)
     response = ""
     card_id = client.reply_card_message(msg_id, response)
-    async for token in predict(user, collection_id, msg, model):
+    async for token in predict(user, collection.id, msg, model):
         response += token
         client.update_card_message(card_id, response)
 
@@ -210,5 +210,5 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
     }
     client = FeishuClient(ctx)
 
-    asyncio.create_task(feishu_streaming_response(client, user, collection.id, msg_id, message))
+    asyncio.create_task(feishu_streaming_response(client, user, collection, msg_id, message))
     return success({"code": 0})
