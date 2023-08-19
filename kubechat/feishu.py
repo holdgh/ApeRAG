@@ -204,9 +204,15 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
         return
 
     collection_config = json.loads(collection.config)
+    app_id = collection_config.get("app_id", "")
+    app_secret = collection_config.get("app_secret", "")
+    if not app_id or not app_secret:
+        logger.warning("can't chat with bot that don't have feishu collection, user: %s, bot_id: %s", user, bot_id)
+        return
+
     ctx = {
-        "app_id": collection_config.get("app_id", ""),
-        "app_secret": collection_config.get("app_secret", ""),
+        "app_id": app_id,
+        "app_secret": app_secret,
     }
     client = FeishuClient(ctx)
 
