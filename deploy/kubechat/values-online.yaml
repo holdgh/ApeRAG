@@ -4,6 +4,7 @@ efsId: fs-000f009e5b2735fc4
 django:
   replicaCount: 2
   authType: auth0
+  embeddingModel: openai
   auth0ClientId: ""
   auth0Domain: "kubechat.jp.auth0.com"
   openaiAPIKey: ""

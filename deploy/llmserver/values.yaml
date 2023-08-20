@@ -3,11 +3,11 @@
 # Declare variables to be passed into your templates.
 
 image:
-  registry: docker.io
-  repository: apecloud/kubechat
+  registry: registry.cn-hangzhou.aliyuncs.com
+  repository: apecloud/kubechat-llmserver
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "v0.1.0"
+  tag: "v0.1.1"
 
 efsId: ""
 

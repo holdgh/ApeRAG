@@ -89,7 +89,8 @@ def get_embedding_model(
         else:
             raise ValueError("unsupported embedding model ", model_type)
 
-        embedding_model_cache[model_type] = (embedding_model, vector_size)
+        if embedding_model:
+            embedding_model_cache[model_type] = (embedding_model, vector_size)
 
     return embedding_model, vector_size
 

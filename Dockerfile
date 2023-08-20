@@ -1,11 +1,13 @@
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+FROM python:3.11.3-slim
 
-RUN apt update && \
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt update && \
     apt install --no-install-recommends -y build-essential
 
 COPY requirements.txt /requirements.txt
 
-RUN pip install -r /requirements.txt && pip cache purge
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r /requirements.txt && pip cache purge
 
 COPY . /tmp/app/
 

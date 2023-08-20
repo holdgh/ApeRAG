@@ -2,6 +2,7 @@ import json
 import logging
 import traceback
 from typing import Any, List, Mapping, Optional
+from config import settings
 
 import requests
 from channels.generic.websocket import WebsocketConsumer
@@ -13,9 +14,6 @@ from kubechat.utils.utils import extract_chat_id, now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
 
-CFG = Config()
-
-
 class CustomLLM(LLM):
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         input = {
@@ -25,7 +23,7 @@ class CustomLLM(LLM):
             "model": "vicuna-13b",
             "stop": "\nSQLResult:",
         }
-        response = requests.post("%s/generate" % CFG.MODEL_SERVER, json=input)
+        response = requests.post("%s/generate" % settings.MODEL_SERVER, json=input)
         return response
 
     def call_custom_llm(self, prompt: str, stop: Optional[List[str]] = None) -> str:

@@ -4,11 +4,11 @@
 
 
 image:
-  registry: docker.io
+  registry: registry.cn-hangzhou.aliyuncs.com
   repository: apecloud/kubechat
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "v0.1.0"
+  tag: "v0.1.1"
 
 imagePullSecrets: []
 nameOverride: ""

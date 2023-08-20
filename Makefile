@@ -1,12 +1,17 @@
-
-
-VERSION ?= v0.1.0
+VERSION ?= v0.1.1
+LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
+REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 
-image:
+build-requirements:
 	sh scripts/export-requirements.sh
-	docker buildx build -t apecloud/kubechat:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
+
+image: build-requirements
+	docker buildx build -t $(REGISTRY)/apecloud/kubechat:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
+
+llm-server-image: build-requirements
+	docker buildx build -t $(REGISTRY)/apecloud/kubechat-llmserver:$(LLMSERVER_VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile-llmserver  .
 
 diff:
 	@python manage.py diffsettings

@@ -17,7 +17,6 @@ from llama_index.prompts.default_prompts import (
 from qdrant_client import QdrantClient
 from requests import Response
 
-from configs.config import Config
 from query.query import QueryResult, QueryWithEmbedding
 from readers.base_embedding import get_embedding_model
 from readers.compose_image_reader import ComposeImageReader
