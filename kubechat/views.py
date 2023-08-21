@@ -293,7 +293,13 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     source = get_source(collection, json.loads(collection.config))
     if source.sync_enabled():
         await update_sync_documents_cron_job(instance.id)
-    return success(instance.view())
+
+    bots = await sync_to_async(instance.bot_set.exclude)(status=BotStatus.DELETED)
+    bot_ids = []
+    async for bot in bots:
+        bot_ids.append(bot.id)
+
+    return success(instance.view(bot_ids=bot_ids))
 
 
 @api.delete("/collections/{collection_id}")

@@ -61,7 +61,7 @@ async def update_sync_documents_cron_job(collection_id):
     collection = await Collection.objects.aget(id=collection_id)
     task = await get_schedule_task(collection_id)
     config = json.loads(collection.config)
-    if "crontab" not in config or not config["crontab"]:
+    if "crontab" not in config or not config["crontab"] or not config["crontab"].get("enabled", False):
         if await task.acount():
             await task.aupdate(enabled=False)
             await task.adelete()
