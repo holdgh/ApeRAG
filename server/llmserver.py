@@ -155,6 +155,7 @@ async def api_generate_stream(request: Request):
         model_semaphore = asyncio.Semaphore(CFG.LIMIT_MODEL_CONCURRENCY)
     await model_semaphore.acquire()
 
+    print("receive request: %s" % params.get("prompt"))
     generator = worker.generate_stream_gate(params)
     background_tasks = BackgroundTasks()
     background_tasks.add_task(release_model_semaphore)
