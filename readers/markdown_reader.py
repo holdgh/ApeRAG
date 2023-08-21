@@ -11,6 +11,9 @@ from llama_index.readers.base import BaseReader
 from llama_index.schema import Document
 
 
+CHUNK_SPLIT_THRESHOLD = 500
+
+
 class MarkdownReader(BaseReader):
     """Markdown parser.
 
@@ -67,7 +70,7 @@ class MarkdownReader(BaseReader):
                             break
                     headers[-1] = (line,level)
 
-                if len(current_text) < 200:
+                if len(current_text) < CHUNK_SPLIT_THRESHOLD:
                     current_text += line + "\n"
                 else:
                     markdown_tups.append((flat_headers(), current_text))
@@ -76,7 +79,15 @@ class MarkdownReader(BaseReader):
                 current_level = level
             else:
                 current_text += line + "\n"
-        markdown_tups.append((flat_headers(), current_text))
+        if len(current_text) >= CHUNK_SPLIT_THRESHOLD:
+            markdown_tups.append((flat_headers(), current_text))
+        else:
+            if len(markdown_tups) > 0:
+                headers, text = markdown_tups[-1]
+                text += current_text
+                markdown_tups[-1] = (headers, text)
+            else:
+                markdown_tups.append((flat_headers(), current_text))
 
         if current_header is not None:
             # pass linting, assert keys are defined
@@ -125,7 +136,7 @@ class MarkdownReader(BaseReader):
         # if file is too small, just return the whole thing
         with open(file) as fd:
             content = fd.read()
-            if len(content) < 500:
+            if len(content) < CHUNK_SPLIT_THRESHOLD:
                 return [Document(text=content, metadata=metadata or {})]
 
         tups = self.parse_tups(file)
