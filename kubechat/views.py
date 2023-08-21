@@ -305,15 +305,18 @@ async def update_collection(request, collection_id, collection: CollectionIn):
 @api.delete("/collections/{collection_id}")
 async def delete_collection(request, collection_id):
     user = get_user(request)
-    instance = await query_collection(user, collection_id)
-    if instance is None:
+    collection = await query_collection(user, collection_id)
+    if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    await delete_sync_documents_cron_job(instance.id)
+    await delete_sync_documents_cron_job(collection.id)
+    bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
+    if await sync_to_async(bots.count)() > 0:
+        return fail(HTTPStatus.BAD_REQUEST, "Collection has related to bots, can not be deleted")
     # TODO remove the related collection in the vector db
-    instance.status = CollectionStatus.DELETED
-    instance.gmt_deleted = timezone.now()
-    await instance.asave()
-    return success(instance.view())
+    collection.status = CollectionStatus.DELETED
+    collection.gmt_deleted = timezone.now()
+    await collection.asave()
+    return success(collection.view())
 
 
 @api.post("/collections/{collection_id}/documents")
