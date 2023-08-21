@@ -1,0 +1,3 @@
+[submodule "KubeChat-FrontEnd"]
+	path = KubeChat-FrontEnd
+	url = https://github.com/apecloud/KubeChat-FrontEnd.git

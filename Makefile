@@ -4,10 +4,14 @@ BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 
+init:
+	cp envs/.env.template .env
+	cp envs/.env.frontend.template .env.frontend
+
 build-requirements:
 	sh scripts/export-requirements.sh
 
-image: build-requirements
+image: build-requirements update-frontend
 	docker buildx build -t $(REGISTRY)/apecloud/kubechat:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
 
 llm-server-image: build-requirements
@@ -23,15 +27,17 @@ migrate:
 clean:
 	/bin/rm -f db.sqlite3
 
+update-frontend:
+	git submodule update --init --recursive --remote
+	cp .env.frontend KubeChat-Frontend/.env
+	cd KubeChat-Frontend && yarn install && yarn build
+
 run-backend: migrate
 	python manage.py collectstatic --noinput
 	if [ -f "static/web/index.html" ]; then \
   		cp static/web/index.html kubechat/templates/404.html; \
   	fi
 	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
-
-run-frontend:
-	cd frontend && yarn dev
 
 compose-up: migrate
 	docker-compose -f compose.yml up -d

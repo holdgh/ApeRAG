@@ -22,49 +22,15 @@ poetry shell
 poetry install
 ```
 
-* build project
-```bash
-poetry build
-```
-
-* run the backend server
-
+* run the django service
 ```bash
 make run-backend
 ```
 
-* run the frontend server
-
-```
-git clone https://github.com/apecloud/KubeChat-FrontEnd.git
-```
-
+* run the celery service
 ```bash
-cd KubeChat-FrontEnd && yarn dev
+PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --concurrency 1
 ```
-
-
-# TODO
-
-* [ ] 前端支持批量上传文件
-* [x] 静态文件服务器和API服务器分离，支持跨域
-* [x] 支持数据库类型Collection
-* [ ] 支持切换LLM
-* [x] websocket auth0认证
-* [ ] 异步优化
-* [ ] 错误和异常处理优化
-* [ ] 抽象Memory接口
-* [x] pyproject依赖优化，各种向量数据库和数据库的依赖改为可选
-* [ ] 补充API测试用例
-* [ ] 支持chat bot
-* [x] 源数据库替换为PG
-* [x] 聊天支持流式返回
-* [x] Auth0认证缓存
-* [ ] 单模型实例服务能力测试
-* [ ] celery超时时间控制
-* [ ] 后端查询接口支持过滤和分页
-* [ ] celery和django共享存储
-* [ ] 监控
 
 # 依赖管理原则
 
