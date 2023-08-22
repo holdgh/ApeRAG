@@ -23,6 +23,7 @@ def intern_lm_generate_stream(
     model, tokenizer, params, device, context_len=4096, stream_interval=2
 ):
     prompt = params["prompt"]
+    prompt = f"<|User|>:{prompt}<eoh>\n<|Bot|>:"
     for response in generate_interactive(model, tokenizer, prompt, additional_eos_token_id=103028):
         yield response
 
