@@ -185,7 +185,7 @@ class InternLMAdapter(BaseLLMAdaper):
         model.generation_config = GenerationConfig(
             max_length=2048,
             top_p=0.8,
-            temperature=0,
+            temperature=0.01,
         )
         return model, tokenizer
 
