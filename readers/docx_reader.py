@@ -20,11 +20,21 @@ class Stacks:
         self.stacks = [[]]  # [] is a placeholder
 
     def push(self, level: int, value: str):
+        """
+        push the string to the stack at level
+        :param level: the level of the stack we want to push
+        :param value: content of the string
+        """
         while level >= len(self.stacks):
             self.stacks.append([])
         self.stacks[level].append(value)
 
     def pop(self, level: int):
+        """
+        pop from the stack at level
+        :param level: the level of the stack we want to pop
+        :return: the pop elelment
+        """
         if level >= len(self.stacks):
             return None
         if len(self.stacks[level]) == 0:
