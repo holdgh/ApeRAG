@@ -50,16 +50,18 @@ class FeishuSource(Source):
                 case "doc":
                     suffix = "txt"
                 case _:
-                    logger.info("ignore unsupported node: %s", node["title"])
+                    logger.info("ignore unsupported node type %s, %s", node["obj_type"], node["title"])
                     continue
             doc = Document(
                 user=self.collection.user,
-                name=node["title"] + f".{suffix}",
+                name=node["title"],
                 status=DocumentStatus.PENDING,
                 collection=self.collection,
                 metadata=json.dumps(metadata),
                 size=0,
             )
+            if suffix:
+                doc.name += f".{suffix}"
             documents.append(doc)
         return documents
 

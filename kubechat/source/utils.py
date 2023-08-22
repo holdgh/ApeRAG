@@ -263,7 +263,7 @@ class Feishu2Markdown(ABC):
         text = ""
         text += self.parse_block_text(block["page"]["elements"], [])
 
-        for child in block["children"]:
+        for child in block.get("children", []):
             child_block = self.block_map[child]
             text += self.handle_block(child_block)
         return text
