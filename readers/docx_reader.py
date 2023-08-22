@@ -132,23 +132,24 @@ class MyDocxReader(BaseReader):
 
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
         # """Parse file."""
-        # try:
-        #     import docx2txt
-        # except ImportError:
-        #     raise ImportError(
-        #         "docx2txt is required to read Microsoft Word files: "
-        #         "`pip install docx2txt`"
-        #     )
-        #
-        # text = docx2txt.process(file)
-        # metadata = {"file_name": file.name}
-        # if metadata is not None:
-        #     metadata.update(metadata)
+        try:
+            import docx2txt
+        except ImportError:
+            raise ImportError(
+                "docx2txt is required to read Microsoft Word files: "
+                "`pip install docx2txt`"
+            )
+
+        text = docx2txt.process(file)
+        metadata = {"file_name": file.name}
+        if len(text) > 5000:  # string length, not world counts
+            if metadata is not None:
+                metadata.update(metadata)
+            return [Document(text=text, metadata=metadata or {})]
 
         tups = self.docx_to_tups(file)
         results = []
         for header, value in tups:
             text = f"\n{header}\n{value}"
             results.append(Document(text=text, metadata=metadata or {}))
-
         return results
