@@ -20,7 +20,7 @@ class Stacks:
         self.stacks = [[]]  # [] is a placeholder
 
     def push(self, level: int, value: str):
-        if level >= len(self.stacks):
+        while level >= len(self.stacks):
             self.stacks.append([])
         self.stacks[level].append(value)
 
