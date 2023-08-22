@@ -3,6 +3,7 @@ LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
+CELERY_CONFIG ?=
 
 init:
 	cp envs/.env.template .env
@@ -62,3 +63,9 @@ lint lint_diff:
 
 test:
 	echo "mock"
+
+celery:
+	celery -A config.celery worker -B -l INFO
+
+flower:
+	celery -A config.celery flower --conf/flowerconfig.py
