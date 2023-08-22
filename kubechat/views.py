@@ -144,6 +144,7 @@ def list_model_name(request):
                                                                   DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
             "context_window": model_server.get("context_window", 2000),
         })
+    response.sort(key=lambda x: x["enabled"], reverse=True)
     return success(response)
 
 
