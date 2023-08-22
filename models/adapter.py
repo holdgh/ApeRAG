@@ -173,6 +173,23 @@ class BaiChuanAdapter(BaseLLMAdaper):
         return model, tokenizer
 
 
+class InternLMAdapter(BaseLLMAdaper):
+    def match(self, model_path: str):
+        return "internlm-chat-7b" in model_path
+
+    def loader(self, model_path: str, from_pretrained_kwargs: dict):
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+        tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, trust_remote_code=True)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path, low_cpu_mem_usage=True, trust_remote_code=True, **from_pretrained_kwargs)
+        model.generation_config = GenerationConfig(
+            max_length=2048,
+            top_p=0.8,
+            temperature=0,
+        )
+        return model, tokenizer
+
+
 class CodeGenAdapter(BaseLLMAdaper):
     pass
 
@@ -241,6 +258,7 @@ register_llm_model_adapters(FalconAdapater)
 register_llm_model_adapters(GorillaAdapter)
 register_llm_model_adapters(GPT4AllAdapter)
 register_llm_model_adapters(BaiChuanAdapter)
+register_llm_model_adapters(InternLMAdapter)
 # TODO Default support vicuna, other model need to tests and Evaluate
 
 # just for test_py, remove this later

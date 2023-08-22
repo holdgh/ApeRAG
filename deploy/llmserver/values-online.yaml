@@ -3,7 +3,7 @@ efsId: fs-000f009e5b2735fc4
 
 models:
   - name: vicuna-13b
-    replicaCount: 1
+    replicaCount: 0
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -13,6 +13,21 @@ models:
                   operator: In
                   values:
                   - vicuna-13b
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+  - name: internlm-chat-7b
+    replicaCount: 1
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: chat.kubeblocks.io/model-name
+                  operator: In
+                  values:
+                    - internlm-chat-7b
+                    - baichuan-13b
     resources:
       limits:
         nvidia.com/gpu: 1
