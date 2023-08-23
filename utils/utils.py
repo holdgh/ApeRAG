@@ -19,7 +19,6 @@ server_error_msg = (
 handler = None
 
 
-
 def get_gpu_memory(max_gpus=None):
     gpu_memory = []
     num_gpus = (
@@ -133,3 +132,79 @@ def pretty_print_semaphore(semaphore):
     if semaphore is None:
         return "None"
     return f"Semaphore(value={semaphore._value}, locked={semaphore.locked()})"
+
+
+class Stacks:
+    """
+    An array of stacks for local document embedding
+    the array index is the docx title level
+    the every stack store the level contents
+    """
+
+    def __init__(self):
+        self.stacks = [[]]  # [] is a placeholder
+
+    def push(self, level: int, value: str):
+        """
+        push the string to the stack at level
+        :param level: the level of the stack we want to push
+        :param value: content of the string
+        """
+        while level >= len(self.stacks):
+            self.stacks.append([])
+        self.stacks[level].append(value)
+
+    def pop(self, level: int):
+        """
+        pop from the stack at level
+        :param level: the level of the stack we want to pop
+        :return: the pop elelment
+        """
+        if level >= len(self.stacks):
+            return None
+        if len(self.stacks[level]) == 0:
+            return None
+        return self.stacks[level].pop()
+
+    def package_content(self, level: int):
+        """
+        package the stack contents to a trunk from  0 ~ level
+        :param level: the deepest level to package
+        :return: content string
+        """
+        res = ""
+        for i in range(0, level + 1):
+            for j in range(0, len(self.stacks[i])):
+                if j == 0:
+                    res += "\n"      # add "\n" for different level title
+                res += self.stacks[i][j]
+
+        return res
+
+    def count_contents(self, level: int):
+        """
+        count the contexts for level
+        :param level: the stack level we want to count
+        :return: the total length of content at level
+        """
+        res = 0
+        for i in range(0, len(self.stacks[level])):
+            res += len(self.stacks[level][i])
+        return res
+
+    def remove(self, level):
+        """
+        remove the stacks contents from level to the deepest level
+        :param level: begin level
+        """
+        for i in range(level, len(self.stacks)):
+            while len(self.stacks[i]) > 0:
+                self.pop(i)
+
+    def get_title(self, level):
+        """
+        get the title
+        :param level: the level of the title
+        :return: the content of title
+        """
+        return self.stacks[level][0]
