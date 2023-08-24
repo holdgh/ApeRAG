@@ -3,6 +3,7 @@
 import json
 import logging
 import os.path
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional
 
@@ -38,6 +39,12 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         self.args = kwargs
         self.reader = InteractiveSimpleDirectoryReader(**kwargs)
 
+    @staticmethod
+    def transform_text(text: str) -> str:
+        # remove code block
+        text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+        return text
+
     def load_data(self) -> list[str]:
         end = False
         embedding = self.embedding
@@ -52,11 +59,12 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             nodes: List[NodeWithEmbedding] = []
             prefix = "\n\n".join([f"{k}: {v}" for k, v in Source.get_metadata(file_name).items()])
             for doc in docs:
-                text = f"{prefix}\n{doc.text}"
+                text = self.transform_text(doc.text)
+                text = f"{prefix}\n{text}"
                 vector = embedding.get_text_embedding(text)
                 doc.embedding = vector
                 node = Node(
-                    text=text,
+                    text=doc.text,
                     doc_id=doc.doc_id,
                 )
                 node.relationships = {

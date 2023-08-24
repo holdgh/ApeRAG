@@ -68,7 +68,10 @@ class MarkdownReader(BaseReader):
                             headers.pop()
                         else:
                             break
-                    headers[-1] = (line,level)
+                    if len(headers) > 0:
+                        headers[-1] = (line,level)
+                    else:
+                        headers.append((line, level))
 
                 if len(current_text) < CHUNK_SPLIT_THRESHOLD:
                     current_text += line + "\n"

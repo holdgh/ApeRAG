@@ -49,6 +49,7 @@ LLM_MODEL_CONFIG = {
     "falcon-40b": os.path.join(MODEL_PATH, "falcon-40b"),
     "gorilla-7b": os.path.join(MODEL_PATH, "gorilla-7b"),
     "baichuan-13b": os.path.join(MODEL_PATH, "baichuan-13b"),
+    "internlm-chat-7b": os.path.join(MODEL_PATH, "internlm-chat-7b"),
     # TODO Support baichuan-7b
     # "baichuan-7b" : os.path.join(MODEL_PATH, "baichuan-7b"),
     "gptj-6b": os.path.join(MODEL_PATH, "ggml-gpt4all-j-v1.3-groovy.bin"),

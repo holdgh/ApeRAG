@@ -58,6 +58,17 @@ class BaichuanChatAdapter(BaseChatAdpter):
         return baichuan_generate_stream
 
 
+class InternLMChatAdapter(BaseChatAdpter):
+    """Model chat Adapter for internlm-chat-7b"""
+
+    def match(self, model_path: str):
+        return "internlm-chat-7b" in model_path
+
+    def get_generate_stream_func(self):
+        from models.llm_out.intern_llm import intern_lm_generate_stream
+        return intern_lm_generate_stream
+
+
 class ChatGLMChatAdapter(BaseChatAdpter):
     """Model chat Adapter for ChatGLM"""
 
@@ -148,6 +159,7 @@ class GPT4AllChatAdapter(BaseChatAdpter):
 
 register_llm_model_chat_adapter(VicunaChatAdapter)
 register_llm_model_chat_adapter(BaichuanChatAdapter)
+register_llm_model_chat_adapter(InternLMChatAdapter)
 register_llm_model_chat_adapter(ChatGLMChatAdapter)
 register_llm_model_chat_adapter(GuanacoChatAdapter)
 register_llm_model_chat_adapter(FalconChatAdapter)
