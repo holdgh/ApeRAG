@@ -87,15 +87,10 @@ def deal_sync_task_success(collection_sync_history_id, task_type: str):
     with transaction.atomic():
         collection_sync_history = CollectionSyncHistory.objects.select_for_update(nowait=False).get(
             id=collection_sync_history_id)
-        if CollectionSyncHistory.objects.get(id=collection_sync_history_id).processing_documents > 0:
-            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-                processing_documents=F("processing_documents") - 1,
-                successful_documents=F("successful_documents") + 1
-            )
-        else:
-            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-                successful_documents=F("successful_documents") + 1
-            )
+        CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+            processing_documents=F("processing_documents") - 1,
+            successful_documents=F("successful_documents") + 1
+        )
         if task_type == "add":
             CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
                 new_documents=F("new_documents") + 1, total_documents=F("total_documents") + 1)
