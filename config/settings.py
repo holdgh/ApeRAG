@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import time
 import environ
+from django.db.backends.postgresql.psycopg_any import IsolationLevel
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -92,7 +93,21 @@ WSGI_APPLICATION = "config.wsgi.application"
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
+# DATABASES = {
+#     "default": {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'KB',
+#         'USER': '123',
+#         'PASSWORD': '123',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#         'OPTIONS': {
+#              "isolation_level": IsolationLevel.SERIALIZABLE  # 设置隔离级别为可串行化
+#         },
+#     }
+# }
+DATABASES = {"default": env.db("DATABASE_URL", default="postgres://123:123@127.0.0.1:5432/KB")}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -235,12 +250,11 @@ VECTOR_DB_CONTEXT = env.str(
 
 CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
 
-
 # simpleui
 SIMPLEUI_CONFIG = {
     'system_keep': True,
     # 'menu_display': [],
-    'dynamic': False,    # Set whether to enable dynamic menus. Default is False.
+    'dynamic': False,  # Set whether to enable dynamic menus. Default is False.
 }
 # Hide the advertisement links on the right side of SimpleUI and the usage analysis.
 SIMPLEUI_HOME_INFO = False

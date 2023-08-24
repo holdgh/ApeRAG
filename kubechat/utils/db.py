@@ -51,7 +51,7 @@ async def query_sync_history(user, collection_id: str, sync_history_id: str):
 async def query_sync_histories(user, collection_id: str):
     return CollectionSyncHistory.objects.filter(
         user=user, collection_id=collection_id
-    )
+    ).order_by('-id')
 
 
 async def query_chats(user, bot_id: str):

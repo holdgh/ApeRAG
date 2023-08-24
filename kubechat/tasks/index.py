@@ -1,7 +1,9 @@
 import json
 import logging
+import random
 from datetime import datetime
 
+from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
@@ -74,6 +76,47 @@ def add_index_for_local_document(self, document_id):
         raise self.retry(exc=e, countdown=5, max_retries=3)
 
 
+def start_sync_task(collection_sync_history_id):
+    with transaction.atomic():
+        CollectionSyncHistory.objects.select_for_update(nowait=False).get(id=collection_sync_history_id)
+        CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+            processing_documents=F("processing_documents") + 1)
+
+
+def deal_sync_task_success(collection_sync_history_id, task_type: str):
+    with transaction.atomic():
+        collection_sync_history = CollectionSyncHistory.objects.select_for_update(nowait=False).get(
+            id=collection_sync_history_id)
+        if CollectionSyncHistory.objects.get(id=collection_sync_history_id).processing_documents > 0:
+            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+                processing_documents=F("processing_documents") - 1,
+                successful_documents=F("successful_documents") + 1
+            )
+        else:
+            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+                successful_documents=F("successful_documents") + 1
+            )
+        if task_type == "add":
+            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+                new_documents=F("new_documents") + 1, total_documents=F("total_documents") + 1)
+        elif task_type == "remove":
+            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+                deleted_documents=F("deleted_documents") + 1, total_documents=F("total_documents") - 1)
+        elif task_type == "update":
+            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+                modified_documents=F("modified_documents") + 1)
+        collection_sync_history.update_execution_time()
+
+
+def deal_sync_task_failure(collection_sync_history_id):
+    with transaction.atomic():
+        collection_sync_history = CollectionSyncHistory.objects.select_for_update(nowait=False).get(
+            id=collection_sync_history_id)
+        CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
+            processing_documents=F("processing_documents") - 1, failed_documents=F("failed_documents") + 1)
+        collection_sync_history.update_execution_time()
+
+
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
 def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     """
@@ -82,9 +125,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
             document_id: the document in Django Module
     """
     if collection_sync_history_id > 0:
-        collection_sync_history = CollectionSyncHistory.objects.get(id=collection_sync_history_id)
-        collection_sync_history.processing_documents = F("processing_documents") + 1
-        collection_sync_history.save()
+        start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -107,36 +148,25 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         document.save()
         logger.info(f"add qdrant points: {document.relate_ids} for document {file_path}")
         if collection_sync_history_id > 0:
-            collection_sync_history.refresh_from_db()
-            collection_sync_history.processing_documents = F("processing_documents") - 1
-            collection_sync_history.successful_documents = F("successful_documents") + 1
-            collection_sync_history.new_documents = F("new_documents") + 1
-            collection_sync_history.total_documents = F("total_documents") + 1
-            collection_sync_history.save()
-            collection_sync_history.update_execution_time()
+            deal_sync_task_success(collection_sync_history_id, "add")
     except Exception as e:
+        logger.error(e)
         if collection_sync_history_id > 0:
-            collection_sync_history.refresh_from_db()
-            collection_sync_history.processing_documents = F("processing_documents") - 1
-            collection_sync_history.failed_documents = F("failed_documents") + 1
-            collection_sync_history.save()
-            collection_sync_history.update_execution_time()
-        raise self.retry(exc=e, countdown=5, max_retries=3)
+            deal_sync_task_failure(collection_sync_history_id)
+        # raise self.retry(exc=e, countdown=5, max_retries=3)
 
     source.cleanup_document(file_path, document)
 
 
 @app.task(base=CustomDeleteDocumentTask, ignore_result=True, bind=True)
-def remove_index(self, document_id, collection_sync_history_id = -1):
+def remove_index(self, document_id, collection_sync_history_id=-1):
     """
     remove the doc embedding index from vector store db
     :param self:
     :param document_id:
     """
     if collection_sync_history_id > 0:
-        collection_sync_history = CollectionSyncHistory.objects.get(id=collection_sync_history_id)
-        collection_sync_history.processing_documents = F("processing_documents") + 1
-        collection_sync_history.save()
+        start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -148,30 +178,18 @@ def remove_index(self, document_id, collection_sync_history_id = -1):
                                                                                         collection=document.collection.id))
         vector_db.connector.delete(ids=str(document.relate_ids).split(','))
         if collection_sync_history_id > 0:
-            collection_sync_history.refresh_from_db()
-            collection_sync_history.processing_documents = F("processing_documents") - 1
-            collection_sync_history.successful_documents = F("successful_documents") + 1
-            collection_sync_history.deleted_documents = F("deleted_documents") + 1
-            collection_sync_history.total_documents = F("total_documents") + 1
-            collection_sync_history.save()
-            collection_sync_history.update_execution_time()
-
+            deal_sync_task_success(collection_sync_history_id, "remove")
     except Exception as e:
+        logger.error(e)
         if collection_sync_history_id > 0:
-            collection_sync_history.refresh_from_db()
-            collection_sync_history.processing_documents = F("processing_documents") - 1
-            collection_sync_history.failed_documents = F("failed_documents") + 1
-            collection_sync_history.save()
-            collection_sync_history.update_execution_time()
-        raise self.retry(exc=e, countdown=5, max_retries=3)
+            deal_sync_task_failure(collection_sync_history_id)
+        # raise self.retry(exc=e, countdown=5, max_retries=3)
 
 
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
 def update_index(self, document_id, collection_sync_history_id=-1):
     if collection_sync_history_id > 0:
-        collection_sync_history = CollectionSyncHistory.objects.get(id=collection_sync_history_id)
-        collection_sync_history.processing_documents = F("processing_documents") + 1
-        collection_sync_history.save()
+        start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -194,18 +212,10 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         document.save()
         logger.info(f"update qdrant points: {document.relate_ids} for document {file_path}")
         if collection_sync_history_id > 0:
-            collection_sync_history.refresh_from_db()
-            collection_sync_history.processing_documents = F("processing_documents") - 1
-            collection_sync_history.successful_documents = F("successful_documents") + 1
-            collection_sync_history.modified_documents = F("modified_documents") + 1
-            collection_sync_history.save()
-            collection_sync_history.update_execution_time()
+            deal_sync_task_success(collection_sync_history_id, "update")
     except Exception as e:
+        logger.error(e)
         if collection_sync_history_id > 0:
-            collection_sync_history.refresh_from_db()
-            collection_sync_history.processing_documents = F("processing_documents") - 1
-            collection_sync_history.failed_documents = F("failed_documents") + 1
-            collection_sync_history.save()
-            collection_sync_history.update_execution_time()
-        raise self.retry(exc=e, countdown=5, max_retries=3)
+            deal_sync_task_failure(collection_sync_history_id)
+        # raise self.retry(exc=e, countdown=5, max_retries=3)
     source.cleanup_document(file_path, document)
