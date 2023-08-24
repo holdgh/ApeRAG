@@ -51,6 +51,8 @@ def sync_documents(**kwargs):
         if name_remote in documents_in_db.keys():
             document_db = documents_in_db[name_remote]
             if document_remote.metadata > document_db.metadata:  # modify
+                document_db.metadata = document_remote.metadata
+                document_db.save()
                 collection_sync_history.total_documents_to_sync = collection_sync_history.total_documents_to_sync + 1
                 collection_sync_history.save()
                 update_index.delay(document_db.id, collection_sync_history_id)
