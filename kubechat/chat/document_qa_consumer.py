@@ -1,22 +1,40 @@
 import asyncio
 import json
 import logging
+import os
 
-import requests
 from langchain import PromptTemplate
 
 import config.settings as settings
 from kubechat.utils.utils import generate_vector_db_collection_id
 from query.query import QueryWithEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
-
 from .base_consumer import KUBE_CHAT_DOC_QA_REFERENCES, BaseConsumer
 from .prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from .llm_factory import LLMFactory
 
 logger = logging.getLogger(__name__)
 
 
+def get_endpoint(model):
+    model_servers = json.loads(settings.MODEL_SERVERS)
+    if len(model_servers) == 0:
+        raise Exception("No model server available")
+    endpoint = model_servers[0]["endpoint"]
+    for model_server in model_servers:
+        model_name = model_server["name"]
+        model_endpoint = model_server["endpoint"]
+        if model == model_name:
+            endpoint = model_endpoint
+            break
+    return endpoint
+
+
 class DocumentQAConsumer(BaseConsumer):
+    def __init__(self):
+        super().__init__()
+        self.chat_limit = 2
+
     async def predict(self, query):
         bot_config = json.loads(self.bot.config)
 
@@ -53,45 +71,13 @@ class DocumentQAConsumer(BaseConsumer):
         prompt = PromptTemplate.from_template(prompt_template)
         prompt_str = prompt.format(query=query, context=query_context)
 
-        input = {
-            "prompt": prompt_str,
-            "temperature": 0,
-            "max_new_tokens": 2048,
-            "model": model,
-            "stop": "\nSQLResult:",
-        }
-
         # choose llm model
-        model_servers = json.loads(settings.MODEL_SERVERS)
-        if len(model_servers) == 0:
-            raise Exception("No model server available")
-        endpoint = model_servers[0]["endpoint"]
-        for model_server in model_servers:
-            model_name = model_server["name"]
-            model_endpoint = model_server["endpoint"]
-            if model == model_name:
-                endpoint = model_endpoint
-                break
-
-        response = requests.post("%s/generate_stream" % endpoint, json=input, stream=True, )
-        buffer = ""
-        for c in response.iter_content():
-            if c == b"\x00":
-                continue
-
-            c = c.decode("utf-8")
-            buffer += c
-
-            if "}" in c:
-                idx = buffer.rfind("}")
-                data = buffer[: idx + 1]
-                try:
-                    msg = json.loads(data)
-                except Exception as e:
-                    continue
-                yield msg["text"]
-                await asyncio.sleep(0.1)
-                buffer = buffer[idx + 1:]
+        endpoint = get_endpoint(model)
+        factory = LLMFactory()
+        llm = factory.create_llm(model)
+        for text in llm.generate_stream(prompt=prompt_str, model=model, llm_config=llm_config, endpoint=endpoint):
+            yield text
+            await asyncio.sleep(0.1)
 
         references = []
         for result in results.results:
