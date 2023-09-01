@@ -4,9 +4,10 @@ import os
 from typing import Callable, Dict, Generator, List, Optional, Type
 
 from llama_index.readers.base import BaseReader
-from llama_index.readers.file.base import DEFAULT_FILE_READER_CLS, SimpleDirectoryReader
+from llama_index.readers.file.base import  SimpleDirectoryReader
 from llama_index.readers.schema.base import Document
 
+from .Readers import DEFAULT_FILE_READER_CLS
 from .compose_image_reader import ComposeImageReader
 from .markdown_reader import MarkdownReader
 
