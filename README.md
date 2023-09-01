@@ -35,6 +35,7 @@ make run-backend
 
 ```bash
 PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --concurrency 1
+
 ```
 
 * run the flower monitor service
@@ -46,3 +47,5 @@ make flower
 # 依赖管理原则
 
 * 可选依赖，只在需要的时候导入
+
+

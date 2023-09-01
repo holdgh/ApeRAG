@@ -14,8 +14,8 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-@app.task
-def sync_documents(**kwargs):
+@app.task(bind=True)
+def sync_documents(self, **kwargs):
     collection_id = kwargs["collection_id"]
     collection = Collection.objects.exclude(status=CollectionStatus.DELETED).get(
         id=int(collection_id)
@@ -44,6 +44,9 @@ def sync_documents(**kwargs):
 
     collection_sync_history.total_documents = len(documents_in_db)
     collection_sync_history.save()
+    # echo the id out of the task by self.update_state().
+    self.update_state(state='SYNCHRONIZING', meta={'id': collection_sync_history.id})
+    logger.debug(f"sync_documents_cron_job() : sync collection{collection_id} start ")
     collection_sync_history.update_execution_time()
     collection_sync_history_id = collection_sync_history.id
 

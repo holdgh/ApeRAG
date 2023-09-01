@@ -17,6 +17,11 @@ spec:
     matchLabels:
       {{- include "llmserver.selectorLabels" . | nindent 6 }}
       chat.kubeblocks.io/model-name: {{ $rangeItem.name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 25%
   template:
     metadata:
       {{- with .Values.podAnnotations }}

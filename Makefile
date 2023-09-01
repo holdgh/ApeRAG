@@ -30,8 +30,8 @@ clean:
 
 update-frontend:
 	git submodule update --init --recursive --remote
-	cp .env.frontend KubeChat-Frontend/.env
-	cd KubeChat-Frontend && yarn install && yarn build
+	cp envs/.env.frontend.template KubeChat-FrontEnd/.env
+	cd KubeChat-FrontEnd && yarn install && yarn build
 
 run-backend: migrate
 	python manage.py collectstatic --noinput
