@@ -156,10 +156,15 @@ async def sync_immediately(request, collection_id):
     if not source.sync_enabled():
         return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
 
-    result = sync_documents.delay(collection_id=collection_id)
-    sync_history_id = result.get(timeout=300)
-    if sync_history_id == -1:
-        return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
+    result = sync_documents.apply_async(kwargs={'collection_id': collection_id})
+    sync_history_id = -1
+    # keep getting information from result while running.
+    while not result.ready() and sync_history_id == -1:
+        if result.info is not None:
+            sync_history_id = result.info.get('id', None)
+    # if the task is too fast to get the info while running, use get() to get the result.
+    if result.ready() and sync_history_id == -1:
+        sync_history_id = result.get()
     sync_history = await CollectionSyncHistory.objects.aget(id=sync_history_id)
     return success(sync_history.view())
 
