@@ -48,12 +48,15 @@ def sync_documents(self, **kwargs):
     self.update_state(state='SYNCHRONIZING', meta={'id': collection_sync_history.id})
     logger.debug(f"sync_documents_cron_job() : sync collection{collection_id} start ")
     collection_sync_history.update_execution_time()
+    collection_sync_history.save()
     collection_sync_history_id = collection_sync_history.id
 
     for name_remote, document_remote in documents_in_remote.items():
         if name_remote in documents_in_db.keys():
             document_db = documents_in_db[name_remote]
             if document_remote.metadata > document_db.metadata:  # modify
+                document_db.metadata = document_remote.metadata
+                document_db.save()
                 collection_sync_history.total_documents_to_sync = collection_sync_history.total_documents_to_sync + 1
                 collection_sync_history.save()
                 update_index.delay(document_db.id, collection_sync_history_id)
