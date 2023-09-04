@@ -59,6 +59,7 @@ lark-oapi = "^1.0.11"
 text2vec = "^1.2.2"
 pyarmor = "^8.3.1"
 pytablewriter = "^1.0.0"
+python-docx = "^0.8.11"
 
 [tool.poetry.group.llmserver]
 optional = true
