@@ -6,6 +6,7 @@ from datetime import datetime
 from celery import Task
 from django.db import transaction
 from django.db.models import F
+from django.utils import timezone
 
 from config.celery import app
 from config.vector_db import get_vector_db_connector
@@ -51,7 +52,7 @@ class CustomDeleteDocumentTask(Task):
         document = Document.objects.get(id=document_id)
         logger.info(f"remove qdrant points for document {document.name} success")
         document.status = DocumentStatus.DELETED
-        document.gmt_deleted = datetime.now()
+        document.gmt_deleted = timezone.now()
         document.name = document.name + "-" + str(uuid.uuid4())
         document.save()
         document.collection.status = CollectionStatus.ACTIVE
