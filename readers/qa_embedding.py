@@ -24,7 +24,7 @@ class QAEmbedding(DocumentBaseEmbedding):
         self.answer = answer
 
     def load_data(self):
-        vector = self.embedding.get_text_embedding(self.question)
+        vector = self.embedding.embed_query(self.question)
         node = Node(
             text=self.answer,
         )

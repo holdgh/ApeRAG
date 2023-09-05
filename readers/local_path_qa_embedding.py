@@ -67,7 +67,7 @@ class LocalPathQAEmbedding(LocalPathEmbedding):
                         node_id=node.node_id, metadata={"source": f"{doc.metadata['name']}"}
                     )
                 }
-                vector = self.embedding.get_text_embedding(q)
+                vector = self.embedding.embed_query(q)
                 nodes.append(NodeWithEmbedding(node=node, embedding=vector))
         print(f"processed file: {file_name} ")
         return self.connector.store.add(nodes)

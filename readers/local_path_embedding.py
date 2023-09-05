@@ -82,7 +82,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             # embedding without the code block
             # text = re.sub(r"```.*?```", "", doc.text, flags=re.DOTALL)
             text = f"{prefix}\n{doc.text}"
-            vector = self.embedding.get_text_embedding(text)
+            vector = self.embedding.embed_documents([text])[0]
             doc.embedding = vector
             node = Node(
                 text=doc.text,
