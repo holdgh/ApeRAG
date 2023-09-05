@@ -1,28 +1,24 @@
 import logging
-import os
-import time
-from typing import Dict, Any
+from datetime import datetime
+from typing import Dict, Any, List
 
 import oss2
 
-from kubechat.models import Collection, Document, DocumentStatus
-from kubechat.source.base import Source
+from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file
-from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
 
 class OSSSource(Source):
 
-    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+    def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.access_key_id = ctx["access_key_id"]
         self.access_key_secret = ctx["secret_access_key"]
         self.bucket_name = ctx["bucket"]
         self.endpoint = ctx["region"]
         self.dir = ctx.get("dir", "")
-        self.collection = collection
         self.bucket = self._connect_bucket()
 
     def _connect_bucket(self):
@@ -30,38 +26,30 @@ class OSSSource(Source):
         bucket = oss2.Bucket(auth, self.endpoint, self.bucket_name)
         return bucket
 
-    def scan_documents(self):
+    def scan_documents(self) -> List[RemoteDocument]:
         documents = []
         for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory
             try:
-                file_suffix = os.path.splitext(obj.key)[1].lower()
-                if file_suffix in DEFAULT_FILE_READER_CLS.keys():
-                    document = Document(
-                        user=self.collection.user,
-                        name=obj.key,
-                        status=DocumentStatus.PENDING,
-                        size=obj.size,
-                        collection=self.collection,
-                        metadata=time.strftime(
-                            "%Y-%m-%d %H:%M:%S", time.localtime(obj.last_modified)
-                        ),
-                    )
-                    documents.append(document)
+                doc = RemoteDocument(
+                    name=obj.key,
+                    size=obj.size,
+                    metadata={
+                        "modified_time": datetime.utcfromtimestamp(int(obj.last_modified)),
+                    }
+                )
+                documents.append(doc)
             except Exception as e:
                 logger.error(f"scanning_oss_add_index() {obj.key} error {e}")
                 raise e
         return documents
 
-    def prepare_document(self, doc: Document):
-        content = self.bucket.get_object(doc.name).read()
-        temp_file = gen_temporary_file(doc.name)
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        content = self.bucket.get_object(name).read()
+        temp_file = gen_temporary_file(name)
         temp_file.write(content)
         temp_file.close()
-        self.prepare_metadata_file(temp_file.name, doc)
-        return temp_file.name
-
-    def close(self):
-        pass
+        metadata["name"] = name
+        return LocalDocument(name=name, path=temp_file.name, metadata=metadata)
 
     def sync_enabled(self):
         return True

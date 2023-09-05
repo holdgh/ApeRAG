@@ -1,17 +1,13 @@
-import datetime
-import json
-
 from django.db import models
-from django.utils import timezone
-
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
+from django.utils import timezone
 
 
-def user_document_path(instance, filename):
-    user = instance.user.replace("|", "-")
+def upload_document_path(document, filename):
+    user = document.user.replace("|", "-")
     return "documents/user-{0}/collection-{1}/{2}".format(
-        user, instance.collection.id, filename
+        user, document.collection.id, filename
     )
 
 
@@ -107,12 +103,15 @@ class Document(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)
     size = models.BigIntegerField()
-    file = models.FileField(upload_to=user_document_path)
+    file = models.FileField(upload_to=upload_document_path)
     relate_ids = models.TextField()
-    metadata = models.TextField()
+    metadata = models.TextField(default="{}")
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('collection', 'name')
 
     def view(self):
         return {
@@ -167,14 +166,24 @@ class Bot(models.Model):
         }
 
 
+class ChatPeer(models.TextChoices):
+    SYSTEM = "system"
+    FEISHU = "feishu"
+
+
 class Chat(models.Model):
     user = models.CharField(max_length=256)
+    peer_type = models.CharField(max_length=16, default=ChatPeer.SYSTEM, choices=ChatPeer.choices)
+    peer_id = models.CharField(max_length=256, null=True)
     status = models.CharField(max_length=16, choices=ChatStatus.choices)
     bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
     summary = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('peer_type', 'peer_id')
 
     def view(self, bot_id, messages=None):
         if messages is None:
@@ -189,31 +198,31 @@ class Chat(models.Model):
         }
 
 
-# class CodeChat(models.Model):
-#     user = models.CharField(max_length=256)
-#     title = models.CharField(max_length=32)
-#     type = models.CharField(max_length=16, choices=CodeChatType.choices)
-#     status = models.CharField(max_length=16, choices=CodeChatStatus.choices)
-#     summary = models.TextField()
-#     gmt_created = models.DateTimeField(auto_now_add=True)
-#     gmt_finished = models.DateTimeField(null=True, blank=True)
-#     gmt_deleted = models.DateTimeField(null=True, blank=True)
-#
-#     def view(self, history=None):
-#         if history is None:
-#             history = []
-#         return {
-#             "id": str(self.id),
-#             "summary": self.summary,
-#             "history": history,
-#             "created": self.gmt_created.isoformat(),
-#             "finished:": self.gmt_finished.isoformat(),
-#         }
+class MessageFeedbackStatus(models.TextChoices):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETE = "COMPLETE"
+    FAILED = "FAILED"
 
 
-class Settings(models.Model):
-    key = models.CharField(max_length=512)
-    value = models.TextField()
+class MessageFeedback(models.Model):
+    user = models.CharField(max_length=256)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    message_id = models.CharField(max_length=256)
+    upvote = models.IntegerField(default=0)
+    downvote = models.IntegerField(default=0)
+    relate_ids = models.TextField(null=True)
+    question = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=MessageFeedbackStatus.choices, null=True)
+    original_answer = models.TextField(null=True, blank=True)
+    revised_answer = models.TextField(null=True, blank=True)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('chat_id', 'message_id')
 
 
 class CollectionSyncHistory(models.Model):

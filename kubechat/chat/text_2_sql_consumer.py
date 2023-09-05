@@ -25,7 +25,7 @@ class Text2SQLConsumer(BaseConsumer):
         if not self.client.connect(False, test_only=False):
             raise Exception("can not connect to db")
 
-    async def predict(self, query):
+    async def predict(self, query, **kwargs):
         if self.msg_type == "sql":
             response = self.client.execute_query(query)
         else:

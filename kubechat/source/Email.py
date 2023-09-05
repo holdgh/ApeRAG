@@ -1,19 +1,15 @@
 import datetime
 import logging
-import os
 import poplib
-import tempfile
 import re
+import tempfile
 from email import message_from_bytes, parser
 from email.header import decode_header
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from bs4 import BeautifulSoup
 
-from kubechat.models import Document, DocumentStatus, Collection
-from kubechat.source.base import Source
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import torch
+from kubechat.source.base import Source, RemoteDocument, LocalDocument
 
 logger = logging.getLogger(__name__)
 
@@ -110,14 +106,13 @@ def check_spam(title: str, body: str):
 
 class EmailSource(Source):
 
-    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+    def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.pop_server = ctx["pop_server"]
         self.port = ctx["port"]
         self.email_address = ctx["email_address"]
         self.email_password = ctx["email_password"]
         self.detect_spam = ctx.get("detect_spam", False)
-        self.collection = collection
         self.conn = self._connect_to_pop3_server()
         self.email_num = 0
 
@@ -133,7 +128,7 @@ class EmailSource(Source):
         pop_conn.pass_(self.email_password)
         return pop_conn
 
-    def scan_documents(self):
+    def scan_documents(self) -> List[RemoteDocument]:
         documents = []
         self.email_num = len(self.conn.list()[1])
         for i in range(self.email_num):
@@ -157,13 +152,13 @@ class EmailSource(Source):
                         continue
                     logger.info(f"email {decoded_subject} is detected to be ham")
 
-                document = Document(
-                    user=self.collection.user,
+                document = RemoteDocument(
                     name=order_and_name,
-                    status=DocumentStatus.PENDING,
                     size=octets,
-                    collection=self.collection,
-                    metadata=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    metadata={
+                        # TODO: use the email received time as the modified time
+                        "modified_time": datetime.datetime.now(),
+                    }
                 )
                 documents.append(document)
             except Exception as e:
@@ -171,15 +166,14 @@ class EmailSource(Source):
                 raise e
         return documents
 
-    def prepare_document(self, doc: Document):
-        order_and_name = doc.name
-        under_line = order_and_name.find('_')
-        order = order_and_name[:under_line]
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        under_line = name.find('_')
+        order = name[:under_line]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order, order_and_name
+            self.conn, order, name
         )
-        self.prepare_metadata_file(temp_file_path, doc)
-        return temp_file_path
+        metadata["name"] = name
+        return LocalDocument(name=name, path=temp_file_path, metadata=metadata)
 
     def close(self):
         self.conn.quit()

@@ -63,8 +63,12 @@ def now_unix_milliseconds():
     return int(datetime.utcnow().timestamp() * 1e3)
 
 
-def generate_vector_db_collection_id(user, collection) -> str:
+def generate_vector_db_collection_name(user, collection) -> str:
     return str(user).replace("|", "-") + "-" + str(collection)
+
+
+def generate_qa_vector_db_collection_name(user, collection) -> str:
+    return str(user).replace("|", "-") + "-" + str(collection) + "-qa"
 
 
 def fix_path_name(path) -> str:

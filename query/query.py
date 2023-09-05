@@ -70,13 +70,14 @@ class QueryResult(BaseModel):
     query: str
     results: List[DocumentWithScore]
 
-    def get_packed_answer(self, limit_length: Optional[int] = 0) -> str:
-        text_chunks = [r.text for r in self.results]
-        answer_text = "\n\n".join(text_chunks)
-        if limit_length != 0:
-            return answer_text[:limit_length]
-        else:
-            return answer_text
+
+def get_packed_answer(results, limit_length: Optional[int] = 0) -> str:
+    text_chunks = [r.text for r in results]
+    answer_text = "\n\n".join(text_chunks)
+    if limit_length != 0:
+        return answer_text[:limit_length]
+    else:
+        return answer_text
 
 
 class UpsertRequest(BaseModel):

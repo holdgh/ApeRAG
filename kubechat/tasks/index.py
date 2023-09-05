@@ -1,22 +1,22 @@
 import json
 import logging
-import random
+import uuid
 from datetime import datetime
 
+from celery import Task
 from django.db import transaction
 from django.db.models import F
-from django.utils import timezone
 
-import time
-from celery import Task
 from config.celery import app
-
 from config.vector_db import get_vector_db_connector
-from readers.local_path_embedding import LocalPathEmbedding
-from readers.base_embedding import get_collection_embedding_model
+from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory, MessageFeedback, \
+    MessageFeedbackStatus
 from kubechat.source.base import get_source
-from kubechat.utils.utils import generate_vector_db_collection_id
-from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory
+from kubechat.source.utils import FeishuNoPermission, FeishuPermissionDenied
+from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name
+from readers.base_embedding import get_collection_embedding_model
+from readers.local_path_embedding import LocalPathEmbedding
+from readers.qa_embedding import QAEmbedding
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ class CustomDeleteDocumentTask(Task):
         logger.info(f"remove qdrant points for document {document.name} success")
         document.status = DocumentStatus.DELETED
         document.gmt_deleted = datetime.now()
+        document.name = document.name + "-" + str(uuid.uuid4())
         document.save()
         document.collection.status = CollectionStatus.ACTIVE
         document.collection.save()
@@ -129,28 +130,35 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     document.collection.save()
 
     try:
-        source = get_source(document.collection, json.loads(document.collection.config))
-        file_path = source.prepare_document(document)
+        source = get_source(json.loads(document.collection.config))
+        metadata = json.loads(document.metadata)
+        local_doc = source.prepare_document(name=document.name, metadata=metadata)
         embedding_model, _ = get_collection_embedding_model(document.collection)
-        loader = LocalPathEmbedding(input_files=[file_path],
+        loader = LocalPathEmbedding(input_files=[local_doc.path],
+                                    input_file_metadata_list=[local_doc.metadata],
                                     embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_qdrant_collection_id(
                                             user=document.user,
                                             collection=document.collection.id)))
+
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
         document.save()
-        logger.info(f"add qdrant points: {document.relate_ids} for document {file_path}")
+        logger.info(f"add qdrant points: {document.relate_ids} for document {local_doc.path}")
         if collection_sync_history_id > 0:
             deal_sync_task_success(collection_sync_history_id, "add")
+    except FeishuNoPermission:
+        raise Exception("no permission to access document %s" % document.name)
+    except FeishuPermissionDenied:
+        raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
         if collection_sync_history_id > 0:
             deal_sync_task_failure(collection_sync_history_id)
-        # raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise self.retry(exc=e, countdown=5, max_retries=3)
 
-    source.cleanup_document(file_path, document)
+    source.cleanup_document(local_doc.path)
 
 
 @app.task(base=CustomDeleteDocumentTask, ignore_result=True, bind=True)
@@ -169,8 +177,8 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     document.collection.save()
     try:
         logger.info(f"remove qdrant points: {document.relate_ids} for document {document.file}")
-        vector_db = get_vector_db_connector(collection=generate_vector_db_collection_id(user=document.user,
-                                                                                        collection=document.collection.id))
+        vector_db = get_vector_db_connector(collection=generate_vector_db_collection_name(user=document.user,
+                                                                                          collection=document.collection.id))
         vector_db.connector.delete(ids=str(document.relate_ids).split(','))
         if collection_sync_history_id > 0:
             deal_sync_task_success(collection_sync_history_id, "remove")
@@ -192,10 +200,12 @@ def update_index(self, document_id, collection_sync_history_id=-1):
     document.collection.save()
 
     try:
-        source = get_source(document.collection, json.loads(document.collection.config))
-        file_path = source.prepare_document(document)
+        source = get_source(json.loads(document.collection.config))
+        metadata = json.loads(document.metadata)
+        local_doc = source.prepare_document(name=document.name, metadata=metadata)
         embedding_model, _ = get_collection_embedding_model(document.collection)
-        loader = LocalPathEmbedding(input_files=[file_path],
+        loader = LocalPathEmbedding(input_files=[local_doc.path],
+                                    input_file_metadata_list=[local_doc.metadata],
                                     embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_qdrant_collection_id(
@@ -205,12 +215,38 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         ids = loader.load_data()
         document.relate_ids = ",".join(ids)
         document.save()
-        logger.info(f"update qdrant points: {document.relate_ids} for document {file_path}")
+        logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
         if collection_sync_history_id > 0:
             deal_sync_task_success(collection_sync_history_id, "update")
+    except FeishuNoPermission:
+        raise Exception("no permission to access document %s" % document.name)
+    except FeishuPermissionDenied:
+        raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
         if collection_sync_history_id > 0:
             deal_sync_task_failure(collection_sync_history_id)
-        # raise self.retry(exc=e, countdown=5, max_retries=3)
-    source.cleanup_document(file_path, document)
+        raise self.retry(exc=e, countdown=5, max_retries=3)
+    source.cleanup_document(local_doc.path)
+
+
+@app.task
+def message_feedback(**kwargs):
+    feedback_id = kwargs["feedback_id"]
+    feedback = MessageFeedback.objects.get(id=feedback_id)
+    feedback.status = MessageFeedbackStatus.RUNNING
+    feedback.save()
+
+    qa_collection_name = generate_qa_vector_db_collection_name(user=feedback.user, collection=feedback.collection.id)
+    vector_store_adaptor = get_vector_db_connector(collection=qa_collection_name)
+    embedding_model, _ = get_collection_embedding_model(feedback.collection)
+    ids = [i for i in str(feedback.relate_ids or "").split(',') if i]
+    if ids:
+        vector_store_adaptor.connector.delete(ids=ids)
+    ids = QAEmbedding(feedback.question, feedback.revised_answer, vector_store_adaptor, embedding_model).load_data()
+    if ids:
+        feedback.relate_ids = ",".join(ids)
+        feedback.save()
+
+    feedback.status = MessageFeedbackStatus.COMPLETE
+    feedback.save()

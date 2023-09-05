@@ -47,6 +47,3 @@ class ChromaVectorStoreConnector(VectorStoreConnector):
         self.store = ChromaVectorStore(
             client=self.client, chroma_collection=self.collection_name
         )
-
-    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
-        pass

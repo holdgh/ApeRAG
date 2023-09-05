@@ -1,23 +1,15 @@
 """Simple reader that reads files of different formats from a directory."""
 import logging
 import os
-from typing import Callable, Dict, Generator, List, Optional, Type
+from typing import Callable, Dict, List, Optional
 
 from llama_index.readers.base import BaseReader
-from llama_index.readers.file.base import  SimpleDirectoryReader
+from llama_index.readers.file.base import SimpleDirectoryReader
 from llama_index.readers.schema.base import Document
 
-from .Readers import DEFAULT_FILE_READER_CLS
-from .compose_image_reader import ComposeImageReader
-from .markdown_reader import MarkdownReader
+from readers.readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_FILE_READER_CLS[".txt"] = MarkdownReader
-DEFAULT_FILE_READER_CLS[".md"] = MarkdownReader
-DEFAULT_FILE_READER_CLS[".png"] = ComposeImageReader
-DEFAULT_FILE_READER_CLS[".jpg"] = ComposeImageReader
-DEFAULT_FILE_READER_CLS[".jpeg"] = ComposeImageReader
 
 
 class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
@@ -74,6 +66,7 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
             num_files_limit,
             file_metadata,
         )
+        self.file_metadata = file_metadata
         self.process_files = self.input_files or self.phase_dir()
 
     def load_data(self) -> {List[Document], str}:
@@ -107,9 +100,9 @@ class InteractiveSimpleDirectoryReader(SimpleDirectoryReader):
                 self.file_extractor[input_file.suffix] = reader_cls()
             reader = self.file_extractor[input_file.suffix]
             # todo: support more kind of reader
-            docs = reader.load_data(
-                input_file, metadata=metadata
-            )  # metadata for llama_index 0.6.35
+            docs = reader.load_data(input_file)  # metadata for llama_index 0.6.35
+            for doc in docs:
+                doc.metadata.update(metadata)
             documents.extend(docs)
         else:
             logger.warning(f"Unsupported file extension: {input_file.suffix}")

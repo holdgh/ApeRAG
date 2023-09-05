@@ -12,7 +12,6 @@ from readers.docx_reader import MyDocxReader
 from readers.epub_reader import EpubReader
 from readers.markdown_reader import MarkdownReader
 from readers.pptx_reader import PptxReader
-from readers.txt_reader import TxtReader
 
 DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".pdf": PDFReader,
@@ -29,5 +28,5 @@ DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".md": MarkdownReader,
     ".mbox": MboxReader,
     ".ipynb": IPYNBReader,
-    ".txt": TxtReader,
+    ".txt": MarkdownReader,
 }

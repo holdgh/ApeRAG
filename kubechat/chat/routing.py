@@ -1,6 +1,7 @@
 from asgiref.sync import sync_to_async
 from django.urls import re_path
 
+from config import settings
 from kubechat.utils.utils import extract_bot_and_chat_id
 
 
@@ -23,9 +24,12 @@ async def bot_consumer_router(scope, receive, send):
 
     if collection.type == CollectionType.DOCUMENT:
         from .document_qa_consumer import DocumentQAConsumer
-        from .mock_consumer import MockConsumer
+        from .embedding_consumer import EmbeddingConsumer
 
-        return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+        if settings.CHAT_CONSUMER_IMPLEMENTATION == "document-qa":
+            return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+        else:
+            return await EmbeddingConsumer.as_asgi()(scope, receive, send)
     elif collection.type == CollectionType.DATABASE:
         from .text_2_sql_consumer import Text2SQLConsumer
 

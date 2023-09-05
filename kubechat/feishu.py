@@ -2,23 +2,19 @@ import asyncio
 import json
 import logging
 from http import HTTPStatus
-from typing import Optional
 
-import requests
 from asgiref.sync import sync_to_async
-from langchain import PromptTemplate
+from langchain.memory import RedisChatMessageHistory
 from ninja import NinjaAPI
 
 import config.settings as settings
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, success
-from query.query import QueryWithEmbedding
-from readers.base_embedding import get_collection_embedding_model
-from vectorstore.connector import VectorStoreConnectorAdaptor
 from .auth.validator import FeishuEventVerification
+from .models import ChatPeer
+from .pipeline.pipeline import BasePipeline
 from .source.feishu import FeishuClient
-from .utils.utils import generate_vector_db_collection_id, AESCipher
-from kubechat.chat.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from .utils.utils import AESCipher
 
 logger = logging.getLogger(__name__)
 
@@ -58,76 +54,6 @@ def message_handled(msg_id):
         return False
 
 
-async def predict(user, collection_id, query, embedding_model):
-    vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-    vector_db_collection_id = generate_vector_db_collection_id(user, collection_id)
-    vectordb_ctx["collection"] = vector_db_collection_id
-    adaptor = VectorStoreConnectorAdaptor(settings.VECTOR_DB_TYPE, vectordb_ctx)
-    vector = embedding_model.get_text_embedding(query)
-    query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
-
-    results = adaptor.connector.search(
-        query_embedding,
-        collection_name=vector_db_collection_id,
-        query_vector=query_embedding.embedding,
-        with_vectors=True,
-        limit=query_embedding.top_k,
-        consistency="majority",
-        search_params={"hnsw_ef": 128, "exact": False},
-        score_threshold=0.5,
-    )
-
-    query_context = results.get_packed_answer(1900)
-
-    collection = await query_collection(user, collection_id)
-    config = json.loads(collection.config)
-    model = config.get("model", "")
-
-    prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
-    prompt = PromptTemplate.from_template(prompt_template)
-    prompt_str = prompt.format(query=query, context=query_context)
-
-    input = {
-        "prompt": prompt_str,
-        "temperature": 0,
-        "max_new_tokens": 2048,
-        "model": model,
-        "stop": "\nSQLResult:",
-    }
-
-    # choose llm model
-    model_servers = json.loads(settings.MODEL_SERVERS)
-    if len(model_servers) == 0:
-        raise Exception("No model server available")
-    endpoint = model_servers[0]["endpoint"]
-    for model_server in model_servers:
-        model_name = model_server["name"]
-        model_endpoint = model_server["endpoint"]
-        if model == model_name:
-            endpoint = model_endpoint
-            break
-
-    response = requests.post("%s/generate_stream" % endpoint, json=input, stream=True, )
-    buffer = ""
-    for c in response.iter_content():
-        if c == b"\x00":
-            continue
-
-        c = c.decode("utf-8")
-        buffer += c
-
-        if "}" in c:
-            idx = buffer.rfind("}")
-            data = buffer[: idx + 1]
-            try:
-                msg = json.loads(data)
-            except Exception as e:
-                continue
-            yield msg["text"]
-            await asyncio.sleep(0.1)
-            buffer = buffer[idx + 1:]
-
-
 @api.get("/user_access_token")
 def get_user_access_token(request, code, redirect_uri):
     ctx = {
@@ -139,12 +65,20 @@ def get_user_access_token(request, code, redirect_uri):
     return success({"token": token})
 
 
-async def feishu_streaming_response(client, user, collection, msg_id, msg):
-    model, _ = get_collection_embedding_model(collection)
+async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
+    # TODO, don't use the auto increment id as the unique id
+    try:
+        chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
+    except Exception as e:
+        chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
+        await chat.asave()
+
+    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
     response = ""
+    collection = await sync_to_async(bot.collections.first)()
     card_id = client.reply_card_message(msg_id, response)
-    async for token in predict(user, collection.id, msg, model):
-        response += token
+    async for msg in BasePipeline(bot=bot, collection=collection, history=history).run(msg):
+        response += msg
         client.update_card_message(card_id, response)
 
 
@@ -155,8 +89,8 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
     if bot is None:
         logger.warning("bot not found: %s", bot_id)
         return
-    config = json.loads(bot.config)
-    feishu_config = config.get("feishu")
+    bot_config = json.loads(bot.config)
+    feishu_config = bot_config.get("feishu")
 
     encrypt_key = feishu_config.get("encrypt_key")
     if "encrypt" in data:
@@ -198,11 +132,6 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
         logger.warning("invalid event without user")
         return
 
-    collection = await sync_to_async(bot.collections.first)()
-    if not collection:
-        logger.warning("invalid event without collection_id")
-        return
-
     app_id = feishu_config.get("app_id", "")
     app_secret = feishu_config.get("app_secret", "")
     if not app_id or not app_secret:
@@ -214,6 +143,6 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
         "app_secret": app_secret,
     }
     client = FeishuClient(ctx)
-
-    asyncio.create_task(feishu_streaming_response(client, user, collection, msg_id, message))
+    chat_id = event["message"]["chat_id"]
+    asyncio.create_task(feishu_streaming_response(client, chat_id, bot, msg_id, message))
     return success({"code": 0})

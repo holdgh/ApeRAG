@@ -12,7 +12,7 @@ init:
 build-requirements:
 	sh scripts/export-requirements.sh
 
-image: build-requirements update-frontend
+image: build-requirements
 	docker buildx build -t $(REGISTRY)/apecloud/kubechat:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
 
 llm-server-image: build-requirements

@@ -17,7 +17,7 @@ from llama_index.prompts.default_prompts import (
 from qdrant_client import QdrantClient
 from requests import Response
 
-from query.query import QueryResult, QueryWithEmbedding
+from query.query import QueryResult, QueryWithEmbedding, get_packed_answer
 from readers.base_embedding import get_embedding_model
 from readers.compose_image_reader import ComposeImageReader
 from readers.local_path_embedding import LocalPathEmbedding
@@ -195,7 +195,7 @@ def test_local_llm_qa(query: str, collection_name: str):
         limit=query_embedding.top_k,
     )
 
-    answer_text = hits.get_packed_answer(1900)
+    answer_text = get_packed_answer(hits.results, 1900)
 
     prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
     prompt_str = prompt.format(query_str=query, existing_answer=answer_text)

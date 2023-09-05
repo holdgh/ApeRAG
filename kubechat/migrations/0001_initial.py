@@ -129,7 +129,7 @@ class Migration(migrations.Migration):
                 ("size", models.BigIntegerField()),
                 (
                     "file",
-                    models.FileField(upload_to=kubechat.models.user_document_path),
+                    models.FileField(upload_to=kubechat.models.upload_document_path),
                 ),
                 ("relate_ids", models.TextField()),
                 ("metadata", models.TextField()),

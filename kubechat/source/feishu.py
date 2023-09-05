@@ -1,22 +1,22 @@
-import json
+import datetime
 import logging
-from typing import Dict, Any
+import time
+from typing import Dict, Any, List
 
-from kubechat.models import Collection, Document, DocumentStatus
-from kubechat.source.base import Source
-from kubechat.source.utils import gen_temporary_file, FeishuClient, Feishu2Markdown
-
+from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.utils import gen_temporary_file, FeishuClient, Feishu2PlainText, Feishu2Markdown
 
 logger = logging.getLogger(__name__)
 
 
 class FeishuSource(Source):
-    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+    def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.client = FeishuClient(ctx)
         self.space_id = ctx.get("space_id", "")
-        self.node_id = ctx.get("node_id", "")
-        self.collection = collection
+        self.root_node_id = ctx.get("node_id", "")
+        self.method = ctx.get("method", "block_api")
+        self.target_format = ctx.get("target_format", "md")
 
     def get_node_documents(self, space_id, node_token):
         documents = []
@@ -41,61 +41,77 @@ class FeishuSource(Source):
             node_mapping[node_token] = node
             if node["has_child"]:
                 nodes.extend(self.client.get_space_nodes(space_id, node_token))
+            if node["obj_type"] not in ("docx", "doc"):
+                logger.info("ignore unsupported node type %s, %s", node["obj_type"], node["title"])
+                continue
 
-            metadata = node.copy()
-            metadata["titles"] = get_parent_titles(node)
-            match node["obj_type"]:
-                case "docx":
-                    suffix = "md"
-                case "doc":
-                    suffix = "txt"
-                case _:
-                    logger.info("ignore unsupported node type %s, %s", node["obj_type"], node["title"])
-                    continue
-            doc = Document(
-                user=self.collection.user,
-                name=node["title"],
-                status=DocumentStatus.PENDING,
-                collection=self.collection,
-                metadata=json.dumps(metadata),
+            metadata = {
+                "titles": get_parent_titles(node),
+                "obj_token": node["obj_token"],
+                "obj_type": node["obj_type"],
+                "modified_time": datetime.datetime.utcfromtimestamp(int(node["obj_edit_time"])),
+            }
+            doc = RemoteDocument(
+                name=node["title"] + f".{self.target_format}",
                 size=0,
+                metadata=metadata
             )
-            if suffix:
-                doc.name += f".{suffix}"
             documents.append(doc)
         return documents
 
-    def scan_documents(self):
-        return self.get_node_documents(self.space_id, self.node_id)
+    def scan_documents(self) -> List[RemoteDocument]:
+        return self.get_node_documents(self.space_id, self.root_node_id)
 
-    def prepare_document(self, doc: Document):
-        node = json.loads(doc.metadata)
-        node_id = node["obj_token"]
-        match node["obj_type"]:
+    def get_new_doc_content_with_block_api(self, node_id):
+        blocks = self.client.get_docx_blocks(node_id)
+        if self.target_format == "md":
+            return Feishu2Markdown(node_id, blocks).gen()
+        elif self.target_format == "txt":
+            return Feishu2PlainText(node_id, blocks).gen()
+        else:
+            raise Exception(f"unsupported target format: {self.target_format}")
+
+    def get_new_doc_content_with_export_api(self, node_id):
+        ticket = self.client.create_export_task(doc_id=node_id, doc_type="docx", extension=self.target_format)
+        while True:
+            result = self.client.query_export_task(ticket, node_id)
+            match result["job_status"]:
+                case 0:  # success
+                    file_token = result["file_token"]
+                    break
+                case 1 | 2:  # initializing, running
+                    time.sleep(1)
+                    pass
+                case _:
+                    raise Exception(f"export task failed: {result}")
+        return self.client.download_doc(file_token)
+
+    def get_new_doc_content(self, node_id):
+        match self.method:
+            case "plain_api":
+                return self.client.get_new_doc_plain_content(node_id).encode("utf-8")
+            case "block_api":
+                return self.get_new_doc_content_with_block_api(node_id).encode("utf-8")
+            case "export_api":
+                return self.get_new_doc_content_with_export_api(node_id)
+            case _:
+                raise Exception(f"unsupported method: {self.method}")
+
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        node_id = metadata["obj_token"]
+        match metadata["obj_type"]:
             case "docx":
-                blocks = self.client.get_docx_blocks(node_id)
-                content = Feishu2Markdown(node_id, blocks).gen()
+                content = self.get_new_doc_content(node_id)
             case "doc":
                 content = self.client.get_old_doc_plain_content(node_id)
             case _:
-                raise Exception(f"unsupported node type: {node['obj_type']}")
+                raise Exception(f"unsupported node type: {metadata['obj_type']}")
 
-        temp_file = gen_temporary_file(doc.name)
-        temp_file.write(content.encode("utf-8"))
+        temp_file = gen_temporary_file(name)
+        temp_file.write(content)
         temp_file.close()
-
-        metadata = {}
-        if node["titles"]:
-            titles = " ".join(node["titles"])
-            metadata = {
-                "PARENT TITLES": titles
-            }
-        self.prepare_metadata_file(temp_file.name, doc, metadata)
-
-        return temp_file.name
-
-    def close(self):
-        pass
+        metadata["name"] = name
+        return LocalDocument(name=name, path=temp_file.name, metadata=metadata)
 
     def sync_enabled(self):
         return True

@@ -264,3 +264,7 @@ STATIC_ROOT = BASE_DIR / "static"
 FEISHU_APP_ID = env.str("FEISHU_APP_ID", default="")
 FEISHU_APP_SECRET = env.str("FEISHU_APP_SECRET", default="")
 FEISHU_ENCRYPT_KEY = env.str("FEISHU_ENCRYPT_KEY", default="")
+
+ENABLE_QA_GENERATOR = env.bool("ENABLE_QA_GENERATOR", default=False)
+
+CHAT_CONSUMER_IMPLEMENTATION= env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")

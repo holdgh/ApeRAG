@@ -4,39 +4,34 @@ import logging
 import uuid
 import zipfile
 from pathlib import Path
-from datetime import datetime
 from http import HTTPStatus
 
-from typing import List, Optional, Any
-from kubechat.source.base import Source, get_source
+from typing import List, Optional
+from kubechat.source.base import get_source
 from asgiref.sync import sync_to_async
 from django.http import HttpResponse
-from django_celery_beat.models import PeriodicTask
-from fsspec.asyn import loop
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
-from kubechat.tasks.code_generate import pre_clarify  # can't remove or pre_clarify task will be NotRegister
 from django.core.files.base import ContentFile
 import config.settings as settings
 from config.vector_db import get_vector_db_connector
-from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index
-from kubechat.tasks.scan import scan_collection, delete_sync_documents_cron_job, \
+from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
+from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
-from readers.Readers import DEFAULT_FILE_READER_CLS
+from readers.readers import DEFAULT_FILE_READER_CLS
 from kubechat.tasks.sync_documents_task import sync_documents
-from config.celery import app
-from celery.schedules import crontab
 
-from readers.base_embedding import get_default_embedding_model, get_embedding_model
+from readers.base_embedding import get_embedding_model
 
 from .auth.validator import GlobalHTTPAuth
-from .chat.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from .models import *
-from .utils.utils import generate_vector_db_collection_id, fix_path_name, validate_document_config
+from .utils.utils import generate_vector_db_collection_name, fix_path_name, validate_document_config, \
+    generate_qa_vector_db_collection_name
 
 from django.contrib.auth.models import User
 from django.shortcuts import render
@@ -152,7 +147,7 @@ def list_model_name(request):
 async def sync_immediately(request, collection_id):
     user = get_user(request)
     collection = await query_collection(user, collection_id)
-    source = get_source(collection, json.loads(collection.config))
+    source = get_source(json.loads(collection.config))
     if not source.sync_enabled():
         return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
 
@@ -212,7 +207,7 @@ async def create_collection(request, collection: CollectionIn):
         if not validate_document_config(config):
             return fail(HTTPStatus.BAD_REQUEST, "config invalidate")
         vector_db_conn = get_vector_db_connector(
-            collection=generate_vector_db_collection_id(user=user, collection=instance.id)
+            collection=generate_vector_db_collection_name(user=user, collection=instance.id)
         )
         embedding_model = config.get("embedding_model", "")
         if not embedding_model:
@@ -223,7 +218,13 @@ async def create_collection(request, collection: CollectionIn):
         else:
             _, size = get_embedding_model(embedding_model, load=False)
         vector_db_conn.connector.create_collection(vector_size=size)
-        scan_collection.delay(instance.id)
+        qa_vector_db_conn = get_vector_db_connector(
+            collection=generate_qa_vector_db_collection_name(user=user, collection=instance.id)
+        )
+        qa_vector_db_conn.connector.create_collection(vector_size=size)
+        source = get_source(json.loads(collection.config))
+        if source.sync_enabled():
+            sync_documents.delay(collection_id=instance.id)
     elif instance.type == CollectionType.CODE:
         chat = Chat(
             user=instance.user,
@@ -296,7 +297,7 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     instance.description = collection.description
     instance.config = collection.config
     await instance.asave()
-    source = get_source(collection, json.loads(collection.config))
+    source = get_source(json.loads(collection.config))
     if source.sync_enabled():
         await update_sync_documents_cron_job(instance.id)
 
@@ -345,6 +346,10 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
                 file=ContentFile(item.read(), item.name),
             )
             await document_instance.asave()
+            document_instance.metadata = json.dumps({
+                "path": document_instance.file.path,
+            })
+            await document_instance.asave()
             response.append(document_instance.view())
             add_index_for_local_document.delay(document_instance.id)
         else:
@@ -355,7 +360,7 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
 @api.get("/collections/{collection_id}/documents")
 async def list_documents(request, collection_id):
     user = get_user(request)
-    documents = await query_documents(user, collection_id)
+    documents = await aquery_documents(user, collection_id)
     response = []
     async for document in documents:
         response.append(document.view())
@@ -372,8 +377,10 @@ async def update_document(
 
     if document.config:
         try:
-            json.loads(document.config)
-            instance.config = document.config
+            config = json.loads(document.config)
+            metadata = json.loads(instance.metadata)
+            metadata["labels"] = config["labels"]
+            instance.metadata = json.dumps(metadata)
         except Exception:
             return fail(HTTPStatus.BAD_REQUEST, "invalid document config")
     await instance.asave()
@@ -433,6 +440,11 @@ async def get_chat(request, bot_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
+    feedbacks = await query_chat_feedbacks(user, chat_id)
+    feedback_map = {}
+    async for feedback in feedbacks:
+        feedback_map[feedback.message_id] = feedback
+
     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
     messages = []
     for message in history.messages:
@@ -441,10 +453,70 @@ async def get_chat(request, bot_id, chat_id):
         except Exception as e:
             logger.exception(e)
             continue
-        item["role"] = message.additional_kwargs["role"]
-        item["references"] = message.additional_kwargs.get("references") or []
-        messages.append(item)
+        role = message.additional_kwargs.get("role", "")
+        if not role:
+            continue
+        msg = {
+            "id": item["id"],
+            "type": "message",
+            "timestamp": item["timestamp"],
+            "role": role,
+        }
+        if role == "human":
+            msg["data"] = item["query"]
+        else:
+            msg["data"] = item["response"]
+            msg["references"] = message.additional_kwargs.get("references")
+        feedback = feedback_map.get(item.get("id", ""), None)
+        if role == "ai" and feedback:
+            msg["upvote"] = feedback.upvote
+            msg["downvote"] = feedback.downvote
+            msg["revised_answer"] = feedback.revised_answer
+            msg["feed_back_status"] = feedback.status
+        messages.append(msg)
     return success(chat.view(bot_id, messages))
+
+
+class MessageFeedbackIn(Schema):
+    upvote: Optional[int]
+    downvote: Optional[int]
+    revised_answer: Optional[str]
+
+
+@api.post("/bots/{bot_id}/chats/{chat_id}/messages/{message_id}")
+async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
+    user = get_user(request)
+    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
+    msg = None
+    for message in history.messages:
+        item = json.loads(message.content)
+        if item["id"] != message_id:
+            continue
+        if message.additional_kwargs.get("role", "") != "ai":
+            continue
+        msg = item
+    if msg is None:
+        return fail(HTTPStatus.NOT_FOUND, "Message not found")
+    data = {
+        "question": msg["query"],
+        "original_answer": msg.get("response", ""),
+    }
+    if msg_in.upvote is not None:
+        data["upvote"] = msg_in.upvote
+    if msg_in.downvote is not None:
+        data["downvote"] = msg_in.downvote
+    if msg_in.revised_answer is not None:
+        data["revised_answer"] = msg_in.revised_answer
+    data["status"] = MessageFeedbackStatus.PENDING
+    feedback, _ = await MessageFeedback.objects.aupdate_or_create(
+        user=user, chat_id=chat_id, message_id=message_id, collection_id=msg["collection_id"],
+        defaults=data
+    )
+
+    # embedding the revised answer
+    if msg_in.revised_answer is not None:
+        message_feedback.delay(feedback_id=feedback.id)
+    return success({})
 
 
 @api.delete("/bots/{bot_id}/chats/{chat_id}")
@@ -580,6 +652,7 @@ async def delete_bot(request, bot_id):
     bot.gmt_deleted = timezone.now()
     await bot.asave()
     return success(bot.view())
+
 
 
 def default_page(request, exception):

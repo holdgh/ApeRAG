@@ -16,21 +16,6 @@ models:
     resources:
       limits:
         nvidia.com/gpu: 1
-  - name: internlm-chat-7b
-    replicaCount: 1
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: chat.kubeblocks.io/model-name
-                  operator: In
-                  values:
-                    - internlm-chat-7b
-                    - baichuan-13b
-    resources:
-      limits:
-        nvidia.com/gpu: 1
   - name: chatglm2-6b
     replicaCount: 0
     affinity:

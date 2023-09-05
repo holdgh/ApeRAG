@@ -1,23 +1,20 @@
 import logging
 import os
-import time
-from typing import Dict, Any
+from datetime import datetime
+from typing import Dict, Any, List
 
-from kubechat.models import Collection, Document, DocumentStatus
-from kubechat.source.base import Source
-from readers.Readers import DEFAULT_FILE_READER_CLS
+from kubechat.source.base import Source, RemoteDocument, LocalDocument
 
 logger = logging.getLogger(__name__)
 
 
 class LocalSource(Source):
 
-    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+    def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.path = ctx["path"]
-        self.collection = collection
 
-    def scan_documents(self):
+    def scan_documents(self) -> List[RemoteDocument]:
         if not os.path.isdir(self.path):
             logger.error(f"{self.path} is not a dir")
             return
@@ -27,37 +24,26 @@ class LocalSource(Source):
         for root, dirs, files in os.walk(self.path):
             for file in files:
                 file_path = os.path.join(root, file)
-                if (
-                        os.path.splitext(file_path)[1].lower()
-                        in DEFAULT_FILE_READER_CLS.keys()
-                ):
-                    # maybe add a field to record the local file ref rather than upload local file
-                    try:
-                        file_stat = os.stat(file_path)
-                        document = Document(
-                            user=self.collection.user,
-                            name=file_path,
-                            status=DocumentStatus.PENDING,
-                            size=file_stat.st_size,
-                            collection=self.collection,
-                            metadata=time.strftime(
-                                "%Y-%m-%d %H:%M:%S", time.localtime(file_stat.st_mtime)
-                            ),
-                        )
-                        documents.append(document)
-                    except Exception as e:
-                        logger.error(f"scanning local source {file_path} error {e}")
-                        raise e
+                # maybe add a field to record the local file ref rather than upload local file
+                try:
+                    file_stat = os.stat(file_path)
+                    modified_time = datetime.utcfromtimestamp(file_stat.st_mtime)
+                    doc = RemoteDocument(
+                        name=file_path,
+                        size=file_stat.st_size,
+                        modified_time=modified_time
+                    )
+                    documents.append(doc)
+                except Exception as e:
+                    logger.error(f"scanning local source {file_path} error {e}")
+                    raise e
         return documents
 
-    def prepare_document(self, doc: Document):
-        self.prepare_metadata_file(doc.name, doc)
-        return doc.name
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        metadata["name"] = name
+        return LocalDocument(name=name, path=name, metadata=metadata)
 
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(f"{file_path}.metadata")
-
-    def close(self):
+    def cleanup_document(self, filepath: str):
         pass
 
     def sync_enabled(self):

@@ -1,27 +1,24 @@
 import logging
 import os
 from datetime import datetime
-from ftplib import FTP, error_perm
-from typing import Dict, Any
+from ftplib import FTP
+from typing import Dict, Any, List
 
-from kubechat.models import Document, DocumentStatus, Collection
-from kubechat.source.base import Source
+from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file
-from readers.Readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
 
 class FTPSource(Source):
 
-    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+    def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.path = ctx["path"]
         self.host = ctx["host"]
         self.port = ctx["port"]
         self.user = ctx["username"]
         self.password = ctx["password"]
-        self.collection = collection
         self.ftp = FTP()
         self.ftp.connect(str(self.host), self.port)
         self.ftp.login(self.user, self.password)
@@ -33,20 +30,17 @@ class FTPSource(Source):
         except Exception as e:
             return False
 
-    def _deal_the_path(self, ftp, collection, path="/"):
+    def _deal_the_path(self, ftp, path="/"):
         if not self.isDir(path):
             size = ftp.size(path)
             mtime = ftp.sendcmd('MDTM ' + path)[4:]
             modified_time = datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S")
-            document = Document(
-                user=collection.user,
+            doc = RemoteDocument(
                 name=path,
-                status=DocumentStatus.PENDING,
                 size=size,
-                collection=collection,
-                metadata=modified_time.strftime("%Y-%m-%d %H:%M:%S"),
+                modified_time=modified_time,
             )
-            return [document]
+            return [doc]
 
         documents = []
         queue = [path]  # dir queue
@@ -60,34 +54,32 @@ class FTPSource(Source):
                 if self.isDir(file_path):
                     queue.append(file_path)
                     self.ftp.cwd(curPath)
-                elif os.path.splitext(file)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
+                else:
                     size = ftp.size(file_path)
                     mtime = ftp.sendcmd('MDTM ' + file_path)[4:]
-                    modified_time = datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S")
-                    document = Document(
-                        user=collection.user,
+                    doc = RemoteDocument(
                         name=file_path,
-                        status=DocumentStatus.PENDING,
                         size=size,
-                        collection=collection,
-                        metadata=modified_time.strftime("%Y-%m-%d %H:%M:%S"),
+                        metadata={
+                            "modified_time": datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S"),
+                        }
                     )
-                    documents.append(document)
+                    documents.append(doc)
         return documents
 
-    def scan_documents(self):
+    def scan_documents(self) -> List[RemoteDocument]:
         try:
-            documents = self._deal_the_path(self.ftp, self.collection, self.path)
+            documents = self._deal_the_path(self.ftp, self.path)
         except Exception as e:
             raise e
         return documents
 
-    def prepare_document(self, doc: Document):
-        temp_file = gen_temporary_file(doc.name)
-        self.ftp.retrbinary("RETR " + doc.name, temp_file.write)
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        temp_file = gen_temporary_file(name)
+        self.ftp.retrbinary("RETR " + name, temp_file.write)
         temp_file.close()
-        self.prepare_metadata_file(temp_file.name, doc)
-        return temp_file.name
+        metadata["name"] = name
+        return LocalDocument(name=name, path=temp_file.name, metadata=metadata)
 
     def close(self):
         self.ftp.quit()

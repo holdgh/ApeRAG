@@ -14,7 +14,6 @@ class VectorStoreConnector(ABC):
         self.embedding: BaseEmbedding = None
         self.store: VectorStore = None
 
-    @abstractmethod
     def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
         pass
 

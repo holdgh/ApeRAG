@@ -1,33 +1,29 @@
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 
-from kubechat.models import Document, Collection
-from kubechat.source.base import Source
+from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file
 
 
 class UploadSource(Source):
 
-    def __init__(self, collection: Collection, ctx: Dict[str, Any]):
+    def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
 
-    def scan_documents(self):
+    def scan_documents(self) -> List[RemoteDocument]:
         return []
 
-    def prepare_document(self, doc: Document):
-        with doc.file.open("rb") as f:
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        path = metadata.get("path", "")
+        if not path:
+            raise Exception("empty upload path")
+        with open(path, "rb") as f:
             content = f.read()
-        temp_file = gen_temporary_file(doc.name)
+        temp_file = gen_temporary_file(name)
         temp_file.write(content)
         temp_file.close()
-        self.prepare_metadata_file(temp_file.name, doc)
-        return temp_file.name
-
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(f"{file_path}.metadata")
-
-    def close(self):
-        pass
+        metadata["name"] = name
+        return LocalDocument(name=name, path=temp_file.name, metadata=metadata)
 
     def sync_enabled(self):
         return False

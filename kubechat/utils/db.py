@@ -11,7 +11,7 @@ from kubechat.models import (
     Document,
     DocumentStatus,
     ssl_file_path,
-    ssl_temp_file_path, BotStatus,
+    ssl_temp_file_path, BotStatus, MessageFeedback,
 )
 
 
@@ -31,7 +31,13 @@ async def query_document(user, collection_id: str, document_id: str):
     )
 
 
-async def query_documents(user, collection_id: str):
+async def aquery_documents(user, collection_id: str):
+    return Document.objects.exclude(status=DocumentStatus.DELETED).filter(
+        user=user, collection_id=collection_id
+    )
+
+
+def query_documents(user, collection_id: str):
     return Document.objects.exclude(status=DocumentStatus.DELETED).filter(
         user=user, collection_id=collection_id
     )
@@ -40,6 +46,32 @@ async def query_documents(user, collection_id: str):
 async def query_chat(user, bot_id: str, chat_id: str):
     return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
         user=user, bot_id=bot_id, pk=chat_id)
+
+
+async def query_chat_feedbacks(user, chat_id: str):
+    return MessageFeedback.objects.filter(
+        user=user, chat_id=chat_id)
+
+
+async def query_bot_feedbacks(user, bot_id: str):
+    return await MessageFeedback.objects.exclude.aget(
+        user=user, bot_id=bot_id)
+
+
+async def query_message_feedback(user, bot_id: str, chat_id: str, message_id: str):
+    return await MessageFeedback.objects.exclude.aget(
+        user=user, bot_id=bot_id, chat_id=chat_id, message_id=message_id)
+
+
+async def query_chats(user, bot_id: str):
+    return Chat.objects.exclude(status=ChatStatus.DELETED).filter(
+        user=user, bot_id=bot_id
+    )
+
+
+async def query_chat_by_peer(user, peer_type, peer_id: str):
+    return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
+        user=user, peer_type=peer_type, peer_id=peer_id)
 
 
 async def query_sync_history(user, collection_id: str, sync_history_id: str):
@@ -52,12 +84,6 @@ async def query_sync_histories(user, collection_id: str):
     return CollectionSyncHistory.objects.filter(
         user=user, collection_id=collection_id
     ).order_by('-id')
-
-
-async def query_chats(user, bot_id: str):
-    return Chat.objects.exclude(status=ChatStatus.DELETED).filter(
-        user=user, bot_id=bot_id
-    )
 
 
 async def query_bot(user, bot_id: str):

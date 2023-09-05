@@ -30,6 +30,3 @@ class MilvusVectorStoreConnector(VectorStoreConnector):
         self.store = MilvusVectorStore(
             client=self.client, collection_name=self.collection_name
         )
-
-    def search(self, query: QueryWithEmbedding, **kwargs) -> QueryResult:
-        pass

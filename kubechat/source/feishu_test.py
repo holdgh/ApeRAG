@@ -1,6 +1,6 @@
 import os
 
-from kubechat.source.utils import FeishuClient, Feishu2Markdown
+from kubechat.source.utils import FeishuClient, FeishuBlockParser
 
 ctx = {
     "app_id": os.environ.get("APP_ID"),
@@ -11,5 +11,5 @@ node_id = "GnDvdxaSRoBllOxyucWcrEuincg"
 
 client = FeishuClient(ctx)
 blocks = client.get_docx_blocks(node_id)
-content = Feishu2Markdown(node_id, blocks).gen()
+content = FeishuBlockParser(node_id, blocks).gen()
 print(content)

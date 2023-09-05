@@ -1,9 +1,38 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
+from langchain.schema import Document
 
-from kubechat.models import Document
+from pydantic import BaseModel
+
+
+class RemoteDocument(BaseModel):
+    """
+    RemoteDocument is a document residing in a remote location.
+
+    name: str - name of the document, maybe a s3 object key, a ftp file path, a local file path, etc.
+    size: int - size of the document in bytes
+    metadata: Dict[str, Any] - metadata of the document
+    """
+    name: str
+    size: Optional[int]
+    metadata: Dict[str, Any] = {}
+
+
+class LocalDocument(BaseModel):
+    """
+    LocalDocument is a document that is downloaded from the RemoteDocument.
+
+    name: str - name of the document, maybe a s3 object key, a ftp file path, a local file path, etc.
+    path: str - path of the document on the local file system
+    size: int - size of the document in bytes
+    metadata: Dict[str, Any] - metadata of the document
+    """
+    name: str
+    path: str
+    size: Optional[int]
+    metadata: Dict[str, Any] = {}
 
 
 class Source(ABC):
@@ -11,70 +40,47 @@ class Source(ABC):
         self.ctx = ctx
 
     @abstractmethod
-    def scan_documents(self):
-        pass
+    def scan_documents(self) -> List[RemoteDocument]:
+        raise NotImplementedError
 
     @abstractmethod
-    def prepare_document(self, doc: Document):
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        raise NotImplementedError
+
+    def cleanup_document(self, filepath: str):
+        # os.remove(filepath)
         pass
 
-    def cleanup_document(self, file_path: str, doc: Document):
-        os.remove(file_path)
-        os.remove(f"{file_path}.metadata")
-
-    @abstractmethod
     def close(self):
         pass
 
     @abstractmethod
     def sync_enabled(self):
-        pass
-
-    @staticmethod
-    def get_metadata(file_path: str):
-        metadata_file = f"{file_path}.metadata"
-        if os.path.exists(metadata_file):
-            with open(metadata_file, "r") as f:
-                return json.loads(f.read())
-        return {}
-
-    @staticmethod
-    def prepare_metadata_file(file_path: str, doc: Document, metadata: Dict[str, Any] = None):
-        if not metadata:
-            metadata = {}
-
-        if doc.config:
-            config = json.loads(doc.config)
-            result = ["%s=%s" % (item["key"], item["value"]) for item in config["labels"] if item["key"] and item["value"]]
-            metadata["labels"] = ' '.join(result)
-
-        file_path = f"{file_path}.metadata"
-        with open(file_path, "w") as f:
-            f.write(json.dumps(metadata))
+        raise NotImplementedError
 
 
-def get_source(collection, ctx: Dict[str, Any]):
+def get_source(ctx: Dict[str, Any]):
     source = None
     match ctx["source"]:
         case "system":
             from kubechat.source.upload import UploadSource
-            source = UploadSource(collection, ctx)
+            source = UploadSource(ctx)
         case "local":
             from kubechat.source.local import LocalSource
-            source = LocalSource(collection, ctx)
+            source = LocalSource(ctx)
         case "s3":
             from kubechat.source.s3 import S3Source
-            source = S3Source(collection, ctx)
+            source = S3Source(ctx)
         case "oss":
             from kubechat.source.oss import OSSSource
-            source = OSSSource(collection, ctx)
+            source = OSSSource(ctx)
         case "feishu":
             from kubechat.source.feishu import FeishuSource
-            source = FeishuSource(collection, ctx)
+            source = FeishuSource(ctx)
         case "ftp":
             from kubechat.source.ftp import FTPSource
-            source = FTPSource(collection, ctx)
+            source = FTPSource(ctx)
         case "email":
             from kubechat.source.Email import EmailSource
-            source = EmailSource(collection, ctx)
+            source = EmailSource(ctx)
     return source

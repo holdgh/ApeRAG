@@ -74,6 +74,7 @@ class MarkdownReader(BaseReader):
                         headers.append((line, level))
 
                 if len(current_text) < CHUNK_SPLIT_THRESHOLD:
+                    line = line.strip().lstrip("#")
                     current_text += line + "\n"
                 else:
                     markdown_tups.append((flat_headers(), current_text))
@@ -137,12 +138,31 @@ class MarkdownReader(BaseReader):
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
         """Parse file into string."""
         # if file is too small, just return the whole thing
+        tups = self.parse_tups(file)
+
+        header_all = ""
+        text_all = ""
+        header_maps = {}
+        for headers, value in tups:
+            for header in headers:
+                header_maps[header] = True
+            text_all += value
+        for header in header_maps:
+            header_all += header
+
+        if not metadata:
+            metadata = {}
+        metadata.update(
+            {
+                "content_ratio": len(text_all) / (len(text_all) + len(header_all)),
+            }
+        )
+
         with open(file) as fd:
             content = fd.read()
             if len(content) < CHUNK_SPLIT_THRESHOLD:
-                return [Document(text=content, metadata=metadata or {})]
+                return [Document(text=text_all, metadata=metadata)]
 
-        tups = self.parse_tups(file)
         results = []
         # TODO: don't include headers right now
         for headers, value in tups:
@@ -150,5 +170,5 @@ class MarkdownReader(BaseReader):
             if headers:
                 header = " ".join(headers)
                 text = f"\n{header}\n{value}"
-            results.append(Document(text=text, metadata=metadata or {}))
+            results.append(Document(text=text, metadata=metadata))
         return results
