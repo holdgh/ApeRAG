@@ -4,6 +4,7 @@ BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 CELERY_CONFIG ?=
+FRONTEND_BRANCH ?= feat/operate
 
 init:
 	cp envs/.env.template .env
@@ -29,6 +30,7 @@ clean:
 	/bin/rm -f db.sqlite3
 
 update-frontend:
+	git submodule set-branch -b $(FRONTEND_BRANCH) KubeChat-FrontEnd
 	git submodule update --init --recursive --remote
 	cp envs/.env.frontend.template KubeChat-FrontEnd/.env
 	cd KubeChat-FrontEnd && yarn install && yarn build
