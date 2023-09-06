@@ -527,37 +527,23 @@ class FeishuClient(ABC):
         expired_at = datetime.datetime.now() + datetime.timedelta(seconds=resp["expire"])
         return resp["tenant_access_token"], expired_at
 
-    @staticmethod
-    def build_card_data(message):
-        content = {
-            "config": {
-                "wide_screen_mode": True
-            },
-            "elements": [
-                {
-                    "tag": "markdown",
-                    "content": message,
-                }
-            ]
-        }
-        return {
-            "msg_type": "interactive",
-            "content": json.dumps(content),
-        }
-
-    def reply_card_message(self, message_id, message):
+    def reply_card_message(self, message_id, data):
         """
         https://open.feishu.cn/document/server-docs/im-v1/message/reply
         """
-        data = self.build_card_data(message)
         resp = self.post(f"im/v1/messages/{message_id}/reply", json=data)
         return resp["data"]["message_id"]
 
-    def update_card_message(self, message_id, message):
+    def delay_update_card_message(self, data):
+        """
+        https://open.feishu.cn/document/server-docs/im-v1/message-card/delay-update-message-card
+        """
+        self.post(f"interactive/v1/card/update", json=data)
+
+    def update_card_message(self, message_id, data):
         """
         https://open.feishu.cn/document/server-docs/im-v1/message-card/patch
         """
-        data = self.build_card_data(message)
         self.patch(f"im/v1/messages/{message_id}", json=data)
 
     def send_message(self, chat_id, message):

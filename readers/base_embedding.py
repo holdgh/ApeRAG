@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import json
+import os
 from abc import ABC, abstractmethod
 from threading import Lock
 from typing import Any, List
@@ -55,6 +56,31 @@ class MT5Embedding(Embeddings):
 
     def embed_query(self, text: str) -> List[float]:
         return self.embed_documents([text])[0]
+
+
+class PiccoloEmbedding(Embeddings):
+
+    def __init__(self):
+        from sentence_transformers import SentenceTransformer
+        os.environ.setdefault("https_proxy", "socks5://127.0.0.1:34001")
+        self.model = SentenceTransformer('sensenova/piccolo-large-zh')
+
+    def _embed_text(self, texts):
+        embeddings = self.model.encode(texts, normalize_embeddings=True)
+        return [embedding.tolist() for embedding in embeddings]
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        texts = list(map(lambda x: x.replace("\n", " "), texts))
+        result = []
+        for text in texts:
+            text = text.replace("\n", " ")
+            if len(text) > 100:
+                text = "结果：" + text
+            result.append(text)
+        return self._embed_text(result)
+
+    def embed_query(self, text: str) -> List[float]:
+        return self._embed_text(["查询：" + text])[0]
 
 
 class MultilingualSentenceTransformer(Embeddings):
@@ -174,6 +200,10 @@ def get_embedding_model(model_type: str, load=True, **kwargs) -> {Embeddings, in
         if load:
             embedding_model = MT5Embedding()
         vector_size = 768
+    elif model_type == "piccolo":
+        if load:
+            embedding_model = PiccoloEmbedding()
+        vector_size = 1024
     else:
         raise ValueError("unsupported embedding model ", model_type)
 

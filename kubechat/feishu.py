@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import kubechat.utils.message as msg_utils
 from http import HTTPStatus
 
 from asgiref.sync import sync_to_async
@@ -41,16 +42,16 @@ async def feishu_get_spaces(request, app_id, app_secret):
     return success(result)
 
 
-# using redis to cache message ids
-msg_id_cache = {}
+# using redis to cache messages
+msg_cache = {}
 
 
 # TODO use redis to cache message ids
-def message_handled(msg_id):
-    if msg_id in msg_id_cache:
+def message_handled(msg_id, msg):
+    if msg_id in msg_cache:
         return True
     else:
-        msg_id_cache[msg_id] = True
+        msg_cache[msg_id] = msg
         return False
 
 
@@ -65,6 +66,59 @@ def get_user_access_token(request, code, redirect_uri):
     return success({"token": token})
 
 
+def build_card_content(chat_id, message_id, message, upvote=False, downvote=False):
+    return {
+        "config": {
+            "wide_screen_mode": True
+        },
+        "elements": [
+            {
+                "tag": "markdown",
+                "content": message,
+            },
+            {
+                "tag": "action",
+                "actions": [
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": "赞"
+                        },
+                        "type": "primary" if upvote else "default",
+                        "value": {
+                            "upvote": True,
+                            "message_id": f"{message_id}",
+                            "chat_id": f"{chat_id}",
+                        }
+                    },
+                    {
+                        "tag": "button",
+                        "text": {
+                            "tag": "plain_text",
+                            "content": "踩"
+                        },
+                        "type": "primary" if downvote else "default",
+                        "value": {
+                            "downvote": True,
+                            "message_id": f"{message_id}",
+                            "chat_id": f"{chat_id}",
+                        }
+                    }
+                ],
+                "layout": "bisected"
+            }
+        ]
+    }
+
+
+def build_card_data(chat_id, message_id, message, upvote=False, downvote=False):
+    return {
+        "msg_type": "interactive",
+        "content": json.dumps(build_card_content(chat_id, message_id, message, upvote, downvote)),
+    }
+
+
 async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     # TODO, don't use the auto increment id as the unique id
     try:
@@ -76,10 +130,56 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
     response = ""
     collection = await sync_to_async(bot.collections.first)()
-    card_id = client.reply_card_message(msg_id, response)
-    async for msg in BasePipeline(bot=bot, collection=collection, history=history).run(msg):
+    card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))
+    async for msg in BasePipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
         response += msg
-        client.update_card_message(card_id, response)
+        client.update_card_message(card_id, build_card_data(chat_id, msg_id, response))
+    msg_cache[msg_id] = response
+
+
+async def feishu_response_card_update(user, bot_id, data):
+    action = data.get("action", {})
+    if not action:
+        logger.warning("Invalid card event: %s", data)
+        return
+
+    value = action["value"]
+    chat_id = value["chat_id"]
+    msg_id = value["message_id"]
+    upvote = value.get("upvote", None)
+    downvote = value.get("downvote", None)
+    await msg_utils.feedback_message(user, chat_id, msg_id, upvote, downvote, "")
+
+    bot = await query_bot(user, bot_id)
+    bot_config = json.loads(bot.config)
+    feishu_config = bot_config.get("feishu")
+    app_id = feishu_config.get("app_id", "")
+    app_secret = feishu_config.get("app_secret", "")
+    if not app_id or not app_secret:
+        logger.warning("please properly setup the feishu app id and app secret first", user, bot_id)
+        return
+
+    ctx = {
+        "app_id": app_id,
+        "app_secret": app_secret,
+    }
+    client = FeishuClient(ctx)
+    token = data["token"]
+    card = build_card_content(chat_id, msg_id, msg_cache[msg_id], upvote, downvote)
+    card["open_ids"] = [data["open_id"]]
+    data = {
+        "token": token,
+        "card": card,
+    }
+    client.delay_update_card_message(data)
+
+
+@api.post("/card/event")
+async def feishu_card_event(request, user=None, bot_id=None):
+    data = json.loads(request.body)
+    if "challenge" in data:
+        return {"challenge": data["challenge"]}
+    asyncio.create_task(feishu_response_card_update(user, bot_id, data))
 
 
 @api.post("/webhook/event")
@@ -120,7 +220,7 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
 
     # ignore duplicate messages
     msg_id = event["message"]["message_id"]
-    if message_handled(msg_id):
+    if message_handled(msg_id, ""):
         return
 
     content = json.loads(event["message"]["content"])

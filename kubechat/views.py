@@ -3,6 +3,7 @@ import json
 import logging
 import uuid
 import zipfile
+import kubechat.utils.message as msg_utils
 from pathlib import Path
 from http import HTTPStatus
 
@@ -486,32 +487,8 @@ class MessageFeedbackIn(Schema):
 @api.post("/bots/{bot_id}/chats/{chat_id}/messages/{message_id}")
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     user = get_user(request)
-    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
-    msg = None
-    for message in history.messages:
-        item = json.loads(message.content)
-        if item["id"] != message_id:
-            continue
-        if message.additional_kwargs.get("role", "") != "ai":
-            continue
-        msg = item
-    if msg is None:
-        return fail(HTTPStatus.NOT_FOUND, "Message not found")
-    data = {
-        "question": msg["query"],
-        "original_answer": msg.get("response", ""),
-    }
-    if msg_in.upvote is not None:
-        data["upvote"] = msg_in.upvote
-    if msg_in.downvote is not None:
-        data["downvote"] = msg_in.downvote
-    if msg_in.revised_answer is not None:
-        data["revised_answer"] = msg_in.revised_answer
-    data["status"] = MessageFeedbackStatus.PENDING
-    feedback, _ = await MessageFeedback.objects.aupdate_or_create(
-        user=user, chat_id=chat_id, message_id=message_id, collection_id=msg["collection_id"],
-        defaults=data
-    )
+
+    feedback = msg_utils.feedback_message(user, chat_id, message_id, msg_in.upvote, msg_in.downvote, msg_in.revised_answer)
 
     # embedding the revised answer
     if msg_in.revised_answer is not None:
