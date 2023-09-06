@@ -28,18 +28,19 @@ migrate:
 
 clean:
 	/bin/rm -f db.sqlite3
+	/bin/rm -f resources/db.sqlite3
 
 update-frontend:
 	git submodule set-branch -b $(FRONTEND_BRANCH) KubeChat-FrontEnd
 	git submodule update --init --recursive --remote
 	cp envs/.env.frontend.template KubeChat-FrontEnd/.env
 	cd KubeChat-FrontEnd && yarn install && yarn build
-
-run-backend: migrate
-	python manage.py collectstatic --noinput
 	if [ -f "static/web/index.html" ]; then \
   		cp static/web/index.html kubechat/templates/404.html; \
   	fi
+
+run-backend: migrate
+	python manage.py collectstatic --noinput
 	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
 
 compose-up: migrate

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging
+import faulthandler
 import re
 from typing import Any, List, Optional, Dict
 
@@ -16,6 +17,9 @@ from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
 logger = logging.getLogger(__name__)
+
+faulthandler.enable()
+
 
 
 class LocalPathEmbedding(DocumentBaseEmbedding):
