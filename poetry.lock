@@ -4282,6 +4282,7 @@ files = [
     {file = "Pillow-10.0.0-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:3b08d4cc24f471b2c8ca24ec060abf4bebc6b144cb89cba638c720546b1cf538"},
     {file = "Pillow-10.0.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:d737a602fbd82afd892ca746392401b634e278cb65d55c4b7a8f48e9ef8d008d"},
     {file = "Pillow-10.0.0-cp311-cp311-win_amd64.whl", hash = "sha256:3a82c40d706d9aa9734289740ce26460a11aeec2d9c79b7af87bb35f0073c12f"},
+    {file = "Pillow-10.0.0-cp311-cp311-win_arm64.whl", hash = "sha256:bc2ec7c7b5d66b8ec9ce9f720dbb5fa4bace0f545acd34870eff4a369b44bf37"},
     {file = "Pillow-10.0.0-cp312-cp312-macosx_10_10_x86_64.whl", hash = "sha256:d80cf684b541685fccdd84c485b31ce73fc5c9b5d7523bf1394ce134a60c6883"},
     {file = "Pillow-10.0.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:76de421f9c326da8f43d690110f0e79fe3ad1e54be811545d7d91898b4c8493e"},
     {file = "Pillow-10.0.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:81ff539a12457809666fef6624684c008e00ff6bf455b4b89fd00a140eecd640"},
@@ -4291,6 +4292,7 @@ files = [
     {file = "Pillow-10.0.0-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:d50b6aec14bc737742ca96e85d6d0a5f9bfbded018264b3b70ff9d8c33485551"},
     {file = "Pillow-10.0.0-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:00e65f5e822decd501e374b0650146063fbb30a7264b4d2744bdd7b913e0cab5"},
     {file = "Pillow-10.0.0-cp312-cp312-win_amd64.whl", hash = "sha256:f31f9fdbfecb042d046f9d91270a0ba28368a723302786c0009ee9b9f1f60199"},
+    {file = "Pillow-10.0.0-cp312-cp312-win_arm64.whl", hash = "sha256:1ce91b6ec08d866b14413d3f0bbdea7e24dfdc8e59f562bb77bc3fe60b6144ca"},
     {file = "Pillow-10.0.0-cp38-cp38-macosx_10_10_x86_64.whl", hash = "sha256:349930d6e9c685c089284b013478d6f76e3a534e36ddfa912cde493f235372f3"},
     {file = "Pillow-10.0.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:3a684105f7c32488f7153905a4e3015a3b6c7182e106fe3c37fbb5ef3e6994c3"},
     {file = "Pillow-10.0.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b4f69b3700201b80bb82c3a97d5e9254084f6dd5fb5b16fc1a7b974260f89f43"},
@@ -4536,6 +4538,64 @@ files = [
     {file = "psycopg2_binary-2.9.7-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:2b04da24cbde33292ad34a40db9832a80ad12de26486ffeda883413c9e1b1d5e"},
     {file = "psycopg2_binary-2.9.7-cp39-cp39-win32.whl", hash = "sha256:18f12632ab516c47c1ac4841a78fddea6508a8284c7cf0f292cb1a523f2e2379"},
     {file = "psycopg2_binary-2.9.7-cp39-cp39-win_amd64.whl", hash = "sha256:eb3b8d55924a6058a26db69fb1d3e7e32695ff8b491835ba9f479537e14dcf9f"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
+name = "pyarmor"
+version = "8.3.5"
+description = "A tool used to obfuscate python scripts, bind obfuscated scripts to fixed machine or expire obfuscated scripts."
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyarmor-8.3.5-py3-none-any.whl", hash = "sha256:cd95f939de555cd89a91f4d5b5206fb61eaf4fbab1e2258badbbe7822a67d109"},
+    {file = "pyarmor-8.3.5.zip", hash = "sha256:5b53f387c3f0f15281dc86fb04e7b7554a44a022c6be8269724428daf434ba9a"},
+]
+
+[package.dependencies]
+"pyarmor.cli.core" = ">=4.3.2,<4.4.0"
+
+[[package]]
+name = "pyarmor-cli-core"
+version = "4.3.3"
+description = "Provide extension module pytransform3 for Pyarmor"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyarmor.cli.core-4.3.3-cp310-none-manylinux1_i686.whl", hash = "sha256:26168b39ef0c521257faffd3a1b534df1c0a2d1e6939c2aacea02f91700540db"},
+    {file = "pyarmor.cli.core-4.3.3-cp310-none-manylinux1_x86_64.whl", hash = "sha256:d767a6ecf1f960faf525a56ae08c0b35a7d1956aa6ed0b2caf2fbce2d2fd9508"},
+    {file = "pyarmor.cli.core-4.3.3-cp310-none-manylinux2014_aarch64.whl", hash = "sha256:186b5a737bc69a6e41c4891863a1c4fb09cd89758469132e412be7af9ef1f5c2"},
+    {file = "pyarmor.cli.core-4.3.3-cp310-none-manylinux2014_armv7l.whl", hash = "sha256:c8af65a65909cb7eadf5d6f9a4d21f58037ae1cf9ab78285b5c8efcd4f7e2b67"},
+    {file = "pyarmor.cli.core-4.3.3-cp310-none-musllinux_1_1_aarch64.whl", hash = "sha256:d9a20b148be2103dd1f9cf0cb7887f4cc59700006f4df26fba46ebbf25c175a2"},
+    {file = "pyarmor.cli.core-4.3.3-cp310-none-musllinux_1_1_x86_64.whl", hash = "sha256:6d9fdfc773cc6b419bfe8f6a7825533246ca9d796b239e9af07ac94c0fa0fb1e"},
+    {file = "pyarmor.cli.core-4.3.3-cp311-none-manylinux1_i686.whl", hash = "sha256:5ef6ece9a5420811e9b2fbe456bc2b139f4fa85214ad73dedf8736672a50926c"},
+    {file = "pyarmor.cli.core-4.3.3-cp311-none-manylinux1_x86_64.whl", hash = "sha256:6743dd8d2e37391fd1155a495a26b879c1453504398c7a6ded8524d54fe4fb81"},
+    {file = "pyarmor.cli.core-4.3.3-cp311-none-manylinux2014_aarch64.whl", hash = "sha256:a36bd87db53a8f40f2163811986f7a4bc97af2622493fb489920704fa7fc4c02"},
+    {file = "pyarmor.cli.core-4.3.3-cp311-none-manylinux2014_armv7l.whl", hash = "sha256:d06239ddfcff6ef7e8c303268adda8bfc36b68fe334e39e26af61f9fd3cfecaa"},
+    {file = "pyarmor.cli.core-4.3.3-cp311-none-musllinux_1_1_aarch64.whl", hash = "sha256:60df547ddab7c526d37ce2729ec24e0b9e80628796bcabf32802b8f2bbbb6701"},
+    {file = "pyarmor.cli.core-4.3.3-cp311-none-musllinux_1_1_x86_64.whl", hash = "sha256:c6d0b43f260c04c78f710d6ea74119bad9a139dad008d379ea2eb5b2b29e609f"},
+    {file = "pyarmor.cli.core-4.3.3-cp37-none-manylinux1_i686.whl", hash = "sha256:0b28dcc5cb6313b462a87406fee9e8875bcb5855b0e7018bb9e8339dffbe8e15"},
+    {file = "pyarmor.cli.core-4.3.3-cp37-none-manylinux1_x86_64.whl", hash = "sha256:9d5cd1175a2158b6ccf1d15241b578d85c9afa2c2584ef55484d2189dc3f88f6"},
+    {file = "pyarmor.cli.core-4.3.3-cp37-none-manylinux2014_aarch64.whl", hash = "sha256:357dfbdf00224cc81ca3cd11fd93f9b4df8354ba7a75cf9931bcf57034ca77dc"},
+    {file = "pyarmor.cli.core-4.3.3-cp37-none-manylinux2014_armv7l.whl", hash = "sha256:6720df0b89c1b5293cee1626aa692b22444f6a93ed70b04aad7f8695a843a6ee"},
+    {file = "pyarmor.cli.core-4.3.3-cp37-none-musllinux_1_1_aarch64.whl", hash = "sha256:aa2ad488a749ac16df048625d9b488474283cc68fa7d71c10ffd589587ac6d92"},
+    {file = "pyarmor.cli.core-4.3.3-cp37-none-musllinux_1_1_x86_64.whl", hash = "sha256:de413545b042b5910996261d9706c097ccae41222a3a354394e7779ce2b5662b"},
+    {file = "pyarmor.cli.core-4.3.3-cp38-none-manylinux1_i686.whl", hash = "sha256:333830d4c8bef5a4773ce42a12f71208519cc61cd09e3e9cde7dd0fef52980de"},
+    {file = "pyarmor.cli.core-4.3.3-cp38-none-manylinux1_x86_64.whl", hash = "sha256:a42a3a0551e3614137fd2c0fa52f37fdb528b92bf070f7c9d0a1dfa9dfb01a48"},
+    {file = "pyarmor.cli.core-4.3.3-cp38-none-manylinux2014_aarch64.whl", hash = "sha256:a6699eaca54f56657cb5e8646ca2db2ca12a7d3fd8a394ff188e37ad833c7b63"},
+    {file = "pyarmor.cli.core-4.3.3-cp38-none-manylinux2014_armv7l.whl", hash = "sha256:5e56d23d601e1a1f006bb6b4903c8cd2ad174aebaedc30d04e2947d7019e58ce"},
+    {file = "pyarmor.cli.core-4.3.3-cp38-none-musllinux_1_1_aarch64.whl", hash = "sha256:72e6013838b18cc63606a9d6aa0a5873482418585e86ff81a8f16b88e825b48e"},
+    {file = "pyarmor.cli.core-4.3.3-cp38-none-musllinux_1_1_x86_64.whl", hash = "sha256:24794eb97c3b92705f266d423ece175949b98d1db26652671a8dadb9fb5504b9"},
+    {file = "pyarmor.cli.core-4.3.3-cp39-none-manylinux1_i686.whl", hash = "sha256:783ddb997958c6a690b47eecc552404d62896fb5c2dcfdb51f7c44451efd6e60"},
+    {file = "pyarmor.cli.core-4.3.3-cp39-none-manylinux1_x86_64.whl", hash = "sha256:0cf2ad751d10865fadebfc2d7cdb8f7cbdc395b1683a31eab18d4f8107588b63"},
+    {file = "pyarmor.cli.core-4.3.3-cp39-none-manylinux2014_aarch64.whl", hash = "sha256:716e3be78f531ffdf635ec20aa1cfe20e89149af2f7ebf23e984172840164426"},
+    {file = "pyarmor.cli.core-4.3.3-cp39-none-manylinux2014_armv7l.whl", hash = "sha256:30ada48beeb7a869b75efc98a0c858f70074006335663b908e4a5ac8caf6412d"},
+    {file = "pyarmor.cli.core-4.3.3-cp39-none-musllinux_1_1_aarch64.whl", hash = "sha256:4d88adf727a0340af09a65532b3d38ddbc5c8008cc91a9a4c86ee9d9559d7766"},
+    {file = "pyarmor.cli.core-4.3.3-cp39-none-musllinux_1_1_x86_64.whl", hash = "sha256:a2be16e6c330c4f512de9df555fff7418c6ac9da5506da566bb97a225b89e8cb"},
 ]
 
 [package.source]
@@ -7675,4 +7735,4 @@ all = ["clickhouse-connect", "elasticsearch", "pymilvus", "pymongo", "weaviate-c
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "1776320535079a90d5b25914b845f18e86d4a3038d970f9e709cd2a1828e14d3"
+content-hash = "d3c5c60b95e800da34f33d517d0f9e98d849cb8f919e36b89a687e1d8b013eb1"
