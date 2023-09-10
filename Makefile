@@ -1,4 +1,4 @@
-VERSION ?= v0.1.1
+VERSION ?= v0.1.2
 LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false

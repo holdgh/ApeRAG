@@ -1,14 +1,24 @@
 import asyncio
 import json
+import os
 from abc import ABC, abstractmethod
+from enum import Enum
 
 import requests
+
+
+class PredictorType(Enum):
+    KB_VLLM = "kb-vllm"
+    CUSTOM_LLM = "custom-llm"
+    OPENAI_GPT_3_5 = "chatgpt-3.5"
+    OPENAI_GPT_4 = "chatgpt-4"
 
 
 class Predictor(ABC):
 
     def __init__(self, **kwargs):
-        pass
+        self.max_tokens = kwargs.get("max_tokens", 4096)
+        self.temperature = kwargs.get("temperature", 0)
 
     @abstractmethod
     async def agenerate_stream(self, prompt):
@@ -18,88 +28,92 @@ class Predictor(ABC):
     def generate_stream(self, prompt):
         pass
 
+    @staticmethod
+    def get_model_context(model_name):
+        model_servers = json.loads(os.environ.get("MODEL_SERVERS", "{}"))
+        if len(model_servers) == 0:
+            raise Exception("No model server available")
+        for model_server in model_servers:
+            if model_name == model_server["name"]:
+                return model_server
+        return None
 
-def get_predictor(model, model_servers):
-    if len(model_servers) == 0:
-        raise Exception("No model server available")
-    endpoint = model_servers[0]["endpoint"]
-    for model_server in model_servers:
-        model_name = model_server["name"]
-        model_endpoint = model_server["endpoint"]
-        if model == model_name:
-            endpoint = model_endpoint
-            break
+    @staticmethod
+    def from_model(model_name="", predictor_type="", endpoint="", **kwargs):
+        if model_name not in ("chatgpt-3.5", "chatgpt-4") and not endpoint:
+            ctx = Predictor.get_model_context(model_name)
+            if not ctx:
+                raise Exception("No model server available for model: %s" % model_name)
+            endpoint = ctx.get("endpoint", "")
+            predictor_type = ctx.get("type", PredictorType.KB_VLLM)
 
-    match model:
-        case "baichuan-13b" | "vicuna-13b" | "internlm-chat-7b":
-            return CustomLLMPredictor(endpoint=endpoint)
-        case "openai":
-            raise Exception("Unsupported model: %s" % model)
-        case _:
-            raise Exception("Unsupported model: %s" % model)
+        match predictor_type:
+            case PredictorType.KB_VLLM:
+                return KubeBlocksLLMPredictor(endpoint=endpoint, **kwargs)
+            case PredictorType.CUSTOM_LLM:
+                return CustomLLMPredictor(endpoint=endpoint, **kwargs)
+            case _:
+                raise Exception("Unsupported predictor type: %s" % predictor_type)
+
+
+class KubeBlocksLLMPredictor(Predictor):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.endpoint = kwargs.get("endpoint", "http://localhost:18000")
+
+    def _generate_stream(self, prompt):
+        input = {
+            "prompt": prompt,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": True,
+        }
+        response = requests.post("%s/generate" % self.endpoint, json=input, stream=True)
+        output = prompt
+        for chunk in response.iter_lines(chunk_size=2048, decode_unicode=False, delimiter=b"\0"):
+            if chunk:
+                data = json.loads(chunk.decode("utf-8"))
+                tokens = data["text"][0][len(output):]
+                yield tokens
+                output = data["text"][0]
+
+    async def agenerate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+            await asyncio.sleep(0.1)
+
+    def generate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
 
 
 class CustomLLMPredictor(Predictor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.model = kwargs.get("model", "baichuan-13b")
-        self.endpoint = kwargs.get("endpoint", "http://localhost:18000")
+        self.endpoint = kwargs.get("endpoint", "http://localhost:18001")
 
-    async def agenerate_stream(self, prompt):
+    def _generate_stream(self, prompt):
         data = {
             "prompt": prompt,
-            "temperature": 0,
-            "max_new_tokens": 2048,
+            "temperature": self.temperature,
+            "max_new_tokens": self.max_tokens,
             "model": self.model,
             "stop": "\nSQLResult:",
         }
 
         response = requests.post("%s/generate_stream" % self.endpoint, json=data, stream=True)
-        buffer = ""
-        for c in response.iter_content():
-            if c == b"\x00":
-                continue
+        for chunk in response.iter_lines(chunk_size=2048, decode_unicode=False, delimiter=b"\0"):
+            if chunk:
+                data = json.loads(chunk.decode("utf-8"))
+                yield data["text"]
 
-            c = c.decode("utf-8")
-            buffer += c
-
-            if "}" in c:
-                idx = buffer.rfind("}")
-                data = buffer[: idx + 1]
-                try:
-                    msg = json.loads(data)
-                except Exception as e:
-                    continue
-                yield msg["text"]
-                await asyncio.sleep(0.1)
-                buffer = buffer[idx + 1:]
+    async def agenerate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+            await asyncio.sleep(0.1)
 
     def generate_stream(self, prompt):
-        data = {
-            "prompt": prompt,
-            "temperature": 0,
-            "max_new_tokens": 2048,
-            "model": "baichuan-13b",
-            "stop": "\nSQLResult:",
-        }
-
-        response = requests.post("%s/generate_stream" % self.endpoint, json=data, stream=True)
-        buffer = ""
-        result = ""
-        for c in response.iter_content():
-            if c == b"\x00":
-                continue
-
-            c = c.decode("utf-8")
-            buffer += c
-
-            if "}" in c:
-                idx = buffer.rfind("}")
-                data = buffer[: idx + 1]
-                try:
-                    msg = json.loads(data)
-                except Exception as e:
-                    continue
-                result += msg["text"]
-                buffer = buffer[idx + 1:]
-        return result
+        for tokens in self._generate_stream(prompt):
+            yield tokens

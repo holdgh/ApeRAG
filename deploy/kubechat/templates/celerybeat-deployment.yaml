@@ -25,13 +25,31 @@ spec:
     spec:
       containers:
         - args:
-            - /app/scripts/start-celery-beat.sh
+            - /bin/sh
+            - -c
+            - |
+              /app/scripts/entrypoint.sh /app/scripts/start-celery-beat.sh
           env:
-            - name: CELERY_BROKER_URL
+            - name: REDIS_HOST
               valueFrom:
-                configMapKeyRef:
-                  key: CELERY_BROKER_URL
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: host
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: port
+            - name: REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: username
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: password
             - name: DJANGO_LOG_LEVEL
               valueFrom:
                 configMapKeyRef:

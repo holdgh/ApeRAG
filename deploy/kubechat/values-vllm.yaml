@@ -1,9 +1,10 @@
 
-efsId: fs-000f009e5b2735fc4
+image:
+  tag: "v0.1.2"
 
 django:
   replicaCount: 2
-  authType: auth0
+  authType: none
   embeddingModel: bge
   auth0ClientId: ""
   auth0Domain: "kubechat.jp.auth0.com"
@@ -11,7 +12,7 @@ django:
   modelServers:
     - name: "baichuan-13b"
       label: "BaiChuan 13b"
-      endpoint: "http://llmserver-baichuan-13b:8000"
+      endpoint: "http://bc-vllm-0.bc-vllm-headless:8080"
       enabled: "true"
     - name: "vicuna-13b"
       label: "Vicuna 13b"
@@ -27,7 +28,6 @@ django:
     - name: "chatgpt-4"
       label: "ChatGPT 4"
       enabled: "false"
-
 
 celery-worker:
   replicaCount: 2

@@ -40,4 +40,8 @@ END
 
 >&2 echo 'PostgreSQL is available'
 
+export CELERY_BROKER_URL="redis://${REDIS_USERNAME}:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/0"
+
+export MEMORY_REDIS_URL="redis://${REDIS_USERNAME}:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}/1"
+
 exec "$@"

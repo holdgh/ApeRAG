@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from config import settings
 from kubechat.context.context import ContextManager
-from kubechat.llm.predict import get_predictor
+from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name
@@ -139,7 +139,7 @@ class BasePipeline(Pipeline):
         prompt = self.prompt.format(query=message, context=context)
 
         response = ""
-        predictor = get_predictor(self.model, json.loads(settings.MODEL_SERVERS))
+        predictor = Predictor.from_model(self.model, PredictorType.KB_VLLM)
         async for msg in predictor.agenerate_stream(prompt):
             yield msg
             response += msg
@@ -178,7 +178,7 @@ class QueryRewritePipeline(Pipeline):
             prompt = self.prompt.format(query=message, context=context)
 
             response = ""
-            predictor = get_predictor(self.model, json.loads(settings.MODEL_SERVERS))
+            predictor = Predictor.from_model(self.model, PredictorType.KB_VLLM)
             async for msg in predictor.agenerate_stream(prompt):
                 yield msg
                 response += msg

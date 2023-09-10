@@ -5,13 +5,11 @@ data:
   AUTH0_CLIENT_ID: "{{ .Values.django.auth0ClientId }}"
   AUTH0_DOMAIN: "{{ .Values.django.auth0Domain }}"
   {{- end }}
-  CELERY_BROKER_URL: '{{ .Values.django.redisURL }}/0'
   CELERY_FLOWER_USER: "{{ .Values.flower.user }}"
   CELERY_FLOWER_PASSWORD: "{{ .Values.flower.password }}"
   DJANGO_LOG_LEVEL: "INFO"
-  MEMORY_REDIS_URL: '{{ .Values.django.redisURL }}/1'
   MODEL_SERVER: "{{ .Values.django.modelServer }}"
-  MODEL_SERVERS: '{{ .Values.django.modelServers }}'
+  MODEL_SERVERS: '{{ .Values.django.modelServers | toJson }}'
   VECTOR_DB_CONTEXT: '{{ .Values.django.vectorDBContext }}'
   VECTOR_DB_TYPE: "{{ .Values.django.vectorDBType }}"
   OPENAI_API_KEY: "{{ .Values.django.openaiAPIKey }}"

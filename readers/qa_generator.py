@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from langchain import PromptTemplate
 
-from kubechat.llm.predict import CustomLLMPredictor
+from kubechat.llm.predict import CustomLLMPredictor, Predictor
 from kubechat.llm.prompts import CHINESE_QA_EXTRACTION_PROMPT_TEMPLATE
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class AlgoletQAGenerator(QAGenerator):
 class BaiChuanQAGenerator(QAGenerator):
     def __init__(self, **kwargs):
         self.prompt_template = PromptTemplate.from_template(CHINESE_QA_EXTRACTION_PROMPT_TEMPLATE)
-        self.predictor = CustomLLMPredictor(model="baichuan-13b", endpoint=kwargs["endpoint"])
+        self.predictor = Predictor.from_model(model="baichuan-13b", **kwargs)
         self.pattern = r"问题\d?：(.*?)答案：(.*?)(?=问题\d+：|$)"
 
     def gen_qa_pairs(self, text):

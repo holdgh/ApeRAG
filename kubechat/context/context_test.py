@@ -239,7 +239,7 @@ def main(datasets, documents, models, reload, **kwargs):
 
 
 if __name__ == "__main__":
-    datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
+    datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
     # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
     # documents = "/Users/ziang/git/kubechat/resources/documents/test"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-plain"
@@ -250,13 +250,13 @@ if __name__ == "__main__":
     # documents = "/Users/ziang/git/kubechat/resources/documents/tos-pdf"
     # models = ["multilingual"]
     # models = ["text2vec"]
-    # models = ["bge"]
+    models = ["bge"]
     # models = ["mt5"]
     # models = ["openai"]
     # models = ["text2vec", "bge"]
     # models = ["text2vec", "bge", "multilingual", "openai"]
     # models = ["text2vec", "bge", "piccolo"]
-    models = ["piccolo"]
+    # models = ["piccolo"]
     score_threshold = 0.5
     topk = 3
     recall_factor = 5

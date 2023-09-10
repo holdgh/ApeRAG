@@ -30,9 +30,8 @@ spec:
             - /bin/sh
             - -c
             - |
-              mkdir -p /root/.cache/huggingface
-              ln -s /data/huggingface/hub /root/.cache/huggingface/hub
-              ln -s /data/torch /root/.cache/torch
+              mkdir -p /data/.cache
+              ln -s /data/.cache /root
               /app/scripts/entrypoint.sh /app/scripts/start-django.sh
           env:
             - name: AUTH_TYPE
@@ -52,11 +51,26 @@ spec:
                   key: AUTH0_DOMAIN
                   name: kubechat-config
             {{- end }}
-            - name: CELERY_BROKER_URL
+            - name: REDIS_HOST
               valueFrom:
-                configMapKeyRef:
-                  key: CELERY_BROKER_URL
-                  name: kubechat-config
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: host
+            - name: REDIS_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: port
+            - name: REDIS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: username
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.django.redisSecret }}
+                  key: password
             - name: CELERY_FLOWER_PASSWORD
               valueFrom:
                 configMapKeyRef:
@@ -71,11 +85,6 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: DJANGO_LOG_LEVEL
-                  name: kubechat-config
-            - name: MEMORY_REDIS_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: MEMORY_REDIS_URL
                   name: kubechat-config
             - name: MODEL_SERVER
               valueFrom:
@@ -170,12 +179,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        {{- if and .Values.efsId (ne .Values.efsId "") }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: kubechat-efs-claim
-        {{- else }}
+        # shared uploaded files between django and celery
         - name: data
           hostPath:
             path: /data/kubechat
-        {{- end }}

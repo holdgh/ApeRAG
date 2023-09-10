@@ -112,6 +112,7 @@ celerybeat.pid
 # Environments
 .env
 .env.frontend
+
 .venv
 .docker-env
 env/
@@ -154,3 +155,7 @@ static
 
 *.tgz
 resources
+
+terraform.tfstate
+terraform.tfstate.backup
+.terraform
