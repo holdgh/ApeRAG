@@ -62,13 +62,35 @@ module "eks" {
   eks_managed_node_groups = {
     kb-ng1 = {
       name                  = local.cluster_name
-      instance_types        = [var.instance_type]
+      instance_types        = ["g5.2xlarge"]
       capacity_type         = var.capacity_type
       min_size              = 0
       max_size              = 2
       desired_size          = 2
       ebs_optimized         = true
 			key_name              = aws_key_pair.ssh_key.key_name
+      block_device_mappings = [
+        {
+          device_name = "/dev/xvda"
+          ebs         = {
+            volume_type = "gp3"
+            volume_size = 200
+          }
+        }
+      ]
+    }
+    kb-ng2 = {
+      name                  = local.cluster_name
+      instance_types        = ["g5.4xlarge"]
+      capacity_type         = var.capacity_type
+      min_size              = 0
+      max_size              = 2
+      desired_size          = 1
+      ebs_optimized         = true
+      key_name              = aws_key_pair.ssh_key.key_name
+      labels = {
+    	  "chat.kubeblocks.io/model-name" = "baichuan-13b"
+      }
       block_device_mappings = [
         {
           device_name = "/dev/xvda"

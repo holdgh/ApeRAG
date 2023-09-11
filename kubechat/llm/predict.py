@@ -45,7 +45,7 @@ class Predictor(ABC):
             if not ctx:
                 raise Exception("No model server available for model: %s" % model_name)
             endpoint = ctx.get("endpoint", "")
-            predictor_type = ctx.get("type", PredictorType.KB_VLLM)
+            predictor_type = ctx.get("type", PredictorType.CUSTOM_LLM)
 
         match predictor_type:
             case PredictorType.KB_VLLM:

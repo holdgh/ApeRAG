@@ -14,7 +14,7 @@ spec:
             image:  {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository}}:{{ default .Chart.AppVersion .Values.image.tag }}
             env:
               - name: MODEL_NAME
-                value: /data/models/Baichuan2-13B-Chat
+                value: /data/models/baichuan-13b
               - name: EXTRA_ARGS
                 value: "--trust-remote-code --gpu-memory-utilization 0.95"
 ---

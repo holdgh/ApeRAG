@@ -49,7 +49,8 @@ spec:
             - /bin/sh
             - -c
             - |
-              ln -s /data/resources /app
+              mkdir -p /app/resources
+              ln -s /data/models /app/resources
               uvicorn server.llmserver:app --host 0.0.0.0 --log-config uvicorn-log-config.yaml
           ports:
             - name: http
@@ -74,15 +75,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
-        {{- if and .Values.efsId (ne .Values.efsId "") }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: llmserver-efs-claim
-        {{- else }}
         - name: data
           hostPath:
             path: /data/kubechat
-        {{- end }}
 
 {{- end }}
 {{- end }}

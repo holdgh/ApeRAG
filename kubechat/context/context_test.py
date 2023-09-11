@@ -1,12 +1,12 @@
 import os
 import sys
 
-import pandas as pd
 import gradio as gr
 from tabulate import tabulate
 from datetime import datetime
 
 from kubechat.context.context import ContextManager
+from kubechat.llm.predict import CustomLLMPredictor
 from readers.base_embedding import get_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
@@ -57,8 +57,9 @@ class EmbeddingCtx:
                                     vector_store_adaptor=self.vector_db_conn)
         loader.load_data()
 
-        # qa_loader = LocalPathQAEmbedding(input_files=[file_path], embedding_model=self.model,
-        #                                  vector_store_adaptor=self.qa_vector_db_conn, endpoint="http://localhost:18000")
+        predictor = CustomLLMPredictor(model="baichuan-13b", endpoint="http://localhost:18000")
+        # qa_loader = LocalPathQAEmbedding(predictor=predictor, input_files=[file_path], embedding_model=self.model,
+        #                                  vector_store_adaptor=self.qa_vector_db_conn)
         # qa_loader.load_data()
 
     def load_dir(self, path):
@@ -238,13 +239,20 @@ def main(datasets, documents, models, reload, **kwargs):
     return headers, table
 
 
+os.environ["ENABLE_QA_GENERATOR"] = "True"
+
+
 if __name__ == "__main__":
-    datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
+    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
+    datasets = "/Users/ziang/git/KubeChat/resources/datasets/releases"
     # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
     # documents = "/Users/ziang/git/kubechat/resources/documents/test"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-plain"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-markdown"
-    documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown"
+    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown"
+    documents = "/Users/ziang/git/KubeChat/resources/documents/releases"
+    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown-2"
+    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-short"
     # documents = "/Users/ziang/git/kubechat/resources/documents/tos-feishu-parser-plain"
     # documents = "/Users/ziang/git/kubechat/resources/documents/tos-feishu-parser-plain-without-category"
     # documents = "/Users/ziang/git/kubechat/resources/documents/tos-pdf"

@@ -8,8 +8,10 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
+from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory, MessageFeedback, \
     MessageFeedbackStatus
 from kubechat.source.base import get_source
@@ -17,6 +19,7 @@ from kubechat.source.utils import FeishuNoPermission, FeishuPermissionDenied
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name
 from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
+from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
 
 logger = logging.getLogger(__name__)
@@ -143,10 +146,27 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
                                             user=document.user,
                                             collection=document.collection.id)))
 
-        ids = loader.load_data()
-        document.relate_ids = ",".join(ids)
+        ctx_ids = loader.load_data()
+        logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
+
+        predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
+        qa_loaders = LocalPathQAEmbedding(predictor=predictor,
+                                          input_files=[local_doc.path],
+                                          input_file_metadata_list=[local_doc.metadata],
+                                          embedding_model=embedding_model,
+                                          vector_store_adaptor=get_vector_db_connector(
+                                              collection=generate_qa_vector_db_collection_name(
+                                                  user=document.user,
+                                                  collection=document.collection.id)))
+        qa_ids = qa_loaders.load_data()
+        logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
+        relate_ids = {
+            "ctx": ctx_ids,
+            "qa": qa_ids,
+        }
+        document.relate_ids = json.dumps(relate_ids)
         document.save()
-        logger.info(f"add qdrant points: {document.relate_ids} for document {local_doc.path}")
+
         if collection_sync_history_id > 0:
             deal_sync_task_success(collection_sync_history_id, "add")
     except FeishuNoPermission:
@@ -177,10 +197,19 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
-        logger.info(f"remove qdrant points: {document.relate_ids} for document {document.file}")
+        relate_ids = json.loads(document.relate_ids)
         vector_db = get_vector_db_connector(collection=generate_vector_db_collection_name(user=document.user,
                                                                                           collection=document.collection.id))
-        vector_db.connector.delete(ids=str(document.relate_ids).split(','))
+        ctx_relate_ids = relate_ids.get("ctx", [])
+        vector_db.connector.delete(ids=ctx_relate_ids)
+        logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.file}")
+
+        qa_vector_db = get_vector_db_connector(collection=generate_qa_vector_db_collection_name(user=document.user,
+                                                                                          collection=document.collection.id))
+        qa_relate_ids = relate_ids.get("qa", [])
+        qa_vector_db.connector.delete(ids=qa_relate_ids)
+        logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
+
         if collection_sync_history_id > 0:
             deal_sync_task_success(collection_sync_history_id, "remove")
     except Exception as e:
@@ -201,6 +230,7 @@ def update_index(self, document_id, collection_sync_history_id=-1):
     document.collection.save()
 
     try:
+        relate_ids = json.loads(document.relate_ids)
         source = get_source(json.loads(document.collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
@@ -212,9 +242,27 @@ def update_index(self, document_id, collection_sync_history_id=-1):
                                         collection=generate_qdrant_collection_id(
                                             user=document.user,
                                             collection=document.collection.id)))
-        loader.connector.delete(ids=str(document.relate_ids).split(','))
-        ids = loader.load_data()
-        document.relate_ids = ",".join(ids)
+        loader.connector.delete(ids=relate_ids.get("ctx", []))
+        ctx_ids = loader.load_data()
+        logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
+
+        predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
+        qa_loader = LocalPathQAEmbedding(predictor=predictor,
+                                          input_files=[local_doc.path],
+                                          input_file_metadata_list=[local_doc.metadata],
+                                          embedding_model=embedding_model,
+                                          vector_store_adaptor=get_vector_db_connector(
+                                              collection=generate_qa_vector_db_collection_name(
+                                                  user=document.user,
+                                                  collection=document.collection.id)))
+        qa_loader.connector.delete(ids=relate_ids.get("qa", []))
+        qa_ids = qa_loader.load_data()
+        logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
+        relate_ids = {
+            "ctx": ctx_ids,
+            "qa": qa_ids,
+        }
+        document.relate_ids = json.dumps(relate_ids)
         document.save()
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
         if collection_sync_history_id > 0:

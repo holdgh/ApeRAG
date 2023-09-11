@@ -76,6 +76,7 @@ django:
     #   cpu: 100m
     #   memory: 128Mi
   authType: none
+  enableQAGenerator: False
   redisSecret: redis-conn-credential
   modelServer: http://llmserver:8000
   metaDBSecret: postgresql-conn-credential
@@ -83,7 +84,7 @@ django:
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   openaiAPIKey: "sk-xxxxxx"
-  embeddingModel: "text2vec"
+  embeddingModel: "bge"
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:

@@ -59,7 +59,7 @@ class MarkdownReader(BaseReader):
             if header_match:
                 level = len(header_match[0][0])
                 if level == current_level:
-                    headers[-1] = (line, level)
+                    headers[-1] = (headers[-1][0]+line, level)
                 elif level > current_level:
                     headers.append((line, level))
                 else:
@@ -74,7 +74,7 @@ class MarkdownReader(BaseReader):
                         headers.append((line, level))
 
                 if len(current_text) < CHUNK_SPLIT_THRESHOLD:
-                    line = line.strip().lstrip("#")
+                    # line = line.strip().lstrip("#")
                     current_text += line + "\n"
                 else:
                     markdown_tups.append((flat_headers(), current_text))
@@ -146,7 +146,7 @@ class MarkdownReader(BaseReader):
         for headers, value in tups:
             for header in headers:
                 header_maps[header] = True
-            text_all += value
+            text_all += value + "\n\n"
         for header in header_maps:
             header_all += header
 
@@ -169,6 +169,6 @@ class MarkdownReader(BaseReader):
             text = value
             if headers:
                 header = " ".join(headers)
-                text = f"\n{header}\n{value}"
+                text = f"Title: {header}\n\n{value}"
             results.append(Document(text=text, metadata=metadata))
         return results

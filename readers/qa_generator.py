@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from langchain import PromptTemplate
 
-from kubechat.llm.predict import CustomLLMPredictor, Predictor
+from kubechat.llm.predict import CustomLLMPredictor, Predictor, PredictorType
 from kubechat.llm.prompts import CHINESE_QA_EXTRACTION_PROMPT_TEMPLATE
 
 logger = logging.getLogger(__name__)
@@ -48,17 +48,22 @@ class AlgoletQAGenerator(QAGenerator):
 class BaiChuanQAGenerator(QAGenerator):
     def __init__(self, **kwargs):
         self.prompt_template = PromptTemplate.from_template(CHINESE_QA_EXTRACTION_PROMPT_TEMPLATE)
-        self.predictor = Predictor.from_model(model="baichuan-13b", **kwargs)
-        self.pattern = r"问题\d?：(.*?)答案：(.*?)(?=问题\d+：|$)"
+        self.predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM, **kwargs)
+        self.q_pattern = r"问题.*：(.*)"
+        self.a_pattern = r"答.*?：(.+?)(?=问题|$)"
 
     def gen_qa_pairs(self, text):
         prompt = self.prompt_template.format(context=text)
-        response = self.predictor.generate_stream(prompt)
-        matches = re.findall(self.pattern, response, re.DOTALL)
+        response = ""
+        for tokens in self.predictor.generate_stream(prompt):
+            response += tokens
+        q_matches = re.findall(self.q_pattern, response)
+        a_matches = re.findall(self.a_pattern, response, re.DOTALL)
+        if len(q_matches) != len(a_matches):
+            logger.warning("number of questions and answers not match")
+            return []
         pairs = []
-        for match in matches:
-            question = match[0].strip()
-            answer = match[1].strip()
-            pairs.append((question, answer))
+        for idx, q_match in enumerate(q_matches):
+            pairs.append((q_match, a_matches[idx]))
         return pairs
 

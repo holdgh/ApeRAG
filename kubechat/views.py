@@ -488,7 +488,7 @@ class MessageFeedbackIn(Schema):
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     user = get_user(request)
 
-    feedback = msg_utils.feedback_message(user, chat_id, message_id, msg_in.upvote, msg_in.downvote, msg_in.revised_answer)
+    feedback = await msg_utils.feedback_message(user, chat_id, message_id, msg_in.upvote, msg_in.downvote, msg_in.revised_answer)
 
     # embedding the revised answer
     if msg_in.revised_answer is not None:

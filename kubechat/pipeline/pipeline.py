@@ -47,7 +47,7 @@ class Pipeline(ABC):
         self.collection_id = collection.id
         bot_config = json.loads(self.bot.config)
         llm_config = bot_config.get("llm", {})
-        self.model = bot_config.get("model", "")
+        self.model = bot_config.get("model", "baichuan-13b")
         self.topk = llm_config.get("similarity_topk", 3)
         self.score_threshold = llm_config.get("similarity_score_threshold", 0.5)
         self.context_window = llm_config.get("context_window", 1900)
@@ -139,7 +139,7 @@ class BasePipeline(Pipeline):
         prompt = self.prompt.format(query=message, context=context)
 
         response = ""
-        predictor = Predictor.from_model(self.model, PredictorType.KB_VLLM)
+        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
         async for msg in predictor.agenerate_stream(prompt):
             yield msg
             response += msg
@@ -178,7 +178,7 @@ class QueryRewritePipeline(Pipeline):
             prompt = self.prompt.format(query=message, context=context)
 
             response = ""
-            predictor = Predictor.from_model(self.model, PredictorType.KB_VLLM)
+            predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
             async for msg in predictor.agenerate_stream(prompt):
                 yield msg
                 response += msg

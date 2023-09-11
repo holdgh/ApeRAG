@@ -48,8 +48,7 @@ class Source(ABC):
         raise NotImplementedError
 
     def cleanup_document(self, filepath: str):
-        # os.remove(filepath)
-        pass
+        os.remove(filepath)
 
     def close(self):
         pass

@@ -31,7 +31,9 @@ spec:
             - -c
             - |
               mkdir -p /data/.cache
-              ln -s /data/.cache /root
+              mkdir -p /root/.cache
+              ln -s /data/.cache/huggingface /root/.cache/
+              ln -s /data/.cache/torch /root/.cache/
               /app/scripts/entrypoint.sh /app/scripts/start-django.sh
           env:
             - name: AUTH_TYPE

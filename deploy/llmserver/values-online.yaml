@@ -1,6 +1,4 @@
 
-efsId: fs-000f009e5b2735fc4
-
 models:
   - name: vicuna-13b
     replicaCount: 0

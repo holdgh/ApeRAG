@@ -5,9 +5,7 @@ import faulthandler
 import re
 from typing import Any, List, Optional, Dict
 
-from llama_index import (
-    LangchainEmbedding,
-)
+from langchain.embeddings.base import Embeddings
 from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding
@@ -21,12 +19,11 @@ logger = logging.getLogger(__name__)
 faulthandler.enable()
 
 
-
 class LocalPathEmbedding(DocumentBaseEmbedding):
     def __init__(
             self,
             vector_store_adaptor: VectorStoreConnectorAdaptor,
-            embedding_model: LangchainEmbedding = None,
+            embedding_model: Embeddings = None,
             vector_size: int = 0,
             input_file_metadata_list: Optional[List[Dict[str, Any]]] = None,
             **kwargs: Any,
@@ -54,19 +51,19 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             doc.text = doc.text.strip()
 
             # ignore page less than 30 characters
-            # text_size_threshold = 30
-            # if len(doc.text) < text_size_threshold:
-            #     logger.warning("ignore page less than %d characters: %s",
-            #                    text_size_threshold, doc.metadata.get("name", None))
-            #     continue
+            text_size_threshold = 30
+            if len(doc.text) < text_size_threshold:
+                logger.warning("ignore page less than %d characters: %s",
+                               text_size_threshold, doc.metadata.get("name", None))
+                continue
 
-            # ignore page with content ratio less than 0.8
-            # content_ratio = doc.metadata.get("content_ratio", 1)
-            # content_ratio_threshold = 0.8
-            # if content_ratio < content_ratio_threshold:
-            #     logger.warning("ignore page with content ratio less than %f: %s",
-            #                    content_ratio_threshold, doc.metadata.get("name", None))
-            #     continue
+            # ignore page with content ratio less than 0.75
+            content_ratio = doc.metadata.get("content_ratio", 1)
+            content_ratio_threshold = 0.75
+            if content_ratio < content_ratio_threshold:
+                logger.warning("ignore page with content ratio less than %f: %s",
+                               content_ratio_threshold, doc.metadata.get("name", None))
+                continue
 
             paddings = []
             # padding titles of the hierarchy
@@ -82,6 +79,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     labels.append("%s=%s" % (item["key"], item["value"]))
                 paddings.append(" ".join(labels))
             prefix = "\n\n".join(paddings)
+            logger.info("add extra prefix for document %s before embedding: %s",
+                        doc.metadata.get("name", None), prefix)
 
             # embedding without the code block
             # text = re.sub(r"```.*?```", "", doc.text, flags=re.DOTALL)
