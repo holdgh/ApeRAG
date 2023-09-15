@@ -67,8 +67,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             paddings = []
             # padding titles of the hierarchy
-            if "titles" in doc.metadata:
-                paddings.append(" ".join(doc.metadata["titles"]))
+            # if "titles" in doc.metadata:
+            #     paddings.append(" ".join(doc.metadata["titles"]))
 
             # padding user custom labels
             if "labels" in doc.metadata:
@@ -78,13 +78,19 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                         continue
                     labels.append("%s=%s" % (item["key"], item["value"]))
                 paddings.append(" ".join(labels))
-            prefix = "\n\n".join(paddings)
-            logger.info("add extra prefix for document %s before embedding: %s",
-                        doc.metadata.get("name", None), prefix)
+
+            prefix = ""
+            if len(paddings) > 0:
+                prefix = "\n\n".join(paddings)
+                logger.info("add extra prefix for document %s before embedding: %s",
+                            doc.metadata.get("name", None), prefix)
 
             # embedding without the code block
             # text = re.sub(r"```.*?```", "", doc.text, flags=re.DOTALL)
-            text = f"{prefix}\n{doc.text}"
+            if prefix:
+                text = f"{prefix}\n{doc.text}"
+            else:
+                text = doc.text
             vector = self.embedding.embed_documents([text])[0]
             doc.embedding = vector
             node = Node(

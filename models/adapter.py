@@ -169,6 +169,7 @@ class BaiChuanAdapter(BaseLLMAdaper):
         #     model = model.quantize(8).cuda()
         # else:
         #     model = model.quantize(8)
+        # https://github.com/baichuan-inc/Baichuan-13B/issues/60
         model.generation_config = GenerationConfig.from_pretrained(model_path)
         return model, tokenizer
 

@@ -195,7 +195,7 @@ def test_local_llm_qa(query: str, collection_name: str):
         limit=query_embedding.top_k,
     )
 
-    answer_text = get_packed_answer(hits.results, 1900)
+    answer_text = get_packed_answer(hits.results, 3500)
 
     prompt = PromptTemplate.from_template(VICUNA_REFINE_TEMPLATE)
     prompt_str = prompt.format(query_str=query, existing_answer=answer_text)
@@ -205,7 +205,7 @@ def test_local_llm_qa(query: str, collection_name: str):
     input = {
         "prompt": prompt_str,
         "temperature": 0,
-        "max_new_tokens": 2048,
+        "max_new_tokens": 4096,
         "model": "gptj-6b",
         "stop": "### Assistant:",
     }

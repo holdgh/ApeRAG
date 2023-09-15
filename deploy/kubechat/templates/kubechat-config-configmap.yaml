@@ -18,6 +18,7 @@ data:
   FEISHU_ENCRYPT_KEY: "{{ .Values.django.feishu.encryptKey }}"
   EMBEDDING_MODEL: "{{ .Values.django.embeddingModel }}"
   ENABLE_QA_GENERATOR: "{{ .Values.django.enableQAGenerator }}"
+  ES_HOST: "{{ .Values.django.esHost }}"
 kind: ConfigMap
 metadata:
   labels:

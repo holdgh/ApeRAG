@@ -92,7 +92,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-DATABASES = {"default": env.db("DATABASE_URL", default="sqlite:///db.sqlite3")}
+DATABASES = {"default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR}/db.sqlite3")}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -268,3 +268,11 @@ FEISHU_ENCRYPT_KEY = env.str("FEISHU_ENCRYPT_KEY", default="")
 ENABLE_QA_GENERATOR = env.bool("ENABLE_QA_GENERATOR", default=False)
 
 CHAT_CONSUMER_IMPLEMENTATION=env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")
+
+REDIS_HOST = env.str("REDIS_HOST", default="localhost")
+REDIS_PORT = env.str("REDIS_PORT", default="6379")
+REDIS_USERNAME = env.str("REDIS_USERNAME", default="")
+REDIS_PASSWORD = env.str("REDIS_PASSWORD", default="")
+
+
+ES_HOST = env.str("ES_HOST", "http://localhost:9200")

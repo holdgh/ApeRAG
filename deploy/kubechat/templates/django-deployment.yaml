@@ -165,6 +165,11 @@ spec:
                 configMapKeyRef:
                   key: EMBEDDING_MODEL
                   name: kubechat-config
+            - name: ES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: ES_HOST
+                  name: kubechat-config
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}

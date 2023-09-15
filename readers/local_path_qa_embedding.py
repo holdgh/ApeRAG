@@ -27,6 +27,9 @@ class LocalPathQAEmbedding(LocalPathEmbedding):
         if not docs:
             return []
 
+        if not settings.ENABLE_QA_GENERATOR:
+            return []
+
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
 

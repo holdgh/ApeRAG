@@ -3,6 +3,8 @@ import logging
 import uuid
 from datetime import datetime
 
+import redis
+from aiofiles import os
 from celery import Task
 from django.db import transaction
 from django.db.models import F
@@ -16,6 +18,7 @@ from kubechat.models import Document, DocumentStatus, CollectionStatus, Collecti
     MessageFeedbackStatus
 from kubechat.source.base import get_source
 from kubechat.source.utils import FeishuNoPermission, FeishuPermissionDenied
+from kubechat.utils.full_text import insert_document, remove_document
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name
 from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
@@ -137,6 +140,11 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         source = get_source(json.loads(document.collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
+
+        with open(local_doc.path) as fd:
+            doc_content = fd.read()
+        insert_document(document.collection_id, document.id, local_doc.name, doc_content)
+
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],
@@ -197,6 +205,7 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
+        remove_document(document.collection_id, document.id)
         relate_ids = json.loads(document.relate_ids)
         vector_db = get_vector_db_connector(collection=generate_vector_db_collection_name(user=document.user,
                                                                                           collection=document.collection.id))
@@ -234,6 +243,11 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         source = get_source(json.loads(document.collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
+
+        with open(local_doc.path) as fd:
+            doc_content = fd.read()
+        insert_document(document.collection_id, document.id, local_doc.name, doc_content)
+
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],

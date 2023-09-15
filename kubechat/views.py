@@ -138,7 +138,7 @@ def list_model_name(request):
             "enabled": model_server.get("enabled", "true").lower() == "true",
             "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
                                                                   DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
-            "context_window": model_server.get("context_window", 2000),
+            "context_window": model_server.get("context_window", 3500),
         })
     response.sort(key=lambda x: x["enabled"], reverse=True)
     return success(response)
@@ -467,7 +467,7 @@ async def get_chat(request, bot_id, chat_id):
             msg["data"] = item["query"]
         else:
             msg["data"] = item["response"]
-            msg["references"] = message.additional_kwargs.get("references")
+            msg["references"] = item.get("references")
         feedback = feedback_map.get(item.get("id", ""), None)
         if role == "ai" and feedback:
             msg["upvote"] = feedback.upvote

@@ -1,4 +1,6 @@
+import re
 import json
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict
@@ -10,13 +12,18 @@ from pydantic import BaseModel
 from config import settings
 from kubechat.context.context import ContextManager
 from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
+    KEYWORD_PROMPT_TEMPLATE
+from kubechat.utils.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name
 from query.query import get_packed_answer
 from readers.base_embedding import get_embedding_model
 
 KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
+
+
+logger = logging.getLogger(__name__)
 
 
 class Message(BaseModel):
@@ -50,7 +57,7 @@ class Pipeline(ABC):
         self.model = bot_config.get("model", "baichuan-13b")
         self.topk = llm_config.get("similarity_topk", 3)
         self.score_threshold = llm_config.get("similarity_score_threshold", 0.5)
-        self.context_window = llm_config.get("context_window", 1900)
+        self.context_window = llm_config.get("context_window", 3500)
         self.prompt_template = llm_config.get("prompt_template", None)
         if not self.prompt_template:
             self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
@@ -184,6 +191,86 @@ class QueryRewritePipeline(Pipeline):
                 response += msg
 
             for result in results:
+                references.append({
+                    "score": result.score,
+                    "text": result.text,
+                    "metadata": result.metadata
+                })
+
+        self.add_ai_message(message, message_id, response, references)
+
+        if gen_references:
+            yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
+
+
+class KeywordPipeline(Pipeline):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    async def run(self, message, gen_references=False, message_id=""):
+        self.add_human_message(message, message_id)
+
+        references = []
+        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
+
+        results = self.qa_context_manager.query(message, score_threshold=0.9, topk=1, recall_factor=1)
+        if len(results) > 0:
+            response = results[0].text
+            yield response
+        else:
+            # extract keywords from message by using LLM
+            keyword_template = PromptTemplate.from_template(KEYWORD_PROMPT_TEMPLATE)
+            keyword_prompt = keyword_template.format(query=message)
+            keyword_response = ""
+            for tokens in predictor.generate_stream(keyword_prompt):
+                keyword_response += tokens
+            keywords = []
+            # the output format of LLM maybe unstable, so we use a list of delimiters to split the response
+            delimiters = "\n, ：，、。"
+            parts = re.split(f"[{re.escape(delimiters)}]", keyword_response)
+            for item in parts:
+                if item.lower() not in message.lower():
+                    logger.info("ignore keyword %s not found in message", item)
+                    continue
+                item = item.strip()
+                if not item:
+                    continue
+                keywords.append(item)
+
+            logger.info("[%s] keywords: %s", message, ",".join(keywords))
+
+            # find the related documents using keywords
+            doc_names = {}
+            if keywords:
+                docs = search_document(self.collection_id, keywords)
+                for doc in docs:
+                    doc_names[doc["name"]] = doc["content"]
+                    logger.info("[%s] found keyword in document %s", message, doc["name"])
+
+            candidates = []
+            results = self.context_manager.query(message, self.score_threshold, self.topk * 3)
+            for result in results:
+                if result.metadata["name"] not in doc_names:
+                    logger.info("[%s] ignore doc %s not match keywords", message, result.metadata["name"])
+                    continue
+                candidates.append(result)
+            # if no keywords found, fallback to using all results from embedding search
+            if not doc_names:
+                candidates = results
+            candidates = candidates[:self.topk]
+
+            context = ""
+            if len(candidates) > 0:
+                context = get_packed_answer(candidates, self.context_window)
+            prompt = self.prompt.format(query=message, context=context)
+
+            response = ""
+            async for msg in predictor.agenerate_stream(prompt):
+                yield msg
+                response += msg
+
+            for result in candidates:
                 references.append({
                     "score": result.score,
                     "text": result.text,
