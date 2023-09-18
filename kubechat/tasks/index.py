@@ -1,10 +1,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime
 
-import redis
-from aiofiles import os
 from celery import Task
 from django.db import transaction
 from django.db.models import F
@@ -19,17 +16,14 @@ from kubechat.models import Document, DocumentStatus, CollectionStatus, Collecti
 from kubechat.source.base import get_source
 from kubechat.source.utils import FeishuNoPermission, FeishuPermissionDenied
 from kubechat.utils.full_text import insert_document, remove_document
-from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name
+from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
+    generate_fulltext_index_name
 from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
 
 logger = logging.getLogger(__name__)
-
-
-def generate_qdrant_collection_id(user, collection) -> str:
-    return str(user).replace('|', '-') + "-" + str(collection)
 
 
 class CustomLoadDocumentTask(Task):
@@ -143,14 +137,16 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
 
         with open(local_doc.path) as fd:
             doc_content = fd.read()
-        insert_document(document.collection_id, document.id, local_doc.name, doc_content)
+
+        index = generate_fulltext_index_name(document.user, document.collection.id)
+        insert_document(index, document.id, local_doc.name, doc_content)
 
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],
                                     embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
-                                        collection=generate_qdrant_collection_id(
+                                        collection=generate_vector_db_collection_name(
                                             user=document.user,
                                             collection=document.collection.id)))
 
@@ -205,7 +201,8 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
-        remove_document(document.collection_id, document.id)
+        index = generate_fulltext_index_name(document.user, document.collection.id)
+        remove_document(index, document.id)
         relate_ids = json.loads(document.relate_ids)
         vector_db = get_vector_db_connector(collection=generate_vector_db_collection_name(user=document.user,
                                                                                           collection=document.collection.id))
@@ -246,14 +243,15 @@ def update_index(self, document_id, collection_sync_history_id=-1):
 
         with open(local_doc.path) as fd:
             doc_content = fd.read()
-        insert_document(document.collection_id, document.id, local_doc.name, doc_content)
+        index = generate_fulltext_index_name(document.user, document.collection.id)
+        insert_document(index, document.id, local_doc.name, doc_content)
 
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],
                                     embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
-                                        collection=generate_qdrant_collection_id(
+                                        collection=generate_vector_db_collection_name(
                                             user=document.user,
                                             collection=document.collection.id)))
         loader.connector.delete(ids=relate_ids.get("ctx", []))

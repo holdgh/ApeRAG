@@ -14,9 +14,10 @@ from kubechat.context.context import ContextManager
 from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
     KEYWORD_PROMPT_TEMPLATE
+from kubechat.pipeline.keyword_extractor import KeywordExtractor, IKExtractor
 from kubechat.utils.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
-    generate_qa_vector_db_collection_name
+    generate_qa_vector_db_collection_name, generate_fulltext_index_name
 from query.query import get_packed_answer
 from readers.base_embedding import get_embedding_model
 
@@ -219,31 +220,14 @@ class KeywordPipeline(Pipeline):
             response = results[0].text
             yield response
         else:
-            # extract keywords from message by using LLM
-            keyword_template = PromptTemplate.from_template(KEYWORD_PROMPT_TEMPLATE)
-            keyword_prompt = keyword_template.format(query=message)
-            keyword_response = ""
-            for tokens in predictor.generate_stream(keyword_prompt):
-                keyword_response += tokens
-            keywords = []
-            # the output format of LLM maybe unstable, so we use a list of delimiters to split the response
-            delimiters = "\n, ：，、。"
-            parts = re.split(f"[{re.escape(delimiters)}]", keyword_response)
-            for item in parts:
-                if item.lower() not in message.lower():
-                    logger.info("ignore keyword %s not found in message", item)
-                    continue
-                item = item.strip()
-                if not item:
-                    continue
-                keywords.append(item)
-
-            logger.info("[%s] keywords: %s", message, ",".join(keywords))
+            index = generate_fulltext_index_name(self.collection.user, self.collection_id)
+            keywords = IKExtractor({"index_name": index, "es_host": settings.ES_HOST}).extract(message)
+            logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
 
             # find the related documents using keywords
             doc_names = {}
             if keywords:
-                docs = search_document(self.collection_id, keywords)
+                docs = search_document(index, keywords, self.topk * 3)
                 for doc in docs:
                     doc_names[doc["name"]] = doc["content"]
                     logger.info("[%s] found keyword in document %s", message, doc["name"])

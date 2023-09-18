@@ -9,6 +9,8 @@ try:
 except:
     pass
 
+
+
 client.create_index([TextField('txt')])
 
 # Add a document

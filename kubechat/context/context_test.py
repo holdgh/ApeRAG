@@ -1,7 +1,6 @@
 import os
 import sys
 
-import gradio as gr
 from tabulate import tabulate
 from datetime import datetime
 
@@ -9,7 +8,6 @@ from kubechat.context.context import ContextManager
 from kubechat.llm.predict import CustomLLMPredictor
 from readers.base_embedding import get_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
-from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
 VECTOR_DB_TYPE = "qdrant"
@@ -120,6 +118,7 @@ def compare_models(test_cases, embedding_ctxs, **kwargs):
     return table
 
 
+"""
 class Logger:
     def __init__(self, filename):
         self.terminal = sys.stdout
@@ -152,7 +151,6 @@ def read_logs():
         return f.read()
 
 
-"""
 import gradio as gr
 
 def tax_calculator(income, marital_status, assets):
@@ -192,7 +190,6 @@ demo = gr.Interface(
 
 demo.launch()
 
-"""
 
 
 def build_web_demo():
@@ -227,6 +224,7 @@ def build_web_demo():
         logs = gr.Textbox()
         demo.load(read_logs, None, logs, every=1)
     return demo
+"""
 
 
 def main(datasets, documents, models, reload, **kwargs):
@@ -244,13 +242,13 @@ os.environ["ENABLE_QA_GENERATOR"] = "True"
 
 if __name__ == "__main__":
     # datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
-    datasets = "/Users/ziang/git/KubeChat/resources/datasets/releases"
-    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
+    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/releases"
+    datasets = "/Users/ziang/git/KubeChat/resources/datasets/test1"
     # documents = "/Users/ziang/git/kubechat/resources/documents/test"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-plain"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-markdown"
-    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown"
-    documents = "/Users/ziang/git/KubeChat/resources/documents/releases"
+    documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown"
+    # documents = "/Users/ziang/git/KubeChat/resources/documents/releases"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown-2"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-short"
     # documents = "/Users/ziang/git/kubechat/resources/documents/tos-feishu-parser-plain"
@@ -267,7 +265,7 @@ if __name__ == "__main__":
     # models = ["piccolo"]
     score_threshold = 0.5
     topk = 3
-    recall_factor = 5
+    recall_factor = 10
     reload = True
     headers, table = main(datasets, documents, models, reload,
                           score_threshold=score_threshold,

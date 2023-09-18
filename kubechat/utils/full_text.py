@@ -2,6 +2,7 @@ from typing import List
 from elasticsearch import Elasticsearch
 
 from config import settings
+from kubechat.utils.utils import generate_fulltext_index_name
 
 es = Elasticsearch(settings.ES_HOST)
 
@@ -66,36 +67,31 @@ from config.settings import REDIS_HOST, REDIS_PORT, REDIS_USERNAME, REDIS_PASSWO
 #
 
 
-def get_index_name(collection_id):
-    return f"collection-{collection_id}"
-
-
 # insert document into elasticsearch
-def insert_document(collection_id, doc_id, doc_name, content):
+def insert_document(index, doc_id, doc_name, content):
     doc = {
         'name': doc_name,
         'content': content,
     }
-    index = get_index_name(collection_id)
     if not es.indices.exists(index=index).body:
-        es.indices.create(index=index)
-        es.indices.put_mapping(index=index, properties={
-            "content": {
-                "type": "text",
-                "analyzer": "ik_max_word",
-                "search_analyzer": "ik_smart"
+        mapping = {
+            "properties": {
+                "content": {
+                    "type": "text",
+                    "analyzer": "ik_max_word",
+                    "search_analyzer": "ik_smart"
+                }
             }
-        })
+        }
+        es.indices.create(index=index, body={"mappings": mapping})
     es.index(index=index, id=f"{doc_id}", document=doc)
 
 
-def remove_document(collection_id, doc_id):
-    index = get_index_name(collection_id)
+def remove_document(index, doc_id):
     es.delete(index=index, id=f"{doc_id}")
 
 
-def search_document(collection_id: str, keywords: List[str], topk=3):
-    index = get_index_name(collection_id)
+def search_document(index: str, keywords: List[str], topk=3):
     query = {
         "bool": {
             "should": [
@@ -118,4 +114,3 @@ def search_document(collection_id: str, keywords: List[str], topk=3):
     for hit in hits["hits"]:
         result.append(hit["_source"])
     return result
-

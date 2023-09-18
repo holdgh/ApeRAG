@@ -63,6 +63,10 @@ def now_unix_milliseconds():
     return int(datetime.utcnow().timestamp() * 1e3)
 
 
+def generate_fulltext_index_name(user, collection) -> str:
+    return str(user).replace("|", "-") + "-" + str(collection)
+
+
 def generate_vector_db_collection_name(user, collection) -> str:
     return str(user).replace("|", "-") + "-" + str(collection)
 
