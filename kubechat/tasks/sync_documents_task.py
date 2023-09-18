@@ -34,13 +34,6 @@ def sync_documents(self, **kwargs):
     )
     logger.debug(f"sync_documents_cron_job() : sync collection{collection_id} start ")
 
-    src_docs = {}
-    source = get_source(json.loads(collection.config))
-    for doc in source.scan_documents():
-        if not os.path.splitext(doc.name)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
-            continue
-        src_docs[doc.name] = doc
-
     dst_docs = {}
     for doc in query_documents(collection.user, collection_id):
         dst_docs[doc.name] = doc
@@ -53,8 +46,13 @@ def sync_documents(self, **kwargs):
     sync_history.update_execution_time()
     sync_history.save()
 
-    for name, src_doc in src_docs.items():
-        dst_doc = dst_docs.get(name, None)
+    src_docs = {}
+    source = get_source(json.loads(collection.config))
+    for src_doc in source.scan_documents():
+        if not os.path.splitext(src_doc.name)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
+            continue
+        src_docs[src_doc.name] = src_doc
+        dst_doc = dst_docs.get(src_doc.name, None)
         if dst_doc:
             metadata = json.loads(dst_doc.metadata)
             dst_modified_time = datetime.datetime.strptime(metadata["modified_time"], "%Y-%m-%dT%H:%M:%S")
@@ -66,7 +64,7 @@ def sync_documents(self, **kwargs):
             sync_history.total_documents_to_sync = sync_history.total_documents_to_sync + 1
             doc = Document(
                 user=collection.user,
-                name=name,
+                name=src_doc.name,
                 status=DocumentStatus.PENDING,
                 size=src_doc.size,
                 collection=collection,

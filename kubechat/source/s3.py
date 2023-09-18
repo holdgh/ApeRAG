@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 import boto3
 
@@ -30,8 +30,7 @@ class S3Source(Source):
         )
         return s3.Bucket(self.bucket_name)
 
-    def scan_documents(self) -> List[RemoteDocument]:
-        documents = []
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         for obj in self.bucket.objects.filter(Prefix=self.dir):
             try:
                 doc = RemoteDocument(
@@ -41,11 +40,10 @@ class S3Source(Source):
                         "modified_time": datetime.utcfromtimestamp(int(obj.last_modified)),
                     }
                 )
-                documents.append(doc)
+                yield doc
             except Exception as e:
                 logger.error(f"scanning_s3_add_index() {obj.key} error {e}")
                 raise e
-        return documents
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
         obj = self.bucket.Object(name)

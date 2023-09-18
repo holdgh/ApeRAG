@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 from kubechat.source.base import Source, RemoteDocument, LocalDocument
 
@@ -14,10 +14,10 @@ class LocalSource(Source):
         super().__init__(ctx)
         self.path = ctx["path"]
 
-    def scan_documents(self) -> List[RemoteDocument]:
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         if not os.path.isdir(self.path):
             logger.error(f"{self.path} is not a dir")
-            return
+            return iter([])
 
         documents = []
         logger.debug(f"phrase dir is {self.path}")

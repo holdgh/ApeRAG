@@ -5,7 +5,7 @@ import re
 import tempfile
 from email import message_from_bytes, parser
 from email.header import decode_header
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 from bs4 import BeautifulSoup
 
@@ -128,8 +128,7 @@ class EmailSource(Source):
         pop_conn.pass_(self.email_password)
         return pop_conn
 
-    def scan_documents(self) -> List[RemoteDocument]:
-        documents = []
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         self.email_num = len(self.conn.list()[1])
         for i in range(self.email_num):
             try:
@@ -160,11 +159,10 @@ class EmailSource(Source):
                         "modified_time": datetime.datetime.now(),
                     }
                 )
-                documents.append(document)
+                yield document
             except Exception as e:
                 logger.error(f"scan_email_documents {e}")
                 raise e
-        return documents
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
         under_line = name.find('_')

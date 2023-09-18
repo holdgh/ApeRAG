@@ -1,7 +1,7 @@
 import datetime
 import logging
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file, FeishuClient, Feishu2PlainText, Feishu2Markdown
@@ -19,7 +19,6 @@ class FeishuSource(Source):
         self.target_format = ctx.get("target_format", "md")
 
     def get_node_documents(self, space_id, node_token):
-        documents = []
         node_mapping = {}
 
         # find parent titles from bottom to top
@@ -56,10 +55,9 @@ class FeishuSource(Source):
                 size=0,
                 metadata=metadata
             )
-            documents.append(doc)
-        return documents
+            yield doc
 
-    def scan_documents(self) -> List[RemoteDocument]:
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         return self.get_node_documents(self.space_id, self.root_node_id)
 
     def get_new_doc_content_with_block_api(self, node_id):

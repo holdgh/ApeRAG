@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file
@@ -10,8 +10,8 @@ class UploadSource(Source):
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
 
-    def scan_documents(self) -> List[RemoteDocument]:
-        return []
+    def scan_documents(self) -> Iterator[RemoteDocument]:
+        return iter([])
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
         path = metadata.get("path", "")

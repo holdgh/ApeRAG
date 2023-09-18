@@ -1,7 +1,7 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, Iterator
 from langchain.schema import Document
 
 from pydantic import BaseModel
@@ -40,7 +40,7 @@ class Source(ABC):
         self.ctx = ctx
 
     @abstractmethod
-    def scan_documents(self) -> List[RemoteDocument]:
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         raise NotImplementedError
 
     @abstractmethod

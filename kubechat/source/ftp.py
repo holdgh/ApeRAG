@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 from ftplib import FTP
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file
@@ -40,9 +40,8 @@ class FTPSource(Source):
                 size=size,
                 modified_time=modified_time,
             )
-            return [doc]
+            yield doc
 
-        documents = []
         queue = [path]  # dir queue
         while len(queue) > 0:
             curPath = queue[0]
@@ -64,15 +63,13 @@ class FTPSource(Source):
                             "modified_time": datetime.strptime(f"{mtime}", "%Y%m%d%H%M%S"),
                         }
                     )
-                    documents.append(doc)
-        return documents
+                    yield doc
 
-    def scan_documents(self) -> List[RemoteDocument]:
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         try:
-            documents = self._deal_the_path(self.ftp, self.path)
+            return self._deal_the_path(self.ftp, self.path)
         except Exception as e:
             raise e
-        return documents
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
         temp_file = gen_temporary_file(name)

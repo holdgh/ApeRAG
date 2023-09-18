@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Iterator
 
 import oss2
 
@@ -26,8 +26,7 @@ class OSSSource(Source):
         bucket = oss2.Bucket(auth, self.endpoint, self.bucket_name)
         return bucket
 
-    def scan_documents(self) -> List[RemoteDocument]:
-        documents = []
+    def scan_documents(self) -> Iterator[RemoteDocument]:
         for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory
             try:
                 doc = RemoteDocument(
@@ -37,11 +36,10 @@ class OSSSource(Source):
                         "modified_time": datetime.utcfromtimestamp(int(obj.last_modified)),
                     }
                 )
-                documents.append(doc)
+                yield doc
             except Exception as e:
                 logger.error(f"scanning_oss_add_index() {obj.key} error {e}")
                 raise e
-        return documents
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
         content = self.bucket.get_object(name).read()
