@@ -39,6 +39,10 @@ class IKExtractor(KeywordExtractor):
             self.stop_words = set()
 
     def extract(self, text):
+        if not self.es.indices.exists(index=self.index_name).body:
+            logger.warning("index %s not exists", self.index_name)
+            return []
+
         resp = self.es.indices.analyze(index=self.index_name, body={"text": text}, analyzer="ik_smart")
         tokens = {}
         for item in resp.body["tokens"]:

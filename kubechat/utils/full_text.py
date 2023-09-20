@@ -1,8 +1,13 @@
+import logging
 from typing import List
 from elasticsearch import Elasticsearch
 
 from config import settings
 from kubechat.utils.utils import generate_fulltext_index_name
+
+
+logger = logging.getLogger(__name__)
+
 
 es = Elasticsearch(settings.ES_HOST)
 
@@ -83,22 +88,35 @@ def create_index(index):
             }
         }
         es.indices.create(index=index, body={"mappings": mapping})
+    else:
+        logger.warning("index %s already exists", index)
 
 
 # insert document into elasticsearch
 def insert_document(index, doc_id, doc_name, content):
-    doc = {
-        'name': doc_name,
-        'content': content,
-    }
-    es.index(index=index, id=f"{doc_id}", document=doc)
+    if es.indices.exists(index=index).body:
+        doc = {
+            'name': doc_name,
+            'content': content,
+        }
+        es.index(index=index, id=f"{doc_id}", document=doc)
+    else:
+        logger.warning("index %s not exists", index)
 
 
 def remove_document(index, doc_id):
-    es.delete(index=index, id=f"{doc_id}")
+    if es.indices.exists(index=index).body:
+        es.delete(index=index, id=f"{doc_id}")
+    else:
+        logger.warning("index %s not exists", index)
 
 
 def search_document(index: str, keywords: List[str], topk=3):
+    if not es.indices.exists(index=index).body:
+        return []
+    else:
+        logger.warning("index %s not exists", index)
+
     query = {
         "bool": {
             "should": [
