@@ -31,8 +31,9 @@ from readers.base_embedding import get_embedding_model
 from .auth.validator import GlobalHTTPAuth
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from .models import *
+from .utils.full_text import create_index, delete_index
 from .utils.utils import generate_vector_db_collection_name, fix_path_name, validate_document_config, \
-    generate_qa_vector_db_collection_name
+    generate_qa_vector_db_collection_name, generate_fulltext_index_name
 
 from django.contrib.auth.models import User
 from django.shortcuts import render
@@ -223,6 +224,10 @@ async def create_collection(request, collection: CollectionIn):
             collection=generate_qa_vector_db_collection_name(user=user, collection=instance.id)
         )
         qa_vector_db_conn.connector.create_collection(vector_size=size)
+
+        index_name = generate_fulltext_index_name(user, instance.id)
+        create_index(index_name)
+
         source = get_source(json.loads(collection.config))
         if source.sync_enabled():
             sync_documents.delay(collection_id=instance.id)
@@ -321,6 +326,8 @@ async def delete_collection(request, collection_id):
     if await sync_to_async(bots.count)() > 0:
         return fail(HTTPStatus.BAD_REQUEST, "Collection has related to bots, can not be deleted")
     # TODO remove the related collection in the vector db
+    index_name = generate_fulltext_index_name(user, collection.id)
+    delete_index(index_name)
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()

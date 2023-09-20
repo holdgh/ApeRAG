@@ -61,6 +61,7 @@ python-docx = "^0.8.11"
 redisearch = "^2.1.1"
 elasticsearch = "^8.9.0"
 gevent = "^23.9.1"
+mdsplit = "^0.4.0"
 
 [tool.poetry.group.llmserver]
 optional = true

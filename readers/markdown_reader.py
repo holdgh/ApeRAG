@@ -1,17 +1,24 @@
+
 """Markdown parser.
 
 Contains parser for md files.
 
 """
 import re
+from mdsplit import split_by_heading, Chapter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document
-
+from pydantic import BaseModel
 
 CHUNK_SPLIT_THRESHOLD = 500
+
+
+class Group(BaseModel):
+    size: int
+    chapters: List[Chapter]
 
 
 class MarkdownReader(BaseReader):
@@ -138,30 +145,68 @@ class MarkdownReader(BaseReader):
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
         """Parse file into string."""
         # if file is too small, just return the whole thing
-        tups = self.parse_tups(file)
+        # tups = self.parse_tups(file)
 
-        header_all = ""
-        text_all = ""
-        header_maps = {}
-        for headers, value in tups:
-            for header in headers:
-                header_maps[header] = True
-            text_all += value + "\n\n"
-        for header in header_maps:
-            header_all += header
+        tups = []
+        header_text = ""
+        all_text = ""
+        with open(file, "r", encoding="utf-8") as f:
+            chapters = split_by_heading(f, 6)
+            tup = ([], 0, "")
+            for chapter in chapters:
+                all_text += "".join(chapter.text)
+                if not chapter.heading:
+                    tups.append(([], "".join(chapter.text)))
+                    continue
+
+                header_text += chapter.heading.full_line
+
+                # if not group.chapters:
+                #     group.chapters.append(chapter)
+                #     group.size += len(chapter.text)
+                # else:
+                #     if group.size >= CHUNK_SPLIT_THRESHOLD:
+                #         level = group.chapters[0].heading.heading_level
+                #         headers = group.chapters[0].parent_headings
+
+
+                # if tup[1] < chapter.heading.heading_level:
+                #     if len(tup[2]) >= CHUNK_SPLIT_THRESHOLD:
+                #         tups.append((tup[0], tup[2]))
+                #         tup = (chapter.parent_headings, chapter.heading.heading_level, "".join(chapter.text))
+                #     else:
+                #         text = tup[2] + "".join(chapter.text)
+                #         tup = (chapter.parent_headings, chapter.heading.heading_level, text)
+                # else:
+                #     tups.append((tup[0], tup[2]))
+                #     tup = (chapter.parent_headings, chapter.heading.heading_level, "".join(chapter.text))
+
+                if len(tup[2]) >= CHUNK_SPLIT_THRESHOLD:
+                    tups.append((tup[0], tup[2]))
+                    tup = (chapter.parent_headings, chapter.heading.heading_level, "".join(chapter.text))
+                else:
+                    text = tup[2] + "".join(chapter.text)
+                    tup = (tup[0], chapter.heading.heading_level, text)
+
+            if len(tup[2]) < CHUNK_SPLIT_THRESHOLD and len(tups) > 0:
+                previous_tup = tups.pop()
+                previous_tup = (previous_tup[0], previous_tup[1] + tup[2])
+                tups.append(previous_tup)
+            else:
+                tups.append((tup[0], tup[2]))
 
         if not metadata:
             metadata = {}
         metadata.update(
             {
-                "content_ratio": len(text_all) / (len(text_all) + len(header_all)),
+                "content_ratio": (len(all_text) - len(header_text)) / len(all_text)
             }
         )
 
         with open(file) as fd:
             content = fd.read()
             if len(content) < CHUNK_SPLIT_THRESHOLD:
-                return [Document(text=text_all, metadata=metadata)]
+                return [Document(text=all_text, metadata=metadata)]
 
         results = []
         # TODO: don't include headers right now

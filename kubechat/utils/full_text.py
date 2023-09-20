@@ -64,15 +64,14 @@ from config.settings import REDIS_HOST, REDIS_PORT, REDIS_USERNAME, REDIS_PASSWO
 #             raise e
 #
 #     client.add_document(f"collection:{collection_id}:document:{doc_id}", language="chinese", name=doc_name, content=content)
-#
 
 
-# insert document into elasticsearch
-def insert_document(index, doc_id, doc_name, content):
-    doc = {
-        'name': doc_name,
-        'content': content,
-    }
+def delete_index(index):
+    if es.indices.exists(index=index).body:
+        es.indices.delete(index=index)
+
+
+def create_index(index):
     if not es.indices.exists(index=index).body:
         mapping = {
             "properties": {
@@ -84,6 +83,14 @@ def insert_document(index, doc_id, doc_name, content):
             }
         }
         es.indices.create(index=index, body={"mappings": mapping})
+
+
+# insert document into elasticsearch
+def insert_document(index, doc_id, doc_name, content):
+    doc = {
+        'name': doc_name,
+        'content': content,
+    }
     es.index(index=index, id=f"{doc_id}", document=doc)
 
 

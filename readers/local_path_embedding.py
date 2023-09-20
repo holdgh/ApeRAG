@@ -57,9 +57,9 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                                text_size_threshold, doc.metadata.get("name", None))
                 continue
 
-            # ignore page with content ratio less than 0.75
+            # ignore page with content ratio less than 0.5
             content_ratio = doc.metadata.get("content_ratio", 1)
-            content_ratio_threshold = 0.75
+            content_ratio_threshold = 0.5
             if content_ratio < content_ratio_threshold:
                 logger.warning("ignore page with content ratio less than %f: %s",
                                content_ratio_threshold, doc.metadata.get("name", None))
@@ -85,12 +85,19 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 logger.info("add extra prefix for document %s before embedding: %s",
                             doc.metadata.get("name", None), prefix)
 
-            # embedding without the code block
-            # text = re.sub(r"```.*?```", "", doc.text, flags=re.DOTALL)
             if prefix:
                 text = f"{prefix}\n{doc.text}"
             else:
                 text = doc.text
+
+            # embedding without the prefix #, which is usually used for padding in the LLM
+            # lines = []
+            # for line in text.split("\n"):
+            #     lines.append(line.strip("#").strip())
+            # text = "\n".join(lines)
+
+            # embedding without the code block
+            # text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
             vector = self.embedding.embed_documents([text])[0]
             doc.embedding = vector
             node = Node(

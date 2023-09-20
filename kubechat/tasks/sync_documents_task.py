@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import traceback
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
@@ -70,7 +71,10 @@ def sync_documents(self, **kwargs):
                 collection=collection,
                 metadata=json.dumps(src_doc.metadata, cls=DjangoJSONEncoder),
             )
-            doc.save()
+            try:
+                doc.save()
+            except Exception:
+                traceback.print_stack()
             sync_history.save()
             add_index_for_document.delay(doc.id, sync_history.id)
 

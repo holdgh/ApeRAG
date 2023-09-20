@@ -1,14 +1,27 @@
+import hashlib
+import json
+import logging
 import os
-import sys
 
+from langchain import PromptTemplate
 from tabulate import tabulate
 from datetime import datetime
 
 from kubechat.context.context import ContextManager
-from kubechat.llm.predict import CustomLLMPredictor
+from kubechat.llm.predict import Predictor, PredictorType, CustomLLMPredictor
+from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.pipeline.keyword_extractor import IKExtractor
+from kubechat.utils.full_text import insert_document, es, search_document, delete_index, create_index
+from kubechat.utils.utils import generate_fulltext_index_name
+from query.query import get_packed_answer
 from readers.base_embedding import get_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 VECTOR_DB_TYPE = "qdrant"
 VECTOR_DB_CONTEXT = {"url": "http://127.0.0.1", "port": 6333, "distance": "Cosine", "timeout": 1000}
@@ -26,6 +39,9 @@ table_format = """
 {table}
 </body></html>
 """
+
+
+predictor = CustomLLMPredictor(model="baichuan-13b", endpoint="http://localhost:18000")
 
 
 class TestCase:
@@ -50,12 +66,24 @@ class EmbeddingCtx:
         self.qa_ctx_manager = ContextManager(self.qa_collection_name, self.model, VECTOR_DB_TYPE, qa_ctx)
         self.qa_vector_db_conn = VectorStoreConnectorAdaptor(VECTOR_DB_TYPE, ctx=qa_ctx)
 
-    def load_file(self, file_path):
-        loader = LocalPathEmbedding(input_files=[file_path], embedding_model=self.model,
-                                    vector_store_adaptor=self.vector_db_conn)
-        loader.load_data()
+        self.index = generate_fulltext_index_name("context-test", self.collection_name)
 
-        predictor = CustomLLMPredictor(model="baichuan-13b", endpoint="http://localhost:18000")
+    def load_file(self, file_path):
+        meta_file = file_path + "-metadata"
+        with open(meta_file) as f:
+            local_doc = json.loads(f.read())
+            metadata = local_doc["metadata"]
+
+        loader = LocalPathEmbedding(input_files=[file_path], input_file_metadata_list=[metadata],
+                                    embedding_model=self.model,
+                                    vector_store_adaptor=self.vector_db_conn)
+        ctx_ids = loader.load_data()
+        if ctx_ids:
+            doc_id = hashlib.md5(local_doc["name"].encode('utf-8')).hexdigest()
+            with open(file_path) as f:
+                doc_content = f.read()
+            insert_document(self.index, doc_id, local_doc["name"], doc_content)
+
         # qa_loader = LocalPathQAEmbedding(predictor=predictor, input_files=[file_path], embedding_model=self.model,
         #                                  vector_store_adaptor=self.qa_vector_db_conn)
         # qa_loader.load_data()
@@ -63,10 +91,15 @@ class EmbeddingCtx:
     def load_dir(self, path):
         self.vector_db_conn.connector.create_collection(vector_size=self.vector_size)
         self.qa_vector_db_conn.connector.create_collection(vector_size=self.vector_size)
+        delete_index(self.index)
+        create_index(self.index)
+
         files = []
         # r=root, d=directories, f = files
         for r, d, f in os.walk(path):
             for file in f:
+                if file.endswith("-metadata"):
+                    continue
                 files.append(os.path.join(r, file))
 
         for file in files:
@@ -76,7 +109,32 @@ class EmbeddingCtx:
         # results = self.qa_ctx_manager.query(query, score_threshold=0.8, topk=3, recall_factor=1)
         # if len(results) > 0:
         #     return results
-        return self.ctx_manager.query(query, **kwargs)
+
+        topk = kwargs.get("topk", 3)
+        score_threshold = kwargs.get("score_threshold", 0.5)
+
+        keywords = IKExtractor({"index_name": self.index, "es_host": "http://127.0.0.1:9200"}).extract(query)
+        logger.info("[%s] extract keywords: %s", query, " | ".join(keywords))
+
+        # find the related documents using keywords
+        doc_names = {}
+        if keywords:
+            docs = search_document(self.index, keywords, topk * 2)
+            for doc in docs:
+                doc_names[doc["name"]] = doc["content"]
+                logger.info("[%s] found keyword in document %s", query, doc["name"])
+
+        candidates = []
+        results = self.ctx_manager.query(query, score_threshold, topk * 3)
+        for result in results:
+            if result.metadata["name"] not in doc_names:
+                logger.info("[%s] ignore doc %s not match keywords", query, result.metadata["name"])
+                continue
+            candidates.append(result)
+        # if no keywords found, fallback to using all results from embedding search
+        if not doc_names:
+            candidates = results
+        return candidates[:topk]
 
 
 def prepare_datasets(test_cases_path):
@@ -106,6 +164,8 @@ def prepare_documents(dataset_dir, models, reload=False):
 
 def compare_models(test_cases, embedding_ctxs, **kwargs):
     table = []
+    prompt_template = PromptTemplate.from_template(DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+    enable_inference = kwargs.get("enable_inference", False)
     for i, item in enumerate(test_cases):
         row = [item.query, item.expect]
         for ctx in embedding_ctxs:
@@ -114,117 +174,16 @@ def compare_models(test_cases, embedding_ctxs, **kwargs):
             for result in results:
                 candidates.append(f"{result.score}: {result.text}")
             row.append("\n\n".join(candidates))
+            if enable_inference and len(results) > 0:
+                context = get_packed_answer(results, 3500)
+                prompt = prompt_template.format(query=item.query, context=context)
+                response = ""
+                for msg in predictor.generate_stream(prompt):
+                    response += msg
+                row.append(response)
+
         table.append(row)
     return table
-
-
-"""
-class Logger:
-    def __init__(self, filename):
-        self.terminal = sys.stdout
-        self.log = open(filename, "w")
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)
-
-    def flush(self):
-        self.terminal.flush()
-        self.log.flush()
-
-    def isatty(self):
-        return False
-
-
-sys.stdout = Logger("output.log")
-
-
-def test(x):
-    print("This is a test")
-    print(f"Your function is running with input {x}...")
-    return x
-
-
-def read_logs():
-    sys.stdout.flush()
-    with open("output.log", "r") as f:
-        return f.read()
-
-
-import gradio as gr
-
-def tax_calculator(income, marital_status, assets):
-    tax_brackets = [(10, 0), (25, 8), (60, 12), (120, 20), (250, 30)]
-    total_deductible = sum(assets["Cost"])
-    taxable_income = income - total_deductible
-
-    total_tax = 0
-    for bracket, rate in tax_brackets:
-        if taxable_income > bracket:
-            total_tax += (taxable_income - bracket) * rate / 100
-
-    if marital_status == "Married":
-        total_tax *= 0.75
-    elif marital_status == "Divorced":
-        total_tax *= 0.8
-
-    return round(total_tax)
-
-demo = gr.Interface(
-    tax_calculator,
-    [
-        "number",
-        gr.Radio(["Single", "Married", "Divorced"]),
-        gr.Dataframe(
-            headers=["Item", "Cost"],
-            datatype=["str", "number"],
-            label="Assets Purchased this Year",
-        ),
-    ],
-    "number",
-    examples=[
-        [10000, "Married", [["Suit", 5000], ["Laptop", 800], ["Car", 1800]]],
-        [80000, "Single", [["Suit", 800], ["Watch", 1800], ["Car", 800]]],
-    ],
-)
-
-demo.launch()
-
-
-
-def build_web_demo():
-
-    with gr.Blocks(
-        title="Embedding Comparison",
-        theme=gr.themes.Base(),
-    ) as demo:
-        score_threshold = gr.Slider(0, 1, value=0.5, label="ScoreThreshold", info="Only show results with score higher than this threshold")
-        topk = gr.Slider(1, 100, value=3, label="TopK", info="Only show top K results")
-        documents = gr.Dropdown(
-            [
-                "/Users/ziang/git/kubechat/resources/documents/tos-feishu-export-pdf",
-                "/Users/ziang/git/kubechat/resources/documents/tos-feishu-parser-plain",
-                "/Users/ziang/git/kubechat/resources/documents/tos-feishu-plain-api",
-                "/Users/ziang/git/kubechat/resources/documents/plain",
-                "/Users/ziang/git/kubechat/resources/documents/test",
-            ],
-            label="Documents"
-        )
-        datasets = gr.Dropdown(
-            [
-                "/Users/ziang/git/KubeChat/resources/datasets/test",
-                "/Users/ziang/git/KubeChat/resources/datasets/tos",
-            ],
-            label="Datasets"
-        )
-        models = gr.CheckboxGroup(["text2vec", "bge", "openai"], label="Embedding Models")
-        btn = gr.Button("Run")
-        txt_3 = gr.Textbox(value="", label="Output")
-        btn.click(main, inputs=[datasets, documents, models, score_threshold, topk], outputs=[txt_3])
-        logs = gr.Textbox()
-        demo.load(read_logs, None, logs, every=1)
-    return demo
-"""
 
 
 def main(datasets, documents, models, reload, **kwargs):
@@ -232,8 +191,12 @@ def main(datasets, documents, models, reload, **kwargs):
     ctx_list = prepare_documents(documents, models, reload)
     table = compare_models(datasets, ctx_list, **kwargs)
     headers = ["query", "references"]
+    enable_inference = kwargs.get("enable_inference", False)
     for i, ctx in enumerate(ctx_list):
         headers.append(ctx.model_name)
+        if enable_inference:
+            headers.append(f"{ctx.model_name}-inference")
+
     return headers, table
 
 
@@ -241,13 +204,13 @@ os.environ["ENABLE_QA_GENERATOR"] = "True"
 
 
 if __name__ == "__main__":
-    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
+    datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
     # datasets = "/Users/ziang/git/KubeChat/resources/datasets/releases"
-    datasets = "/Users/ziang/git/KubeChat/resources/datasets/test1"
+    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
     # documents = "/Users/ziang/git/kubechat/resources/documents/test"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-plain"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-markdown"
-    documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown"
+    documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-markdown"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/releases"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown-2"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-short"
@@ -266,15 +229,15 @@ if __name__ == "__main__":
     score_threshold = 0.5
     topk = 3
     recall_factor = 10
-    reload = True
+    reload = False
+    enable_inference = False
     headers, table = main(datasets, documents, models, reload,
                           score_threshold=score_threshold,
                           topk=topk,
-                          recall_factor=recall_factor)
+                          recall_factor=recall_factor,
+                          enable_inference=enable_inference)
     result = table_format.format(table=tabulate(table, headers, tablefmt="html")).encode("utf-8")
     result_path = f'/tmp/{os.path.basename(documents)}-{datetime.utcnow().timestamp()}.html'
     with open(result_path, "wb+") as fd:
         fd.write(result)
     print(f"write output to file: {result_path}")
-
-    # build_web_demo().queue().launch()

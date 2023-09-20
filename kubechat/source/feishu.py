@@ -102,6 +102,7 @@ class FeishuSource(Source):
                 content = self.get_new_doc_content(node_id)
             case "doc":
                 content = self.client.get_old_doc_plain_content(node_id)
+                content = content.encode("utf-8")
             case _:
                 raise Exception(f"unsupported node type: {metadata['obj_type']}")
 

@@ -75,7 +75,7 @@ def add_index_for_local_document(self, document_id):
     try:
         add_index_for_document(document_id)
     except Exception as e:
-        raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise self.retry(exc=e, countdown=5, max_retries=1)
 
 
 def start_sync_task(collection_sync_history_id):
@@ -135,12 +135,6 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
-        with open(local_doc.path) as fd:
-            doc_content = fd.read()
-
-        index = generate_fulltext_index_name(document.user, document.collection.id)
-        insert_document(index, document.id, local_doc.name, doc_content)
-
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],
@@ -152,6 +146,14 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
 
         ctx_ids = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
+
+        # only index the document that have points in the vector database
+        if ctx_ids:
+            with open(local_doc.path) as fd:
+                doc_content = fd.read()
+
+            index = generate_fulltext_index_name(document.user, document.collection.id)
+            insert_document(index, document.id, local_doc.name, doc_content)
 
         predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
         qa_loaders = LocalPathQAEmbedding(predictor=predictor,
@@ -181,7 +183,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         logger.error(e)
         if collection_sync_history_id > 0:
             deal_sync_task_failure(collection_sync_history_id)
-        raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise self.retry(exc=e, countdown=5, max_retries=1)
 
     source.cleanup_document(local_doc.path)
 
@@ -203,6 +205,7 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     try:
         index = generate_fulltext_index_name(document.user, document.collection.id)
         remove_document(index, document.id)
+
         relate_ids = json.loads(document.relate_ids)
         vector_db = get_vector_db_connector(collection=generate_vector_db_collection_name(user=document.user,
                                                                                           collection=document.collection.id))
@@ -241,11 +244,6 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
-        with open(local_doc.path) as fd:
-            doc_content = fd.read()
-        index = generate_fulltext_index_name(document.user, document.collection.id)
-        insert_document(index, document.id, local_doc.name, doc_content)
-
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],
@@ -257,6 +255,13 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         loader.connector.delete(ids=relate_ids.get("ctx", []))
         ctx_ids = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
+
+        # only index the document that have points in the vector database
+        if ctx_ids:
+            with open(local_doc.path) as fd:
+                doc_content = fd.read()
+            index = generate_fulltext_index_name(document.user, document.collection.id)
+            insert_document(index, document.id, local_doc.name, doc_content)
 
         predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
         qa_loader = LocalPathQAEmbedding(predictor=predictor,
@@ -287,7 +292,7 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         logger.error(e)
         if collection_sync_history_id > 0:
             deal_sync_task_failure(collection_sync_history_id)
-        raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise self.retry(exc=e, countdown=5, max_retries=1)
     source.cleanup_document(local_doc.path)
 
 

@@ -12,9 +12,8 @@ from pydantic import BaseModel
 from config import settings
 from kubechat.context.context import ContextManager
 from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
-    KEYWORD_PROMPT_TEMPLATE
-from kubechat.pipeline.keyword_extractor import KeywordExtractor, IKExtractor
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.utils.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name, generate_fulltext_index_name
@@ -227,7 +226,7 @@ class KeywordPipeline(Pipeline):
             # find the related documents using keywords
             doc_names = {}
             if keywords:
-                docs = search_document(index, keywords, self.topk * 3)
+                docs = search_document(index, keywords, self.topk * 2)
                 for doc in docs:
                     doc_names[doc["name"]] = doc["content"]
                     logger.info("[%s] found keyword in document %s", message, doc["name"])
