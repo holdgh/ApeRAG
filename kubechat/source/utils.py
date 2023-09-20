@@ -168,7 +168,7 @@ class FeishuBlockParser(ABC):
         for index, block_id in enumerate(table["cells"]):
             cell_block = self.block_map[block_id]
             cell_content = self.handle_block(cell_block)
-            cell_content = cell_content.replace("\n", "")
+            cell_content = cell_content.replace("\n", "<br/>")
             row_index = int(index / table["property"]["column_size"])
             if len(rows) < row_index + 1:
                 rows.append([])
