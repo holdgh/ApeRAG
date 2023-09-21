@@ -49,7 +49,6 @@ class Source(ABC):
 
     def cleanup_document(self, filepath: str):
         os.remove(filepath)
-        pass
 
     def close(self):
         pass

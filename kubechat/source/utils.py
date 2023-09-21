@@ -349,6 +349,16 @@ class Feishu2Markdown(FeishuBlockParser):
             case 22:
                 # divider
                 text += "---\n"
+            case 24:
+                # grid
+                for child in block.get("children", []):
+                    child_block = self.block_map[child]
+                    text += self.handle_block(child_block)
+            case 25:
+                # grid column
+                for child in block.get("children", []):
+                    child_block = self.block_map[child]
+                    text += self.handle_block(child_block)
             case 31:
                 # table
                 text += self.parse_table(block["table"])
