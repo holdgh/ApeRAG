@@ -1,8 +1,6 @@
-import json
 import os
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Iterator
-from langchain.schema import Document
 
 from pydantic import BaseModel
 
@@ -74,7 +72,7 @@ def get_source(ctx: Dict[str, Any]):
             from kubechat.source.oss import OSSSource
             source = OSSSource(ctx)
         case "feishu":
-            from kubechat.source.feishu import FeishuSource
+            from kubechat.source.feishu.feishu import FeishuSource
             source = FeishuSource(ctx)
         case "ftp":
             from kubechat.source.ftp import FTPSource

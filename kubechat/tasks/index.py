@@ -14,7 +14,7 @@ from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory, MessageFeedback, \
     MessageFeedbackStatus
 from kubechat.source.base import get_source
-from kubechat.source.utils import FeishuNoPermission, FeishuPermissionDenied
+from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from kubechat.utils.full_text import insert_document, remove_document
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
     generate_fulltext_index_name

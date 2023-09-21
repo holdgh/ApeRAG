@@ -1,10 +1,14 @@
 import datetime
+import json
 import logging
 import time
-from typing import Dict, Any, List, Iterator
+from typing import Dict, Any, Iterator
 
 from kubechat.source.base import Source, RemoteDocument, LocalDocument
-from kubechat.source.utils import gen_temporary_file, FeishuClient, Feishu2PlainText, Feishu2Markdown
+from kubechat.source.utils import gen_temporary_file
+import kubechat.source.feishu.v2.parser as v2
+import kubechat.source.feishu.v1.parser as v1
+from kubechat.source.feishu.client import FeishuClient
 
 logger = logging.getLogger(__name__)
 
@@ -60,17 +64,24 @@ class FeishuSource(Source):
     def scan_documents(self) -> Iterator[RemoteDocument]:
         return self.get_node_documents(self.space_id, self.root_node_id)
 
-    def get_new_doc_content_with_block_api(self, node_id):
+    def get_docx_content_with_block_api(self, node_id):
         blocks = self.client.get_docx_blocks(node_id)
         if self.target_format == "md":
-            return Feishu2Markdown(node_id, blocks).gen()
+            return v2.Feishu2Markdown(node_id, blocks).gen()
         elif self.target_format == "txt":
-            return Feishu2PlainText(node_id, blocks).gen()
+            return v2.Feishu2PlainText(node_id, blocks).gen()
         else:
             raise Exception(f"unsupported target format: {self.target_format}")
 
-    def get_new_doc_content_with_export_api(self, node_id):
-        ticket = self.client.create_export_task(doc_id=node_id, doc_type="docx", extension=self.target_format)
+    def get_doc_content_with_block_api(self, node_id):
+        data = json.loads(self.client.get_docx_blocks(node_id))
+        if self.target_format == "md":
+            return v1.FeishuDocParser(data).gen()
+        else:
+            raise Exception(f"unsupported target format: {self.target_format}")
+
+    def get_content_with_export_api(self, doc_type, node_id, extension="pdf"):
+        ticket = self.client.create_export_task(doc_id=node_id, doc_type=doc_type, extension=extension)
         while True:
             result = self.client.query_export_task(ticket, node_id)
             match result["job_status"]:
@@ -84,14 +95,25 @@ class FeishuSource(Source):
                     raise Exception(f"export task failed: {result}")
         return self.client.download_doc(file_token)
 
-    def get_new_doc_content(self, node_id):
+    def get_docx_content(self, node_id):
         match self.method:
             case "plain_api":
-                return self.client.get_new_doc_plain_content(node_id).encode("utf-8")
+                return self.client.get_docx_plain_content(node_id).encode("utf-8")
             case "block_api":
-                return self.get_new_doc_content_with_block_api(node_id).encode("utf-8")
+                return self.get_docx_content_with_block_api(node_id).encode("utf-8")
             case "export_api":
-                return self.get_new_doc_content_with_export_api(node_id)
+                return self.get_content_with_export_api(doc_type="docx", node_id=node_id)
+            case _:
+                raise Exception(f"unsupported method: {self.method}")
+
+    def get_doc_content(self, node_id):
+        match self.method:
+            case "plain_api":
+                return self.client.get_doc_plain_content(node_id).encode("utf-8")
+            case "block_api":
+                return self.get_doc_content_with_block_api(node_id).encode("utf-8")
+            case "export_api":
+                return self.get_content_with_export_api(doc_type="doc", node_id=node_id)
             case _:
                 raise Exception(f"unsupported method: {self.method}")
 
@@ -99,9 +121,9 @@ class FeishuSource(Source):
         node_id = metadata["obj_token"]
         match metadata["obj_type"]:
             case "docx":
-                content = self.get_new_doc_content(node_id)
+                content = self.get_docx_content(node_id)
             case "doc":
-                content = self.client.get_old_doc_plain_content(node_id)
+                content = self.get_doc_content(node_id)
                 content = content.encode("utf-8")
             case _:
                 raise Exception(f"unsupported node type: {metadata['obj_type']}")

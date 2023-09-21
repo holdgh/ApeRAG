@@ -14,7 +14,7 @@ from kubechat.utils.request import fail, success
 from .auth.validator import FeishuEventVerification
 from .models import ChatPeer
 from .pipeline.pipeline import BasePipeline
-from .source.feishu import FeishuClient
+from kubechat.source.feishu.feishu import FeishuClient
 from .utils.utils import AESCipher
 
 logger = logging.getLogger(__name__)
