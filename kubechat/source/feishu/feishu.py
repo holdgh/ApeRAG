@@ -74,7 +74,7 @@ class FeishuSource(Source):
             raise Exception(f"unsupported target format: {self.target_format}")
 
     def get_doc_content_with_block_api(self, node_id):
-        data = json.loads(self.client.get_docx_blocks(node_id))
+        data = json.loads(self.client.get_doc_blocks(node_id))
         if self.target_format == "md":
             return v1.FeishuDocParser(data).gen()
         else:
@@ -124,7 +124,6 @@ class FeishuSource(Source):
                 content = self.get_docx_content(node_id)
             case "doc":
                 content = self.get_doc_content(node_id)
-                content = content.encode("utf-8")
             case _:
                 raise Exception(f"unsupported node type: {metadata['obj_type']}")
 
