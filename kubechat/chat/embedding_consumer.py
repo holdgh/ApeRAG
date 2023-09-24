@@ -23,7 +23,7 @@ class EmbeddingConsumer(BaseConsumer):
 
         vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         vector_db_collection_id = generate_vector_db_collection_name(
-            self.user, self.collection_id
+            self.collection_id
         )
         vectordb_ctx["collection"] = vector_db_collection_id
 

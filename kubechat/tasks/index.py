@@ -141,8 +141,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
                                     embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_vector_db_collection_name(
-                                            user=document.user,
-                                            collection=document.collection.id)))
+                                            collection_id=document.collection.id)))
 
         ctx_ids = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
@@ -152,7 +151,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
             with open(local_doc.path) as fd:
                 doc_content = fd.read()
 
-            index = generate_fulltext_index_name(document.user, document.collection.id)
+            index = generate_fulltext_index_name(document.collection.id)
             insert_document(index, document.id, local_doc.name, doc_content)
 
         predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
@@ -162,7 +161,6 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
                                           embedding_model=embedding_model,
                                           vector_store_adaptor=get_vector_db_connector(
                                               collection=generate_qa_vector_db_collection_name(
-                                                  user=document.user,
                                                   collection=document.collection.id)))
         qa_ids = qa_loaders.load_data()
         logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
@@ -203,18 +201,19 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     document.collection.status = CollectionStatus.INACTIVE
     document.collection.save()
     try:
-        index = generate_fulltext_index_name(document.user, document.collection.id)
+        index = generate_fulltext_index_name(document.collection.id)
         remove_document(index, document.id)
 
         relate_ids = json.loads(document.relate_ids)
-        vector_db = get_vector_db_connector(collection=generate_vector_db_collection_name(user=document.user,
-                                                                                          collection=document.collection.id))
+        vector_db = get_vector_db_connector(
+            collection=generate_vector_db_collection_name(collection_id=document.collection.id)
+        )
         ctx_relate_ids = relate_ids.get("ctx", [])
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.file}")
 
-        qa_vector_db = get_vector_db_connector(collection=generate_qa_vector_db_collection_name(user=document.user,
-                                                                                          collection=document.collection.id))
+        qa_vector_db = get_vector_db_connector(
+            collection=generate_qa_vector_db_collection_name(collection=document.collection.id))
         qa_relate_ids = relate_ids.get("qa", [])
         qa_vector_db.connector.delete(ids=qa_relate_ids)
         logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
@@ -250,8 +249,7 @@ def update_index(self, document_id, collection_sync_history_id=-1):
                                     embedding_model=embedding_model,
                                     vector_store_adaptor=get_vector_db_connector(
                                         collection=generate_vector_db_collection_name(
-                                            user=document.user,
-                                            collection=document.collection.id)))
+                                            collection_id=document.collection.id)))
         loader.connector.delete(ids=relate_ids.get("ctx", []))
         ctx_ids = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
@@ -260,18 +258,17 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         if ctx_ids:
             with open(local_doc.path) as fd:
                 doc_content = fd.read()
-            index = generate_fulltext_index_name(document.user, document.collection.id)
+            index = generate_fulltext_index_name(document.collection.id)
             insert_document(index, document.id, local_doc.name, doc_content)
 
         predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
         qa_loader = LocalPathQAEmbedding(predictor=predictor,
-                                          input_files=[local_doc.path],
-                                          input_file_metadata_list=[local_doc.metadata],
-                                          embedding_model=embedding_model,
-                                          vector_store_adaptor=get_vector_db_connector(
-                                              collection=generate_qa_vector_db_collection_name(
-                                                  user=document.user,
-                                                  collection=document.collection.id)))
+                                         input_files=[local_doc.path],
+                                         input_file_metadata_list=[local_doc.metadata],
+                                         embedding_model=embedding_model,
+                                         vector_store_adaptor=get_vector_db_connector(
+                                             collection=generate_qa_vector_db_collection_name(
+                                                 collection=document.collection.id)))
         qa_loader.connector.delete(ids=relate_ids.get("qa", []))
         qa_ids = qa_loader.load_data()
         logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
@@ -303,7 +300,7 @@ def message_feedback(**kwargs):
     feedback.status = MessageFeedbackStatus.RUNNING
     feedback.save()
 
-    qa_collection_name = generate_qa_vector_db_collection_name(user=feedback.user, collection=feedback.collection.id)
+    qa_collection_name = generate_qa_vector_db_collection_name(collection=feedback.collection.id)
     vector_store_adaptor = get_vector_db_connector(collection=qa_collection_name)
     embedding_model, _ = get_collection_embedding_model(feedback.collection)
     ids = [i for i in str(feedback.relate_ids or "").split(',') if i]

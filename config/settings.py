@@ -276,3 +276,5 @@ REDIS_PASSWORD = env.str("REDIS_PASSWORD", default="")
 
 
 ES_HOST = env.str("ES_HOST", "http://localhost:9200")
+
+SYSTEM_USER = "kubechat-admin"

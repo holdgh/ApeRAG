@@ -63,7 +63,7 @@ class Pipeline(ABC):
             self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         self.prompt = PromptTemplate.from_template(self.prompt_template)
 
-        collection_name = generate_vector_db_collection_name(self.bot.user, collection.id)
+        collection_name = generate_vector_db_collection_name(collection.id)
         self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.vectordb_ctx["collection"] = collection_name
 
@@ -74,7 +74,7 @@ class Pipeline(ABC):
         self.context_manager = ContextManager(collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                               self.vectordb_ctx)
 
-        qa_collection_name = generate_qa_vector_db_collection_name(self.bot.user, self.collection.id)
+        qa_collection_name = generate_qa_vector_db_collection_name(self.collection.id)
         self.qa_vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.qa_vectordb_ctx["collection"] = qa_collection_name
         self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
@@ -219,7 +219,7 @@ class KeywordPipeline(Pipeline):
             response = results[0].text
             yield response
         else:
-            index = generate_fulltext_index_name(self.collection.user, self.collection_id)
+            index = generate_fulltext_index_name(self.collection_id)
             keywords = IKExtractor({"index_name": index, "es_host": settings.ES_HOST}).extract(message)
             logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
 

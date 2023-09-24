@@ -66,7 +66,7 @@ class EmbeddingCtx:
         self.qa_ctx_manager = ContextManager(self.qa_collection_name, self.model, VECTOR_DB_TYPE, qa_ctx)
         self.qa_vector_db_conn = VectorStoreConnectorAdaptor(VECTOR_DB_TYPE, ctx=qa_ctx)
 
-        self.index = generate_fulltext_index_name("context-test", self.collection_name)
+        self.index = generate_fulltext_index_name(self.collection_name)
 
     def load_file(self, file_path):
         meta_file = file_path + "-metadata"

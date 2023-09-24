@@ -209,7 +209,7 @@ async def create_collection(request, collection: CollectionIn):
         if not validate_document_config(config):
             return fail(HTTPStatus.BAD_REQUEST, "config invalidate")
         vector_db_conn = get_vector_db_connector(
-            collection=generate_vector_db_collection_name(user=user, collection=instance.id)
+            collection=generate_vector_db_collection_name(collection_id=instance.id)
         )
         embedding_model = config.get("embedding_model", "")
         if not embedding_model:
@@ -221,11 +221,11 @@ async def create_collection(request, collection: CollectionIn):
             _, size = get_embedding_model(embedding_model, load=False)
         vector_db_conn.connector.create_collection(vector_size=size)
         qa_vector_db_conn = get_vector_db_connector(
-            collection=generate_qa_vector_db_collection_name(user=user, collection=instance.id)
+            collection=generate_qa_vector_db_collection_name(collection=instance.id)
         )
         qa_vector_db_conn.connector.create_collection(vector_size=size)
 
-        index_name = generate_fulltext_index_name(user, instance.id)
+        index_name = generate_fulltext_index_name(instance.id)
         create_index(index_name)
 
         source = get_source(json.loads(collection.config))
@@ -249,6 +249,19 @@ async def create_collection(request, collection: CollectionIn):
 async def list_collections(request):
     user = get_user(request)
     collections = await query_collections(user)
+    response = []
+    async for collection in collections:
+        bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
+        bot_ids = []
+        async for bot in bots:
+            bot_ids.append(bot.id)
+        response.append(collection.view(bot_ids=bot_ids))
+    return success(response)
+
+
+@api.get("/default_collections")
+async def list_default_collections(request):
+    collections = await query_collections(settings.SYSTEM_USER)
     response = []
     async for collection in collections:
         bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
@@ -326,7 +339,7 @@ async def delete_collection(request, collection_id):
     if await sync_to_async(bots.count)() > 0:
         return fail(HTTPStatus.BAD_REQUEST, "Collection has related to bots, can not be deleted")
     # TODO remove the related collection in the vector db
-    index_name = generate_fulltext_index_name(user, collection.id)
+    index_name = generate_fulltext_index_name(collection.id)
     delete_index(index_name)
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()

@@ -1,12 +1,39 @@
+import random
+import uuid
+
 from django.db import models
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
 from django.utils import timezone
 
 
+def random_id():
+    return ''.join(random.sample(uuid.uuid4().hex, 16))
+
+
+def collection_pk():
+    return "col" + random_id()
+
+
+def doc_pk():
+    return "doc" + random_id()
+
+
+def bot_pk():
+    return "bot" + random_id()
+
+
+def chat_pk():
+    return "chat" + random_id()
+
+
+def collection_history_pk():
+    return "colhist" + random_id()
+
+
 def upload_document_path(document, filename):
     user = document.user.replace("|", "-")
-    return "documents/user-{0}/collection-{1}/{2}".format(
+    return "documents/user-{0}/{1}/{2}".format(
         user, document.collection.id, filename
     )
 
@@ -70,6 +97,7 @@ class VerifyWay(models.TextChoices):
 
 
 class Collection(models.Model):
+    id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=16)
     title = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
     user = models.CharField(max_length=256)
@@ -97,13 +125,14 @@ class Collection(models.Model):
 
 
 class Document(models.Model):
+    id = models.CharField(primary_key=True, default=doc_pk, editable=False, max_length=16)
     name = models.CharField(max_length=1024)
     user = models.CharField(max_length=256)
     config = models.TextField(null=True)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     status = models.CharField(max_length=16, choices=DocumentStatus.choices)
     size = models.BigIntegerField()
-    file = models.FileField(upload_to=upload_document_path)
+    file = models.FileField(upload_to=upload_document_path, max_length=1024)
     relate_ids = models.TextField()
     metadata = models.TextField(default="{}")
     gmt_created = models.DateTimeField(auto_now_add=True)
@@ -142,6 +171,7 @@ class Document(models.Model):
 
 
 class Bot(models.Model):
+    id = models.CharField(primary_key=True, default=bot_pk, editable=False, max_length=16)
     user = models.CharField(max_length=256)
     title = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
@@ -172,6 +202,7 @@ class ChatPeer(models.TextChoices):
 
 
 class Chat(models.Model):
+    id = models.CharField(primary_key=True, default=chat_pk, editable=False, max_length=16)
     user = models.CharField(max_length=256)
     peer_type = models.CharField(max_length=16, default=ChatPeer.SYSTEM, choices=ChatPeer.choices)
     peer_id = models.CharField(max_length=256, null=True)
@@ -226,6 +257,7 @@ class MessageFeedback(models.Model):
 
 
 class CollectionSyncHistory(models.Model):
+    id = models.CharField(primary_key=True, default=collection_history_pk, editable=False, max_length=16)
     user = models.CharField(max_length=256)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
     total_documents = models.PositiveIntegerField()
