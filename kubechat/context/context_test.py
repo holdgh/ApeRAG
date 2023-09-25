@@ -2,10 +2,13 @@ import hashlib
 import json
 import logging
 import os
+import time
+from pathlib import Path
 
 from langchain import PromptTemplate
 from tabulate import tabulate
 from datetime import datetime
+
 
 from kubechat.context.context import ContextManager, AutoCrossEncoderRanker, FlagCrossEncoderRanker
 from kubechat.llm.predict import CustomLLMPredictor
@@ -127,8 +130,11 @@ class EmbeddingCtx:
                 logger.info("[%s] found keyword in document %s", query, doc["name"])
 
         results = self.ctx_manager.query(query, score_threshold, topk * recall_factor)
-        results = self.ranker.rank(query, results)[:topk]
         candidates = []
+        start = time.time()
+        candidates = self.ranker.rank(query, results)[:topk]
+        print(f"{[query]} references: {len(results)}, rerank cost {time.time() - start}\n")
+
         for result in results:
             if result.metadata["name"] not in doc_names:
                 logger.info("[%s] ignore doc %s not match keywords", query, result.metadata["name"])
@@ -138,6 +144,8 @@ class EmbeddingCtx:
         # if no keywords found, fallback to using all results from embedding search
         if not doc_names:
             candidates = results
+
+        # candidates = self.ranker.rank(query, candidates)[:topk]
         return candidates
 
 
@@ -212,21 +220,27 @@ os.environ["ENABLE_QA_GENERATOR"] = "True"
 
 
 if __name__ == "__main__":
-    datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
-    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/releases"
-    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test1"
-    # documents = "/Users/ziang/git/kubechat/resources/documents/test"
-    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-plain"
-    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-markdown"
-    documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-markdown"
-    # documents = "/Users/ziang/git/KubeChat/resources/documents/releases"
-    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-parser-markdown-2"
-    # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-short"
-    # documents = "/Users/ziang/git/kubechat/resources/documents/tos-feishu-parser-plain"
-    # documents = "/Users/ziang/git/kubechat/resources/documents/tos-feishu-parser-plain-without-category"
-    # documents = "/Users/ziang/git/kubechat/resources/documents/tos-pdf"
+    dirname = os.environ.get("KUBECHAT_BASE_DIR", "/Users/ziang/git/kubechat")
+
+    datasets = "resources/datasets/tos"
+    # datasets = "resources/datasets/releases"
+    # datasets = "resources/datasets/test1"
+    # documents = "resources/documents/test"
+    # documents = "resources/documents/tos-feishu-bad-cases-plain"
+    # documents = "resources/documents/tos-feishu-bad-cases-markdown"
+    documents = "resources/documents/tos-feishu-markdown"
+    # documents = "resources/documents/releases"
+    # documents = "resources/documents/tos-feishu-parser-markdown-2"
+    # documents = "resources/documents/tos-short"
+    # documents = "resources/documents/tos-feishu-parser-plain"
+    # documents = "resources/documents/tos-feishu-parser-plain-without-category"
+    # documents = "resources/documents/tos-pdf"
     # models = ["multilingual"]
     # models = ["text2vec"]
+
+    datasets = os.path.join(dirname, datasets)
+    documents = os.path.join(dirname, documents)
+
     models = ["bge"]
     # models = ["mt5"]
     # models = ["openai"]

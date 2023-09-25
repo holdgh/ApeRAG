@@ -6,6 +6,7 @@ import torch
 from FlagEmbedding import FlagReranker
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoConfig
 
+from config import settings
 from query.query import QueryWithEmbedding, DocumentWithScore
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
@@ -28,8 +29,8 @@ class ContentRatioRanker(Ranker):
 
 class AutoCrossEncoderRanker(Ranker):
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-large')
-        self.model = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-large')
+        self.tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-large', device=settings.EMBEDDING_DEVICE)
+        self.model = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-large', device=settings.EMBEDDING_DEVICE)
         self.model.eval()
 
     def rank(self, query, results: List[DocumentWithScore]):
@@ -38,12 +39,10 @@ class AutoCrossEncoderRanker(Ranker):
             pairs.append((query, result.text))
             result.rank_before = idx
 
-        start = time.time()
         with torch.no_grad():
             inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
             scores = self.model(**inputs, return_dict=True).logits.view(-1, ).float()
             results = [x for _, x in sorted(zip(scores, results), reverse=True)]
-        print(f"{[query]} rerank cost {time.time() - start}")
 
         return results
 
@@ -61,6 +60,8 @@ class FlagCrossEncoderRanker(Ranker):
 
         with torch.no_grad():
             scores = self.reranker.compute_score(pairs)
+            if len(pairs) == 1:
+                scores = [scores]
         results = [x for _, x in sorted(zip(scores, results), reverse=True)]
 
         return results

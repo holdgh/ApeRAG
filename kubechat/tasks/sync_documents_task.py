@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 @app.task(bind=True)
 def sync_documents(self, **kwargs):
     collection_id = kwargs["collection_id"]
-    collection = Collection.objects.exclude(status=CollectionStatus.DELETED).get(
-        id=int(collection_id)
-    )
+    collection = Collection.objects.exclude(status=CollectionStatus.DELETED).get(id=collection_id)
     source = get_source(json.loads(collection.config))
     if not source.sync_enabled():
         return -1

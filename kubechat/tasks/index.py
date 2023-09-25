@@ -108,13 +108,13 @@ def deal_sync_task_failure(collection_sync_history_id):
 
 
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
-def add_index_for_document(self, document_id, collection_sync_history_id=-1):
+def add_index_for_document(self, document_id, collection_sync_history_id=""):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
             document_id: the document in Django Module
     """
-    if collection_sync_history_id > 0:
+    if collection_sync_history_id:
         start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
@@ -161,7 +161,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         document.relate_ids = json.dumps(relate_ids)
         document.save()
 
-        if collection_sync_history_id > 0:
+        if collection_sync_history_id:
             deal_sync_task_success(collection_sync_history_id, "add")
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
@@ -169,7 +169,7 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
-        if collection_sync_history_id > 0:
+        if collection_sync_history_id:
             deal_sync_task_failure(collection_sync_history_id)
         raise self.retry(exc=e, countdown=5, max_retries=1)
 
@@ -177,13 +177,13 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
 
 
 @app.task(base=CustomDeleteDocumentTask, ignore_result=True, bind=True)
-def remove_index(self, document_id, collection_sync_history_id=-1):
+def remove_index(self, document_id, collection_sync_history_id=""):
     """
     remove the doc embedding index from vector store db
     :param self:
     :param document_id:
     """
-    if collection_sync_history_id > 0:
+    if collection_sync_history_id:
         start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
@@ -206,18 +206,18 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
         qa_vector_db.connector.delete(ids=qa_relate_ids)
         logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
 
-        if collection_sync_history_id > 0:
+        if collection_sync_history_id:
             deal_sync_task_success(collection_sync_history_id, "remove")
     except Exception as e:
         logger.error(e)
-        if collection_sync_history_id > 0:
+        if collection_sync_history_id:
             deal_sync_task_failure(collection_sync_history_id)
         # raise self.retry(exc=e, countdown=5, max_retries=3)
 
 
 @app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
-def update_index(self, document_id, collection_sync_history_id=-1):
-    if collection_sync_history_id > 0:
+def update_index(self, document_id, collection_sync_history_id=""):
+    if collection_sync_history_id:
         start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
@@ -265,7 +265,7 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         document.relate_ids = json.dumps(relate_ids)
         document.save()
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
-        if collection_sync_history_id > 0:
+        if collection_sync_history_id:
             deal_sync_task_success(collection_sync_history_id, "update")
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
@@ -273,7 +273,7 @@ def update_index(self, document_id, collection_sync_history_id=-1):
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
-        if collection_sync_history_id > 0:
+        if collection_sync_history_id:
             deal_sync_task_failure(collection_sync_history_id)
         raise self.retry(exc=e, countdown=5, max_retries=1)
     source.cleanup_document(local_doc.path)
