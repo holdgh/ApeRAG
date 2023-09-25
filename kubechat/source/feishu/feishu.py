@@ -4,7 +4,7 @@ import logging
 import time
 from typing import Dict, Any, Iterator
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
 from kubechat.source.utils import gen_temporary_file
 import kubechat.source.feishu.v2.parser as v2
 import kubechat.source.feishu.v1.parser as v1
@@ -21,6 +21,10 @@ class FeishuSource(Source):
         self.root_node_id = ctx.get("node_id", "")
         self.method = ctx.get("method", "block_api")
         self.target_format = ctx.get("target_format", "md")
+        try:
+            self.client.get_node(self.root_node_id, timeout=3)
+        except Exception:
+            raise CustomSourceInitializationError(f"Error querying Feishu node {self.root_node_id}. Invalid parameter")
 
     def get_node_documents(self, space_id, node_token):
         node_mapping = {}

@@ -8,6 +8,7 @@ from typing import Dict, Any
 import requests
 from pydantic import BaseModel
 
+from kubechat.source.base import CustomSourceInitializationError
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,11 @@ class FeishuClient(ABC):
     def __init__(self, ctx: Dict[str, Any]):
         self.app_id = ctx.get("app_id", None)
         if self.app_id is None:
-            raise Exception("app_id is required")
+            raise CustomSourceInitializationError("app_id is required")
 
         self.app_secret = ctx.get("app_secret")
         if self.app_secret is None:
-            raise Exception("app_secret is required")
+            raise CustomSourceInitializationError("app_secret is required")
 
         self.mutex = Lock()
         self.space_id = ctx.get("space_id")
@@ -191,14 +192,14 @@ class FeishuClient(ABC):
             page_token = resp["data"]["page_token"]
         return nodes
 
-    def get_node(self, token):
+    def get_node(self, token, **kwargs):
         """
         https://open.feishu.cn/document/server-docs/docs/wiki-v2/space-node/get_node
         """
         params = {
             "token": token,
         }
-        resp = self.get(f"wiki/v2/spaces/get_node", params=params)
+        resp = self.get(f"wiki/v2/spaces/get_node", params=params, **kwargs)
         return resp["data"]["node"]
 
     def get_docx_plain_content(self, doc_id):

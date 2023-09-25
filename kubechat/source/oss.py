@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Iterator
 
 import oss2
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
 from kubechat.source.utils import gen_temporary_file
 
 logger = logging.getLogger(__name__)
@@ -22,9 +22,21 @@ class OSSSource(Source):
         self.bucket = self._connect_bucket()
 
     def _connect_bucket(self):
-        auth = oss2.Auth(self.access_key_id, self.access_key_secret)
-        bucket = oss2.Bucket(auth, self.endpoint, self.bucket_name)
-        return bucket
+        try:
+            auth = oss2.Auth(self.access_key_id, self.access_key_secret)
+            bucket = oss2.Bucket(auth, self.endpoint, self.bucket_name, connect_timeout=3)
+            bucket.get_bucket_info()
+            return bucket
+        except oss2.exceptions.ClientError:
+            raise CustomSourceInitializationError(f"Error connecting to OSS server. Invalid parameter")
+        except oss2.exceptions.AccessDenied:
+            raise CustomSourceInitializationError(f"Error connecting to OSS server. Access denied")
+        except oss2.exceptions.NoSuchBucket:
+            raise CustomSourceInitializationError(f"Error connecting to OSS server. Bucket does not exist")
+        except oss2.exceptions.RequestError:
+            raise CustomSourceInitializationError(f"Error connecting to OSS server. Request error")
+        except oss2.exceptions.ServerError:
+            raise CustomSourceInitializationError(f"Error connecting to OSS server. Server error")
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         for obj in oss2.ObjectIterator(self.bucket, prefix=self.dir):  # get file in given directory

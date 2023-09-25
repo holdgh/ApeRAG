@@ -1,43 +1,36 @@
 import io
 import json
 import logging
-import uuid
 import zipfile
-import kubechat.utils.message as msg_utils
-from pathlib import Path
 from http import HTTPStatus
-
+from pathlib import Path
 from typing import List, Optional
-from kubechat.source.base import get_source
+
 from asgiref.sync import sync_to_async
+from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from django.http import HttpResponse
+from django.shortcuts import render
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
 from pydantic import BaseModel
-from django.core.files.base import ContentFile
+
 import config.settings as settings
-from config.vector_db import get_vector_db_connector
+import kubechat.utils.message as msg_utils
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.source.base import get_source
+from kubechat.tasks.collection import init_collection_task, delete_collection_task
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
+from kubechat.tasks.sync_documents_task import sync_documents
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.readers import DEFAULT_FILE_READER_CLS
-from kubechat.tasks.sync_documents_task import sync_documents
-from kubechat.tasks.collection import init_collection_task, delete_collection_task
-
-from readers.base_embedding import get_embedding_model
-
 from .auth.validator import GlobalHTTPAuth
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from .models import *
-from .utils.full_text import create_index, delete_index
-from .utils.utils import generate_vector_db_collection_name, fix_path_name, validate_document_config, \
-    generate_qa_vector_db_collection_name, generate_fulltext_index_name
-
-from django.contrib.auth.models import User
-from django.shortcuts import render
+from .utils.utils import fix_path_name, validate_source_connect_config
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +180,11 @@ async def get_sync_history(request, collection_id, sync_history_id):
 @api.post("/collections")
 async def create_collection(request, collection: CollectionIn):
     user = get_user(request)
+    config = json.loads(collection.config)
+    if collection.type == CollectionType.DOCUMENT:
+        is_validate, error_msg = validate_source_connect_config(config)
+        if not is_validate:
+            return fail(HTTPStatus.BAD_REQUEST, error_msg)
     instance = Collection(
         user=user,
         type=collection.type,
@@ -199,7 +197,6 @@ async def create_collection(request, collection: CollectionIn):
         instance.config = collection.config
     await instance.asave()
 
-    config = json.loads(collection.config)
     if instance.type == CollectionType.DATABASE:
         if config["verify"] != VerifyWay.PREFERRED:
             add_ssl_file(config, instance)
@@ -482,7 +479,8 @@ class MessageFeedbackIn(Schema):
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     user = get_user(request)
 
-    feedback = await msg_utils.feedback_message(user, chat_id, message_id, msg_in.upvote, msg_in.downvote, msg_in.revised_answer)
+    feedback = await msg_utils.feedback_message(user, chat_id, message_id, msg_in.upvote, msg_in.downvote,
+                                                msg_in.revised_answer)
 
     # embedding the revised answer
     if msg_in.revised_answer is not None:
@@ -623,7 +621,6 @@ async def delete_bot(request, bot_id):
     bot.gmt_deleted = timezone.now()
     await bot.asave()
     return success(bot.view())
-
 
 
 def default_page(request, exception):

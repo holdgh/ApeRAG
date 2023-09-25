@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Dict, Any, List, Iterator
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,8 @@ class LocalSource(Source):
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.path = ctx["path"]
+        if not os.path.isdir(self.path):
+            raise CustomSourceInitializationError(f"input is not a dir")
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         if not os.path.isdir(self.path):

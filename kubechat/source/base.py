@@ -33,6 +33,10 @@ class LocalDocument(BaseModel):
     metadata: Dict[str, Any] = {}
 
 
+class CustomSourceInitializationError(Exception):
+    pass
+
+
 class Source(ABC):
     def __init__(self, ctx: Dict[str, Any]):
         self.ctx = ctx

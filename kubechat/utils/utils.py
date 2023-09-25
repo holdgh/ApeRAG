@@ -6,6 +6,8 @@ import hashlib
 import base64
 from Crypto.Cipher import AES
 
+from kubechat.source.base import get_source, CustomSourceInitializationError
+
 AVAILABLE_MODEL = [""]
 AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu"]
 
@@ -79,12 +81,16 @@ def fix_path_name(path) -> str:
     return str(path).replace("|", "-")
 
 
-def validate_document_config(config: Dict) -> bool:
+def validate_source_connect_config(config: Dict) -> (bool, str):
     if "source" not in config.keys():
-        return False
+        return False, ""
     if config.get("source") not in AVAILABLE_SOURCE:
-        return False
-    return True
+        return False, ""
+    try:
+        get_source(config)
+    except CustomSourceInitializationError as e:
+        return False, str(e)
+    return True, ""
 
 
 class AESCipher(object):

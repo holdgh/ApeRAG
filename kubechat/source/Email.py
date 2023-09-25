@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Iterator
 
 from bs4 import BeautifulSoup
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,7 @@ def check_spam(title: str, body: str):
 
 class EmailSource(Source):
 
+
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
         self.pop_server = ctx["pop_server"]
@@ -117,16 +118,22 @@ class EmailSource(Source):
         self.email_num = 0
 
     def _connect_to_pop3_server(self):
-        pop_conn = None
-        if self.port == 110:
-            pop_conn = poplib.POP3(self.pop_server, self.port)
-        else:
-            pop_conn = poplib.POP3_SSL(self.pop_server, self.port)
-        if pop_conn is None:
-            logger.error(f"connect to pop server {self.pop_server} failed")
-        pop_conn.user(self.email_address)
-        pop_conn.pass_(self.email_password)
-        return pop_conn
+        # Check if email format is valid
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", self.email_address):
+            raise CustomSourceInitializationError("Invalid email format")
+
+        # Check if authentication is successful
+        try:
+            timeout = 3
+            if self.port == 110:
+                pop_conn = poplib.POP3(self.pop_server, self.port, timeout=timeout)
+            else:
+                pop_conn = poplib.POP3_SSL(self.pop_server, self.port, timeout=timeout)
+            pop_conn.user(self.email_address)
+            pop_conn.pass_(self.email_password)
+            return pop_conn
+        except Exception as e:
+            raise CustomSourceInitializationError(f"Failed to connect to POP server: {e}")
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         self.email_num = len(self.conn.list()[1])

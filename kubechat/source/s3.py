@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import Dict, Any, List, Iterator
 
 import boto3
+import botocore
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
 from kubechat.source.utils import gen_temporary_file
 
 logger = logging.getLogger(__name__)
@@ -22,13 +23,25 @@ class S3Source(Source):
         self.bucket = self._connect_bucket()
 
     def _connect_bucket(self):
-        s3 = boto3.resource(
-            "s3",
-            aws_access_key_id=self.access_key_id,
-            aws_secret_access_key=self.access_key_secret,
-            region_name=self.region,
-        )
-        return s3.Bucket(self.bucket_name)
+        try:
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=self.access_key_id,
+                aws_secret_access_key=self.access_key_secret,
+                region_name=self.region,
+                config=botocore.config.Config(connect_timeout=3)
+            )
+            # check if bucket exists, and you have permission to access it
+            s3_client.head_bucket(Bucket=self.bucket_name)
+            return s3_client.Bucket(self.bucket_name)
+        except botocore.exceptions.ParamValidationError:
+            raise CustomSourceInitializationError(f"Error connecting to S3 server. Invalid parameter")
+        except botocore.exceptions.NoCredentialsError:
+            raise CustomSourceInitializationError(f"Error connecting to S3 server. No valid AWS credentials provided")
+        except botocore.exceptions.EndpointConnectionError:
+            raise CustomSourceInitializationError(f"Error connecting to S3 server. Unable to reach the endpoint")
+        except botocore.exceptions.WaiterError:
+            raise CustomSourceInitializationError(f"Error connecting to S3 server. Connection timed out")
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         for obj in self.bucket.objects.filter(Prefix=self.dir):
