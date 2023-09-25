@@ -22,5 +22,9 @@ class VectorStoreConnector(ABC):
         pass
 
     @abstractmethod
-    def create_collection(self, **delete_kwargs: Any):
+    def create_collection(self, **create_kwargs: Any):
+        pass
+
+    @abstractmethod
+    def delete_collection(self, **delete_kwargs: Any):
         pass

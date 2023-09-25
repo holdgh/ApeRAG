@@ -7,8 +7,8 @@ from langchain import PromptTemplate
 from tabulate import tabulate
 from datetime import datetime
 
-from kubechat.context.context import ContextManager
-from kubechat.llm.predict import Predictor, PredictorType, CustomLLMPredictor
+from kubechat.context.context import ContextManager, AutoCrossEncoderRanker, FlagCrossEncoderRanker
+from kubechat.llm.predict import CustomLLMPredictor
 from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.utils.full_text import insert_document, es, search_document, delete_index, create_index
@@ -67,6 +67,7 @@ class EmbeddingCtx:
         self.qa_vector_db_conn = VectorStoreConnectorAdaptor(VECTOR_DB_TYPE, ctx=qa_ctx)
 
         self.index = generate_fulltext_index_name(self.collection_name)
+        self.ranker = FlagCrossEncoderRanker()
 
     def load_file(self, file_path):
         meta_file = file_path + "-metadata"
@@ -112,6 +113,7 @@ class EmbeddingCtx:
 
         topk = kwargs.get("topk", 3)
         score_threshold = kwargs.get("score_threshold", 0.5)
+        recall_factor = kwargs.get("recall_factor", 1)
 
         keywords = IKExtractor({"index_name": self.index, "es_host": "http://127.0.0.1:9200"}).extract(query)
         logger.info("[%s] extract keywords: %s", query, " | ".join(keywords))
@@ -119,22 +121,24 @@ class EmbeddingCtx:
         # find the related documents using keywords
         doc_names = {}
         if keywords:
-            docs = search_document(self.index, keywords, topk * 2)
+            docs = search_document(self.index, keywords, topk * 3)
             for doc in docs:
                 doc_names[doc["name"]] = doc["content"]
                 logger.info("[%s] found keyword in document %s", query, doc["name"])
 
+        results = self.ctx_manager.query(query, score_threshold, topk * recall_factor)
+        results = self.ranker.rank(query, results)[:topk]
         candidates = []
-        results = self.ctx_manager.query(query, score_threshold, topk * 3)
         for result in results:
             if result.metadata["name"] not in doc_names:
                 logger.info("[%s] ignore doc %s not match keywords", query, result.metadata["name"])
                 continue
             candidates.append(result)
+
         # if no keywords found, fallback to using all results from embedding search
         if not doc_names:
             candidates = results
-        return candidates[:topk]
+        return candidates
 
 
 def prepare_datasets(test_cases_path):
@@ -171,8 +175,12 @@ def compare_models(test_cases, embedding_ctxs, **kwargs):
         for ctx in embedding_ctxs:
             results = ctx.query(item.query, **kwargs)
             candidates = []
-            for result in results:
-                candidates.append(f"{result.score}: {result.text}")
+            for idx, result in enumerate(results):
+                prefixes = [f"score: {result.score}"]
+                if idx != result.rank_before:
+                    prefixes.append(f"rerank: from {result.rank_before + 1} to {idx + 1}")
+                prefix = '\n'.join(prefixes)
+                candidates.append(f"{prefix}\n: {result.text}")
             row.append("\n\n".join(candidates))
             if enable_inference and len(results) > 0:
                 context = get_packed_answer(results, 3500)
@@ -206,7 +214,7 @@ os.environ["ENABLE_QA_GENERATOR"] = "True"
 if __name__ == "__main__":
     datasets = "/Users/ziang/git/KubeChat/resources/datasets/tos"
     # datasets = "/Users/ziang/git/KubeChat/resources/datasets/releases"
-    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test"
+    # datasets = "/Users/ziang/git/KubeChat/resources/datasets/test1"
     # documents = "/Users/ziang/git/kubechat/resources/documents/test"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-plain"
     # documents = "/Users/ziang/git/KubeChat/resources/documents/tos-feishu-bad-cases-markdown"
@@ -228,7 +236,7 @@ if __name__ == "__main__":
     # models = ["piccolo"]
     score_threshold = 0.5
     topk = 3
-    recall_factor = 10
+    recall_factor = 6
     reload = False
     enable_inference = False
     headers, table = main(datasets, documents, models, reload,

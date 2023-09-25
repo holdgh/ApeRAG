@@ -1,7 +1,7 @@
 import logging
 
 from .base_consumer import BaseConsumer
-from ..pipeline.pipeline import QueryRewritePipeline, KeywordPipeline
+from ..pipeline.pipeline import KeywordPipeline
 
 logger = logging.getLogger(__name__)
 

@@ -23,12 +23,15 @@ async def bot_consumer_router(scope, receive, send):
         raise Exception("Chat not found")
 
     if collection.type == CollectionType.DOCUMENT:
-        from .document_qa_consumer import DocumentQAConsumer
-        from .embedding_consumer import EmbeddingConsumer
 
         if settings.CHAT_CONSUMER_IMPLEMENTATION == "document-qa":
+            from .document_qa_consumer import DocumentQAConsumer
             return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+        elif settings.CHAT_CONSUMER_IMPLEMENTATION == "fake":
+            from kubechat.chat.fake_consumer import FakeConsumer
+            return await FakeConsumer.as_asgi()(scope, receive, send)
         else:
+            from .embedding_consumer import EmbeddingConsumer
             return await EmbeddingConsumer.as_asgi()(scope, receive, send)
     elif collection.type == CollectionType.DATABASE:
         from .text_2_sql_consumer import Text2SQLConsumer

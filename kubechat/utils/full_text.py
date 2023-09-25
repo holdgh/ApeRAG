@@ -9,7 +9,8 @@ from kubechat.utils.utils import generate_fulltext_index_name
 logger = logging.getLogger(__name__)
 
 
-es = Elasticsearch(settings.ES_HOST)
+if settings.ENABLE_KEYWORD_SEARCH:
+    es = Elasticsearch(settings.ES_HOST)
 
 
 # import redis
@@ -114,8 +115,6 @@ def remove_document(index, doc_id):
 def search_document(index: str, keywords: List[str], topk=3):
     if not es.indices.exists(index=index).body:
         return []
-    else:
-        logger.warning("index %s not exists", index)
 
     query = {
         "bool": {

@@ -1,12 +1,69 @@
-from abc import ABC
+import time
+from abc import ABC, abstractmethod
+from typing import List
 
-from query.query import QueryWithEmbedding
+import torch
+from FlagEmbedding import FlagReranker
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoConfig
+
+from query.query import QueryWithEmbedding, DocumentWithScore
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
 
-class RankingStrategy(ABC):
-    def sort(self, results):
+class Ranker(ABC):
+
+    @abstractmethod
+    def rank(self, query, results: List[DocumentWithScore]):
         pass
+
+
+class ContentRatioRanker(Ranker):
+    def __init__(self, query):
+        self.query = query
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        results.sort(key=lambda x: (x.metadata.get("content_ratio", 1), x.score), reverse=True)
+        return results
+
+
+class AutoCrossEncoderRanker(Ranker):
+    def __init__(self):
+        self.tokenizer = AutoTokenizer.from_pretrained('BAAI/bge-reranker-large')
+        self.model = AutoModelForSequenceClassification.from_pretrained('BAAI/bge-reranker-large')
+        self.model.eval()
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        pairs = []
+        for idx, result in enumerate(results):
+            pairs.append((query, result.text))
+            result.rank_before = idx
+
+        start = time.time()
+        with torch.no_grad():
+            inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
+            scores = self.model(**inputs, return_dict=True).logits.view(-1, ).float()
+            results = [x for _, x in sorted(zip(scores, results), reverse=True)]
+        print(f"{[query]} rerank cost {time.time() - start}")
+
+        return results
+
+
+class FlagCrossEncoderRanker(Ranker):
+    def __init__(self):
+        # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
+        self.reranker = FlagReranker('BAAI/bge-reranker-large')  # use fp16 can speed up computing
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        pairs = []
+        for idx, result in enumerate(results):
+            pairs.append((query, result.text))
+            result.rank_before = idx
+
+        with torch.no_grad():
+            scores = self.reranker.compute_score(pairs)
+        results = [x for _, x in sorted(zip(scores, results), reverse=True)]
+
+        return results
 
 
 class ContextManager(ABC):
@@ -16,10 +73,10 @@ class ContextManager(ABC):
         self.embedding_model = embedding_model
         self.adaptor = VectorStoreConnectorAdaptor(vectordb_type, vectordb_ctx)
 
-    def query(self, query, score_threshold=0.5, topk=3, recall_factor=1):
+    def query(self, query, score_threshold=0.5, topk=3):
         vector = self.embedding_model.embed_query(query)
-        query_embedding = QueryWithEmbedding(query=query, top_k=topk*recall_factor, embedding=vector)
-        results = self.adaptor.connector.search(
+        query_embedding = QueryWithEmbedding(query=query, top_k=topk, embedding=vector)
+        return self.adaptor.connector.search(
             query_embedding,
             collection_name=self.collection_name,
             query_vector=query_embedding.embedding,
@@ -28,6 +85,4 @@ class ContextManager(ABC):
             consistency="majority",
             search_params={"hnsw_ef": 128, "exact": False},
             score_threshold=score_threshold,
-        )
-        # results.results.sort(key=lambda x: (x.metadata.get("content_ratio", 1), x.score), reverse=True)
-        return results.results[:topk]
+        ).results

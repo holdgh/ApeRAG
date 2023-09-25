@@ -1,20 +1,19 @@
-import datetime
+import json
 import json
 import logging
 import traceback
+from abc import abstractmethod
 
 import websockets
-from abc import abstractmethod
-from asgiref.sync import sync_to_async, async_to_sync
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer, AsyncConsumer
+from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
 from langchain.memory import RedisChatMessageHistory
-from langchain.schema import AIMessage, BaseChatMessageHistory, HumanMessage
 
 import config.settings as settings
 from kubechat.auth.validator import DEFAULT_USER
 from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES
 from kubechat.utils.db import query_bot
-from kubechat.utils.utils import extract_collection_and_chat_id, now_unix_milliseconds, extract_bot_and_chat_id
+from kubechat.utils.utils import now_unix_milliseconds, extract_bot_and_chat_id
 from readers.base_embedding import get_collection_embedding_model
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.bot = None
 
     async def connect(self):
-        from kubechat.utils.db import query_chat, query_collection
+        from kubechat.utils.db import query_chat
 
         self.user = self.scope["X-USER-ID"]
         bot_id, chat_id = extract_bot_and_chat_id(self.scope["path"])
@@ -93,7 +92,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             references = []
             async for tokens in self.predict(data["data"], message_id=message_id):
                 if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
-                    references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES) :])
+                    references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES):])
                     continue
 
                 # streaming response

@@ -21,7 +21,6 @@ cryptography = "^41.0.1"
 python-dotenv = "^1.0.0"
 django-environ = "^0.10.0"
 django-ninja = "^0.22.2"
-requests = "^2.31.0"
 auth0-python = "^4.2.0"
 celery = "^5.3.1"
 channels = "^4.0.0"
@@ -62,6 +61,8 @@ redisearch = "^2.1.1"
 elasticsearch = "^8.9.0"
 gevent = "^23.9.1"
 mdsplit = "^0.4.0"
+requests = "^2.31.0"
+flagembedding = "^1.1.1"
 
 [tool.poetry.group.llmserver]
 optional = true

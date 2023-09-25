@@ -267,7 +267,7 @@ FEISHU_ENCRYPT_KEY = env.str("FEISHU_ENCRYPT_KEY", default="")
 
 ENABLE_QA_GENERATOR = env.bool("ENABLE_QA_GENERATOR", default=False)
 
-CHAT_CONSUMER_IMPLEMENTATION=env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")
+CHAT_CONSUMER_IMPLEMENTATION = env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")
 
 REDIS_HOST = env.str("REDIS_HOST", default="localhost")
 REDIS_PORT = env.str("REDIS_PORT", default="6379")
@@ -275,6 +275,7 @@ REDIS_USERNAME = env.str("REDIS_USERNAME", default="")
 REDIS_PASSWORD = env.str("REDIS_PASSWORD", default="")
 
 
+ENABLE_KEYWORD_SEARCH = env.bool("ENABLE_KEYWORD_SEARCH", default=True)
 ES_HOST = env.str("ES_HOST", "http://localhost:9200")
 
 SYSTEM_USER = "kubechat-admin"

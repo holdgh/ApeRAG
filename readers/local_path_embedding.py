@@ -67,8 +67,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             paddings = []
             # padding titles of the hierarchy
-            # if "titles" in doc.metadata:
-            #     paddings.append(" ".join(doc.metadata["titles"]))
+            if "titles" in doc.metadata:
+                paddings.append(" ".join(doc.metadata["titles"]))
 
             # padding user custom labels
             if "labels" in doc.metadata:

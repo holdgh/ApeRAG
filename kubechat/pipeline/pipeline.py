@@ -1,8 +1,10 @@
+import random
 import re
 import json
 import logging
 import uuid
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Optional, List, Dict
 
 from langchain import PromptTemplate
@@ -10,7 +12,7 @@ from langchain.schema import BaseChatMessageHistory, HumanMessage, AIMessage
 from pydantic import BaseModel
 
 from config import settings
-from kubechat.context.context import ContextManager
+from kubechat.context.context import ContextManager, AutoCrossEncoderRanker
 from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
@@ -131,6 +133,50 @@ class Pipeline(ABC):
         pass
 
 
+class FakePipeline(Pipeline):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        words_path = kwargs.get("words_path", Path(__file__).parent / "words_dictionary.json")
+        with open(words_path) as fd:
+            self.words = list(json.loads(fd.read()).keys())
+
+    def sentence_generator(self, batch=1, min_len=3, max_len=10):
+        for i in range(batch):
+            tokens = []
+            for j in range(random.randint(min_len, max_len)):
+                tokens.append(random.choice(self.words))
+            yield " ".join(tokens)
+
+    async def run(self, message, gen_references=False, message_id=""):
+        self.add_human_message(message, message_id)
+
+        response = ""
+        for sentence in self.sentence_generator(batch=5, min_len=10, max_len=30):
+            if random.sample([True, False], 1):
+                sentence += "\n\n"
+            yield sentence
+            response += sentence
+
+        references = []
+        for result in range(3):
+            ref = ""
+            for sentence in self.sentence_generator(batch=5, min_len=20, max_len=50):
+                if random.sample([True, False], 1):
+                    sentence += "\n\n"
+                ref += sentence
+            references.append({
+                "score": round(random.uniform(0.5, 0.6), 2),
+                "text": ref,
+                "metadata": {"source": ref[:20]},
+            })
+
+        self.add_ai_message(message, message_id, response, references)
+
+        if gen_references:
+            yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
+
+
 class BasePipeline(Pipeline):
 
     def __init__(self, **kwargs):
@@ -173,7 +219,7 @@ class QueryRewritePipeline(Pipeline):
         self.add_human_message(message, message_id)
 
         references = []
-        results = self.qa_context_manager.query(message, score_threshold=0.85, topk=1, recall_factor=1)
+        results = self.qa_context_manager.query(message, score_threshold=0.85, topk=1)
         if len(results) > 0:
             response = results[0].text
             yield response
@@ -207,6 +253,7 @@ class KeywordPipeline(Pipeline):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.ranker = AutoCrossEncoderRanker()
 
     async def run(self, message, gen_references=False, message_id=""):
         self.add_human_message(message, message_id)
@@ -214,7 +261,7 @@ class KeywordPipeline(Pipeline):
         references = []
         predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
 
-        results = self.qa_context_manager.query(message, score_threshold=0.9, topk=1, recall_factor=1)
+        results = self.qa_context_manager.query(message, score_threshold=0.9, topk=1)
         if len(results) > 0:
             response = results[0].text
             yield response
@@ -232,7 +279,7 @@ class KeywordPipeline(Pipeline):
                     logger.info("[%s] found keyword in document %s", message, doc["name"])
 
             candidates = []
-            results = self.context_manager.query(message, self.score_threshold, self.topk * 3)
+            results = self.context_manager.query(message, self.score_threshold, self.topk * 6)
             for result in results:
                 if result.metadata["name"] not in doc_names:
                     logger.info("[%s] ignore doc %s not match keywords", message, result.metadata["name"])
@@ -241,6 +288,8 @@ class KeywordPipeline(Pipeline):
             # if no keywords found, fallback to using all results from embedding search
             if not doc_names:
                 candidates = results
+
+            candidates = self.ranker.rank(message, candidates)
             candidates = candidates[:self.topk]
 
             context = ""

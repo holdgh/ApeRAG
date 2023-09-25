@@ -1645,6 +1645,27 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "flagembedding"
+version = "1.1.1"
+description = "FlagEmbedding"
+optional = false
+python-versions = "*"
+files = [
+    {file = "FlagEmbedding-1.1.1.tar.gz", hash = "sha256:b304514b98bff83d530679619a072cc55ad308821ee1c96467e4b162781bf723"},
+]
+
+[package.dependencies]
+accelerate = ">=0.20.1"
+datasets = "*"
+torch = ">=1.6.0"
+transformers = ">=4.18.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "flower"
 version = "2.0.1"
 description = "Celery Flower"
@@ -7174,4 +7195,4 @@ all = ["clickhouse-connect", "elasticsearch", "pymilvus", "pymongo", "weaviate-c
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "e3c5e745088685885ec5f6b72d497d01f445d940bccc99f8c9ac4e7c5552f315"
+content-hash = "d04e6ebc2d8ab64ac6eae6124e8ee249f6f0907160bc2b633043a10e49aa767a"

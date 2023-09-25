@@ -25,6 +25,7 @@ from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.readers import DEFAULT_FILE_READER_CLS
 from kubechat.tasks.sync_documents_task import sync_documents
+from kubechat.tasks.collection import init_collection_task, delete_collection_task
 
 from readers.base_embedding import get_embedding_model
 
@@ -189,7 +190,7 @@ async def create_collection(request, collection: CollectionIn):
     instance = Collection(
         user=user,
         type=collection.type,
-        status=CollectionStatus.ACTIVE,
+        status=CollectionStatus.INACTIVE,
         title=collection.title,
         description=collection.description,
     )
@@ -205,32 +206,7 @@ async def create_collection(request, collection: CollectionIn):
             collection.config = json.dumps(config)
             await instance.asave()
     elif instance.type == CollectionType.DOCUMENT:
-        # pre-create collection in vector db
-        if not validate_document_config(config):
-            return fail(HTTPStatus.BAD_REQUEST, "config invalidate")
-        vector_db_conn = get_vector_db_connector(
-            collection=generate_vector_db_collection_name(collection_id=instance.id)
-        )
-        embedding_model = config.get("embedding_model", "")
-        if not embedding_model:
-            _, size = get_embedding_model(settings.EMBEDDING_MODEL, load=False)
-            config["embedding_model"] = settings.EMBEDDING_MODEL
-            instance.config = json.dumps(config)
-            await instance.asave()
-        else:
-            _, size = get_embedding_model(embedding_model, load=False)
-        vector_db_conn.connector.create_collection(vector_size=size)
-        qa_vector_db_conn = get_vector_db_connector(
-            collection=generate_qa_vector_db_collection_name(collection=instance.id)
-        )
-        qa_vector_db_conn.connector.create_collection(vector_size=size)
-
-        index_name = generate_fulltext_index_name(instance.id)
-        create_index(index_name)
-
-        source = get_source(json.loads(collection.config))
-        if source.sync_enabled():
-            sync_documents.delay(collection_id=instance.id)
+        init_collection_task.delay(collection_id=instance.id)
     elif instance.type == CollectionType.CODE:
         chat = Chat(
             user=instance.user,
@@ -338,12 +314,10 @@ async def delete_collection(request, collection_id):
     bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
     if await sync_to_async(bots.count)() > 0:
         return fail(HTTPStatus.BAD_REQUEST, "Collection has related to bots, can not be deleted")
-    # TODO remove the related collection in the vector db
-    index_name = generate_fulltext_index_name(collection.id)
-    delete_index(index_name)
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
+    delete_collection_task.delay(collection_id)
     return success(collection.view())
 
 
@@ -374,7 +348,7 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
             response.append(document_instance.view())
             add_index_for_local_document.delay(document_instance.id)
         else:
-            logger.error("uploaded a file of unexpected file type.")
+            logger.error("ignore unsupported file types: %s", item.name)
     return success(response)
 
 

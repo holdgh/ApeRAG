@@ -111,3 +111,7 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
                 distance=rest.Distance.COSINE,
             ),
         )
+
+    def delete_collection(self, **kwargs: Any):
+        self.client.delete_collection(collection_name=self.collection_name)
+

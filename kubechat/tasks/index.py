@@ -7,7 +7,6 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.predict import Predictor, PredictorType
@@ -32,8 +31,6 @@ class CustomLoadDocumentTask(Task):
         document = Document.objects.get(id=document_id)
         document.status = DocumentStatus.COMPLETE
         document.save()
-        document.collection.status = CollectionStatus.ACTIVE
-        document.collection.save()
         logger.info(f"add qdrant points for document {document.name} success")
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
@@ -41,8 +38,6 @@ class CustomLoadDocumentTask(Task):
         document = Document.objects.get(id=document_id)
         document.status = DocumentStatus.FAILED
         document.save()
-        document.collection.status = CollectionStatus.ACTIVE
-        document.collection.save()
         logger.error(f"add qdrant points for document {document.name} error:{exc}")
 
 
@@ -55,8 +50,6 @@ class CustomDeleteDocumentTask(Task):
         document.gmt_deleted = timezone.now()
         document.name = document.name + "-" + str(uuid.uuid4())
         document.save()
-        document.collection.status = CollectionStatus.ACTIVE
-        document.collection.save()
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         document_id = args[0]
@@ -126,9 +119,6 @@ def add_index_for_document(self, document_id, collection_sync_history_id=-1):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
-    # there is no need to update collection status as it's useless
-    document.collection.status = CollectionStatus.INACTIVE
-    document.collection.save()
 
     try:
         source = get_source(json.loads(document.collection.config))
@@ -198,8 +188,6 @@ def remove_index(self, document_id, collection_sync_history_id=-1):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
-    document.collection.status = CollectionStatus.INACTIVE
-    document.collection.save()
     try:
         index = generate_fulltext_index_name(document.collection.id)
         remove_document(index, document.id)
@@ -234,8 +222,6 @@ def update_index(self, document_id, collection_sync_history_id=-1):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
-    document.collection.status = CollectionStatus.INACTIVE
-    document.collection.save()
 
     try:
         relate_ids = json.loads(document.relate_ids)
