@@ -12,7 +12,7 @@ from langchain.schema import BaseChatMessageHistory, HumanMessage, AIMessage
 from pydantic import BaseModel
 
 from config import settings
-from kubechat.context.context import ContextManager, AutoCrossEncoderRanker
+from kubechat.context.context import ContextManager
 from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
@@ -20,7 +20,7 @@ from kubechat.utils.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name, generate_fulltext_index_name
 from query.query import get_packed_answer
-from readers.base_embedding import get_embedding_model
+from readers.base_embedding import get_embedding_model, get_rerank_model
 
 KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
 
@@ -55,12 +55,12 @@ class Pipeline(ABC):
         self.history = history
         self.collection_id = collection.id
         bot_config = json.loads(self.bot.config)
-        llm_config = bot_config.get("llm", {})
+        self.llm_config = bot_config.get("llm", {})
         self.model = bot_config.get("model", "baichuan-13b")
-        self.topk = llm_config.get("similarity_topk", 3)
-        self.score_threshold = llm_config.get("similarity_score_threshold", 0.5)
-        self.context_window = llm_config.get("context_window", 3500)
-        self.prompt_template = llm_config.get("prompt_template", None)
+        self.topk = self.llm_config.get("similarity_topk", 3)
+        self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
+        self.context_window = self.llm_config.get("context_window", 3500)
+        self.prompt_template = self.llm_config.get("prompt_template", None)
         if not self.prompt_template:
             self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         self.prompt = PromptTemplate.from_template(self.prompt_template)
@@ -192,7 +192,7 @@ class BasePipeline(Pipeline):
         prompt = self.prompt.format(query=message, context=context)
 
         response = ""
-        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
+        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
         async for msg in predictor.agenerate_stream(prompt):
             yield msg
             response += msg
@@ -231,7 +231,7 @@ class QueryRewritePipeline(Pipeline):
             prompt = self.prompt.format(query=message, context=context)
 
             response = ""
-            predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
+            predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
             async for msg in predictor.agenerate_stream(prompt):
                 yield msg
                 response += msg
@@ -253,13 +253,13 @@ class KeywordPipeline(Pipeline):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ranker = AutoCrossEncoderRanker()
+        self.ranker = get_rerank_model()
 
     async def run(self, message, gen_references=False, message_id=""):
         self.add_human_message(message, message_id)
 
         references = []
-        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM)
+        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
 
         results = self.qa_context_manager.query(message, score_threshold=0.9, topk=1)
         if len(results) > 0:
@@ -273,13 +273,15 @@ class KeywordPipeline(Pipeline):
             # find the related documents using keywords
             doc_names = {}
             if keywords:
-                docs = search_document(index, keywords, self.topk * 2)
+                docs = search_document(index, keywords, self.topk * 3)
                 for doc in docs:
                     doc_names[doc["name"]] = doc["content"]
                     logger.info("[%s] found keyword in document %s", message, doc["name"])
 
             candidates = []
             results = self.context_manager.query(message, self.score_threshold, self.topk * 6)
+            if len(results) > self.topk:
+                results = self.ranker.rank(message, results)[:self.topk]
             for result in results:
                 if result.metadata["name"] not in doc_names:
                     logger.info("[%s] ignore doc %s not match keywords", message, result.metadata["name"])
@@ -288,9 +290,6 @@ class KeywordPipeline(Pipeline):
             # if no keywords found, fallback to using all results from embedding search
             if not doc_names:
                 candidates = results
-
-            candidates = self.ranker.rank(message, candidates)
-            candidates = candidates[:self.topk]
 
             context = ""
             if len(candidates) > 0:

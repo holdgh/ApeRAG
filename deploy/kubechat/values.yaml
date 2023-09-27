@@ -109,10 +109,10 @@ django:
       enabled: "false"
     - name: "chatgpt-3.5"
       label: "ChatGPT 3.5"
-      enabled: "false"
+      enabled: "true"
     - name: "chatgpt-4"
       label: "ChatGPT 4"
-      enabled: "false"
+      enabled: "true"
 
 celery-worker:
   replicaCount: 1

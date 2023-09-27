@@ -53,6 +53,12 @@ class CollectionStatus(models.TextChoices):
     DELETED = "DELETED"
 
 
+class CollectionSyncStatus(models.TextChoices):
+    RUNNING = "RUNNING"
+    CANCELED = "CANCELED"
+    COMPLETED = "COMPLETED"
+
+
 class CollectionType(models.TextChoices):
     DOCUMENT = "document"
     DATABASE = "database"
@@ -97,7 +103,7 @@ class VerifyWay(models.TextChoices):
 
 
 class Collection(models.Model):
-    id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=16)
+    id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=24)
     title = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
     user = models.CharField(max_length=256)
@@ -125,7 +131,7 @@ class Collection(models.Model):
 
 
 class Document(models.Model):
-    id = models.CharField(primary_key=True, default=doc_pk, editable=False, max_length=16)
+    id = models.CharField(primary_key=True, default=doc_pk, editable=False, max_length=24)
     name = models.CharField(max_length=1024)
     user = models.CharField(max_length=256)
     config = models.TextField(null=True)
@@ -171,7 +177,7 @@ class Document(models.Model):
 
 
 class Bot(models.Model):
-    id = models.CharField(primary_key=True, default=bot_pk, editable=False, max_length=16)
+    id = models.CharField(primary_key=True, default=bot_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     title = models.CharField(max_length=256)
     description = models.TextField(null=True, blank=True)
@@ -202,7 +208,7 @@ class ChatPeer(models.TextChoices):
 
 
 class Chat(models.Model):
-    id = models.CharField(primary_key=True, default=chat_pk, editable=False, max_length=16)
+    id = models.CharField(primary_key=True, default=chat_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     peer_type = models.CharField(max_length=16, default=ChatPeer.SYSTEM, choices=ChatPeer.choices)
     peer_id = models.CharField(max_length=256, null=True)
@@ -257,19 +263,22 @@ class MessageFeedback(models.Model):
 
 
 class CollectionSyncHistory(models.Model):
-    id = models.CharField(primary_key=True, default=collection_history_pk, editable=False, max_length=16)
+    id = models.CharField(primary_key=True, default=collection_history_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-    total_documents = models.PositiveIntegerField()
+    total_documents = models.PositiveIntegerField(default=0)
     new_documents = models.PositiveIntegerField(default=0)
     deleted_documents = models.PositiveIntegerField(default=0)
     modified_documents = models.PositiveIntegerField(default=0)
     processing_documents = models.PositiveIntegerField(default=0)
+    pending_documents = models.PositiveIntegerField(default=0)
     failed_documents = models.PositiveIntegerField(default=0)
     successful_documents = models.PositiveIntegerField(default=0)
     total_documents_to_sync = models.PositiveIntegerField(default=0)
     execution_time = models.DurationField(null=True)
     start_time = models.DateTimeField()
+    task_context = models.JSONField(default={})
+    status = models.CharField(max_length=16, choices=CollectionSyncStatus.choices, default=CollectionSyncStatus.RUNNING)
 
     def update_execution_time(self):
         self.refresh_from_db()
@@ -283,11 +292,13 @@ class CollectionSyncHistory(models.Model):
             "total_documents": self.total_documents,
             "new_documents": self.new_documents,
             "deleted_documents": self.deleted_documents,
+            "pending_documents": self.pending_documents,
             "processing_documents": self.processing_documents,
             "modified_documents": self.modified_documents,
             "failed_documents": self.failed_documents,
             "successful_documents": self.successful_documents,
             "total_documents_to_sync": self.total_documents_to_sync,
             "start_time": self.start_time,
-            "execution_time": self.execution_time
+            "execution_time": self.execution_time,
+            "status": self.status,
         }

@@ -3,21 +3,20 @@ import json
 import logging
 import os
 import time
-from pathlib import Path
 
 from langchain import PromptTemplate
 from tabulate import tabulate
 from datetime import datetime
 
 
-from kubechat.context.context import ContextManager, AutoCrossEncoderRanker, FlagCrossEncoderRanker
+from kubechat.context.context import ContextManager
 from kubechat.llm.predict import CustomLLMPredictor
 from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.utils.full_text import insert_document, es, search_document, delete_index, create_index
 from kubechat.utils.utils import generate_fulltext_index_name
 from query.query import get_packed_answer
-from readers.base_embedding import get_embedding_model
+from readers.base_embedding import get_embedding_model, get_rerank_model
 from readers.local_path_embedding import LocalPathEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
@@ -28,6 +27,9 @@ logger.setLevel(logging.INFO)
 
 VECTOR_DB_TYPE = "qdrant"
 VECTOR_DB_CONTEXT = {"url": "http://127.0.0.1", "port": 6333, "distance": "Cosine", "timeout": 1000}
+
+
+os.environ["RERANK_MODEL_PATH"] = "/Users/ziang/.cache/huggingface/hub/bge-reranker-large"
 
 
 table_format = """
@@ -70,7 +72,7 @@ class EmbeddingCtx:
         self.qa_vector_db_conn = VectorStoreConnectorAdaptor(VECTOR_DB_TYPE, ctx=qa_ctx)
 
         self.index = generate_fulltext_index_name(self.collection_name)
-        self.ranker = FlagCrossEncoderRanker()
+        self.ranker = get_rerank_model()
 
     def load_file(self, file_path):
         meta_file = file_path + "-metadata"
@@ -129,10 +131,10 @@ class EmbeddingCtx:
                 doc_names[doc["name"]] = doc["content"]
                 logger.info("[%s] found keyword in document %s", query, doc["name"])
 
-        results = self.ctx_manager.query(query, score_threshold, topk * recall_factor)
         candidates = []
+        results = self.ctx_manager.query(query, score_threshold, topk * recall_factor)
         start = time.time()
-        candidates = self.ranker.rank(query, results)[:topk]
+        results = self.ranker.rank(query, results)[:topk]
         print(f"{[query]} references: {len(results)}, rerank cost {time.time() - start}\n")
 
         for result in results:
@@ -222,9 +224,9 @@ os.environ["ENABLE_QA_GENERATOR"] = "True"
 if __name__ == "__main__":
     dirname = os.environ.get("KUBECHAT_BASE_DIR", "/Users/ziang/git/kubechat")
 
-    datasets = "resources/datasets/tos"
+    # datasets = "resources/datasets/tos"
     # datasets = "resources/datasets/releases"
-    # datasets = "resources/datasets/test1"
+    datasets = "resources/datasets/test1"
     # documents = "resources/documents/test"
     # documents = "resources/documents/tos-feishu-bad-cases-plain"
     # documents = "resources/documents/tos-feishu-bad-cases-markdown"
@@ -251,7 +253,7 @@ if __name__ == "__main__":
     score_threshold = 0.5
     topk = 3
     recall_factor = 6
-    reload = False
+    reload = True
     enable_inference = False
     headers, table = main(datasets, documents, models, reload,
                           score_threshold=score_threshold,

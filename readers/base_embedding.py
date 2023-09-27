@@ -7,6 +7,7 @@ from threading import Lock
 from typing import Any, List
 
 import torch
+from FlagEmbedding import FlagReranker
 from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain.embeddings.base import Embeddings
 from langchain.embeddings.google_palm import GooglePalmEmbeddings
@@ -15,9 +16,10 @@ from langchain.embeddings.huggingface import (
     HuggingFaceInstructEmbeddings,
 )
 from langchain.embeddings.openai import OpenAIEmbeddings
-from transformers import AutoTokenizer, MT5EncoderModel
+from transformers import AutoTokenizer, MT5EncoderModel, AutoModelForSequenceClassification
 
 from config.settings import EMBEDDING_DEVICE, EMBEDDING_MODEL
+from query.query import DocumentWithScore
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
 
@@ -129,8 +131,70 @@ class BertEmbedding(Embeddings):
         return self.embed_documents([text])[0]
 
 
+default_rerank_model_path = "/data/resources/models/bge-reranker-large"
+
+
+class Ranker(ABC):
+
+    @abstractmethod
+    def rank(self, query, results: List[DocumentWithScore]):
+        pass
+
+
+class ContentRatioRanker(Ranker):
+    def __init__(self, query):
+        self.query = query
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        results.sort(key=lambda x: (x.metadata.get("content_ratio", 1), x.score), reverse=True)
+        return results
+
+
+class AutoCrossEncoderRanker(Ranker):
+    def __init__(self):
+        model_path = os.environ.get("RERANK_MODEL_PATH", default_rerank_model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        self.model.eval()
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        pairs = []
+        for idx, result in enumerate(results):
+            pairs.append((query, result.text))
+            result.rank_before = idx
+
+        with torch.no_grad():
+            inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
+            scores = self.model(**inputs, return_dict=True).logits.view(-1, ).float()
+            results = [x for _, x in sorted(zip(scores, results), reverse=True)]
+
+        return results
+
+
+class FlagCrossEncoderRanker(Ranker):
+    def __init__(self):
+        model_path = os.environ.get("RERANK_MODEL_PATH", default_rerank_model_path)
+        # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
+        self.reranker = FlagReranker(model_path)  # use fp16 can speed up computing
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        pairs = []
+        for idx, result in enumerate(results):
+            pairs.append((query, result.text))
+            result.rank_before = idx
+
+        with torch.no_grad():
+            scores = self.reranker.compute_score(pairs)
+            if len(pairs) == 1:
+                scores = [scores]
+        results = [x for _, x in sorted(zip(scores, results), reverse=True)]
+
+        return results
+
+
 mutex = Lock()
 embedding_model_cache = {}
+rerank_model_cache = {}
 
 
 # synchronized decorator
@@ -139,6 +203,16 @@ def synchronized(func):
         with mutex:
             return func(*args, **kwargs)
     return wrapper
+
+
+@synchronized
+def get_rerank_model(model_type: str = "bge-reranker-large"):
+    # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
+    if model_type in rerank_model_cache:
+        return rerank_model_cache[model_type]
+    model = FlagCrossEncoderRanker()  # use fp16 can speed up computing
+    rerank_model_cache[model_type] = model
+    return model
 
 
 @synchronized

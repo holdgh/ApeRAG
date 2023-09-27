@@ -11,7 +11,7 @@ from langchain.memory import RedisChatMessageHistory
 
 import config.settings as settings
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES
+from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline
 from kubechat.utils.db import query_bot
 from kubechat.utils.utils import now_unix_milliseconds, extract_bot_and_chat_id
 from readers.base_embedding import get_collection_embedding_model
@@ -69,6 +69,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         if token is not None:
             headers.append((b"Sec-Websocket-Protocol", token.encode("ascii")))
         await super(AsyncWebsocketConsumer, self).send({"type": "websocket.accept", "headers": headers})
+        self.pipeline = KeywordPipeline(bot=self.bot, collection=self.collection, history=self.history)
 
     async def disconnect(self, close_code):
         pass

@@ -3,14 +3,12 @@ import logging
 import uuid
 
 from celery import Task
-from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.models import Document, DocumentStatus, CollectionStatus, CollectionSyncHistory, MessageFeedback, \
+from kubechat.models import Document, DocumentStatus, MessageFeedback, \
     MessageFeedbackStatus
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
@@ -71,51 +69,13 @@ def add_index_for_local_document(self, document_id):
         raise self.retry(exc=e, countdown=5, max_retries=1)
 
 
-def start_sync_task(collection_sync_history_id):
-    with transaction.atomic():
-        CollectionSyncHistory.objects.select_for_update(nowait=False).get(id=collection_sync_history_id)
-        CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-            processing_documents=F("processing_documents") + 1)
-
-
-def deal_sync_task_success(collection_sync_history_id, task_type: str):
-    with transaction.atomic():
-        collection_sync_history = CollectionSyncHistory.objects.select_for_update(nowait=False).get(
-            id=collection_sync_history_id)
-        CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-            processing_documents=F("processing_documents") - 1,
-            successful_documents=F("successful_documents") + 1
-        )
-        if task_type == "add":
-            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-                new_documents=F("new_documents") + 1, total_documents=F("total_documents") + 1)
-        elif task_type == "remove":
-            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-                deleted_documents=F("deleted_documents") + 1, total_documents=F("total_documents") - 1)
-        elif task_type == "update":
-            CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-                modified_documents=F("modified_documents") + 1)
-        collection_sync_history.update_execution_time()
-
-
-def deal_sync_task_failure(collection_sync_history_id):
-    with transaction.atomic():
-        collection_sync_history = CollectionSyncHistory.objects.select_for_update(nowait=False).get(
-            id=collection_sync_history_id)
-        CollectionSyncHistory.objects.filter(id=collection_sync_history_id).update(
-            processing_documents=F("processing_documents") - 1, failed_documents=F("failed_documents") + 1)
-        collection_sync_history.update_execution_time()
-
-
-@app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
-def add_index_for_document(self, document_id, collection_sync_history_id=""):
+@app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
+def add_index_for_document(self, document_id):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
             document_id: the document in Django Module
     """
-    if collection_sync_history_id:
-        start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -160,31 +120,23 @@ def add_index_for_document(self, document_id, collection_sync_history_id=""):
         }
         document.relate_ids = json.dumps(relate_ids)
         document.save()
-
-        if collection_sync_history_id:
-            deal_sync_task_success(collection_sync_history_id, "add")
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
-        if collection_sync_history_id:
-            deal_sync_task_failure(collection_sync_history_id)
-        raise self.retry(exc=e, countdown=5, max_retries=1)
-
+        # raise self.retry(exc=e, countdown=3, max_retries=5)
     source.cleanup_document(local_doc.path)
 
 
-@app.task(base=CustomDeleteDocumentTask, ignore_result=True, bind=True)
-def remove_index(self, document_id, collection_sync_history_id=""):
+@app.task(base=CustomDeleteDocumentTask, bind=True, track_started=True)
+def remove_index(self, document_id):
     """
     remove the doc embedding index from vector store db
     :param self:
     :param document_id:
     """
-    if collection_sync_history_id:
-        start_sync_task(collection_sync_history_id)
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -206,19 +158,13 @@ def remove_index(self, document_id, collection_sync_history_id=""):
         qa_vector_db.connector.delete(ids=qa_relate_ids)
         logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
 
-        if collection_sync_history_id:
-            deal_sync_task_success(collection_sync_history_id, "remove")
     except Exception as e:
         logger.error(e)
-        if collection_sync_history_id:
-            deal_sync_task_failure(collection_sync_history_id)
         # raise self.retry(exc=e, countdown=5, max_retries=3)
 
 
-@app.task(base=CustomLoadDocumentTask, ignore_result=True, bind=True)
-def update_index(self, document_id, collection_sync_history_id=""):
-    if collection_sync_history_id:
-        start_sync_task(collection_sync_history_id)
+@app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
+def update_index(self, document_id):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
@@ -265,17 +211,13 @@ def update_index(self, document_id, collection_sync_history_id=""):
         document.relate_ids = json.dumps(relate_ids)
         document.save()
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
-        if collection_sync_history_id:
-            deal_sync_task_success(collection_sync_history_id, "update")
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
-        if collection_sync_history_id:
-            deal_sync_task_failure(collection_sync_history_id)
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        # raise self.retry(exc=e, countdown=5, max_retries=3)
     source.cleanup_document(local_doc.path)
 
 

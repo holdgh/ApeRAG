@@ -176,7 +176,8 @@ spec:
           ports:
             - containerPort: 8000
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            limits:
+              nvidia.com/gpu: "1"
           volumeMounts:
             - mountPath: /data
               name: data

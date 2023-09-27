@@ -11,7 +11,7 @@ from kubechat.models import (
     Document,
     DocumentStatus,
     ssl_file_path,
-    ssl_temp_file_path, BotStatus, MessageFeedback,
+    ssl_temp_file_path, BotStatus, MessageFeedback, CollectionSyncStatus,
 )
 
 
@@ -83,6 +83,12 @@ async def query_sync_history(user, collection_id: str, sync_history_id: str):
 async def query_sync_histories(user, collection_id: str):
     return CollectionSyncHistory.objects.filter(
         user=user, collection_id=collection_id
+    ).order_by('-id')
+
+
+async def query_running_sync_histories(user, collection_id: str):
+    return CollectionSyncHistory.objects.filter(
+        user=user, collection_id=collection_id, status=CollectionSyncStatus.RUNNING
     ).order_by('-id')
 
 

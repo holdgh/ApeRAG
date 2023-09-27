@@ -1,3 +1,4 @@
+import datetime
 import io
 import json
 import logging
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from asgiref.sync import sync_to_async
+from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
@@ -18,13 +20,14 @@ from pydantic import BaseModel
 
 import config.settings as settings
 import kubechat.utils.message as msg_utils
+from config.celery import app
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import init_collection_task, delete_collection_task
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
-from kubechat.tasks.sync_documents_task import sync_documents
+from kubechat.tasks.sync_documents_task import sync_documents, monitor_sync_tasks, get_sync_progress
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.readers import DEFAULT_FILE_READER_CLS
@@ -147,17 +150,57 @@ async def sync_immediately(request, collection_id):
     if not source.sync_enabled():
         return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
 
-    result = sync_documents.apply_async(kwargs={'collection_id': collection_id})
-    sync_history_id = -1
-    # keep getting information from result while running.
-    while not result.ready() and sync_history_id == -1:
-        if result.info is not None:
-            sync_history_id = result.info.get('id', None)
-    # if the task is too fast to get the info while running, use get() to get the result.
-    if result.ready() and sync_history_id == -1:
-        sync_history_id = result.get()
-    sync_history = await CollectionSyncHistory.objects.aget(id=sync_history_id)
-    return success(sync_history.view())
+    running_tasks = await query_running_sync_histories(user, collection_id)
+    async for task in running_tasks:
+        return fail(HTTPStatus.BAD_REQUEST, f"have running sync task {task.id}, please cancel it first")
+
+    instance = CollectionSyncHistory(
+        user=collection.user,
+        start_time=timezone.now(),
+        collection=collection,
+        execution_time=datetime.timedelta(seconds=0),
+        total_documents_to_sync=0,
+        status=CollectionSyncStatus.RUNNING,
+    )
+    await instance.asave()
+    sync_documents.delay(collection_id=collection_id, sync_history_id=instance.id)
+    return success(instance.view())
+
+
+@api.post("/collections/{collection_id}/cancel_sync/{collection_sync_id}")
+async def cancel_sync(request, collection_id, collection_sync_id):
+    """
+    cancel the collection_sync_id related tasks
+
+    Note that if using gevent/eventlet as the worker pool, the cancel operation is not work
+    Please refer to https://github.com/celery/celery/issues/4019
+
+    """
+    user = get_user(request)
+    sync_history = await query_sync_history(user, collection_id, collection_sync_id)
+    task_context = sync_history.task_context
+    if task_context is None:
+        return fail(HTTPStatus.BAD_REQUEST, f"no task context in sync history {collection_sync_id}")
+
+    # revoke the scan task
+    scan_task_id = task_context["scan_task_id"]
+    if scan_task_id is None:
+        return fail(HTTPStatus.BAD_REQUEST, f"no scan task id in sync history {collection_sync_id}")
+    app.AsyncResult(scan_task_id).revoke(terminate=True)
+
+    # revoke the index tasks
+    group_id = sync_history.task_context.get("index_task_group_id", "")
+    if group_id:
+        group_result = GroupResult.restore(group_id, app=app)
+        for task in group_result.results:
+            task = app.AsyncResult(task.id)
+            task.revoke(terminate=True)
+    else:
+        logger.warning(f"no index task group id in sync history {collection_sync_id}")
+
+    sync_history.status = CollectionSyncStatus.CANCELED
+    await sync_history.asave()
+    return success({})
 
 
 @api.get("/collections/{collection_id}/sync/history")
@@ -166,6 +209,12 @@ async def get_sync_histories(request, collection_id):
     sync_histories = await query_sync_histories(user, collection_id)
     response = []
     async for sync_history in sync_histories:
+        if sync_history.status == CollectionSyncStatus.RUNNING:
+            progress = get_sync_progress(sync_history)
+            sync_history.failed_documents = progress.failed_documents
+            sync_history.successful_documents = progress.successful_documents
+            sync_history.processing_documents = progress.processing_documents
+            sync_history.pending_documents = progress.pending_documents
         response.append(sync_history.view())
     return success(response)
 
@@ -174,6 +223,12 @@ async def get_sync_histories(request, collection_id):
 async def get_sync_history(request, collection_id, sync_history_id):
     user = get_user(request)
     sync_history = await query_sync_history(user, collection_id, sync_history_id)
+    if sync_history.status == CollectionSyncStatus.RUNNING:
+        progress = get_sync_progress(sync_history)
+        sync_history.failed_documents = progress.failed_documents
+        sync_history.successful_documents = progress.successful_documents
+        sync_history.processing_documents = progress.processing_documents
+        sync_history.pending_documents = progress.pending_documents
     return success(sync_history.view())
 
 

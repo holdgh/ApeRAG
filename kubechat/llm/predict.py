@@ -4,6 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from enum import Enum
 
+import openai
 import requests
 
 
@@ -40,7 +41,12 @@ class Predictor(ABC):
 
     @staticmethod
     def from_model(model_name="", predictor_type="", endpoint="", **kwargs):
-        if model_name not in ("chatgpt-3.5", "chatgpt-4") and not endpoint:
+        if model_name == "chatgpt-3.5":
+            return OpenAIPredictor(model="gpt-3.5-turbo", endpoint=endpoint, **kwargs)
+        elif model_name == "chatgpt-4":
+            return OpenAIPredictor(model="gpt-4", endpoint=endpoint, **kwargs)
+
+        if not endpoint:
             ctx = Predictor.get_model_context(model_name)
             if not ctx:
                 raise Exception("No model server available for model: %s" % model_name)
@@ -108,6 +114,39 @@ class CustomLLMPredictor(Predictor):
             if chunk:
                 data = json.loads(chunk.decode("utf-8"))
                 yield data["text"]
+
+    async def agenerate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+            await asyncio.sleep(0.1)
+
+    def generate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+
+
+class OpenAIPredictor(Predictor):
+    def __init__(self, model="gpt-3.5-turbo", **kwargs):
+        super().__init__(**kwargs)
+        self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
+        self.token = kwargs.get("token", "nan")
+        self.model = model
+
+    def _generate_stream(self, prompt):
+        response = openai.ChatCompletion.create(
+            api_key=self.token,
+            api_base=self.endpoint,
+            stream=True,
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}])
+        for chunk in response:
+            choices = chunk["choices"]
+            if len(choices) > 0:
+                choice = choices[0]
+                if choice["finish_reason"] == "stop":
+                    return
+                content = choice["delta"]["content"]
+                yield content
 
     async def agenerate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):

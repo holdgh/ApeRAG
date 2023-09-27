@@ -36,9 +36,38 @@ migrate:
 	@python manage.py makemigrations
 	@python manage.py migrate
 
+run-redis:
+	@echo "Starting redis"
+	@docker run -d --name kubechat-redis -p 6379:6379 redis:latest > /dev/null 2>&1
+
+run-postgres:
+	@echo "Starting postgres"
+	@docker run -d --name kubechat-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres > /dev/null 2>&1
+
+run-qdrant:
+	@echo "Starting qdrant"
+	@docker run -d --name kubechat-qdrant -p 6333:6333 qdrant/qdrant > /dev/null 2>&1
+
+run-es:
+	@echo "Starting elasticsearch"
+	@docker run -d --name kubechat-es -p 9200:9200 apecloud/elasticsearch:8.8.2 > /dev/null 2>&1
+
+run-db: run-redis run-postgres run-qdrant run-es
+
+connect-metadb:
+	@docker exec -it kubechat-postgres psql -p 5432 -U postgres
+
 clean:
-	/bin/rm -f db.sqlite3
-	/bin/rm -f resources/db.sqlite3
+	@echo "Removing db.sqlite3"
+	@/bin/rm -f db.sqlite3
+	@echo "Removing container kubechat-postgres"
+	@docker rm -fv kubechat-postgres > /dev/null 2>&1 || true
+	@echo "Removing container kubechat-redis"
+	@docker rm -fv kubechat-redis > /dev/null 2>&1 || true
+	@echo "Removing container kubechat-qdrant"
+	@docker rm -fv kubechat-qdrant > /dev/null 2>&1 || true
+	@echo "Removing container kubechat-es"
+	@docker rm -fv kubechat-es > /dev/null 2>&1 || true
 
 git-update-frontend:
 	git submodule set-branch -b $(FRONTEND_BRANCH) KubeChat-FrontEnd
