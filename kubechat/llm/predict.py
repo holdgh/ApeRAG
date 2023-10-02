@@ -7,6 +7,8 @@ from enum import Enum
 import openai
 import requests
 
+from config import settings
+
 
 class PredictorType(Enum):
     KB_VLLM = "kb-vllm"
@@ -129,7 +131,7 @@ class OpenAIPredictor(Predictor):
     def __init__(self, model="gpt-3.5-turbo", **kwargs):
         super().__init__(**kwargs)
         self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
-        self.token = kwargs.get("token", "nan")
+        self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
         self.model = model
 
     def _generate_stream(self, prompt):

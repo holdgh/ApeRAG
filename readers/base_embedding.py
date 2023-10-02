@@ -131,7 +131,7 @@ class BertEmbedding(Embeddings):
         return self.embed_documents([text])[0]
 
 
-default_rerank_model_path = "/data/resources/models/bge-reranker-large"
+default_rerank_model_path = "/data/models/bge-reranker-large"
 
 
 class Ranker(ABC):
@@ -166,7 +166,7 @@ class AutoCrossEncoderRanker(Ranker):
         with torch.no_grad():
             inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
             scores = self.model(**inputs, return_dict=True).logits.view(-1, ).float()
-            results = [x for _, x in sorted(zip(scores, results), reverse=True)]
+            results = [x for _, x in sorted(zip(scores, results), key=lambda k: k[0], reverse=True)]
 
         return results
 
@@ -187,7 +187,7 @@ class FlagCrossEncoderRanker(Ranker):
             scores = self.reranker.compute_score(pairs)
             if len(pairs) == 1:
                 scores = [scores]
-        results = [x for _, x in sorted(zip(scores, results), reverse=True)]
+        results = [x for _, x in sorted(zip(scores, results), key=lambda k: k[0], reverse=True)]
 
         return results
 

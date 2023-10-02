@@ -30,3 +30,8 @@ DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".ipynb": IPYNBReader,
     ".txt": MarkdownReader,
 }
+
+FULLTEXT_SUFFIX = {
+    ".md": True,
+    ".txt": True,
+}

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import uuid
 
 from celery import Task
@@ -19,6 +20,7 @@ from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
+from readers.readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +99,10 @@ def add_index_for_document(self, document_id):
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
-        if ctx_ids:
+        parts = os.path.splitext(local_doc.path)
+        if ctx_ids and len(parts) > 1 and parts[1].lower() in FULLTEXT_SUFFIX.keys():
             with open(local_doc.path) as fd:
                 doc_content = fd.read()
-
             index = generate_fulltext_index_name(document.collection.id)
             insert_document(index, document.id, local_doc.name, doc_content)
 
@@ -187,7 +189,8 @@ def update_index(self, document_id):
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
-        if ctx_ids:
+        parts = os.path.splitext(local_doc.path)
+        if ctx_ids and len(parts) > 1 and parts[1].lower() in FULLTEXT_SUFFIX.keys():
             with open(local_doc.path) as fd:
                 doc_content = fd.read()
             index = generate_fulltext_index_name(document.collection.id)

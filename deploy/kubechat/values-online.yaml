@@ -1,4 +1,5 @@
 image:
+  registry: docker.io
   tag: "v0.1.2-auth0"
 
 django:
@@ -23,10 +24,10 @@ django:
       enabled: "false"
     - name: "chatgpt-3.5"
       label: "ChatGPT 3.5"
-      enabled: "false"
+      enabled: "true"
     - name: "chatgpt-4"
       label: "ChatGPT 4"
-      enabled: "false"
+      enabled: "true"
 
 
 celery-worker:
