@@ -1,38 +1,30 @@
+import base64
 import hashlib
 import logging
 from typing import Optional, Any
 
-from auth0.authentication.token_verifier import (
-    AsymmetricSignatureVerifier,
-    TokenVerifier,
-)
 from channels.middleware import BaseMiddleware
 from django.http import HttpRequest
 from ninja.security import HttpBearer
 from ninja.security.http import HttpAuthBase
 
 import config.settings as settings
-import base64
+from kubechat.auth import tv
 
 logger = logging.getLogger(__name__)
-
-jwks_url = "https://{}/.well-known/jwks.json".format(settings.AUTH0_DOMAIN)
-issuer = "https://{}/".format(settings.AUTH0_DOMAIN)
-
-sv = AsymmetricSignatureVerifier(jwks_url)  # Reusable instance
-tv = TokenVerifier(
-    signature_verifier=sv, issuer=issuer, audience=settings.AUTH0_CLIENT_ID
-)
 
 DEFAULT_USER = "kubechat"
 
 
 def get_user_from_token(token):
-    if settings.AUTH_TYPE == "auth0":
-        payload = tv.verify(token)
-        user = payload["sub"]
-    else:
-        user = base64.b64decode(token).decode("ascii")
+    match settings.AUTH_TYPE:
+        case "auth0" | "authing":
+            payload = tv.verify(token)
+            user = payload["sub"]
+        case "none":
+            user = base64.b64decode(token).decode("ascii")
+        case _:
+            user = DEFAULT_USER
     return user
 
 

@@ -26,6 +26,9 @@ image-no-auth: build-requirements version
 image-auth0: build-requirements version
 	docker buildx build -t $(REGISTRY)/apecloud/kubechat:$(VERSION)-auth0 --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
 
+image-authing: build-requirements version
+	docker buildx build -t $(REGISTRY)/apecloud/kubechat:$(VERSION)-authing --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
+
 llm-server-image: build-requirements version
 	docker buildx build -t $(REGISTRY)/apecloud/kubechat-llmserver:$(LLMSERVER_VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile-llmserver  .
 

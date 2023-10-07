@@ -150,8 +150,12 @@ CSRF_TRUSTED_ORIGINS = ["https://*.kubeblocks.io", "https://*.apecloud.com"]
 AUTH_TYPE = env.str("AUTH_TYPE", default="none")
 
 # Load Auth0 application settings into memory
-AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat-dev.jp.auth0.com")
+AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="kubechat-dev.auting.cn")
 AUTH0_CLIENT_ID = env.str("AUTH0_CLIENT_ID", default="")
+
+# Load Authing application settings into memory
+AUTHING_DOMAIN = env.str("AUTHING_DOMAIN", default="kubechat.authing.cn")
+AUTHING_APP_ID = env.str("AUTHING_APP_ID", default="")
 
 # Celery
 # ------------------------------------------------------------------------------

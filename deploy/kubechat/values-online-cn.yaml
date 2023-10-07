@@ -1,0 +1,34 @@
+image:
+  registry: docker.io
+  tag: "v0.1.2-authing"
+
+django:
+  replicaCount: 2
+  authType: authing
+  embeddingModel: bge
+  auth0ClientId: ""
+  auth0Domain: "kubechat.jp.auth0.com"
+  openaiAPIKey: ""
+  modelServers:
+    - name: "baichuan-13b"
+      label: "BaiChuan 13b"
+      endpoint: "http://llmserver-baichuan-13b:8000"
+      enabled: "true"
+    - name: "vicuna-13b"
+      label: "Vicuna 13b"
+      endpoint: "http://llmserver-vicuna-13b:8000"
+      enabled: "false"
+    - name: "chatglm2-6b"
+      label: "ChatGLM2 6b"
+      endpoint: "http://llmserver-chatglm2-6b:8000"
+      enabled: "false"
+    - name: "chatgpt-3.5"
+      label: "ChatGPT 3.5"
+      enabled: "true"
+    - name: "chatgpt-4"
+      label: "ChatGPT 4"
+      enabled: "true"
+
+
+celery-worker:
+  replicaCount: 2
