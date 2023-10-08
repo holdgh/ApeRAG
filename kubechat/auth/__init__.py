@@ -51,3 +51,6 @@ match settings.AUTH_TYPE:
         issuer = f"https://{settings.AUTHING_DOMAIN}/oidc"
         jwks_url = f"https://{settings.AUTHING_DOMAIN}/oidc/.well-known/jwks.json"
         tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTHING_DOMAIN, settings.AUTHING_APP_ID)
+    case _:
+        tv = None
+
