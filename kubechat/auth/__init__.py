@@ -44,7 +44,7 @@ def get_jwt_token_verifier(jwks_url, issuer, domain, client_id):
 
 match settings.AUTH_TYPE:
     case "auth0":
-        issuer = f"https://{settings.AUTH0_DOMAIN}"
+        issuer = f"https://{settings.AUTH0_DOMAIN}/"
         jwks_url = f"https://{settings.AUTH0_DOMAIN}/.well-known/jwks.json"
         tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTH0_DOMAIN, settings.AUTH0_CLIENT_ID)
     case "authing":
