@@ -13,6 +13,7 @@ data:
   VECTOR_DB_CONTEXT: '{{ .Values.django.vectorDBContext }}'
   VECTOR_DB_TYPE: "{{ .Values.django.vectorDBType }}"
   OPENAI_API_KEY: "{{ .Values.django.openaiAPIKey }}"
+  OPENAI_API_PROXY: "{{ .Values.django.openaiProxy }}"
   FEISHU_APP_ID: "{{ .Values.django.feishu.appID }}"
   FEISHU_APP_SECRET: "{{ .Values.django.feishu.appSecret }}"
   FEISHU_ENCRYPT_KEY: "{{ .Values.django.feishu.encryptKey }}"

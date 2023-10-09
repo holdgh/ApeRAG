@@ -135,6 +135,11 @@ spec:
                 configMapKeyRef:
                   key: OPENAI_API_KEY
                   name: kubechat-config
+            - name: OPENAI_API_PROXY
+              valueFrom:
+                configMapKeyRef:
+                  key: OPENAI_API_PROXY
+                  name: kubechat-config
             - name: MEDIA_ROOT
               value: /data/media
             - name: CODE_STORAGE_DIR

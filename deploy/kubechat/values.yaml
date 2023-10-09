@@ -85,6 +85,7 @@ django:
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   openaiAPIKey: "sk-xxxxxx"
+  openaiProxy: "{}"
   embeddingModel: "bge"
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:

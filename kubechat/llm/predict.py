@@ -143,6 +143,8 @@ class OpenAIPredictor(Predictor):
         self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
         self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
         self.model = model
+        proxy = os.environ.get("OPENAI_API_PROXY", "{}")
+        openai.proxy = json.loads(proxy)
 
     def _generate_stream(self, prompt):
         response = openai.ChatCompletion.create(
