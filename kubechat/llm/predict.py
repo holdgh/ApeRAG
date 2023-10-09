@@ -1,6 +1,10 @@
 import asyncio
+import hashlib
 import json
+import logging
 import os
+import time
+import uuid
 from abc import ABC, abstractmethod
 from enum import Enum
 
@@ -8,6 +12,8 @@ import openai
 import requests
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class PredictorType(Enum):
@@ -43,10 +49,13 @@ class Predictor(ABC):
 
     @staticmethod
     def from_model(model_name="", predictor_type="", endpoint="", **kwargs):
-        if model_name == "chatgpt-3.5":
-            return OpenAIPredictor(model="gpt-3.5-turbo", endpoint=endpoint, **kwargs)
-        elif model_name == "chatgpt-4":
-            return OpenAIPredictor(model="gpt-4", endpoint=endpoint, **kwargs)
+        match model_name:
+            case "chatgpt-3.5":
+                return OpenAIPredictor(model="gpt-3.5-turbo", endpoint=endpoint, **kwargs)
+            case "chatgpt-4":
+                return OpenAIPredictor(model="gpt-4", endpoint=endpoint, **kwargs)
+            case "baichuan-53b":
+                return BaiChuanPredictor(endpoint=endpoint, **kwargs)
 
         if not endpoint:
             ctx = Predictor.get_model_context(model_name)
@@ -149,6 +158,66 @@ class OpenAIPredictor(Predictor):
                     return
                 content = choice["delta"]["content"]
                 yield content
+
+    async def agenerate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+            await asyncio.sleep(0.1)
+
+    def generate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+
+
+class BaiChuanPredictor(Predictor):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.api_key = kwargs.get("api_key", os.environ.get("BAICHUAN_API_KEY", ""))
+        self.secret_key = kwargs.get("secret_key", os.environ.get("BAICHUAN_SECRET_KEY", ""))
+
+    @staticmethod
+    def calculate_md5(input_string):
+        md5 = hashlib.md5()
+        md5.update(input_string.encode('utf-8'))
+        encrypted = md5.hexdigest()
+        return encrypted
+
+    def _generate_stream(self, prompt):
+        url = "https://api.baichuan-ai.com/v1/stream/chat"
+
+        data = {
+            "model": "Baichuan2-53B",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ]
+        }
+
+        json_data = json.dumps(data)
+        time_stamp = int(time.time())
+        signature = BaiChuanPredictor.calculate_md5(self.secret_key + json_data + str(time_stamp))
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + self.api_key,
+            "X-BC-Request-Id": str(uuid.uuid4()),
+            "X-BC-Timestamp": str(time_stamp),
+            "X-BC-Signature": signature,
+            "X-BC-Sign-Algo": "MD5",
+        }
+
+        response = requests.post(url, data=json_data, headers=headers, stream=True)
+        for chunk in response.iter_lines(chunk_size=2048, decode_unicode=False, delimiter=b"\0"):
+            if chunk:
+                data = json.loads(chunk.decode("utf-8"))
+                if data["code"] != 0:
+                    logger.warning("BaiChuan API error, code: %d msg: %s" % (data["code"], data["msg"]))
+                    return
+
+                for msg in data["data"]["messages"]:
+                    yield msg["content"]
 
     async def agenerate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):

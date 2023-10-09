@@ -1,7 +1,11 @@
+import asyncio
 import datetime
 import io
 import json
 import logging
+import threading
+import time
+import traceback
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
@@ -681,8 +685,16 @@ async def delete_bot(request, bot_id):
 def default_page(request, exception):
     return render(request, '404.html')
 
+logger.info(f"main thread id: {threading.get_ident()}")
 
+@api.get("/info")
 def index(request):
+    logger.info(f"sync thread id: {threading.get_ident()}")
+    return HttpResponse("KubeChat")
+
+@api.get("/ainfo")
+async def aindex(request):
+    logger.info(f"async thread id: {threading.get_ident()}")
     return HttpResponse("KubeChat")
 
 

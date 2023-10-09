@@ -284,3 +284,6 @@ ENABLE_KEYWORD_SEARCH = env.bool("ENABLE_KEYWORD_SEARCH", default=True)
 ES_HOST = env.str("ES_HOST", "http://localhost:9200")
 
 SYSTEM_USER = "kubechat-admin"
+
+BAICHUAN_API_KEY = env.str("BAICHUAN_API_KEY", default="")
+BAICHUAN_SECRET_KEY = env.str("BAICHUAN_SECRET_KEY", default="")
