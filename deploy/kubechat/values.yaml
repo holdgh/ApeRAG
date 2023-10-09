@@ -116,6 +116,9 @@ django:
     - name: "baichuan-53b"
       label: "BaiChuan 53b"
       enabled: "true"
+    - name: "ernie-bot-turbo"
+      label: "WenXinYiYan"
+      enabled: "true"
 
 celery-worker:
   replicaCount: 1

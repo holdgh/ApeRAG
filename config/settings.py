@@ -287,3 +287,6 @@ SYSTEM_USER = "kubechat-admin"
 
 BAICHUAN_API_KEY = env.str("BAICHUAN_API_KEY", default="")
 BAICHUAN_SECRET_KEY = env.str("BAICHUAN_SECRET_KEY", default="")
+
+QIANFAN_API_KEY = env.str("QIANFAN_API_KEY", default="")
+QIANFAN_SECRET_KEY = env.str("QIANFAN_SECRET_KEY", default="")

@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 import openai
+import qianfan
 import requests
 
 from config import settings
@@ -55,7 +56,9 @@ class Predictor(ABC):
             case "chatgpt-4":
                 return OpenAIPredictor(model="gpt-4", endpoint=endpoint, **kwargs)
             case "baichuan-53b":
-                return BaiChuanPredictor(endpoint=endpoint, **kwargs)
+                return BaiChuanPredictor(**kwargs)
+            case "ernie-bot-turbo":
+                return BaiduQianFan(**kwargs)
 
         if not endpoint:
             ctx = Predictor.get_model_context(model_name)
@@ -210,14 +213,15 @@ class BaiChuanPredictor(Predictor):
 
         response = requests.post(url, data=json_data, headers=headers, stream=True)
         for chunk in response.iter_lines(chunk_size=2048, decode_unicode=False, delimiter=b"\0"):
-            if chunk:
-                data = json.loads(chunk.decode("utf-8"))
-                if data["code"] != 0:
-                    logger.warning("BaiChuan API error, code: %d msg: %s" % (data["code"], data["msg"]))
-                    return
+            if not chunk:
+                continue
+            data = json.loads(chunk.decode("utf-8"))
+            if data["code"] != 0:
+                logger.warning("BaiChuan API error, code: %d msg: %s" % (data["code"], data["msg"]))
+                return
 
-                for msg in data["data"]["messages"]:
-                    yield msg["content"]
+            for msg in data["data"]["messages"]:
+                yield msg["content"]
 
     async def agenerate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):
@@ -227,3 +231,27 @@ class BaiChuanPredictor(Predictor):
     def generate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):
             yield tokens
+
+
+class BaiduQianFan(Predictor):
+    """
+    https://cloud.baidu.com/doc/WENXINWORKSHOP/s/4lilb2lpf
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.model = "ERNIE-Bot-turbo"
+        self.api_key = kwargs.get("api_key", os.environ.get("QIANFAN_API_KEY", ""))
+        self.secret_key = kwargs.get("secret_key", os.environ.get("QIANFAN_SECRET_KEY", ""))
+        self.chat_comp = qianfan.ChatCompletion(ak=self.api_key, sk=self.secret_key)
+
+    async def agenerate_stream(self, prompt):
+        resp = await self.chat_comp.ado(model=self.model, stream=True,
+                                        messages=[{"role": "user", "content": prompt}])
+        async for chunk in resp:
+            yield chunk["result"]
+
+    def generate_stream(self, prompt):
+        resp = self.chat_comp.do(model=self.model, stream=True,
+                                 messages=[{"role": "user", "content": prompt}])
+        yield resp['body']['result']

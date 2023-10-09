@@ -432,6 +432,27 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "bce-python-sdk"
+version = "0.8.90"
+description = "BCE SDK for python"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, <4"
+files = [
+    {file = "bce-python-sdk-0.8.90.tar.gz", hash = "sha256:b64cc16cc155d77195f911cc18f33caad8bd34b50bde457c6098c74ffd991576"},
+    {file = "bce_python_sdk-0.8.90-py3-none-any.whl", hash = "sha256:9b30136dd71d80d833d74858930d22f8f718fb8403c233a21842493d01a19266"},
+]
+
+[package.dependencies]
+future = ">=0.6.0"
+pycryptodome = ">=3.8.0"
+six = ">=1.4.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.12.2"
 description = "Screen-scraping library"
@@ -1083,6 +1104,28 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "colorlog"
+version = "6.7.0"
+description = "Add colours to the output of Python's logging module."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "colorlog-6.7.0-py2.py3-none-any.whl", hash = "sha256:0d33ca236784a1ba3ff9c532d4964126d8a2c44f1f0cb1d2b0728196f512f662"},
+    {file = "colorlog-6.7.0.tar.gz", hash = "sha256:bd94bd21c1e13fac7bd3153f4bc3a7dc0eb0974b8bc2fdf1a989e474f6e582e5"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+
+[package.extras]
+development = ["black", "flake8", "mypy", "pytest", "types-colorama"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "crcmod"
 version = "1.7"
 description = "CRC Generator"
@@ -1583,6 +1626,31 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "erniebot"
+version = "0.3.1"
+description = "Python library for the ERNIE Bot"
+optional = false
+python-versions = ">=3.7.0"
+files = [
+    {file = "erniebot-0.3.1-py3-none-any.whl", hash = "sha256:cc4ebc465af101c1a280b76a44d10f7a555155fd3ed5a6d17e5548686ea2c2c8"},
+]
+
+[package.dependencies]
+aiohttp = "*"
+bce-python-sdk = "*"
+colorlog = "*"
+requests = ">=2.20"
+typing-extensions = "*"
+
+[package.extras]
+docs = ["Sphinx", "commonmark", "mkdocs", "mkdocs-material", "mkdocs-material-extensions", "pymdown-extensions", "recommonmark", "sphinx-markdown-tables"]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "exceptiongroup"
 version = "1.1.3"
 description = "Backport of PEP 654 (exception groups)"
@@ -1815,6 +1883,21 @@ optional = false
 python-versions = "*"
 files = [
     {file = "func_timeout-4.3.5.tar.gz", hash = "sha256:74cd3c428ec94f4edfba81f9b2f14904846d5ffccc27c92433b8b5939b5575dd"},
+]
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
+name = "future"
+version = "0.18.3"
+description = "Clean single-source support for Python 3 and 2"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+files = [
+    {file = "future-0.18.3.tar.gz", hash = "sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307"},
 ]
 
 [package.source]
@@ -4804,6 +4887,26 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "qianfan"
+version = "0.0.6"
+description = "文心千帆大模型平台 Python SDK"
+optional = false
+python-versions = ">=3.7,<4"
+files = [
+    {file = "qianfan-0.0.6-py3-none-any.whl", hash = "sha256:96ddc60ba8b7fc90e6c3b4e0337c5a6563338560b76bef5eac63e1630994cadf"},
+]
+
+[package.dependencies]
+aiohttp = ">=3.7.0"
+erniebot = ">=0.1.0"
+requests = ">=2.24"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "redis"
 version = "3.5.3"
 description = "Python client for Redis key-value store"
@@ -7195,4 +7298,4 @@ all = ["clickhouse-connect", "elasticsearch", "pymilvus", "pymongo", "weaviate-c
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "d04e6ebc2d8ab64ac6eae6124e8ee249f6f0907160bc2b633043a10e49aa767a"
+content-hash = "d2e4d8d5edfe6312aecc8bf853c5e6463aec932c6ae924dfa286b549984f1c08"

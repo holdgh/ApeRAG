@@ -31,6 +31,9 @@ django:
     - name: "baichuan-53b"
       label: "BaiChuan 53b"
       enabled: "true"
+    - name: "ernie-bot-turbo"
+      label: "文心一言"
+      enabled: "true"
 
 
 celery-worker:
