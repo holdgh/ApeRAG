@@ -283,11 +283,7 @@ async def list_collections(request):
     collections = await query_collections(user)
     response = []
     async for collection in collections:
-        bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
-        bot_ids = []
-        async for bot in bots:
-            bot_ids.append(bot.id)
-        response.append(collection.view(bot_ids=bot_ids))
+        response.append(collection.view())
     return success(response)
 
 
@@ -296,11 +292,7 @@ async def list_default_collections(request):
     collections = await query_collections(settings.SYSTEM_USER)
     response = []
     async for collection in collections:
-        bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
-        bot_ids = []
-        async for bot in bots:
-            bot_ids.append(bot.id)
-        response.append(collection.view(bot_ids=bot_ids))
+        response.append(collection.view())
     return success(response)
 
 
@@ -335,7 +327,12 @@ async def get_collection(request, collection_id):
     instance = await query_collection(user, collection_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    return success(instance.view())
+
+    bots = await sync_to_async(instance.bot_set.exclude)(status=BotStatus.DELETED)
+    bot_ids = []
+    async for bot in bots:
+        bot_ids.append(bot.id)
+    return success(instance.view(bot_ids=bot_ids))
 
 
 @api.put("/collections/{collection_id}")
@@ -368,8 +365,11 @@ async def delete_collection(request, collection_id):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     await delete_sync_documents_cron_job(collection.id)
     bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
-    if await sync_to_async(bots.count)() > 0:
-        return fail(HTTPStatus.BAD_REQUEST, "Collection has related to bots, can not be deleted")
+    bot_ids = []
+    async for bot in bots:
+        bot_ids.append(bot.id)
+    if len(bot_ids) > 0:
+        return fail(HTTPStatus.BAD_REQUEST, f"Collection has related to bots {','.join(bot_ids)}, can not be deleted")
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()

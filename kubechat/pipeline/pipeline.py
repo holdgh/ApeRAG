@@ -70,7 +70,7 @@ class Pipeline(ABC):
         self.vectordb_ctx["collection"] = collection_name
 
         config = json.loads(collection.config)
-        self.embedding_model_name = config.get("embedding_model", "text2vec")
+        self.embedding_model_name = config.get("embedding_model", settings.EMBEDDING_MODEL)
         self.embedding_model, self.vector_size = get_embedding_model(self.embedding_model_name)
 
         self.context_manager = ContextManager(collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
