@@ -13,39 +13,42 @@ You should install Python 3.11 first.
 pip3.11 install poetry
 ```
 
-* enter poetry environment
-
-```bash
-poetry shell
-```
-
 * install dependencies
 
 ```bash
 poetry install
 ```
 
+* prepare configs
+
+```bash
+cp envs/.env.template .env
+```
+
+* prepare frontend
+
+```bash
+make frontend.local.none
+```
+
+* prepare postgres/redis/qdrant/elasticsearch
+
+```bash
+make run-db
+```
+
 * run the django service
 
 ```bash
+poetry shell
+
 make run-backend
 ```
 
 * run the celery service
 
 ```bash
+poetry shell
+
 PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --concurrency 1
-
 ```
-
-* run the flower monitor service
-
-```bash
-make flower
-```
-
-# 依赖管理原则
-
-* 可选依赖，只在需要的时候导入
-
-

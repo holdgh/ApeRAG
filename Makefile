@@ -41,19 +41,19 @@ migrate:
 
 run-redis:
 	@echo "Starting redis"
-	@docker run -d --name kubechat-redis -p 6379:6379 redis:latest > /dev/null 2>&1
+	@docker inspect kubechat-redis > /dev/null || docker run -d --name kubechat-redis -p 6379:6379 redis:latest > /dev/null 2>&1
 
 run-postgres:
 	@echo "Starting postgres"
-	@docker run -d --name kubechat-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres > /dev/null 2>&1
+	@docker inspect kubechat-postgres > /dev/null || docker run -d --name kubechat-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres > /dev/null 2>&1
 
 run-qdrant:
 	@echo "Starting qdrant"
-	@docker run -d --name kubechat-qdrant -p 6333:6333 qdrant/qdrant > /dev/null 2>&1
+	@docker inspect kubechat-qdrant > /dev/null || docker run -d --name kubechat-qdrant -p 6333:6333 qdrant/qdrant > /dev/null 2>&1
 
 run-es:
 	@echo "Starting elasticsearch"
-	@docker run -d --name kubechat-es -p 9200:9200 apecloud/elasticsearch:8.8.2 > /dev/null 2>&1
+	@docker inspect kubechat-es > /dev/null || docker run -d --name kubechat-es -p 9200:9200 apecloud/elasticsearch:8.8.2 > /dev/null 2>&1
 
 run-db: run-redis run-postgres run-qdrant run-es
 
@@ -77,7 +77,7 @@ git-update-frontend:
 	git submodule update --init --recursive --remote
 
 frontend.%: git-update-frontend
-	cp .env.$@ KubeChat-FrontEnd/.env
+	cp envs/.env.$@ KubeChat-FrontEnd/.env
 	cd KubeChat-FrontEnd && yarn install && yarn build
 	if [ -f "static/web/index.html" ]; then \
   		cp static/web/index.html kubechat/templates/404.html; \
