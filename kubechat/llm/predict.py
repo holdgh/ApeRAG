@@ -89,7 +89,7 @@ class KubeBlocksLLMPredictor(Predictor):
         }
         response = requests.post("%s/generate" % self.endpoint, json=input, stream=True)
         output = prompt
-        for chunk in response.iter_lines(chunk_size=2048, decode_unicode=False, delimiter=b"\0"):
+        for chunk in response.iter_lines():
             if chunk:
                 data = json.loads(chunk.decode("utf-8"))
                 tokens = data["text"][0][len(output):]
@@ -221,7 +221,7 @@ class BaiChuanPredictor(Predictor):
         }
 
         response = requests.post(url, data=json_data, headers=headers, stream=True)
-        for chunk in response.iter_lines(chunk_size=2048, decode_unicode=False, delimiter=b"\0"):
+        for chunk in response.iter_lines():
             if not chunk:
                 continue
             data = json.loads(chunk.decode("utf-8"))
