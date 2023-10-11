@@ -13,7 +13,7 @@ from kubechat.utils.db import *
 from kubechat.utils.request import fail, success
 from .auth.validator import FeishuEventVerification
 from .models import ChatPeer
-from .pipeline.pipeline import BasePipeline
+from .pipeline.pipeline import BasePipeline, KeywordPipeline
 from kubechat.source.feishu.feishu import FeishuClient
 from .utils.utils import AESCipher
 
@@ -131,7 +131,7 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     response = ""
     collection = await sync_to_async(bot.collections.first)()
     card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))
-    async for msg in BasePipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
+    async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
         response += msg
         client.update_card_message(card_id, build_card_data(chat_id, msg_id, response))
     msg_cache[msg_id] = response
