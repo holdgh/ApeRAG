@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import time
+
 import kubechat.utils.message as msg_utils
 from http import HTTPStatus
 
@@ -131,9 +133,15 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     response = ""
     collection = await sync_to_async(bot.collections.first)()
     card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))
+    last_ts = time.time()
     async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
         response += msg
+        now = time.time()
+        if now - last_ts < 1:
+            continue
+        last_ts = now
         client.update_card_message(card_id, build_card_data(chat_id, msg_id, response))
+    client.update_card_message(card_id, build_card_data(chat_id, msg_id, response))
     msg_cache[msg_id] = response
 
 
