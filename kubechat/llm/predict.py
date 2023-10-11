@@ -153,7 +153,7 @@ class OpenAIPredictor(Predictor):
         """
         proxy = json.loads(os.environ.get("OPENAI_API_PROXY", "{}"))
         if proxy:
-            openai.proxy = json.loads(proxy)
+            openai.proxy = proxy
 
     def _generate_stream(self, prompt):
         response = openai.ChatCompletion.create(
