@@ -15,6 +15,7 @@ from asgiref.sync import sync_to_async
 from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
+from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import render
 from langchain.memory import RedisChatMessageHistory
@@ -387,7 +388,10 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
     response = []
     for item in file:
         file_suffix = os.path.splitext(item.name)[1].lower()
-        if file_suffix in DEFAULT_FILE_READER_CLS.keys():
+        if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
+            return fail(HTTPStatus.BAD_REQUEST, f"unsupported file type {file_suffix}")
+
+        try:
             document_instance = Document(
                 user=user,
                 name=item.name,
@@ -403,8 +407,11 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
             await document_instance.asave()
             response.append(document_instance.view())
             add_index_for_local_document.delay(document_instance.id)
-        else:
-            logger.error("ignore unsupported file types: %s", item.name)
+        except IntegrityError:
+            return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
+        except Exception as e:
+            logger.exception("add document failed")
+            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     return success(response)
 
 

@@ -122,14 +122,6 @@ class SyncProgress(BaseModel):
 
 
 def get_sync_progress(collection_sync_history):
-    if collection_sync_history.status == CollectionSyncStatus.COMPLETED:
-        return SyncProgress(
-            success=collection_sync_history.successful_documents,
-            failed=collection_sync_history.failed_documents,
-            processing=collection_sync_history.processing_documents,
-            pending=collection_sync_history.pending_documents,
-        )
-
     task_context = collection_sync_history.task_context
     progress = SyncProgress()
     if not task_context:

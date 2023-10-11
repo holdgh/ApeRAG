@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 class PredictorType(Enum):
     KB_VLLM = "kb-vllm"
     CUSTOM_LLM = "custom-llm"
-    OPENAI_GPT_3_5 = "chatgpt-3.5"
-    OPENAI_GPT_4 = "chatgpt-4"
 
 
 class Predictor(ABC):
