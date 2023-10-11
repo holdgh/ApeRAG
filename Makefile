@@ -5,6 +5,7 @@ BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 FRONTEND_BRANCH ?= main
+FRONTEND_REPO_DIR ?= /tmp/KubeChat-FrontEnd
 
 init:
 	cp envs/.env.template .env
@@ -72,16 +73,20 @@ clean:
 	@echo "Removing container kubechat-es"
 	@docker rm -fv kubechat-es > /dev/null 2>&1 || true
 
-git-update-frontend:
-	git submodule set-branch -b $(FRONTEND_BRANCH) KubeChat-FrontEnd
-	git submodule update --init --recursive --remote
-
-frontend.%: git-update-frontend
-	cp envs/.env.$@ KubeChat-FrontEnd/.env
-	cd KubeChat-FrontEnd && yarn install && yarn build
+frontend.%:
+	if cd $(FRONTEND_REPO_DIR) > /dev/null 2>&1; then \
+		cd $(FRONTEND_REPO_DIR) && rm .env && git pull origin $(FRONTEND_BRANCH) && git checkout $(FRONTEND_BRANCH); \
+	else \
+		git clone https://github.com/apecloud/KubeChat-FrontEnd.git $(FRONTEND_REPO_DIR); \
+	fi
+	cp envs/.env.$@ $(FRONTEND_REPO_DIR)/.env
+	mkdir -p /tmp/kubechat-static-files/
+	mkdir -p static/web/
+	cd $(FRONTEND_REPO_DIR) && yarn install && yarn build
+	cp -r /tmp/kubechat-static-files/* static/web/
 	if [ -f "static/web/index.html" ]; then \
   		cp static/web/index.html kubechat/templates/404.html; \
-  	fi
+ 	fi
 
 run-backend: migrate
 	python manage.py collectstatic --noinput
