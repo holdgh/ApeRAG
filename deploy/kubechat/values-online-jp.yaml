@@ -1,9 +1,8 @@
 image:
-  registry: docker.io
   tag: "v0.1.2-auth0"
 
 django:
-  replicaCount: 2
+  replicaCount: 1
   authType: auth0
   embeddingModel: bge
   auth0ClientId: ""

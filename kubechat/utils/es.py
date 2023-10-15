@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from elasticsearch import Elasticsearch
@@ -56,5 +57,6 @@ for q in queries:
 # print(search_document(col_id, ["延迟", "启"]))
 # print(search_document(col_id, ["延迟启动"]))
 # print(search_document(col_id, ["介绍", "延迟启动"]))
-print(search_document(index_name, []))
+task = asyncio.create_task(search_document(index_name, []))
+print(task.result())
 # tokens = es.indices.analyze(index="collection-2", body={"text": content}, analyzer="ik_max_word")

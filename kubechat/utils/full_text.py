@@ -1,6 +1,6 @@
 import logging
 from typing import List
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, AsyncElasticsearch
 
 from config import settings
 from kubechat.utils.utils import generate_fulltext_index_name
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 if settings.ENABLE_KEYWORD_SEARCH:
     es = Elasticsearch(settings.ES_HOST)
+    async_es = AsyncElasticsearch(settings.ES_HOST)
 
 
 # import redis
@@ -112,8 +113,9 @@ def remove_document(index, doc_id):
         logger.warning("index %s not exists", index)
 
 
-def search_document(index: str, keywords: List[str], topk=3):
-    if not es.indices.exists(index=index).body:
+async def search_document(index: str, keywords: List[str], topk=3):
+    resp = await async_es.indices.exists(index=index)
+    if not resp.body:
         return []
 
     query = {
@@ -132,7 +134,7 @@ def search_document(index: str, keywords: List[str], topk=3):
             }
         }
     ]
-    resp = es.search(index=index, query=query, sort=sort, size=topk)
+    resp = await async_es.search(index=index, query=query, sort=sort, size=topk)
     hits = resp.body["hits"]
     result = []
     for hit in hits["hits"]:

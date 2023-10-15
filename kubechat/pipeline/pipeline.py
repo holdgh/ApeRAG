@@ -1,7 +1,9 @@
+import asyncio
 import random
 import re
 import json
 import logging
+import time
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -16,6 +18,7 @@ from kubechat.context.context import ContextManager
 from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
+from kubechat.source.utils import async_run
 from kubechat.utils.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name, generate_fulltext_index_name
@@ -80,7 +83,8 @@ class Pipeline(ABC):
         self.qa_vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.qa_vectordb_ctx["collection"] = qa_collection_name
         self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
-                                                   self.qa_vectordb_ctx)
+                                                 self.qa_vectordb_ctx)
+        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
 
     @staticmethod
     def new_human_message(message, message_id):
@@ -192,8 +196,7 @@ class BasePipeline(Pipeline):
         prompt = self.prompt.format(query=message, context=context)
 
         response = ""
-        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
-        async for msg in predictor.agenerate_stream(prompt):
+        async for msg in self.predictor.agenerate_stream(prompt):
             yield msg
             response += msg
 
@@ -231,8 +234,7 @@ class QueryRewritePipeline(Pipeline):
             prompt = self.prompt.format(query=message, context=context)
 
             response = ""
-            predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
-            async for msg in predictor.agenerate_stream(prompt):
+            async for msg in self.predictor.agenerate_stream(prompt):
                 yield msg
                 response += msg
 
@@ -259,27 +261,27 @@ class KeywordPipeline(Pipeline):
         self.add_human_message(message, message_id)
 
         references = []
-        predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
 
-        results = self.qa_context_manager.query(message, score_threshold=0.9, topk=1)
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1)
         if len(results) > 0:
             response = results[0].text
             yield response
         else:
             index = generate_fulltext_index_name(self.collection_id)
-            keywords = IKExtractor({"index_name": index, "es_host": settings.ES_HOST}).extract(message)
+            keywords = await IKExtractor({"index_name": index, "es_host": settings.ES_HOST}).extract(message)
             logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
 
             # find the related documents using keywords
             doc_names = {}
             if keywords:
-                docs = search_document(index, keywords, self.topk * 3)
+                docs = await search_document(index, keywords, self.topk * 3)
                 for doc in docs:
                     doc_names[doc["name"]] = doc["content"]
                     logger.info("[%s] found keyword in document %s", message, doc["name"])
 
             candidates = []
-            results = self.context_manager.query(message, self.score_threshold, self.topk * 6)
+            results = await async_run(self.context_manager.query, message,
+                                      score_threshold=self.score_threshold, topk=self.topk * 6)
             if len(results) > self.topk:
                 results = self.ranker.rank(message, results)[:self.topk]
             for result in results:
@@ -297,7 +299,7 @@ class KeywordPipeline(Pipeline):
             prompt = self.prompt.format(query=message, context=context)
 
             response = ""
-            async for msg in predictor.agenerate_stream(prompt):
+            async for msg in self.predictor.agenerate_stream(prompt):
                 yield msg
                 response += msg
 

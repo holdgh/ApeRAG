@@ -79,7 +79,7 @@ frontend.%:
 	else \
 		git clone https://github.com/apecloud/KubeChat-FrontEnd.git $(FRONTEND_REPO_DIR); \
 	fi
-	cp envs/.env.$@ $(FRONTEND_REPO_DIR)/.env
+	cp .env.$@ $(FRONTEND_REPO_DIR)/.env
 	mkdir -p /tmp/kubechat-static-files/
 	mkdir -p static/web/
 	cd $(FRONTEND_REPO_DIR) && yarn install && yarn build

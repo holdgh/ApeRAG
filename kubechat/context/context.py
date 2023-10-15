@@ -14,7 +14,7 @@ class ContextManager(ABC):
     def query(self, query, score_threshold=0.5, topk=3):
         vector = self.embedding_model.embed_query(query)
         query_embedding = QueryWithEmbedding(query=query, top_k=topk, embedding=vector)
-        return self.adaptor.connector.search(
+        results = self.adaptor.connector.search(
             query_embedding,
             collection_name=self.collection_name,
             query_vector=query_embedding.embedding,
@@ -23,4 +23,5 @@ class ContextManager(ABC):
             consistency="majority",
             search_params={"hnsw_ef": 128, "exact": False},
             score_threshold=score_threshold,
-        ).results
+        )
+        return results.results

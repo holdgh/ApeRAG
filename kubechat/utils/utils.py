@@ -6,6 +6,7 @@ import hashlib
 import base64
 from Crypto.Cipher import AES
 
+from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.source.base import get_source, CustomSourceInitializationError
 
 AVAILABLE_MODEL = [""]
@@ -89,6 +90,14 @@ def validate_source_connect_config(config: Dict) -> (bool, str):
     try:
         get_source(config)
     except CustomSourceInitializationError as e:
+        return False, str(e)
+    return True, ""
+
+
+def validate_bot_config(model, config: Dict) -> (bool, str):
+    try:
+        Predictor.from_model(model, PredictorType.CUSTOM_LLM, **config)
+    except Exception as e:
         return False, str(e)
     return True, ""
 

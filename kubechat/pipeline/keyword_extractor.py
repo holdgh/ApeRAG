@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any
 
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, AsyncElasticsearch
 from langchain import PromptTemplate
 
 from kubechat.llm.predict import Predictor, PredictorType
@@ -18,7 +18,7 @@ class KeywordExtractor(object):
     def __init__(self, ctx: Dict[str, Any]):
         self.ctx = ctx
 
-    def extract(self, text):
+    async def extract(self, text):
         raise NotImplementedError
 
 
@@ -29,8 +29,9 @@ class IKExtractor(KeywordExtractor):
 
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
-        self.es = Elasticsearch(ctx.get("es_host", "http://127.0.0.1:9200"))
+        self.client = AsyncElasticsearch(ctx.get("es_host", "http://127.0.0.1:9200"))
         self.index_name = ctx["index_name"]
+        # TODO move stop words to global
         stop_words_path = ctx.get("stop_words_path", Path(__file__).parent / "stopwords.txt")
         if os.path.exists(stop_words_path):
             with open(stop_words_path) as f:
@@ -38,12 +39,13 @@ class IKExtractor(KeywordExtractor):
         else:
             self.stop_words = set()
 
-    def extract(self, text):
-        if not self.es.indices.exists(index=self.index_name).body:
+    async def extract(self, text):
+        resp = await self.client.indices.exists(index=self.index_name)
+        if not resp.body:
             logger.warning("index %s not exists", self.index_name)
             return []
 
-        resp = self.es.indices.analyze(index=self.index_name, body={"text": text}, analyzer="ik_smart")
+        resp = await self.client.indices.analyze(index=self.index_name, body={"text": text}, analyzer="ik_smart")
         tokens = {}
         for item in resp.body["tokens"]:
             token = item["token"]
@@ -62,7 +64,7 @@ class LLMExtractor(KeywordExtractor):
         super().__init__(ctx)
         self.predictor = Predictor.from_model(ctx["model"], PredictorType.CUSTOM_LLM)
 
-    def extract(self, text):
+    async def extract(self, text):
         keyword_template = PromptTemplate.from_template(KEYWORD_PROMPT_TEMPLATE)
         keyword_prompt = keyword_template.format(query=text)
         keyword_response = ""

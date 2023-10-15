@@ -37,8 +37,9 @@ from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.readers import DEFAULT_FILE_READER_CLS
 from .auth.validator import GlobalHTTPAuth
+from .llm.predict import Predictor, PredictorType, LLMConfigError
 from .models import *
-from .utils.utils import fix_path_name, validate_source_connect_config
+from .utils.utils import fix_path_name, validate_source_connect_config, validate_bot_config
 
 logger = logging.getLogger(__name__)
 
@@ -618,6 +619,12 @@ async def create_bot(request, bot_in: BotIn):
         description=bot_in.description,
         config=bot_in.config,
     )
+    config = json.loads(bot_in.config)
+    model = config.get("model")
+    llm_config = config.get("llm")
+    valid, msg = validate_bot_config(model, llm_config)
+    if not valid:
+        return fail(HTTPStatus.BAD_REQUEST, msg)
     await bot.asave()
     collections = []
     for cid in bot_in.collection_ids:
@@ -661,6 +668,12 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     bot = await query_bot(user, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    config = json.loads(bot_in.config)
+    model = config.get("model")
+    llm_config = config.get("llm")
+    valid, msg = validate_bot_config(model, llm_config)
+    if not valid:
+        return fail(HTTPStatus.BAD_REQUEST, msg)
     bot.title = bot_in.title
     bot.description = bot_in.description
     bot.config = bot_in.config
@@ -692,12 +705,12 @@ async def delete_bot(request, bot_id):
 def default_page(request, exception):
     return render(request, '404.html')
 
-logger.info(f"main thread id: {threading.get_ident()}")
 
 @api.get("/info")
 def index(request):
     logger.info(f"sync thread id: {threading.get_ident()}")
     return HttpResponse("KubeChat")
+
 
 @api.get("/ainfo")
 async def aindex(request):
