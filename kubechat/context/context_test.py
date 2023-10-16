@@ -178,7 +178,7 @@ def prepare_documents(dataset_dir, models, reload=False):
 
 def compare_models(test_cases, embedding_ctxs, **kwargs):
     table = []
-    prompt_template = PromptTemplate.from_template(DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+    prompt_template = PromptTemplate(template=DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, input_variables=["query", "context"])
     enable_inference = kwargs.get("enable_inference", False)
     for i, item in enumerate(test_cases):
         row = [item.query, item.expect]

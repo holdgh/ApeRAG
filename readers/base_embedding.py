@@ -287,6 +287,15 @@ def get_embedding_model(model_type: str, load=True, **kwargs) -> {Embeddings, in
     return embedding_model, vector_size
 
 
+def rerank(message, results):
+    model = get_rerank_model()
+    return model.rank(message, results)
+
+
+# pre loading rerank model
+get_rerank_model()
+
+
 def get_collection_embedding_model(collection):
     config = json.loads(collection.config)
     model_name = config.get("embedding_model", "text2vec")

@@ -65,7 +65,7 @@ class LLMExtractor(KeywordExtractor):
         self.predictor = Predictor.from_model(ctx["model"], PredictorType.CUSTOM_LLM)
 
     async def extract(self, text):
-        keyword_template = PromptTemplate.from_template(KEYWORD_PROMPT_TEMPLATE)
+        keyword_template = PromptTemplate(template=KEYWORD_PROMPT_TEMPLATE, input_variables=["query"])
         keyword_prompt = keyword_template.format(query=text)
         keyword_response = ""
         for tokens in self.predictor.generate_stream(keyword_prompt):

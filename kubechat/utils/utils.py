@@ -5,6 +5,8 @@ from typing import Dict
 import hashlib
 import base64
 from Crypto.Cipher import AES
+from langchain import PromptTemplate
+from pydantic import ValidationError
 
 from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.source.base import get_source, CustomSourceInitializationError
@@ -99,6 +101,30 @@ def validate_bot_config(model, config: Dict) -> (bool, str):
         Predictor.from_model(model, PredictorType.CUSTOM_LLM, **config)
     except Exception as e:
         return False, str(e)
+
+    try:
+        # validate the prompt
+        prompt_template = config.get("prompt_template", None)
+        PromptTemplate(template=prompt_template, input_variables=["query", "context"])
+    except ValidationError:
+        return False, "Invalid prompt template"
+
+    context_window = config.get("context_window")
+    if context_window > 1.0 or context_window < 0:
+        return False, "Invalid context window"
+
+    similarity_score_threshold = config.get("similarity_score_threshold")
+    if similarity_score_threshold > 1.0 or similarity_score_threshold <= 0:
+        return False, "Invalid similarity score threshold"
+
+    similarity_topk = config.get("similarity_topk")
+    if similarity_topk > 10 or similarity_topk <= 0:
+        return False, "Invalid similarity topk"
+
+    temperature = config.get("temperature")
+    if temperature > 1.0 or temperature < 0:
+        return False, "Invalid temperature"
+
     return True, ""
 
 

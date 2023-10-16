@@ -23,7 +23,7 @@ from kubechat.utils.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name, generate_fulltext_index_name
 from query.query import get_packed_answer
-from readers.base_embedding import get_embedding_model, get_rerank_model
+from readers.base_embedding import get_embedding_model, rerank
 
 KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
 
@@ -66,7 +66,7 @@ class Pipeline(ABC):
         self.prompt_template = self.llm_config.get("prompt_template", None)
         if not self.prompt_template:
             self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
-        self.prompt = PromptTemplate.from_template(self.prompt_template)
+        self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
         collection_name = generate_vector_db_collection_name(collection.id)
         self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
@@ -255,7 +255,6 @@ class KeywordPipeline(Pipeline):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ranker = get_rerank_model()
 
     async def run(self, message, gen_references=False, message_id=""):
         self.add_human_message(message, message_id)
@@ -283,7 +282,7 @@ class KeywordPipeline(Pipeline):
             results = await async_run(self.context_manager.query, message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6)
             if len(results) > self.topk:
-                results = self.ranker.rank(message, results)[:self.topk]
+                results = rerank(message, results)[:self.topk]
             for result in results:
                 if result.metadata["name"] not in doc_names:
                     logger.info("[%s] ignore doc %s not match keywords", message, result.metadata["name"])
