@@ -1,11 +1,8 @@
-import asyncio
 import datetime
 import io
 import json
 import logging
 import threading
-import time
-import traceback
 import zipfile
 from http import HTTPStatus
 from pathlib import Path
@@ -32,12 +29,11 @@ from kubechat.tasks.collection import init_collection_task, delete_collection_ta
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
-from kubechat.tasks.sync_documents_task import sync_documents, monitor_sync_tasks, get_sync_progress
+from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
 from readers.readers import DEFAULT_FILE_READER_CLS
 from .auth.validator import GlobalHTTPAuth
-from .llm.predict import Predictor, PredictorType, LLMConfigError
 from .models import *
 from .utils.utils import fix_path_name, validate_source_connect_config, validate_bot_config
 
@@ -700,22 +696,6 @@ async def delete_bot(request, bot_id):
     bot.gmt_deleted = timezone.now()
     await bot.asave()
     return success(bot.view())
-
-
-@api.get("/config")
-def config(request):
-    auth = {
-        "type": settings.AUTH_TYPE,
-    }
-
-    match settings.AUTH_TYPE:
-        case "auth0":
-            auth["auth_domain"] = settings.AUTH0_DOMAIN
-            auth["auth_app_id"] = settings.AUTH0_CLIENT_ID
-        case "authing":
-            auth["auth_domain"] = settings.AUTHING_DOMAIN
-            auth["auth_app_id"] = settings.AUTHING_APP_ID
-    return success({"auth": auth})
 
 
 def default_page(request, exception):
