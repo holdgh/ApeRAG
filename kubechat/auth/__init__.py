@@ -35,7 +35,7 @@ from config import settings
 """
 
 
-def get_jwt_token_verifier(jwks_url, issuer, domain, client_id):
+def get_jwt_token_verifier(jwks_url, issuer, client_id):
     sv = AsymmetricSignatureVerifier(jwks_url)
     return TokenVerifier(
         signature_verifier=sv, issuer=issuer, audience=client_id
@@ -46,11 +46,11 @@ match settings.AUTH_TYPE:
     case "auth0":
         issuer = f"https://{settings.AUTH0_DOMAIN}/"
         jwks_url = f"https://{settings.AUTH0_DOMAIN}/.well-known/jwks.json"
-        tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTH0_DOMAIN, settings.AUTH0_CLIENT_ID)
+        tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTH0_CLIENT_ID)
     case "authing":
         issuer = f"https://{settings.AUTHING_DOMAIN}/oidc"
         jwks_url = f"https://{settings.AUTHING_DOMAIN}/oidc/.well-known/jwks.json"
-        tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTHING_DOMAIN, settings.AUTHING_APP_ID)
+        tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTHING_APP_ID)
     case _:
         tv = None
 

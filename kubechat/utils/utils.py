@@ -110,7 +110,7 @@ def validate_bot_config(model, config: Dict) -> (bool, str):
         return False, "Invalid prompt template"
 
     context_window = config.get("context_window")
-    if context_window > 1.0 or context_window < 0:
+    if context_window > 32768 or context_window < 0:
         return False, "Invalid context window"
 
     similarity_score_threshold = config.get("similarity_score_threshold")

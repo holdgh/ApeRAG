@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubechat-website
+  namespace: kubechat
+  labels:
+    app: kubechat-website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubechat-website
+  template:
+    metadata:
+      labels:
+        app: kubechat-website
+    spec:
+      containers:
+      - image: apecloud/kubechat-website:latest
+        imagePullPolicy: Always
+        name: kubechat-website
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      imagePullSecrets:
+      - name: docker-hub-secret
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubechat-console
+  namespace: kubechat
+  labels:
+    app: kubechat-console
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubechat-console
+  template:
+    metadata:
+      labels:
+        app: kubechat-console
+    spec:
+      containers:
+      - image: apecloud/kubechat-console:latest
+        imagePullPolicy: Always
+        name: kubechat-console
+        ports:
+        - containerPort: 80
+          protocol: TCP
+      imagePullSecrets:
+      - name: docker-hub-secret
+

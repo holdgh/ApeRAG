@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubechat-website
+  namespace: kubechat
+spec:
+  ports:
+  - port: 8001
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: kubechat-website
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubechat-console
+  namespace: kubechat
+spec:
+  ports:
+  - port: 8002
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: kubechat-console
+  type: ClusterIP

@@ -292,10 +292,6 @@ def rerank(message, results):
     return model.rank(message, results)
 
 
-# pre loading rerank model
-get_rerank_model()
-
-
 def get_collection_embedding_model(collection):
     config = json.loads(collection.config)
     model_name = config.get("embedding_model", "text2vec")

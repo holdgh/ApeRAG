@@ -95,6 +95,14 @@ django:
             matchLabels:
               app.kubechat.io/component: celery-worker
           topologyKey: kubernetes.io/hostname
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubechat.io/component: django
+            topologyKey: kubernetes.io/hostname
   modelServers:
     - name: "chatgpt-3.5"
       label: "ChatGPT 3.5"
@@ -146,6 +154,15 @@ celery-worker:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubechat.io/component: celery-worker
+          topologyKey: kubernetes.io/hostname
 
 celery-beat:
   replicaCount: 1

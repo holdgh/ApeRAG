@@ -139,6 +139,10 @@ spec:
             - mountPath: /data
               name: data
       restartPolicy: Always
+      {{- with index .Values "celery-worker" "affinity" }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         # shared uploaded files between django and celery
         - name: data
