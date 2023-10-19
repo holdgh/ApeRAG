@@ -5,7 +5,7 @@ import requests
 import openai
 import os
 
-query_str = "test"
+query_str = "如何在windows中安装kbcli?"
 '''
 you can custom your own prompt
 '''

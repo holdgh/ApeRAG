@@ -9,7 +9,7 @@ def baichuan_generate_stream(
     model, tokenizer, params, device, context_len=4096, stream_interval=2
 ):
     prompt = params["prompt"]
-    temperature = params.get("temperature", 0.001)
+    temperature = params.get("temperature", 0.01)
     model.generation_config.temperature = temperature
 
     messages = [{"role": "user", "content": prompt}]
