@@ -127,8 +127,7 @@ def add_index_for_document(self, document_id):
     except FeishuPermissionDenied:
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
-        logger.error(e)
-        # raise self.retry(exc=e, countdown=3, max_retries=5)
+        raise e
     source.cleanup_document(local_doc.path)
 
 
@@ -219,8 +218,7 @@ def update_index(self, document_id):
     except FeishuPermissionDenied:
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
-        logger.error(e)
-        # raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise e
     source.cleanup_document(local_doc.path)
 
 
