@@ -1,9 +1,9 @@
 django:
   replicaCount: 2
-  authType: authing
   embeddingModel: bge
-  auth0ClientId: ""
-  auth0Domain: "kubechat.jp.auth0.com"
+  authType: authing
+  authingAppId: "6520eca1907b81f28ef1ffb6"
+  authingDomain: "kubechat.authing.cn"
   openaiAPIKey: ""
   modelServers:
     - name: "chatglm-pro"

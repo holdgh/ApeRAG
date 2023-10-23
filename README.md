@@ -25,12 +25,6 @@ poetry install
 cp envs/.env.template .env
 ```
 
-* prepare frontend
-
-```bash
-make frontend.local.none
-```
-
 * prepare postgres/redis/qdrant/elasticsearch
 
 ```bash
@@ -52,3 +46,32 @@ poetry shell
 
 PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --concurrency 1
 ```
+
+* run the frontend
+
+There are two options to run the frontend, one is to run the frontend from source directly, the other is to run the frontend in docker.
+
+Option 1:
+
+```bash
+
+git clone https://github.com/apecloud/KubeChat-FrontEnd.git
+
+cd KubeChat-FrontEnd
+
+git checkout frontend_improvement
+
+echo 'API_ENDPOINT=http://127.0.0.1:8000' > .env
+
+yarn dev
+
+```
+
+Option 2 [Not Ready]:
+
+```bash
+docker run --rm -p 8001:8001 -e "API_ENDPOINT=http://127.0.0.1:8000" apecloud/kubechat-console:latest
+```
+
+
+then open the kubechat frontend console: http://localhost:8001

@@ -1,8 +1,8 @@
 django:
   replicaCount: 2
-  authType: auth0
   embeddingModel: bge
-  auth0ClientId: ""
+  authType: auth0
+  auth0ClientId: "G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2"
   auth0Domain: "kubechat.jp.auth0.com"
   openaiAPIKey: ""
   modelServers:

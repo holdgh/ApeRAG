@@ -52,6 +52,17 @@ spec:
                 configMapKeyRef:
                   key: AUTH0_DOMAIN
                   name: kubechat-config
+            {{ else if eq .Values.django.authType "authing" }}
+            - name: AUTHING_APP_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: AUTHING_APP_ID
+                  name: kubechat-config
+            - name: AUTHING_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  key: AUTHING_DOMAIN
+                  name: kubechat-config
             {{- end }}
             - name: REDIS_HOST
               valueFrom:
