@@ -230,7 +230,7 @@ class OpenAIPredictor(Predictor):
 class BaiChuanPredictor(Predictor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.url = "https://api.baichuan-ai.com/v1/stream/chat"
+        self.url = kwargs.get("url", "https://api.baichuan-ai.com/v1/stream/chat")
 
         self.api_key = kwargs.get("api_key", os.environ.get("BAICHUAN_API_KEY", ""))
         if not self.api_key:
