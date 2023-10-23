@@ -104,6 +104,15 @@ django:
                 app.kubechat.io/component: django
             topologyKey: kubernetes.io/hostname
   modelServers:
+    - name: "chatglm-pro"
+      label: "ChatGLM Pro"
+      enabled: "true"
+    - name: "chatglm-std"
+      label: "ChatGLM Std"
+      enabled: "true"
+    - name: "chatglm-lite"
+      label: "ChatGLM Lite"
+      enabled: "true"
     - name: "chatgpt-3.5"
       label: "ChatGPT 3.5"
       enabled: "true"

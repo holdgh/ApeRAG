@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import json
 import logging
@@ -9,8 +8,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 import aiohttp
+import jwt
 import openai
 import qianfan
+import zhipuai
 import requests
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,8 @@ class Predictor(ABC):
                 return BaiChuanPredictor(**kwargs)
             case "ernie-bot-turbo":
                 return BaiduQianFan(**kwargs)
+            case "chatglm_pro" | "chatglm_std" | "chatglm_lite":
+                return ChatGLMPredictor(**kwargs)
 
         endpoint = kwargs.get("endpoint", "")
         if not endpoint:
@@ -336,3 +339,114 @@ class BaiduQianFan(Predictor):
         resp = self.chat_comp.do(model=self.model, stream=True,
                                  messages=[{"role": "user", "content": prompt}])
         yield resp['body']['result']
+
+
+class ChatGLMPredictor(Predictor):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.endpoint = kwargs.get("endpoint", "https://open.bigmodel.cn/api/paas/v3/model-api")
+        self.model = kwargs.get("model", "chatglm_lite")
+
+        self.temperature = kwargs.get("temperature", 0.95)
+        self.top_p = kwargs.get("top_p", 0.7)
+
+        if self.model not in ["chatglm_pro", "chatglm_std", "chatglm_lite"]:
+            raise LLMConfigError("Please specify the correct model")
+
+        zhipuai.api_key = kwargs.get("api_key", os.environ.get("GLM_API_KEY", ""))
+        if not zhipuai.api_key:
+            raise LLMConfigError("Please specify the API KEY")
+
+    @staticmethod
+    def build_request_data(prompt):
+        return {
+            "prompt": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ]
+        }
+
+    def generate_token(self, apikey: str, exp_seconds: int):
+        try:
+            id, secret = apikey.split(".")
+        except Exception as e:
+            raise Exception("invalid apikey", e)
+
+        payload = {
+            "api_key": id,
+            "exp": int(round(time.time() * 1000)) + exp_seconds * 1000,
+            "timestamp": int(round(time.time() * 1000)),
+        }
+
+        return jwt.encode(
+            payload,
+            secret,
+            algorithm="HS256",
+            headers={"alg": "HS256", "sign_type": "SIGN"},
+        )
+
+    def build_request_headers(self, api_key):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + self.generate_token(api_key, 60),
+            "accept": "text/event-stream",
+        }
+
+    async def _agenerate_stream(self, prompt):
+
+        data = self.build_request_data(prompt)
+        headers = self.build_request_headers(zhipuai.api_key)
+        url = "%s/%s/sse-invoke" % (self.endpoint, self.model)
+        params = {
+            "temperature": self.temperature,
+            "top_p": self.top_p
+        }
+
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
+            async with session.post(url, params=params, json=data, headers=headers, ssl=False) as r:
+                async for line in r.content:
+                    if line == b'\n':
+                        continue
+
+                    key, value = line.decode("utf-8").split(":", 1)
+                    if value.strip() != "":    # 跳过回答中不该删的换行符
+                        value = value.strip()  # 删除格式里自带的换行符
+
+                    if key == "event":
+                        if value == "add":
+                            continue
+                        elif value == "finish":
+                            return
+                        else:
+                            logger.warning("ChatGLM API error")
+                    elif key == "data":
+                        yield value
+
+    def _generate_stream(self, prompt):
+        response = zhipuai.model_api.sse_invoke(
+            model=self.model,
+            prompt=[{"role": "user", "content": prompt}],
+            temperature=self.temperature,
+            top_p=self.top_p,
+        )
+
+        for event in response.events():
+            if event.event == "add":
+                yield event.data
+            elif event.event == "finish":
+                return
+            elif event.event == "error" or event.event == "interrupted":
+                logger.warning("ChatGLM API error:%s" % event.data)
+                return
+
+    async def agenerate_stream(self, prompt):
+        async for tokens in self._agenerate_stream(prompt):
+            yield tokens
+
+
+    def generate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+
