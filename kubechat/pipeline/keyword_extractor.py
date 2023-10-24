@@ -39,6 +39,12 @@ class IKExtractor(KeywordExtractor):
         else:
             self.stop_words = set()
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.close()
+
     async def extract(self, text):
         resp = await self.client.indices.exists(index=self.index_name)
         if not resp.body:
