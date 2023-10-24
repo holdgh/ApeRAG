@@ -220,6 +220,7 @@ def update_index(self, document_id):
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         logger.error(e)
+        raise Exception("an error occur %s" % e)
         # raise self.retry(exc=e, countdown=5, max_retries=3)
     source.cleanup_document(local_doc.path)
 
