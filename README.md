@@ -61,7 +61,7 @@ cd KubeChat-FrontEnd
 
 git checkout frontend_improvement
 
-echo 'API_ENDPOINT=http://127.0.0.1:8000' > .env
+echo 'API_ENDPOINT=http://127.0.0.1:8000' >> .env
 
 yarn dev
 
