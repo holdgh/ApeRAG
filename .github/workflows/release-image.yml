@@ -90,6 +90,6 @@ jobs:
     uses: apecloud/apecloud-cd/.github/workflows/feishui-message.yml@v0.1.34
     with:
       TYPE: "2"
-      CONTENT: "release ${{ needs.image-tag.outputs.release-version }} ${{ needs.release-result.release-result }}"
+      CONTENT: "release ${{ needs.image-tag.outputs.tag-name }} ${{ needs.release-result.outputs.release-result }}"
       APECD_REF: "v0.1.34"
     secrets: inherit
