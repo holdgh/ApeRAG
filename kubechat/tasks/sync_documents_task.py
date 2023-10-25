@@ -4,6 +4,8 @@ import logging
 import os
 import sys
 import traceback
+
+from asgiref.sync import async_to_sync
 from celery import group
 from celery.result import GroupResult
 
@@ -45,7 +47,8 @@ def sync_documents(self, **kwargs):
     logger.debug(f"sync_documents_cron_job() : sync collection{collection_id} start ")
 
     dst_docs = {}
-    for doc in query_documents(collection.user, collection_id):
+    pr = async_to_sync(query_documents)(user=collection.user, collection_id=collection_id, pq=None)
+    for doc in pr.data:
         dst_docs[doc.name] = doc
 
     task_context = {

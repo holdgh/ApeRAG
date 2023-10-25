@@ -267,8 +267,9 @@ class KeywordPipeline(Pipeline):
             yield response
         else:
             index = generate_fulltext_index_name(self.collection_id)
-            keywords = await IKExtractor({"index_name": index, "es_host": settings.ES_HOST}).extract(message)
-            logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
+            async with IKExtractor({"index_name": index, "es_host": settings.ES_HOST}) as extractor:
+                keywords = await extractor.extract(message)
+                logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
 
             # find the related documents using keywords
             doc_names = {}

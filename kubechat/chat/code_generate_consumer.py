@@ -9,6 +9,7 @@ from kubechat.auth.validator import DEFAULT_USER
 import config.settings as settings
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+from kubechat.chat.utils import stop_response, success_response, start_response
 from kubechat.tasks.code_generate import *
 from kubechat.utils.db import query_collection, query_chat
 from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id, fix_path_name
@@ -99,9 +100,9 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             # pre_clarify_task_id = pre_clarify.delay(self.user, collection_id, chat_id)
             # task = AsyncResult(id=str(pre_clarify_task_id))
             # message_id = f"{now_unix_milliseconds()}"
-            # self.send(self.start_response(message_id))
+            # self.send(start_response(message_id))
             # self.message = task.get()
-            # self.send(self.stop_response(message_id, None))
+            # self.send(stop_response(message_id, None))
             self.dbs.input["prompt"] = chat.summary
             self.message = [fsystem(msg=self.dbs.preprompts["qa"])]
             user_input = get_prompt(self.dbs)
@@ -143,12 +144,12 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
     async def clarifying(self, user_input, massage: List[dict]):
         if not user_input or user_input == "c":
             message_id = f"{now_unix_milliseconds()}"
-            await self.send(text_data=self.start_response(message_id))
-            response = self.success_response(
+            await self.send(text_data=start_response(message_id))
+            response = success_response(
                 message_id, '(letting gpt-engineer make its own assumptions)\n', issql=self.response_type == "sql"
             )
             await self.send(text_data=response)
-            await self.send(text_data=self.stop_response(message_id, None))
+            await self.send(text_data=stop_response(message_id, None))
             return massage, ChatStatus.CLARIFIED
 
         user_input += (
@@ -193,18 +194,18 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
             temperature=0.1,
         )
         message_id = f"{now_unix_milliseconds()}"
-        await self.send(text_data=self.start_response(message_id))
+        await self.send(text_data=start_response(message_id))
         chat = []
         for chunk in response:
             delta = chunk["choices"][0]["delta"]  # type: ignore
             msg = delta.get("content", "")
-            response = self.success_response(
+            response = success_response(
                 message_id, msg, issql=self.response_type == "sql"
             )
             await asyncio.sleep(0.1)
             await self.send(text_data=response)
             chat.append(msg)
-        await self.send(text_data=self.stop_response(message_id, None))
+        await self.send(text_data=stop_response(message_id, None))
         messages += [{"role": "assistant", "content": "".join(chat)}]
         logger.debug(f"Chat completion finished: {messages}")
         return messages
@@ -218,7 +219,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         message_id = f"{now_unix_milliseconds()}"
         self.history.add_message(
             AIMessage(
-                content=self.success_response(
+                content=success_response(
                     message_id, messages[-1]["content"], issql=self.response_type == "sql"
                 ), additional_kwargs={"role": "ai"}
             ))
@@ -250,7 +251,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
         message_id = f"{now_unix_milliseconds()}"
         self.history.add_message(
             AIMessage(
-                content=self.success_response(
+                content=success_response(
                     message_id, messages[-1]["content"], issql=self.response_type == "sql"
                 ), additional_kwargs={"role": "ai"}
             ))
@@ -332,13 +333,13 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
 
     async def send_clarify_tips(self):
         message_id = f"{now_unix_milliseconds()}"
-        await self.send(text_data=self.start_response(message_id))
-        response = self.success_response(
+        await self.send(text_data=start_response(message_id))
+        response = success_response(
             message_id, '(answer in text, or "c" to move on)\n', issql=self.response_type == "sql"
         )
         await self.send(text_data=response)
         # send stop message
-        await self.send(text_data=self.stop_response(message_id, None))
+        await self.send(text_data=stop_response(message_id, None))
 
     def remember_openAI_message(self, messages):
         for elem in messages:
@@ -350,7 +351,7 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
                 message_id = f"{now_unix_milliseconds()}"
                 self.history.add_message(
                     AIMessage(
-                        content=self.success_response(
+                        content=success_response(
                             message_id, elem["content"], issql=self.response_type == "sql"
                         ), additional_kwargs={"role": "ai"}
                     ))

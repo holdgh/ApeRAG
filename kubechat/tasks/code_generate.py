@@ -40,7 +40,7 @@ def pre_clarify(user, collection_id, chat_id):
         chat.save()
         return messages
         # message_id = f"{now_unix_milliseconds()}"
-        # self.send(text_data=self.stop_response(message_id, None))
+        # self.send(text_data=stop_response(message_id, None))
     chat.status = ChatStatus.CLARIFYING
     chat.save()
     return messages
@@ -105,7 +105,7 @@ def DB_init(user, title, chat_id):
 
 def interact_with_LLM(messages: List[Dict[str, str]], prompt=None, *, step_name=None):
     '''
-    interact_with_LLM is the hub between the front and LLM. self.send(text_data=self.stop_response(message_id)) must
+    interact_with_LLM is the hub between the front and LLM. self.send(text_data=stop_response(message_id)) must
      be called after interact_with_LLM.
     :param messages:
     :param prompt:
@@ -132,12 +132,12 @@ def interact_with_LLM(messages: List[Dict[str, str]], prompt=None, *, step_name=
     #     "%s/generate_stream" % settings.MODEL_SERVER, json=input, stream=True
     # )
     # message_id = f"{now_unix_milliseconds()}"
-    # self.send(text_data=self.start_response(message_id))
+    # self.send(text_data=start_response(message_id))
     chat = []
     for chunk in response:
         delta = chunk["choices"][0]["delta"]  # type: ignore
         msg = delta.get("content", "")
-        # response = self.success_response(
+        # response = success_response(
         #     message_id, msg, issql=self.response_type == "sql"
         # )
         # self.send(text_data=response)

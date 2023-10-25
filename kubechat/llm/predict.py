@@ -65,7 +65,7 @@ class Predictor(ABC):
                 return BaiChuanPredictor(**kwargs)
             case "ernie-bot-turbo":
                 return BaiduQianFan(**kwargs)
-            case "chatglm_pro" | "chatglm_std" | "chatglm_lite":
+            case "chatglm-pro" | "chatglm-std" | "chatglm-lite":
                 return ChatGLMPredictor(**kwargs)
 
         endpoint = kwargs.get("endpoint", "")
@@ -276,7 +276,7 @@ class BaiChuanPredictor(Predictor):
         data = self.build_request_data(prompt)
         headers = self.build_request_headers(data)
         async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.post(self.url, json=data, headers=headers) as r:
+            async with session.post(self.url, json=data, headers=headers,ssl=False) as r:
                 async for line in r.content:
                     data = json.loads(line.decode("utf-8"))
                     if data["code"] != 0:
@@ -444,7 +444,6 @@ class ChatGLMPredictor(Predictor):
     async def agenerate_stream(self, prompt):
         async for tokens in self._agenerate_stream(prompt):
             yield tokens
-
 
     def generate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):

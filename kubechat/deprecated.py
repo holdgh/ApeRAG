@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import os
 import uuid
@@ -13,7 +14,7 @@ from ninja import NinjaAPI, UploadedFile, File
 from config import settings
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.models import ssl_temp_file_path, VerifyWay, Chat, DocumentStatus, ChatStatus
-from kubechat.utils.db import new_db_client
+from kubechat.utils.db import new_db_client, query_collection
 from kubechat.utils.request import fail, success, get_user
 from kubechat.utils.utils import fix_path_name
 from kubechat.views import ConnectionInfo
@@ -94,3 +95,30 @@ async def download_code(request, chat_id):
     response['Content-Disposition'] = f"attachment; filename=\"{collection.title}.zip\""
     response['Content-Type'] = 'application/zip'
     return response
+
+
+@api.get("/collections/{collection_id}/database")
+async def get_database_list(request, collection_id):
+    user = get_user(request)
+    instance = await query_collection(user, collection_id)
+    if instance is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+
+    config = json.loads(instance.config)
+    db_type = config["db_type"]
+    if db_type not in ["mysql", "postgresql"]:
+        return fail(
+            HTTPStatus.NOT_FOUND, "{} don't have multiple databases".format(db_type)
+        )
+
+    client = new_db_client(config)
+    # TODO:add SSL
+    if not client.connect(
+            False,
+    ):
+        return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
+
+    response = client.get_database_list()
+    return success(response)
+
+

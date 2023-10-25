@@ -1,6 +1,6 @@
 import logging
 from typing import List
-from elasticsearch import Elasticsearch, AsyncElasticsearch
+from elasticsearch import Elasticsearch, AsyncElasticsearch, NotFoundError
 
 from config import settings
 from kubechat.utils.utils import generate_fulltext_index_name
@@ -108,7 +108,10 @@ def insert_document(index, doc_id, doc_name, content):
 
 def remove_document(index, doc_id):
     if es.indices.exists(index=index).body:
-        es.delete(index=index, id=f"{doc_id}")
+        try:
+            es.delete(index=index, id=f"{doc_id}")
+        except NotFoundError:
+            logger.warning("document %s not found in index %s", doc_id, index)
     else:
         logger.warning("index %s not exists", index)
 

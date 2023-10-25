@@ -64,6 +64,7 @@ mdsplit = "^0.4.0"
 requests = "^2.31.0"
 flagembedding = "^1.1.1"
 qianfan = "^0.0.6"
+zhipuai = "^1.0.7"
 
 [tool.poetry.group.llmserver]
 optional = true

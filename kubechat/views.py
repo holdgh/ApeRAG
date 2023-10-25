@@ -13,7 +13,6 @@ from django.shortcuts import render
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
 from ninja.files import UploadedFile
-from pydantic import BaseModel
 
 import config.settings as settings
 import kubechat.utils.message as msg_utils
@@ -81,7 +80,7 @@ class DocumentConfig(BaseModel):
 
 
 @api.get("/models")
-def list_model_name(request):
+def list_models(request):
     response = []
     model_servers = json.loads(settings.MODEL_SERVERS)
     if model_servers is None:
@@ -107,8 +106,8 @@ async def sync_immediately(request, collection_id):
     if not source.sync_enabled():
         return fail(HTTPStatus.BAD_REQUEST, "source type not supports sync")
 
-    running_tasks = await query_running_sync_histories(user, collection_id)
-    async for task in running_tasks:
+    pr = await query_running_sync_histories(user, collection_id)
+    async for task in pr.data:
         return fail(HTTPStatus.BAD_REQUEST, f"have running sync task {task.id}, please cancel it first")
 
     instance = CollectionSyncHistory(
@@ -161,11 +160,11 @@ async def cancel_sync(request, collection_id, collection_sync_id):
 
 
 @api.get("/collections/{collection_id}/sync/history")
-async def get_sync_histories(request, collection_id):
+async def list_sync_histories(request, collection_id):
     user = get_user(request)
-    sync_histories = await query_sync_histories(user, collection_id)
+    pr = await query_sync_histories(user, collection_id, build_pq(request))
     response = []
-    async for sync_history in sync_histories:
+    async for sync_history in pr.data:
         if sync_history.status == CollectionSyncStatus.RUNNING:
             progress = get_sync_progress(sync_history)
             sync_history.failed_documents = progress.failed_documents
@@ -173,7 +172,7 @@ async def get_sync_histories(request, collection_id):
             sync_history.processing_documents = progress.processing_documents
             sync_history.pending_documents = progress.pending_documents
         response.append(sync_history.view())
-    return success(response)
+    return success(response, pr)
 
 
 @api.get("/collections/{collection_id}/sync/{sync_history_id}")
@@ -233,45 +232,20 @@ async def create_collection(request, collection: CollectionIn):
 @api.get("/collections")
 async def list_collections(request):
     user = get_user(request)
-    collections = await query_collections(user)
+    pr = await query_collections(user, build_pq(request))
     response = []
-    async for collection in collections:
+    async for collection in pr.data:
         response.append(collection.view())
-    return success(response)
+    return success(response, pr)
 
 
 @api.get("/default_collections")
 async def list_default_collections(request):
-    collections = await query_collections(settings.SYSTEM_USER)
+    pr = await query_collections(settings.SYSTEM_USER, build_pq(request))
     response = []
-    async for collection in collections:
+    async for collection in pr.data:
         response.append(collection.view())
-    return success(response)
-
-
-@api.get("/collections/{collection_id}/database")
-async def get_database_list(request, collection_id):
-    user = get_user(request)
-    instance = await query_collection(user, collection_id)
-    if instance is None:
-        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-
-    config = json.loads(instance.config)
-    db_type = config["db_type"]
-    if db_type not in ["mysql", "postgresql"]:
-        return fail(
-            HTTPStatus.NOT_FOUND, "{} don't have multiple databases".format(db_type)
-        )
-
-    client = new_db_client(config)
-    # TODO:add SSL
-    if not client.connect(
-            False,
-    ):
-        return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "can not connect")
-
-    response = client.get_database_list()
-    return success(response)
+    return success(response, pr)
 
 
 @api.get("/collections/{collection_id}")
@@ -331,7 +305,7 @@ async def delete_collection(request, collection_id):
 
 
 @api.post("/collections/{collection_id}/documents")
-async def add_document(request, collection_id, file: List[UploadedFile] = File(...)):
+async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
     user = get_user(request)
     collection = await query_collection(user, collection_id)
     if collection is None:
@@ -370,11 +344,11 @@ async def add_document(request, collection_id, file: List[UploadedFile] = File(.
 @api.get("/collections/{collection_id}/documents")
 async def list_documents(request, collection_id):
     user = get_user(request)
-    documents = await aquery_documents(user, collection_id)
+    pr = await query_documents(user, collection_id, build_pq(request))
     response = []
-    async for document in documents:
+    async for document in pr.data:
         response.append(document.view())
-    return success(response)
+    return success(response, pr)
 
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
@@ -410,7 +384,7 @@ async def delete_document(request, collection_id, document_id):
 
 
 @api.post("/bots/{bot_id}/chats")
-async def add_chat(request, bot_id):
+async def create_chat(request, bot_id):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
     if bot is None:
@@ -423,11 +397,11 @@ async def add_chat(request, bot_id):
 @api.get("/bots/{bot_id}/chats")
 async def list_chats(request, bot_id):
     user = get_user(request)
-    chats = await query_chats(user, bot_id)
+    pr = await query_chats(user, bot_id, build_pq(request))
     response = []
-    async for chat in chats:
+    async for chat in pr.data:
         response.append(chat.view(bot_id))
-    return success(response)
+    return success(response, pr)
 
 
 @api.put("/bots/{bot_id}/chats/{chat_id}")
@@ -450,9 +424,9 @@ async def get_chat(request, bot_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
-    feedbacks = await query_chat_feedbacks(user, chat_id)
+    pr = await query_chat_feedbacks(user, chat_id)
     feedback_map = {}
-    async for feedback in feedbacks:
+    async for feedback in pr.data:
         feedback_map[feedback.message_id] = feedback
 
     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
@@ -558,14 +532,14 @@ async def create_bot(request, bot_in: BotIn):
 @api.get("/bots")
 async def list_bots(request):
     user = get_user(request)
-    bots = await query_bots(user)
+    pr = await query_bots(user, build_pq(request))
     response = []
-    async for bot in bots:
+    async for bot in pr.data:
         collections = []
         async for collection in await sync_to_async(bot.collections.all)():
             collections.append(collection.view())
         response.append(bot.view(collections))
-    return success(response)
+    return success(response, pr)
 
 
 @api.get("/bots/{bot_id}")
