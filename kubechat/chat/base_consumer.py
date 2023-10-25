@@ -11,6 +11,7 @@ from langchain.memory import RedisChatMessageHistory
 
 import config.settings as settings
 from kubechat.auth.validator import DEFAULT_USER
+from kubechat.chat.utils import start_response, success_response, stop_response
 from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline
 from kubechat.utils.db import query_bot
 from kubechat.utils.utils import now_unix_milliseconds, extract_bot_and_chat_id
@@ -88,7 +89,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         try:
             # send start message
-            await self.send(text_data=self.start_response(message_id))
+            await self.send(text_data=start_response(message_id))
 
             references = []
             async for tokens in self.predict(data["data"], message_id=message_id):
@@ -97,7 +98,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
                     continue
 
                 # streaming response
-                response = self.success_response(
+                response = success_response(
                     message_id, tokens, issql=self.response_type == "sql"
                 )
                 await self.send(text_data=response)
@@ -106,53 +107,9 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 message += tokens
 
             # send stop message
-            await self.send(text_data=self.stop_response(message_id, references))
+            await self.send(text_data=stop_response(message_id, references))
         except websockets.exceptions.ConnectionClosedError:
             logger.warning("Connection closed")
         except Exception as e:
             logger.warning("%s: %s", str(e), traceback.format_exc())
 
-    @staticmethod
-    def success_response(message_id, data, issql=False):
-        return json.dumps(
-            {
-                "type": "message" if not issql else "sql",
-                "id": message_id,
-                "data": data,
-                "timestamp": now_unix_milliseconds(),
-            }
-        )
-
-    @staticmethod
-    def fail_response(message_id, error):
-        return json.dumps(
-            {
-                "type": "error",
-                "id": message_id,
-                "data": error,
-                "timestamp": now_unix_milliseconds(),
-            }
-        )
-
-    @staticmethod
-    def start_response(message_id):
-        return json.dumps(
-            {
-                "type": "start",
-                "id": message_id,
-                "timestamp": now_unix_milliseconds(),
-            }
-        )
-
-    @staticmethod
-    def stop_response(message_id, references):
-        if references is None:
-            references = []
-        return json.dumps(
-            {
-                "type": "stop",
-                "id": message_id,
-                "data": references,
-                "timestamp": now_unix_milliseconds(),
-            }
-        )

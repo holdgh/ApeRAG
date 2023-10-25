@@ -199,6 +199,7 @@ LOCAL_QUEUE_NAME = env.str("LOCAL_QUEUE_NAME", default="")
 
 # WebSockets
 INSTALLED_APPS += ["channels"]
+
 ASGI_APPLICATION = "config.asgi.application"
 
 # Logging

@@ -7,6 +7,7 @@ from channels.middleware import BaseMiddleware
 from django.http import HttpRequest
 from ninja.security import HttpBearer
 from ninja.security.http import HttpAuthBase
+from django.core.exceptions import PermissionDenied
 
 import config.settings as settings
 from kubechat.auth import tv
@@ -71,7 +72,7 @@ class FeishuEventVerification(HttpAuthBase):
         return True
 
 
-class TokenAuthMiddleware(BaseMiddleware):
+class WebSocketAuthMiddleware(BaseMiddleware):
     def __init__(self, app):
         self.app = app
 
@@ -84,3 +85,23 @@ class TokenAuthMiddleware(BaseMiddleware):
         scope["Sec-Websocket-Protocol"] = token
         scope["X-USER-ID"] = get_user_from_token(token)
         return self.app(scope, receive, send)
+
+
+class HTTPAuthMiddleware(BaseMiddleware):
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        path = scope['path']
+        if path == "/api/v1/config" or path.startswith("/api/v1/feishu"):
+            return await self.inner(scope, receive, send)
+
+        headers = dict(scope["headers"])
+        token = headers.get(b"authorization", None)
+        if token is None:
+            raise PermissionDenied
+
+        token = token.decode("ascii").lstrip("Bearer ")
+        user = get_user_from_token(token)
+        scope["X-USER-ID"] = user
+        return await self.inner(scope, receive, send)
