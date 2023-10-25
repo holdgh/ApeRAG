@@ -445,7 +445,6 @@ class ChatGLMPredictor(Predictor):
         async for tokens in self._agenerate_stream(prompt):
             yield tokens
 
-
     def generate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):
             yield tokens

@@ -160,8 +160,7 @@ def remove_index(self, document_id):
         logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
 
     except Exception as e:
-        logger.error(e)
-        # raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise e
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)

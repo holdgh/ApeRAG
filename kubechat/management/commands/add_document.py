@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.http import HttpRequest
 
 from config import settings
-from kubechat.views import add_document
+from kubechat.views import create_document
 
 
 class Command(BaseCommand):
@@ -30,7 +30,7 @@ class Command(BaseCommand):
         with open(path, 'rb') as fd:
             content = fd.read()
         file = SimpleUploadedFile(name=path, content=content, content_type=content_type)
-        response = async_to_sync(add_document)(request, collection_id, [file])
+        response = async_to_sync(create_document)(request, collection_id, [file])
         if int(response["code"]) != HTTPStatus.OK:
             raise CommandError('Failed to add document %s to collection: %s' % (path, response["message"]))
         elif len(response["data"]) == 0:
