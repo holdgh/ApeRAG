@@ -65,4 +65,30 @@ jobs:
       APECD_REF: "v0.1.34"
     secrets: inherit
 
+  release-result:
+    runs-on: ubuntu-latest
+    needs: [ release-kubechat-chart, release-llmserver-chart ]
+    if: ${{ always() && github.event.action == 'published' }}
+    outputs:
+      release-result: ${{ steps.get_release_result.outputs.release_result }}
+    steps:
+      - name: get release result
+        id: get_release_result
+        run: |
+          RELEASE_RESULT="error"
+          if [[ "${{ needs.release-kubechat-chart.result }}" == "success" && "${{ needs.release-llmserver-chart.result }}" == "success" ]]; then
+              RELEASE_RESULT="success"
+          fi
+          echo 'release_result='$RELEASE_RESULT >> $GITHUB_OUTPUT
+
+  send-message:
+    needs: [ image-tag, release-result ]
+    if: ${{ always() && github.event.action == 'published' }}
+    uses: apecloud/apecloud-cd/.github/workflows/feishui-message.yml@v0.1.34
+    with:
+      TYPE: "2"
+      CONTENT: "release ${{ needs.image-tag.outputs.release-version }} ${{ needs.release-result.release-result }}"
+      APECD_REF: "v0.1.34"
+    secrets: inherit
+
 
