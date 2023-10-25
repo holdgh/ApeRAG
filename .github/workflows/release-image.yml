@@ -1,21 +1,29 @@
-name: RELEASE-IMAGE
+name: Release Image
 
 on:
-  schedule:
-    - cron: '0 0 * * 1-5' # Runs at 00:00 UTC on Mon to Friday
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'image tag'
+        description: 'The tag of image'
+        required: true
+        default: ''
+      image_name:
+        description: 'Only release select image'
         required: false
-        default: 'latest'
+        default: ''
+        type: choice
+        options:
+          - kubechat
+          - kubechat-llmserver
   release:
     types:
       - published
 
 env:
-  GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
   RELEASE_VERSION: ${{ github.ref_name }}
+
+
+run-name: Release Image:${{ inputs.image_name }}:${{ inputs.image_tag }} ${{ github.ref_name }}
 
 jobs:
   image-tag:
@@ -26,22 +34,32 @@ jobs:
       - name: Get Tag Name
         id: get_tag_name
         run: |
-          TAG_NAME="latest"
-          if [[ ! -z "${{ inputs.image_tag }}" ]]; then
-            TAG_NAME="${{ inputs.image_tag }}"
-          elif [[ "${{ env.RELEASE_VERSION }}" == "main" ]]; then
-            TAG_NAME="latest"
-          elif [[ ! -z "${{ env.RELEASE_VERSION }}" ]]; then
-            TAG_NAME=${{ env.RELEASE_VERSION }}
+          TAG_NAME=${{ inputs.image_tag }}
+          if [[ -z "$TAG_NAME" ]]; then
+              TAG_NAME="${{ inputs.image_tag }}"
           fi
           echo tag_name=$TAG_NAME >> $GITHUB_OUTPUT
 
-  release-image:
-    needs: image-tag
-    uses: apecloud/apecd/.github/workflows/release-image.yml@v0.7.1
+  release-kubechat-image:
+    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat' }}
+    needs: [ image-tag ]
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache.yml@v0.1.34
     with:
-      MAKE_OPS: "push-manager-image"
+      MAKE_OPS_PRE: "build-requirements version"
       IMG: "apecloud/kubechat"
       VERSION: "${{ needs.image-tag.outputs.tag-name }}"
-      APECD_REF: "v0.7.1"
+      DOCKERFILE_PATH: "./docker/Dockerfile"
+      REMOVE_PREFIX: false
+    secrets: inherit
+
+  release-kubechat-llmserver-image:
+    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat-llmserver' }}
+    needs: [ image-tag ]
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache.yml@v0.1.34
+    with:
+      MAKE_OPS_PRE: "build-requirements version"
+      IMG: "apecloud/kubechat-llmserver"
+      VERSION: "${{ needs.image-tag.outputs.tag-name }}"
+      DOCKERFILE_PATH: "./docker/Dockerfile-llmserver"
+      REMOVE_PREFIX: false
     secrets: inherit

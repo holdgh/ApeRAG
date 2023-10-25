@@ -1,0 +1,68 @@
+name: Release Chart
+
+on:
+  workflow_dispatch:
+    inputs:
+      chart_version:
+        description: 'The version of helm chart'
+        required: true
+        default: ''
+      chart_name:
+        description: 'Only release select chart'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - kubechat
+          - llmserver
+  release:
+    types:
+      - published
+
+env:
+  GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+  RELEASE_VERSION: ${{ github.ref_name }}
+
+run-name: Release Chart:${{ inputs.chart_name }}:${{ inputs.chart_version }} ${{ github.ref_name }}
+
+
+jobs:
+  chart-version:
+    runs-on: ubuntu-latest
+    outputs:
+      chart-version: ${{ steps.get_version.outputs.chart_version }}
+    steps:
+      - name: Get Chart Version
+        id: get_version
+        run: |
+          VERSION=${{ inputs.chart_version }}
+          if [ -z "$VERSION" ]; then
+              VERSION=${{ env.RELEASE_VERSION }}
+          fi
+          echo chart_version=$VERSION >> $GITHUB_OUTPUT
+
+  release-kubechat-chart:
+    if: ${{ github.event.action == 'published' || inputs.chart_name == '' || inputs.chart_name == 'kubechat' }}
+    needs: [ chart-version ]
+    uses: apecloud/apecloud-cd/.github/workflows/release-charts.yml@v0.1.34
+    with:
+      VERSION: "${{ needs.chart-version.outputs.chart-version }}"
+      CHART_NAME: "kubechat"
+      CHART_DIR: "deploy"
+      SPECIFY_CHART: "kubechat"
+      APECD_REF: "v0.1.34"
+    secrets: inherit
+
+  release-llmserver-chart:
+    if: ${{ github.event.action == 'published' || inputs.chart_name == '' || inputs.chart_name == 'llmserver' }}
+    needs: [ chart-version ]
+    uses: apecloud/apecloud-cd/.github/workflows/release-charts.yml@v0.1.34
+    with:
+      VERSION: "${{ needs.chart-version.outputs.chart-version }}"
+      CHART_NAME: "llmserver"
+      CHART_DIR: "deploy"
+      SPECIFY_CHART: "llmserver"
+      APECD_REF: "v0.1.34"
+    secrets: inherit
+
+
