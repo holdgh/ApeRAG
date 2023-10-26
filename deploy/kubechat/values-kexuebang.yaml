@@ -1,4 +1,6 @@
 image:
+  console:
+    tab: "sciencemate"
   website:
     tag: "sciencemate"
 
