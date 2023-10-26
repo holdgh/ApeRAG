@@ -77,18 +77,21 @@ jobs:
     if: contains(needs.trigger-mode.outputs.trigger-mode, '[test]')
     steps:
       - uses: actions/checkout@v3
-      - name: Setup Python specify version
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
-      - name: Setup Poetry specify version
+      - name: Setup Poetry
         uses: Gr1N/setup-poetry@v8
         with:
           poetry-version: "1.6.1"
 
       - name: make lint
         run: |
+          pip install mypy
+          pip install black
+          pip install ruff
           make lint
 
       - name: make test
