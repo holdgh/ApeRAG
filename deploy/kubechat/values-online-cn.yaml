@@ -1,4 +1,5 @@
 django:
+  domainName: chat.apecloud.cn
   replicaCount: 2
   embeddingModel: bge
   authType: authing

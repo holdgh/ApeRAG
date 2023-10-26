@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-  - host: chat.kubeblocks.io
+  - host: {{ .Values.django.domainName }}
     http:
       paths:
       - pathType: Prefix

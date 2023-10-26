@@ -62,6 +62,7 @@ affinity: {}
 
 django:
   dataPath: /data
+  domainName: chat.kubeblocks.io
   replicaCount: 1
   feishu:
     appID: ""
