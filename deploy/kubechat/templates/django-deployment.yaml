@@ -195,7 +195,7 @@ spec:
             limits:
               nvidia.com/gpu: "1"
           volumeMounts:
-            - mountPath: /data
+            - mountPath: {{ .Values.django.dataPath }}
               name: data
       restartPolicy: Always
       {{- with .Values.django.affinity }}

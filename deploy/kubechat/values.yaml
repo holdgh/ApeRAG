@@ -58,7 +58,10 @@ tolerations: []
 
 affinity: {}
 
+
+
 django:
+  dataPath: /data
   replicaCount: 1
   feishu:
     appID: ""

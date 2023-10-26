@@ -136,7 +136,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - mountPath: /data
+            - mountPath: {{ .Values.django.dataPath }}
               name: data
       restartPolicy: Always
       {{- with index .Values "celery-worker" "affinity" }}

@@ -3,10 +3,8 @@ kind: Ingress
 metadata:
   name: kubechat-ingress
   annotations:
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-1:799177412343:certificate/1cf19dc6-aa01-463e-9316-72f02e92ec1c
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/ssl-redirect: "443"
 spec:
   ingressClassName: alb
   rules:
@@ -19,7 +17,7 @@ spec:
           service:
             name: kubechat
             port:
-              number: 443
+              number: 8000
       - pathType: Prefix
         path: "/web"
         backend:
