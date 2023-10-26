@@ -43,7 +43,7 @@ jobs:
   release-kubechat-image:
     if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat' }}
     needs: [ image-tag ]
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache.yml@v0.1.34
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd.yml@v0.1.34
     with:
       MAKE_OPS_PRE: "build-requirements version"
       IMG: "apecloud/kubechat"
@@ -57,7 +57,7 @@ jobs:
   release-kubechat-llmserver-image:
     if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat-llmserver' }}
     needs: [ image-tag ]
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache.yml@v0.1.34
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd.yml@v0.1.34
     with:
       MAKE_OPS_PRE: "build-requirements version"
       IMG: "apecloud/kubechat-llmserver"
