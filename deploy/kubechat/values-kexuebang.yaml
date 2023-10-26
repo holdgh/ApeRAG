@@ -1,3 +1,7 @@
+image:
+  website:
+    tag: "sciencemate"
+
 django:
   domainName: ai.sciencemate.com
   replicaCount: 1
