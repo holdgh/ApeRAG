@@ -1,0 +1,58 @@
+django:
+  domainName: ai.sciencemate.com
+  replicaCount: 1
+  embeddingModel: bge
+  authType: authing
+  authingAppId: "653a1706c577e50881151f1a"
+  authingDomain: "sciencemate.authing.cn"
+  openaiAPIKey: ""
+  modelServers:
+    - name: "chatglm-pro"
+      label: "ChatGLM Pro"
+      enabled: "true"
+    - name: "chatglm-std"
+      label: "ChatGLM Std"
+      enabled: "true"
+    - name: "chatglm-lite"
+      label: "ChatGLM Lite"
+      enabled: "true"
+    - name: "chatgpt-3.5"
+      label: "ChatGPT 3.5"
+      enabled: "true"
+    - name: "chatgpt-4"
+      label: "ChatGPT 4"
+      enabled: "true"
+    - name: "baichuan-53b"
+      label: "BaiChuan 53b"
+      enabled: "true"
+    - name: "ernie-bot-turbo"
+      label: "WenXinYiYan"
+      enabled: "true"
+    - name: "baichuan-13b"
+      label: "BaiChuan 13b"
+      endpoint: "http://llmserver-baichuan-13b:8000"
+      enabled: "false"
+    - name: "vicuna-13b"
+      label: "Vicuna 13b"
+      endpoint: "http://llmserver-vicuna-13b:8000"
+      enabled: "false"
+    - name: "chatglm2-6b"
+      label: "ChatGLM2 6b"
+      endpoint: "http://llmserver-chatglm2-6b:8000"
+      enabled: "false"
+    - name: "guanaco-33b"
+      label: "Guanaco 33b"
+      endpoint: "http://llmserver-guanaco-33b:8000"
+      enabled: "false"
+    - name: "falcon-40b"
+      label: "Falcon 40b"
+      endpoint: "http://llmserver-falcon-40b:8000"
+      enabled: "false"
+    - name: "gorilla-7b"
+      label: "Gorilla 7b"
+      endpoint: "http://llmserver-gurilla-7b:8000"
+      enabled: "false"
+
+
+celery-worker:
+  replicaCount: 2
