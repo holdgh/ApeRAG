@@ -6,7 +6,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
 spec:
-  ingressClassName: alb
+  ingressClassName: {{ .Values.django.ingressClassName }}
   rules:
   - host: {{ .Values.django.domainName }}
     http:

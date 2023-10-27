@@ -5,6 +5,7 @@ image:
     tag: "sciencemate"
 
 django:
+  ingressClassName: qcloud
   domainName: ai.sciencemate.com
   replicaCount: 1
   embeddingModel: bge
