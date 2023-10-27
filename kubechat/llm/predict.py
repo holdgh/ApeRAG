@@ -66,6 +66,7 @@ class Predictor(ABC):
             case "ernie-bot-turbo":
                 return BaiduQianFan(**kwargs)
             case "chatglm-pro" | "chatglm-std" | "chatglm-lite":
+                kwargs["model"] = model_name.replace("-", "_")
                 return ChatGLMPredictor(**kwargs)
 
         endpoint = kwargs.get("endpoint", "")
@@ -405,14 +406,14 @@ class ChatGLMPredictor(Predictor):
         }
 
         async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.post(url, params=params, json=data, headers=headers, ssl=False) as r:
+            async with session.post(url, params=params, json=data, headers=headers) as r:
                 async for line in r.content:
                     if line == b'\n':
                         continue
 
                     key, value = line.decode("utf-8").split(":", 1)
-                    if value.strip() != "":    # 跳过回答中不该删的换行符
-                        value = value.strip()  # 删除格式里自带的换行符
+                    if value[:-1] != "":     # 跳过回答中不该删的换行符
+                        value = value[:-1]   # 删除格式里自带的换行符
 
                     if key == "event":
                         if value == "add":
