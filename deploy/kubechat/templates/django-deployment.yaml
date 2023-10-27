@@ -195,7 +195,7 @@ spec:
             limits:
               nvidia.com/gpu: "1"
           volumeMounts:
-            - mountPath: {{ .Values.django.dataPath }}
+            - mountPath: /data
               name: data
       restartPolicy: Always
       {{- with .Values.django.affinity }}
@@ -206,4 +206,4 @@ spec:
         # shared uploaded files between django and celery
         - name: data
           hostPath:
-            path: /data/kubechat
+            path: {{ .Values.django.dataPath }}

@@ -136,7 +136,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - mountPath: {{ .Values.django.dataPath }}
+            - mountPath: /data
               name: data
       restartPolicy: Always
       {{- with index .Values "celery-worker" "affinity" }}
@@ -147,4 +147,4 @@ spec:
         # shared uploaded files between django and celery
         - name: data
           hostPath:
-            path: /data/kubechat
+            path: {{ .Values.django.dataPath }}
