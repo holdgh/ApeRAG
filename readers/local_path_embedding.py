@@ -46,7 +46,10 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             return []
 
         nodes: List[NodeWithEmbedding] = []
+        texts: str = ""
         for doc in docs:
+
+            texts += doc.text
 
             doc.text = doc.text.strip()
 
@@ -112,7 +115,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             }
             nodes.append(NodeWithEmbedding(node=node, embedding=vector))
         print(f"processed file: {file_name} ")
-        return self.connector.store.add(nodes)
+        return self.connector.store.add(nodes), texts
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)

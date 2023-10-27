@@ -95,16 +95,13 @@ def add_index_for_document(self, document_id):
                                         collection=generate_vector_db_collection_name(
                                             collection_id=document.collection.id)))
 
-        ctx_ids = loader.load_data()
+        ctx_ids, content = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
-        parts = os.path.splitext(local_doc.path)
-        if ctx_ids and len(parts) > 1 and parts[1].lower() in FULLTEXT_SUFFIX.keys():
-            with open(local_doc.path) as fd:
-                doc_content = fd.read()
+        if ctx_ids:
             index = generate_fulltext_index_name(document.collection.id)
-            insert_document(index, document.id, local_doc.name, doc_content)
+            insert_document(index, document.id, local_doc.name, content)
 
         predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
         qa_loaders = LocalPathQAEmbedding(predictor=predictor,
@@ -183,16 +180,13 @@ def update_index(self, document_id):
                                         collection=generate_vector_db_collection_name(
                                             collection_id=document.collection.id)))
         loader.connector.delete(ids=relate_ids.get("ctx", []))
-        ctx_ids = loader.load_data()
+        ctx_ids, content = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
-        parts = os.path.splitext(local_doc.path)
-        if ctx_ids and len(parts) > 1 and parts[1].lower() in FULLTEXT_SUFFIX.keys():
-            with open(local_doc.path) as fd:
-                doc_content = fd.read()
+        if ctx_ids:
             index = generate_fulltext_index_name(document.collection.id)
-            insert_document(index, document.id, local_doc.name, doc_content)
+            insert_document(index, document.id, local_doc.name, content)
 
         predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
         qa_loader = LocalPathQAEmbedding(predictor=predictor,
