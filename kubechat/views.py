@@ -26,7 +26,7 @@ from kubechat.tasks.scan import delete_sync_documents_cron_job, \
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success
-from readers.readers import DEFAULT_FILE_READER_CLS
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 from .auth.validator import GlobalHTTPAuth
 from .models import *
 from .utils.utils import validate_source_connect_config, validate_bot_config

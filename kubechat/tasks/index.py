@@ -20,7 +20,7 @@ from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
-from readers.readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX
+from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX
 
 logger = logging.getLogger(__name__)
 

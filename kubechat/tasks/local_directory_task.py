@@ -9,7 +9,7 @@ from config.celery import app
 from kubechat.models import Document, DocumentStatus
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 from kubechat.utils.db import query_collection, query_documents
-from readers.readers import DEFAULT_FILE_READER_CLS
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
