@@ -69,7 +69,7 @@ affinity: {}
 
 django:
   ingressClassName: alb
-  dataPath: /data
+  dataPath: /data/kubechat
   domainName: chat.kubeblocks.io
   replicaCount: 1
   feishu:
