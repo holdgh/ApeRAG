@@ -6,6 +6,9 @@ django:
   auth0ClientId: "G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2"
   auth0Domain: "kubechat.jp.auth0.com"
   openaiAPIKey: ""
+  resources:
+    limits:
+      nvidia.com/gpu: "1"
   modelServers:
     - name: "chatglm-pro"
       label: "ChatGLM Pro"

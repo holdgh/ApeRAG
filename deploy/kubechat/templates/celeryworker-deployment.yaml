@@ -105,6 +105,11 @@ spec:
                 configMapKeyRef:
                   key: EMBEDDING_MODEL
                   name: kubechat-config
+            - name: EMBEDDING_DEVICE
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_DEVICE
+                  name: kubechat-config
             - name: OPENAI_API_KEY
               valueFrom:
                 configMapKeyRef:
@@ -133,8 +138,10 @@ spec:
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with index .Values "celery-worker" "resources" }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /data
               name: data

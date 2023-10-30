@@ -36,8 +36,8 @@ class PagedResult(BaseModel):
 
 
 def build_pq(request) -> Optional[PagedQuery]:
-    # TODO compatible with the old frontend, there is no pagination.
-    # TODO once the frontend is updated, we should do pagination and add default page_number and page_size
+    # FIXME this is compatible with the old frontend, once the frontend is updated,
+    # FIXME we should do pagination and add default page_number and page_size
     page_number = request.GET.get('page_number')
     page_size = request.GET.get('page_size')
     if not page_number or not page_size:

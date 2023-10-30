@@ -21,6 +21,7 @@ data:
   FEISHU_APP_SECRET: "{{ .Values.django.feishu.appSecret }}"
   FEISHU_ENCRYPT_KEY: "{{ .Values.django.feishu.encryptKey }}"
   EMBEDDING_MODEL: "{{ .Values.django.embeddingModel }}"
+  EMBEDDING_DEVICE: "{{ .Values.django.embeddingDevice }}"
   ENABLE_QA_GENERATOR: "{{ .Values.django.enableQAGenerator }}"
   ES_HOST: "{{ .Values.django.esHost }}"
 kind: ConfigMap

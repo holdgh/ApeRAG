@@ -8,8 +8,7 @@ metadata:
 spec:
   ingressClassName: {{ .Values.django.ingressClassName }}
   rules:
-  - host: {{ .Values.django.domainName }}
-    http:
+  - http:
       paths:
       - pathType: Prefix
         path: "/api"
@@ -32,3 +31,6 @@ spec:
             name: kubechat-website
             port:
               number: 8001
+    {{- if .Values.django.domainName }}
+    host: {{ .Values.django.domainName }}
+    {{- end }}

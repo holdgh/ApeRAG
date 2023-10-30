@@ -10,7 +10,7 @@ metadata:
   name: kubechat
 spec:
   ports:
-    - name: "8000"
+    - name: "api"
       port: 8000
       targetPort: 8000
   type: {{ .Values.service.type }}

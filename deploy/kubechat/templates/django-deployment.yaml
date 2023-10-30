@@ -181,6 +181,11 @@ spec:
                 configMapKeyRef:
                   key: EMBEDDING_MODEL
                   name: kubechat-config
+            - name: EMBEDDING_DEVICE
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_DEVICE
+                  name: kubechat-config
             - name: ES_HOST
               valueFrom:
                 configMapKeyRef:
@@ -191,9 +196,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8000
+          {{- with .Values.django.resources }}
           resources:
-            limits:
-              nvidia.com/gpu: "1"
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /data
               name: data
