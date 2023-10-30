@@ -63,6 +63,7 @@ class CollectionType(models.TextChoices):
     DOCUMENT = "document"
     DATABASE = "database"
     CODE = "code"
+    URL="url"
 
 
 class DocumentStatus(models.TextChoices):

@@ -19,6 +19,7 @@ import kubechat.utils.message as msg_utils
 from config.celery import app
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.source.base import get_source
+from kubechat.source.url import download_web_text_to_temp_file
 from kubechat.tasks.collection import init_collection_task, delete_collection_task
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
@@ -215,6 +216,8 @@ async def create_collection(request, collection: CollectionIn):
             await instance.asave()
     elif instance.type == CollectionType.DOCUMENT:
         init_collection_task.delay(collection_id=instance.id)
+    elif instance.type == CollectionType.URL:
+        init_collection_task.delay(collection_id=instance.id)
     elif instance.type == CollectionType.CODE:
         chat = Chat(
             user=instance.user,
@@ -340,6 +343,34 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     return success(response)
 
+@api.post("/collections/{collection_id}/urls")
+async def create_url_document(request, collection_id,url):
+    user = get_user(request)
+    response = []
+    collection = await query_collection(user, collection_id)
+    if collection is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+
+    try:
+        document_instance = Document(
+            user=user,
+            name=url+'.txt',  # 设置新文件的名称
+            status=DocumentStatus.PENDING,
+            collection=collection,
+        )
+        await document_instance.asave()
+        document_instance.metadata = json.dumps({
+            "url": url,
+        })
+        await document_instance.asave()
+        add_index_for_local_document.delay(document_instance.id)
+
+    except IntegrityError as e:
+        return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  "+ e)
+    except Exception as e:
+        logger.exception("add document failed")
+        return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
+    return success(response)
 
 @api.get("/collections/{collection_id}/documents")
 async def list_documents(request, collection_id):
