@@ -7352,4 +7352,4 @@ all = ["clickhouse-connect", "elasticsearch", "pymilvus", "pymongo", "weaviate-c
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "0fb65c4382cea00c7e5d026e5ec4e923cba463ad185cf4945e4f72cd41445b8b"
+content-hash = "b82014cdc55e4e25a1a2db3bc05001491882c4be7897fb06f1db0d52ffa14a83"

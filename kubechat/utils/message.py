@@ -26,10 +26,9 @@ async def feedback_message(user, chat_id, message_id, upvote, downvote, revised_
     }
     if upvote is not None:
         data["upvote"] = upvote
-        data["downvote"] = 0
-    elif downvote is not None:
+    if downvote is not None:
         data["downvote"] = downvote
-        data["upvote"] = 0
+
     if revised_answer is not None:
         data["revised_answer"] = revised_answer
     data["status"] = MessageFeedbackStatus.PENDING

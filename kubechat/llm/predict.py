@@ -61,6 +61,12 @@ class Predictor(ABC):
             case "chatgpt-4":
                 kwargs["model"] = "gpt-4"
                 return OpenAIPredictor(**kwargs)
+            case "azure-chatgpt-3.5":
+                kwargs["model"] = "gpt-35-turbo"
+                return AzureOpenAIPredictor(**kwargs)
+            case "azure-chatgpt-4":
+                kwargs["model"] = "gpt-4"
+                return AzureOpenAIPredictor(**kwargs)
             case "baichuan-53b":
                 return BaiChuanPredictor(**kwargs)
             case "ernie-bot-turbo":
@@ -187,10 +193,13 @@ class OpenAIPredictor(Predictor):
         if proxy:
             openai.proxy = proxy
 
+        self.api_type = ""
+
     async def _agenerate_stream(self, prompt):
         response = await openai.ChatCompletion.acreate(
             api_key=self.token,
             api_base=self.endpoint,
+            api_type=self.api_type,
             stream=True,
             model=self.model,
             messages=[{"role": "user", "content": prompt}])
@@ -207,6 +216,7 @@ class OpenAIPredictor(Predictor):
         response = openai.ChatCompletion.create(
             api_key=self.token,
             api_base=self.endpoint,
+            api_type=self.api_type,
             stream=True,
             model=self.model,
             messages=[{"role": "user", "content": prompt}])
@@ -226,6 +236,12 @@ class OpenAIPredictor(Predictor):
     def generate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):
             yield tokens
+
+
+class AzureOpenAIPredictor(OpenAIPredictor):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.api_type = "azure"
 
 
 class BaiChuanPredictor(Predictor):
