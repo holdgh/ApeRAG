@@ -142,6 +142,9 @@ def remove_index(self, document_id):
         index = generate_fulltext_index_name(document.collection.id)
         remove_document(index, document.id)
 
+        if document.relate_ids == "":
+            return
+
         relate_ids = json.loads(document.relate_ids)
         vector_db = get_vector_db_connector(
             collection=generate_vector_db_collection_name(collection_id=document.collection.id)
