@@ -90,9 +90,12 @@ async def get_count(collection) -> int:
 
 
 async def query_collection(user, collection_id: str):
-    return await Collection.objects.exclude(status=CollectionStatus.DELETED).aget(
-        user=user, pk=collection_id
-    )
+    try:
+        return await Collection.objects.exclude(status=CollectionStatus.DELETED).aget(
+            user=user, pk=collection_id
+        )
+    except Collection.DoesNotExist:
+        return None
 
 
 async def query_collections(user, pq: PagedQuery = None):
@@ -102,9 +105,12 @@ async def query_collections(user, pq: PagedQuery = None):
 
 
 async def query_document(user, collection_id: str, document_id: str):
-    return await Document.objects.exclude(status=DocumentStatus.DELETED).aget(
-        user=user, collection_id=collection_id, pk=document_id
-    )
+    try:
+        return await Document.objects.exclude(status=DocumentStatus.DELETED).aget(
+            user=user, collection_id=collection_id, pk=document_id
+        )
+    except Document.DoesNotExist:
+        return None
 
 
 async def query_documents(user, collection_id: str, pq: PagedQuery = None):
@@ -115,8 +121,11 @@ async def query_documents(user, collection_id: str, pq: PagedQuery = None):
 
 
 async def query_chat(user, bot_id: str, chat_id: str):
-    return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
-        user=user, bot_id=bot_id, pk=chat_id)
+    try:
+        return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
+            user=user, bot_id=bot_id, pk=chat_id)
+    except Chat.DoesNotExist:
+        return None
 
 
 async def query_chat_feedbacks(user, chat_id: str, pq: PagedQuery = None):
@@ -126,19 +135,28 @@ async def query_chat_feedbacks(user, chat_id: str, pq: PagedQuery = None):
 
 
 async def query_message_feedback(user, bot_id: str, chat_id: str, message_id: str):
-    return await MessageFeedback.objects.exclude.aget(
-        user=user, bot_id=bot_id, chat_id=chat_id, message_id=message_id)
+    try:
+        return await MessageFeedback.objects.exclude.aget(
+            user=user, bot_id=bot_id, chat_id=chat_id, message_id=message_id)
+    except MessageFeedback.DoesNotExist:
+        return None
 
 
 async def query_chat_by_peer(user, peer_type, peer_id: str):
-    return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
-        user=user, peer_type=peer_type, peer_id=peer_id)
+    try:
+        return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
+            user=user, peer_type=peer_type, peer_id=peer_id)
+    except Chat.DoesNotExist:
+        return None
 
 
 async def query_sync_history(user, collection_id: str, sync_history_id: str):
-    return await CollectionSyncHistory.objects.aget(
-        user=user, collection_id=collection_id, pk=sync_history_id
-    )
+    try:
+        return await CollectionSyncHistory.objects.aget(
+            user=user, collection_id=collection_id, pk=sync_history_id
+        )
+    except CollectionSyncHistory.DoesNotExist:
+        return None
 
 
 async def query_sync_histories(user, collection_id: str, pq: PagedQuery = None):
@@ -162,7 +180,10 @@ async def query_running_sync_histories(user, collection_id: str, pq: PagedQuery 
 
 
 async def query_bot(user, bot_id: str):
-    return await Bot.objects.exclude(status=BotStatus.DELETED).aget(user=user, pk=bot_id)
+    try:
+        return await Bot.objects.exclude(status=BotStatus.DELETED).aget(user=user, pk=bot_id)
+    except Bot.DoesNotExist:
+        return None
 
 
 async def query_bots(user, pq: PagedQuery = None):

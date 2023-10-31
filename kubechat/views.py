@@ -134,6 +134,8 @@ async def cancel_sync(request, collection_id, collection_sync_id):
     """
     user = get_user(request)
     sync_history = await query_sync_history(user, collection_id, collection_sync_id)
+    if sync_history is None:
+        return fail(HTTPStatus.NOT_FOUND, "sync history not found")
     task_context = sync_history.task_context
     if task_context is None:
         return fail(HTTPStatus.BAD_REQUEST, f"no task context in sync history {collection_sync_id}")
@@ -179,6 +181,8 @@ async def list_sync_histories(request, collection_id):
 async def get_sync_history(request, collection_id, sync_history_id):
     user = get_user(request)
     sync_history = await query_sync_history(user, collection_id, sync_history_id)
+    if sync_history is None:
+        return fail(HTTPStatus.NOT_FOUND, "sync history not found")
     if sync_history.status == CollectionSyncStatus.RUNNING:
         progress = get_sync_progress(sync_history)
         sync_history.failed_documents = progress.failed_documents
