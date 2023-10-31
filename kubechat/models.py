@@ -70,6 +70,7 @@ class DocumentStatus(models.TextChoices):
     RUNNING = "RUNNING"
     COMPLETE = "COMPLETE"
     FAILED = "FAILED"
+    DELETING = "DELETING"
     DELETED = "DELETED"
 
 

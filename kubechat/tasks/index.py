@@ -136,8 +136,6 @@ def remove_index(self, document_id):
     :param document_id:
     """
     document = Document.objects.get(id=document_id)
-    document.status = DocumentStatus.RUNNING
-    document.save()
     try:
         index = generate_fulltext_index_name(document.collection.id)
         remove_document(index, document.id)

@@ -362,6 +362,8 @@ async def update_document(
     instance = await query_document(user, collection_id, document_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
+    if instance.status == DocumentStatus.DELETING:
+        return fail(HTTPStatus.BAD_REQUEST, "Document is deleting")
 
     if document.config:
         try:
@@ -382,7 +384,15 @@ async def delete_document(request, collection_id, document_id):
     user = get_user(request)
     document = await query_document(user, collection_id, document_id)
     if document is None:
-        return fail(HTTPStatus.NOT_FOUND, "Document not found")
+        logger.info(f"document {document_id} not found, maybe has already been deleted")
+        return success({})
+    if document.status == DocumentStatus.DELETING:
+        logger.info(f"document {document_id} is deleting, ignore delete")
+        return success({})
+    document.status = DocumentStatus.DELETING
+    document.gmt_deleted = timezone.now()
+    await document.asave()
+
     remove_index.delay(document.id)
     return success(document.view())
 
