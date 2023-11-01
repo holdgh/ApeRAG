@@ -141,16 +141,21 @@ spec:
                 configMapKeyRef:
                   key: VECTOR_DB_TYPE
                   name: kubechat-config
+            {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_KEY
                   name: kubechat-config
+                  optional: true
+            {{- end }}
+            {{- if .Values.django.openaiProxy }}
             - name: OPENAI_API_PROXY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_PROXY
                   name: kubechat-config
+            {{- end }}
             - name: MEDIA_ROOT
               value: /data/media
             - name: CODE_STORAGE_DIR

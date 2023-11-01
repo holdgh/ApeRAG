@@ -1,3 +1,6 @@
+ingress:
+  className: alb
+
 django:
   domainName: chat.kubeblocks.io
   replicaCount: 2

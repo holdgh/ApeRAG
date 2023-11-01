@@ -106,20 +106,21 @@ spec:
                   key: EMBEDDING_MODEL
                   name: kubechat-config
             - name: EMBEDDING_DEVICE
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_DEVICE
-                  name: kubechat-config
+              value: {{ index .Values "celery-worker" "embeddingDevice" }}
+            {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_KEY
                   name: kubechat-config
+            {{- end}}
+            {{- if .Values.django.openaiProxy }}
             - name: OPENAI_API_PROXY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_PROXY
                   name: kubechat-config
+            {{- end}}
             - name: ENABLE_QA_GENERATOR
               valueFrom:
                 configMapKeyRef:

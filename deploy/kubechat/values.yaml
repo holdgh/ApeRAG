@@ -66,9 +66,11 @@ tolerations: []
 affinity: {}
 
 
+ingress:
+  className: alb
+  annotations: {}
 
 django:
-  ingressClassName: alb
   dataPath: /data/kubechat
   replicaCount: 1
   feishu:
@@ -95,8 +97,8 @@ django:
   metaDBDatabase: kubechat
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
-  openaiAPIKey: "sk-xxxxxx"
-  openaiProxy: "{}"
+  openaiAPIKey: ""
+  openaiProxy: ""
   embeddingModel: "bge"
   embeddingDevice: "cpu"
   # django must be co-located with celery-worker in order to handle uploaded documents
@@ -170,6 +172,7 @@ django:
 
 celery-worker:
   replicaCount: 1
+  embeddingDevice: "cpu"
   resources: { }
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
