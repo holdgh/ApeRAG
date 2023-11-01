@@ -1,5 +1,8 @@
 ingress:
   className: alb
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
 
 django:
   domainName: chat.kubeblocks.io

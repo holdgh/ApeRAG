@@ -4,7 +4,7 @@ metadata:
   name: kubechat-ingress
   {{- with .Values.ingress.annotations }}
   annotations:
-  {{ toYaml . | indent 2 }}
+  {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
