@@ -154,7 +154,7 @@ class Document(models.Model):
             "id": str(self.id),
             "name": self.name,
             "status": self.status,
-            "config": self.config,
+            "config": self.metadata,
             "size": self.size,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
