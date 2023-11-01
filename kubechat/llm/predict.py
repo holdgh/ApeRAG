@@ -233,6 +233,10 @@ class OpenAIPredictor(Predictor):
 
 
 class AzureOpenAIPredictor(Predictor):
+    """
+    https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/switching-endpoints#keyword-argument-for-model
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.deployment_id = kwargs.get("deployment_id", "gpt-4")
