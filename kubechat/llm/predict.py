@@ -274,7 +274,9 @@ class AzureOpenAIPredictor(Predictor):
                 choice = choices[0]
                 if choice["finish_reason"] == "stop":
                     return
-                content = choice["delta"]["content"]
+                content = choice["delta"].get("content", None)
+                if not content:
+                    continue
                 yield content
 
     def _generate_stream(self, prompt):
