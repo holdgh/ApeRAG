@@ -31,9 +31,6 @@ def download_web_text_to_temp_file(url, name):
 class URLSource(Source):
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
-        self.url = ctx["url"]
-        if self.url == "":
-            raise CustomSourceInitializationError(f"None URL")
 
     def sync_enabled(self):
         return True

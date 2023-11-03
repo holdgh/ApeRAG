@@ -12,7 +12,7 @@ from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.source.base import get_source, CustomSourceInitializationError
 
 AVAILABLE_MODEL = [""]
-AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu"]
+AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu","url"]
 
 
 def extract_bot_and_chat_id(path: str):
