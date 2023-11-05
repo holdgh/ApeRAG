@@ -121,6 +121,9 @@ async def search_document(index: str, keywords: List[str], topk=3):
     if not resp.body:
         return []
 
+    if not keywords:
+        return []
+
     query = {
         "bool": {
             "should": [

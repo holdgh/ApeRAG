@@ -61,6 +61,7 @@ class Pipeline(ABC):
         self.llm_config = bot_config.get("llm", {})
         self.model = bot_config.get("model", "baichuan-13b")
         self.topk = self.llm_config.get("similarity_topk", 3)
+        self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
         self.context_window = self.llm_config.get("context_window", 3500)
         self.prompt_template = self.llm_config.get("prompt_template", None)
@@ -256,6 +257,30 @@ class KeywordPipeline(Pipeline):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    async def filter_by_keywords(self, message, candidates):
+        index = generate_fulltext_index_name(self.collection_id)
+        async with IKExtractor({"index_name": index, "es_host": settings.ES_HOST}) as extractor:
+            keywords = await extractor.extract(message)
+            logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
+
+        # find the related documents using keywords
+        docs = await search_document(index, keywords, self.topk * 3)
+        if not docs:
+            return candidates
+
+        doc_names = {}
+        for doc in docs:
+            doc_names[doc["name"]] = doc["content"]
+            logger.info("[%s] found keyword in document %s", message, doc["name"])
+
+        result = []
+        for item in candidates:
+            if item.metadata["name"] not in doc_names:
+                logger.info("[%s] ignore doc %s not match keywords", message, item.metadata["name"])
+                continue
+            result.append(item)
+        return result
+
     async def run(self, message, gen_references=False, message_id=""):
         self.add_human_message(message, message_id)
 
@@ -266,32 +291,14 @@ class KeywordPipeline(Pipeline):
             response = results[0].text
             yield response
         else:
-            index = generate_fulltext_index_name(self.collection_id)
-            async with IKExtractor({"index_name": index, "es_host": settings.ES_HOST}) as extractor:
-                keywords = await extractor.extract(message)
-                logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
-
-            # find the related documents using keywords
-            doc_names = {}
-            if keywords:
-                docs = await search_document(index, keywords, self.topk * 3)
-                for doc in docs:
-                    doc_names[doc["name"]] = doc["content"]
-                    logger.info("[%s] found keyword in document %s", message, doc["name"])
-
-            candidates = []
             results = await async_run(self.context_manager.query, message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6)
-            if len(results) > self.topk:
-                results = rerank(message, results)[:self.topk]
-            for result in results:
-                if result.metadata["name"] not in doc_names:
-                    logger.info("[%s] ignore doc %s not match keywords", message, result.metadata["name"])
-                    continue
-                candidates.append(result)
-            # if no keywords found, fallback to using all results from embedding search
-            if not doc_names:
-                candidates = results
+            if len(results) > 1:
+                results = rerank(message, results)
+
+            candidates = results[:self.topk]
+            if self.enable_keyword_recall:
+                candidates = self.filter_by_keywords(message, candidates)
 
             context = ""
             if len(candidates) > 0:
