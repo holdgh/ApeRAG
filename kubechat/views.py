@@ -351,7 +351,6 @@ async def create_url_document(request, collection_id):
     urls=get_urls(request)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    #异步下载document就行，下载速度很快。
     try:
         for url in urls:
             document_instance = Document(
