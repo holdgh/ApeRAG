@@ -51,7 +51,7 @@ jobs:
   release-kubechat-image:
     if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat' }}
     needs: [ image-tag, enable-gke-runner ]
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-copy.yml@v0.1.36
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
     with:
       MAKE_OPS_PRE: "build-requirements version"
       IMG: "apecloud/kubechat"
@@ -64,7 +64,7 @@ jobs:
   release-kubechat-llmserver-image:
     if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat-llmserver' }}
     needs: [ image-tag, enable-gke-runner ]
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-copy.yml@v0.1.36
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
     with:
       MAKE_OPS_PRE: "build-requirements version"
       IMG: "apecloud/kubechat-llmserver"
