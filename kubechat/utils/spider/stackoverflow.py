@@ -40,7 +40,7 @@ def parse(soup):
     return data
 
 
-def save(data, url):
+def get_text(data, url):
     result = ''
 
     result += url + '\n'
@@ -68,4 +68,4 @@ def  get_stackoverflow(url):
     soup = get_page(url)
     if soup:
         data = parse(soup)
-        return save(data, url)
+        return get_text(data, url)
