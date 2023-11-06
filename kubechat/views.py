@@ -26,7 +26,7 @@ from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
 from kubechat.utils.db import *
-from kubechat.utils.request import fail, get_user, success
+from kubechat.utils.request import fail, get_user, success,get_urls
 from readers.readers import DEFAULT_FILE_READER_CLS
 from .auth.validator import GlobalHTTPAuth
 from .models import *
@@ -344,26 +344,30 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
     return success(response)
 
 @api.post("/collections/{collection_id}/urls")
-async def create_url_document(request, collection_id,url):
+async def create_url_document(request, collection_id):
     user = get_user(request)
     response = []
     collection = await query_collection(user, collection_id)
+    urls=get_urls(request)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-
+    #异步下载document就行，下载速度很快。
     try:
-        document_instance = Document(
-            user=user,
-            name=url+'.txt',  # 设置新文件的名称
-            status=DocumentStatus.PENDING,
-            collection=collection,
-        )
-        await document_instance.asave()
-        document_instance.metadata = json.dumps({
-            "url": url,
-        })
-        await document_instance.asave()
-        add_index_for_local_document.delay(document_instance.id)
+        for url in urls:
+            document_instance = Document(
+                user=user,
+                name=url+'.txt',
+                status=DocumentStatus.PENDING,
+                collection=collection,
+                size=0,
+            )
+            await document_instance.asave()
+            string_data = json.dumps(url)
+            document_instance.metadata = json.dumps({
+                "url": string_data,
+            })
+            await document_instance.asave()
+            add_index_for_local_document.delay(document_instance.id)
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  "+ e)
