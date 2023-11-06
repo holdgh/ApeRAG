@@ -9,16 +9,12 @@ def get_user(request):
     return request.META.get("X-USER-ID", "")
 
 def get_urls(request):
-    # 将字节字符串转换为普通字符串
     body_str = request.body.decode('utf-8')
 
-    # 解析JSON字符串
     data = json.loads(body_str)
 
-    # 提取URL数组
     urls = [item['url'] for item in data['urls']]
 
-    # 返回字符串数组
     return urls
 
 
