@@ -123,9 +123,8 @@ def build_card_data(chat_id, message_id, message, upvote=False, downvote=False):
 
 async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     # TODO, don't use the auto increment id as the unique id
-    try:
-        chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
-    except Exception as e:
+    chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
+    if chat is None:
         chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
         await chat.asave()
 
