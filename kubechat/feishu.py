@@ -136,7 +136,7 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
         response += msg
         now = time.time()
-        if now - last_ts < 1:
+        if now - last_ts < 0.2:
             continue
         last_ts = now
         client.update_card_message(card_id, build_card_data(chat_id, msg_id, response))
