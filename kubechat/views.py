@@ -214,9 +214,7 @@ async def create_collection(request, collection: CollectionIn):
             add_ssl_file(config, instance)
             collection.config = json.dumps(config)
             await instance.asave()
-    elif instance.type == CollectionType.DOCUMENT and config['source']!='url':
-        init_collection_task.delay(collection_id=instance.id)
-    elif instance.type == CollectionType.DOCUMENT and config['source']=='url':
+    elif instance.type == CollectionType.DOCUMENT :
         init_collection_task.delay(collection_id=instance.id)
     elif instance.type == CollectionType.CODE:
         chat = Chat(
