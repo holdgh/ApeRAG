@@ -86,7 +86,9 @@ def add_index_for_document(self, document_id):
         source = get_source(json.loads(document.collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
-
+        if document.size==0:
+            document.size=os.path.getsize(local_doc.path)
+            document.save()
         embedding_model, _ = get_collection_embedding_model(document.collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],

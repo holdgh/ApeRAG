@@ -84,4 +84,7 @@ def get_source(ctx: Dict[str, Any]):
         case "email":
             from kubechat.source.Email import EmailSource
             source = EmailSource(ctx)
+        case "url":
+            from kubechat.source.url import URLSource
+            source = URLSource(ctx)
     return source

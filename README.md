@@ -44,7 +44,7 @@ make run-backend
 ```bash
 poetry shell
 
-PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --concurrency 1
+PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --pool gevent
 ```
 
 * run the frontend
