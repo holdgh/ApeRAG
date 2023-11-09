@@ -34,9 +34,8 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
         if bot is None:
             raise Exception("Bot not found")
 
-        try:
-            chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
-        except Exception as e:
+        chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
+        if chat is None:
             chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
             await chat.asave()
 

@@ -61,11 +61,14 @@ class Predictor(ABC):
             case "chatgpt-4":
                 kwargs["model"] = "gpt-4"
                 return OpenAIPredictor(**kwargs)
+            case "azure-openai":
+                return AzureOpenAIPredictor(**kwargs)
             case "baichuan-53b":
                 return BaiChuanPredictor(**kwargs)
             case "ernie-bot-turbo":
                 return BaiduQianFan(**kwargs)
             case "chatglm-pro" | "chatglm-std" | "chatglm-lite":
+                kwargs["model"] = model_name.replace("-", "_")
                 return ChatGLMPredictor(**kwargs)
 
         endpoint = kwargs.get("endpoint", "")
@@ -186,6 +189,8 @@ class OpenAIPredictor(Predictor):
         if proxy:
             openai.proxy = proxy
 
+        self.api_type = ""
+
     async def _agenerate_stream(self, prompt):
         response = await openai.ChatCompletion.acreate(
             api_key=self.token,
@@ -208,6 +213,80 @@ class OpenAIPredictor(Predictor):
             api_base=self.endpoint,
             stream=True,
             model=self.model,
+            messages=[{"role": "user", "content": prompt}])
+        for chunk in response:
+            choices = chunk["choices"]
+            if len(choices) > 0:
+                choice = choices[0]
+                if choice["finish_reason"] == "stop":
+                    return
+                content = choice["delta"]["content"]
+                yield content
+
+    async def agenerate_stream(self, prompt):
+        async for tokens in self._agenerate_stream(prompt):
+            yield tokens
+
+    def generate_stream(self, prompt):
+        for tokens in self._generate_stream(prompt):
+            yield tokens
+
+
+class AzureOpenAIPredictor(Predictor):
+    """
+    https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/switching-endpoints#keyword-argument-for-model
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.deployment_id = kwargs.get("deployment_id", "gpt-4")
+        self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
+        self.api_version = kwargs.get("api_version", "2023-05-15")
+
+        self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
+        if not self.token:
+            raise LLMConfigError("Please specify the API token")
+        """
+        # https://github.com/openai/openai-python/issues/279
+        Example:
+        openai.proxy = {
+            "http":"http://127.0.0.1:7890",
+            "https":"http://127.0.0.1:7890"
+        }
+        """
+        proxy = json.loads(os.environ.get("OPENAI_API_PROXY", "{}"))
+        if proxy:
+            openai.proxy = proxy
+        self.api_type = "azure"
+
+    async def _agenerate_stream(self, prompt):
+        response = await openai.ChatCompletion.acreate(
+            api_key=self.token,
+            api_base=self.endpoint,
+            api_type=self.api_type,
+            api_version=self.api_version,
+            stream=True,
+            deployment_id=self.deployment_id,
+            messages=[{"role": "user", "content": prompt}])
+        async for chunk in response:
+            choices = chunk["choices"]
+            if len(choices) > 0:
+                choice = choices[0]
+                if choice["finish_reason"] == "stop":
+                    return
+                content = choice["delta"].get("content", None)
+                if not content:
+                    continue
+                yield content
+
+    def _generate_stream(self, prompt):
+        response = openai.ChatCompletion.create(
+            api_key=self.token,
+            api_base=self.endpoint,
+            api_type=self.api_type,
+            api_version=self.api_version,
+            stream=True,
+            deployment_id=self.deployment_id,
             messages=[{"role": "user", "content": prompt}])
         for chunk in response:
             choices = chunk["choices"]
@@ -405,14 +484,14 @@ class ChatGLMPredictor(Predictor):
         }
 
         async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.post(url, params=params, json=data, headers=headers, ssl=False) as r:
+            async with session.post(url, params=params, json=data, headers=headers) as r:
                 async for line in r.content:
                     if line == b'\n':
                         continue
 
                     key, value = line.decode("utf-8").split(":", 1)
-                    if value.strip() != "":    # 跳过回答中不该删的换行符
-                        value = value.strip()  # 删除格式里自带的换行符
+                    if value[:-1] != "":     # 跳过回答中不该删的换行符
+                        value = value[:-1]   # 删除格式里自带的换行符
 
                     if key == "event":
                         if value == "add":

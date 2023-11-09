@@ -16,8 +16,8 @@ spec:
         app: kubechat-website
     spec:
       containers:
-      - image: apecloud/kubechat-website:latest
-        imagePullPolicy: Always
+      - image: {{ .Values.image.website.registry | default "docker.io" }}/{{ .Values.image.website.repository }}:{{ .Values.image.website.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: kubechat-website
         ports:
         - containerPort: 80
@@ -45,8 +45,8 @@ spec:
         app: kubechat-console
     spec:
       containers:
-      - image: apecloud/kubechat-console:latest
-        imagePullPolicy: Always
+      - image: {{ .Values.image.console.registry | default "docker.io" }}/{{ .Values.image.console.repository }}:{{ .Values.image.console.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: kubechat-console
         ports:
         - containerPort: 80

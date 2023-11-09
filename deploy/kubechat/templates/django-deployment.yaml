@@ -141,16 +141,21 @@ spec:
                 configMapKeyRef:
                   key: VECTOR_DB_TYPE
                   name: kubechat-config
+            {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_KEY
                   name: kubechat-config
+                  optional: true
+            {{- end }}
+            {{- if .Values.django.openaiProxy }}
             - name: OPENAI_API_PROXY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_PROXY
                   name: kubechat-config
+            {{- end }}
             - name: MEDIA_ROOT
               value: /data/media
             - name: CODE_STORAGE_DIR
@@ -181,6 +186,11 @@ spec:
                 configMapKeyRef:
                   key: EMBEDDING_MODEL
                   name: kubechat-config
+            - name: EMBEDDING_DEVICE
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_DEVICE
+                  name: kubechat-config
             - name: ES_HOST
               valueFrom:
                 configMapKeyRef:
@@ -191,9 +201,10 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8000
+          {{- with .Values.django.resources }}
           resources:
-            limits:
-              nvidia.com/gpu: "1"
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /data
               name: data
@@ -206,4 +217,4 @@ spec:
         # shared uploaded files between django and celery
         - name: data
           hostPath:
-            path: /data/kubechat
+            path: {{ .Values.django.dataPath }}

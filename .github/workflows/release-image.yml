@@ -1,23 +1,39 @@
-name: RELEASE-IMAGE
+name: Release Image
 
 on:
-  schedule:
-    - cron: '0 0 * * 1-5' # Runs at 00:00 UTC on Mon to Friday
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'image tag'
+        description: 'The tag of image'
+        required: true
+        default: ''
+      image_name:
+        description: 'Only release select image'
         required: false
-        default: 'latest'
+        default: ''
+        type: choice
+        options:
+          - ""
+          - kubechat
+          - kubechat-llmserver
   release:
     types:
       - published
 
 env:
-  GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
   RELEASE_VERSION: ${{ github.ref_name }}
 
+
+run-name: Release Image:${{ inputs.image_name }}:${{ inputs.image_tag }} ${{ github.ref_name }}
+
 jobs:
+  enable-gke-runner:
+    uses: apecloud/apecloud-cd/.github/workflows/enable-gke-runner.yml@v0.1.36
+    with:
+      GITHUB_REPO: "apecloud/KubeChat"
+      RUNNER_LABEL: "kubechat-image-runner"
+    secrets: inherit
+
   image-tag:
     runs-on: ubuntu-latest
     outputs:
@@ -26,22 +42,70 @@ jobs:
       - name: Get Tag Name
         id: get_tag_name
         run: |
-          TAG_NAME="latest"
-          if [[ ! -z "${{ inputs.image_tag }}" ]]; then
-            TAG_NAME="${{ inputs.image_tag }}"
-          elif [[ "${{ env.RELEASE_VERSION }}" == "main" ]]; then
-            TAG_NAME="latest"
-          elif [[ ! -z "${{ env.RELEASE_VERSION }}" ]]; then
-            TAG_NAME=${{ env.RELEASE_VERSION }}
+          TAG_NAME=${{ inputs.image_tag }}
+          if [[ -z "$TAG_NAME" ]]; then
+              TAG_NAME="${{ env.RELEASE_VERSION }}"
           fi
           echo tag_name=$TAG_NAME >> $GITHUB_OUTPUT
 
-  release-image:
-    needs: image-tag
-    uses: apecloud/apecd/.github/workflows/release-image.yml@v0.7.1
+  release-kubechat-image:
+    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat' }}
+    needs: [ image-tag, enable-gke-runner ]
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
     with:
-      MAKE_OPS: "push-manager-image"
+      MAKE_OPS_PRE: "build-requirements version"
       IMG: "apecloud/kubechat"
       VERSION: "${{ needs.image-tag.outputs.tag-name }}"
-      APECD_REF: "v0.7.1"
+      DOCKERFILE_PATH: "./Dockerfile"
+      REMOVE_PREFIX: false
+      APECD_REF: "v0.1.36"
+    secrets: inherit
+
+  release-kubechat-llmserver-image:
+    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat-llmserver' }}
+    needs: [ image-tag, enable-gke-runner ]
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
+    with:
+      MAKE_OPS_PRE: "build-requirements version"
+      IMG: "apecloud/kubechat-llmserver"
+      VERSION: "${{ needs.image-tag.outputs.tag-name }}"
+      DOCKERFILE_PATH: "./Dockerfile-llmserver"
+      REMOVE_PREFIX: false
+      APECD_REF: "v0.1.36"
+    secrets: inherit
+
+  disable-gke-runner:
+    if: ${{ always() }}
+    needs: [ release-kubechat-image, release-kubechat-llmserver-image ]
+    uses: apecloud/apecloud-cd/.github/workflows/enable-gke-runner.yml@v0.1.36
+    with:
+      GITHUB_REPO: "apecloud/KubeChat"
+      RUNNER_LABEL: "kubechat-image-runner"
+      ENABLE: "disable"
+    secrets: inherit
+
+  release-result:
+    runs-on: ubuntu-latest
+    needs: [ release-kubechat-image, release-kubechat-llmserver-image ]
+    if: ${{ always() && github.event.action == 'published' }}
+    outputs:
+      release-result: ${{ steps.get_release_result.outputs.release_result }}
+    steps:
+      - name: get release result
+        id: get_release_result
+        run: |
+          RELEASE_RESULT="error"
+          if [[ "${{ needs.release-kubechat-image.result }}" == "success" && "${{ needs.release-kubechat-llmserver-image.result }}" == "success" ]]; then
+              RELEASE_RESULT="success"
+          fi
+          echo 'release_result='$RELEASE_RESULT >> $GITHUB_OUTPUT
+
+  send-message:
+    needs: [ image-tag, release-result ]
+    if: ${{ always() && github.event.action == 'published' }}
+    uses: apecloud/apecloud-cd/.github/workflows/feishui-message.yml@v0.1.36
+    with:
+      TYPE: "2"
+      CONTENT: "release image ${{ needs.image-tag.outputs.tag-name }} ${{ needs.release-result.outputs.release-result }}"
+      APECD_REF: "v0.1.36"
     secrets: inherit

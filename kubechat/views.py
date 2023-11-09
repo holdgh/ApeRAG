@@ -27,7 +27,7 @@ from kubechat.tasks.scan import delete_sync_documents_cron_job, \
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
 from kubechat.utils.db import *
 from kubechat.utils.request import fail, get_user, success,get_urls
-from readers.readers import DEFAULT_FILE_READER_CLS
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 from .auth.validator import GlobalHTTPAuth
 from .models import *
 from .utils.utils import validate_source_connect_config, validate_bot_config
@@ -135,6 +135,8 @@ async def cancel_sync(request, collection_id, collection_sync_id):
     """
     user = get_user(request)
     sync_history = await query_sync_history(user, collection_id, collection_sync_id)
+    if sync_history is None:
+        return fail(HTTPStatus.NOT_FOUND, "sync history not found")
     task_context = sync_history.task_context
     if task_context is None:
         return fail(HTTPStatus.BAD_REQUEST, f"no task context in sync history {collection_sync_id}")
@@ -180,6 +182,8 @@ async def list_sync_histories(request, collection_id):
 async def get_sync_history(request, collection_id, sync_history_id):
     user = get_user(request)
     sync_history = await query_sync_history(user, collection_id, sync_history_id)
+    if sync_history is None:
+        return fail(HTTPStatus.NOT_FOUND, "sync history not found")
     if sync_history.status == CollectionSyncStatus.RUNNING:
         progress = get_sync_progress(sync_history)
         sync_history.failed_documents = progress.failed_documents
@@ -391,6 +395,8 @@ async def update_document(
     instance = await query_document(user, collection_id, document_id)
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Document not found")
+    if instance.status == DocumentStatus.DELETING:
+        return fail(HTTPStatus.BAD_REQUEST, "Document is deleting")
 
     if document.config:
         try:
@@ -411,7 +417,15 @@ async def delete_document(request, collection_id, document_id):
     user = get_user(request)
     document = await query_document(user, collection_id, document_id)
     if document is None:
-        return fail(HTTPStatus.NOT_FOUND, "Document not found")
+        logger.info(f"document {document_id} not found, maybe has already been deleted")
+        return success({})
+    if document.status == DocumentStatus.DELETING:
+        logger.info(f"document {document_id} is deleting, ignore delete")
+        return success({})
+    document.status = DocumentStatus.DELETING
+    document.gmt_deleted = timezone.now()
+    await document.asave()
+
     remove_index.delay(document.id)
     return success(document.view())
 

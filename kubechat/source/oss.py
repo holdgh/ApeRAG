@@ -17,14 +17,14 @@ class OSSSource(Source):
         self.access_key_id = ctx["access_key_id"]
         self.access_key_secret = ctx["secret_access_key"]
         self.bucket_name = ctx["bucket"]
-        self.endpoint = ctx["region"]
+        self.endpoint = ctx.get("endpoint", "") or ctx["region"]
         self.dir = ctx.get("dir", "")
         self.bucket = self._connect_bucket()
 
     def _connect_bucket(self):
         try:
             auth = oss2.Auth(self.access_key_id, self.access_key_secret)
-            bucket = oss2.Bucket(auth, self.endpoint, self.bucket_name, connect_timeout=3)
+            bucket = oss2.Bucket(auth, endpoint=self.endpoint, bucket_name=self.bucket_name, connect_timeout=3)
             bucket.get_bucket_info()
             return bucket
         except oss2.exceptions.ClientError:

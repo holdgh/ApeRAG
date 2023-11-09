@@ -9,6 +9,14 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v0.1.2"
+  console:
+    registry: docker.io
+    repository: apecloud/kubechat-console
+    tag: "latest"
+  website:
+    registry: docker.io
+    repository: apecloud/kubechat-website
+    tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -38,7 +46,6 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 443
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -58,13 +65,19 @@ tolerations: []
 
 affinity: {}
 
+
+ingress:
+  className: alb
+  annotations: {}
+
 django:
+  dataPath: /data/kubechat
   replicaCount: 1
   feishu:
     appID: ""
     appSecret: ""
     encryptKey: ""
-  resources: { }
+  resources:
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -84,9 +97,10 @@ django:
   metaDBDatabase: kubechat
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
-  openaiAPIKey: "sk-xxxxxx"
-  openaiProxy: "{}"
+  openaiAPIKey: ""
+  openaiProxy: ""
   embeddingModel: "bge"
+  embeddingDevice: "cpu"
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:
@@ -118,6 +132,9 @@ django:
       enabled: "true"
     - name: "chatgpt-4"
       label: "ChatGPT 4"
+      enabled: "true"
+    - name: "azure-openai"
+      label: "Azure OpenAI"
       enabled: "true"
     - name: "baichuan-53b"
       label: "BaiChuan 53b"
@@ -152,6 +169,7 @@ django:
 
 celery-worker:
   replicaCount: 1
+  embeddingDevice: "cpu"
   resources: { }
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little

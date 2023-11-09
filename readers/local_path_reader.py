@@ -7,7 +7,7 @@ from llama_index.readers.base import BaseReader
 from llama_index.readers.file.base import SimpleDirectoryReader
 from llama_index.readers.schema.base import Document
 
-from readers.readers import DEFAULT_FILE_READER_CLS
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
