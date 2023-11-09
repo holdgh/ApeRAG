@@ -9,7 +9,7 @@ from langchain.memory import RedisChatMessageHistory
 from ninja import NinjaAPI
 
 from config import settings
-from kubechat.chat.utils import success_response, stop_response, start_response
+from kubechat.chat.utils import success_response, stop_response, start_response, fail_response
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,12 @@ api = NinjaAPI(version="1.0.0", urls_namespace="events")
 
 class ServerSentEventsConsumer(AsyncHttpConsumer):
     async def handle(self, body):
+        try:
+            await self._handle(body)
+        except Exception as e:
+            logger.exception(e)
+
+    async def _handle(self, body):
         from kubechat.models import ChatPeer, Chat
         from kubechat.pipeline.pipeline import KeywordPipeline
         from kubechat.utils.db import query_chat_by_peer, query_bot
@@ -31,15 +37,17 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
         bot_id = query_params.get("bot_id", "")
         bot = await query_bot(user, bot_id)
         chat_id = query_params.get("chat_id", "")
+        msg_id = query_params.get("msg_id", "")
         if bot is None:
-            raise Exception("Bot not found")
+            event = fail_response(message_id=msg_id, error="Bot not found")
+            await self.send_event(event, more_body=False)
+            return
 
         chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
         if chat is None:
             chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
             await chat.asave()
 
-        msg_id = query_params.get("msg_id", "")
         msg = body.decode("utf-8")
         collection = await sync_to_async(bot.collections.first)()
         history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
