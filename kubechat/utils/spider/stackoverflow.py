@@ -64,7 +64,9 @@ def get_text(data, url):
         result += '\n'
 
     return result
-def  get_stackoverflow(url):
+
+
+def get_stackoverflow(url):
     soup = get_page(url)
     if soup:
         data = parse(soup)

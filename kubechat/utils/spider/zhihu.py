@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+
 def web_crawler(url):
     # Send a GET request to the specified URL
     response = requests.get(url)
@@ -15,7 +16,8 @@ def web_crawler(url):
         text_elements = soup.find_all(string=True)
 
         # Filter out unnecessary elements (e.g., scripts, styles, comments)
-        filtered_text = [element.strip() for element in text_elements if element.parent.name not in ['script', 'style', 'head', 'title', 'meta', '[document]']]
+        filtered_text = [element.strip() for element in text_elements if
+                         element.parent.name not in ['script', 'style', 'head', 'title', 'meta', '[document]']]
 
         # Join the filtered text elements into a single string
         text_content = ' '.join(filtered_text)
@@ -24,19 +26,21 @@ def web_crawler(url):
         return text_content
     else:
         print('Failed to retrieve the webpage.')
-def get_zhihu(url):# Replace with the desired webpage URL
-    question_idx=url.find('question')
-    context=web_crawler(url)
-    if question_idx!=-1:
+
+
+def get_zhihu(url):  # Replace with the desired webpage URL
+    question_idx = url.find('question')
+    context = web_crawler(url)
+    if question_idx != -1:
         question_start = context.find("登录/注册")
         question_end = context.find(" ​ 关注者")
-        if question_end==-1:
-            question_end=question_end = context.find(" 关注者 ")
-        question = context[question_start+5:question_end]
+        if question_end == -1:
+            question_end = question_end = context.find(" 关注者 ")
+        question = context[question_start + 5:question_end]
         # print(question+"\n")
 
-        answer_start=context.find(" 默认排序 ")
-        answer=context[answer_start+5:]
+        answer_start = context.find(" 默认排序 ")
+        answer = context[answer_start + 5:]
         print(answer)
-        return question+answer
+        return question + answer
     return context
