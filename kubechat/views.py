@@ -341,19 +341,20 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     return success(response)
 
+
 @api.post("/collections/{collection_id}/urls")
 async def create_url_document(request, collection_id):
     user = get_user(request)
     response = []
     collection = await query_collection(user, collection_id)
-    urls=get_urls(request)
+    urls = get_urls(request)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     try:
         for url in urls:
             document_instance = Document(
                 user=user,
-                name=url+'.txt',
+                name=url + '.txt',
                 status=DocumentStatus.PENDING,
                 collection=collection,
                 size=0,
@@ -367,7 +368,7 @@ async def create_url_document(request, collection_id):
             add_index_for_local_document.delay(document_instance.id)
 
     except IntegrityError as e:
-        return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  "+ e)
+        return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)
     except Exception as e:
         logger.exception("add document failed")
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
