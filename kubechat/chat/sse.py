@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from datetime import datetime
 from urllib.parse import parse_qsl
 
@@ -38,6 +39,9 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
         bot = await query_bot(user, bot_id)
         chat_id = query_params.get("chat_id", "")
         msg_id = query_params.get("msg_id", "")
+        if not msg_id:
+            msg_id = str(uuid.uuid4())
+
         if bot is None:
             event = fail_response(message_id=msg_id, error="Bot not found")
             await self.send_event(event, more_body=False)
