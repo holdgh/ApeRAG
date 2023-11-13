@@ -199,6 +199,7 @@ class OpenAIPredictor(Predictor):
         response = await openai.ChatCompletion.acreate(
             api_key=self.token,
             api_base=self.endpoint,
+            temperature=self.temperature,
             stream=True,
             model=self.model,
             messages=[{"role": "user", "content": prompt}])
@@ -215,6 +216,7 @@ class OpenAIPredictor(Predictor):
         response = openai.ChatCompletion.create(
             api_key=self.token,
             api_base=self.endpoint,
+            temperature=self.temperature,
             stream=True,
             model=self.model,
             messages=[{"role": "user", "content": prompt}])
@@ -269,6 +271,7 @@ class AzureOpenAIPredictor(Predictor):
             api_base=self.endpoint,
             api_type=self.api_type,
             api_version=self.api_version,
+            temperature=self.temperature,
             stream=True,
             deployment_id=self.deployment_id,
             messages=[{"role": "user", "content": prompt}])
@@ -289,6 +292,7 @@ class AzureOpenAIPredictor(Predictor):
             api_base=self.endpoint,
             api_type=self.api_type,
             api_version=self.api_version,
+            temperature=self.temperature,
             stream=True,
             deployment_id=self.deployment_id,
             messages=[{"role": "user", "content": prompt}])
@@ -330,8 +334,7 @@ class BaiChuanPredictor(Predictor):
         encrypted = md5.hexdigest()
         return encrypted
 
-    @staticmethod
-    def build_request_data(prompt):
+    def build_request_data(self, prompt):
         return {
             "model": "Baichuan2-53B",
             "messages": [
@@ -339,7 +342,10 @@ class BaiChuanPredictor(Predictor):
                     "role": "user",
                     "content": prompt,
                 }
-            ]
+            ],
+            "parameters": {
+                "temperature": self.temperature,
+            }
         }
 
     def build_request_headers(self, data):
@@ -413,13 +419,13 @@ class BaiduQianFan(Predictor):
         self.chat_comp = qianfan.ChatCompletion(ak=self.api_key, sk=self.secret_key)
 
     async def agenerate_stream(self, prompt):
-        resp = await self.chat_comp.ado(model=self.model, stream=True,
+        resp = await self.chat_comp.ado(model=self.model, stream=True, temperature=self.temperature,
                                         messages=[{"role": "user", "content": prompt}])
         async for chunk in resp:
             yield chunk["result"]
 
     def generate_stream(self, prompt):
-        resp = self.chat_comp.do(model=self.model, stream=True,
+        resp = self.chat_comp.do(model=self.model, stream=True, temperature=self.temperature,
                                  messages=[{"role": "user", "content": prompt}])
         yield resp['body']['result']
 
@@ -430,7 +436,7 @@ class ChatGLMPredictor(Predictor):
         self.endpoint = kwargs.get("endpoint", "https://open.bigmodel.cn/api/paas/v3/model-api")
         self.model = kwargs.get("model", "chatglm_turbo")
 
-        self.temperature = kwargs.get("temperature", 0.95)
+        self.temperature = kwargs.get("temperature", 0.01)
         self.top_p = kwargs.get("top_p", 0.7)
 
         if self.model not in  ["chatglm_lite", "chatglm_std", "chatglm_pro", "chatglm_turbo"]:
