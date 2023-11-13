@@ -116,6 +116,7 @@ django:
             labelSelector:
               matchLabels:
                 app.kubechat.io/component: django
+            topologyKey: kubernetes.io/hostname
   modelServers: {}
   modelFamilies:
     - name: "chatglm"

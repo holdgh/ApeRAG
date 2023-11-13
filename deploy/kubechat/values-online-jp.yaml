@@ -1,3 +1,6 @@
+image:
+  tag: v0.1.4-alpha.6
+
 ingress:
   className: alb
   annotations:
