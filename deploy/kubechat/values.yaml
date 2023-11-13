@@ -123,6 +123,9 @@ django:
       enabled: "true"
       temperature: 0.01
       models:
+        - name: "chatglm-turbo"
+          label: "ChatGLM Turbo"
+          enabled: "true"
         - name: "chatglm-std"
           label: "ChatGLM Std"
           enabled: "true"

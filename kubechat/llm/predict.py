@@ -71,7 +71,7 @@ class Predictor(ABC):
                 return BaiChuanPredictor(**kwargs)
             case "ernie-bot-turbo":
                 return BaiduQianFan(**kwargs)
-            case "chatglm-pro" | "chatglm-std" | "chatglm-lite":
+            case "chatglm-pro" | "chatglm-std" | "chatglm-lite" | "chatglm-turbo":
                 kwargs["model"] = model_name.replace("-", "_")
                 return ChatGLMPredictor(**kwargs)
 
@@ -428,12 +428,12 @@ class ChatGLMPredictor(Predictor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.endpoint = kwargs.get("endpoint", "https://open.bigmodel.cn/api/paas/v3/model-api")
-        self.model = kwargs.get("model", "chatglm_lite")
+        self.model = kwargs.get("model", "chatglm_turbo")
 
         self.temperature = kwargs.get("temperature", 0.95)
         self.top_p = kwargs.get("top_p", 0.7)
 
-        if self.model not in ["chatglm_pro", "chatglm_std", "chatglm_lite"]:
+        if self.model not in  ["chatglm_lite", "chatglm_std", "chatglm_pro", "chatglm_turbo"]:
             raise LLMConfigError("Please specify the correct model")
 
         zhipuai.api_key = kwargs.get("api_key", os.environ.get("GLM_API_KEY", ""))
@@ -441,14 +441,11 @@ class ChatGLMPredictor(Predictor):
             raise LLMConfigError("Please specify the API KEY")
 
     @staticmethod
-    def build_request_data(prompt):
+    def build_request_data(self, prompt):
         return {
-            "prompt": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ]
+            "prompt": [{"role": "user","content": prompt}],
+            "temperature": self.temperature,
+            "top_p": self.top_p
         }
 
     def generate_token(self, apikey: str, exp_seconds: int):
@@ -479,16 +476,12 @@ class ChatGLMPredictor(Predictor):
 
     async def _agenerate_stream(self, prompt):
 
-        data = self.build_request_data(prompt)
-        headers = self.build_request_headers(zhipuai.api_key)
         url = "%s/%s/sse-invoke" % (self.endpoint, self.model)
-        params = {
-            "temperature": self.temperature,
-            "top_p": self.top_p
-        }
+        data = self.build_request_data(self, prompt)
+        headers = self.build_request_headers(zhipuai.api_key)
 
         async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.post(url, params=params, json=data, headers=headers) as r:
+            async with session.post(url, json=data, headers=headers) as r:
                 async for line in r.content:
                     if line == b'\n':
                         continue
@@ -531,4 +524,3 @@ class ChatGLMPredictor(Predictor):
     def generate_stream(self, prompt):
         for tokens in self._generate_stream(prompt):
             yield tokens
-
