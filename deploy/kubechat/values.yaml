@@ -151,7 +151,7 @@ django:
           endpoint: "http://llmserver-baichuan-13b:8000"
         - name: "baichuan-53b"
           label: "BaiChuan 53b"
-          enabled: "false"
+          enabled: "true"
     - name: "azure-openai"
       label: "Azure OpenAI"
       enabled: "true"
