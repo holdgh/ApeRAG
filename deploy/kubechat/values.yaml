@@ -116,56 +116,130 @@ django:
             labelSelector:
               matchLabels:
                 app.kubechat.io/component: django
-            topologyKey: kubernetes.io/hostname
-  modelServers:
-    - name: "chatglm-pro"
-      label: "ChatGLM Pro"
+  modelServers: {}
+  modelFamilies:
+    - name: "chatglm"
+      label: "ChatGLM"
       enabled: "true"
-    - name: "chatglm-std"
-      label: "ChatGLM Std"
+      temperature: 0.01
+      models:
+        - name: "chatglm-std"
+          label: "ChatGLM Std"
+          enabled: "true"
+        - name: "chatglm-lite"
+          label: "ChatGLM Lite"
+          enabled: "true"
+        - name: "chatglm-pro"
+          label: "ChatGLM Pro"
+          enabled: "true"
+        - name: "chatglm2-6b"
+          label: "ChatGLM2 6b"
+          endpoint: "http://llmserver-chatglm2-6b:8000"
+          enabled: "false"
+    - name: "baichuan"
+      label: "BaiChuan"
       enabled: "true"
-    - name: "chatglm-lite"
-      label: "ChatGLM Lite"
-      enabled: "true"
-    - name: "chatgpt-3.5"
-      label: "ChatGPT 3.5"
-      enabled: "true"
-    - name: "chatgpt-4"
-      label: "ChatGPT 4"
-      enabled: "true"
+      temperature: 0.01
+      models:
+        - name: "baichuan-13b"
+          label: "BaiChuan 13b"
+          enabled: "true"
+          endpoint: "http://llmserver-baichuan-13b:8000"
+        - name: "baichuan-53b"
+          label: "BaiChuan 53b"
+          enabled: "false"
     - name: "azure-openai"
       label: "Azure OpenAI"
       enabled: "true"
-    - name: "baichuan-53b"
-      label: "BaiChuan 53b"
+      temperature: 0
+      models:
+        - name: "azure-openai"
+          label: "Azure OpenAI"
+          enabled: "true"
+    - name: "chatgpt"
+      label: "ChatGPT"
       enabled: "true"
-    - name: "ernie-bot-turbo"
-      label: "WenXinYiYan"
+      temperature: 0
+      models:
+        - name: "gpt-4-1106-preview"
+          label: "ChatGPT-4 Turbo"
+          enabled: "true"
+          context_window: 128000
+        - name: "gpt-4-vision-preview"
+          label: "ChatGPT-4 Turbo with vision"
+          enabled: "true"
+          context_window: 128000
+        - name: "gpt-4"
+          label: "ChatGPT-4"
+          enabled: "true"
+          context_window: 8192
+        - name: "gpt-4-32k"
+          label: "ChatGPT-4-32k"
+          enabled: "true"
+          context_window: 32768
+        - name: "gpt-4-0613"
+          label: "ChatGPT-4-0613"
+          enabled: "true"
+          context_window: 8192
+        - name: "gpt-4-32k-0613"
+          label: "ChatGPT-4-32k-0613"
+          enabled: "true"
+          context_window: 32768
+        - name: "gpt-3.5-turbo-1106"
+          label: "ChatGPT 3.5 Turbo 1106"
+          enabled: "true"
+          context_window: 16385
+        - name: "gpt-3.5-turbo"
+          label: "ChatGPT-3.5 Turbo"
+          enabled: "true"
+          context_window: 4096
+        - name: "gpt-3.5-turbo-16k"
+          label: "ChatGPT-3.5 Turbo 16k"
+          enabled: "true"
+          context_window: 16384
+        - name: "gpt-3.5-turbo-instruct"
+          label: "ChatGPT-3.5 Turbo Instruct"
+          enabled: "true"
+          context_window: 4096
+    - name: "wenxinyiyan"
+      label: "Wen Xin Yi Yan"
       enabled: "true"
-    - name: "baichuan-13b"
-      label: "BaiChuan 13b"
-      endpoint: "http://llmserver-baichuan-13b:8000"
+      models:
+      - name: "ernie-bot-turbo"
+        label: "Wen Xin Yi Yan"
+        enabled: "true"
+    - name: "vicuna"
+      label: "Vicuna"
       enabled: "false"
-    - name: "vicuna-13b"
-      label: "Vicuna 13b"
-      endpoint: "http://llmserver-vicuna-13b:8000"
+      models:
+        - name: "vicuna-13b"
+          label: "Vicuna 13b"
+          enabled: "false"
+          endpoint: "http://llmserver-vicuna-13b:8000"
+    - name: "guanaco"
+      label: "Guanaco"
       enabled: "false"
-    - name: "chatglm2-6b"
-      label: "ChatGLM2 6b"
-      endpoint: "http://llmserver-chatglm2-6b:8000"
+      models:
+        - name: "guanaco-33b"
+          label: "Guanaco 33b"
+          enabled: "false"
+          endpoint: "http://llmserver-guanaco-33b:8000"
+    - name: "falcon"
+      label: "Falcon"
       enabled: "false"
-    - name: "guanaco-33b"
-      label: "Guanaco 33b"
-      endpoint: "http://llmserver-guanaco-33b:8000"
+      models:
+        - name: "falcon-40b"
+          label: "Falcon 40b"
+          enabled: "false"
+          endpoint: "http://llmserver-falcon-40b:8000"
+    - name: "gorilla"
+      label: "Gorilla"
       enabled: "false"
-    - name: "falcon-40b"
-      label: "Falcon 40b"
-      endpoint: "http://llmserver-falcon-40b:8000"
-      enabled: "false"
-    - name: "gorilla-7b"
-      label: "Gorilla 7b"
-      endpoint: "http://llmserver-gurilla-7b:8000"
-      enabled: "false"
+      models:
+        - name: "gorilla-7b"
+          label: "Gorilla 7b"
+          enabled: "false"
+          endpoint: "http://llmserver-gurilla-7b:8000"
 
 celery-worker:
   replicaCount: 1

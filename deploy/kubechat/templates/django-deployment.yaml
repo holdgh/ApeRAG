@@ -109,6 +109,11 @@ spec:
                 configMapKeyRef:
                   key: MODEL_SERVERS
                   name: kubechat-config
+            - name: MODEL_FAMILIES
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_FAMILIES
+                  name: kubechat-config
             - name: POSTGRES_DB
               value: "{{ .Values.django.metaDBDatabase }}"
             - name: POSTGRES_HOST

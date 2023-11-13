@@ -4,6 +4,7 @@ import logging
 from http import HTTPStatus
 from typing import List, Optional
 
+import yaml
 from asgiref.sync import sync_to_async
 from celery.result import GroupResult
 from django.contrib.auth.models import User
@@ -83,18 +84,36 @@ class DocumentConfig(BaseModel):
 @api.get("/models")
 def list_models(request):
     response = []
-    model_servers = json.loads(settings.MODEL_SERVERS)
-    if model_servers is None:
-        return fail(HTTPStatus.NOT_FOUND, "model name not found")
-    for model_server in model_servers:
-        response.append({
-            "value": model_server["name"],
-            "label": model_server.get("label", model_server["name"]),
-            "enabled": model_server.get("enabled", "true").lower() == "true",
-            "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
-                                                                  DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
-            "context_window": model_server.get("context_window", 3500),
-        })
+    model_families = yaml.safe_load(settings.MODEL_FAMILIES)
+    for model_family in model_families:
+        for model_server in model_family.get("models", []):
+            response.append({
+                "value": model_server["name"],
+                "label": model_server.get("label", model_server["name"]),
+                "enabled": model_server.get("enabled", "true").lower() == "true",
+                "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
+                                                                      DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+                "context_window": model_server.get("context_window", 7500),
+                "temperature": model_server.get("temperature", model_family.get("temperature", 0.01)),
+                "similarity_score_threshold": model_server.get("similarity_score_threshold", 0.5),
+                "similarity_topk": model_server.get("similarity_topk", 3),
+                "family_name": model_family["name"],
+                "family_label": model_family["label"],
+            })
+    if not model_families:
+        model_servers = yaml.safe_load(settings.MODEL_SERVERS)
+        for model_server in model_servers:
+            response.append({
+                "value": model_server["name"],
+                "label": model_server.get("label", model_server["name"]),
+                "enabled": model_server.get("enabled", "true").lower() == "true",
+                "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
+                                                                      DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+                "context_window": model_server.get("context_window", 7500),
+                "temperature": model_server.get("temperature", 0.01),
+                "similarity_score_threshold": model_server.get("similarity_score_threshold", 0.5),
+                "similarity_topk": model_server.get("similarity_topk", 3),
+            })
     response.sort(key=lambda x: x["enabled"], reverse=True)
     return success(response)
 
@@ -585,6 +604,14 @@ async def list_bots(request):
         collections = []
         async for collection in await sync_to_async(bot.collections.all)():
             collections.append(collection.view())
+        bot_config = json.loads(bot.config)
+        model = bot_config.get("model", None)
+        # This is a temporary solution to solve the problem of model name changes
+        if model == "chatgpt-3.5":
+            bot_config["model"] = "gpt-3.5-turbo"
+        elif model == "chatgpt-4":
+            bot_config["model"] = "gpt-4"
+        bot.config = json.dumps(bot_config)
         response.append(bot.view(collections))
     return success(response, pr)
 

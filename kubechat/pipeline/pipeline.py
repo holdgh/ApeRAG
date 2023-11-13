@@ -302,7 +302,11 @@ class KeywordPipeline(Pipeline):
 
             context = ""
             if len(candidates) > 0:
-                context = get_packed_answer(candidates, self.context_window)
+                # 500 is the estimated length of the prompt
+                max_size = self.context_window - 500
+                if max_size < 0:
+                    max_size = 0
+                context = get_packed_answer(candidates, max_size)
             prompt = self.prompt.format(query=message, context=context)
 
             response = ""
