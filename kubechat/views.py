@@ -454,6 +454,27 @@ async def delete_document(request, collection_id, document_id):
     return success(document.view())
 
 
+@api.delete("/collections/{collection_id}/documents")
+async def delete_documents(request, collection_id, document_ids: List[str]):
+    user = get_user(request)
+    documents = await query_documents(user, collection_id, build_pq(request))
+    ok = []
+    failed = []
+    async for document in documents.data:
+        if document.id not in document_ids:
+            continue
+        try:
+            document.status = DocumentStatus.DELETING
+            document.gmt_deleted = timezone.now()
+            await document.asave()
+            remove_index.delay(document.id)
+            ok.append(document.id)
+        except Exception as e:
+            logger.exception(e)
+            failed.append(document.id)
+    return success({"success": ok, "failed": failed})
+
+
 @api.post("/bots/{bot_id}/chats")
 async def create_chat(request, bot_id):
     user = get_user(request)
