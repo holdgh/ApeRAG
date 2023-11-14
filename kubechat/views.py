@@ -45,7 +45,12 @@ class CollectionIn(Schema):
     config: Optional[str]
 
 
-class DocumentIn(Schema):
+class CreateDocumentIn(Schema):
+    name: str
+    config: Optional[str]
+
+
+class UpdateDocumentIn(Schema):
     name: str
     config: Optional[str]
 
@@ -409,7 +414,7 @@ async def list_documents(request, collection_id):
 
 @api.put("/collections/{collection_id}/documents/{document_id}")
 async def update_document(
-        request, collection_id, document_id, document: DocumentIn):
+        request, collection_id, document_id, document: UpdateDocumentIn):
     user = get_user(request)
     instance = await query_document(user, collection_id, document_id)
     if instance is None:
@@ -557,7 +562,7 @@ async def delete_chat(request, bot_id, chat_id):
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
     history.clear()
-    return success(chat.view())
+    return success(chat.view(bot_id))
 
 
 class BotIn(Schema):
