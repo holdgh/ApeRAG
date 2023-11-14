@@ -231,9 +231,16 @@ async def feishu_webhook_event(request, user=None, bot_id=None):
         return
 
     content = json.loads(event["message"]["content"])
+    at = ""
     message = content["text"]
     if message.startswith("@"):
-        message = message.split(" ", 1)[1]
+        parts = message.split(" ", 1)
+        at = parts[0]
+        message = parts[1]
+
+    # if the message is sent to all users, ignore it
+    if at == "@_all":
+        return
 
     if not user:
         logger.warning("invalid event without user")
