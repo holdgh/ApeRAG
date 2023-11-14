@@ -11,8 +11,11 @@ import aiohttp
 import jwt
 import openai
 import qianfan
+import yaml
 import zhipuai
 import requests
+
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +47,14 @@ class Predictor(ABC):
 
     @staticmethod
     def get_model_context(model_name):
-        model_servers = json.loads(os.environ.get("MODEL_SERVERS", "{}"))
-        if len(model_servers) == 0:
-            raise Exception("No model server available")
-        for model_server in model_servers:
-            if model_name == model_server["name"]:
+        model_families = yaml.safe_load(settings.MODEL_FAMILIES)
+        for model_family in model_families:
+            for model_server in model_family.get("models", []):
+                if model_name == model_server["name"]:
+                    return model_server
+        if not model_families:
+            model_servers = yaml.safe_load(settings.MODEL_SERVERS)
+            for model_server in model_servers:
                 return model_server
         return None
 
