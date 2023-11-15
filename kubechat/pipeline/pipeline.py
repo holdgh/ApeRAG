@@ -226,12 +226,13 @@ class QueryRewritePipeline(Pipeline):
         self.add_human_message(message, message_id)
 
         references = []
-        results = self.qa_context_manager.query(message, score_threshold=0.85, topk=1)
+        vector = self.embedding_model.embed_query(message)
+        results = self.qa_context_manager.query(message, score_threshold=0.85, topk=1, vector=vector)
         if len(results) > 0:
             response = results[0].text
             yield response
         else:
-            results = self.context_manager.query(message, self.score_threshold, self.topk)
+            results = self.context_manager.query(message, self.score_threshold, self.topk, vector=vector)
             context = ""
             if len(results) > 0:
                 context = get_packed_answer(results, self.context_window)
@@ -285,23 +286,36 @@ class KeywordPipeline(Pipeline):
         return result
 
     async def run(self, message, gen_references=False, message_id=""):
+        log_prefix = f"{message_id}|{message}"
+        logger.info("[%s] start processing", log_prefix)
+
         self.add_human_message(message, message_id)
+        logger.info("[%s] add human message end", log_prefix)
 
         references = []
-
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1)
+        vector = self.embedding_model.embed_query(message)
+        logger.info("[%s] embedding query end", log_prefix)
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
+        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         if len(results) > 0:
             response = results[0].text
             yield response
         else:
             results = await async_run(self.context_manager.query, message,
-                                      score_threshold=self.score_threshold, topk=self.topk * 6)
+                                      score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
+            logger.info("[%s] find relevant context in vector db end", log_prefix)
             if len(results) > 1:
                 results = rerank(message, results)
+                logger.info("[%s] rerank candidates end", log_prefix)
+            else:
+                logger.info("[%s] don't need to rerank ", log_prefix)
 
             candidates = results[:self.topk]
             if self.enable_keyword_recall:
                 candidates = self.filter_by_keywords(message, candidates)
+                logger.info("[%s] filter keyword end", log_prefix)
+            else:
+                logger.info("[%s] no need to filter keyword", log_prefix)
 
             context = ""
             if len(candidates) > 0:
@@ -311,6 +325,7 @@ class KeywordPipeline(Pipeline):
                     max_size = 0
                 context = get_packed_answer(candidates, max_size)
             prompt = self.prompt.format(query=message, context=context)
+            logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
             response = ""
             async for msg in self.predictor.agenerate_stream(prompt):
@@ -325,6 +340,7 @@ class KeywordPipeline(Pipeline):
                 })
 
         self.add_ai_message(message, message_id, response, references)
+        logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
