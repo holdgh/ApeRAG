@@ -169,26 +169,14 @@ django:
           label: "ChatGPT-4 Turbo"
           enabled: "true"
           context_window: 128000
-        - name: "gpt-4-vision-preview"
-          label: "ChatGPT-4 Turbo with vision"
-          enabled: "true"
-          context_window: 128000
         - name: "gpt-4"
           label: "ChatGPT-4"
           enabled: "true"
           context_window: 8192
-        - name: "gpt-4-32k"
-          label: "ChatGPT-4-32k"
-          enabled: "true"
-          context_window: 32768
         - name: "gpt-4-0613"
           label: "ChatGPT-4-0613"
           enabled: "true"
           context_window: 8192
-        - name: "gpt-4-32k-0613"
-          label: "ChatGPT-4-32k-0613"
-          enabled: "true"
-          context_window: 32768
         - name: "gpt-3.5-turbo-1106"
           label: "ChatGPT 3.5 Turbo 1106"
           enabled: "true"
@@ -201,10 +189,6 @@ django:
           label: "ChatGPT-3.5 Turbo 16k"
           enabled: "true"
           context_window: 16384
-        - name: "gpt-3.5-turbo-instruct"
-          label: "ChatGPT-3.5 Turbo Instruct"
-          enabled: "true"
-          context_window: 4096
     - name: "wenxinyiyan"
       label: "Wen Xin Yi Yan"
       enabled: "true"

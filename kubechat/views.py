@@ -633,10 +633,12 @@ async def list_bots(request):
         bot_config = json.loads(bot.config)
         model = bot_config.get("model", None)
         # This is a temporary solution to solve the problem of model name changes
-        if model == "chatgpt-3.5":
+        if model in ["chatgpt-3.5", "gpt-3.5-turbo-instruct"]:
             bot_config["model"] = "gpt-3.5-turbo"
         elif model == "chatgpt-4":
             bot_config["model"] = "gpt-4"
+        elif model in ["gpt-4-vision-preview", "gpt-4-32k", "gpt-4-32k-0613"]:
+            bot_config["model"] = "gpt-4-1106-preview"
         bot.config = json.dumps(bot_config)
         response.append(bot.view(collections))
     return success(response, pr)

@@ -85,7 +85,10 @@ class Pipeline(ABC):
         self.qa_vectordb_ctx["collection"] = qa_collection_name
         self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                                  self.qa_vectordb_ctx)
-        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
+
+        kwargs = {"model": self.model}
+        kwargs.update(self.llm_config)
+        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
     @staticmethod
     def new_human_message(message, message_id):
