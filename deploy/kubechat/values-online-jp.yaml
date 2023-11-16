@@ -11,6 +11,7 @@ django:
   domainName: chat.kubeblocks.io
   replicaCount: 2
   embeddingModel: bge
+  embeddingDevice: cuda
   authType: auth0
   auth0ClientId: "G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2"
   auth0Domain: "kubechat.jp.auth0.com"

@@ -25,6 +25,50 @@ spec:
         {{- include "kubechat.selectorLabels" . | nindent 8 }}
         {{- include "django.labels" . | nindent 8 }}
     spec:
+      initContainers:
+        - name: prepare-models
+          image: curlimages/curl:8.4.0
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # fail fast
+              set -e
+              mkdir -p /root/.cache
+              mkdir -p /data/.cache/huggingface
+              ln -s /data/.cache/huggingface /root/.cache/
+              mkdir -p /data/.cache/torch
+              ln -s /data/.cache/torch /root/.cache/
+
+              # prepare rerank model
+              if [ ! -d /data/models/bge-reranker-large ]; then
+                echo "downloading rerank model"
+                curl --progress-bar -OL https://llm-store.oss-cn-beijing.aliyuncs.com/bge-reranker-large.tar
+                tar -xvf bge-reranker-large.tar
+                mkdir -p /data/models
+                mv bge-reranker-large /data/models/
+                echo "successfully downloaded rerank model"
+              else
+                echo "rerank model exists, skip downloading"
+              fi
+
+              # prepare bge model
+              if [ ! -d /data/.cache/torch/sentence_transformers ]; then
+                echo "downloading bge model"
+                curl --progress-bar -OL https://llm-store.oss-cn-beijing.aliyuncs.com/BAAI_bge-large-zh.tar
+                tar -xvf BAAI_bge-large-zh.tar
+                mkdir -p /data/.cache/torch/sentence_transformers
+                mv BAAI_bge-large-zh/ /data/.cache/torch/sentence_transformers/
+                echo "successfully downloaded bge model"
+              else
+                echo "bge model exists, skip downloading"
+              fi
+          volumeMounts:
+            - mountPath: /data
+              name: data
       containers:
         - command:
             - /bin/sh
