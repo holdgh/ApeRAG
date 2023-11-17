@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       chart-version: ${{ steps.get_version.outputs.chart_version }}
+      artifact-key: ${{ steps.get_tag_name.outputs.artifact_key }}
     steps:
       - name: Get Chart Version
         id: get_version
@@ -41,6 +42,8 @@ jobs:
               VERSION=${{ env.RELEASE_VERSION }}
           fi
           echo chart_version=$VERSION >> $GITHUB_OUTPUT
+          ARTIFACT_KEY="${{ env.RELEASE_VERSION }}-chart"
+          echo 'artifact_key='${ARTIFACT_KEY} >> $GITHUB_OUTPUT
 
   release-kubechat-chart:
     if: ${{ github.event.action == 'published' || inputs.chart_name == '' || inputs.chart_name == 'kubechat' }}
@@ -67,9 +70,18 @@ jobs:
       CHECK_ENABLE: false
     secrets: inherit
 
+  delete-actions-cache:
+    if: ${{ always() }}
+    needs: [ chart-version ]
+    uses: apecloud/apecloud-cd/.github/workflows/delete-actions-cache.yml@v0.1.41
+    with:
+      CACHE_KEY: "${{ needs.chart-version.outputs.artifact-key }}"
+      APECD_REF: "v0.1.41"
+    secrets: inherit
+
   release-result:
     runs-on: ubuntu-latest
-    needs: [ release-kubechat-chart, release-llmserver-chart ]
+    needs: [ delete-actions-cache, release-kubechat-chart, release-llmserver-chart ]
     if: ${{ always() && github.event.action == 'published' }}
     outputs:
       release-result: ${{ steps.get_release_result.outputs.release_result }}
@@ -77,11 +89,26 @@ jobs:
       - name: get release result
         id: get_release_result
         run: |
+          ARTIFACT_KEY="${{ env.RELEASE_VERSION }}-chart"
+          touch ${ARTIFACT_KEY}
+          echo 'artifact_key='${ARTIFACT_KEY} >> $GITHUB_OUTPUT
+          
           RELEASE_RESULT="error"
           if [[ "${{ needs.release-kubechat-chart.result }}" == "success" && "${{ needs.release-llmserver-chart.result }}" == "success" ]]; then
               RELEASE_RESULT="success"
+              echo "success" > ${ARTIFACT_KEY}
+          else
+              echo "error" > ${ARTIFACT_KEY}
           fi
           echo 'release_result='$RELEASE_RESULT >> $GITHUB_OUTPUT
+
+      - name: Save Artifact
+        id: cache-artifact-save
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            ${{ steps.get_release_result.outputs.artifact_key }}
+          key: ${{ steps.get_release_result.outputs.artifact_key }}
 
   send-message:
     needs: [ chart-version, release-result ]
@@ -92,5 +119,3 @@ jobs:
       CONTENT: "release chart ${{ needs.chart-version.outputs.chart-version }} ${{ needs.release-result.outputs.release-result }}"
       APECD_REF: "v0.1.34"
     secrets: inherit
-
-
