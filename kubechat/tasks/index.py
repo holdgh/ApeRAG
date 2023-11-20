@@ -2,10 +2,16 @@ import json
 import logging
 import os
 import uuid
+import zipfile
+import tarfile
+
+import py7zr
+import rarfile
 
 from celery import Task
 from django.utils import timezone
-
+from django.core.files.base import ContentFile
+from pathlib import Path
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.predict import Predictor, PredictorType
@@ -20,8 +26,7 @@ from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
-from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX
-
+from readers.base_readers import SUPPORTED_COMPRESSED_EXTENSIONS
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +68,71 @@ class CustomDeleteDocumentTask(Task):
     #     return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
 
+def uncompress_file(document_id) :
+    document = Document.objects.get(id=document_id)
+    document.status = DocumentStatus.RUNNING
+    document.save()
+    file = Path(document.file.path)
+    MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
+    tmp_dir = Path(os.path.join('./tmp', document.collection.id, document.name))
+    try:
+        os.makedirs(tmp_dir, exist_ok=True)
+    except Exception as e:
+        raise e
+    extracted_files = []
+
+    try:
+        if file.suffix == '.zip':
+            with zipfile.ZipFile(file, 'r') as zf:
+                zf.extractall(tmp_dir)
+        elif file.suffix in ['.rar', '.r00']:
+            with rarfile.RarFile(file, 'r') as rf:
+                rf.extractall(tmp_dir)
+        elif file.suffix == '.7z':
+            with py7zr.SevenZipFile(file, 'r') as z7:
+                z7.extractall(tmp_dir)
+        elif file.suffix in ['.tar', '.gz', '.xz', '.bz2', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.7z']:
+            with tarfile.open(file, 'r:*') as tf:
+                tf.extractall(tmp_dir)
+        else:
+            raise ValueError("Unsupported file format")
+    except Exception as e:
+        raise e
+    total_size = 0
+    for root, dirs, file_names in os.walk(tmp_dir):
+        for name in file_names:
+            if file.suffix==".zip" or file.suffix in ['.rar', '.r00']:
+                name=name.encode('cp437').decode('utf-8')
+            path = Path(os.path.join(root,name))
+            if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
+                raise Exception("Nested compressed file found")
+            extracted_files.append(path)
+            total_size += path.stat().st_size
+
+            if total_size > MAX_EXTRACTED_SIZE:
+                raise Exception("Extracted size exceeded limit")
+    for extracted_file_path in extracted_files:
+        try:
+            with extracted_file_path.open(mode="rb") as extracted_file:  # open in binary
+                content = extracted_file.read()
+                document_instance = Document(
+                    user=document.user,
+                    name=document.name + "/" + extracted_file_path.name,
+                    status=DocumentStatus.PENDING,
+                    size=extracted_file_path.stat().st_size,
+                    collection=document.collection,
+                    file=ContentFile(content, extracted_file_path.name),  
+                )
+                document_instance.metadata = json.dumps({
+                    "path": str(extracted_file_path),
+                })
+                document_instance.save()
+                add_index_for_local_document.delay(document_instance.id)
+        except Exception as e:
+            raise e
+    return
+
+
 @app.task(base=CustomLoadDocumentTask, bind=True, ignore_result=True)
 def add_index_for_local_document(self, document_id):
     try:
@@ -81,46 +151,57 @@ def add_index_for_document(self, document_id):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()
-
     try:
-        source = get_source(json.loads(document.collection.config))
-        metadata = json.loads(document.metadata)
-        local_doc = source.prepare_document(name=document.name, metadata=metadata)
-        if document.size==0:
-            document.size=os.path.getsize(local_doc.path)
+        if Path(document.file.path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
+            if json.loads(document.collection.config)["source"] != "system":
+                return
+            uncompress_file(document_id)
+            document.status = DocumentStatus.COMPLETE
             document.save()
-        embedding_model, _ = get_collection_embedding_model(document.collection)
-        loader = LocalPathEmbedding(input_files=[local_doc.path],
-                                    input_file_metadata_list=[local_doc.metadata],
-                                    embedding_model=embedding_model,
-                                    vector_store_adaptor=get_vector_db_connector(
-                                        collection=generate_vector_db_collection_name(
-                                            collection_id=document.collection.id)))
+            metadata = json.loads(document.metadata)
+            source = get_source(json.loads(document.collection.config))
+            local_doc = source.prepare_document(name=document.name, metadata=metadata)
+            source.cleanup_document(local_doc.path)
+            return
+        else:
+            source = get_source(json.loads(document.collection.config))
+            metadata = json.loads(document.metadata)
+            local_doc = source.prepare_document(name=document.name, metadata=metadata)
+            if document.size == 0:
+                document.size = os.path.getsize(local_doc.path)
+                document.save()
+            embedding_model, _ = get_collection_embedding_model(document.collection)
+            loader = LocalPathEmbedding(input_files=[local_doc.path],
+                                        input_file_metadata_list=[local_doc.metadata],
+                                        embedding_model=embedding_model,
+                                        vector_store_adaptor=get_vector_db_connector(
+                                            collection=generate_vector_db_collection_name(
+                                                collection_id=document.collection.id)))
 
-        ctx_ids, content = loader.load_data()
-        logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
+            ctx_ids, content = loader.load_data()
+            logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
-        # only index the document that have points in the vector database
-        if ctx_ids:
-            index = generate_fulltext_index_name(document.collection.id)
-            insert_document(index, document.id, local_doc.name, content)
+            # only index the document that have points in the vector database
+            if ctx_ids:
+                index = generate_fulltext_index_name(document.collection.id)
+                insert_document(index, document.id, local_doc.name, content)
 
-        predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
-        qa_loaders = LocalPathQAEmbedding(predictor=predictor,
-                                          input_files=[local_doc.path],
-                                          input_file_metadata_list=[local_doc.metadata],
-                                          embedding_model=embedding_model,
-                                          vector_store_adaptor=get_vector_db_connector(
-                                              collection=generate_qa_vector_db_collection_name(
-                                                  collection=document.collection.id)))
-        qa_ids = qa_loaders.load_data()
-        logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
-        relate_ids = {
-            "ctx": ctx_ids,
-            "qa": qa_ids,
-        }
-        document.relate_ids = json.dumps(relate_ids)
-        document.save()
+            predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
+            qa_loaders = LocalPathQAEmbedding(predictor=predictor,
+                                              input_files=[local_doc.path],
+                                              input_file_metadata_list=[local_doc.metadata],
+                                              embedding_model=embedding_model,
+                                              vector_store_adaptor=get_vector_db_connector(
+                                                  collection=generate_qa_vector_db_collection_name(
+                                                      collection=document.collection.id)))
+            qa_ids = qa_loaders.load_data()
+            logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
+            relate_ids = {
+                "ctx": ctx_ids,
+                "qa": qa_ids,
+            }
+            document.relate_ids = json.dumps(relate_ids)
+            document.save()
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
@@ -216,7 +297,6 @@ def update_index(self, document_id):
     except Exception as e:
         logger.error(e)
         raise Exception("an error occur %s" % e)
-
 
     source.cleanup_document(local_doc.path)
 

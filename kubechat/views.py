@@ -334,6 +334,8 @@ async def delete_collection(request, collection_id):
 
 @api.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
+    if len(file)>500:
+        return fail(HTTPStatus.BAD_REQUEST, "documents are too many,add document failed")
     user = get_user(request)
     collection = await query_collection(user, collection_id)
     if collection is None:
