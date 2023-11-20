@@ -20,7 +20,6 @@ import kubechat.utils.message as msg_utils
 from config.celery import app
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.source.base import get_source
-from kubechat.source.url import download_web_text_to_temp_file
 from kubechat.tasks.collection import init_collection_task, delete_collection_task
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
@@ -31,7 +30,7 @@ from kubechat.utils.request import fail, get_user, success,get_urls
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 from .auth.validator import GlobalHTTPAuth
 from .models import *
-from .utils.utils import validate_source_connect_config, validate_bot_config
+from .utils.utils import validate_source_connect_config, validate_bot_config, validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -373,13 +372,17 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
 @api.post("/collections/{collection_id}/urls")
 async def create_url_document(request, collection_id):
     user = get_user(request)
-    response = []
+    response = {"failed_urls": []}
     collection = await query_collection(user, collection_id)
     urls = get_urls(request)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     try:
+        failed_urls = []
         for url in urls:
+            if not validate_url(url):
+                failed_urls.append(url)
+                continue
             document_instance = Document(
                 user=user,
                 name=url + '.txt',
@@ -397,10 +400,14 @@ async def create_url_document(request, collection_id):
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)
-    except Exception as e:
+    except Exception:
         logger.exception("add document failed")
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
+    if len(failed_urls) != 0:
+        response["message"] = "Some URLs failed validation,eg. http://example.com/path?query=123#fragment"
+        response["failed_urls"] = failed_urls
     return success(response)
+
 
 @api.get("/collections/{collection_id}/documents")
 async def list_documents(request, collection_id):

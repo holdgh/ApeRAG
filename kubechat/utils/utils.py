@@ -128,6 +128,21 @@ def validate_bot_config(model, config: Dict) -> (bool, str):
     return True, ""
 
 
+def validate_url(url):
+    from urllib.parse import urlparse
+    try:
+        parsed_url = urlparse(url)
+
+        if parsed_url.scheme not in ['http', 'https']:
+            return False
+
+        if not parsed_url.netloc:
+            return False
+
+        return True
+    except Exception:
+        return False
+
 class AESCipher(object):
     def __init__(self, key):
         self.bs = AES.block_size
