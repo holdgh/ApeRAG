@@ -45,12 +45,16 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         if not docs:
             return []
 
-        nodes: List[NodeWithEmbedding] = []
-        texts: str = ""
+        nodes: List[Node] = []
+        nodesWithEmbedding: List[NodeWithEmbedding] = []
+
+        texts = []
+        content = ""
+        embeddingDocs = []
+
         for doc in docs:
 
-            texts += doc.text
-
+            content += doc.text
             doc.text = doc.text.strip()
 
             # ignore page less than 30 characters
@@ -67,6 +71,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 logger.warning("ignore page with content ratio less than %f: %s",
                                content_ratio_threshold, doc.metadata.get("name", None))
                 continue
+
+            embeddingDocs.append(doc)
 
             paddings = []
             # padding titles of the hierarchy
@@ -92,6 +98,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 text = f"{prefix}\n{doc.text}"
             else:
                 text = doc.text
+            texts.append(text)
 
             # embedding without the prefix #, which is usually used for padding in the LLM
             # lines = []
@@ -101,8 +108,6 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             # embedding without the code block
             # text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-            vector = self.embedding.embed_documents([text])[0]
-            doc.embedding = vector
             node = Node(
                 text=doc.text,
                 doc_id=doc.doc_id,
@@ -113,9 +118,17 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     node_id=node.node_id, metadata={"source": f"{doc.metadata['name']}"}
                 )
             }
-            nodes.append(NodeWithEmbedding(node=node, embedding=vector))
+            nodes.append(node)
+
+        vectors = self.embedding.embed_documents(texts)
+
+        for i in range(len(vectors)):
+            embeddingDocs[i].embedding = vectors[i]
+            nodesWithEmbedding.append(NodeWithEmbedding(node=nodes[i], embedding=vectors[i]))
+
         print(f"processed file: {file_name} ")
-        return self.connector.store.add(nodes), texts
+
+        return self.connector.store.add(nodesWithEmbedding), content
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)

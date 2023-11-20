@@ -107,6 +107,12 @@ spec:
                   name: kubechat-config
             - name: EMBEDDING_DEVICE
               value: {{ index .Values "celery-worker" "embeddingDevice" }}
+            - name: EMBEDDING_BACKEND
+              value: {{ index .Values "celery-worker" "embeddingBackend" }}
+            - name: EMBEDDING_SERVICE_URL
+              value: {{ index .Values "celery-worker" "embeddingServiceUrl" }}
+            - name: EMBEDDING_SERVICE_MODEL
+              value: {{ index .Values "celery-worker" "embeddingServiceModel" }}
             {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:

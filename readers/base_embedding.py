@@ -8,19 +8,55 @@ from typing import Any, List
 
 import torch
 from FlagEmbedding import FlagReranker
-from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain.embeddings.base import Embeddings
-from langchain.embeddings.google_palm import GooglePalmEmbeddings
-from langchain.embeddings.huggingface import (
-    HuggingFaceEmbeddings,
-    HuggingFaceInstructEmbeddings,
-)
-from langchain.embeddings.openai import OpenAIEmbeddings
 from transformers import AutoTokenizer, MT5EncoderModel, AutoModelForSequenceClassification
 
-from config.settings import EMBEDDING_DEVICE, EMBEDDING_MODEL
+from langchain.embeddings.huggingface import (HuggingFaceEmbeddings, HuggingFaceInstructEmbeddings,
+                                              HuggingFaceBgeEmbeddings)
+from langchain.embeddings.openai import OpenAIEmbeddings
+
+from config.settings import EMBEDDING_MODEL, EMBEDDING_SERVICE_URL, EMBEDDING_SERVICE_MODEL, \
+    VECTOR_SIZE, EMBEDDING_BACKEND, EMBEDDING_DEVICE
 from query.query import DocumentWithScore
 from vectorstore.connector import VectorStoreConnectorAdaptor
+
+import requests
+
+
+class EmbeddingService(Embeddings):
+    def __init__(self, model_type):
+        self.localModel = EMBEDDING_MODEL_CLS.get(model_type)()
+        self.remoteModel = Embedding()
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        if EMBEDDING_BACKEND == "local":
+            return self.localModel.embed_documents(texts)
+        return self.remoteModel.embed_documents(texts)
+
+    def embed_query(self, text: str) -> List[float]:
+        if EMBEDDING_BACKEND == "local":
+            return self.localModel.embed_query(text)
+        return self.remoteModel.embed_query(text)
+
+
+class Embedding(Embeddings):
+    def __init__(self):
+        self.url = EMBEDDING_SERVICE_URL
+        self.model = EMBEDDING_SERVICE_MODEL
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+
+        texts = list(map(lambda x: x.replace("\n", " "), texts))
+
+        response = requests.post(url=self.url, json={"model": self.model, "input": texts})
+
+        results = (json.loads(response.content))["data"]
+        embeddings = [result["embedding"] for result in results]
+
+        return embeddings
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.embed_documents([text])[0]
 
 
 class Text2VecEmbedding(Embeddings):
@@ -196,6 +232,19 @@ mutex = Lock()
 embedding_model_cache = {}
 rerank_model_cache = {}
 
+EMBEDDING_MODEL_CLS = {
+    "huggingface": lambda: HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-mpnet-base-v2",
+                model_kwargs={'device': EMBEDDING_DEVICE},
+            ),
+    "text2vec": lambda: Text2VecEmbedding(device=EMBEDDING_DEVICE),
+    "bge": lambda: HuggingFaceBgeEmbeddings(
+                model_name="BAAI/bge-large-zh",
+                model_kwargs={'device': EMBEDDING_DEVICE},
+                encode_kwargs={'normalize_embeddings': True, 'batch_size': 16}
+            )
+}
+
 
 # synchronized decorator
 def synchronized(func):
@@ -216,72 +265,16 @@ def get_rerank_model(model_type: str = "bge-reranker-large"):
 
 
 @synchronized
-def get_embedding_model(model_type: str, load=True, **kwargs) -> {Embeddings, int}:
-    embedding_model = None
-    vector_size = 0
+def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> {Embeddings, int}:
 
     if model_type in embedding_model_cache:
         return embedding_model_cache[model_type]
 
-    if not model_type or model_type == "huggingface":
-        if load:
-            model_kwargs = {'device': EMBEDDING_DEVICE}
-            embedding_model = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-mpnet-base-v2",
-                model_kwargs=model_kwargs,
-            )
-        vector_size = 768
-    elif model_type == "huggingface_instruct":
-        if load:
-            model_kwargs = {'device': EMBEDDING_DEVICE}
-            embedding_model = HuggingFaceInstructEmbeddings(
-                model_name="hkunlp/instructor-large",
-                model_kwargs=model_kwargs,
-            )
-        vector_size = 768
-    elif model_type == "text2vec":
-        if load:
-            embedding_model = Text2VecEmbedding(device=EMBEDDING_DEVICE)
-        vector_size = 768
-    elif model_type == "bge":
-        if load:
-            model_kwargs = {'device': EMBEDDING_DEVICE}
-            # set True to compute cosine similarity
-            encode_kwargs = {'normalize_embeddings': True}
-            embedding_model = HuggingFaceBgeEmbeddings(
-                model_name="BAAI/bge-large-zh",
-                model_kwargs=model_kwargs,
-                encode_kwargs=encode_kwargs
-            )
-        vector_size = 1024
-    elif model_type == "openai":
-        if load:
-            embedding_model = OpenAIEmbeddings(max_retries=1, request_timeout=60)
-        vector_size = 1536
-    elif model_type == "google":
-        if load:
-            embedding_model = GooglePalmEmbeddings()
-        vector_size = 768
-    elif model_type == "bert":
-        if load:
-            embedding_model = BertEmbedding()
-        vector_size = 1024
-    elif model_type == "multilingual":
-        if load:
-            embedding_model = MultilingualSentenceTransformer()
-        vector_size = 1024
-    elif model_type == "mt5":
-        if load:
-            embedding_model = MT5Embedding()
-        vector_size = 768
-    elif model_type == "piccolo":
-        if load:
-            embedding_model = PiccoloEmbedding()
-        vector_size = 1024
-    else:
-        raise ValueError("unsupported embedding model ", model_type)
+    embedding_model = None
+    vector_size = VECTOR_SIZE.get(model_type, 1024)
 
-    if embedding_model:
+    if load:
+        embedding_model = EmbeddingService(model_type)
         embedding_model_cache[model_type] = (embedding_model, vector_size)
 
     return embedding_model, vector_size
