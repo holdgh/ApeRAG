@@ -296,7 +296,7 @@ class KeywordPipeline(Pipeline):
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
-        logger.info("[%s] find relevant qa pairs in vector db end")
+        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         if len(results) > 0:
             response = results[0].text
             yield response
