@@ -92,18 +92,15 @@ def list_models(request):
     model_families = yaml.safe_load(settings.MODEL_FAMILIES)
     for model_family in model_families:
         for model_server in model_family.get("models", []):
-            memory = model_server.get("memory", "disabled").lower() == "enabled"
-            if memory:
-                prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"], DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
-            else:
-                prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"], DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
-
             response.append({
                 "value": model_server["name"],
                 "label": model_server.get("label", model_server["name"]),
                 "enabled": model_server.get("enabled", "true").lower() == "true",
-                "memory": memory,
-                "prompt_template": prompt_template,
+                "memory": model_server.get("memory", "disabled").lower() == "enabled",
+                "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
+                                                                      DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+                "memory_prompt_template": DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"],
+                                                                                    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3),
                 "context_window": model_server.get("context_window", 7500),
                 "temperature": model_server.get("temperature", model_family.get("temperature", 0.01)),
                 "similarity_score_threshold": model_server.get("similarity_score_threshold", 0.5),
@@ -118,8 +115,11 @@ def list_models(request):
                 "value": model_server["name"],
                 "label": model_server.get("label", model_server["name"]),
                 "enabled": model_server.get("enabled", "true").lower() == "true",
+                "memory": model_server.get("memory", "disabled").lower() == "enabled",
                 "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
                                                                       DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+                "memory_prompt_template": DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"],
+                                                                                    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3),
                 "context_window": model_server.get("context_window", 7500),
                 "temperature": model_server.get("temperature", 0.01),
                 "similarity_score_threshold": model_server.get("similarity_score_threshold", 0.5),
