@@ -52,7 +52,6 @@ env:
 jobs:
   check-version:
     if: ${{ always() }}
-    needs: [ chart-version ]
     uses: apecloud/apecloud-cd/.github/workflows/check-release-version.yml@v0.1.41
     with:
       VERSION: "${{ inputs.VERSION }}"
