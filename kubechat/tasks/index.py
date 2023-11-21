@@ -22,11 +22,14 @@ from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDe
 from kubechat.utils.full_text import insert_document, remove_document
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
     generate_fulltext_index_name
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 from readers.base_embedding import get_collection_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
-from readers.base_readers import SUPPORTED_COMPRESSED_EXTENSIONS
+from django.core.files.base import ContentFile
+from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX, SUPPORTED_COMPRESSED_EXTENSIONS
+
 logger = logging.getLogger(__name__)
 
 

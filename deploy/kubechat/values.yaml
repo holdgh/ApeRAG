@@ -17,6 +17,15 @@ image:
     registry: docker.io
     repository: apecloud/kubechat-website
     tag: "latest"
+
+  paddleocr:
+    registry: docker.io
+    repository: gswyhq/paddleocr
+    tag: "hubserving"
+  whisper:
+    registry: docker.io
+    repository: onerahmet/openai-whisper-asr-webservice
+    tag: "latest-gpu"
   embedding:
     registry: docker.io
     repository: michaelf34/infinity
@@ -291,6 +300,37 @@ flower:
     #   cpu: 100m
     #   memory: 128Mi
 
+whisper:
+  replicaCount: 1
+  resources:
+    limits:
+      nvidia.com/gpu: "1"
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+paddleocr:
+  replicaCount: 1
+  resources:
+    limits:
+      nvidia.com/gpu: "1"
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
 embedding:
    replicaCount: 1
    resources:

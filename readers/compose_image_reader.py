@@ -1,11 +1,17 @@
 import re
 from pathlib import Path
 from typing import Callable, Dict, Generator, List, Optional, Type
-
+import base64
+import cv2
+import requests
+import json
 import PIL.Image
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document, ImageDocument
 from PIL import Image
+import config.settings as settings
+
+AUDIO_SERVER_URL = settings.WHISPER_HOST
 
 
 def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
@@ -22,77 +28,25 @@ def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
     return processor.decode(out[0], skip_special_tokens=True)
 
 
-def read_image_text(image: PIL.Image.Image) -> str:
-    import torch
-    from transformers import (
-        AutoTokenizer,
-        DonutProcessor,
-        VisionEncoderDecoderModel,
-        ViTImageProcessor,
-    )
+def read_image_text(path) -> str:
+    def cv2_to_base64(image):
+        data = cv2.imencode('.jpg', image)[1]
+        return base64.b64encode(data.tostring()).decode('utf8')
 
-    processor = DonutProcessor.from_pretrained(
-        "naver-clova-ix/donut-base-finetuned-cord-v2"
-    )
-    model = VisionEncoderDecoderModel.from_pretrained(
-        "naver-clova-ix/donut-base-finetuned-cord-v2"
-    )
+    data = {'images': [cv2_to_base64(cv2.imread(str(path)))]}
+    headers = {"Content-type": "application/json"}
+    url = AUDIO_SERVER_URL + "/predict/ocr_system"
+    r = requests.post(url=url, headers=headers, data=json.dumps(data))
+    data = json.loads(r.text)
 
-    # prepare decoder inputs
-    task_prompt = "<s_cord-v2>"
-    decoder_input_ids = processor.tokenizer(
-        task_prompt, add_special_tokens=False, return_tensors="pt"
-    ).input_ids
+    texts = [item['text'] for group in data['results'] for item in group if 'text' in item]
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
+    res = ""
 
-    pixel_values = processor(image, return_tensors="pt").pixel_values
+    for text in texts:
+        res += text
 
-    outputs = model.generate(
-        pixel_values.to(device),
-        decoder_input_ids=decoder_input_ids.to(device),
-        max_length=model.decoder.config.max_position_embeddings,
-        early_stopping=True,
-        pad_token_id=processor.tokenizer.pad_token_id,
-        eos_token_id=processor.tokenizer.eos_token_id,
-        use_cache=True,
-        num_beams=3,
-        bad_words_ids=[[processor.tokenizer.unk_token_id]],
-        return_dict_in_generate=True,
-    )
-
-    sequence = processor.batch_decode(outputs.sequences)[0]
-    sequence = sequence.replace(processor.tokenizer.eos_token, "").replace(
-        processor.tokenizer.pad_token, ""
-    )
-    # remove first task start token
-    text_str = re.sub(r"<.*?>", "", sequence, count=0).strip()
-    return text_str
-
-    """
-    model = VisionEncoderDecoderModel.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-    processor = ViTImageProcessor.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-    tokenizer = AutoTokenizer.from_pretrained("nlpconnect/vit-gpt2-image-captioning")
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
-
-    pixel_values = processor(images=[image], return_tensors="pt").pixel_values
-
-    outputs = model.generate(
-        pixel_values.to(device),
-        max_length=16,
-        use_cache=True,
-        num_beams=4,
-        return_dict_in_generate=True,
-    )
-
-    sequence = tokenizer.batch_decode(outputs.sequences)[0]
-    # remove first task start token
-    text_str = re.sub(r"<.*?>", "", sequence, count=0).strip()
-    return text_str
-    """
+    return res
 
 
 class ComposeImageReader(BaseReader):
@@ -101,7 +55,7 @@ class ComposeImageReader(BaseReader):
         from PIL import Image
 
         image = Image.open(file).convert("RGB")
-        text = read_image_text(image)
+        text = read_image_text(file)
         # meaning = read_image_meaning(image, text)
         meaning = ""
         image_bytes = img_2_b64(image)

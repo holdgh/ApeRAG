@@ -303,3 +303,6 @@ QIANFAN_API_KEY = env.str("QIANFAN_API_KEY", default="")
 QIANFAN_SECRET_KEY = env.str("QIANFAN_SECRET_KEY", default="")
 
 OPENAI_API_PROXY = env.str("OPENAI_API_PROXY", default="{}")
+
+WHISPER_HOST=env.str("WHISPER_HOST", default="http://openai-whisper-asr-service:9000")
+PADDLEOCR_HOST=env.str("PADDLEOCR_HOST", default="http://paddleocr-hubserving-service:8866")

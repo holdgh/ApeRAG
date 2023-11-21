@@ -107,6 +107,16 @@ spec:
                   name: kubechat-config
             - name: EMBEDDING_DEVICE
               value: {{ index .Values "celery-worker" "embeddingDevice" }}
+            - name: WHISPER_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: WHISPER_HOST
+                  name: kubechat-config
+            - name: PADDLEOCR_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: PADDLEOCR_HOST
+                  name: kubechat-config
             - name: EMBEDDING_BACKEND
               value: {{ index .Values "celery-worker" "embeddingBackend" }}
             - name: EMBEDDING_SERVICE_URL

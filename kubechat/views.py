@@ -346,7 +346,6 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
         file_suffix = os.path.splitext(item.name)[1].lower()
         if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
             return fail(HTTPStatus.BAD_REQUEST, f"unsupported file type {file_suffix}")
-
         try:
             document_instance = Document(
                 user=user,
