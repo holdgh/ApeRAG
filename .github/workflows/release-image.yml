@@ -56,7 +56,7 @@ jobs:
     needs: [ image-tag, enable-gke-runner ]
     uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
     with:
-      MAKE_OPS_PRE: "build-requirements version"
+      MAKE_OPS_PRE: "poetry-lock-no-update build-requirements version"
       IMG: "apecloud/kubechat"
       VERSION: "${{ needs.image-tag.outputs.tag-name }}"
       DOCKERFILE_PATH: "./Dockerfile"
@@ -69,7 +69,7 @@ jobs:
     needs: [ image-tag, enable-gke-runner ]
     uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
     with:
-      MAKE_OPS_PRE: "build-requirements version"
+      MAKE_OPS_PRE: "poetry-lock-no-update build-requirements version"
       IMG: "apecloud/kubechat-llmserver"
       VERSION: "${{ needs.image-tag.outputs.tag-name }}"
       DOCKERFILE_PATH: "./Dockerfile-llmserver"

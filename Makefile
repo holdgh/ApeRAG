@@ -115,3 +115,6 @@ celery:
 
 flower:
 	celery -A config.celery flower --conf/flowerconfig.py
+
+poetry-lock-no-update:
+	poetry lock --no-update
