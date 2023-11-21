@@ -107,7 +107,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 message += tokens
 
             # send stop message
-            await self.send(text_data=stop_response(message_id, references))
+            await self.send(text_data=stop_response(message_id, references, self.pipeline.memory_count))
         except websockets.exceptions.ConnectionClosedError:
             logger.warning("Connection closed")
         except Exception as e:

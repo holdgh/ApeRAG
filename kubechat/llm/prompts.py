@@ -34,24 +34,61 @@ Don't repeat yourself.
 """
 
 DEFAULT_CHINESE_PROMPT_TEMPLATE_V2 = """
-候选答案信息如下:
+候选答案信息如下
 ----------------
 {context}
 --------------------
 
 你是一个根据提供的候选答案信息组织回答的专家，你的回答严格限定于给你提供的信息，如果候选答案少于50个字，就原样输出。
-
+ 
 你需要谨慎准确的根据提供的markdown格式的信息，然后回答问题：{query}。
-
+ 
 请一步一步思考，请确保回答准确和简洁，如果你不知道答案，就直接说你不知道，不要试图编造一个答案。
 
 问题只回答一次。
+"""
 
+DEFAULT_ENGLISH_PROMPT_TEMPLATE_V3 = """
+You are an expert at answering questions based on dialogue history and provided candidate answer. 
+
+Given the dialogue history and the candidate answer, you need to answer the question: {query}。
+
+Please think step by step, please make sure that the answer is accurate and concise.
+
+If the answer cannot be found in the dialogue history and candidate answer, \
+simply state that you do not know. Do not attempt to fabricate an answer.
+
+Don't repeat yourself.
+
+Candidate answer is below:
+----------------
+{context}
+--------------------
+"""
+
+DEFAULT_CHINESE_PROMPT_TEMPLATE_V3 = """
+你是一个根据对话记录和候选答案来回答问题的专家，你的回答严格限定于刚才的对话记录和下面给你提供的候选答案。
+
+你需要基于刚才的对话记录，谨慎准确的依据markdown格式的候选答案，来回答问题：{query}。
+
+请一步一步思考，请确保回答准确和简洁，如果从对话记录和候选答案中找不出回答，就直接说你不知道，不要试图编造一个回答。
+
+问题只回答一次。
+
+候选答案如下:
+----------------
+{context}
+--------------------
 """
 
 DEFAULT_MODEL_PROMPT_TEMPLATES = {
     "vicuna-13b": DEFAULT_ENGLISH_PROMPT_TEMPLATE_V2,
     "baichuan-13b": DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
+}
+
+DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES = {
+    "vicuna-13b": DEFAULT_ENGLISH_PROMPT_TEMPLATE_V3,
+    "baichuan-13b": DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
 }
 
 

@@ -18,7 +18,8 @@ from ninja.files import UploadedFile
 import config.settings as settings
 import kubechat.utils.message as msg_utils
 from config.celery import app
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
+    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import init_collection_task, delete_collection_task
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
@@ -91,12 +92,18 @@ def list_models(request):
     model_families = yaml.safe_load(settings.MODEL_FAMILIES)
     for model_family in model_families:
         for model_server in model_family.get("models", []):
+            memory = model_server.get("memory", "disabled").lower() == "enabled"
+            if memory:
+                prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"], DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
+            else:
+                prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"], DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+
             response.append({
                 "value": model_server["name"],
                 "label": model_server.get("label", model_server["name"]),
                 "enabled": model_server.get("enabled", "true").lower() == "true",
-                "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
-                                                                      DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
+                "memory": memory,
+                "prompt_template": prompt_template,
                 "context_window": model_server.get("context_window", 7500),
                 "temperature": model_server.get("temperature", model_family.get("temperature", 0.01)),
                 "similarity_score_threshold": model_server.get("similarity_score_threshold", 0.5),

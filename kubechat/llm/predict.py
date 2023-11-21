@@ -38,11 +38,11 @@ class Predictor(ABC):
         self.temperature = kwargs.get("temperature", 0.1)
 
     @abstractmethod
-    async def agenerate_stream(self, prompt):
+    async def agenerate_stream(self, history, prompt, memory):
         pass
 
     @abstractmethod
-    def generate_stream(self, prompt):
+    def generate_stream(self, history, prompt, memory):
         pass
 
     @staticmethod
@@ -97,6 +97,26 @@ class Predictor(ABC):
             case _:
                 raise Exception("Unsupported predictor type: %s" % predictor_type)
 
+    def get_latest_history(self, messages, limit_length, limit_count) -> str:
+        latest_history = []
+        length = 0
+        count = 0
+
+        for message in reversed(messages):
+            if message.additional_kwargs["role"] == "human":
+                history = {"role": "user", "content": json.loads(message.content)["query"] + "\n"}
+            else:
+                history = {"role": "assistant", "content": json.loads(message.content)["response"] + "\n"}
+            count += 1
+
+            if count >= limit_count or length + len(history["content"]) > limit_length:
+                break
+
+            latest_history.append(history)
+            length += len(history["content"])
+
+        return latest_history[::-1]
+
 
 class KubeBlocksLLMPredictor(Predictor):
 
@@ -104,7 +124,7 @@ class KubeBlocksLLMPredictor(Predictor):
         super().__init__(**kwargs)
         self.endpoint = kwargs.get("endpoint", "http://localhost:18000")
 
-    def _generate_stream(self, prompt):
+    def _generate_stream(self, history, prompt, memory=False):
         input = {
             "prompt": prompt,
             "temperature": self.temperature,
@@ -120,11 +140,11 @@ class KubeBlocksLLMPredictor(Predictor):
                 yield tokens
                 output = data["text"][0]
 
-    async def agenerate_stream(self, prompt):
+    async def agenerate_stream(self, history, prompt, memory=False):
         for tokens in self._generate_stream(prompt):
             yield tokens
 
-    def generate_stream(self, prompt):
+    def generate_stream(self, history, prompt, memory=False):
         for tokens in self._generate_stream(prompt):
             yield tokens
 
@@ -136,7 +156,7 @@ class CustomLLMPredictor(Predictor):
         endpoint = kwargs.get("endpoint", "http://localhost:18000")
         self.url = "%s/generate_stream" % endpoint
 
-    async def _agenerate_stream(self, prompt):
+    async def _agenerate_stream(self, history, prompt, memory=False):
         data = {
             "prompt": prompt,
             "temperature": self.temperature,
@@ -154,7 +174,7 @@ class CustomLLMPredictor(Predictor):
                     line = line.strip(b"\0")
                     yield json.loads(line.decode("utf-8"))["text"]
 
-    def _generate_stream(self, prompt):
+    def _generate_stream(self, history, prompt, memory=False):
         data = {
             "prompt": prompt,
             "temperature": self.temperature,
@@ -169,12 +189,12 @@ class CustomLLMPredictor(Predictor):
                 data = json.loads(chunk.decode("utf-8"))
                 yield data["text"]
 
-    async def agenerate_stream(self, prompt):
-        async for tokens in self._agenerate_stream(prompt):
+    async def agenerate_stream(self, history, prompt, memory=False):
+        async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
 
-    def generate_stream(self, prompt):
-        for tokens in self._generate_stream(prompt):
+    def generate_stream(self, history, prompt, memory=False):
+        for tokens in self._generate_stream(history, prompt, memory):
             yield tokens
 
 
@@ -201,14 +221,15 @@ class OpenAIPredictor(Predictor):
 
         self.api_type = ""
 
-    async def _agenerate_stream(self, prompt):
+    async def _agenerate_stream(self, history, prompt, memory=False):
         response = await openai.ChatCompletion.acreate(
             api_key=self.token,
             api_base=self.endpoint,
             temperature=self.temperature,
             stream=True,
             model=self.model,
-            messages=[{"role": "user", "content": prompt}])
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+        )
         async for chunk in response:
             choices = chunk["choices"]
             if len(choices) > 0:
@@ -218,14 +239,15 @@ class OpenAIPredictor(Predictor):
                 content = choice["delta"]["content"]
                 yield content
 
-    def _generate_stream(self, prompt):
+    def _generate_stream(self, history, prompt, memory=False):
         response = openai.ChatCompletion.create(
             api_key=self.token,
             api_base=self.endpoint,
             temperature=self.temperature,
             stream=True,
             model=self.model,
-            messages=[{"role": "user", "content": prompt}])
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+        )
         for chunk in response:
             choices = chunk["choices"]
             if len(choices) > 0:
@@ -235,12 +257,12 @@ class OpenAIPredictor(Predictor):
                 content = choice["delta"]["content"]
                 yield content
 
-    async def agenerate_stream(self, prompt):
-        async for tokens in self._agenerate_stream(prompt):
+    async def agenerate_stream(self, history, prompt, memory=False):
+        async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
 
-    def generate_stream(self, prompt):
-        for tokens in self._generate_stream(prompt):
+    def generate_stream(self, history, prompt, memory=False):
+        for tokens in self._generate_stream(history, prompt, memory):
             yield tokens
 
 
@@ -271,7 +293,7 @@ class AzureOpenAIPredictor(Predictor):
             openai.proxy = proxy
         self.api_type = "azure"
 
-    async def _agenerate_stream(self, prompt):
+    async def _agenerate_stream(self, history, prompt, memory=False):
         response = await openai.ChatCompletion.acreate(
             api_key=self.token,
             api_base=self.endpoint,
@@ -280,7 +302,8 @@ class AzureOpenAIPredictor(Predictor):
             temperature=self.temperature,
             stream=True,
             deployment_id=self.deployment_id,
-            messages=[{"role": "user", "content": prompt}])
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+        )
         async for chunk in response:
             choices = chunk["choices"]
             if len(choices) > 0:
@@ -292,7 +315,7 @@ class AzureOpenAIPredictor(Predictor):
                     continue
                 yield content
 
-    def _generate_stream(self, prompt):
+    def _generate_stream(self, history, prompt, memory=False):
         response = openai.ChatCompletion.create(
             api_key=self.token,
             api_base=self.endpoint,
@@ -301,7 +324,8 @@ class AzureOpenAIPredictor(Predictor):
             temperature=self.temperature,
             stream=True,
             deployment_id=self.deployment_id,
-            messages=[{"role": "user", "content": prompt}])
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+        )
         for chunk in response:
             choices = chunk["choices"]
             if len(choices) > 0:
@@ -311,12 +335,12 @@ class AzureOpenAIPredictor(Predictor):
                 content = choice["delta"]["content"]
                 yield content
 
-    async def agenerate_stream(self, prompt):
-        async for tokens in self._agenerate_stream(prompt):
+    async def agenerate_stream(self, history, prompt, memory=False):
+        async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
 
-    def generate_stream(self, prompt):
-        for tokens in self._generate_stream(prompt):
+    def generate_stream(self, history, prompt, memory=False):
+        for tokens in self._generate_stream(history, prompt, memory):
             yield tokens
 
 
@@ -340,15 +364,10 @@ class BaiChuanPredictor(Predictor):
         encrypted = md5.hexdigest()
         return encrypted
 
-    def build_request_data(self, prompt):
+    def build_request_data(self, history, prompt, memory=False):
         return {
             "model": "Baichuan2-53B",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
+            "messages": history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             "parameters": {
                 "temperature": self.temperature,
             }
@@ -367,8 +386,8 @@ class BaiChuanPredictor(Predictor):
             "X-BC-Sign-Algo": "MD5",
         }
 
-    async def _agenerate_stream(self, prompt):
-        data = self.build_request_data(prompt)
+    async def _agenerate_stream(self, history, prompt, memory=False):
+        data = self.build_request_data(history, prompt, memory)
         headers = self.build_request_headers(data)
         async with aiohttp.ClientSession(raise_for_status=True) as session:
             async with session.post(self.url, json=data, headers=headers,ssl=False) as r:
@@ -381,8 +400,8 @@ class BaiChuanPredictor(Predictor):
                     for msg in data["data"]["messages"]:
                         yield msg["content"]
 
-    def _generate_stream(self, prompt):
-        data = self.build_request_data(prompt)
+    def _generate_stream(self, history, prompt, memory=False):
+        data = self.build_request_data(history, prompt, memory)
         headers = self.build_request_headers(data)
         response = requests.post(self.url, data=data, headers=headers, stream=True)
         for chunk in response.iter_lines():
@@ -396,12 +415,12 @@ class BaiChuanPredictor(Predictor):
             for msg in data["data"]["messages"]:
                 yield msg["content"]
 
-    async def agenerate_stream(self, prompt):
-        async for tokens in self._agenerate_stream(prompt):
+    async def agenerate_stream(self, history, prompt, memory=False):
+        async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
 
-    def generate_stream(self, prompt):
-        for tokens in self._generate_stream(prompt):
+    def generate_stream(self, history, prompt, memory=False):
+        for tokens in self._generate_stream(history, prompt, memory=False):
             yield tokens
 
 
@@ -424,15 +443,21 @@ class BaiduQianFan(Predictor):
 
         self.chat_comp = qianfan.ChatCompletion(ak=self.api_key, sk=self.secret_key)
 
-    async def agenerate_stream(self, prompt):
-        resp = await self.chat_comp.ado(model=self.model, stream=True, temperature=self.temperature,
-                                        messages=[{"role": "user", "content": prompt}])
+    async def agenerate_stream(self, history, prompt, memory=False):
+        resp = await self.chat_comp.ado(model=self.model,
+                                        stream=True,
+                                        temperature=self.temperature,
+                                        messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+                                        )
         async for chunk in resp:
             yield chunk["result"]
 
-    def generate_stream(self, prompt):
-        resp = self.chat_comp.do(model=self.model, stream=True, temperature=self.temperature,
-                                 messages=[{"role": "user", "content": prompt}])
+    def generate_stream(self, history, prompt, memory=False):
+        resp = self.chat_comp.do(model=self.model,
+                                 stream=True,
+                                 temperature=self.temperature,
+                                 messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
+                                 )
         yield resp['body']['result']
 
 
@@ -453,9 +478,9 @@ class ChatGLMPredictor(Predictor):
             raise LLMConfigError("Please specify the API KEY")
 
     @staticmethod
-    def build_request_data(self, prompt):
+    def build_request_data(self, history, prompt, memory=False):
         return {
-            "prompt": [{"role": "user","content": prompt}],
+            "prompt": history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             "temperature": self.temperature,
             "top_p": self.top_p
         }
@@ -486,10 +511,10 @@ class ChatGLMPredictor(Predictor):
             "accept": "text/event-stream",
         }
 
-    async def _agenerate_stream(self, prompt):
+    async def _agenerate_stream(self, history, prompt, memory=False):
 
         url = "%s/%s/sse-invoke" % (self.endpoint, self.model)
-        data = self.build_request_data(self, prompt)
+        data = self.build_request_data(self, history, prompt, memory)
         headers = self.build_request_headers(zhipuai.api_key)
 
         async with aiohttp.ClientSession(raise_for_status=True) as session:
@@ -512,10 +537,10 @@ class ChatGLMPredictor(Predictor):
                     elif key == "data":
                         yield value
 
-    def _generate_stream(self, prompt):
+    def _generate_stream(self, history, prompt, memory=False):
         response = zhipuai.model_api.sse_invoke(
             model=self.model,
-            prompt=[{"role": "user", "content": prompt}],
+            prompt=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             temperature=self.temperature,
             top_p=self.top_p,
         )
@@ -529,10 +554,10 @@ class ChatGLMPredictor(Predictor):
                 logger.warning("ChatGLM API error:%s" % event.data)
                 return
 
-    async def agenerate_stream(self, prompt):
-        async for tokens in self._agenerate_stream(prompt):
+    async def agenerate_stream(self, history, prompt, memory=False):
+        async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
 
-    def generate_stream(self, prompt):
-        for tokens in self._generate_stream(prompt):
+    def generate_stream(self, history, prompt, memory=False):
+        for tokens in self._generate_stream(history, prompt, memory):
             yield tokens

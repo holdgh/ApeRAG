@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from config import settings
 from kubechat.context.context import ContextManager
 from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.source.utils import async_run
 from kubechat.utils.full_text import search_document
@@ -60,15 +60,21 @@ class Pipeline(ABC):
         bot_config = json.loads(self.bot.config)
         self.llm_config = bot_config.get("llm", {})
         self.model = bot_config.get("model", "baichuan-13b")
+        self.memory = bot_config.get("memory", False)
+        self.memory_count = 0
+        self.memory_limit_length = bot_config.get("memory_length", 0)
+        self.memory_limit_count = bot_config.get("memory_count", 10)
         self.topk = self.llm_config.get("similarity_topk", 3)
         self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
         self.context_window = self.llm_config.get("context_window", 3500)
         self.prompt_template = self.llm_config.get("prompt_template", None)
         if not self.prompt_template:
-            self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+            if self.memory:
+                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
+            else:
+                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
-
         collection_name = generate_vector_db_collection_name(collection.id)
         self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.vectordb_ctx["collection"] = collection_name
@@ -289,9 +295,6 @@ class KeywordPipeline(Pipeline):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
 
-        self.add_human_message(message, message_id)
-        logger.info("[%s] add human message end", log_prefix)
-
         references = []
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
@@ -320,15 +323,21 @@ class KeywordPipeline(Pipeline):
             context = ""
             if len(candidates) > 0:
                 # 500 is the estimated length of the prompt
-                max_size = self.context_window - 500
-                if max_size < 0:
-                    max_size = 0
-                context = get_packed_answer(candidates, max_size)
+                context = get_packed_answer(candidates, max(self.context_window - 500, 0))
+
+            history = []
+            if self.memory and len(self.history.messages) > 0:
+                history = self.predictor.get_latest_history(
+                                messages=self.history.messages,
+                                limit_length=max(min(self.context_window-500-len(context),self.memory_limit_length), 0),
+                                limit_count=self.memory_limit_count)
+                self.memory_count = len(history)
+
             prompt = self.prompt.format(query=message, context=context)
             logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
             response = ""
-            async for msg in self.predictor.agenerate_stream(prompt):
+            async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
                 yield msg
                 response += msg
 
@@ -338,6 +347,9 @@ class KeywordPipeline(Pipeline):
                     "text": result.text,
                     "metadata": result.metadata
                 })
+
+        self.add_human_message(message, message_id)
+        logger.info("[%s] add human message end", log_prefix)
 
         self.add_ai_message(message, message_id, response, references)
         logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
