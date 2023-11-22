@@ -77,7 +77,7 @@ def uncompress_file(document_id) :
     document.save()
     file = Path(document.file.path)
     MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
-    tmp_dir = Path(os.path.join('./tmp', document.collection.id, document.name))
+    tmp_dir = Path(os.path.join('/tmp/kubechat', document.collection.id, document.name))
     try:
         os.makedirs(tmp_dir, exist_ok=True)
     except Exception as e:
@@ -104,8 +104,6 @@ def uncompress_file(document_id) :
     total_size = 0
     for root, dirs, file_names in os.walk(tmp_dir):
         for name in file_names:
-            if file.suffix==".zip" or file.suffix in ['.rar', '.r00']:
-                name=name.encode('cp437').decode('utf-8')
             path = Path(os.path.join(root,name))
             if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
                 raise Exception("Nested compressed file found")
@@ -204,6 +202,7 @@ def add_index_for_document(self, document_id):
                 "qa": qa_ids,
             }
             document.relate_ids = json.dumps(relate_ids)
+            source.cleanup_document(local_doc.path)
             document.save()
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
