@@ -1,4 +1,5 @@
 import json
+import logging
 from http import HTTPStatus
 
 from django.db import IntegrityError
@@ -13,6 +14,10 @@ from kubechat.db.ops import query_web_chats, build_pq, query_bot, query_web_chat
 from kubechat.views.utils import success, fail, query_chat_messages, validation_errors, auth_errors
 from kubechat.views.main import MessageFeedbackIn
 
+
+logger = logging.getLogger(__name__)
+
+
 api = NinjaAPI(version="1.0.0", urls_namespace="web-chat")
 api.add_exception_handler(ValidationError, validation_errors)
 api.add_exception_handler(AuthenticationError, auth_errors)
@@ -21,7 +26,8 @@ api.add_exception_handler(AuthenticationError, auth_errors)
 def check_origin(request, bot):
     bot_config = json.loads(bot.config)
     host_white_list = bot_config.get("web", {}).get("host_white_list", [])
-    origin = request.scheme + "://" + request.headers.get("REMOTE_ADDR", "")
+    origin = request.scheme + "://" + request.META.get("REMOTE_ADDR", "")
+    logger.info(f"bot {bot.id} check origin: {origin}, {host_white_list}")
     return origin in host_white_list
 
 
