@@ -31,9 +31,10 @@ on:
       NODE_TYPE:
         description: 'node instance types'
         required: false
-        default: 'g2-standard-8'
+        default: 'g2-standard-4'
         type: choice
         options:
+          - g2-standard-4
           - g2-standard-8
           - g2-standard-16
           - g2-standard-32
