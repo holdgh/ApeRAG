@@ -2,7 +2,6 @@ import re
 from pathlib import Path
 from typing import Callable, Dict, Generator, List, Optional, Type
 import base64
-import cv2
 import requests
 import json
 import PIL.Image
@@ -29,6 +28,7 @@ def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
 
 
 def read_image_text(path) -> str:
+    import cv2
     def cv2_to_base64(image):
         data = cv2.imencode('.jpg', image)[1]
         return base64.b64encode(data.tostring()).decode('utf8')

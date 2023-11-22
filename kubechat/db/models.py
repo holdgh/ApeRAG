@@ -27,6 +27,10 @@ def chat_pk():
     return "chat" + random_id()
 
 
+def int_pk():
+    return "int" + random_id()
+
+
 def collection_history_pk():
     return "colhist" + random_id()
 
@@ -203,9 +207,44 @@ class Bot(models.Model):
         }
 
 
+class BotIntegrationStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    DELETED = "DELETED"
+
+
+class BotIntegrationType(models.TextChoices):
+    SYSTEM = "system"
+    FEISHU = "feishu"
+    WEB = "web"
+
+
+class BotIntegration(models.Model):
+    id = models.CharField(primary_key=True, default=int_pk(), editable=False, max_length=24)
+    user = models.CharField(max_length=256)
+    bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
+    type = models.CharField(max_length=16, choices=BotIntegrationType.choices)
+    config = models.TextField()
+    status = models.CharField(max_length=16, choices=BotIntegrationStatus.choices)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    def view(self, bot_id):
+        return {
+            "id": str(self.id),
+            "bot_id": bot_id,
+            "status": self.status,
+            "config": self.config,
+            "created": self.gmt_created.isoformat(),
+            "updated": self.gmt_updated.isoformat(),
+        }
+
+
 class ChatPeer(models.TextChoices):
     SYSTEM = "system"
     FEISHU = "feishu"
+    WEB = "web"
 
 
 class Chat(models.Model):
@@ -231,6 +270,8 @@ class Chat(models.Model):
             "summary": self.summary,
             "bot_id": bot_id,
             "history": messages,
+            "peer_type": self.peer_type,
+            "peer_id": self.peer_id or "",
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
         }

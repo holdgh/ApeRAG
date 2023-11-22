@@ -4,11 +4,11 @@ from http import HTTPStatus
 from langchain.memory import RedisChatMessageHistory
 
 from config import settings
-from kubechat.models import MessageFeedbackStatus, MessageFeedback
-from kubechat.utils.request import fail
+from kubechat.db.models import MessageFeedbackStatus, MessageFeedback
+from kubechat.views.utils import fail
 
 
-async def feedback_message(user, chat_id, message_id, upvote, downvote, revised_answer):
+async def feedback_message(user, chat_id, message_id, upvote, downvote, revised_answer=None):
     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
     msg = None
     for message in history.messages:

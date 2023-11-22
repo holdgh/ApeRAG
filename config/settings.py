@@ -141,6 +141,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://\w+\.kubeblocks\.io$",
     r"http://localhost:*",
+    # TODO reconsider this
+    r"http://*:*",
+    r"https://*:*",
 ]
 
 # CSRF

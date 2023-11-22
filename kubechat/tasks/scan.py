@@ -1,23 +1,11 @@
 import json
 import logging
-from datetime import datetime, timezone
-
-import pytz
-from asgiref.sync import sync_to_async
 
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from celery import Task
 
-from config.celery import app
-from kubechat.models import Collection, CollectionStatus, CollectionSyncHistory
-
-from .index import CustomLoadDocumentTask
-from .local_directory_task import update_local_directory_index
-from kubechat.tasks.index import add_index_for_document
-from kubechat.source.base import Source, get_source
-from celery.schedules import crontab
-from kubechat.tasks.sync_documents_task import sync_documents
+from kubechat.db.models import Collection, CollectionStatus
 
 logger = logging.getLogger(__name__)
 

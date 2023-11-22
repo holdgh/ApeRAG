@@ -1,9 +1,6 @@
-import asyncio
 import random
-import re
 import json
 import logging
-import time
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -19,7 +16,7 @@ from kubechat.llm.predict import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.source.utils import async_run
-from kubechat.utils.full_text import search_document
+from kubechat.context.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name, generate_fulltext_index_name
 from query.query import get_packed_answer

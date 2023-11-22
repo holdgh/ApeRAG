@@ -13,11 +13,13 @@ from ninja import NinjaAPI, UploadedFile, File
 
 from config import settings
 from kubechat.auth.validator import GlobalHTTPAuth
-from kubechat.models import ssl_temp_file_path, VerifyWay, Chat, DocumentStatus, ChatStatus
-from kubechat.utils.db import new_db_client, query_collection
-from kubechat.utils.request import fail, success, get_user
+from kubechat.db.models import ssl_temp_file_path, VerifyWay, Chat, DocumentStatus, ChatStatus
+from kubechat.db.ops import query_collection
+from kubechat.chat.utils import new_db_client
+from kubechat.utils.request import get_user
+from kubechat.views.utils import success, fail
 from kubechat.utils.utils import fix_path_name
-from kubechat.views import ConnectionInfo
+from kubechat.views.main import ConnectionInfo
 
 logger = logging.getLogger(__name__)
 

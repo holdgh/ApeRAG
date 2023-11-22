@@ -7,7 +7,7 @@ import string
 from config import settings
 from .base_consumer import BaseConsumer
 from kubechat.context.context import ContextManager
-from ..utils.utils import generate_vector_db_collection_name
+from kubechat.utils.utils import generate_vector_db_collection_name
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,10 @@
 import json
-from typing import Generator
 
-from sqlalchemy import Row
-
-from kubechat.utils.db import new_db_client, query_collection
+from kubechat.db.ops import query_collection
+from kubechat.chat.utils import new_db_client
 from kubechat.utils.utils import extract_database
 
-from .base_consumer import BaseConsumer
+from kubechat.chat.websocket.base_consumer import BaseConsumer
 
 
 class Text2SQLConsumer(BaseConsumer):

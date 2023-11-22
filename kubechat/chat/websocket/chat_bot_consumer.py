@@ -1,18 +1,11 @@
-import asyncio
 import json
 import logging
-import os
-import traceback
-from typing import Any, List, Mapping, Optional
 from config import settings
 
-import requests
-from langchain.llms.base import LLM
-from langchain.memory import ConversationBufferWindowMemory
 from langchain import PromptTemplate
-from .base_consumer import KUBE_CHAT_DOC_QA_REFERENCES, BaseConsumer
+from .base_consumer import BaseConsumer
 from .prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
-from .llm_factory import LLMFactory
+from kubechat.chat.websocket.llm_factory import LLMFactory
 
 logger = logging.getLogger(__name__)
 

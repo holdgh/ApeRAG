@@ -1,12 +1,11 @@
 from django.urls import path
 
-from . import views
-from . import feishu
-from . import config
+from kubechat.views import main, feishu, config, web
 
 urlpatterns = [
-    path("v1/", views.api.urls),
+    path("v1/", main.api.urls),
+    path("v1/", web.api.urls),
     path("v1/", config.api.urls),
     path("v1/feishu/", feishu.api.urls),
-    path('kubechat/dashboard/', views.dashboard, name='dashboard'),
+    path('kubechat/dashboard/', main.dashboard, name='dashboard'),
 ]

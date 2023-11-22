@@ -15,11 +15,11 @@ from pathlib import Path
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.models import Document, DocumentStatus, MessageFeedback, \
+from kubechat.db.models import Document, DocumentStatus, MessageFeedback, \
     MessageFeedbackStatus
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
-from kubechat.utils.full_text import insert_document, remove_document
+from kubechat.context.full_text import insert_document, remove_document
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
     generate_fulltext_index_name
 from readers.base_readers import DEFAULT_FILE_READER_CLS

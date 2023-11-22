@@ -195,6 +195,9 @@ class MarkdownReader(BaseReader):
             else:
                 tups.append((tup[0], tup[2]))
 
+        if len(all_text) == 0:
+            return []
+
         if not metadata:
             metadata = {}
         metadata.update(

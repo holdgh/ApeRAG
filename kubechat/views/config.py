@@ -1,7 +1,7 @@
 from ninja import NinjaAPI
 
 from config import settings
-from kubechat.utils.request import success
+from kubechat.views.utils import success
 
 api = NinjaAPI(version="1.0.0", urls_namespace="config")
 

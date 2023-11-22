@@ -1,5 +1,5 @@
 image:
-  tag: v0.1.4-alpha.7
+  tag: v0.1.4-alpha.8
 
 ingress:
   className: alb

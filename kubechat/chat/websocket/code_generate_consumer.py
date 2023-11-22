@@ -1,7 +1,5 @@
 import asyncio
 import json
-import os
-import zipfile
 from dataclasses import dataclass
 from langchain.memory import RedisChatMessageHistory
 from langchain.schema import AIMessage, HumanMessage
@@ -11,8 +9,9 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from kubechat.chat.utils import stop_response, success_response, start_response
 from kubechat.tasks.code_generate import *
-from kubechat.utils.db import query_collection, query_chat
-from kubechat.utils.utils import extract_code_chat, now_unix_milliseconds, extract_collection_and_chat_id, fix_path_name
+from kubechat.db.ops import query_collection, query_chat
+from kubechat.utils.utils import now_unix_milliseconds, extract_collection_and_chat_id
+from kubechat.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 from services.code.code_gerenate.chat_to_files import to_files
 
 logger = logging.getLogger(__name__)
@@ -58,12 +57,12 @@ class CodeGenerateConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # accept the websocket
         headers = []
-        token = self.scope.get("Sec-Websocket-Protocol", None)
+        token = self.scope.get(KEY_WEBSOCKET_PROTOCOL, None)
         if token is not None:
-            headers.append((b"Sec-Websocket-Protocol", token.encode("ascii")))
+            headers.append((KEY_WEBSOCKET_PROTOCOL.encode("ascii"), token.encode("ascii")))
         await super(AsyncWebsocketConsumer, self).send({"type": "websocket.accept", "headers": headers})
         # build code generate task config
-        self.user = self.scope["X-USER-ID"]
+        self.user = self.scope[KEY_USER_ID]
         collection_id, chat_id = extract_collection_and_chat_id(self.scope["path"])
         collection = await query_collection(self.user, collection_id)
         if collection is None:

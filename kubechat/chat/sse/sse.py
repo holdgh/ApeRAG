@@ -1,7 +1,5 @@
-import asyncio
 import logging
 import uuid
-from datetime import datetime
 from urllib.parse import parse_qsl
 
 from asgiref.sync import sync_to_async
@@ -25,9 +23,10 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
             logger.exception(e)
 
     async def _handle(self, body):
-        from kubechat.models import ChatPeer, Chat
+        from kubechat.db.models import Chat
         from kubechat.pipeline.pipeline import KeywordPipeline
-        from kubechat.utils.db import query_chat_by_peer, query_bot
+        from kubechat.db.ops import query_chat_by_peer, query_bot
+        from kubechat.db.models import ChatPeer
         await self.send_headers(headers=[
             (b"Cache-Control", b"no-cache"),
             (b"Content-Type", b"text/event-stream"),

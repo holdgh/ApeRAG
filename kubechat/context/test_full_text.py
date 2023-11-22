@@ -3,7 +3,7 @@ import os
 
 from elasticsearch import Elasticsearch
 
-from kubechat.utils.full_text import insert_document, search_document
+from kubechat.context.full_text import insert_document, search_document
 
 es = Elasticsearch(hosts="http://127.0.0.1:9200")
 

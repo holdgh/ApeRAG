@@ -1,5 +1,4 @@
 import inspect
-import pathlib
 from pathlib import Path
 from typing import Dict, List
 
@@ -9,10 +8,10 @@ from config.celery import app
 import logging
 
 from config.settings import CODE_STORAGE_DIR
-from kubechat.models import ChatStatus
+from kubechat.db.models import ChatStatus
 from kubechat.tasks.index import CustomLoadDocumentTask
-from kubechat.utils.db import query_collection, query_chat
-from kubechat.utils.utils import fix_path_name, now_unix_milliseconds
+from kubechat.db.ops import query_collection, query_chat
+from kubechat.utils.utils import fix_path_name
 from services.code.code_gerenate.storage import DBs, DB
 
 

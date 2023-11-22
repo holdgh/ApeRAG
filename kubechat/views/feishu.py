@@ -1,27 +1,30 @@
 import asyncio
 import json
-import logging
 import time
 
-import kubechat.utils.message as msg_utils
+from langchain.memory import RedisChatMessageHistory
+from ninja.errors import ValidationError, AuthenticationError
+
+import kubechat.chat.message
 from http import HTTPStatus
 
 from asgiref.sync import sync_to_async
-from langchain.memory import RedisChatMessageHistory
 from ninja import NinjaAPI
 
-import config.settings as settings
-from kubechat.utils.db import *
-from kubechat.utils.request import fail, success
-from .auth.validator import FeishuEventVerification
-from .models import ChatPeer
-from .pipeline.pipeline import BasePipeline, KeywordPipeline
+from config import settings
+from kubechat.db.ops import *
+from kubechat.views.utils import success, fail, validation_errors, auth_errors
+from kubechat.auth.validator import FeishuEventVerification
+from kubechat.db.models import ChatPeer
+from kubechat.pipeline.pipeline import KeywordPipeline
 from kubechat.source.feishu.feishu import FeishuClient
-from .utils.utils import AESCipher
+from kubechat.utils.utils import AESCipher
 
 logger = logging.getLogger(__name__)
 
 api = NinjaAPI(version="1.0.0", urls_namespace="feishu")
+api.add_exception_handler(ValidationError, validation_errors)
+api.add_exception_handler(AuthenticationError, auth_errors)
 
 
 @api.get("/spaces")
@@ -155,7 +158,7 @@ async def feishu_response_card_update(user, bot_id, data):
     msg_id = value["message_id"]
     upvote = value.get("upvote", None)
     downvote = value.get("downvote", None)
-    await msg_utils.feedback_message(user, chat_id, msg_id, upvote, downvote, "")
+    await kubechat.chat.message.feedback_message(user, chat_id, msg_id, upvote, downvote, "")
 
     bot = await query_bot(user, bot_id)
     bot_config = json.loads(bot.config)

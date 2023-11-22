@@ -1,13 +1,11 @@
 import json
 
-from django.utils import timezone
-
 from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
-from kubechat.models import Collection, CollectionStatus
+from kubechat.db.models import Collection, CollectionStatus
 from kubechat.source.base import get_source
-from kubechat.utils.full_text import create_index, delete_index
+from kubechat.context.full_text import create_index, delete_index
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
     generate_fulltext_index_name
 from readers.base_embedding import get_embedding_model

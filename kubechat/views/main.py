@@ -1,8 +1,8 @@
 import datetime
 import json
-import logging
+import os
 from http import HTTPStatus
-from typing import List, Optional
+from typing import List
 
 import yaml
 from asgiref.sync import sync_to_async
@@ -13,10 +13,11 @@ from django.db import IntegrityError
 from django.shortcuts import render
 from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema
+from ninja.errors import ValidationError, AuthenticationError
 from ninja.files import UploadedFile
 
-import config.settings as settings
-import kubechat.utils.message as msg_utils
+import kubechat.chat.message
+from config import settings
 from config.celery import app
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
@@ -26,16 +27,19 @@ from kubechat.tasks.index import add_index_for_local_document, remove_index, upd
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
-from kubechat.utils.db import *
-from kubechat.utils.request import fail, get_user, success,get_urls
+from kubechat.db.ops import *
+from kubechat.utils.request import get_user, get_urls
+from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_source_connect_config, validate_bot_config, \
+    validate_url, success, fail, validation_errors, auth_errors
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-from .auth.validator import GlobalHTTPAuth
-from .models import *
-from .utils.utils import validate_source_connect_config, validate_bot_config, validate_url
+from kubechat.auth.validator import GlobalHTTPAuth
+from kubechat.db.models import *
 
 logger = logging.getLogger(__name__)
 
 api = NinjaAPI(version="1.0.0", auth=GlobalHTTPAuth(), urls_namespace="collection")
+api.add_exception_handler(ValidationError, validation_errors)
+api.add_exception_handler(AuthenticationError, auth_errors)
 
 
 class CollectionIn(Schema):
@@ -496,7 +500,7 @@ async def create_chat(request, bot_id):
     bot = await query_bot(user, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
-    instance = Chat(user=user, bot=bot)
+    instance = Chat(user=user, bot=bot, peer_type=ChatPeer.SYSTEM)
     await instance.asave()
     return success(instance.view(bot_id))
 
@@ -531,40 +535,7 @@ async def get_chat(request, bot_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
-    pr = await query_chat_feedbacks(user, chat_id)
-    feedback_map = {}
-    async for feedback in pr.data:
-        feedback_map[feedback.message_id] = feedback
-
-    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
-    messages = []
-    for message in history.messages:
-        try:
-            item = json.loads(message.content)
-        except Exception as e:
-            logger.exception(e)
-            continue
-        role = message.additional_kwargs.get("role", "")
-        if not role:
-            continue
-        msg = {
-            "id": item["id"],
-            "type": "message",
-            "timestamp": item["timestamp"],
-            "role": role,
-        }
-        if role == "human":
-            msg["data"] = item["query"]
-        else:
-            msg["data"] = item["response"]
-            msg["references"] = item.get("references")
-        feedback = feedback_map.get(item.get("id", ""), None)
-        if role == "ai" and feedback:
-            msg["upvote"] = feedback.upvote
-            msg["downvote"] = feedback.downvote
-            msg["revised_answer"] = feedback.revised_answer
-            msg["feed_back_status"] = feedback.status
-        messages.append(msg)
+    messages = await query_chat_messages(user, chat_id)
     return success(chat.view(bot_id, messages))
 
 
@@ -577,9 +548,11 @@ class MessageFeedbackIn(Schema):
 @api.post("/bots/{bot_id}/chats/{chat_id}/messages/{message_id}")
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     user = get_user(request)
-
-    feedback = await msg_utils.feedback_message(user, chat_id, message_id, msg_in.upvote, msg_in.downvote,
-                                                msg_in.revised_answer)
+    chat = await query_chat(user, bot_id, chat_id)
+    if chat is None:
+        return fail(HTTPStatus.NOT_FOUND, "Chat not found")
+    feedback = await kubechat.chat.message.feedback_message(chat.user, chat_id, message_id, msg_in.upvote, msg_in.downvote,
+                                                            msg_in.revised_answer)
 
     # embedding the revised answer
     if msg_in.revised_answer is not None:
@@ -711,6 +684,79 @@ async def delete_bot(request, bot_id):
     return success(bot.view())
 
 
+class IntegrationIn(Schema):
+    type: str
+    config: Optional[str]
+
+
+@api.post("/bots/{bot_id}/integrations")
+async def create_integration(request, bot_id, integration: IntegrationIn):
+    user = get_user(request)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    instance = BotIntegration(
+        user=user,
+        bot=bot,
+        type=integration.type,
+        config=integration.config,
+    )
+    await instance.asave()
+    return success(instance.view(bot_id))
+
+
+@api.get("/bots/{bot_id}/integrations")
+async def list_integrations(request, bot_id):
+    user = get_user(request)
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+    pr = await query_integrations(user, bot_id, build_pq(request))
+    response = []
+    async for integration in pr.data:
+        response.append(integration.view(bot_id))
+    return success(response, pr)
+
+
+@api.get("/bots/{bot_id}/integrations/{integration_id}")
+async def get_integration(user, bot_id, integration_id):
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return None
+    integration = await query_integration(user, bot_id, integration_id)
+    if integration is None:
+        return None
+    return integration
+
+
+@api.put("/bots/{bot_id}/integrations/{integration_id}")
+async def update_integration(user, bot_id, integration_id, integration_in: IntegrationIn):
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return None
+    integration = await query_integration(user, bot_id, integration_id)
+    if integration is None:
+        return None
+    integration.type = integration_in.type
+    integration.config = integration_in.config
+    await integration.asave()
+    return integration
+
+
+@api.delete("/bots/{bot_id}/integrations/{integration_id}")
+async def delete_integration(user, bot_id, integration_id):
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        return None
+    integration = await query_integration(user, bot_id, integration_id)
+    if integration is None:
+        return None
+    integration.status = BotIntegrationStatus.DELETED
+    integration.gmt_deleted = timezone.now()
+    await integration.asave()
+    return integration
+
+
 def default_page(request, exception):
     return render(request, '404.html')
 
@@ -723,3 +769,5 @@ def dashboard(request):
     context = {'user_count': user_count, 'Collection_count': collection_count,
                'Document_count': document_count, 'Chat_count': chat_count}
     return render(request, 'kubechat/dashboard.html', context)
+
+

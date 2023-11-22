@@ -13,7 +13,7 @@ from kubechat.context.context import ContextManager
 from kubechat.llm.predict import CustomLLMPredictor
 from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
-from kubechat.utils.full_text import insert_document, es, search_document, delete_index, create_index
+from kubechat.context.full_text import insert_document, search_document, delete_index, create_index
 from kubechat.utils.utils import generate_fulltext_index_name
 from query.query import get_packed_answer
 from readers.base_embedding import get_embedding_model, get_rerank_model

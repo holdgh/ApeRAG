@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import kubechat.models
+import kubechat.db.models
 
 
 class Migration(migrations.Migration):
@@ -248,7 +248,7 @@ class Migration(migrations.Migration):
                 ("size", models.BigIntegerField()),
                 (
                     "file",
-                    models.FileField(upload_to=kubechat.models.upload_document_path),
+                    models.FileField(upload_to=kubechat.db.models.upload_document_path),
                 ),
                 ("relate_ids", models.TextField()),
                 ("metadata", models.TextField(default="{}")),
