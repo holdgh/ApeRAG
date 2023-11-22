@@ -11,7 +11,7 @@ from ninja.main import Exc
 from pydantic import ValidationError
 
 from config import settings
-from kubechat.llm.predict import Predictor, PredictorType
+from kubechat.llm.base import Predictor, PredictorType
 from kubechat.db.models import ssl_file_path, ssl_temp_file_path
 from kubechat.db.ops import query_chat_feedbacks, logger, PagedResult
 from kubechat.source.base import get_source, CustomSourceInitializationError

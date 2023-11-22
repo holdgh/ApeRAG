@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 from kubechat.context.context import ContextManager
-from kubechat.llm.predict import CustomLLMPredictor
+from kubechat.llm.custom import CustomLLMPredictor
 from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.context.full_text import insert_document, search_document, delete_index, create_index

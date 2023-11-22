@@ -14,7 +14,7 @@ from django.core.files.base import ContentFile
 from pathlib import Path
 from config.celery import app
 from config.vector_db import get_vector_db_connector
-from kubechat.llm.predict import Predictor, PredictorType
+from kubechat.llm.base import Predictor, PredictorType
 from kubechat.db.models import Document, DocumentStatus, MessageFeedback, \
     MessageFeedbackStatus
 from kubechat.source.base import get_source

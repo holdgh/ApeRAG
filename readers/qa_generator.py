@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 
 from langchain import PromptTemplate
 
-from kubechat.llm.predict import CustomLLMPredictor, Predictor, PredictorType
+from kubechat.llm.base import Predictor, PredictorType
+from kubechat.llm.custom import CustomLLMPredictor
 from kubechat.llm.prompts import CHINESE_QA_EXTRACTION_PROMPT_TEMPLATE
 
 logger = logging.getLogger(__name__)

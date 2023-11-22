@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from config import settings
 from kubechat.context.context import ContextManager
-from kubechat.llm.predict import Predictor, PredictorType
+from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.source.utils import async_run
