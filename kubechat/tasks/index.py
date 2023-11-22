@@ -153,7 +153,7 @@ def add_index_for_document(self, document_id):
     document.status = DocumentStatus.RUNNING
     document.save()
     try:
-        if document.file and Path(document.file.path).suffix in DEFAULT_FILE_READER_CLS:
+        if document.file and Path(document.file.path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
             if json.loads(document.collection.config)["source"] != "system":
                 return
             uncompress_file(document_id)
@@ -202,7 +202,6 @@ def add_index_for_document(self, document_id):
                 "qa": qa_ids,
             }
             document.relate_ids = json.dumps(relate_ids)
-            source.cleanup_document(local_doc.path)
             document.save()
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)

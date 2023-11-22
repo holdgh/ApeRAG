@@ -29,14 +29,14 @@ class EmbeddingService(Embeddings):
         self.remoteModel = Embedding()
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        if EMBEDDING_BACKEND == "local":
-            return self.localModel.embed_documents(texts)
-        return self.remoteModel.embed_documents(texts)
+        if EMBEDDING_BACKEND == "remote":
+            return self.remoteModel.embed_documents(texts)
+        return self.localModel.embed_documents(texts)
 
     def embed_query(self, text: str) -> List[float]:
-        if EMBEDDING_BACKEND == "local":
-            return self.localModel.embed_query(text)
-        return self.remoteModel.embed_query(text)
+        if EMBEDDING_BACKEND == "remote":
+            return self.remoteModel.embed_query(text)
+        return self.localModel.embed_query(text)
 
 
 class Embedding(Embeddings):
