@@ -603,6 +603,8 @@ async def create_bot(request, bot_in: BotIn):
         collection = await query_collection(user, cid)
         if not collection:
             return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
+        if collection.status == CollectionStatus.INACTIVE:
+            return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
         await sync_to_async(bot.collections.add)(collection)
         collections.append(collection.view())
     await bot.asave()
@@ -659,13 +661,17 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     bot.title = bot_in.title
     bot.description = bot_in.description
     bot.config = bot_in.config
-    await sync_to_async(bot.collections.clear)()
+    collections = []
     for cid in bot_in.collection_ids:
         collection = await query_collection(user, cid)
         if not collection:
             return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
-        await sync_to_async(bot.collections.add)(collection)
+        if collection.status == CollectionStatus.INACTIVE:
+            return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
+        collections.append(collection)
+    await sync_to_async(bot.collections.set)(collections)
     await bot.asave()
+
     collections = []
     async for collection in await sync_to_async(bot.collections.all)():
         collections.append(collection.view())
