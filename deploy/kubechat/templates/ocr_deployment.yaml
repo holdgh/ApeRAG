@@ -18,7 +18,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8866
-        {{- with .Values.paddleocr.resources }}
-        resources:
-          {{- toYaml . | nindent 12 }}
-        {{- end }}
+          {{- with .Values.paddleocr.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
