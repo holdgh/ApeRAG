@@ -118,11 +118,11 @@ spec:
                   key: PADDLEOCR_HOST
                   name: kubechat-config
             - name: EMBEDDING_BACKEND
-              value: {{ index .Values "celery-worker" "embeddingBackend" }}
+              value: {{ .Values.django.embeddingBackend }}
             - name: EMBEDDING_SERVICE_URL
-              value: {{ index .Values "celery-worker" "embeddingServiceUrl" }}
+              value: {{ .Values.django.embeddingServiceUrl }}
             - name: EMBEDDING_SERVICE_MODEL
-              value: {{ index .Values "celery-worker" "embeddingServiceModel" }}
+              value: {{ .Values.django.embeddingServiceModel }}
             {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:
