@@ -155,7 +155,7 @@ def add_index_for_document(self, document_id):
     document.status = DocumentStatus.RUNNING
     document.save()
     try:
-        if Path(document.file.path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
+        if document.file and Path(document.file.path).suffix in DEFAULT_FILE_READER_CLS:
             if json.loads(document.collection.config)["source"] != "system":
                 return
             uncompress_file(document_id)
