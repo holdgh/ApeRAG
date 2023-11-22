@@ -115,9 +115,8 @@ django:
   embeddingModel: "bge"
   embeddingDevice: "cpu"
   embeddingBackend: "local"
-  embeddingServiceUrl: "http://34.42.156.228:8001/v1/embeddings"
-  # embeddingServiceUrl: "http://kubechat-embedding:8001/v1/embeddings"
-  embeddingServiceModel: "BAAI/bge-large-zh-v1.5"
+  embeddingServiceUrl: "http://kubechat-embedding:8001/v1/embeddings"
+  embeddingServiceModel: "BAAI/bge-large-zh"
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:
