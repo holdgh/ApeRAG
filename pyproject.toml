@@ -68,7 +68,7 @@ flagembedding = "^1.1.1"
 qianfan = "^0.0.6"
 zhipuai = "^1.0.7"
 torch = "^2.0.1"
-opencv-python = "^4.8.1.78"
+pillow = "^10.0.0"
 
 [tool.poetry.group.llmserver]
 optional = true

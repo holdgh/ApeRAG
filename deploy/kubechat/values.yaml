@@ -115,6 +115,8 @@ django:
   embeddingModel: "bge"
   embeddingDevice: "cpu"
   embeddingBackend: "local"
+  whisperHost: http://openai-whisper-asr-service:9000
+  paddleocrHost: http://paddleocr-hubserving-service:8866
   embeddingServiceUrl: "http://kubechat-embedding:8001/v1/embeddings"
   embeddingServiceModel: "BAAI/bge-large-zh"
   # django must be co-located with celery-worker in order to handle uploaded documents

@@ -10,7 +10,7 @@ from llama_index.schema import Document, ImageDocument
 from PIL import Image
 import config.settings as settings
 
-AUDIO_SERVER_URL = settings.WHISPER_HOST
+OCR_SERVER_URL = settings.PADDLEOCR_HOST
 
 
 def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
@@ -28,14 +28,19 @@ def read_image_meaning(image: PIL.Image.Image, ctx: str) -> (str, str):
 
 
 def read_image_text(path) -> str:
-    import cv2
-    def cv2_to_base64(image):
-        data = cv2.imencode('.jpg', image)[1]
-        return base64.b64encode(data.tostring()).decode('utf8')
+    def image_to_base64(image_path):
+        with Image.open(image_path) as image:
+            if image.mode == 'RGBA':
+                image = image.convert('RGB')
+            buffered = BytesIO()
+            image.save(buffered, format="JPEG")
+            img_byte = buffered.getvalue()
+            img_base64 = base64.b64encode(img_byte)
+            return img_base64.decode()
 
-    data = {'images': [cv2_to_base64(cv2.imread(str(path)))]}
+    data = {'images': [image_to_base64(str(path))]}
     headers = {"Content-type": "application/json"}
-    url = AUDIO_SERVER_URL + "/predict/ocr_system"
+    url = OCR_SERVER_URL + "/predict/ocr_system"
     r = requests.post(url=url, headers=headers, data=json.dumps(data))
     data = json.loads(r.text)
 

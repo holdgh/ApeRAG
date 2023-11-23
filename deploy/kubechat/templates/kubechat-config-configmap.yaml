@@ -29,8 +29,8 @@ data:
   EMBEDDING_DEVICE: "{{ .Values.django.embeddingDevice }}"
   ENABLE_QA_GENERATOR: "{{ .Values.django.enableQAGenerator }}"
   ES_HOST: "{{ .Values.django.esHost }}"
-  WHISPER_HOST: http://openai-whisper-asr-service:9000
-  PADDLEOCR_HOST: http://paddleocr-hubserving-service:8866
+  WHISPER_HOST: "{{ .Values.django.whisperHost }}"
+  PADDLEOCR_HOST: "{{ .Values.django.paddleocrHost }}"
 kind: ConfigMap
 metadata:
   labels:
