@@ -70,18 +70,9 @@ jobs:
       CHECK_ENABLE: false
     secrets: inherit
 
-  delete-actions-cache:
-    if: ${{ always() }}
-    needs: [ chart-version ]
-    uses: apecloud/apecloud-cd/.github/workflows/delete-actions-cache.yml@v0.1.41
-    with:
-      CACHE_KEY: "${{ needs.chart-version.outputs.artifact-key }}"
-      APECD_REF: "v0.1.41"
-    secrets: inherit
-
   release-result:
     runs-on: ubuntu-latest
-    needs: [ delete-actions-cache, release-kubechat-chart, release-llmserver-chart ]
+    needs: [ release-kubechat-chart, release-llmserver-chart ]
     if: ${{ always() && github.event.action == 'published' }}
     outputs:
       release-result: ${{ steps.get_release_result.outputs.release_result }}
@@ -101,6 +92,19 @@ jobs:
               echo "error" > ${ARTIFACT_KEY}
           fi
           echo 'release_result='$RELEASE_RESULT >> $GITHUB_OUTPUT
+
+      - name: Checkout apecloud-cd Code
+        uses: actions/checkout@v4
+        with:
+          repository: apecloud/apecloud-cd
+          path: apecloud-cd
+          ref: "v0.1.42"
+      - name: delete actions cache
+        continue-on-error: true
+        run: |
+          bash apecloud-cd/.github/utils/utils.sh --type 30 \
+            --github-repo "${{ github.repository }}" \
+            --tag-name "${{ steps.get_release_result.outputs.artifact_key }}"
 
       - name: Save Artifact
         id: cache-artifact-save
