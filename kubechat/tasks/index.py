@@ -87,7 +87,14 @@ def uncompress_file(document_id) :
     try:
         if file.suffix == '.zip':
             with zipfile.ZipFile(file, 'r') as zf:
-                zf.extractall(tmp_dir)
+                for name in zf.namelist():
+                    try:
+                        name_utf8 = name.encode('cp437').decode('utf-8')
+                    except:
+                        name_utf8 = name
+                    zf.extract(name, tmp_dir)
+                    if name_utf8 != name:
+                        os.rename(os.path.join(tmp_dir, name), os.path.join(tmp_dir, name_utf8))
         elif file.suffix in ['.rar', '.r00']:
             with rarfile.RarFile(file, 'r') as rf:
                 rf.extractall(tmp_dir)
@@ -105,8 +112,10 @@ def uncompress_file(document_id) :
     for root, dirs, file_names in os.walk(tmp_dir):
         for name in file_names:
             path = Path(os.path.join(root,name))
-            if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
-                raise Exception("Nested compressed file found")
+            if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS :
+                continue
+            if path.suffix not in DEFAULT_FILE_READER_CLS.keys():
+                continue
             extracted_files.append(path)
             total_size += path.stat().st_size
 
@@ -126,6 +135,7 @@ def uncompress_file(document_id) :
                 )
                 document_instance.metadata = json.dumps({
                     "path": str(extracted_file_path),
+                    "uncompressed" : "true"
                 })
                 document_instance.save()
                 add_index_for_local_document.delay(document_instance.id)
@@ -150,19 +160,12 @@ def add_index_for_document(self, document_id):
             document_id: the document in Django Module
     """
     document = Document.objects.get(id=document_id)
-    document.status = DocumentStatus.RUNNING
-    document.save()
+    local_doc=None
     try:
         if document.file and Path(document.file.path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
             if json.loads(document.collection.config)["source"] != "system":
                 return
             uncompress_file(document_id)
-            document.status = DocumentStatus.COMPLETE
-            document.save()
-            metadata = json.loads(document.metadata)
-            source = get_source(json.loads(document.collection.config))
-            local_doc = source.prepare_document(name=document.name, metadata=metadata)
-            source.cleanup_document(local_doc.path)
             return
         else:
             source = get_source(json.loads(document.collection.config))
@@ -209,7 +212,11 @@ def add_index_for_document(self, document_id):
         raise Exception("permission denied to access document %s" % document.name)
     except Exception as e:
         raise e
-    source.cleanup_document(local_doc.path)
+    finally:
+        if local_doc != None:
+            source.cleanup_document(local_doc.path)
+            if "uncompressed" in metadata:
+                source.cleanup_document(metadata["path"])
 
 
 @app.task(base=CustomDeleteDocumentTask, bind=True, track_started=True)
