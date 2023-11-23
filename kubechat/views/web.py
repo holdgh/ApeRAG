@@ -28,7 +28,10 @@ def check_origin(request, bot):
     host_white_list = bot_config.get("web", {}).get("host_white_list", [])
     origin = request.scheme + "://" + request.META.get("REMOTE_ADDR", "")
     logger.info(f"bot {bot.id} check origin: {origin}, {host_white_list}")
-    return origin in host_white_list
+    logger.info(f"REQUEST META: {request.META}, REQUEST HEADERS: {request.headers}")
+    # TODO: check origin
+    return True
+    # return origin in host_white_list
 
 
 @api.get("/bots/{bot_id}/web-chats")
