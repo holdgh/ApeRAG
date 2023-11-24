@@ -14,7 +14,9 @@ RUN pip install -r /requirements.txt && pip cache purge
 
 COPY . /app
 
-COPY --from=builder /tmp/dlptool /bin/dlptool
+COPY --from=downloader /tmp/dlptool /bin/dlptool
+
+RUN chmod +x /bin/dlptool
 
 WORKDIR /app
 
