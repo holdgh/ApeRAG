@@ -311,5 +311,5 @@ class DocumentBaseEmbedding(ABC):
         self.client = vector_store_adaptor.connector.client
 
     @abstractmethod
-    def load_data(self):
+    def load_data(self, **kwargs: Any):
         pass

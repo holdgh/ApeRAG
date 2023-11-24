@@ -16,7 +16,7 @@ from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.base import Predictor, PredictorType
 from kubechat.db.models import Document, DocumentStatus, MessageFeedback, \
-    MessageFeedbackStatus
+    MessageFeedbackStatus, ProtectAction
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from kubechat.context.full_text import insert_document, remove_document
@@ -37,7 +37,8 @@ class CustomLoadDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
         document_id = args[0]
         document = Document.objects.get(id=document_id)
-        document.status = DocumentStatus.COMPLETE
+        if document.status != DocumentStatus.WARNING:
+            document.status = DocumentStatus.COMPLETE
         document.save()
         logger.info(f"add qdrant points for document {document.name} success")
 
@@ -70,6 +71,10 @@ class CustomDeleteDocumentTask(Task):
     #     print(retval)
     #     return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
+class SensitiveInformationFound(Exception):
+    """
+    raised when Sensitive information found in document
+    """
 
 def uncompress_file(document_id) :
     document = Document.objects.get(id=document_id)
@@ -149,6 +154,9 @@ def add_index_for_local_document(self, document_id):
     try:
         add_index_for_document(document_id)
     except Exception as e:
+        for info in e.args:
+            if isinstance(info, str) and "sensitive information" in info:
+                raise e
         raise self.retry(exc=e, countdown=5, max_retries=1)
 
 
@@ -174,7 +182,7 @@ def add_index_for_document(self, document_id):
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
                 document.save()
-            embedding_model, _ = get_collection_embedding_model(document.collection)
+            embedding_model, _ = get_collection_embedding_model(document.collection) 
             loader = LocalPathEmbedding(input_files=[local_doc.path],
                                         input_file_metadata_list=[local_doc.metadata],
                                         embedding_model=embedding_model,
@@ -182,9 +190,18 @@ def add_index_for_document(self, document_id):
                                             collection=generate_vector_db_collection_name(
                                                 collection_id=document.collection.id)))
 
-            ctx_ids, content = loader.load_data()
+            config = json.loads(document.collection.config)
+            sensitive_protect = config.get("sensitive_protect", False)
+            sensitive_protect_method = config.get("sensitive_protect_method",ProtectAction.WARNING_NOT_STORED)
+            ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect = sensitive_protect,sensitive_protect_method = sensitive_protect_method)
+            if sensitive_protect and sensitive_info != []:
+                document.sensitive_info = sensitive_info
+                if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED:
+                    raise SensitiveInformationFound()
+                else:
+                    document.status = DocumentStatus.WARNING
             logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
-
+            
             # only index the document that have points in the vector database
             if ctx_ids:
                 index = generate_fulltext_index_name(document.collection.id)
@@ -210,6 +227,8 @@ def add_index_for_document(self, document_id):
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
         raise Exception("permission denied to access document %s" % document.name)
+    except SensitiveInformationFound:
+        raise Exception("sensitive information found in document %s" % document.name)
     except Exception as e:
         raise e
     finally:
@@ -272,9 +291,19 @@ def update_index(self, document_id):
                                         collection=generate_vector_db_collection_name(
                                             collection_id=document.collection.id)))
         loader.connector.delete(ids=relate_ids.get("ctx", []))
-        ctx_ids, content = loader.load_data()
+        
+        config = json.loads(document.collection.config)
+        sensitive_protect = config.get("sensitive_protect", False)
+        sensitive_protect_method = config.get("sensitive_protect_method",ProtectAction.WARNING_NOT_STORED)
+        ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect = sensitive_protect,sensitive_protect_method = sensitive_protect_method)
+        if sensitive_protect and sensitive_info != []:
+            document.sensitive_info = sensitive_info
+            if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED:
+                raise SensitiveInformationFound()
+            else:
+                document.status = DocumentStatus.WARNING
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
-
+                    
         # only index the document that have points in the vector database
         if ctx_ids:
             index = generate_fulltext_index_name(document.collection.id)
@@ -302,6 +331,8 @@ def update_index(self, document_id):
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
         raise Exception("permission denied to access document %s" % document.name)
+    except SensitiveInformationFound:
+        raise Exception("sensitive information found in document %s" % document.name)
     except Exception as e:
         logger.error(e)
         raise Exception("an error occur %s" % e)

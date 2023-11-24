@@ -50,7 +50,10 @@ def ssl_file_path(instance, filename):
     user = instance.user.replace("|", "-")
     return "ssl_file/user-{0}/collection-{1}/{2}".format(user, instance.id, filename)
 
-
+class ProtectAction(models.TextChoices):
+    WARNING_NOT_STORED = "nostore"
+    REPLACE_WORDS = "replace"
+    
 class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
     ACTIVE = "ACTIVE"
@@ -76,6 +79,7 @@ class DocumentStatus(models.TextChoices):
     FAILED = "FAILED"
     DELETING = "DELETING"
     DELETED = "DELETED"
+    WARNING = "WARNING"
 
 
 class ChatStatus(models.TextChoices):
@@ -149,6 +153,7 @@ class Document(models.Model):
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+    sensitive_info = models.JSONField(default=list)
 
     class Meta:
         unique_together = ('collection', 'name')
@@ -162,6 +167,7 @@ class Document(models.Model):
             "size": self.size,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
+            "sensitive_info": self.sensitive_info,
         }
 
     # def collection_id(self):

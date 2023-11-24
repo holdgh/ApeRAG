@@ -3,7 +3,7 @@ import json
 from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
-from kubechat.db.models import Collection, CollectionStatus
+from kubechat.db.models import Collection, CollectionStatus, ProtectAction
 from kubechat.source.base import get_source
 from kubechat.context.full_text import create_index, delete_index
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
@@ -22,6 +22,7 @@ def init_collection_task(collection_id):
         collection=generate_vector_db_collection_name(collection_id=collection_id)
     )
     config = json.loads(collection.config)
+    
     embedding_model = config.get("embedding_model", "")
     if not embedding_model:
         _, size = get_embedding_model(settings.EMBEDDING_MODEL, load=False)
@@ -41,7 +42,7 @@ def init_collection_task(collection_id):
 
     collection.status = CollectionStatus.ACTIVE
     collection.save()
-
+    
     source = get_source(json.loads(collection.config))
     if source.sync_enabled():
         sync_documents.delay(collection_id=collection_id)

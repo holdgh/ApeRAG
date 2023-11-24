@@ -1,3 +1,11 @@
+FROM golang:1.17 AS builder
+
+COPY . /app
+
+WORKDIR /app
+
+RUN cd /app/kubechat/godlp-main && go build -o dlptool mainrun/mainrun.go
+
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
 RUN apt update && \
@@ -8,6 +16,8 @@ COPY requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt && pip cache purge
 
 COPY . /app
+
+COPY --from=builder /app/kubechat/godlp-main/dlptool /bin/dlptool
 
 WORKDIR /app
 
