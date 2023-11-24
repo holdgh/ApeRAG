@@ -65,7 +65,10 @@ class Pipeline(ABC):
         self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
         self.context_window = self.llm_config.get("context_window", 3500)
-        self.prompt_template = self.llm_config.get("prompt_template", None)
+        if self.memory:
+            self.prompt_template = self.llm_config.get("memory_prompt_template", None)
+        else:
+            self.prompt_template = self.llm_config.get("prompt_template", None)
         if not self.prompt_template:
             if self.memory:
                 self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
