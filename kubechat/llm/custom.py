@@ -22,7 +22,8 @@ class CustomLLMPredictor(Predictor):
             "stop": "\nSQLResult:",
         }
 
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
+        timeout = aiohttp.ClientTimeout(connect=3)
+        async with aiohttp.ClientSession(raise_for_status=True, timeout=timeout) as session:
             async with session.post(self.url, json=data) as r:
                 while True:
                     line = await r.content.readuntil(b"\0")

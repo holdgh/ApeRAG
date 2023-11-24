@@ -32,7 +32,8 @@ class ChatGLMPredictor(Predictor):
             "top_p": self.top_p
         }
 
-    def generate_token(self, apikey: str, exp_seconds: int):
+    @staticmethod
+    def generate_token(apikey: str, exp_seconds: int):
         try:
             id, secret = apikey.split(".")
         except Exception as e:
@@ -64,7 +65,8 @@ class ChatGLMPredictor(Predictor):
         data = self.build_request_data(self, history, prompt, memory)
         headers = self.build_request_headers(zhipuai.api_key)
 
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
+        timeout = aiohttp.ClientTimeout(connect=3)
+        async with aiohttp.ClientSession(raise_for_status=True, timeout=timeout) as session:
             async with session.post(url, json=data, headers=headers) as r:
                 async for line in r.content:
                     if line == b'\n':

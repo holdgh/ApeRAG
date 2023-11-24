@@ -55,13 +55,13 @@ class BaiChuanPredictor(Predictor):
     async def _agenerate_stream(self, history, prompt, memory=False):
         data = self.build_request_data(history, prompt, memory)
         headers = self.build_request_headers(data)
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
+        timeout = aiohttp.ClientTimeout(connect=3)
+        async with aiohttp.ClientSession(raise_for_status=True, timeout=timeout) as session:
             async with session.post(self.url, json=data, headers=headers,ssl=False) as r:
                 async for line in r.content:
                     data = json.loads(line.decode("utf-8"))
                     if data["code"] != 0:
-                        logger.warning("BaiChuan API error, code: %d msg: %s" % (data["code"], data["msg"]))
-                        return
+                        raise Exception("BaiChuan API error, code: %d msg: %s" % (data["code"], data["msg"]))
 
                     for msg in data["data"]["messages"]:
                         yield msg["content"]

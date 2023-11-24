@@ -1,7 +1,9 @@
 import json
 import os
 
+import httpx
 import openai
+from openai import AzureOpenAI, AsyncAzureOpenAI
 
 from kubechat.llm.base import Predictor, LLMConfigError
 
@@ -34,46 +36,56 @@ class AzureOpenAIPredictor(Predictor):
         self.api_type = "azure"
 
     async def _agenerate_stream(self, history, prompt, memory=False):
-        response = await openai.ChatCompletion.acreate(
+        timeout = httpx.Timeout(None, connect=3)
+        client = AsyncAzureOpenAI(
+            timeout=timeout,
             api_key=self.token,
-            api_base=self.endpoint,
-            api_type=self.api_type,
             api_version=self.api_version,
-            temperature=self.temperature,
+            max_retries=0,
+            azure_endpoint=self.endpoint,
+        )
+        response = await client.chat.completions.create(
+            model=self.deployment_id,
             stream=True,
-            deployment_id=self.deployment_id,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+            temperature=self.temperature,
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
         )
         async for chunk in response:
-            choices = chunk["choices"]
-            if len(choices) > 0:
-                choice = choices[0]
-                if choice["finish_reason"] == "stop":
-                    return
-                content = choice["delta"].get("content", None)
-                if not content:
-                    continue
-                yield content
+            if not chunk.choices:
+                continue
+            choice = chunk.choices[0]
+            if choice.finish_reason == "stop":
+                return
+            content = choice.delta.content
+            if not content:
+                continue
+            yield choice.delta.content
 
     def _generate_stream(self, history, prompt, memory=False):
-        response = openai.ChatCompletion.create(
+        timeout = httpx.Timeout(None, connect=3)
+        client = AzureOpenAI(
+            timeout=timeout,
             api_key=self.token,
-            api_base=self.endpoint,
-            api_type=self.api_type,
             api_version=self.api_version,
-            temperature=self.temperature,
+            max_retries=0,
+            azure_endpoint=self.endpoint,
+        )
+        response = client.chat.completions.create(
+            model=self.deployment_id,
             stream=True,
-            deployment_id=self.deployment_id,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}]
+            temperature=self.temperature,
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
         )
         for chunk in response:
-            choices = chunk["choices"]
-            if len(choices) > 0:
-                choice = choices[0]
-                if choice["finish_reason"] == "stop":
-                    return
-                content = choice["delta"]["content"]
-                yield content
+            if not chunk.choices:
+                continue
+            choice = chunk.choices[0]
+            if choice.finish_reason == "stop":
+                return
+            content = choice.delta.content
+            if not content:
+                continue
+            yield choice.delta.content
 
     async def agenerate_stream(self, history, prompt, memory=False):
         async for tokens in self._agenerate_stream(history, prompt, memory):

@@ -10,7 +10,7 @@ from langchain.memory import RedisChatMessageHistory
 
 import config.settings as settings
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.chat.utils import start_response, success_response, stop_response
+from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
 from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline
 from kubechat.db.ops import query_bot
 from kubechat.utils.utils import now_unix_milliseconds
@@ -81,13 +81,13 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.response_type = "message"
 
         message = ""
+        references = []
         message_id = f"{now_unix_milliseconds()}"
 
         try:
             # send start message
             await self.send(text_data=start_response(message_id))
 
-            references = []
             async for tokens in self.predict(data["data"], message_id=message_id):
                 if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
                     references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES):])
@@ -102,10 +102,13 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 # concat response tokens
                 message += tokens
 
-            # send stop message
-            await self.send(text_data=stop_response(message_id, references, self.pipeline.memory_count))
         except websockets.exceptions.ConnectionClosedError:
             logger.warning("Connection closed")
         except Exception as e:
             logger.warning("%s: %s", str(e), traceback.format_exc())
+            await self.send(text_data=fail_response(message_id, str(e)))
+        finally:
+            # send stop message
+            await self.send(text_data=stop_response(message_id, references, self.pipeline.memory_count))
+
 
