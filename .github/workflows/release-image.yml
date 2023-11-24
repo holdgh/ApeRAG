@@ -65,23 +65,23 @@ jobs:
       ENABLE_SUBMODULE: true
     secrets: inherit
 
-  release-kubechat-llmserver-image:
-    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat-llmserver' }}
-    needs: [ image-tag, enable-gke-runner ]
-    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
-    with:
-      MAKE_OPS_PRE: "poetry-lock-no-update build-requirements version"
-      IMG: "apecloud/kubechat-llmserver"
-      VERSION: "${{ needs.image-tag.outputs.tag-name }}"
-      DOCKERFILE_PATH: "./Dockerfile-llmserver"
-      REMOVE_PREFIX: false
-      APECD_REF: "v0.1.36"
-      ENABLE_SUBMODULE: true
-    secrets: inherit
+#  release-kubechat-llmserver-image:
+#    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat-llmserver' }}
+#    needs: [ image-tag, enable-gke-runner ]
+#    uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
+#    with:
+#      MAKE_OPS_PRE: "poetry-lock-no-update build-requirements version"
+#      IMG: "apecloud/kubechat-llmserver"
+#      VERSION: "${{ needs.image-tag.outputs.tag-name }}"
+#      DOCKERFILE_PATH: "./Dockerfile-llmserver"
+#      REMOVE_PREFIX: false
+#      APECD_REF: "v0.1.36"
+#      ENABLE_SUBMODULE: true
+#    secrets: inherit
 
   disable-gke-runner:
     if: ${{ always() }}
-    needs: [ release-kubechat-image, release-kubechat-llmserver-image ]
+    needs: [ release-kubechat-image ]
     uses: apecloud/apecloud-cd/.github/workflows/enable-gke-runner.yml@v0.1.36
     with:
       GITHUB_REPO: "apecloud/KubeChat"
@@ -91,7 +91,7 @@ jobs:
 
   release-result:
     runs-on: ubuntu-latest
-    needs: [ release-kubechat-image, release-kubechat-llmserver-image ]
+    needs: [ release-kubechat-image ]
     if: ${{ always() && github.event.action == 'published' }}
     outputs:
       release-result: ${{ steps.get_release_result.outputs.release_result }}
@@ -104,7 +104,7 @@ jobs:
           echo 'artifact_key='${ARTIFACT_KEY} >> $GITHUB_OUTPUT
           
           RELEASE_RESULT="error"
-          if [[ "${{ needs.release-kubechat-image.result }}" == "success" && "${{ needs.release-kubechat-llmserver-image.result }}" == "success" ]]; then
+          if [[ "${{ needs.release-kubechat-image.result }}" == "success" ]]; then
               RELEASE_RESULT="success"
               echo "success" > ${ARTIFACT_KEY}
           else
