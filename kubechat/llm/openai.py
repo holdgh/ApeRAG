@@ -51,7 +51,7 @@ class OpenAIPredictor(Predictor):
     def _generate_stream(self, history, prompt, memory=False):
         timeout = httpx.Timeout(None, connect=3)
         client = OpenAI(timeout=timeout, api_key=self.token, base_url=self.endpoint, max_retries=0)
-        response = await client.chat.completions.create(
+        response = client.chat.completions.create(
             model=self.model,
             temperature=self.temperature,
             stream=True,
