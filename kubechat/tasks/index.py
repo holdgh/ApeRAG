@@ -71,15 +71,14 @@ class CustomDeleteDocumentTask(Task):
     #     print(retval)
     #     return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
 
+
 class SensitiveInformationFound(Exception):
     """
     raised when Sensitive information found in document
     """
 
-def uncompress_file(document_id) :
-    document = Document.objects.get(id=document_id)
-    document.status = DocumentStatus.RUNNING
-    document.save()
+
+def uncompress_file(document: Document):
     file = Path(document.file.path)
     MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
     tmp_dir = Path(os.path.join('/tmp/kubechat', document.collection.id, document.name))
@@ -116,8 +115,8 @@ def uncompress_file(document_id) :
     total_size = 0
     for root, dirs, file_names in os.walk(tmp_dir):
         for name in file_names:
-            path = Path(os.path.join(root,name))
-            if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS :
+            path = Path(os.path.join(root, name))
+            if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
                 continue
             if path.suffix not in DEFAULT_FILE_READER_CLS.keys():
                 continue
@@ -136,11 +135,11 @@ def uncompress_file(document_id) :
                     status=DocumentStatus.PENDING,
                     size=extracted_file_path.stat().st_size,
                     collection=document.collection,
-                    file=ContentFile(content, extracted_file_path.name),  
+                    file=ContentFile(content, extracted_file_path.name),
                 )
                 document_instance.metadata = json.dumps({
                     "path": str(extracted_file_path),
-                    "uncompressed" : "true"
+                    "uncompressed": "true"
                 })
                 document_instance.save()
                 add_index_for_local_document.delay(document_instance.id)
@@ -168,21 +167,25 @@ def add_index_for_document(self, document_id):
             document_id: the document in Django Module
     """
     document = Document.objects.get(id=document_id)
-    local_doc=None
+    document.status = DocumentStatus.RUNNING
+    document.save()
+
+    source = None
+    local_doc = None
+    metadata = json.loads(document.metadata)
     try:
         if document.file and Path(document.file.path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
             if json.loads(document.collection.config)["source"] != "system":
                 return
-            uncompress_file(document_id)
+            uncompress_file(document)
             return
         else:
             source = get_source(json.loads(document.collection.config))
-            metadata = json.loads(document.metadata)
             local_doc = source.prepare_document(name=document.name, metadata=metadata)
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
-                document.save()
-            embedding_model, _ = get_collection_embedding_model(document.collection) 
+
+            embedding_model, _ = get_collection_embedding_model(document.collection)
             loader = LocalPathEmbedding(input_files=[local_doc.path],
                                         input_file_metadata_list=[local_doc.metadata],
                                         embedding_model=embedding_model,
@@ -192,16 +195,17 @@ def add_index_for_document(self, document_id):
 
             config = json.loads(document.collection.config)
             sensitive_protect = config.get("sensitive_protect", False)
-            sensitive_protect_method = config.get("sensitive_protect_method",ProtectAction.WARNING_NOT_STORED)
-            ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect = sensitive_protect,sensitive_protect_method = sensitive_protect_method)
-            if sensitive_protect and sensitive_info != []:
-                document.sensitive_info = sensitive_info
+            sensitive_protect_method = config.get("sensitive_protect_method", ProtectAction.WARNING_NOT_STORED)
+            ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
+                                                                sensitive_protect_method=sensitive_protect_method)
+            document.sensitive_info = sensitive_info
+            if sensitive_protect and sensitive_info:
                 if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED:
                     raise SensitiveInformationFound()
                 else:
                     document.status = DocumentStatus.WARNING
             logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
-            
+
             # only index the document that have points in the vector database
             if ctx_ids:
                 index = generate_fulltext_index_name(document.collection.id)
@@ -222,7 +226,6 @@ def add_index_for_document(self, document_id):
                 "qa": qa_ids,
             }
             document.relate_ids = json.dumps(relate_ids)
-            document.save()
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
@@ -232,7 +235,8 @@ def add_index_for_document(self, document_id):
     except Exception as e:
         raise e
     finally:
-        if local_doc != None:
+        document.save()
+        if local_doc and source:
             source.cleanup_document(local_doc.path)
             if "uncompressed" in metadata:
                 source.cleanup_document(metadata["path"])
@@ -291,19 +295,20 @@ def update_index(self, document_id):
                                         collection=generate_vector_db_collection_name(
                                             collection_id=document.collection.id)))
         loader.connector.delete(ids=relate_ids.get("ctx", []))
-        
+
         config = json.loads(document.collection.config)
         sensitive_protect = config.get("sensitive_protect", False)
-        sensitive_protect_method = config.get("sensitive_protect_method",ProtectAction.WARNING_NOT_STORED)
-        ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect = sensitive_protect,sensitive_protect_method = sensitive_protect_method)
+        sensitive_protect_method = config.get("sensitive_protect_method", ProtectAction.WARNING_NOT_STORED)
+        ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
+                                                            sensitive_protect_method=sensitive_protect_method)
+        document.sensitive_info = sensitive_info
         if sensitive_protect and sensitive_info != []:
-            document.sensitive_info = sensitive_info
             if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED:
                 raise SensitiveInformationFound()
             else:
                 document.status = DocumentStatus.WARNING
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
-                    
+
         # only index the document that have points in the vector database
         if ctx_ids:
             index = generate_fulltext_index_name(document.collection.id)
@@ -325,7 +330,6 @@ def update_index(self, document_id):
             "qa": qa_ids,
         }
         document.relate_ids = json.dumps(relate_ids)
-        document.save()
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
@@ -336,6 +340,8 @@ def update_index(self, document_id):
     except Exception as e:
         logger.error(e)
         raise Exception("an error occur %s" % e)
+    finally:
+        document.save()
 
     source.cleanup_document(local_doc.path)
 

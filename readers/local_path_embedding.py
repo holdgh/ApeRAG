@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging
 import faulthandler
-import re
+import json
+import logging
+import subprocess
 from typing import Any, List, Optional, Dict, Tuple
 
 from langchain.embeddings.base import Embeddings
@@ -10,12 +11,10 @@ from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding
 
+from kubechat.db.models import ProtectAction
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from vectorstore.connector import VectorStoreConnectorAdaptor
-import subprocess
-import json
-from kubechat.db.models import ProtectAction
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +39,10 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             def metadata_mapping_func(path: str) -> Dict[str, Any]:
                 return metadata_mapping.get(path, {})
+
             kwargs["file_metadata"] = metadata_mapping_func
         self.reader = InteractiveSimpleDirectoryReader(**kwargs)
-        
+
     def load_data(self, **kwargs) -> Tuple[List[str], str, List]:
         sensitive_protect = kwargs.get('sensitive_protect', False)
         sensitive_protect_method = kwargs.get('sensitive_protect_method', ProtectAction.WARNING_NOT_STORED)
@@ -51,11 +51,11 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             return []
 
         nodes: List[Node] = []
-        nodesWithEmbedding: List[NodeWithEmbedding] = []
+        nodes_with_embedding: List[NodeWithEmbedding] = []
 
         texts = []
         content = ""
-        embeddingDocs = []
+        embedding_docs = []
 
         for doc in docs:
 
@@ -77,7 +77,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                                content_ratio_threshold, doc.metadata.get("name", None))
                 continue
 
-            embeddingDocs.append(doc)
+            embedding_docs.append(doc)
 
             paddings = []
             # padding titles of the hierarchy
@@ -124,46 +124,47 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 )
             }
             nodes.append(node)
-        
+
         sensitive_info = []
         if sensitive_protect:
             texts, sensitive_info = self.sensitive_filter(texts, sensitive_protect_method)
             if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED and sensitive_info != []:
-                logger.info("find sensitive infomation: %s",file_name)
+                logger.info("find sensitive infomation: %s", file_name)
                 return [], "", sensitive_info
-                
-        
+
         vectors = self.embedding.embed_documents(texts)
 
         for i in range(len(vectors)):
-            embeddingDocs[i].embedding = vectors[i]
-            nodesWithEmbedding.append(NodeWithEmbedding(node=nodes[i], embedding=vectors[i]))
+            embedding_docs[i].embedding = vectors[i]
+            nodes_with_embedding.append(NodeWithEmbedding(node=nodes[i], embedding=vectors[i]))
 
         print(f"processed file: {file_name} ")
 
-        return self.connector.store.add(nodesWithEmbedding), content, sensitive_info
+        return self.connector.store.add(nodes_with_embedding), content, sensitive_info
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)
 
-    def sensitive_filter(self, texts: list[str], sensitive_protect_method: str) -> Tuple[List[str], List[Dict]]:
+    @staticmethod
+    def sensitive_filter(texts: list[str], sensitive_protect_method: str) -> Tuple[List[str], List[Dict]]:
         output_texts = []
         output_sensitive_info = []
         for text in texts:
             try:
-                result = subprocess.run(['dlptool', text], capture_output=True, text=True) 
+                result = subprocess.run(['dlptool', text], capture_output=True, text=True)
                 output = result.stdout.split('\n')
                 dlp_num = int(output[0])
                 dlp_outputs = []
-                for line in output[1:dlp_num+1]:
+                for line in output[1:dlp_num + 1]:
                     dlp_outputs.append(json.loads(line))
-                dlp_masktext = '\n'.join(output[dlp_num+2:])
+                dlp_masktext = '\n'.join(output[dlp_num + 2:])
                 if dlp_num > 0 and sensitive_protect_method == ProtectAction.REPLACE_WORDS:
                     output_texts.append(dlp_masktext)
                 else:
-                    output_texts.append(text)    
+                    output_texts.append(text)
                 if dlp_num > 0:
-                    output_sensitive_info.append({"chunk":text,"masked_chunk":dlp_masktext,"sensitive_info":dlp_outputs})
+                    output_sensitive_info.append(
+                        {"chunk": text, "masked_chunk": dlp_masktext, "sensitive_info": dlp_outputs})
             except:
                 output_texts.append(text)
-        return output_texts,output_sensitive_info
+        return output_texts, output_sensitive_info

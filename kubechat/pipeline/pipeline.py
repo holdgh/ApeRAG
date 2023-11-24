@@ -316,7 +316,7 @@ class KeywordPipeline(Pipeline):
 
             candidates = results[:self.topk]
             if self.enable_keyword_recall:
-                candidates = self.filter_by_keywords(message, candidates)
+                candidates = await self.filter_by_keywords(message, candidates)
                 logger.info("[%s] filter keyword end", log_prefix)
             else:
                 logger.info("[%s] no need to filter keyword", log_prefix)
