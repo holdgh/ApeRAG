@@ -1,6 +1,3 @@
 [submodule "godlp-main"]
 	path = godlp-main
 	url = https://github.com/apecloud/godlp-main.git
-[submodule "kubechat/godlp-main"]
-	path = kubechat/godlp-main
-	url = https://github.com/apecloud/godlp-main.git
