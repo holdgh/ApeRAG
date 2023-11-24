@@ -61,6 +61,7 @@ class Pipeline(ABC):
         self.memory_count = 0
         self.memory_limit_length = bot_config.get("memory_length", 0)
         self.memory_limit_count = bot_config.get("memory_count", 10)
+        self.use_ai_memory = bot_config.get("use_ai_memory", True)
         self.topk = self.llm_config.get("similarity_topk", 3)
         self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
@@ -330,7 +331,8 @@ class KeywordPipeline(Pipeline):
                 history = self.predictor.get_latest_history(
                                 messages=self.history.messages,
                                 limit_length=max(min(self.context_window-500-len(context),self.memory_limit_length), 0),
-                                limit_count=self.memory_limit_count)
+                                limit_count=self.memory_limit_count,
+                                use_ai_memory=self.use_ai_memory)
                 self.memory_count = len(history)
 
             prompt = self.prompt.format(query=message, context=context)

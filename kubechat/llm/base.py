@@ -97,7 +97,7 @@ class Predictor(ABC):
             case _:
                 raise Exception("Unsupported predictor type: %s" % predictor_type)
 
-    def get_latest_history(self, messages, limit_length, limit_count) -> str:
+    def get_latest_history(self, messages, limit_length, limit_count, use_ai_memory) -> str:
         latest_history = []
         length = 0
         count = 0
@@ -106,6 +106,8 @@ class Predictor(ABC):
             if message.additional_kwargs["role"] == "human":
                 history = {"role": "user", "content": json.loads(message.content)["query"] + "\n"}
             else:
+                if not use_ai_memory:
+                    continue
                 history = {"role": "assistant", "content": json.loads(message.content)["response"] + "\n"}
             count += 1
 
