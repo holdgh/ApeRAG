@@ -1,10 +1,7 @@
-FROM golang:1.17 AS builder
+FROM curlimages/curl:8.4.0 AS downloader
 
-COPY . /app
+RUN curl -sL http://kubeblocks.oss-cn-hangzhou.aliyuncs.com/dlptool  -o /tmp/dlptool
 
-WORKDIR /app
-
-RUN cd /app/godlp-main && go build -o dlptool mainrun/mainrun.go
 
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
@@ -17,7 +14,7 @@ RUN pip install -r /requirements.txt && pip cache purge
 
 COPY . /app
 
-COPY --from=builder /app/godlp-main/dlptool /bin/dlptool
+COPY --from=builder /tmp/dlptool /bin/dlptool
 
 WORKDIR /app
 
