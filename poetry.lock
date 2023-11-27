@@ -1366,6 +1366,25 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "dashscope"
+version = "1.13.3"
+description = "dashscope client sdk library"
+optional = false
+python-versions = ">=3.7.0"
+files = [
+    {file = "dashscope-1.13.3-py3-none-any.whl", hash = "sha256:b1a8b6ab7ed3f2211d8ee5976883fb53c7290d12a7539c95d7248849820e2b4e"},
+]
+
+[package.dependencies]
+aiohttp = "*"
+requests = "*"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "dataclasses"
 version = "0.6"
 description = "A backport of the dataclasses module for Python 3.6"
@@ -8003,4 +8022,4 @@ all = ["clickhouse-connect", "elasticsearch", "pymilvus", "pymongo", "weaviate-c
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.0,<4.0"
-content-hash = "c7bbb14cf9d6cccf8ca71e92eb6a1b80336d06cc337d1751dc08ee5416da8104"
+content-hash = "1918ac3995c59a4fb5103f345391c7691eb2ceddd0bf0b026fce7619ae0dd7b4"
