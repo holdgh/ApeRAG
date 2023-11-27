@@ -46,24 +46,29 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
             await self.send_event(event, more_body=False)
             return
 
-        chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
-        if chat is None:
-            chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
-            await chat.asave()
+        try:
+            chat = await query_chat_by_peer(bot.user, ChatPeer.FEISHU, chat_id)
+            if chat is None:
+                chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
+                await chat.asave()
 
-        msg = body.decode("utf-8")
-        collection = await sync_to_async(bot.collections.first)()
-        history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+            msg = body.decode("utf-8")
+            collection = await sync_to_async(bot.collections.first)()
+            history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
 
-        event = start_response(message_id=msg_id)
-        await self.send_event(event)
-
-        async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
-            event = success_response(message_id=msg_id, data=msg)
+            event = start_response(message_id=msg_id)
             await self.send_event(event)
 
-        event = stop_response(message_id=msg_id, references=[])
-        await self.send_event(event, more_body=False)
+            async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
+                event = success_response(message_id=msg_id, data=msg)
+                await self.send_event(event)
+
+            event = stop_response(message_id=msg_id, references=[])
+            await self.send_event(event, more_body=False)
+        except Exception as e:
+            logger.exception(e)
+            event = fail_response(message_id=msg_id, error=str(e))
+            await self.send_event(event, more_body=False)
 
     async def send_event(self, event: str, more_body=True):
         event = event + "\n"

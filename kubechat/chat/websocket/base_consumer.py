@@ -105,7 +105,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         except websockets.exceptions.ConnectionClosedError:
             logger.warning("Connection closed")
         except Exception as e:
-            logger.warning("%s: %s", str(e), traceback.format_exc())
+            logger.warning("[Oops] %s: %s", str(e), traceback.format_exc())
             await self.send(text_data=fail_response(message_id, str(e)))
         finally:
             # send stop message
