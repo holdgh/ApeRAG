@@ -137,6 +137,23 @@ django:
             topologyKey: kubernetes.io/hostname
   modelServers: {}
   modelFamilies:
+    - name: "qianwen"
+      label: "QianWen"
+      enabled: "true"
+      temperature: 0.01
+      models:
+        - name: "qwen-turbo"
+          label: "QianWen Turbo"
+          enabled: "true"
+          memory: "enabled"
+        - name: "qwen-plus"
+          label: "QianWen Plus"
+          enabled: "true"
+          memory: "enabled"
+        - name: "qwen-max"
+          label: "QianWen Max"
+          enabled: "true"
+          memory: "enabled"
     - name: "chatglm"
       label: "ChatGLM"
       enabled: "true"

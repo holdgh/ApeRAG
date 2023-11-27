@@ -22,6 +22,12 @@ class LLMConfigError(Exception):
     """
 
 
+class LLMAPIError(Exception):
+    """
+    LLMAPIError is raised when error occurs when calling LLM API.
+    """
+
+
 class Predictor(ABC):
 
     def __init__(self, **kwargs):
@@ -79,6 +85,9 @@ class Predictor(ABC):
                 kwargs["model"] = model_name.replace("-", "_")
                 from kubechat.llm.chatglm import ChatGLMPredictor
                 return ChatGLMPredictor(**kwargs)
+            case "qwen-turbo" | "qwen-plus" | "qwen-max":
+                from kubechat.llm.qianwen import QianWenPredictor
+                return QianWenPredictor(**kwargs)
 
         endpoint = kwargs.get("endpoint", "")
         if not endpoint:
