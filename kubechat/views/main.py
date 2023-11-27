@@ -635,15 +635,17 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     bot = await query_bot(user, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
-    config = json.loads(bot_in.config)
-    model = config.get("model")
-    llm_config = config.get("llm")
+    new_config = json.loads(bot_in.config)
+    model = new_config.get("model")
+    llm_config = new_config.get("llm")
     valid, msg = validate_bot_config(model, llm_config)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
+    old_config = json.loads(bot.config)
+    old_config.update(new_config)
+    bot.config = json.dumps(old_config)
     bot.title = bot_in.title
     bot.description = bot_in.description
-    bot.config = bot_in.config
     collections = []
     for cid in bot_in.collection_ids:
         collection = await query_collection(user, cid)
