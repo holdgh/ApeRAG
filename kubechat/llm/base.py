@@ -49,10 +49,6 @@ class Predictor(ABC):
             for model_server in model_family.get("models", []):
                 if model_name == model_server["name"]:
                     return model_server
-        if not model_families:
-            model_servers = yaml.safe_load(settings.MODEL_SERVERS)
-            for model_server in model_servers:
-                return model_server
         return None
 
     @staticmethod

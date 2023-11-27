@@ -142,11 +142,6 @@ spec:
                 configMapKeyRef:
                   key: ENABLE_QA_GENERATOR
                   name: kubechat-config
-            - name: MODEL_SERVERS
-              valueFrom:
-                configMapKeyRef:
-                  key: MODEL_SERVERS
-                  name: kubechat-config
             - name: MODEL_FAMILIES
               valueFrom:
                 configMapKeyRef:

@@ -11,8 +11,6 @@ data:
   CELERY_FLOWER_USER: "{{ .Values.flower.user }}"
   CELERY_FLOWER_PASSWORD: "{{ .Values.flower.password }}"
   DJANGO_LOG_LEVEL: "INFO"
-  MODEL_SERVER: "{{ .Values.django.modelServer }}"
-  MODEL_SERVERS: '{{ .Values.django.modelServers | toJson }}'
   MODEL_FAMILIES: '{{ .Values.django.modelFamilies | toJson }}'
   VECTOR_DB_CONTEXT: '{{ .Values.django.vectorDBContext }}'
   VECTOR_DB_TYPE: "{{ .Values.django.vectorDBType }}"

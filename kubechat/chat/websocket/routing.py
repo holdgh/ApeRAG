@@ -47,12 +47,6 @@ async def bot_consumer_router(scope, receive, send):
         raise Exception("Invalid collection type")
 
 
-async def chat_bot_consumer_router(scope, receive, send):
-    from kubechat.chat.websocket.chat_bot_consumer import ChatBotConsumer
-
-    return await ChatBotConsumer.as_asgi()(scope, receive, send)
-
-
 async def code_generate_chat_consumer_router(scope, receive, send):
     # for .code_generate_con
     from kubechat.chat.websocket.code_generate_consumer import CodeGenerateConsumer
@@ -88,9 +82,5 @@ websocket_urlpatterns = [
     re_path(
         r"api/v1/bots/(?P<bot_id>\w+)/web-chats/(?P<chat_id>\w+)/connect$",
         web_bot_consumer_router,
-    ),
-    re_path(
-        r"api/v1/bot/(?P<chat_id>\w+)/connect$",
-        chat_bot_consumer_router,
     ),
 ]

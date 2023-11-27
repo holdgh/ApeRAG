@@ -112,23 +112,6 @@ def list_models(request):
                 "family_name": model_family["name"],
                 "family_label": model_family["label"],
             })
-    if not model_families:
-        model_servers = yaml.safe_load(settings.MODEL_SERVERS)
-        for model_server in model_servers:
-            response.append({
-                "value": model_server["name"],
-                "label": model_server.get("label", model_server["name"]),
-                "enabled": model_server.get("enabled", "true").lower() == "true",
-                "memory": model_server.get("memory", "disabled").lower() == "enabled",
-                "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
-                                                                      DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
-                "memory_prompt_template": DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"],
-                                                                                    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3),
-                "context_window": model_server.get("context_window", 7500),
-                "temperature": model_server.get("temperature", 0.01),
-                "similarity_score_threshold": model_server.get("similarity_score_threshold", 0.5),
-                "similarity_topk": model_server.get("similarity_topk", 3),
-            })
     response.sort(key=lambda x: x["enabled"], reverse=True)
     return success(response)
 
