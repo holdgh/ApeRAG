@@ -3,7 +3,8 @@ import time
 
 import aiohttp
 import jwt
-import zhipuai
+from zhipuai.utils.sse_client import SSEClient
+import requests
 
 from kubechat.llm.base import Predictor, LLMConfigError, logger
 
@@ -20,9 +21,12 @@ class ChatGLMPredictor(Predictor):
         if self.model not in  ["chatglm_lite", "chatglm_std", "chatglm_pro", "chatglm_turbo"]:
             raise LLMConfigError("Please specify the correct model")
 
-        zhipuai.api_key = kwargs.get("api_key", os.environ.get("GLM_API_KEY", ""))
-        if not zhipuai.api_key:
+        self.api_key = kwargs.get("api_key", os.environ.get("GLM_API_KEY", ""))
+        if not self.api_key:
             raise LLMConfigError("Please specify the API KEY")
+        parts = self.api_key.split('.')
+        if not (len(parts) == 2 and all(parts)):
+            raise LLMConfigError("Please specify the correct API KEY")
 
     @staticmethod
     def build_request_data(self, history, prompt, memory=False):
@@ -63,7 +67,7 @@ class ChatGLMPredictor(Predictor):
 
         url = "%s/%s/sse-invoke" % (self.endpoint, self.model)
         data = self.build_request_data(self, history, prompt, memory)
-        headers = self.build_request_headers(zhipuai.api_key)
+        headers = self.build_request_headers(self.api_key)
 
         timeout = aiohttp.ClientTimeout(connect=3)
         async with aiohttp.ClientSession(raise_for_status=True, timeout=timeout) as session:
@@ -87,12 +91,12 @@ class ChatGLMPredictor(Predictor):
                         yield value
 
     def _generate_stream(self, history, prompt, memory=False):
-        response = zhipuai.model_api.sse_invoke(
-            model=self.model,
-            prompt=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
-            temperature=self.temperature,
-            top_p=self.top_p,
-        )
+        url = "%s/%s/sse-invoke" % (self.endpoint, self.model)
+        data = self.build_request_data(self, history, prompt, memory)
+        headers = self.build_request_headers(self.api_key)
+
+        response = requests.post(url, json=data, headers=headers, stream=True)
+        response = SSEClient(response)
 
         for event in response.events():
             if event.event == "add":

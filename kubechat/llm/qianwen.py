@@ -18,8 +18,8 @@ class QianWenPredictor(Predictor):
         if self.model not in  ["qwen-turbo", "qwen-plus", "qwen-max"]:
             raise LLMConfigError("Please specify the correct model")
 
-        dashscope.api_key = kwargs.get("api_key", os.environ.get("QIANWEN_API_KEY", ""))
-        if not dashscope.api_key:
+        self.api_key = kwargs.get("api_key", os.environ.get("QIANWEN_API_KEY", ""))
+        if not self.api_key:
             raise LLMConfigError("Please specify the API KEY")
 
     @staticmethod
@@ -45,7 +45,7 @@ class QianWenPredictor(Predictor):
 
     async def agenerate_stream(self, history, prompt, memory=False):
         data = self.build_request_data(self, history, prompt, memory)
-        headers = self.build_request_headers(dashscope.api_key)
+        headers = self.build_request_headers(self.api_key)
 
         async with aiohttp.ClientSession(raise_for_status=True) as session:
             async with session.post(self.url, json=data, headers=headers) as r:
@@ -74,6 +74,7 @@ class QianWenPredictor(Predictor):
     def generate_stream(self, history, prompt, memory=False):
         responses = Generation.call(
             model=self.model,
+            api_key= self.api_key,
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             result_format='message',  # set the result to be "message" format.
             stream=True,
