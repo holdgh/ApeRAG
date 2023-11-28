@@ -56,9 +56,9 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         texts = []
         content = ""
         embedding_docs = []
-
+        sensitive_info = []
+        
         for doc in docs:
-
             content += doc.text
             doc.text = doc.text.strip()
 
@@ -99,6 +99,11 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 logger.info("add extra prefix for document %s before embedding: %s",
                             doc.metadata.get("name", None), prefix)
 
+            if sensitive_protect:
+                doc.text,output_sensitive_info = self.sensitive_filter(doc.text, sensitive_protect_method)
+                if output_sensitive_info != {}:
+                    sensitive_info.append(output_sensitive_info)
+            
             if prefix:
                 text = f"{prefix}\n{doc.text}"
             else:
@@ -125,12 +130,9 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             }
             nodes.append(node)
 
-        sensitive_info = []
-        if sensitive_protect:
-            texts, sensitive_info = self.sensitive_filter(texts, sensitive_protect_method)
-            if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED and sensitive_info != []:
-                logger.info("find sensitive infomation: %s", file_name)
-                return [], "", sensitive_info
+        if sensitive_protect and sensitive_protect_method == ProtectAction.WARNING_NOT_STORED and sensitive_info != []:
+            logger.info("find sensitive infomation: %s", file_name)
+            return [], "", sensitive_info
 
         vectors = self.embedding.embed_documents(texts)
 
@@ -146,25 +148,22 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         return self.connector.delete(**kwargs)
 
     @staticmethod
-    def sensitive_filter(texts: list[str], sensitive_protect_method: str) -> Tuple[List[str], List[Dict]]:
-        output_texts = []
-        output_sensitive_info = []
-        for text in texts:
-            try:
-                result = subprocess.run(['dlptool', text], capture_output=True, text=True)
-                output = result.stdout.split('\n')
-                dlp_num = int(output[0])
-                dlp_outputs = []
-                for line in output[1:dlp_num + 1]:
-                    dlp_outputs.append(json.loads(line))
-                dlp_masktext = '\n'.join(output[dlp_num + 2:])
-                if dlp_num > 0 and sensitive_protect_method == ProtectAction.REPLACE_WORDS:
-                    output_texts.append(dlp_masktext)
-                else:
-                    output_texts.append(text)
-                if dlp_num > 0:
-                    output_sensitive_info.append(
-                        {"chunk": text, "masked_chunk": dlp_masktext, "sensitive_info": dlp_outputs})
-            except:
-                output_texts.append(text)
-        return output_texts, output_sensitive_info
+    def sensitive_filter(text: str, sensitive_protect_method: str) -> Tuple[str, Dict]:
+        output_sensitive_info = {}        
+        try:
+            result = subprocess.run(['dlptool', text], capture_output=True, text=True)
+            output = result.stdout.split('\n')
+            dlp_num = int(output[0])
+            dlp_outputs = []
+            for line in output[1:dlp_num + 1]:
+                dlp_outputs.append(json.loads(line))
+            dlp_masktext = '\n'.join(output[dlp_num + 2:])
+            if dlp_num > 0 and sensitive_protect_method == ProtectAction.REPLACE_WORDS:
+                output_text = dlp_masktext
+            else:
+                output_text = text
+            if dlp_num > 0:
+                output_sensitive_info = {"chunk": text, "masked_chunk": dlp_masktext, "sensitive_info": dlp_outputs}
+        except:
+            output_text = text
+        return output_text, output_sensitive_info
