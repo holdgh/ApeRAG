@@ -122,6 +122,9 @@ class Predictor(ABC):
             latest_history.append(history)
             length += len(history["content"])
 
+        if len(latest_history) > 0 and latest_history[-1]["role"] == "assistant":
+            latest_history = latest_history[:-1]
+
         return latest_history[::-1]
 
 
