@@ -80,7 +80,7 @@ affinity: {}
 
 
 ingress:
-  className: alb
+  className: ""
   annotations: {}
 
 django:
