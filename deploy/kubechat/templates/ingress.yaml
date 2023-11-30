@@ -2,11 +2,12 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: kubechat-ingress
+  {{- with .Values.ingress.annotations }}
   annotations:
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    alb.ingress.kubernetes.io/scheme: internet-facing
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  ingressClassName: {{ .Values.django.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.className }}
   rules:
   - http:
       paths:

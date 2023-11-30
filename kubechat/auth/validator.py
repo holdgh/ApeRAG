@@ -11,6 +11,7 @@ from django.core.exceptions import PermissionDenied
 
 import config.settings as settings
 from kubechat.auth import tv
+from kubechat.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def get_user_from_token(token):
 
 class GlobalHTTPAuth(HttpBearer):
     def authenticate(self, request, token):
-        request.META["X-USER-ID"] = get_user_from_token(token)
+        request.META[KEY_USER_ID] = get_user_from_token(token)
         return token
 
 
@@ -78,12 +79,16 @@ class WebSocketAuthMiddleware(BaseMiddleware):
 
     def __call__(self, scope, receive, send):
         headers = dict(scope["headers"])
+        path = scope['path']
 
-        token = headers.get(b"sec-websocket-protocol", None)
+        if "/web-chats" in path:
+            return self.app(scope, receive, send)
+
+        token = headers.get(KEY_WEBSOCKET_PROTOCOL.lower().encode("ascii"), None)
         if token is not None:
             token = token.decode("ascii")
-        scope["Sec-Websocket-Protocol"] = token
-        scope["X-USER-ID"] = get_user_from_token(token)
+        scope[KEY_WEBSOCKET_PROTOCOL] = token
+        scope[KEY_USER_ID] = get_user_from_token(token)
         return self.app(scope, receive, send)
 
 
@@ -103,5 +108,7 @@ class HTTPAuthMiddleware(BaseMiddleware):
 
         token = token.decode("ascii").lstrip("Bearer ")
         user = get_user_from_token(token)
-        scope["X-USER-ID"] = user
+        scope[KEY_USER_ID] = user
         return await self.inner(scope, receive, send)
+
+

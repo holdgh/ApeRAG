@@ -1,0 +1,4 @@
+KEY_USER_ID = "X-USER-ID"
+KEY_BOT_ID = "X-BOT-ID"
+KEY_CHAT_ID = "X-CHAT-ID"
+KEY_WEBSOCKET_PROTOCOL = "Sec-Websocket-Protocol"

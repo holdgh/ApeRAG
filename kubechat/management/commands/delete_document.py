@@ -5,7 +5,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.http import HttpRequest
 
 from config import settings
-from kubechat.views import delete_document
+from kubechat.utils.constant import KEY_USER_ID
+from kubechat.views.main import delete_document
 
 
 class Command(BaseCommand):
@@ -22,7 +23,7 @@ class Command(BaseCommand):
         request = HttpRequest()
         request.method = "POST"
         request.META = {
-            "X-USER-ID": settings.SYSTEM_USER,
+            KEY_USER_ID: settings.SYSTEM_USER,
         }
         response = async_to_sync(delete_document)(request, collection_id, document_id)
         if int(response["code"]) != HTTPStatus.OK:

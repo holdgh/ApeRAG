@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 from typing import Dict, Any, List, Iterator
 
+from readers.base_readers import  SUPPORTED_COMPRESSED_EXTENSIONS
 from kubechat.source.base import Source, RemoteDocument, LocalDocument
 from kubechat.source.utils import gen_temporary_file
 

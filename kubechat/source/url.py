@@ -1,0 +1,42 @@
+import tempfile
+from typing import Dict, Any, Iterator
+from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
+from kubechat.utils.spider.base_spider import url_selector
+
+
+class WebCannotBeCrawledException(BaseException):
+    pass
+
+
+def download_web_text_to_temp_file(url, name):
+    web_text, prefix = url_selector(url, name)
+    if len(web_text) == 0:
+        raise WebCannotBeCrawledException("can't crawl the web")
+    temp_file = tempfile.NamedTemporaryFile(
+        prefix=prefix,
+        delete=False,
+        suffix=".txt",
+    )
+    temp_file.write(web_text.encode("utf-8"))
+    temp_file.close()
+    return temp_file
+
+
+class URLSource(Source):
+    def __init__(self, ctx: Dict[str, Any]):
+        super().__init__(ctx)
+
+    def sync_enabled(self):
+        return True
+
+    def scan_documents(self) -> Iterator[RemoteDocument]:
+        return iter([])
+
+    def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        url = metadata["url"]
+        result_url = url.replace('"', '')
+        temp_file_path = download_web_text_to_temp_file(
+            result_url, name
+        ).name
+        metadata["name"] = name
+        return LocalDocument(name=name, path=temp_file_path, metadata=metadata)

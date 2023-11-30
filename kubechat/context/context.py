@@ -11,8 +11,9 @@ class ContextManager(ABC):
         self.embedding_model = embedding_model
         self.adaptor = VectorStoreConnectorAdaptor(vectordb_type, vectordb_ctx)
 
-    def query(self, query, score_threshold=0.5, topk=3):
-        vector = self.embedding_model.embed_query(query)
+    def query(self, query, score_threshold=0.5, topk=3, vector=None):
+        if vector is None:
+            vector = self.embedding_model.embed_query(query)
         query_embedding = QueryWithEmbedding(query=query, top_k=topk, embedding=vector)
         results = self.adaptor.connector.search(
             query_embedding,

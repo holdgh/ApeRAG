@@ -7,7 +7,7 @@ from typing import Dict, Any
 from elasticsearch import Elasticsearch, AsyncElasticsearch
 from langchain import PromptTemplate
 
-from kubechat.llm.predict import Predictor, PredictorType
+from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.prompts import KEYWORD_PROMPT_TEMPLATE
 
 

@@ -4,7 +4,12 @@ import unittest
 from unittest.mock import patch, MagicMock
 import aiohttp
 from aioresponses import aioresponses
-from predict import CustomLLMPredictor, KubeBlocksLLMPredictor, OpenAIPredictor, BaiChuanPredictor, BaiduQianFan, ChatGLMPredictor
+from base import KubeBlocksLLMPredictor
+from kubechat.llm.custom import CustomLLMPredictor
+from kubechat.llm.chatglm import ChatGLMPredictor
+from kubechat.llm.wenxin import BaiduQianFan
+from kubechat.llm.baichuan import BaiChuanPredictor
+from kubechat.llm.openai import OpenAIPredictor
 
 
 class TestBaiChuanPredictor(unittest.IsolatedAsyncioTestCase):

@@ -1,0 +1,41 @@
+{{ if eq .Values.django.embeddingBackend "remote" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubechat-embedding
+  labels:
+    app: kubechat-embedding
+spec:
+  replicas: {{ .Values.embedding.replicaCount }}
+  selector:
+    matchLabels:
+      app: kubechat-embedding
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: kubechat-embedding
+    spec:
+      containers:
+        - name: kubechat-embedding
+          image: {{ .Values.image.embedding.registry | default "docker.io" }}/{{ .Values.image.embedding.repository }}:{{ .Values.image.embedding.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [ "--model-name-or-path", "BAAI/bge-large-zh-v1.5", "--port", "8001", "--batch-size", "16", "--log-level", "debug" ]
+          ports:
+            - containerPort: 8001
+              protocol: TCP
+          {{- with index .Values.embedding.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      restartPolicy: Always
+      {{- with .Values.embedding.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

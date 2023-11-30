@@ -19,11 +19,9 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-import kubechat.views
-from kubechat.views import default_page
-from django.conf.urls import handler404
+import kubechat.views.main
 
-handler404 = kubechat.views.default_page
+handler404 = kubechat.views.main.default_page
 
 urlpatterns = [
     path("api/", include("kubechat.urls")),

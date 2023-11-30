@@ -1,0 +1,17 @@
+{{ if eq .Values.django.embeddingBackend "remote" }}
+apiVersion: v1
+kind: Service
+metadata:
+   name: kubechat-embedding
+   labels:
+     app: kubechat-embedding
+spec:
+   ports:
+     - protocol: TCP
+       port: 8001
+       targetPort: 8001
+   selector:
+     app: kubechat-embedding
+   type: ClusterIP
+
+{{- end }}

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paddleocr-hubserving
+spec:
+  replicas: {{ index .Values "paddleocr" "replicaCount" }}
+  selector:
+    matchLabels:
+      app: paddleocr-hubserving
+  template:
+    metadata:
+      labels:
+        app: paddleocr-hubserving
+    spec:
+      containers:
+        - name: paddleocr-hubserving
+          image: {{ .Values.image.paddleocr.registry | default "docker.io" }}/{{ .Values.image.paddleocr.repository }}:{{ .Values.image.paddleocr.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8866
+          {{- with .Values.paddleocr.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

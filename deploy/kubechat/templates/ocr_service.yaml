@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: paddleocr-hubserving-service
+spec:
+  selector:
+    app: paddleocr-hubserving
+  ports:
+    - protocol: TCP
+      port: 8866
+      targetPort: 8866
+  type: ClusterIP

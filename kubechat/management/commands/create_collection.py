@@ -4,7 +4,8 @@ from asgiref.sync import async_to_sync
 from django.core.management.base import BaseCommand, CommandError
 
 from config import settings
-from kubechat.views import create_collection, CollectionIn
+from kubechat.utils.constant import KEY_USER_ID
+from kubechat.views.main import create_collection, CollectionIn
 from django.http import HttpRequest
 from http import HTTPStatus
 
@@ -23,7 +24,7 @@ class Command(BaseCommand):
         request = HttpRequest()
         request.method = "POST"
         request.META = {
-            "X-USER-ID": settings.SYSTEM_USER,
+            KEY_USER_ID: settings.SYSTEM_USER,
         }
         config = {
             "source": "system"

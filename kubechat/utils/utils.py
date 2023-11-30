@@ -1,23 +1,27 @@
-import json
 import re
 from datetime import datetime
-from typing import Dict
 import hashlib
 import base64
 from Crypto.Cipher import AES
-from langchain import PromptTemplate
-from pydantic import ValidationError
-
-from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.source.base import get_source, CustomSourceInitializationError
 
 AVAILABLE_MODEL = [""]
-AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu"]
+AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu","url"]
 
 
 def extract_bot_and_chat_id(path: str):
     match = re.match(
         r"/api/v1/bots/(?P<bot_id>\w+)/chats/(?P<chat_id>\w+)/connect$",
+        path,
+    )
+    if match:
+        return match.group("bot_id"), match.group("chat_id")
+    else:
+        raise ValueError(f"Invalid path format: {path}")
+
+
+def extract_web_bot_and_chat_id(path: str):
+    match = re.match(
+        r"/api/v1/bots/(?P<bot_id>\w+)/web-chats/(?P<chat_id>\w+)/connect$",
         path,
     )
     if match:
@@ -84,50 +88,6 @@ def fix_path_name(path) -> str:
     return str(path).replace("|", "-")
 
 
-def validate_source_connect_config(config: Dict) -> (bool, str):
-    if "source" not in config.keys():
-        return False, ""
-    if config.get("source") not in AVAILABLE_SOURCE:
-        return False, ""
-    try:
-        get_source(config)
-    except CustomSourceInitializationError as e:
-        return False, str(e)
-    return True, ""
-
-
-def validate_bot_config(model, config: Dict) -> (bool, str):
-    try:
-        Predictor.from_model(model, PredictorType.CUSTOM_LLM, **config)
-    except Exception as e:
-        return False, str(e)
-
-    try:
-        # validate the prompt
-        prompt_template = config.get("prompt_template", None)
-        PromptTemplate(template=prompt_template, input_variables=["query", "context"])
-    except ValidationError:
-        return False, "Invalid prompt template"
-
-    context_window = config.get("context_window")
-    if context_window > 32768 or context_window < 0:
-        return False, "Invalid context window"
-
-    similarity_score_threshold = config.get("similarity_score_threshold")
-    if similarity_score_threshold > 1.0 or similarity_score_threshold <= 0:
-        return False, "Invalid similarity score threshold"
-
-    similarity_topk = config.get("similarity_topk")
-    if similarity_topk > 10 or similarity_topk <= 0:
-        return False, "Invalid similarity topk"
-
-    temperature = config.get("temperature")
-    if temperature > 1.0 or temperature < 0:
-        return False, "Invalid temperature"
-
-    return True, ""
-
-
 class AESCipher(object):
     def __init__(self, key):
         self.bs = AES.block_size
@@ -152,3 +112,5 @@ class AESCipher(object):
     def decrypt_string(self, enc):
         enc = base64.b64decode(enc)
         return self.decrypt(enc).decode('utf8')
+
+

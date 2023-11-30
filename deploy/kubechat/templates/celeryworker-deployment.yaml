@@ -106,29 +106,46 @@ spec:
                   key: EMBEDDING_MODEL
                   name: kubechat-config
             - name: EMBEDDING_DEVICE
+              value: {{ index .Values "celery-worker" "embeddingDevice" }}
+            - name: WHISPER_HOST
               valueFrom:
                 configMapKeyRef:
-                  key: EMBEDDING_DEVICE
+                  key: WHISPER_HOST
                   name: kubechat-config
+            - name: PADDLEOCR_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: PADDLEOCR_HOST
+                  name: kubechat-config
+            - name: EMBEDDING_BACKEND
+              value: {{ .Values.django.embeddingBackend }}
+            - name: EMBEDDING_SERVICE_URL
+              value: {{ .Values.django.embeddingServiceUrl }}
+            - name: EMBEDDING_SERVICE_MODEL
+              value: {{ .Values.django.embeddingServiceModel }}
+            {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_KEY
                   name: kubechat-config
+            {{- end}}
+            {{- if .Values.django.openaiProxy }}
             - name: OPENAI_API_PROXY
               valueFrom:
                 configMapKeyRef:
                   key: OPENAI_API_PROXY
                   name: kubechat-config
+            {{- end}}
             - name: ENABLE_QA_GENERATOR
               valueFrom:
                 configMapKeyRef:
                   key: ENABLE_QA_GENERATOR
                   name: kubechat-config
-            - name: MODEL_SERVERS
+            - name: MODEL_FAMILIES
               valueFrom:
                 configMapKeyRef:
-                  key: MODEL_SERVERS
+                  key: MODEL_FAMILIES
                   name: kubechat-config
             - name: ES_HOST
               valueFrom:

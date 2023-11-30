@@ -1,0 +1,73 @@
+name: E2E Test KubeChat
+
+on:
+  workflow_dispatch:
+    inputs:
+      VERSION:
+        description: 'kubechat release version'
+        required: true
+        default: ''
+      KUBEBLOCKS_VERSION:
+        description: 'kubeblocks release version'
+        required: true
+        default: 'latest'
+      CLOUD_PROVIDER:
+        description: 'cloud provider'
+        required: true
+        default: 'gke'
+        type: choice
+        options:
+          - gke
+      CLUSTER_VERSION:
+        description: 'k8s cluster version'
+        required: false
+        default: '1.26'
+        type: choice
+        options:
+          - 1.27
+          - 1.26
+          - 1.25
+          - 1.24
+      NODE_TYPE:
+        description: 'node instance types'
+        required: false
+        default: 'g2-standard-4'
+        type: choice
+        options:
+          - g2-standard-4
+          - g2-standard-8
+          - g2-standard-16
+          - g2-standard-32
+      NODE_SIZE:
+        description: 'node size'
+        type: string
+        required: false
+        default: '1'
+
+
+run-name: kubechat:${{ inputs.VERSION }} ${{ inputs.CLOUD_PROVIDER }}:${{ inputs.CLUSTER_VERSION }}:${{ inputs.NODE_TYPE }}
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  check-version:
+    if: ${{ always() }}
+    uses: apecloud/apecloud-cd/.github/workflows/check-release-version.yml@v0.1.41
+    with:
+      VERSION: "${{ inputs.VERSION }}"
+      APECD_REF: "v0.1.41"
+    secrets: inherit
+
+  e2e:
+    name: ${{ inputs.CLOUD_PROVIDER }}
+    needs: [ check-version ]
+    uses: apecloud/apecloud-cd/.github/workflows/kubechat-test-k8s.yml@main
+    with:
+      KUBECHAT_VERSION: "${{ needs.check-version.outputs.release-version }}"
+      KUBEBLOCKS_VERSION: "${{ inputs.KUBEBLOCKS_VERSION }}"
+      CLOUD_PROVIDER: "${{ inputs.CLOUD_PROVIDER }}"
+      CLUSTER_VERSION: "${{ inputs.CLUSTER_VERSION }}"
+      NODE_TYPE: "${{ inputs.NODE_TYPE }}"
+      NODE_SIZE: "${{ inputs.NODE_SIZE }}"
+    secrets: inherit

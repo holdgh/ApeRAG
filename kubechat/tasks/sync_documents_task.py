@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import sys
-import traceback
 
 from asgiref.sync import async_to_sync
 from celery import group
@@ -14,11 +13,11 @@ from django.utils import timezone
 from pydantic import BaseModel
 
 from config.celery import app
-from kubechat.models import Document, DocumentStatus, Collection, CollectionStatus, CollectionSyncHistory, \
+from kubechat.db.models import Document, DocumentStatus, Collection, CollectionStatus, CollectionSyncHistory, \
     CollectionSyncStatus
 from kubechat.source.base import get_source
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
-from kubechat.utils.db import query_documents
+from kubechat.db.ops import query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)

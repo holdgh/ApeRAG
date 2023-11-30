@@ -141,6 +141,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://\w+\.kubeblocks\.io$",
     r"http://localhost:*",
+    # TODO reconsider this
+    r"http://*:*",
+    r"https://*:*",
 ]
 
 # CSRF
@@ -226,10 +229,19 @@ LOGGING = {
 
 # LLM Model
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
-MODEL_SERVERS = env.str("MODEL_SERVERS", default='[{"name": "vicuna-13b", "endpoint": "http://127.0.0.1:8000"}]')
+MODEL_FAMILIES = env.str("MODEL_FAMILIES", default='[]')
 
 EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
 EMBEDDING_MODEL = env.str("EMBEDDING_MODEL", default="text2vec")
+EMBEDDING_BACKEND = env.str("EMBEDDING_BACKEND", default="local")
+EMBEDDING_SERVICE_URL = env.str("EMBEDDING_SERVICE_URL", default="http://34.42.156.228:8001/v1/embeddings")
+EMBEDDING_SERVICE_MODEL = env.str("EMBEDDING_SERVICE_MODEL", default="BAAI/bge-large-zh-v1.5")
+
+VECTOR_SIZE = {
+    "huggingface": 768,
+    "text2vec": 768,
+    "bge": 1024
+}
 
 # Memory backend
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
@@ -293,3 +305,6 @@ QIANFAN_API_KEY = env.str("QIANFAN_API_KEY", default="")
 QIANFAN_SECRET_KEY = env.str("QIANFAN_SECRET_KEY", default="")
 
 OPENAI_API_PROXY = env.str("OPENAI_API_PROXY", default="{}")
+
+WHISPER_HOST=env.str("WHISPER_HOST", default="http://openai-whisper-asr-service:9000")
+PADDLEOCR_HOST=env.str("PADDLEOCR_HOST", default="http://paddleocr-hubserving-service:8866")

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging
 import faulthandler
-import re
-from typing import Any, List, Optional, Dict
+import json
+import logging
+import subprocess
+from typing import Any, List, Optional, Dict, Tuple
 
 from langchain.embeddings.base import Embeddings
 from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding
 
+from kubechat.db.models import ProtectAction
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from vectorstore.connector import VectorStoreConnectorAdaptor
@@ -37,20 +39,27 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             def metadata_mapping_func(path: str) -> Dict[str, Any]:
                 return metadata_mapping.get(path, {})
+
             kwargs["file_metadata"] = metadata_mapping_func
         self.reader = InteractiveSimpleDirectoryReader(**kwargs)
 
-    def load_data(self) -> list[str]:
+    def load_data(self, **kwargs) -> Tuple[List[str], str, List]:
+        sensitive_protect = kwargs.get('sensitive_protect', False)
+        sensitive_protect_method = kwargs.get('sensitive_protect_method', ProtectAction.WARNING_NOT_STORED)
         docs, file_name = self.reader.load_data()
         if not docs:
             return []
 
-        nodes: List[NodeWithEmbedding] = []
-        texts: str = ""
+        nodes: List[Node] = []
+        nodes_with_embedding: List[NodeWithEmbedding] = []
+
+        texts = []
+        content = ""
+        embedding_docs = []
+        sensitive_info = []
+        
         for doc in docs:
-
-            texts += doc.text
-
+            content += doc.text
             doc.text = doc.text.strip()
 
             # ignore page less than 30 characters
@@ -67,6 +76,8 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 logger.warning("ignore page with content ratio less than %f: %s",
                                content_ratio_threshold, doc.metadata.get("name", None))
                 continue
+
+            embedding_docs.append(doc)
 
             paddings = []
             # padding titles of the hierarchy
@@ -88,10 +99,16 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                 logger.info("add extra prefix for document %s before embedding: %s",
                             doc.metadata.get("name", None), prefix)
 
+            if sensitive_protect:
+                doc.text,output_sensitive_info = self.sensitive_filter(doc.text, sensitive_protect_method)
+                if output_sensitive_info != {}:
+                    sensitive_info.append(output_sensitive_info)
+            
             if prefix:
                 text = f"{prefix}\n{doc.text}"
             else:
                 text = doc.text
+            texts.append(text)
 
             # embedding without the prefix #, which is usually used for padding in the LLM
             # lines = []
@@ -101,8 +118,6 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             # embedding without the code block
             # text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-            vector = self.embedding.embed_documents([text])[0]
-            doc.embedding = vector
             node = Node(
                 text=doc.text,
                 doc_id=doc.doc_id,
@@ -113,9 +128,42 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                     node_id=node.node_id, metadata={"source": f"{doc.metadata['name']}"}
                 )
             }
-            nodes.append(NodeWithEmbedding(node=node, embedding=vector))
+            nodes.append(node)
+
+        if sensitive_protect and sensitive_protect_method == ProtectAction.WARNING_NOT_STORED and sensitive_info != []:
+            logger.info("find sensitive infomation: %s", file_name)
+            return [], "", sensitive_info
+
+        vectors = self.embedding.embed_documents(texts)
+
+        for i in range(len(vectors)):
+            embedding_docs[i].embedding = vectors[i]
+            nodes_with_embedding.append(NodeWithEmbedding(node=nodes[i], embedding=vectors[i]))
+
         print(f"processed file: {file_name} ")
-        return self.connector.store.add(nodes), texts
+
+        return self.connector.store.add(nodes_with_embedding), content, sensitive_info
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)
+
+    @staticmethod
+    def sensitive_filter(text: str, sensitive_protect_method: str) -> Tuple[str, Dict]:
+        output_sensitive_info = {}        
+        try:
+            result = subprocess.run(['dlptool', text], capture_output=True, text=True)
+            output = result.stdout.split('\n')
+            dlp_num = int(output[0])
+            dlp_outputs = []
+            for line in output[1:dlp_num + 1]:
+                dlp_outputs.append(json.loads(line))
+            dlp_masktext = '\n'.join(output[dlp_num + 2:])
+            if dlp_num > 0 and sensitive_protect_method == ProtectAction.REPLACE_WORDS:
+                output_text = dlp_masktext
+            else:
+                output_text = text
+            if dlp_num > 0:
+                output_sensitive_info = {"chunk": text, "masked_chunk": dlp_masktext, "sensitive_info": dlp_outputs}
+        except:
+            output_text = text
+        return output_text, output_sensitive_info

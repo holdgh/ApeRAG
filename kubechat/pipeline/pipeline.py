@@ -1,9 +1,6 @@
-import asyncio
 import random
-import re
 import json
 import logging
-import time
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -15,11 +12,11 @@ from pydantic import BaseModel
 
 from config import settings
 from kubechat.context.context import ContextManager
-from kubechat.llm.predict import Predictor, PredictorType
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
+from kubechat.llm.base import Predictor, PredictorType
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.source.utils import async_run
-from kubechat.utils.full_text import search_document
+from kubechat.context.full_text import search_document
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name, generate_fulltext_index_name
 from query.query import get_packed_answer
@@ -60,14 +57,25 @@ class Pipeline(ABC):
         bot_config = json.loads(self.bot.config)
         self.llm_config = bot_config.get("llm", {})
         self.model = bot_config.get("model", "baichuan-13b")
+        self.memory = bot_config.get("memory", False)
+        self.memory_count = 0
+        self.memory_limit_length = bot_config.get("memory_length", 0)
+        self.memory_limit_count = bot_config.get("memory_count", 10)
+        self.use_ai_memory = bot_config.get("use_ai_memory", True)
         self.topk = self.llm_config.get("similarity_topk", 3)
+        self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
         self.context_window = self.llm_config.get("context_window", 3500)
-        self.prompt_template = self.llm_config.get("prompt_template", None)
+        if self.memory:
+            self.prompt_template = self.llm_config.get("memory_prompt_template", None)
+        else:
+            self.prompt_template = self.llm_config.get("prompt_template", None)
         if not self.prompt_template:
-            self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+            if self.memory:
+                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
+            else:
+                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
-
         collection_name = generate_vector_db_collection_name(collection.id)
         self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.vectordb_ctx["collection"] = collection_name
@@ -84,7 +92,10 @@ class Pipeline(ABC):
         self.qa_vectordb_ctx["collection"] = qa_collection_name
         self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                                  self.qa_vectordb_ctx)
-        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **self.llm_config)
+
+        kwargs = {"model": self.model}
+        kwargs.update(self.llm_config)
+        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
     @staticmethod
     def new_human_message(message, message_id):
@@ -222,12 +233,13 @@ class QueryRewritePipeline(Pipeline):
         self.add_human_message(message, message_id)
 
         references = []
-        results = self.qa_context_manager.query(message, score_threshold=0.85, topk=1)
+        vector = self.embedding_model.embed_query(message)
+        results = self.qa_context_manager.query(message, score_threshold=0.85, topk=1, vector=vector)
         if len(results) > 0:
             response = results[0].text
             yield response
         else:
-            results = self.context_manager.query(message, self.score_threshold, self.topk)
+            results = self.context_manager.query(message, self.score_threshold, self.topk, vector=vector)
             context = ""
             if len(results) > 0:
                 context = get_packed_answer(results, self.context_window)
@@ -256,50 +268,78 @@ class KeywordPipeline(Pipeline):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    async def filter_by_keywords(self, message, candidates):
+        index = generate_fulltext_index_name(self.collection_id)
+        async with IKExtractor({"index_name": index, "es_host": settings.ES_HOST}) as extractor:
+            keywords = await extractor.extract(message)
+            logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
+
+        # find the related documents using keywords
+        docs = await search_document(index, keywords, self.topk * 3)
+        if not docs:
+            return candidates
+
+        doc_names = {}
+        for doc in docs:
+            doc_names[doc["name"]] = doc["content"]
+            logger.info("[%s] found keyword in document %s", message, doc["name"])
+
+        result = []
+        for item in candidates:
+            if item.metadata["name"] not in doc_names:
+                logger.info("[%s] ignore doc %s not match keywords", message, item.metadata["name"])
+                continue
+            result.append(item)
+        return result
+
     async def run(self, message, gen_references=False, message_id=""):
-        self.add_human_message(message, message_id)
+        log_prefix = f"{message_id}|{message}"
+        logger.info("[%s] start processing", log_prefix)
 
         references = []
-
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1)
+        vector = self.embedding_model.embed_query(message)
+        logger.info("[%s] embedding query end", log_prefix)
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
+        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         if len(results) > 0:
             response = results[0].text
             yield response
         else:
-            index = generate_fulltext_index_name(self.collection_id)
-            async with IKExtractor({"index_name": index, "es_host": settings.ES_HOST}) as extractor:
-                keywords = await extractor.extract(message)
-                logger.info("[%s] extract keywords: %s", message, " | ".join(keywords))
-
-            # find the related documents using keywords
-            doc_names = {}
-            if keywords:
-                docs = await search_document(index, keywords, self.topk * 3)
-                for doc in docs:
-                    doc_names[doc["name"]] = doc["content"]
-                    logger.info("[%s] found keyword in document %s", message, doc["name"])
-
-            candidates = []
             results = await async_run(self.context_manager.query, message,
-                                      score_threshold=self.score_threshold, topk=self.topk * 6)
-            if len(results) > self.topk:
-                results = rerank(message, results)[:self.topk]
-            for result in results:
-                if result.metadata["name"] not in doc_names:
-                    logger.info("[%s] ignore doc %s not match keywords", message, result.metadata["name"])
-                    continue
-                candidates.append(result)
-            # if no keywords found, fallback to using all results from embedding search
-            if not doc_names:
-                candidates = results
+                                      score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
+            logger.info("[%s] find top %d relevant context in vector db end", log_prefix, len(results))
+            if len(results) > 1:
+                results = rerank(message, results)
+                logger.info("[%s] rerank candidates end", log_prefix)
+            else:
+                logger.info("[%s] don't need to rerank ", log_prefix)
+
+            candidates = results[:self.topk]
+            if self.enable_keyword_recall:
+                candidates = await self.filter_by_keywords(message, candidates)
+                logger.info("[%s] filter keyword end", log_prefix)
+            else:
+                logger.info("[%s] no need to filter keyword", log_prefix)
 
             context = ""
             if len(candidates) > 0:
-                context = get_packed_answer(candidates, self.context_window)
+                # 500 is the estimated length of the prompt
+                context = get_packed_answer(candidates, max(self.context_window - 500, 0))
+
+            history = []
+            if self.memory and len(self.history.messages) > 0:
+                history = self.predictor.get_latest_history(
+                                messages=self.history.messages,
+                                limit_length=max(min(self.context_window-500-len(context),self.memory_limit_length), 0),
+                                limit_count=self.memory_limit_count,
+                                use_ai_memory=self.use_ai_memory)
+                self.memory_count = len(history)
+
             prompt = self.prompt.format(query=message, context=context)
+            logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
             response = ""
-            async for msg in self.predictor.agenerate_stream(prompt):
+            async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
                 yield msg
                 response += msg
 
@@ -310,7 +350,11 @@ class KeywordPipeline(Pipeline):
                     "metadata": result.metadata
                 })
 
+        self.add_human_message(message, message_id)
+        logger.info("[%s] add human message end", log_prefix)
+
         self.add_ai_message(message, message_id, response, references)
+        logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)

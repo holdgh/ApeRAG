@@ -11,12 +11,15 @@ data:
   CELERY_FLOWER_USER: "{{ .Values.flower.user }}"
   CELERY_FLOWER_PASSWORD: "{{ .Values.flower.password }}"
   DJANGO_LOG_LEVEL: "INFO"
-  MODEL_SERVER: "{{ .Values.django.modelServer }}"
-  MODEL_SERVERS: '{{ .Values.django.modelServers | toJson }}'
+  MODEL_FAMILIES: '{{ .Values.django.modelFamilies | toJson }}'
   VECTOR_DB_CONTEXT: '{{ .Values.django.vectorDBContext }}'
   VECTOR_DB_TYPE: "{{ .Values.django.vectorDBType }}"
+  {{- if .Values.django.openaiAPIKey }}
   OPENAI_API_KEY: "{{ .Values.django.openaiAPIKey }}"
+  {{- end}}
+  {{- if .Values.django.openaiProxy }}
   OPENAI_API_PROXY: "{{ .Values.django.openaiProxy }}"
+  {{- end}}
   FEISHU_APP_ID: "{{ .Values.django.feishu.appID }}"
   FEISHU_APP_SECRET: "{{ .Values.django.feishu.appSecret }}"
   FEISHU_ENCRYPT_KEY: "{{ .Values.django.feishu.encryptKey }}"
@@ -24,6 +27,8 @@ data:
   EMBEDDING_DEVICE: "{{ .Values.django.embeddingDevice }}"
   ENABLE_QA_GENERATOR: "{{ .Values.django.enableQAGenerator }}"
   ES_HOST: "{{ .Values.django.esHost }}"
+  WHISPER_HOST: "{{ .Values.django.whisperHost }}"
+  PADDLEOCR_HOST: "{{ .Values.django.paddleocrHost }}"
 kind: ConfigMap
 metadata:
   labels:
