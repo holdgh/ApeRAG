@@ -1,7 +1,7 @@
 from typing import Dict, Type
 
 from llama_index.readers.base import BaseReader
-from llama_index.readers.file.docs_reader import PDFReader, DocxReader
+from llama_index.readers.file.docs_reader import PDFReader
 from llama_index.readers.file.ipynb_reader import IPYNBReader
 from llama_index.readers.file.mbox_reader import MboxReader
 from llama_index.readers.file.tabular_reader import PandasCSVReader
@@ -19,8 +19,8 @@ from readers.compressed_file_reader import  CompressedFileReader
 
 DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".pdf": PDFReader,
-    ".docx": DocxReader,
-    # ".docx": MyDocxReader,
+    # ".docx": DocxReader,
+    ".docx": MyDocxReader,
     ".doc": MyDocReader,
     ".pptx": PptxReader,
     ".jpg": ComposeImageReader,

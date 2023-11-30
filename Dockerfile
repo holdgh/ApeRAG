@@ -6,7 +6,7 @@ RUN curl -sL http://kubeblocks.oss-cn-hangzhou.aliyuncs.com/dlptool  -o /tmp/dlp
 FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
 
 RUN apt update && \
-    apt install --no-install-recommends -y build-essential
+    apt install --no-install-recommends -y build-essential libreoffice
 
 COPY requirements.txt /requirements.txt
 
