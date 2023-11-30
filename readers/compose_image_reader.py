@@ -5,6 +5,7 @@ import base64
 import requests
 import json
 import PIL.Image
+from io import BytesIO
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document, ImageDocument
 from PIL import Image
