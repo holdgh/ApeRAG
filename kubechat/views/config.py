@@ -1,12 +1,14 @@
-from ninja import NinjaAPI
+from ninja import NinjaAPI, Router
 
 from config import settings
 from kubechat.views.utils import success
 
 api = NinjaAPI(version="1.0.0", urls_namespace="config")
 
+router = Router()
 
-@api.get("/config")
+
+@router.get("")
 def config(request):
     auth = {
         "type": settings.AUTH_TYPE,

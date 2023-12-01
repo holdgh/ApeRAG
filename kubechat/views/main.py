@@ -12,7 +12,7 @@ from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django.shortcuts import render
 from langchain.memory import RedisChatMessageHistory
-from ninja import File, NinjaAPI, Schema
+from ninja import File, NinjaAPI, Schema, Router
 from ninja.errors import ValidationError, AuthenticationError
 from ninja.files import UploadedFile
 
@@ -38,8 +38,7 @@ from kubechat.db.models import *
 logger = logging.getLogger(__name__)
 
 api = NinjaAPI(version="1.0.0", auth=GlobalHTTPAuth(), urls_namespace="collection")
-api.add_exception_handler(ValidationError, validation_errors)
-api.add_exception_handler(AuthenticationError, auth_errors)
+router = Router()
 
 
 class CollectionIn(Schema):
@@ -90,7 +89,7 @@ class DocumentConfig(BaseModel):
     filepath: str = ""
 
 
-@api.get("/models")
+@router.get("/models")
 def list_models(request):
     response = []
     model_families = yaml.safe_load(settings.MODEL_FAMILIES)
@@ -116,7 +115,7 @@ def list_models(request):
     return success(response)
 
 
-@api.post("/collections/{collection_id}/sync")
+@router.post("/collections/{collection_id}/sync")
 async def sync_immediately(request, collection_id):
     user = get_user(request)
     collection = await query_collection(user, collection_id)
@@ -141,7 +140,7 @@ async def sync_immediately(request, collection_id):
     return success(instance.view())
 
 
-@api.post("/collections/{collection_id}/cancel_sync/{collection_sync_id}")
+@router.post("/collections/{collection_id}/cancel_sync/{collection_sync_id}")
 async def cancel_sync(request, collection_id, collection_sync_id):
     """
     cancel the collection_sync_id related tasks
@@ -179,7 +178,7 @@ async def cancel_sync(request, collection_id, collection_sync_id):
     return success({})
 
 
-@api.get("/collections/{collection_id}/sync/history")
+@router.get("/collections/{collection_id}/sync/history")
 async def list_sync_histories(request, collection_id):
     user = get_user(request)
     pr = await query_sync_histories(user, collection_id, build_pq(request))
@@ -195,7 +194,7 @@ async def list_sync_histories(request, collection_id):
     return success(response, pr)
 
 
-@api.get("/collections/{collection_id}/sync/{sync_history_id}")
+@router.get("/collections/{collection_id}/sync/{sync_history_id}")
 async def get_sync_history(request, collection_id, sync_history_id):
     user = get_user(request)
     sync_history = await query_sync_history(user, collection_id, sync_history_id)
@@ -210,7 +209,7 @@ async def get_sync_history(request, collection_id, sync_history_id):
     return success(sync_history.view())
 
 
-@api.post("/collections")
+@router.post("/collections")
 async def create_collection(request, collection: CollectionIn):
     user = get_user(request)
     config = json.loads(collection.config)
@@ -251,7 +250,7 @@ async def create_collection(request, collection: CollectionIn):
     return success(instance.view())
 
 
-@api.get("/collections")
+@router.get("/collections")
 async def list_collections(request):
     user = get_user(request)
     pr = await query_collections(user, build_pq(request))
@@ -261,7 +260,7 @@ async def list_collections(request):
     return success(response, pr)
 
 
-@api.get("/default_collections")
+@router.get("/default_collections")
 async def list_default_collections(request):
     pr = await query_collections(settings.SYSTEM_USER, build_pq(request))
     response = []
@@ -270,7 +269,7 @@ async def list_default_collections(request):
     return success(response, pr)
 
 
-@api.get("/collections/{collection_id}")
+@router.get("/collections/{collection_id}")
 async def get_collection(request, collection_id):
     user = get_user(request)
     instance = await query_collection(user, collection_id)
@@ -284,7 +283,7 @@ async def get_collection(request, collection_id):
     return success(instance.view(bot_ids=bot_ids))
 
 
-@api.put("/collections/{collection_id}")
+@router.put("/collections/{collection_id}")
 async def update_collection(request, collection_id, collection: CollectionIn):
     user = get_user(request)
     instance = await query_collection(user, collection_id)
@@ -306,7 +305,7 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     return success(instance.view(bot_ids=bot_ids))
 
 
-@api.delete("/collections/{collection_id}")
+@router.delete("/collections/{collection_id}")
 async def delete_collection(request, collection_id):
     user = get_user(request)
     collection = await query_collection(user, collection_id)
@@ -326,7 +325,7 @@ async def delete_collection(request, collection_id):
     return success(collection.view())
 
 
-@api.post("/collections/{collection_id}/documents")
+@router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
     if len(file)>500:
         return fail(HTTPStatus.BAD_REQUEST, "documents are too many,add document failed")
@@ -364,7 +363,7 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
     return success(response)
 
 
-@api.post("/collections/{collection_id}/urls")
+@router.post("/collections/{collection_id}/urls")
 async def create_url_document(request, collection_id):
     user = get_user(request)
     response = {"failed_urls": []}
@@ -404,7 +403,7 @@ async def create_url_document(request, collection_id):
     return success(response)
 
 
-@api.get("/collections/{collection_id}/documents")
+@router.get("/collections/{collection_id}/documents")
 async def list_documents(request, collection_id):
     user = get_user(request)
     pr = await query_documents(user, collection_id, build_pq(request))
@@ -414,7 +413,7 @@ async def list_documents(request, collection_id):
     return success(response, pr)
 
 
-@api.put("/collections/{collection_id}/documents/{document_id}")
+@router.put("/collections/{collection_id}/documents/{document_id}")
 async def update_document(
         request, collection_id, document_id, document: UpdateDocumentIn):
     user = get_user(request)
@@ -438,7 +437,7 @@ async def update_document(
     return success(instance.view())
 
 
-@api.delete("/collections/{collection_id}/documents/{document_id}")
+@router.delete("/collections/{collection_id}/documents/{document_id}")
 async def delete_document(request, collection_id, document_id):
     user = get_user(request)
     document = await query_document(user, collection_id, document_id)
@@ -456,7 +455,7 @@ async def delete_document(request, collection_id, document_id):
     return success(document.view())
 
 
-@api.delete("/collections/{collection_id}/documents")
+@router.delete("/collections/{collection_id}/documents")
 async def delete_documents(request, collection_id, document_ids: List[str]):
     user = get_user(request)
     documents = await query_documents(user, collection_id, build_pq(request))
@@ -477,7 +476,7 @@ async def delete_documents(request, collection_id, document_ids: List[str]):
     return success({"success": ok, "failed": failed})
 
 
-@api.post("/bots/{bot_id}/chats")
+@router.post("/bots/{bot_id}/chats")
 async def create_chat(request, bot_id):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
@@ -488,7 +487,7 @@ async def create_chat(request, bot_id):
     return success(instance.view(bot_id))
 
 
-@api.get("/bots/{bot_id}/chats")
+@router.get("/bots/{bot_id}/chats")
 async def list_chats(request, bot_id):
     user = get_user(request)
     pr = await query_chats(user, bot_id, build_pq(request))
@@ -498,7 +497,7 @@ async def list_chats(request, bot_id):
     return success(response, pr)
 
 
-@api.put("/bots/{bot_id}/chats/{chat_id}")
+@router.put("/bots/{bot_id}/chats/{chat_id}")
 async def update_chat(request, bot_id, chat_id):
     user = get_user(request)
     chat = await query_chat(user, bot_id, chat_id)
@@ -511,7 +510,7 @@ async def update_chat(request, bot_id, chat_id):
     return success(chat.view(bot_id))
 
 
-@api.get("/bots/{bot_id}/chats/{chat_id}")
+@router.get("/bots/{bot_id}/chats/{chat_id}")
 async def get_chat(request, bot_id, chat_id):
     user = get_user(request)
     chat = await query_chat(user, bot_id, chat_id)
@@ -528,7 +527,7 @@ class MessageFeedbackIn(Schema):
     revised_answer: Optional[str]
 
 
-@api.post("/bots/{bot_id}/chats/{chat_id}/messages/{message_id}")
+@router.post("/bots/{bot_id}/chats/{chat_id}/messages/{message_id}")
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     user = get_user(request)
     chat = await query_chat(user, bot_id, chat_id)
@@ -543,7 +542,7 @@ async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Message
     return success({})
 
 
-@api.delete("/bots/{bot_id}/chats/{chat_id}")
+@router.delete("/bots/{bot_id}/chats/{chat_id}")
 async def delete_chat(request, bot_id, chat_id):
     user = get_user(request)
     chat = await query_chat(user, bot_id, chat_id)
@@ -564,7 +563,7 @@ class BotIn(Schema):
     collection_ids: Optional[List[str]]
 
 
-@api.post("/bots")
+@router.post("/bots")
 async def create_bot(request, bot_in: BotIn):
     user = get_user(request)
     bot = Bot(
@@ -594,7 +593,7 @@ async def create_bot(request, bot_in: BotIn):
     return success(bot.view(collections))
 
 
-@api.get("/bots")
+@router.get("/bots")
 async def list_bots(request):
     user = get_user(request)
     pr = await query_bots(user, build_pq(request))
@@ -617,7 +616,7 @@ async def list_bots(request):
     return success(response, pr)
 
 
-@api.get("/bots/{bot_id}")
+@router.get("/bots/{bot_id}")
 async def get_bot(request, bot_id):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
@@ -629,7 +628,7 @@ async def get_bot(request, bot_id):
     return success(bot.view(collections))
 
 
-@api.put("/bots/{bot_id}")
+@router.put("/bots/{bot_id}")
 async def update_bot(request, bot_id, bot_in: BotIn):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
@@ -663,7 +662,7 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     return success(bot.view(collections))
 
 
-@api.delete("/bots/{bot_id}")
+@router.delete("/bots/{bot_id}")
 async def delete_bot(request, bot_id):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
@@ -680,7 +679,7 @@ class IntegrationIn(Schema):
     config: Optional[str]
 
 
-@api.post("/bots/{bot_id}/integrations")
+@router.post("/bots/{bot_id}/integrations")
 async def create_integration(request, bot_id, integration: IntegrationIn):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
@@ -696,7 +695,7 @@ async def create_integration(request, bot_id, integration: IntegrationIn):
     return success(instance.view(bot_id))
 
 
-@api.get("/bots/{bot_id}/integrations")
+@router.get("/bots/{bot_id}/integrations")
 async def list_integrations(request, bot_id):
     user = get_user(request)
     bot = await query_bot(user, bot_id)
@@ -709,7 +708,7 @@ async def list_integrations(request, bot_id):
     return success(response, pr)
 
 
-@api.get("/bots/{bot_id}/integrations/{integration_id}")
+@router.get("/bots/{bot_id}/integrations/{integration_id}")
 async def get_integration(user, bot_id, integration_id):
     bot = await query_bot(user, bot_id)
     if bot is None:
@@ -720,7 +719,7 @@ async def get_integration(user, bot_id, integration_id):
     return integration
 
 
-@api.put("/bots/{bot_id}/integrations/{integration_id}")
+@router.put("/bots/{bot_id}/integrations/{integration_id}")
 async def update_integration(user, bot_id, integration_id, integration_in: IntegrationIn):
     bot = await query_bot(user, bot_id)
     if bot is None:
@@ -734,7 +733,7 @@ async def update_integration(user, bot_id, integration_id, integration_in: Integ
     return integration
 
 
-@api.delete("/bots/{bot_id}/integrations/{integration_id}")
+@router.delete("/bots/{bot_id}/integrations/{integration_id}")
 async def delete_integration(user, bot_id, integration_id):
     bot = await query_bot(user, bot_id)
     if bot is None:

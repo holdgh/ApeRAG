@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 from django.db import IntegrityError
 from langchain.memory import RedisChatMessageHistory
-from ninja import NinjaAPI
+from ninja import NinjaAPI, Router
 from ninja.errors import ValidationError, AuthenticationError
 
 import kubechat.chat
@@ -18,9 +18,7 @@ from kubechat.views.main import MessageFeedbackIn
 logger = logging.getLogger(__name__)
 
 
-api = NinjaAPI(version="1.0.0", urls_namespace="web-chat")
-api.add_exception_handler(ValidationError, validation_errors)
-api.add_exception_handler(AuthenticationError, auth_errors)
+router = Router()
 
 
 def check_origin(request, bot):
@@ -34,7 +32,7 @@ def check_origin(request, bot):
     # return origin in host_white_list
 
 
-@api.get("/bots/{bot_id}/web-chats")
+@router.get("/bots/{bot_id}/web-chats")
 async def list_chats(request, bot_id, session_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -48,7 +46,7 @@ async def list_chats(request, bot_id, session_id):
     return success(response, pr)
 
 
-@api.post("/bots/{bot_id}/web-chats")
+@router.post("/bots/{bot_id}/web-chats")
 async def create_chat(request, bot_id, session_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -68,7 +66,7 @@ async def create_chat(request, bot_id, session_id):
     return success(instance.view(bot_id))
 
 
-@api.get("/bots/{bot_id}/web-chats/{chat_id}")
+@router.get("/bots/{bot_id}/web-chats/{chat_id}")
 async def get_chat(request, bot_id, chat_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -82,7 +80,7 @@ async def get_chat(request, bot_id, chat_id):
     return success(chat.view(bot_id, messages))
 
 
-@api.post("/bots/{bot_id}/web-chats/{chat_id}/messages/{message_id}")
+@router.post("/bots/{bot_id}/web-chats/{chat_id}/messages/{message_id}")
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -97,7 +95,7 @@ async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Message
     return success({})
 
 
-@api.put("/bots/{bot_id}/web-chats/{chat_id}")
+@router.put("/bots/{bot_id}/web-chats/{chat_id}")
 async def update_chat(request, bot_id, chat_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
