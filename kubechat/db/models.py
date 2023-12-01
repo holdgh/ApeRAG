@@ -226,7 +226,7 @@ class BotIntegrationType(models.TextChoices):
 
 
 class BotIntegration(models.Model):
-    id = models.CharField(primary_key=True, default=int_pk(), editable=False, max_length=24)
+    id = models.CharField(primary_key=True, default=int_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
     type = models.CharField(max_length=16, choices=BotIntegrationType.choices)
