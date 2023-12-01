@@ -1,3 +1,5 @@
+import sys
+
 from django.apps import AppConfig
 import asyncio
 
@@ -10,6 +12,10 @@ class KubechatConfig(AppConfig):
     name = "kubechat"
 
     def ready(self):
+        # if manage.py is running, this might be a migration, so we don't need to load quotas
+        if "manage.py" in sys.argv:
+            return
+
         if asyncio.get_event_loop().is_running():
             # call load_quotas() asynchronously in uvicorn
             asyncio.create_task(sync_to_async(load_quotas)())
