@@ -15,8 +15,6 @@ if settings.ENABLE_KEYWORD_SEARCH:
 
 
 # import redis
-from redisearch.client import Client, Query, IndexDefinition
-from redisearch import TextField
 # from redis.commands.search.query import Query
 # from redis.commands.json.path import Path
 # from redis.commands.search.field import TextField

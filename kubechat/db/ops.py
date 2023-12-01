@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 
 from django.db.models import QuerySet
 from pydantic import BaseModel
+from asgiref.sync import sync_to_async
 
 from kubechat.db.models import (
     Bot,
@@ -13,7 +14,7 @@ from kubechat.db.models import (
     CollectionSyncHistory,
     Document,
     DocumentStatus,
-    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer,
+    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Quota, UserQuota,
 )
 
 
@@ -105,6 +106,12 @@ async def query_collections(user, pq: PagedQuery = None):
     return await build_pr(pq, query_set)
 
 
+async def query_collections_count(user, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    count = await sync_to_async(Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user, **filters).count)()
+    return count
+
+
 async def query_document(user, collection_id: str, document_id: str):
     try:
         return await Document.objects.exclude(status=DocumentStatus.DELETED).aget(
@@ -119,6 +126,13 @@ async def query_documents(user, collection_id: str, pq: PagedQuery = None):
     query_set = Document.objects.exclude(status=DocumentStatus.DELETED).filter(
         user=user, collection_id=collection_id, **filters)
     return await build_pr(pq, query_set)
+
+
+async def query_documents_count(user, collection_id: str, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    count = await sync_to_async(Document.objects.exclude(status=DocumentStatus.DELETED).filter(
+        user=user, collection_id=collection_id, **filters).count)()
+    return count
 
 
 async def query_chat(user, bot_id: str, chat_id: str):
@@ -239,6 +253,22 @@ async def query_bots(user, pq: PagedQuery = None):
     filters = build_filters(pq)
     query_set = Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters)
     return await build_pr(pq, query_set)
+
+
+async def query_bots_count(user, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    count = await sync_to_async(Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters).count)()
+    return count
+
+
+def query_quota(key):
+    result = Quota.objects.filter(key=key).values_list('value', flat=True).first()
+    return result
+
+
+async def query_user_quota(user, key):
+    result = await sync_to_async(UserQuota.objects.filter(user=user, key=key).values_list('value', flat=True).first)()
+    return result
 
 
 async def query_integrations(user, bot_id: str, pq: PagedQuery = None):

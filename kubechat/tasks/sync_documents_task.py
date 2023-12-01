@@ -13,6 +13,7 @@ from django.utils import timezone
 from pydantic import BaseModel
 
 from config.celery import app
+from kubechat.apps import DefaultQuota
 from kubechat.db.models import Document, DocumentStatus, Collection, CollectionStatus, CollectionSyncHistory, \
     CollectionSyncStatus
 from kubechat.source.base import get_source
@@ -61,8 +62,31 @@ def sync_documents(self, **kwargs):
     collection_sync_history.update_execution_time()
     collection_sync_history.save()
 
+    document_limit = kwargs["document_user_quota"]
+    if document_limit is None:
+        document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+
     src_docs = {}
     tasks = []
+    exceeded_limit_docs = []
+    delete_docs_count = 0
+    docs_count = len(dst_docs)
+
+    def add_document(document):
+        collection_sync_history.total_documents_to_sync += 1
+        collection_sync_history.new_documents += 1
+        doc = Document(
+            user=collection.user,
+            name=document.name,
+            status=DocumentStatus.PENDING,
+            size=document.size,
+            collection=collection,
+            metadata=json.dumps(document.metadata, cls=DjangoJSONEncoder),
+        )
+        doc.save()
+        collection_sync_history.save()
+        return doc
+
     source = get_source(json.loads(collection.config))
     for src_doc in source.scan_documents():
         if not os.path.splitext(src_doc.name)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
@@ -86,18 +110,11 @@ def sync_documents(self, **kwargs):
                 tasks.append(update_index.s(dst_doc.id))
 
         else:  # add
-            collection_sync_history.total_documents_to_sync += 1
-            collection_sync_history.new_documents += 1
-            doc = Document(
-                user=collection.user,
-                name=src_doc.name,
-                status=DocumentStatus.PENDING,
-                size=src_doc.size,
-                collection=collection,
-                metadata=json.dumps(src_doc.metadata, cls=DjangoJSONEncoder),
-            )
-            doc.save()
-            collection_sync_history.save()
+            if document_limit and docs_count >= document_limit:
+                exceeded_limit_docs.append(src_doc)
+                continue
+            add_document(src_doc)
+            docs_count += 1
             tasks.append(add_index_for_document.s(doc.id))
 
     for name, dst_doc in dst_docs.items():  # delete
@@ -106,7 +123,18 @@ def sync_documents(self, **kwargs):
             collection_sync_history.deleted_documents += 1
             collection_sync_history.pending_documents += 1
             collection_sync_history.save()
+            delete_docs_count += 1
             tasks.append(remove_index.s(dst_doc.id))
+
+    for i in range(delete_docs_count):
+        if i >= len(exceeded_limit_docs):
+            break
+        doc = add_document(exceeded_limit_docs[i])
+        tasks.append(add_index_for_document.s(doc.id))
+
+    if len(exceeded_limit_docs) > delete_docs_count:
+        logger.warning(f"document number has reached the limit of {document_limit}")
+
     index_result = group(tasks).apply_async()
     index_result.save()
     monitor_result = monitor_sync_tasks.apply_async(args=[collection_sync_history.id])

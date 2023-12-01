@@ -98,14 +98,14 @@ class Pipeline(ABC):
         self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
     @staticmethod
-    def new_human_message(message, message_id):
+    async def new_human_message(message, message_id):
         return Message(
             id=message_id,
             query=message,
             timestamp=now_unix_milliseconds(),
         )
 
-    def new_ai_message(self, message, message_id, response, references):
+    async def new_ai_message(self, message, message_id, response, references):
         return Message(
             id=message_id,
             query=message,
@@ -122,21 +122,23 @@ class Pipeline(ABC):
             llm_context_window=self.context_window,
         )
 
-    def add_human_message(self, message, message_id):
+    async def add_human_message(self, message, message_id):
         if not message_id:
             message_id = str(uuid.uuid4())
 
-        human_msg = self.new_human_message(message, message_id).json(exclude_none=True)
-        self.history.add_message(
+        human_msg = await (self.new_human_message(message, message_id))
+        human_msg = human_msg.json(exclude_none=True)
+        await self.history.add_message(
             HumanMessage(
                 content=human_msg,
                 additional_kwargs={"role": "human"}
             )
         )
 
-    def add_ai_message(self, message, message_id, response, references):
-        ai_msg = self.new_ai_message(message, message_id, response, references).json(exclude_none=True)
-        self.history.add_message(
+    async def add_ai_message(self, message, message_id, response, references):
+        ai_msg = await (self.new_ai_message(message, message_id, response, references))
+        ai_msg = ai_msg.json(exclude_none=True)
+        await self.history.add_message(
             AIMessage(
                 content=ai_msg,
                 additional_kwargs={"role": "ai"}
@@ -164,7 +166,7 @@ class FakePipeline(Pipeline):
             yield " ".join(tokens)
 
     async def run(self, message, gen_references=False, message_id=""):
-        self.add_human_message(message, message_id)
+        await self.add_human_message(message, message_id)
 
         response = ""
         for sentence in self.sentence_generator(batch=5, min_len=10, max_len=30):
@@ -186,7 +188,7 @@ class FakePipeline(Pipeline):
                 "metadata": {"source": ref[:20]},
             })
 
-        self.add_ai_message(message, message_id, response, references)
+        await self.add_ai_message(message, message_id, response, references)
 
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
@@ -198,7 +200,7 @@ class BasePipeline(Pipeline):
         super().__init__(**kwargs)
 
     async def run(self, message, gen_reference=False, message_id=""):
-        self.add_human_message(message, message_id)
+        await self.add_human_message(message, message_id)
 
         results = self.context_manager.query(message, self.score_threshold, self.topk)
         context = ""
@@ -218,7 +220,7 @@ class BasePipeline(Pipeline):
                 "text": result.text,
                 "metadata": result.metadata
             })
-        self.add_ai_message(message, message_id, response, references)
+        await self.add_ai_message(message, message_id, response, references)
 
         if gen_reference:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
@@ -230,7 +232,7 @@ class QueryRewritePipeline(Pipeline):
         super().__init__(**kwargs)
 
     async def run(self, message, gen_references=False, message_id=""):
-        self.add_human_message(message, message_id)
+        await self.add_human_message(message, message_id)
 
         references = []
         vector = self.embedding_model.embed_query(message)
@@ -257,7 +259,7 @@ class QueryRewritePipeline(Pipeline):
                     "metadata": result.metadata
                 })
 
-        self.add_ai_message(message, message_id, response, references)
+        await self.add_ai_message(message, message_id, response, references)
 
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
@@ -327,9 +329,10 @@ class KeywordPipeline(Pipeline):
                 context = get_packed_answer(candidates, max(self.context_window - 500, 0))
 
             history = []
-            if self.memory and len(self.history.messages) > 0:
+            messages = await self.history.messages
+            if self.memory and len(messages) > 0:
                 history = self.predictor.get_latest_history(
-                                messages=self.history.messages,
+                                messages=messages,
                                 limit_length=max(min(self.context_window-500-len(context),self.memory_limit_length), 0),
                                 limit_count=self.memory_limit_count,
                                 use_ai_memory=self.use_ai_memory)
@@ -350,10 +353,10 @@ class KeywordPipeline(Pipeline):
                     "metadata": result.metadata
                 })
 
-        self.add_human_message(message, message_id)
+        await self.add_human_message(message, message_id)
         logger.info("[%s] add human message end", log_prefix)
 
-        self.add_ai_message(message, message_id, response, references)
+        await self.add_ai_message(message, message_id, response, references)
         logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
         if gen_references:

@@ -13,7 +13,7 @@ from kubechat.tasks.sync_documents_task import sync_documents
 
 
 @app.task
-def init_collection_task(collection_id):
+def init_collection_task(collection_id, document_user_quota):
     collection = Collection.objects.get(id=collection_id)
     if collection.status == CollectionStatus.DELETED:
         return
@@ -45,7 +45,7 @@ def init_collection_task(collection_id):
     
     source = get_source(json.loads(collection.config))
     if source.sync_enabled():
-        sync_documents.delay(collection_id=collection_id)
+        sync_documents.delay(collection_id=collection_id,document_user_quota=document_user_quota)
 
 
 @app.task

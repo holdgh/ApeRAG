@@ -23,6 +23,12 @@ class BaiChuanPredictor(Predictor):
         if not self.secret_key:
             raise LLMConfigError("Please specify the Secret Key")
 
+        self.use_default_token = not kwargs.get("api_key", "") or not kwargs.get("secret_key", "")
+
+    @staticmethod
+    def provide_default_token():
+        return bool(os.environ.get("BAICHUAN_API_KEY", "")) and bool(os.environ.get("BAICHUAN_SECRET_KEY", ""))
+
     @staticmethod
     def calculate_md5(input_string):
         md5 = hashlib.md5()

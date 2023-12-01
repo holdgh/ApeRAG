@@ -5,7 +5,6 @@ from http import HTTPStatus
 from typing import List
 
 import yaml
-from asgiref.sync import sync_to_async
 from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -19,6 +18,8 @@ from ninja.files import UploadedFile
 import kubechat.chat.message
 from config import settings
 from config.celery import app
+from kubechat.apps import DefaultQuota, QuotaType
+from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.source.base import get_source
@@ -100,6 +101,7 @@ def list_models(request):
                 "label": model_server.get("label", model_server["name"]),
                 "enabled": model_server.get("enabled", "true").lower() == "true",
                 "memory": model_server.get("memory", "disabled").lower() == "enabled",
+                "default_token": Predictor.check_default_token(model_name=model_server["name"]),
                 "prompt_template": DEFAULT_MODEL_PROMPT_TEMPLATES.get(model_server["name"],
                                                                       DEFAULT_CHINESE_PROMPT_TEMPLATE_V2),
                 "memory_prompt_template": DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"],
@@ -136,7 +138,10 @@ async def sync_immediately(request, collection_id):
         status=CollectionSyncStatus.RUNNING,
     )
     await instance.asave()
-    sync_documents.delay(collection_id=collection_id, sync_history_id=instance.id)
+    document_user_quota = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
+    sync_documents.delay(collection_id=collection_id,
+                         sync_history_id=instance.id,
+                         document_user_quota=document_user_quota)
     return success(instance.view())
 
 
@@ -217,6 +222,15 @@ async def create_collection(request, collection: CollectionIn):
         is_validate, error_msg = validate_source_connect_config(config)
         if not is_validate:
             return fail(HTTPStatus.BAD_REQUEST, error_msg)
+
+    # there is quota limit on collection
+    if DefaultQuota.MAX_COLLECTION_COUNT:
+        collection_limit = await query_user_quota(user, QuotaType.MAX_COLLECTION_COUNT)
+        if collection_limit is None:
+            collection_limit = DefaultQuota.MAX_COLLECTION_COUNT
+        if collection_limit and await query_collections_count(user) >= collection_limit:
+            return fail(HTTPStatus.FORBIDDEN, f"collection number has reached the limit of {collection_limit}")
+
     instance = Collection(
         user=user,
         type=collection.type,
@@ -235,7 +249,8 @@ async def create_collection(request, collection: CollectionIn):
             collection.config = json.dumps(config)
             await instance.asave()
     elif instance.type == CollectionType.DOCUMENT :
-        init_collection_task.delay(collection_id=instance.id)
+        document_user_quota = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
+        init_collection_task.delay(instance.id, document_user_quota)
     elif instance.type == CollectionType.CODE:
         chat = Chat(
             user=instance.user,
@@ -334,6 +349,14 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
+    # there is quota limit on document
+    if DefaultQuota.MAX_DOCUMENT_COUNT:
+        document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
+        if document_limit is None:
+            document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+        if await query_documents_count(user, collection_id) >= document_limit:
+            return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
+
     response = []
     for item in file:
         file_suffix = os.path.splitext(item.name)[1].lower()
@@ -371,6 +394,15 @@ async def create_url_document(request, collection_id):
     urls = get_urls(request)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+
+    # there is quota limit on document
+    if DefaultQuota.MAX_DOCUMENT_COUNT:
+        document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
+        if document_limit is None:
+            document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+        if await query_documents_count(user, collection_id) >= document_limit:
+            return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
+
     try:
         failed_urls = []
         for url in urls:
@@ -566,6 +598,15 @@ class BotIn(Schema):
 @router.post("/bots")
 async def create_bot(request, bot_in: BotIn):
     user = get_user(request)
+
+    # there is quota limit on bot
+    if DefaultQuota.MAX_BOT_COUNT:
+        bot_limit = await query_user_quota(user, QuotaType.MAX_BOT_COUNT)
+        if bot_limit is None:
+            bot_limit = DefaultQuota.MAX_BOT_COUNT
+        if await query_bots_count(user) >= bot_limit:
+            return fail(HTTPStatus.FORBIDDEN, f"bot number has reached the limit of {bot_limit}")
+
     bot = Bot(
         user=user,
         title=bot_in.title,

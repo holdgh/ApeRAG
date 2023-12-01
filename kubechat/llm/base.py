@@ -52,38 +52,38 @@ class Predictor(ABC):
         return None
 
     @staticmethod
-    def from_model(model_name, predictor_type="", **kwargs):
+    def match_predictor(model_name, predictor_type, kwargs):
         match model_name:
             case "chatgpt-3.5":
                 kwargs["model"] = "gpt-3.5-turbo"
                 from kubechat.llm.openai import OpenAIPredictor
-                return OpenAIPredictor(**kwargs)
+                return OpenAIPredictor
             case "gpt-3.5-turbo-1106" | "gpt-3.5-turbo" | "gpt-3.5-turbo-16k" | "gpt-3.5-turbo-instruct":
                 from kubechat.llm.openai import OpenAIPredictor
-                return OpenAIPredictor(**kwargs)
+                return OpenAIPredictor
             case "chatgpt-4":
                 kwargs["model"] = "gpt-4"
                 from kubechat.llm.openai import OpenAIPredictor
-                return OpenAIPredictor(**kwargs)
+                return OpenAIPredictor
             case "gpt-4-1106-preview" | "gpt-4-vision-preview" | "gpt-4" | "gpt-4-32k" | "gpt-4-0613" | "gpt-4-32k-0613":
                 from kubechat.llm.openai import OpenAIPredictor
-                return OpenAIPredictor(**kwargs)
+                return OpenAIPredictor
             case "azure-openai":
                 from kubechat.llm.azure import AzureOpenAIPredictor
-                return AzureOpenAIPredictor(**kwargs)
+                return AzureOpenAIPredictor
             case "baichuan-53b":
                 from kubechat.llm.baichuan import BaiChuanPredictor
-                return BaiChuanPredictor(**kwargs)
+                return BaiChuanPredictor
             case "ernie-bot-turbo":
                 from kubechat.llm.wenxin import BaiduQianFan
-                return BaiduQianFan(**kwargs)
+                return BaiduQianFan
             case "chatglm-pro" | "chatglm-std" | "chatglm-lite" | "chatglm-turbo":
                 kwargs["model"] = model_name.replace("-", "_")
                 from kubechat.llm.chatglm import ChatGLMPredictor
-                return ChatGLMPredictor(**kwargs)
+                return ChatGLMPredictor
             case "qwen-turbo" | "qwen-plus" | "qwen-max":
                 from kubechat.llm.qianwen import QianWenPredictor
-                return QianWenPredictor(**kwargs)
+                return QianWenPredictor
 
         endpoint = kwargs.get("endpoint", "")
         if not endpoint:
@@ -91,16 +91,27 @@ class Predictor(ABC):
             if not ctx:
                 raise Exception("No model server available for model: %s" % model_name)
             endpoint = ctx.get("endpoint", "")
+            kwargs["endpoint"] = endpoint
             predictor_type = ctx.get("type", PredictorType.CUSTOM_LLM)
 
         match predictor_type:
             case PredictorType.KB_VLLM:
-                return KubeBlocksLLMPredictor(endpoint=endpoint, **kwargs)
+                return KubeBlocksLLMPredictor
             case PredictorType.CUSTOM_LLM:
                 from kubechat.llm.custom import CustomLLMPredictor
-                return CustomLLMPredictor(endpoint=endpoint, **kwargs)
+                return CustomLLMPredictor
             case _:
                 raise Exception("Unsupported predictor type: %s" % predictor_type)
+
+    @staticmethod
+    def from_model(model_name, predictor_type="", **kwargs):
+        predictor = Predictor.match_predictor(model_name, predictor_type, kwargs)
+        return predictor(**kwargs)
+
+    @staticmethod
+    def check_default_token(model_name, predictor_type="", **kwargs):
+        predictor = Predictor.match_predictor(model_name, predictor_type, kwargs)
+        return predictor.provide_default_token()
 
     def get_latest_history(self, messages, limit_length, limit_count, use_ai_memory) -> str:
         latest_history = []
@@ -133,6 +144,11 @@ class KubeBlocksLLMPredictor(Predictor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.endpoint = kwargs.get("endpoint", "http://localhost:18000")
+        self.use_deafult_token = False
+
+    @staticmethod
+    def provide_default_token():
+        return False
 
     def _generate_stream(self, history, prompt, memory=False):
         input = {
