@@ -34,6 +34,7 @@ from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_sou
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.db.models import *
+from config.settings import HIGH_PRIORITY_QUEUE
 
 logger = logging.getLogger(__name__)
 
@@ -322,7 +323,9 @@ async def delete_collection(request, collection_id):
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
-    delete_collection_task.delay(collection_id)
+    delete_collection_task.apply_async(args=[collection_id],
+                                       queue='high_priority',
+                                       priority=1)
     return success(collection.view())
 
 
@@ -355,7 +358,12 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             })
             await document_instance.asave()
             response.append(document_instance.view())
-            add_index_for_local_document.delay(document_instance.id)
+            header = {'collection_id': str(collection_id)}
+            add_index_for_local_document.apply_async(
+                args=[str(document_instance.id)],
+                queue=HIGH_PRIORITY_QUEUE,
+                priority=10,
+                headers=header)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
         except Exception as e:
@@ -391,7 +399,7 @@ async def create_url_document(request, collection_id):
                 "url": string_data,
             })
             await document_instance.asave()
-            add_index_for_local_document.delay(document_instance.id)
+            add_index_for_local_document.apply_async(args=(document_instance.id),queue='high_priority',priority=10,headers={'collection_id':str(collection_id)})
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)

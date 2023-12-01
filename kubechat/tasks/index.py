@@ -15,7 +15,7 @@ from pathlib import Path
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.db.models import Document, DocumentStatus, MessageFeedback, \
+from kubechat.db.models import Document, DocumentStatus, MessageFeedback,Collection,CollectionStatus, \
     MessageFeedbackStatus, ProtectAction
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
@@ -160,16 +160,18 @@ def add_index_for_local_document(self, document_id):
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
-def add_index_for_document(self, document_id):
+def add_index_for_document(self,document_id):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
             document_id: the document in Django Module
     """
     document = Document.objects.get(id=document_id)
+    collection =Collection.objects.get(id=document.collection.id)
+    if collection.status==CollectionStatus.DELETED:
+        return
     document.status = DocumentStatus.RUNNING
     document.save()
-
     source = None
     local_doc = None
     metadata = json.loads(document.metadata)
@@ -279,6 +281,9 @@ def remove_index(self, document_id):
 def update_index(self, document_id):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
+    collection =Collection.objects.get(id=document.collection.id)
+    if collection.status==CollectionStatus.DELETED:
+        return
     document.save()
 
     try:

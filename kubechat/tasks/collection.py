@@ -52,6 +52,8 @@ def init_collection_task(collection_id):
 def delete_collection_task(collection_id):
     collection = Collection.objects.get(id=collection_id)
 
+    app.control.revoke_by_stamped_headers({'collection_id': str(collection_id)})
+
     # TODO remove the related collection in the vector db
     index_name = generate_fulltext_index_name(collection.id)
     delete_index(index_name)

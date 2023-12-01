@@ -19,7 +19,7 @@ from kubechat.source.base import get_source
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 from kubechat.db.ops import query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-
+from config.settings import HIGH_PRIORITY_QUEUE
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +63,8 @@ def sync_documents(self, **kwargs):
 
     src_docs = {}
     tasks = []
+    priority = 10
+    headers = {'collection_id': str(collection_id)}
     source = get_source(json.loads(collection.config))
     for src_doc in source.scan_documents():
         if not os.path.splitext(src_doc.name)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
@@ -83,7 +85,8 @@ def sync_documents(self, **kwargs):
                 collection_sync_history.total_documents_to_sync += 1
                 collection_sync_history.modified_documents += 1
                 collection_sync_history.save()
-                tasks.append(update_index.s(dst_doc.id))
+                task = update_index.s(dst_doc.id).set(queue=HIGH_PRIORITY_QUEUE, priority=priority,headers=headers)
+                tasks.append(task)
 
         else:  # add
             collection_sync_history.total_documents_to_sync += 1
@@ -98,7 +101,8 @@ def sync_documents(self, **kwargs):
             )
             doc.save()
             collection_sync_history.save()
-            tasks.append(add_index_for_document.s(doc.id))
+            task = add_index_for_document.s(doc.id).set(queue=HIGH_PRIORITY_QUEUE, priority=priority,headers=headers)
+            tasks.append(task)
 
     for name, dst_doc in dst_docs.items():  # delete
         if name not in src_docs.keys():
@@ -106,7 +110,8 @@ def sync_documents(self, **kwargs):
             collection_sync_history.deleted_documents += 1
             collection_sync_history.pending_documents += 1
             collection_sync_history.save()
-            tasks.append(remove_index.s(dst_doc.id))
+            task = remove_index.s(dst_doc.id).set(queue=HIGH_PRIORITY_QUEUE, priority=priority,headers=headers)
+            tasks.append(task)
     index_result = group(tasks).apply_async()
     index_result.save()
     monitor_result = monitor_sync_tasks.apply_async(args=[collection_sync_history.id])

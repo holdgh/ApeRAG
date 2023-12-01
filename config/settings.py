@@ -198,8 +198,8 @@ CELERY_TASK_SEND_SENT_EVENT = True
 CELERY_TASK_TRACK_STARTED = True
 INSTALLED_APPS += ["django_celery_beat"]
 
-LOCAL_QUEUE_NAME = env.str("LOCAL_QUEUE_NAME", default="")
-
+LOCAL_QUEUE_NAME = env.str("LOCAL_QUEUE_NAME", default="celery")
+HIGH_PRIORITY_QUEUE = env.str("HIGH_PRIORITY_QUEUE", default="high_priority")
 # WebSockets
 INSTALLED_APPS += ["channels"]
 
