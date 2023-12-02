@@ -50,9 +50,11 @@ def ssl_file_path(instance, filename):
     user = instance.user.replace("|", "-")
     return "ssl_file/user-{0}/collection-{1}/{2}".format(user, instance.id, filename)
 
+
 class ProtectAction(models.TextChoices):
     WARNING_NOT_STORED = "nostore"
     REPLACE_WORDS = "replace"
+
     
 class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"

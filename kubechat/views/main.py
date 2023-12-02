@@ -10,15 +10,14 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django.shortcuts import render
-from langchain.memory import RedisChatMessageHistory
 from ninja import File, NinjaAPI, Schema, Router
-from ninja.errors import ValidationError, AuthenticationError
 from ninja.files import UploadedFile
 
 import kubechat.chat.message
 from config import settings
 from config.celery import app
 from kubechat.apps import DefaultQuota, QuotaType
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
@@ -538,7 +537,7 @@ async def update_chat(request, bot_id, chat_id):
     chat.summary = ""
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
-    history.clear()
+    await history.clear()
     return success(chat.view(bot_id))
 
 
@@ -584,7 +583,7 @@ async def delete_chat(request, bot_id, chat_id):
     chat.gmt_deleted = timezone.now()
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
-    history.clear()
+    await history.clear()
     return success(chat.view(bot_id))
 
 

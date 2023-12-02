@@ -4,10 +4,10 @@ from urllib.parse import parse_qsl
 
 from asgiref.sync import sync_to_async
 from channels.generic.http import AsyncHttpConsumer
-from langchain.memory import RedisChatMessageHistory
 from ninja import NinjaAPI
 
 from config import settings
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import success_response, stop_response, start_response, fail_response
 
 logger = logging.getLogger(__name__)

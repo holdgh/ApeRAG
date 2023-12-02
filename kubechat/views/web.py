@@ -3,15 +3,14 @@ import logging
 from http import HTTPStatus
 
 from django.db import IntegrityError
-from langchain.memory import RedisChatMessageHistory
-from ninja import NinjaAPI, Router
-from ninja.errors import ValidationError, AuthenticationError
+from ninja import Router
 
 import kubechat.chat
 from config import settings
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import query_web_chats, build_pq, query_bot, query_web_chat
-from kubechat.views.utils import success, fail, query_chat_messages, validation_errors, auth_errors
+from kubechat.views.utils import success, fail, query_chat_messages
 from kubechat.views.main import MessageFeedbackIn
 
 
@@ -108,5 +107,5 @@ async def update_chat(request, bot_id, chat_id):
     chat.summary = ""
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
-    history.clear()
+    await history.clear()
     return success(chat.view(bot_id))

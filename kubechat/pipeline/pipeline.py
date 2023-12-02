@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Optional, List, Dict
 
 from langchain import PromptTemplate
-from langchain.schema import BaseChatMessageHistory, HumanMessage, AIMessage
+from langchain.schema import HumanMessage, AIMessage
 from pydantic import BaseModel
 
 from config import settings
+from kubechat.chat.history.base import BaseChatMessageHistory
 from kubechat.context.context import ContextManager
 from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3

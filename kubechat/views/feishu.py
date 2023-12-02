@@ -2,18 +2,15 @@ import asyncio
 import json
 import time
 
-from langchain.memory import RedisChatMessageHistory
-from ninja.errors import ValidationError, AuthenticationError
-
 import kubechat.chat.message
 from http import HTTPStatus
 
-from asgiref.sync import sync_to_async
-from ninja import NinjaAPI, Router
+from ninja import Router
 
 from config import settings
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.ops import *
-from kubechat.views.utils import success, fail, validation_errors, auth_errors
+from kubechat.views.utils import success, fail
 from kubechat.auth.validator import FeishuEventVerification
 from kubechat.db.models import ChatPeer
 from kubechat.pipeline.pipeline import KeywordPipeline
