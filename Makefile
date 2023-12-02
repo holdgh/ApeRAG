@@ -96,7 +96,6 @@ compose-logs:
 	docker-compose -f compose.yml logs -f
 
 format:
-	poetry run black .
 	poetry run ruff --select I --fix .
 
 lint: PYTHON_FILES=.
@@ -104,7 +103,6 @@ lint_diff: PYTHON_FILES=$(shell git diff --name-only --diff-filter=d master | gr
 
 lint lint_diff:
 	poetry run mypy $(PYTHON_FILES)
-	poetry run black $(PYTHON_FILES) --check
 	poetry run ruff .
 
 test:
