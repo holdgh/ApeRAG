@@ -38,20 +38,15 @@ class PagedResult(BaseModel):
 
 
 def build_pq(request) -> Optional[PagedQuery]:
-    # FIXME this is compatible with the old frontend, once the frontend is updated,
-    # FIXME we should do pagination and add default page_number and page_size
     page_number = request.GET.get('page_number')
     page_size = request.GET.get('page_size')
-    if not page_number or not page_size:
-        return None
-
     match_key = request.GET.get('match_key', "")
     match_value = request.GET.get('match_value', "")
     order_by = request.GET.get('order_by', "")
     order_desc = request.GET.get('order_desc', "true")
     return PagedQuery(
-        page_number=int(page_number),
-        page_size=int(page_size),
+        page_number=int(page_number) if page_number else None,
+        page_size=int(page_size) if page_size else None,
         match_key=match_key,
         match_value=match_value,
         order_by=order_by,
@@ -66,13 +61,13 @@ def build_order_by(pq: PagedQuery) -> str:
 
 
 async def build_pr(pq: PagedQuery, query_set: QuerySet) -> PagedResult:
-    if not pq:
-        return PagedResult(count=-1, data=query_set)
+    count = await get_count(query_set)
+    query_set = query_set.order_by(build_order_by(pq))
+    if not pq or not pq.page_number or not pq.page_size:
+        return PagedResult(count=count, page_number=0, page_size=count, data=query_set)
 
     offset = (pq.page_number - 1) * pq.page_size
     limit = pq.page_size
-    count = await get_count(query_set)
-    query_set = query_set.order_by(build_order_by(pq))
     return PagedResult(count=count, page_number=pq.page_number, page_size=pq.page_size,
                        data=query_set[offset:offset + limit])
 

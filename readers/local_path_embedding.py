@@ -48,7 +48,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         sensitive_protect_method = kwargs.get('sensitive_protect_method', ProtectAction.WARNING_NOT_STORED)
         docs, file_name = self.reader.load_data()
         if not docs:
-            return []
+            return [], "", []
 
         nodes: List[Node] = []
         nodes_with_embedding: List[NodeWithEmbedding] = []

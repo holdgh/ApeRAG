@@ -113,7 +113,7 @@ def sync_documents(self, **kwargs):
             if document_limit and docs_count >= document_limit:
                 exceeded_limit_docs.append(src_doc)
                 continue
-            add_document(src_doc)
+            doc = add_document(src_doc)
             docs_count += 1
             tasks.append(add_index_for_document.s(doc.id))
 

@@ -344,6 +344,9 @@ class CollectionSyncHistory(models.Model):
     start_time = models.DateTimeField()
     task_context = models.JSONField(default={})
     status = models.CharField(max_length=16, choices=CollectionSyncStatus.choices, default=CollectionSyncStatus.RUNNING)
+    gmt_created = models.DateTimeField(auto_now_add=True, null=True)
+    gmt_updated = models.DateTimeField(auto_now=True, null=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     def update_execution_time(self):
         self.refresh_from_db()
