@@ -35,7 +35,7 @@ def start_response(message_id):
     )
 
 
-def stop_response(message_id, references, memory_count=0):
+def stop_response(message_id, references, related_question = [], memory_count=0):
     if references is None:
         references = []
     return json.dumps(
@@ -44,6 +44,7 @@ def stop_response(message_id, references, memory_count=0):
             "id": message_id,
             "data": references,
             "memoryCount": memory_count,
+            "related_question":related_question,
             "timestamp": now_unix_milliseconds()
         }
     )

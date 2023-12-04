@@ -2,6 +2,7 @@ import json
 import logging
 import traceback
 from abc import abstractmethod
+import ast
 from datetime import datetime
 
 import websockets
@@ -14,8 +15,9 @@ import config.settings as settings
 from kubechat.apps import DefaultQuota, QuotaType
 from kubechat.auth.validator import DEFAULT_USER
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
-from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline
+from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.db.ops import query_bot, query_user_quota
+
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.utils.constant import KEY_USER_ID, KEY_BOT_ID, KEY_CHAT_ID, KEY_WEBSOCKET_PROTOCOL
 from readers.base_embedding import get_collection_embedding_model
@@ -112,6 +114,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         message = ""
         references = []
+        related_question = []
         message_id = f"{now_unix_milliseconds()}"
 
         try:
@@ -127,6 +130,9 @@ class BaseConsumer(AsyncWebsocketConsumer):
             async for tokens in self.predict(data["data"], message_id=message_id):
                 if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
                     references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES):])
+                    continue
+                if tokens.startswith(KUBE_CHAT_RELATED_QUESTIONS):
+                    related_question = ast.literal_eval(tokens[len(KUBE_CHAT_RELATED_QUESTIONS):])
                     continue
 
                 # streaming response
@@ -147,6 +153,6 @@ class BaseConsumer(AsyncWebsocketConsumer):
             if self.use_default_token and self.conversation_limit:
                 await self.manage_quota_usage()
             # send stop message
-            await self.send(text_data=stop_response(message_id, references, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, references, related_question, self.pipeline.memory_count))
 
 
