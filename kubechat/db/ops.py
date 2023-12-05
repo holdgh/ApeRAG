@@ -57,7 +57,7 @@ def build_pq(request) -> Optional[PagedQuery]:
 def build_order_by(pq: PagedQuery) -> str:
     if not pq or not pq.order_by:
         return "gmt_created"
-    return f"{'' if pq.order_desc else '-'}{pq.order_by}"
+    return f"{'-' if pq.order_desc else ''}{pq.order_by}"
 
 
 async def build_pr(pq: PagedQuery, query_set: QuerySet) -> PagedResult:
