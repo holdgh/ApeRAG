@@ -27,7 +27,7 @@ class URLSource(Source):
         super().__init__(ctx)
 
     def sync_enabled(self):
-        return True
+        return False
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         return iter([])
