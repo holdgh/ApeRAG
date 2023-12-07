@@ -285,7 +285,7 @@ class Chat(models.Model):
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('peer_type', 'peer_id')
+        unique_together = ('bot', 'peer_type', 'peer_id')
 
     def view(self, bot_id, messages=None):
         if messages is None:
