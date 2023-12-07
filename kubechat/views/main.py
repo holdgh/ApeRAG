@@ -685,15 +685,18 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     bot.config = json.dumps(old_config)
     bot.title = bot_in.title
     bot.description = bot_in.description
-    collections = []
-    for cid in bot_in.collection_ids:
-        collection = await query_collection(user, cid)
-        if not collection:
-            return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
-        if collection.status == CollectionStatus.INACTIVE:
-            return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
-        collections.append(collection)
-    await sync_to_async(bot.collections.set)(collections)
+    if bot_in.collection_ids is not None:
+        collections = []
+        for cid in bot_in.collection_ids:
+            collection = await query_collection(user, cid)
+            if not collection:
+                return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
+            if collection.status == CollectionStatus.INACTIVE:
+                return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
+            collections.append(collection)
+        if len(collections) == 0:
+            return fail(HTTPStatus.BAD_REQUEST, "Collection is empty")
+        await sync_to_async(bot.collections.set)(collections)
     await bot.asave()
 
     collections = []
