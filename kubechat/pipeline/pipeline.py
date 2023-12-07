@@ -71,6 +71,14 @@ class Pipeline(ABC):
         self.context_window = self.llm_config.get("context_window", 3500)
         self.use_related_question = bot_config.get("use_related_question", False)
         
+        welcome = bot_config.get("welcome",{})
+        faq = welcome.get("faq",[])
+        self.welcome_question = []
+        for qa in faq:
+            self.welcome_question.append(qa["question"])
+        self.oops = welcome.get("oops","")
+        
+        
         if self.memory:
             self.prompt_template = self.llm_config.get("memory_prompt_template", None)
         else:
@@ -314,6 +322,7 @@ class KeywordPipeline(Pipeline):
         logger.info("[%s] start processing", log_prefix)
 
         references = []
+        response = ""
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
@@ -343,39 +352,51 @@ class KeywordPipeline(Pipeline):
             else:
                 logger.info("[%s] no need to filter keyword", log_prefix)
 
+            need_generate_answer = True
+            need_related_question = True
+        
             context = ""
             if len(candidates) > 0:
                 # 500 is the estimated length of the prompt
                 context = get_packed_answer(candidates, max(self.context_window - 500, 0))
-
-            history = []
-            messages = await self.history.messages
-            if self.memory and len(messages) > 0:
-                history = self.predictor.get_latest_history(
-                                messages=messages,
-                                limit_length=max(min(self.context_window-500-len(context),self.memory_limit_length), 0),
-                                limit_count=self.memory_limit_count,
-                                use_ai_memory=self.use_ai_memory)
-                self.memory_count = len(history)
-
-            prompt = self.prompt.format(query=message, context=context)
-            logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
+            else:
+                if self.oops != "":
+                    response = self.oops
+                    yield self.oops
+                    need_generate_answer = False
+                if self.welcome_question != []:
+                    yield KUBE_CHAT_RELATED_QUESTIONS + str(self.welcome_question)
+                    need_related_question = False
             
-            if self.use_related_question:
+            if self.use_related_question and need_related_question:
                 related_question_prompt = self.related_question_prompt.format(query=message, context=context)
                 related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
-            
-            response = ""
-            async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
-                yield msg
-                response += msg
-            
-            for result in candidates:
-                references.append({
-                    "score": result.score,
-                    "text": result.text,
-                    "metadata": result.metadata
-                })
+                
+            if need_generate_answer:
+                history = []
+                messages = await self.history.messages
+                if self.memory and len(messages) > 0:
+                    history = self.predictor.get_latest_history(
+                                    messages=messages,
+                                    limit_length=max(min(self.context_window-500-len(context),self.memory_limit_length), 0),
+                                    limit_count=self.memory_limit_count,
+                                    use_ai_memory=self.use_ai_memory)
+                    self.memory_count = len(history)
+
+                prompt = self.prompt.format(query=message, context=context)
+                logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
+        
+                
+                async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
+                    yield msg
+                    response += msg
+                
+                for result in candidates:
+                    references.append({
+                        "score": result.score,
+                        "text": result.text,
+                        "metadata": result.metadata
+                    })
 
         await self.add_human_message(message, message_id)
         logger.info("[%s] add human message end", log_prefix)
@@ -383,7 +404,7 @@ class KeywordPipeline(Pipeline):
         await self.add_ai_message(message, message_id, response, references)
         logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
         
-        if self.use_related_question:
+        if self.use_related_question and need_related_question:
             related_question = await related_question_task
             related_question = re.sub(r'\n+', '\n', related_question).split('\n')[1:]
             for i,question in enumerate(related_question):

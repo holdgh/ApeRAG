@@ -14,7 +14,7 @@ import redis.asyncio as redis
 import config.settings as settings
 from kubechat.apps import DefaultQuota, QuotaType
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
+from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
 from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.db.ops import query_bot, query_user_quota
 
@@ -77,6 +77,16 @@ class BaseConsumer(AsyncWebsocketConsumer):
         await super(AsyncWebsocketConsumer, self).send({"type": "websocket.accept", "headers": headers})
         self.pipeline = KeywordPipeline(bot=self.bot, collection=self.collection, history=self.history)
         self.use_default_token = self.pipeline.predictor.use_default_token
+        
+        message_id = f"{now_unix_milliseconds()}"
+        bot_config = json.loads(self.bot.config)
+        welcome = bot_config.get("welcome",{})
+        faq = welcome.get("faq",[])
+        questions = []
+        for qa in faq:
+            questions.append(qa["question"])
+        welcome_message = {"hello":welcome.get("hello",""), "faq":questions}
+        await self.send(text_data=welcome_response(message_id, welcome_message))
 
     async def disconnect(self, close_code):
         pass

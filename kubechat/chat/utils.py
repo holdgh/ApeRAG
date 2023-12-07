@@ -13,7 +13,16 @@ def success_response(message_id, data, issql=False):
         }
     )
 
-
+def welcome_response(message_id, welcome_message):
+    return json.dumps(
+        {
+            "type": "welcome",
+            "id": message_id,
+            "data": welcome_message,
+            "timestamp": now_unix_milliseconds()
+        }
+    )
+    
 def fail_response(message_id, error):
     return json.dumps(
         {
@@ -34,7 +43,7 @@ def start_response(message_id):
         }
     )
 
-
+  
 def stop_response(message_id, references, related_question = [], memory_count=0):
     if references is None:
         references = []
