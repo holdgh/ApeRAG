@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import faulthandler
-import json
 import logging
-import subprocess
 from typing import Any, List, Optional, Dict, Tuple
 
 from langchain.embeddings.base import Embeddings
@@ -15,11 +13,11 @@ from kubechat.db.models import ProtectAction
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
 from vectorstore.connector import VectorStoreConnectorAdaptor
+from readers.sensitive_filter import SensitiveFilter,SensitiveFilterClassify
 
 logger = logging.getLogger(__name__)
 
 faulthandler.enable()
-
 
 class LocalPathEmbedding(DocumentBaseEmbedding):
     def __init__(
@@ -42,9 +40,11 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
             kwargs["file_metadata"] = metadata_mapping_func
         self.reader = InteractiveSimpleDirectoryReader(**kwargs)
+        self.filter = SensitiveFilterClassify()
 
     def load_data(self, **kwargs) -> Tuple[List[str], str, List]:
         sensitive_protect = kwargs.get('sensitive_protect', False)
+        sensitive_protect_llm = kwargs.get('sensitive_protect_llm', False) 
         sensitive_protect_method = kwargs.get('sensitive_protect_method', ProtectAction.WARNING_NOT_STORED)
         docs, file_name = self.reader.load_data()
         if not docs:
@@ -100,7 +100,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                             doc.metadata.get("name", None), prefix)
 
             if sensitive_protect:
-                doc.text,output_sensitive_info = self.sensitive_filter(doc.text, sensitive_protect_method)
+                doc.text,output_sensitive_info = self.filter.sensitive_filter(doc.text, sensitive_protect_method, sensitive_protect_llm)
                 if output_sensitive_info != {}:
                     sensitive_info.append(output_sensitive_info)
             
@@ -146,24 +146,3 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
     def delete(self, **kwargs) -> bool:
         return self.connector.delete(**kwargs)
-
-    @staticmethod
-    def sensitive_filter(text: str, sensitive_protect_method: str) -> Tuple[str, Dict]:
-        output_sensitive_info = {}        
-        try:
-            result = subprocess.run(['dlptool', text], capture_output=True, text=True)
-            output = result.stdout.split('\n')
-            dlp_num = int(output[0])
-            dlp_outputs = []
-            for line in output[1:dlp_num + 1]:
-                dlp_outputs.append(json.loads(line))
-            dlp_masktext = '\n'.join(output[dlp_num + 2:])
-            if dlp_num > 0 and sensitive_protect_method == ProtectAction.REPLACE_WORDS:
-                output_text = dlp_masktext
-            else:
-                output_text = text
-            if dlp_num > 0:
-                output_sensitive_info = {"chunk": text, "masked_chunk": dlp_masktext, "sensitive_info": dlp_outputs}
-        except:
-            output_text = text
-        return output_text, output_sensitive_info
