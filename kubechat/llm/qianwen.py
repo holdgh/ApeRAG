@@ -23,6 +23,10 @@ class QianWenPredictor(Predictor):
             raise LLMConfigError("Please specify the API KEY")
 
     @staticmethod
+    def provide_default_token():
+        return bool(os.environ.get("QIANWEN_API_KEY", ""))
+
+    @staticmethod
     def build_request_data(self, history, prompt, memory=False):
         return {
             "model": self.model,

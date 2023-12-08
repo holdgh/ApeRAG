@@ -50,9 +50,11 @@ def ssl_file_path(instance, filename):
     user = instance.user.replace("|", "-")
     return "ssl_file/user-{0}/collection-{1}/{2}".format(user, instance.id, filename)
 
+
 class ProtectAction(models.TextChoices):
     WARNING_NOT_STORED = "nostore"
     REPLACE_WORDS = "replace"
+
     
 class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
@@ -226,7 +228,7 @@ class BotIntegrationType(models.TextChoices):
 
 
 class BotIntegration(models.Model):
-    id = models.CharField(primary_key=True, default=int_pk(), editable=False, max_length=24)
+    id = models.CharField(primary_key=True, default=int_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
     type = models.CharField(max_length=16, choices=BotIntegrationType.choices)
@@ -245,6 +247,23 @@ class BotIntegration(models.Model):
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
         }
+
+
+class Quota(models.Model):
+    key = models.CharField(max_length=256)
+    value = models.PositiveIntegerField(default=0)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+
+class UserQuota(models.Model):
+    user = models.CharField(max_length=256)
+    key = models.CharField(max_length=256)
+    value = models.PositiveIntegerField(default=0)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
 
 
 class ChatPeer(models.TextChoices):
@@ -266,7 +285,7 @@ class Chat(models.Model):
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('peer_type', 'peer_id')
+        unique_together = ('bot', 'peer_type', 'peer_id')
 
     def view(self, bot_id, messages=None):
         if messages is None:
@@ -327,6 +346,9 @@ class CollectionSyncHistory(models.Model):
     start_time = models.DateTimeField()
     task_context = models.JSONField(default={})
     status = models.CharField(max_length=16, choices=CollectionSyncStatus.choices, default=CollectionSyncStatus.RUNNING)
+    gmt_created = models.DateTimeField(auto_now_add=True, null=True)
+    gmt_updated = models.DateTimeField(auto_now=True, null=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     def update_execution_time(self):
         self.refresh_from_db()

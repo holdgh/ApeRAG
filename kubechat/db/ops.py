@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 
 from django.db.models import QuerySet
 from pydantic import BaseModel
+from asgiref.sync import sync_to_async
 
 from kubechat.db.models import (
     Bot,
@@ -13,7 +14,7 @@ from kubechat.db.models import (
     CollectionSyncHistory,
     Document,
     DocumentStatus,
-    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer,
+    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Quota, UserQuota,
 )
 
 
@@ -37,20 +38,15 @@ class PagedResult(BaseModel):
 
 
 def build_pq(request) -> Optional[PagedQuery]:
-    # FIXME this is compatible with the old frontend, once the frontend is updated,
-    # FIXME we should do pagination and add default page_number and page_size
     page_number = request.GET.get('page_number')
     page_size = request.GET.get('page_size')
-    if not page_number or not page_size:
-        return None
-
     match_key = request.GET.get('match_key', "")
     match_value = request.GET.get('match_value', "")
     order_by = request.GET.get('order_by', "")
     order_desc = request.GET.get('order_desc', "true")
     return PagedQuery(
-        page_number=int(page_number),
-        page_size=int(page_size),
+        page_number=int(page_number) if page_number else None,
+        page_size=int(page_size) if page_size else None,
         match_key=match_key,
         match_value=match_value,
         order_by=order_by,
@@ -61,17 +57,17 @@ def build_pq(request) -> Optional[PagedQuery]:
 def build_order_by(pq: PagedQuery) -> str:
     if not pq or not pq.order_by:
         return "gmt_created"
-    return f"{'' if pq.order_desc else '-'}{pq.order_by}"
+    return f"{'-' if pq.order_desc else ''}{pq.order_by}"
 
 
 async def build_pr(pq: PagedQuery, query_set: QuerySet) -> PagedResult:
-    if not pq:
-        return PagedResult(count=-1, data=query_set)
+    count = await get_count(query_set)
+    query_set = query_set.order_by(build_order_by(pq))
+    if not pq or not pq.page_number or not pq.page_size:
+        return PagedResult(count=count, page_number=0, page_size=count, data=query_set)
 
     offset = (pq.page_number - 1) * pq.page_size
     limit = pq.page_size
-    count = await get_count(query_set)
-    query_set = query_set.order_by(build_order_by(pq))
     return PagedResult(count=count, page_number=pq.page_number, page_size=pq.page_size,
                        data=query_set[offset:offset + limit])
 
@@ -105,6 +101,12 @@ async def query_collections(user, pq: PagedQuery = None):
     return await build_pr(pq, query_set)
 
 
+async def query_collections_count(user, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    count = await sync_to_async(Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user, **filters).count)()
+    return count
+
+
 async def query_document(user, collection_id: str, document_id: str):
     try:
         return await Document.objects.exclude(status=DocumentStatus.DELETED).aget(
@@ -119,6 +121,13 @@ async def query_documents(user, collection_id: str, pq: PagedQuery = None):
     query_set = Document.objects.exclude(status=DocumentStatus.DELETED).filter(
         user=user, collection_id=collection_id, **filters)
     return await build_pr(pq, query_set)
+
+
+async def query_documents_count(user, collection_id: str, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    count = await sync_to_async(Document.objects.exclude(status=DocumentStatus.DELETED).filter(
+        user=user, collection_id=collection_id, **filters).count)()
+    return count
 
 
 async def query_chat(user, bot_id: str, chat_id: str):
@@ -239,6 +248,22 @@ async def query_bots(user, pq: PagedQuery = None):
     filters = build_filters(pq)
     query_set = Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters)
     return await build_pr(pq, query_set)
+
+
+async def query_bots_count(user, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    count = await sync_to_async(Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters).count)()
+    return count
+
+
+def query_quota(key):
+    result = Quota.objects.filter(key=key).values_list('value', flat=True).first()
+    return result
+
+
+async def query_user_quota(user, key):
+    result = await sync_to_async(UserQuota.objects.filter(user=user, key=key).values_list('value', flat=True).first)()
+    return result
 
 
 async def query_integrations(user, bot_id: str, pq: PagedQuery = None):

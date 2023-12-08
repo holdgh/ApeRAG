@@ -2,18 +2,15 @@ import asyncio
 import json
 import time
 
-from langchain.memory import RedisChatMessageHistory
-from ninja.errors import ValidationError, AuthenticationError
-
 import kubechat.chat.message
 from http import HTTPStatus
 
-from asgiref.sync import sync_to_async
-from ninja import NinjaAPI
+from ninja import Router
 
 from config import settings
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.ops import *
-from kubechat.views.utils import success, fail, validation_errors, auth_errors
+from kubechat.views.utils import success, fail
 from kubechat.auth.validator import FeishuEventVerification
 from kubechat.db.models import ChatPeer
 from kubechat.pipeline.pipeline import KeywordPipeline
@@ -22,12 +19,10 @@ from kubechat.utils.utils import AESCipher
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI(version="1.0.0", urls_namespace="feishu")
-api.add_exception_handler(ValidationError, validation_errors)
-api.add_exception_handler(AuthenticationError, auth_errors)
+router = Router()
 
 
-@api.get("/spaces")
+@router.get("/spaces")
 async def feishu_get_spaces(request, app_id, app_secret):
     ctx = {
         "app_id": app_id,
@@ -60,7 +55,7 @@ def message_handled(msg_id, msg):
         return False
 
 
-@api.get("/user_access_token")
+@router.get("/user_access_token")
 def get_user_access_token(request, code, redirect_uri):
     ctx = {
         "app_id": settings.FEISHU_APP_ID,
@@ -190,7 +185,7 @@ async def feishu_response_card_update(user, bot_id, data):
     client.delay_update_card_message(data)
 
 
-@api.post("/card/event")
+@router.post("/card/event")
 async def feishu_card_event(request, user=None, bot_id=None):
     data = json.loads(request.body)
     if "challenge" in data:
@@ -198,7 +193,7 @@ async def feishu_card_event(request, user=None, bot_id=None):
     asyncio.create_task(feishu_response_card_update(user, bot_id, data))
 
 
-@api.post("/webhook/event")
+@router.post("/webhook/event")
 async def feishu_webhook_event(request, user=None, bot_id=None):
     data = json.loads(request.body)
     bot = await query_bot(user, bot_id)

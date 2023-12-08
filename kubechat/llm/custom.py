@@ -12,6 +12,11 @@ class CustomLLMPredictor(Predictor):
         self.model = kwargs.get("model", "baichuan-13b")
         endpoint = kwargs.get("endpoint", "http://localhost:18000")
         self.url = "%s/generate_stream" % endpoint
+        self.use_default_token = False
+
+    @staticmethod
+    def provide_default_token():
+        return False
 
     async def _agenerate_stream(self, history, prompt, memory=False):
         data = {

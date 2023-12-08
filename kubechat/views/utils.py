@@ -6,11 +6,11 @@ from typing import Dict
 
 from django.http import HttpRequest, HttpResponse
 from langchain import PromptTemplate
-from langchain.memory import RedisChatMessageHistory
 from ninja.main import Exc
 from pydantic import ValidationError
 
 from config import settings
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.llm.base import Predictor, PredictorType
 from kubechat.db.models import ssl_file_path, ssl_temp_file_path
 from kubechat.db.ops import query_chat_feedbacks, logger, PagedResult
@@ -40,7 +40,7 @@ async def query_chat_messages(user, chat_id):
 
     history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
     messages = []
-    for message in history.messages:
+    for message in await history.messages:
         try:
             item = json.loads(message.content)
         except Exception as e:

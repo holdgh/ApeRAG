@@ -17,6 +17,8 @@ class OpenAIPredictor(Predictor):
         self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
         if not self.token:
             raise LLMConfigError("Please specify the API token")
+        self.use_default_token = not kwargs.get("token", "")
+
         """
         # https://github.com/openai/openai-python/issues/279
         Example:
@@ -30,6 +32,10 @@ class OpenAIPredictor(Predictor):
             openai.proxy = proxy
 
         self.api_type = ""
+
+    @staticmethod
+    def provide_default_token():
+        return bool(os.environ.get("OPENAI_API_KEY", ""))
 
     async def _agenerate_stream(self, history, prompt, memory=False):
         timeout = httpx.Timeout(None, connect=3)

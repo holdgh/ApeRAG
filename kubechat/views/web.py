@@ -3,24 +3,21 @@ import logging
 from http import HTTPStatus
 
 from django.db import IntegrityError
-from langchain.memory import RedisChatMessageHistory
-from ninja import NinjaAPI
-from ninja.errors import ValidationError, AuthenticationError
+from ninja import Router
 
 import kubechat.chat
 from config import settings
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import query_web_chats, build_pq, query_bot, query_web_chat
-from kubechat.views.utils import success, fail, query_chat_messages, validation_errors, auth_errors
+from kubechat.views.utils import success, fail, query_chat_messages
 from kubechat.views.main import MessageFeedbackIn
 
 
 logger = logging.getLogger(__name__)
 
 
-api = NinjaAPI(version="1.0.0", urls_namespace="web-chat")
-api.add_exception_handler(ValidationError, validation_errors)
-api.add_exception_handler(AuthenticationError, auth_errors)
+router = Router()
 
 
 def check_origin(request, bot):
@@ -34,7 +31,7 @@ def check_origin(request, bot):
     # return origin in host_white_list
 
 
-@api.get("/bots/{bot_id}/web-chats")
+@router.get("/bots/{bot_id}/web-chats")
 async def list_chats(request, bot_id, session_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -48,7 +45,7 @@ async def list_chats(request, bot_id, session_id):
     return success(response, pr)
 
 
-@api.post("/bots/{bot_id}/web-chats")
+@router.post("/bots/{bot_id}/web-chats")
 async def create_chat(request, bot_id, session_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -68,7 +65,7 @@ async def create_chat(request, bot_id, session_id):
     return success(instance.view(bot_id))
 
 
-@api.get("/bots/{bot_id}/web-chats/{chat_id}")
+@router.get("/bots/{bot_id}/web-chats/{chat_id}")
 async def get_chat(request, bot_id, chat_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -82,7 +79,7 @@ async def get_chat(request, bot_id, chat_id):
     return success(chat.view(bot_id, messages))
 
 
-@api.post("/bots/{bot_id}/web-chats/{chat_id}/messages/{message_id}")
+@router.post("/bots/{bot_id}/web-chats/{chat_id}/messages/{message_id}")
 async def feedback_message(request, bot_id, chat_id, message_id, msg_in: MessageFeedbackIn):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -97,7 +94,7 @@ async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Message
     return success({})
 
 
-@api.put("/bots/{bot_id}/web-chats/{chat_id}")
+@router.put("/bots/{bot_id}/web-chats/{chat_id}")
 async def update_chat(request, bot_id, chat_id):
     bot = await query_bot(None, bot_id)
     if bot is None:
@@ -110,5 +107,5 @@ async def update_chat(request, bot_id, chat_id):
     chat.summary = ""
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
-    history.clear()
+    await history.clear()
     return success(chat.view(bot_id))

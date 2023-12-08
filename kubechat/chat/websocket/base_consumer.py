@@ -2,17 +2,22 @@ import json
 import logging
 import traceback
 from abc import abstractmethod
+import ast
+from datetime import datetime
 
 import websockets
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from langchain.memory import RedisChatMessageHistory
+from kubechat.chat.history.redis import RedisChatMessageHistory
+import redis.asyncio as redis
 
 import config.settings as settings
+from kubechat.apps import DefaultQuota, QuotaType
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
-from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline
-from kubechat.db.ops import query_bot
+from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
+from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.db.ops import query_bot, query_user_quota
+
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.utils.constant import KEY_USER_ID, KEY_BOT_ID, KEY_CHAT_ID, KEY_WEBSOCKET_PROTOCOL
 from readers.base_embedding import get_collection_embedding_model
@@ -50,6 +55,10 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.history = RedisChatMessageHistory(
             session_id=chat_id, url=settings.MEMORY_REDIS_URL
         )
+        self.redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        self.conversation_limit = await query_user_quota(self.user, QuotaType.MAX_CONVERSATION_COUNT)
+        if self.conversation_limit is None:
+            self.conversation_limit = DefaultQuota.MAX_CONVERSATION_COUNT
 
         # If using daphne, we need to put the token in the headers and include the headers in the subprotocol.
         # headers = {}
@@ -67,6 +76,17 @@ class BaseConsumer(AsyncWebsocketConsumer):
             headers.append((KEY_WEBSOCKET_PROTOCOL.encode("ascii"), token.encode("ascii")))
         await super(AsyncWebsocketConsumer, self).send({"type": "websocket.accept", "headers": headers})
         self.pipeline = KeywordPipeline(bot=self.bot, collection=self.collection, history=self.history)
+        self.use_default_token = self.pipeline.predictor.use_default_token
+        
+        message_id = f"{now_unix_milliseconds()}"
+        bot_config = json.loads(self.bot.config)
+        welcome = bot_config.get("welcome",{})
+        faq = welcome.get("faq",[])
+        questions = []
+        for qa in faq:
+            questions.append(qa["question"])
+        welcome_message = {"hello":welcome.get("hello",""), "faq":questions}
+        await self.send(text_data=welcome_response(message_id, welcome_message))
 
     async def disconnect(self, close_code):
         pass
@@ -75,6 +95,28 @@ class BaseConsumer(AsyncWebsocketConsumer):
     def predict(self, query, **kwargs):
         pass
 
+    async def check_quota_usage(self):
+        key = "conversation_history:" + self.user
+
+        if await self.redis_client.exists(key):
+            if int(await self.redis_client.get(key)) >= self.conversation_limit:
+                return False
+        return True
+
+    async def manage_quota_usage(self):
+        key = "conversation_history:" + self.user
+
+        # already used kubechat today
+        if await self.redis_client.exists(key):
+            if int(await self.redis_client.get(key)) < self.conversation_limit:
+                await self.redis_client.incr(key)
+        # first time to use kubechat today
+        else:
+            now = datetime.now()
+            end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
+            await self.redis_client.set(key, 1)
+            await self.redis_client.expireat(key, int(end_of_today.timestamp()))
+
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
         self.msg_type = data["type"]
@@ -82,15 +124,25 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         message = ""
         references = []
+        related_question = []
         message_id = f"{now_unix_milliseconds()}"
 
         try:
             # send start message
             await self.send(text_data=start_response(message_id))
 
+            if self.use_default_token and self.conversation_limit:
+                if not await self.check_quota_usage():
+                    error = f"conversation rounds have reached to the limit of {self.conversation_limit}"
+                    await self.send(text_data=fail_response(message_id, error=error))
+                    return
+
             async for tokens in self.predict(data["data"], message_id=message_id):
                 if tokens.startswith(KUBE_CHAT_DOC_QA_REFERENCES):
                     references = json.loads(tokens[len(KUBE_CHAT_DOC_QA_REFERENCES):])
+                    continue
+                if tokens.startswith(KUBE_CHAT_RELATED_QUESTIONS):
+                    related_question = ast.literal_eval(tokens[len(KUBE_CHAT_RELATED_QUESTIONS):])
                     continue
 
                 # streaming response
@@ -108,7 +160,9 @@ class BaseConsumer(AsyncWebsocketConsumer):
             logger.warning("[Oops] %s: %s", str(e), traceback.format_exc())
             await self.send(text_data=fail_response(message_id, str(e)))
         finally:
+            if self.use_default_token and self.conversation_limit:
+                await self.manage_quota_usage()
             # send stop message
-            await self.send(text_data=stop_response(message_id, references, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, references, related_question, self.pipeline.memory_count))
 
 
