@@ -23,7 +23,7 @@ from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import init_collection_task, delete_collection_task
-from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
+from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback,print_headers
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
@@ -34,7 +34,8 @@ from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_sou
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.db.models import *
-from config.settings import HIGH_PRIORITY_QUEUE
+from config.settings import LOCAL_QUEUE_NAME
+
 
 logger = logging.getLogger(__name__)
 
@@ -324,7 +325,7 @@ async def delete_collection(request, collection_id):
     collection.gmt_deleted = timezone.now()
     await collection.asave()
     delete_collection_task.apply_async(args=[collection_id],
-                                       queue='high_priority',
+                                       queue=LOCAL_QUEUE_NAME,
                                        priority=1)
     return success(collection.view())
 
@@ -361,9 +362,12 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             header = {'collection_id': str(collection_id)}
             add_index_for_local_document.apply_async(
                 args=[str(document_instance.id)],
-                queue=HIGH_PRIORITY_QUEUE,
+                queue=LOCAL_QUEUE_NAME,
                 priority=10,
                 headers=header)
+            # print_headers.apply_async(queue=LOCAL_QUEUE_NAME,
+            #     priority=10,
+            #     headers=header)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
         except Exception as e:
@@ -399,7 +403,7 @@ async def create_url_document(request, collection_id):
                 "url": string_data,
             })
             await document_instance.asave()
-            add_index_for_local_document.apply_async(args=(document_instance.id),queue='high_priority',priority=10,headers={'collection_id':str(collection_id)})
+            add_index_for_local_document.apply_async(args=(document_instance.id),queue=LOCAL_QUEUE_NAME,priority=10,headers={'collection_id':str(collection_id)})
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)

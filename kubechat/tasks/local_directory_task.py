@@ -8,7 +8,7 @@ from kubechat.db.models import Document, DocumentStatus
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 from kubechat.db.ops import query_collection, query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-from config.settings import HIGH_PRIORITY_QUEUE
+from config.settings import LOCAL_QUEUE_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def update_local_directory_index(user, collection_id):
                 ),
             )
             document_instance.save()
-            add_index_for_document.apply_async(args=(document_instance.id),queue=HIGH_PRIORITY_QUEUE,priority=10,headers={'collection_id':str(collection_id)})
+            add_index_for_document.apply_async(args=(document_instance.id),queue=LOCAL_QUEUE_NAME,priority=10,headers={'collection_id':str(collection_id)})
             # read from local direct
         else:
             # for update

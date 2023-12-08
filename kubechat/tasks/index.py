@@ -29,6 +29,7 @@ from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
 from django.core.files.base import ContentFile
 from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX, SUPPORTED_COMPRESSED_EXTENSIONS
+from config.settings import LOCAL_QUEUE_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +143,12 @@ def uncompress_file(document: Document):
                     "uncompressed": "true"
                 })
                 document_instance.save()
-                add_index_for_local_document.delay(document_instance.id)
+                header = {'collection_id': f'{document_instance.collection.id}'}
+                add_index_for_local_document.apply_async(
+                    args=[str(document_instance.id)],
+                    queue=LOCAL_QUEUE_NAME,
+                    priority=10,
+                    headers=header)
         except Exception as e:
             raise e
     return
@@ -160,7 +166,7 @@ def add_index_for_local_document(self, document_id):
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
-def add_index_for_document(self,document_id):
+def add_index_for_document(self, document_id):
     """
         Celery task to do an embedding for a given Document and save the results in vector database.
         Args:
