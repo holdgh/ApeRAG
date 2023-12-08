@@ -23,7 +23,7 @@ from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import init_collection_task, delete_collection_task
-from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback,print_headers
+from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
@@ -365,9 +365,6 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
                 queue=LOCAL_QUEUE_NAME,
                 priority=10,
                 headers=header)
-            # print_headers.apply_async(queue=LOCAL_QUEUE_NAME,
-            #     priority=10,
-            #     headers=header)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
         except Exception as e:
