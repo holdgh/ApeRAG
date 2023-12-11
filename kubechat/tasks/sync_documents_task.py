@@ -109,8 +109,7 @@ def sync_documents(self, **kwargs):
                 collection_sync_history.total_documents_to_sync += 1
                 collection_sync_history.modified_documents += 1
                 collection_sync_history.save()
-                task = update_index.s(dst_doc.id).set(queue=LOCAL_QUEUE_NAME, priority=priority,headers=headers)
-                tasks.append(task)
+                tasks.append(update_index.s(dst_doc.id))
 
         else:  # add
             if document_limit and docs_count >= document_limit:
@@ -128,8 +127,7 @@ def sync_documents(self, **kwargs):
             collection_sync_history.pending_documents += 1
             collection_sync_history.save()
             delete_docs_count += 1
-            task = remove_index.s(dst_doc.id).set(queue=LOCAL_QUEUE_NAME, priority=priority,headers=headers)
-            tasks.append(task)
+            tasks.append(remove_index.s(dst_doc.id))
 
     for i in range(delete_docs_count):
         if i >= len(exceeded_limit_docs):

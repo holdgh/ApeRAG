@@ -25,7 +25,7 @@ app.autodiscover_tasks()
 
 if LOCAL_QUEUE_NAME != "":
     app.conf.task_routes = {
-        '*': {'queue': LOCAL_QUEUE_NAME},
+        "kubechat.tasks.index.add_index_for_local_document": {"queue": f"{LOCAL_QUEUE_NAME}"},
     }
 
 if __name__ == "__main__":
