@@ -117,8 +117,7 @@ def sync_documents(self, **kwargs):
                 continue
             doc = add_document(src_doc)
             docs_count += 1
-            task = add_index_for_document.s(doc.id).set(queue=LOCAL_QUEUE_NAME, priority=priority,headers=headers)
-            tasks.append(task)
+            tasks.append(add_index_for_document.s(doc.id))
 
     for name, dst_doc in dst_docs.items():  # delete
         if name not in src_docs.keys():
