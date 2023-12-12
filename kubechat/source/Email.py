@@ -1,6 +1,7 @@
 import datetime
 import logging
 import poplib
+import imaplib
 import re
 import tempfile
 from email import message_from_bytes, parser
@@ -14,9 +15,15 @@ from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSo
 logger = logging.getLogger(__name__)
 
 
-def download_email_body_to_temp_file(pop_conn, email_index, name):
-    _, message_lines, _ = pop_conn.retr(email_index)
-    message_content = b"\r\n".join(message_lines)
+def download_email_body_to_temp_file(mail_conn, email_index, name, protocol):
+    if protocol.upper() == "IMAP":
+        mail_conn.select("INBOX")
+        _, data = mail_conn.fetch(email_index, '(RFC822)')
+        message_content = data[0][1]
+    else:
+        _, message_lines, _ = mail_conn.retr(email_index)
+        message_content = b"\r\n".join(message_lines)
+
     prefix, plain_text = get_email_plain_text(message_content, name)
     temp_file = tempfile.NamedTemporaryFile(
         prefix=prefix,
@@ -109,73 +116,103 @@ class EmailSource(Source):
 
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
-        self.pop_server = ctx["pop_server"]
+        self.server = ctx["pop_server"]
         self.port = ctx["port"]
         self.email_address = ctx["email_address"]
         self.email_password = ctx["email_password"]
+        self.protocol = ""
         self.detect_spam = ctx.get("detect_spam", False)
-        self.conn = self._connect_to_pop3_server()
+        self.conn = self._connect_to_mail_server()
         self.email_num = 0
 
-    def _connect_to_pop3_server(self):
+    def _connect_to_mail_server(self):
         # Check if email format is valid
         if not re.match(r"[^@]+@[^@]+\.[^@]+", self.email_address):
             raise CustomSourceInitializationError("Invalid email format")
 
-        # Check if authentication is successful
+        # Try to connect using IMAP
         try:
-            timeout = 3
-            if self.port == 110:
-                pop_conn = poplib.POP3(self.pop_server, self.port, timeout=timeout)
+            timeout = 5
+            if self.port == 143:
+                conn = imaplib.IMAP4(self.server, self.port, timeout=timeout)
             else:
-                pop_conn = poplib.POP3_SSL(self.pop_server, self.port, timeout=timeout)
-            pop_conn.user(self.email_address)
-            pop_conn.pass_(self.email_password)
-            return pop_conn
-        except Exception as e:
-            raise CustomSourceInitializationError(f"Failed to connect to POP server: {e}")
+                conn = imaplib.IMAP4_SSL(self.server, self.port, timeout=timeout)
+            conn.login(self.email_address, self.email_password)
+            self.protocol = "IMAP"
+            return conn
+        except Exception as imap_error:
+            # IMAP connection failed, now try POP
+            try:
+                if self.port == 110:
+                    conn = poplib.POP3(self.server, self.port, timeout=timeout)
+                else:
+                    conn = poplib.POP3_SSL(self.server, self.port, timeout=timeout)
+                conn.user(self.email_address)
+                conn.pass_(self.email_password)
+                self.protocol = "POP"
+                return conn
+            except Exception as pop_error:
+                raise CustomSourceInitializationError(
+                    f"Failed to connect to mail server,IMAP for: {imap_error}, then POP for: {pop_error}")
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
-        self.email_num = len(self.conn.list()[1])
-        for i in range(self.email_num):
-            try:
-                response, msg_lines, octets = self.conn.retr(i + 1)
+        try:
+            if self.protocol.upper() == "IMAP":
+                self.conn.select("INBOX")
+                _, data = self.conn.search(None, "ALL")
+                email_nums = data[0].split()
+                self.email_num = len(email_nums)
+            else:
+                _, email_list = self.conn.list()
+                self.email_num = len(email_list)
+            for i in range(self.email_num):
+                try:
+                    if self.protocol.upper() == "IMAP":
+                        _, data = self.conn.fetch(email_nums[i], '(RFC822)')
+                        msg_lines = data[0][1]
+                        octets = len(msg_lines)
+                    else:
+                        _, msg_lines, octets = self.conn.retr(i + 1)
+                        msg_lines = b"\r\n".join(msg_lines)
 
-                msg_lines_undecoded = b"\r\n".join(msg_lines)
-                msg_lines_to_str = msg_lines_undecoded.decode("utf8", "ignore")
-                message_object = parser.Parser().parsestr(msg_lines_to_str)
+                    msg_lines_undecoded = msg_lines
+                    msg_lines_to_str = msg_lines_undecoded.decode("utf8", "ignore")
+                    message_object = parser.Parser().parsestr(msg_lines_to_str)
 
-                msg_header = message_object["Subject"]
-                decoded_subject = decode_msg_header(msg_header)
-                order_and_name = str(i + 1) + '_' + decoded_subject + f".txt"
+                    msg_header = message_object["Subject"]
+                    decoded_subject = decode_msg_header(msg_header)
+                    order_and_name = str(i + 1) + '_' + decoded_subject + f".txt"
 
-                # check if spam,if it is spam, jump to next email
-                if self.detect_spam:
-                    _, message_content = get_email_plain_text(msg_lines_undecoded, decoded_subject)
-                    is_spam = check_spam(decoded_subject, message_content)
-                    if is_spam:
-                        logger.info(f"email {decoded_subject} is detected to be spam")
-                        continue
-                    logger.info(f"email {decoded_subject} is detected to be ham")
+                    # check if spam,if it is spam, jump to next email
+                    if self.detect_spam:
+                        _, message_content = get_email_plain_text(msg_lines_undecoded, decoded_subject)
+                        is_spam = check_spam(decoded_subject, message_content)
+                        if is_spam:
+                            logger.info(f"email {decoded_subject} is detected to be spam")
+                            continue
+                        logger.info(f"email {decoded_subject} is detected to be ham")
 
-                document = RemoteDocument(
-                    name=order_and_name,
-                    size=octets,
-                    metadata={
-                        # TODO: use the email received time as the modified time
-                        "modified_time": datetime.datetime.now(),
-                    }
-                )
-                yield document
-            except Exception as e:
-                logger.error(f"scan_email_documents {e}")
-                raise e
+                    document = RemoteDocument(
+                        name=order_and_name,
+                        size=octets,
+                        metadata={
+                            # TODO: use the email received time as the modified time
+                            "modified_time": datetime.datetime.now(),
+                        }
+                    )
+                    yield document
+                except Exception as e:
+                    logger.error(f"scan_email_documents {e}")
+                    raise e
+        except Exception as e:
+            logger.error(f"Error in scan_documents: {e}")
+            raise e
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
         under_line = name.find('_')
         order = name[:under_line]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order, name
+            self.conn, order, name,self.protocol
         )
         metadata["name"] = name
         return LocalDocument(name=name, path=temp_file_path, metadata=metadata)
