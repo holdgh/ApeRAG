@@ -15,7 +15,7 @@ from pathlib import Path
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.db.models import Document, DocumentStatus, MessageFeedback, \
+from kubechat.db.models import Document, DocumentStatus, MessageFeedback,Collection,CollectionStatus, \
     MessageFeedbackStatus, ProtectAction
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
@@ -29,6 +29,7 @@ from readers.local_path_qa_embedding import LocalPathQAEmbedding
 from readers.qa_embedding import QAEmbedding
 from django.core.files.base import ContentFile
 from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX, SUPPORTED_COMPRESSED_EXTENSIONS
+from config.settings import LOCAL_QUEUE_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +143,12 @@ def uncompress_file(document: Document):
                     "uncompressed": "true"
                 })
                 document_instance.save()
-                add_index_for_local_document.delay(document_instance.id)
+                header = {'collection_id': f'{document_instance.collection.id}'}
+                add_index_for_local_document.apply_async(
+                    args=[str(document_instance.id)],
+                    queue=LOCAL_QUEUE_NAME,
+                    priority=10,
+                    headers=header)
         except Exception as e:
             raise e
     return
@@ -167,9 +173,11 @@ def add_index_for_document(self, document_id):
             document_id: the document in Django Module
     """
     document = Document.objects.get(id=document_id)
+    collection =Collection.objects.get(id=document.collection.id)
+    if collection.status==CollectionStatus.DELETED:
+        return
     document.status = DocumentStatus.RUNNING
     document.save()
-
     source = None
     local_doc = None
     metadata = json.loads(document.metadata)
@@ -281,6 +289,9 @@ def remove_index(self, document_id):
 def update_index(self, document_id):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
+    collection =Collection.objects.get(id=document.collection.id)
+    if collection.status==CollectionStatus.DELETED:
+        return
     document.save()
 
     try:

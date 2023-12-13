@@ -34,6 +34,8 @@ from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_sou
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.db.models import *
+from config.settings import LOCAL_QUEUE_NAME
+
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +337,9 @@ async def delete_collection(request, collection_id):
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
-    delete_collection_task.delay(collection_id)
+    delete_collection_task.apply_async(args=[collection_id],
+                                       queue=LOCAL_QUEUE_NAME,
+                                       priority=1)
     return success(collection.view())
 
 
