@@ -16,7 +16,7 @@ from ninja.files import UploadedFile
 import kubechat.chat.message
 from config import settings
 from config.celery import app
-from kubechat.apps import DefaultQuota, QuotaType
+from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
@@ -225,10 +225,10 @@ async def create_collection(request, collection: CollectionIn):
             return fail(HTTPStatus.BAD_REQUEST, error_msg)
 
     # there is quota limit on collection
-    if DefaultQuota.MAX_COLLECTION_COUNT:
+    if settings.MAX_COLLECTION_COUNT:
         collection_limit = await query_user_quota(user, QuotaType.MAX_COLLECTION_COUNT)
         if collection_limit is None:
-            collection_limit = DefaultQuota.MAX_COLLECTION_COUNT
+            collection_limit = settings.MAX_COLLECTION_COUNT
         if collection_limit and await query_collections_count(user) >= collection_limit:
             return fail(HTTPStatus.FORBIDDEN, f"collection number has reached the limit of {collection_limit}")
 
@@ -353,10 +353,10 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
     # there is quota limit on document
-    if DefaultQuota.MAX_DOCUMENT_COUNT:
+    if settings.MAX_DOCUMENT_COUNT:
         document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         if document_limit is None:
-            document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+            document_limit = settings.MAX_DOCUMENT_COUNT
         if await query_documents_count(user, collection_id) >= document_limit:
             return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
 
@@ -399,10 +399,10 @@ async def create_url_document(request, collection_id):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
     # there is quota limit on document
-    if DefaultQuota.MAX_DOCUMENT_COUNT:
+    if settings.MAX_DOCUMENT_COUNT:
         document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         if document_limit is None:
-            document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+            document_limit = settings.MAX_DOCUMENT_COUNT
         if await query_documents_count(user, collection_id) >= document_limit:
             return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
 
@@ -603,10 +603,10 @@ async def create_bot(request, bot_in: BotIn):
     user = get_user(request)
 
     # there is quota limit on bot
-    if DefaultQuota.MAX_BOT_COUNT:
+    if settings.MAX_BOT_COUNT:
         bot_limit = await query_user_quota(user, QuotaType.MAX_BOT_COUNT)
         if bot_limit is None:
-            bot_limit = DefaultQuota.MAX_BOT_COUNT
+            bot_limit = settings.MAX_BOT_COUNT
         if await query_bots_count(user) >= bot_limit:
             return fail(HTTPStatus.FORBIDDEN, f"bot number has reached the limit of {bot_limit}")
 
