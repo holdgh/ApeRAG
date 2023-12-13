@@ -381,11 +381,7 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             await document_instance.asave()
             response.append(document_instance.view())
             header = {'collection_id': str(collection_id)}
-            add_index_for_local_document.apply_async(
-                args=[str(document_instance.id)],
-                queue=LOCAL_QUEUE_NAME,
-                priority=10,
-                headers=header)
+            add_index_for_local_document.delay(document_instance.id)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
         except Exception as e:
@@ -430,7 +426,7 @@ async def create_url_document(request, collection_id):
                 "url": string_data,
             })
             await document_instance.asave()
-            add_index_for_local_document.apply_async(args=(document_instance.id),queue=LOCAL_QUEUE_NAME,priority=10,headers={'collection_id':str(collection_id)})
+            add_index_for_local_document.delay(document_instance.id)
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)

@@ -52,7 +52,7 @@ def update_local_directory_index(user, collection_id):
                 ),
             )
             document_instance.save()
-            add_index_for_document.apply_async(args=(document_instance.id),queue=LOCAL_QUEUE_NAME,priority=10,headers={'collection_id':str(collection_id)})
+            add_index_for_document.delay(document_instance.id)
             # read from local direct
         else:
             # for update
