@@ -269,6 +269,7 @@ class UserQuota(models.Model):
 class ChatPeer(models.TextChoices):
     SYSTEM = "system"
     FEISHU = "feishu"
+    WEIXIN = "weixin"
     WEB = "web"
 
 
