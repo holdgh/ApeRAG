@@ -8,7 +8,6 @@ from kubechat.db.models import Document, DocumentStatus
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 from kubechat.db.ops import query_collection, query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-from config.settings import LOCAL_QUEUE_NAME
 
 logger = logging.getLogger(__name__)
 

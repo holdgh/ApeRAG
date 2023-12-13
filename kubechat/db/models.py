@@ -225,7 +225,6 @@ class BotIntegrationType(models.TextChoices):
     SYSTEM = "system"
     FEISHU = "feishu"
     WEB = "web"
-    DINGTALK = "dingtalk"
 
 
 class BotIntegration(models.Model):

@@ -380,7 +380,6 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             })
             await document_instance.asave()
             response.append(document_instance.view())
-            header = {'collection_id': str(collection_id)}
             add_index_for_local_document.delay(document_instance.id)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
