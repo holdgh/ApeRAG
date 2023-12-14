@@ -9,6 +9,7 @@ from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.forms.models import model_to_dict
 from django.shortcuts import render
 from ninja import File, NinjaAPI, Schema, Router
 from ninja.files import UploadedFile
@@ -26,6 +27,7 @@ from kubechat.tasks.collection import init_collection_task, delete_collection_ta
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
+from kubechat.tasks.crawl_web import crawl_domain
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
 from kubechat.db.ops import *
 from kubechat.utils.request import get_user, get_urls
@@ -249,7 +251,7 @@ async def create_collection(request, collection: CollectionIn):
             add_ssl_file(config, instance)
             collection.config = json.dumps(config)
             await instance.asave()
-    elif instance.type == CollectionType.DOCUMENT :
+    elif instance.type == CollectionType.DOCUMENT:
         document_user_quota = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         init_collection_task.delay(instance.id, document_user_quota)
     elif instance.type == CollectionType.CODE:
@@ -345,7 +347,7 @@ async def delete_collection(request, collection_id):
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
-    if len(file)>500:
+    if len(file) > 500:
         return fail(HTTPStatus.BAD_REQUEST, "documents are too many,add document failed")
     user = get_user(request)
     collection = await query_collection(user, collection_id)
@@ -407,14 +409,19 @@ async def create_url_document(request, collection_id):
             return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
 
     try:
+
         failed_urls = []
         for url in urls:
             if not validate_url(url):
                 failed_urls.append(url)
                 continue
+            if '.html' not in url:
+                document_name = url + '.html'
+            else:
+                document_name = url
             document_instance = Document(
                 user=user,
-                name=url + '.txt',
+                name=document_name,
                 status=DocumentStatus.PENDING,
                 collection=collection,
                 size=0,
@@ -426,6 +433,7 @@ async def create_url_document(request, collection_id):
             })
             await document_instance.asave()
             add_index_for_local_document.delay(document_instance.id)
+            crawl_domain.delay(url, url, collection_id, user, max_pages=2)
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)
@@ -433,7 +441,7 @@ async def create_url_document(request, collection_id):
         logger.exception("add document failed")
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     if len(failed_urls) != 0:
-        response["message"] = "Some URLs failed validation,eg. http://example.com/path?query=123#fragment"
+        response["message"] = "Some URLs failed validation,eg. https://example.com/path?query=123#fragment"
         response["failed_urls"] = failed_urls
     return success(response)
 
@@ -568,7 +576,8 @@ async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Message
     chat = await query_chat(user, bot_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
-    feedback = await kubechat.chat.message.feedback_message(chat.user, chat_id, message_id, msg_in.upvote, msg_in.downvote,
+    feedback = await kubechat.chat.message.feedback_message(chat.user, chat_id, message_id, msg_in.upvote,
+                                                            msg_in.downvote,
                                                             msg_in.revised_answer)
 
     # embedding the revised answer
@@ -806,5 +815,3 @@ def dashboard(request):
     context = {'user_count': user_count, 'Collection_count': collection_count,
                'Document_count': document_count, 'Chat_count': chat_count}
     return render(request, 'kubechat/dashboard.html', context)
-
-

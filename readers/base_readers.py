@@ -15,6 +15,9 @@ from readers.markdown_reader import MarkdownReader
 from readers.pptx_reader import PptxReader
 from readers.compose_audio_reader import ComposeAudioReader
 from readers.compressed_file_reader import  CompressedFileReader
+from readers.excel_reader import ExcelReader
+from readers.ppt_reader import PptReader
+from readers.html_reader import HtmlReader
 
 
 DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
@@ -23,6 +26,9 @@ DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     # ".docx": MyDocxReader,
     ".doc": MyDocReader,
     ".pptx": PptxReader,
+    ".ppt":PptReader,
+    ".html":HtmlReader,
+    ".xlxs":ExcelReader,
     ".jpg": ComposeImageReader,
     ".png": ComposeImageReader,
     ".jpeg": ComposeImageReader,
@@ -50,7 +56,6 @@ DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".tar.xz": CompressedFileReader,
     ".tar.bz2": CompressedFileReader,
     ".tar.7z": CompressedFileReader
-
 }
 
 
