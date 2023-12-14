@@ -35,7 +35,7 @@ class TencentClient(ABC):
         self.mutex = Lock()
         self.redis_client = redis.from_url(settings.MEMORY_REDIS_URL)
 
-    def scan_documents(self, folder_id=None) -> Iterator[RemoteDocument]:
+    def scan_documents(self, folder_id=None, source="download") -> Iterator[RemoteDocument]:
         """
         https://docs.qq.com/open/document/app/openapi/v2/file/folders/list.html
         """
@@ -52,14 +52,14 @@ class TencentClient(ABC):
             docs = data["list"]
             for doc in docs:
                 if doc.type == "doc":
-                    yield self.get_file(doc["ID"])
+                    yield self.get_file(doc["ID"], source=source)
                 elif doc.type == "folder":
                     yield self.scan_documents(doc["ID"])
 
             if data["next"] == 0:
                 break
 
-    def get_file(self, file_id) -> RemoteDocument:
+    def get_file(self, file_id, source="download") -> RemoteDocument:
         """
         https://docs.qq.com/open/document/app/openapi/v2/file/files/metadata.html
         """
@@ -76,8 +76,7 @@ class TencentClient(ABC):
         }
 
         doc = RemoteDocument(
-            # name=data['title'] + f".{data['type']}",
-            name=data['title'],
+            name=data['title'] + ".pdf" if source == "download" else data['title'] + ".txt",
             size=0,
             metadata=metadata
         )

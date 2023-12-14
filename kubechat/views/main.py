@@ -230,8 +230,9 @@ async def create_collection(request, collection: CollectionIn):
     if config.get("source") == "tencent":
         redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
         if await redis_client.exists("tencent_code"):
-            collection.config["code"] = await redis_client.get("tencent_code")
-            collection.config["redirect_uri"] = settings.TENCENT_REDIRECT_URI
+            config["code"] = await redis_client.get("tencent_code")
+            config["redirect_uri"] = settings.TENCENT_REDIRECT_URI
+            collection.config = json.dumps(config)
         else:
             return fail(HTTPStatus.BAD_REQUEST, "用户未进行授权或授权已过期，请重新操作")
 
