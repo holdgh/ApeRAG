@@ -9,6 +9,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 app = Celery("kubechat")
 app.conf.task_queues = (
     Queue(LOCAL_QUEUE_NAME, Exchange(LOCAL_QUEUE_NAME), routing_key=LOCAL_QUEUE_NAME,priority=10),
+    Queue("celery", Exchange("celery")),
 )
 
 # Using a string here means the worker doesn't have to serialize
@@ -20,7 +21,6 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
-
 
 
 if LOCAL_QUEUE_NAME != "":
