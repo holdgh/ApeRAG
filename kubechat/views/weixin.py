@@ -7,7 +7,8 @@ from ninja import Router
 from config import settings
 import kubechat.chat.message
 
-from kubechat.apps import QuotaType, DefaultQuota
+from kubechat.apps import QuotaType
+from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.pipeline.pipeline import KeywordPipeline
 from kubechat.db.ops import *
@@ -62,7 +63,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
     if conversation_limit is None:
-        conversation_limit = DefaultQuota.MAX_CONVERSATION_COUNT
+        conversation_limit = MAX_CONVERSATION_COUNT
 
     try:
         if use_default_token and conversation_limit:
@@ -103,7 +104,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
     if conversation_limit is None:
-        conversation_limit = DefaultQuota.MAX_CONVERSATION_COUNT
+        conversation_limit = MAX_CONVERSATION_COUNT
 
     try:
         if use_default_token and conversation_limit:

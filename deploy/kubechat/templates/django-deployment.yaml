@@ -220,6 +220,26 @@ spec:
                 configMapKeyRef:
                   key: FEISHU_ENCRYPT_KEY
                   name: kubechat-config
+            - name: MAX_BOT_COUNT
+              valueFrom:
+                configMapKeyRef:
+                  key: MAX_BOT_COUNT
+                  name: kubechat-config
+            - name: MAX_COLLECTION_COUNT
+              valueFrom:
+                configMapKeyRef:
+                  key: MAX_COLLECTION_COUNT
+                  name: kubechat-config
+            - name: MAX_DOCUMENT_COUNT
+              valueFrom:
+                configMapKeyRef:
+                  key: MAX_DOCUMENT_COUNT
+                  name: kubechat-config
+            - name: MAX_CONVERSATION_COUNT
+              valueFrom:
+                configMapKeyRef:
+                  key: MAX_CONVERSATION_COUNT
+                  name: kubechat-config
             - name: EMBEDDING_MODEL
               valueFrom:
                 configMapKeyRef:

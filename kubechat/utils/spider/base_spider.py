@@ -1,3 +1,5 @@
+import time
+
 import requests
 
 from bs4 import BeautifulSoup
@@ -6,14 +8,26 @@ from kubechat.utils.spider.zhihu import get_zhihu
 from kubechat.utils.spider.stackoverflow import get_stackoverflow
 
 
-def get_default(url: str):
-    response = requests.get(url)
-    response.raise_for_status()
+class WebCannotBeCrawledException(BaseException):
+    pass
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    clean_text = soup.get_text(separator=' ')
-    return clean_text
+def get_default(url: str, max_retries: int = 3, retry_delay: int = 3):
+    retries = 0
+    while retries < max_retries:
+        try:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            return soup
+        except Exception as e:
+            print(f"Error crawling {url}: {e}")
+            retries += 1
+            if retries < max_retries:
+                print(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                print("Max retries reached. Failed to fetch the page.")
+                return None
 
 
 def url_selector(url, name):
@@ -25,4 +39,4 @@ def url_selector(url, name):
     if "stackoverflow" in domain:
         return get_stackoverflow(url), prefix
     else:
-        return get_default(url), prefix
+        return get_default(url=url, max_retries=3, retry_delay=5), prefix

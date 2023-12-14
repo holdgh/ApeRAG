@@ -13,14 +13,13 @@ from django.utils import timezone
 from pydantic import BaseModel
 
 from config.celery import app
-from kubechat.apps import DefaultQuota
+from config.settings import MAX_DOCUMENT_COUNT
 from kubechat.db.models import Document, DocumentStatus, Collection, CollectionStatus, CollectionSyncHistory, \
     CollectionSyncStatus
 from kubechat.source.base import get_source
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 from kubechat.db.ops import query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +63,7 @@ def sync_documents(self, **kwargs):
 
     document_limit = kwargs["document_user_quota"]
     if document_limit is None:
-        document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+        document_limit = MAX_DOCUMENT_COUNT
 
     src_docs = {}
     tasks = []

@@ -198,8 +198,7 @@ CELERY_TASK_SEND_SENT_EVENT = True
 CELERY_TASK_TRACK_STARTED = True
 INSTALLED_APPS += ["django_celery_beat"]
 
-LOCAL_QUEUE_NAME = env.str("LOCAL_QUEUE_NAME", default="")
-
+LOCAL_QUEUE_NAME = env.str("LOCAL_QUEUE_NAME", default="priority_queue")
 # WebSockets
 INSTALLED_APPS += ["channels"]
 
@@ -282,6 +281,11 @@ STATIC_ROOT = BASE_DIR / "static"
 FEISHU_APP_ID = env.str("FEISHU_APP_ID", default="")
 FEISHU_APP_SECRET = env.str("FEISHU_APP_SECRET", default="")
 FEISHU_ENCRYPT_KEY = env.str("FEISHU_ENCRYPT_KEY", default="")
+
+MAX_BOT_COUNT = env.int("MAX_BOT_COUNT", default=10)
+MAX_COLLECTION_COUNT = env.int("MAX_COLLECTION_COUNT", default=50)
+MAX_DOCUMENT_COUNT = env.int("MAX_DOCUMENT_COUNT", default=1000)
+MAX_CONVERSATION_COUNT = env.int("MAX_CONVERSATION_COUNT", default=100)
 
 TENCENT_REDIRECT_URI = env.str("TENCENT_REDIRECT_URI", default="https://localhost:8000/api/v1/tencent/webhook/event")
 

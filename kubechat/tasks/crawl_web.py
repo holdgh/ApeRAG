@@ -1,0 +1,75 @@
+import json
+
+import requests
+from bs4 import BeautifulSoup
+import re
+from urllib.parse import urljoin,urlparse
+from config.celery import app
+from config.settings import REDIS_HOST, REDIS_PORT
+from kubechat.db.models import *
+from kubechat.tasks.index import add_index_for_local_document
+import redis
+
+redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}"
+
+try:
+    redis_conn = redis.Redis.from_url(redis_url)
+except Exception as e:
+    raise e
+
+
+@app.task(bind=True, max_retries=3)
+def crawl_domain(self, root_url, url, collection_id, user, max_pages):
+    redis_key = f"{url}"
+
+    collection = Collection.objects.get(id=collection_id)
+    redis_set_key = f"crawled_urls:{collection_id}:{root_url}"
+    if redis_conn.sismember(redis_set_key, redis_key) or redis_conn.scard(redis_set_key) >= max_pages or collection.status==CollectionStatus.DELETED:
+        return
+
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        redis_conn.sadd(redis_set_key, redis_key)
+        root_parts = urlparse(root_url)
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        if root_url != url:
+            if '.html' not in url:
+                document_name = url + '.html'
+            else:
+                document_name = url
+            document_instance = Document(
+                user=user,
+                name=document_name,
+                status=DocumentStatus.PENDING,
+                collection=collection,
+                size=0,
+            )
+            document_instance.save()
+            string_data = json.dumps(url)
+            document_instance.metadata = json.dumps({
+                "url": string_data,
+            })
+            document_instance.save()
+            add_index_for_local_document.delay(document_instance.id)
+        for link in soup.find_all('a', href=True):
+            sub_url = urljoin(url, link['href']).split("#")[0]
+            sub_parts=urlparse(sub_url)
+            sub_redis_key=f"{sub_url}"
+            if root_parts.scheme != sub_parts.scheme or root_parts.netloc != sub_parts.netloc:
+                continue
+            if sub_url == url or redis_conn.sismember(redis_set_key, sub_redis_key) or not sub_parts.path.startswith(root_parts.path):
+                continue
+            if re.match(r'https?://[\w.]+', sub_url):
+                crawl_domain.delay(root_url, sub_url, collection_id, user, max_pages)
+
+    except Exception as e:
+        print(f"Error crawling {url}: {e}")
+        self.retry(exc=e)
+
+
+@app.task
+def cleanup(collectionid, redis_conn):
+    for key in redis_conn.scan_iter(f"{collectionid}:*"):
+        redis_conn.srem("crawled_urls", key)

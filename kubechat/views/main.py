@@ -9,6 +9,7 @@ from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.forms.models import model_to_dict
 from django.shortcuts import render
 from ninja import File, NinjaAPI, Schema, Router
 from ninja.files import UploadedFile
@@ -17,7 +18,7 @@ import redis.asyncio as redis
 import kubechat.chat.message
 from config import settings
 from config.celery import app
-from kubechat.apps import DefaultQuota, QuotaType
+from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
@@ -27,6 +28,7 @@ from kubechat.tasks.collection import init_collection_task, delete_collection_ta
 from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
 from kubechat.tasks.scan import delete_sync_documents_cron_job, \
     update_sync_documents_cron_job
+from kubechat.tasks.crawl_web import crawl_domain
 from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
 from kubechat.db.ops import *
 from kubechat.utils.request import get_user, get_urls
@@ -35,6 +37,8 @@ from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_sou
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.db.models import *
+from config.settings import LOCAL_QUEUE_NAME
+
 
 logger = logging.getLogger(__name__)
 
@@ -232,10 +236,10 @@ async def create_collection(request, collection: CollectionIn):
             return fail(HTTPStatus.BAD_REQUEST, "用户未进行授权或授权已过期，请重新操作")
 
     # there is quota limit on collection
-    if DefaultQuota.MAX_COLLECTION_COUNT:
+    if settings.MAX_COLLECTION_COUNT:
         collection_limit = await query_user_quota(user, QuotaType.MAX_COLLECTION_COUNT)
         if collection_limit is None:
-            collection_limit = DefaultQuota.MAX_COLLECTION_COUNT
+            collection_limit = settings.MAX_COLLECTION_COUNT
         if collection_limit and await query_collections_count(user) >= collection_limit:
             return fail(HTTPStatus.FORBIDDEN, f"collection number has reached the limit of {collection_limit}")
 
@@ -256,7 +260,7 @@ async def create_collection(request, collection: CollectionIn):
             add_ssl_file(config, instance)
             collection.config = json.dumps(config)
             await instance.asave()
-    elif instance.type == CollectionType.DOCUMENT :
+    elif instance.type == CollectionType.DOCUMENT:
         document_user_quota = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         init_collection_task.delay(instance.id, document_user_quota)
     elif instance.type == CollectionType.CODE:
@@ -344,13 +348,15 @@ async def delete_collection(request, collection_id):
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
-    delete_collection_task.delay(collection_id)
+    delete_collection_task.apply_async(args=[collection_id],
+                                       queue=LOCAL_QUEUE_NAME,
+                                       priority=1)
     return success(collection.view())
 
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
-    if len(file)>500:
+    if len(file) > 500:
         return fail(HTTPStatus.BAD_REQUEST, "documents are too many,add document failed")
     user = get_user(request)
     collection = await query_collection(user, collection_id)
@@ -358,10 +364,10 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
     # there is quota limit on document
-    if DefaultQuota.MAX_DOCUMENT_COUNT:
+    if settings.MAX_DOCUMENT_COUNT:
         document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         if document_limit is None:
-            document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+            document_limit = settings.MAX_DOCUMENT_COUNT
         if await query_documents_count(user, collection_id) >= document_limit:
             return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
 
@@ -404,22 +410,27 @@ async def create_url_document(request, collection_id):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
     # there is quota limit on document
-    if DefaultQuota.MAX_DOCUMENT_COUNT:
+    if settings.MAX_DOCUMENT_COUNT:
         document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         if document_limit is None:
-            document_limit = DefaultQuota.MAX_DOCUMENT_COUNT
+            document_limit = settings.MAX_DOCUMENT_COUNT
         if await query_documents_count(user, collection_id) >= document_limit:
             return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
 
     try:
+
         failed_urls = []
         for url in urls:
             if not validate_url(url):
                 failed_urls.append(url)
                 continue
+            if '.html' not in url:
+                document_name = url + '.html'
+            else:
+                document_name = url
             document_instance = Document(
                 user=user,
-                name=url + '.txt',
+                name=document_name,
                 status=DocumentStatus.PENDING,
                 collection=collection,
                 size=0,
@@ -431,6 +442,7 @@ async def create_url_document(request, collection_id):
             })
             await document_instance.asave()
             add_index_for_local_document.delay(document_instance.id)
+            crawl_domain.delay(url, url, collection_id, user, max_pages=2)
 
     except IntegrityError as e:
         return fail(HTTPStatus.BAD_REQUEST, f"document {document_instance.name}  " + e)
@@ -438,7 +450,7 @@ async def create_url_document(request, collection_id):
         logger.exception("add document failed")
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     if len(failed_urls) != 0:
-        response["message"] = "Some URLs failed validation,eg. http://example.com/path?query=123#fragment"
+        response["message"] = "Some URLs failed validation,eg. https://example.com/path?query=123#fragment"
         response["failed_urls"] = failed_urls
     return success(response)
 
@@ -573,7 +585,8 @@ async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Message
     chat = await query_chat(user, bot_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
-    feedback = await kubechat.chat.message.feedback_message(chat.user, chat_id, message_id, msg_in.upvote, msg_in.downvote,
+    feedback = await kubechat.chat.message.feedback_message(chat.user, chat_id, message_id, msg_in.upvote,
+                                                            msg_in.downvote,
                                                             msg_in.revised_answer)
 
     # embedding the revised answer
@@ -608,10 +621,10 @@ async def create_bot(request, bot_in: BotIn):
     user = get_user(request)
 
     # there is quota limit on bot
-    if DefaultQuota.MAX_BOT_COUNT:
+    if settings.MAX_BOT_COUNT:
         bot_limit = await query_user_quota(user, QuotaType.MAX_BOT_COUNT)
         if bot_limit is None:
-            bot_limit = DefaultQuota.MAX_BOT_COUNT
+            bot_limit = settings.MAX_BOT_COUNT
         if await query_bots_count(user) >= bot_limit:
             return fail(HTTPStatus.FORBIDDEN, f"bot number has reached the limit of {bot_limit}")
 
@@ -811,5 +824,3 @@ def dashboard(request):
     context = {'user_count': user_count, 'Collection_count': collection_count,
                'Document_count': document_count, 'Chat_count': chat_count}
     return render(request, 'kubechat/dashboard.html', context)
-
-

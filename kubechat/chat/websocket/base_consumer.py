@@ -12,7 +12,7 @@ from kubechat.chat.history.redis import RedisChatMessageHistory
 import redis.asyncio as redis
 
 import config.settings as settings
-from kubechat.apps import DefaultQuota, QuotaType
+from kubechat.apps import QuotaType
 from kubechat.auth.validator import DEFAULT_USER
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
 from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
@@ -58,7 +58,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         self.redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
         self.conversation_limit = await query_user_quota(self.user, QuotaType.MAX_CONVERSATION_COUNT)
         if self.conversation_limit is None:
-            self.conversation_limit = DefaultQuota.MAX_CONVERSATION_COUNT
+            self.conversation_limit = settings.MAX_CONVERSATION_COUNT
 
         # If using daphne, we need to put the token in the headers and include the headers in the subprotocol.
         # headers = {}
