@@ -230,6 +230,11 @@ spec:
                 configMapKeyRef:
                   key: EMBEDDING_DEVICE
                   name: kubechat-config
+            - name: TENCENT_REDIRECT_URI
+              valueFrom:
+                configMapKeyRef:
+                  key: TENCENT_REDIRECT_URI
+                  name: kubechat-config
             - name: ES_HOST
               valueFrom:
                 configMapKeyRef:

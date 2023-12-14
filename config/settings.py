@@ -283,6 +283,8 @@ FEISHU_APP_ID = env.str("FEISHU_APP_ID", default="")
 FEISHU_APP_SECRET = env.str("FEISHU_APP_SECRET", default="")
 FEISHU_ENCRYPT_KEY = env.str("FEISHU_ENCRYPT_KEY", default="")
 
+TENCENT_REDIRECT_URI = env.str("TENCENT_REDIRECT_URI", default="https://localhost:8000/api/v1/tencent/webhook/event")
+
 ENABLE_QA_GENERATOR = env.bool("ENABLE_QA_GENERATOR", default=False)
 
 CHAT_CONSUMER_IMPLEMENTATION = env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")

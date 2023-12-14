@@ -11,6 +11,7 @@ from kubechat.views.config import router as config_router
 from kubechat.views.main import router as main_router
 from kubechat.views.feishu import router as feishu_router
 from kubechat.views.weixin import router as weixin_router
+from kubechat.views.tencent import router as tencent_router
 from kubechat.views.web import router as web_router
 
 api = NinjaAPI()
@@ -22,6 +23,7 @@ api.add_router("/", web_router)
 api.add_router("/config", config_router)
 api.add_router("/feishu", feishu_router)
 api.add_router("/weixin", weixin_router)
+api.add_router("/tencent", tencent_router)
 
 
 urlpatterns = [
