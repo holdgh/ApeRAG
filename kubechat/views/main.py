@@ -230,7 +230,8 @@ async def create_collection(request, collection: CollectionIn):
     if config.get("source") == "tencent":
         redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
         if await redis_client.exists("tencent_code"):
-            config["code"] = await redis_client.get("tencent_code")
+            code = await redis_client.get("tencent_code")
+            config["code"] = code.decode()
             config["redirect_uri"] = settings.TENCENT_REDIRECT_URI
             collection.config = json.dumps(config)
         else:

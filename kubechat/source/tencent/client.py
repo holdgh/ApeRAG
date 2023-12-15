@@ -52,14 +52,14 @@ class TencentClient(ABC):
             docs = data["list"]
             for doc in docs:
                 if doc.type == "doc":
-                    yield self.get_file(doc["ID"], source=source)
+                    yield self.get_file_metadata(doc["ID"], source=source)
                 elif doc.type == "folder":
                     yield self.scan_documents(doc["ID"])
 
             if data["next"] == 0:
                 break
 
-    def get_file(self, file_id, source="download") -> RemoteDocument:
+    def get_file_metadata(self, file_id, source="download") -> RemoteDocument:
         """
         https://docs.qq.com/open/document/app/openapi/v2/file/files/metadata.html
         """
