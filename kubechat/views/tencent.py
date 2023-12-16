@@ -9,7 +9,8 @@ router = Router()
 
 @router.get("/webhook/event")
 async def callback(request, code, state):
+    # restore user_id in state, to distinguish code of different users
     redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
-    await redis_client.set("tencent_code", code)
+    await redis_client.set("tencent_code_"+state, code)
     await redis_client.expireat("tencent_code", int(time.time()) + 300)
 
