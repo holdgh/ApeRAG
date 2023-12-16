@@ -276,9 +276,9 @@ async def list_collections(request):
     return success(response, pr)
 
 
-@router.get("/default_collections")
-async def list_default_collections(request):
-    pr = await query_collections(settings.SYSTEM_USER, build_pq(request))
+@router.get("/system_collections")
+async def list_system_collections(request):
+    pr = await query_collections(settings.ADMIN_USER, build_pq(request))
     response = []
     async for collection in pr.data:
         response.append(collection.view())
@@ -661,6 +661,18 @@ async def list_bots(request):
         elif model in ["gpt-4-vision-preview", "gpt-4-32k", "gpt-4-32k-0613"]:
             bot_config["model"] = "gpt-4-1106-preview"
         bot.config = json.dumps(bot_config)
+        response.append(bot.view(collections))
+    return success(response, pr)
+
+
+@router.get("/system_bots")
+async def list_system_bots(request):
+    pr = await query_bots(settings.ADMIN_USER, build_pq(request))
+    response = []
+    async for bot in pr.data:
+        collections = []
+        async for collection in await sync_to_async(bot.collections.all)():
+            collections.append(collection.view())
         response.append(bot.view(collections))
     return success(response, pr)
 

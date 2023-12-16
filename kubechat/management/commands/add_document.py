@@ -26,7 +26,7 @@ class Command(BaseCommand):
         request = HttpRequest()
         request.method = "POST"
         request.META = {
-            KEY_USER_ID: settings.SYSTEM_USER,
+            KEY_USER_ID: settings.ADMIN_USER,
         }
         with open(path, 'rb') as fd:
             content = fd.read()

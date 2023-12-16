@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
-import time
+
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -253,12 +253,11 @@ VECTOR_DB_CONTEXT = env.str(
 
 CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
 
-
 # simpleui
 SIMPLEUI_CONFIG = {
     'system_keep': True,
     # 'menu_display': [],
-    'dynamic': False,    # Set whether to enable dynamic menus. Default is False.
+    'dynamic': False,  # Set whether to enable dynamic menus. Default is False.
 }
 # Hide the advertisement links on the right side of SimpleUI and the usage analysis.
 SIMPLEUI_HOME_INFO = False
@@ -297,11 +296,8 @@ REDIS_PORT = env.str("REDIS_PORT", default="6379")
 REDIS_USERNAME = env.str("REDIS_USERNAME", default="")
 REDIS_PASSWORD = env.str("REDIS_PASSWORD", default="")
 
-
 ENABLE_KEYWORD_SEARCH = env.bool("ENABLE_KEYWORD_SEARCH", default=True)
 ES_HOST = env.str("ES_HOST", "http://localhost:9200")
-
-SYSTEM_USER = "kubechat-admin"
 
 BAICHUAN_API_KEY = env.str("BAICHUAN_API_KEY", default="")
 BAICHUAN_SECRET_KEY = env.str("BAICHUAN_SECRET_KEY", default="")
@@ -311,5 +307,7 @@ QIANFAN_SECRET_KEY = env.str("QIANFAN_SECRET_KEY", default="")
 
 OPENAI_API_PROXY = env.str("OPENAI_API_PROXY", default="{}")
 
-WHISPER_HOST=env.str("WHISPER_HOST", default="http://openai-whisper-asr-service:9000")
-PADDLEOCR_HOST=env.str("PADDLEOCR_HOST", default="http://paddleocr-hubserving-service:8866")
+WHISPER_HOST = env.str("WHISPER_HOST", default="http://openai-whisper-asr-service:9000")
+PADDLEOCR_HOST = env.str("PADDLEOCR_HOST", default="http://paddleocr-hubserving-service:8866")
+
+ADMIN_USER = env.str("ADMIN_USER", default="kubechat")

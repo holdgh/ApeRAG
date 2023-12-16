@@ -21,7 +21,7 @@ class Command(BaseCommand):
         request = HttpRequest()
         request.method = "DELETE"
         request.META = {
-            KEY_USER_ID: settings.SYSTEM_USER,
+            KEY_USER_ID: settings.ADMIN_USER,
         }
         response = async_to_sync(delete_collection)(request, collection_id)
         if int(response["code"]) != HTTPStatus.OK:
