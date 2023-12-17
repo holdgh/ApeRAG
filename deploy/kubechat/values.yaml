@@ -123,7 +123,6 @@ django:
   paddleocrHost: http://paddleocr-hubserving-service:8866
   embeddingServiceUrl: "http://kubechat-embedding:8001/v1/embeddings"
   embeddingServiceModel: "BAAI/bge-large-zh"
-  tencentRedirectUri: "https://kubechat-console:8002/api/v1/tencent/webhook/event"
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:

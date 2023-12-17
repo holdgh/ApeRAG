@@ -29,7 +29,6 @@ data:
   MAX_CONVERSATION_COUNT: "{{ .Values.django.quota.maxConversationCount }}"
   EMBEDDING_MODEL: "{{ .Values.django.embeddingModel }}"
   EMBEDDING_DEVICE: "{{ .Values.django.embeddingDevice }}"
-  TENCENT_REDIRECT_URI: "{{ .Values.django.tencentRedirectUri }}"
   ENABLE_QA_GENERATOR: "{{ .Values.django.enableQAGenerator }}"
   ES_HOST: "{{ .Values.django.esHost }}"
   WHISPER_HOST: "{{ .Values.django.whisperHost }}"

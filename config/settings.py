@@ -287,8 +287,6 @@ MAX_COLLECTION_COUNT = env.int("MAX_COLLECTION_COUNT", default=50)
 MAX_DOCUMENT_COUNT = env.int("MAX_DOCUMENT_COUNT", default=1000)
 MAX_CONVERSATION_COUNT = env.int("MAX_CONVERSATION_COUNT", default=100)
 
-TENCENT_REDIRECT_URI = env.str("TENCENT_REDIRECT_URI", default="https://localhost:8000/api/v1/tencent/webhook/event")
-
 ENABLE_QA_GENERATOR = env.bool("ENABLE_QA_GENERATOR", default=False)
 
 CHAT_CONSUMER_IMPLEMENTATION = env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")
