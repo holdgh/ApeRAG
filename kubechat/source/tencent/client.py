@@ -86,10 +86,10 @@ class TencentClient(ABC):
         file_id = metadata["ID"]
 
         if source == "online":
-            content = self.get_online_file(file_id)
+            content = self.get_file_online(file_id)
             temp_file = gen_temporary_file(name, default_suffix="txt")
         elif source == "download":
-            content = self.get_download_file(file_id)
+            content = self.get_file_download(file_id)
             temp_file = gen_temporary_file(name, default_suffix="pdf")
         else:
             raise Exception("unsupported file source")
@@ -99,7 +99,7 @@ class TencentClient(ABC):
         metadata["name"] = name
         return LocalDocument(name=name, path=temp_file.name, metadata=metadata)
 
-    def get_online_file(self, file_id):
+    def get_file_online(self, file_id):
         """
         https://docs.qq.com/open/document/app/openapi/v3/doc/get/get.html
         """
@@ -124,7 +124,7 @@ class TencentClient(ABC):
         result = "\n".join(text_values)
         return result
 
-    def get_download_file(self, file_id):
+    def get_file_download(self, file_id):
         operation_id = self.get_operation_id(file_id)
         download_url = self.get_download_url(file_id, operation_id)
 
