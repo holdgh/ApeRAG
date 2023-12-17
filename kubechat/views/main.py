@@ -37,8 +37,6 @@ from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_sou
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.db.models import *
-from config.settings import LOCAL_QUEUE_NAME
-
 
 logger = logging.getLogger(__name__)
 
@@ -289,9 +287,9 @@ async def list_collections(request):
     return success(response, pr)
 
 
-@router.get("/default_collections")
-async def list_default_collections(request):
-    pr = await query_collections(settings.SYSTEM_USER, build_pq(request))
+@router.get("/system_collections")
+async def list_system_collections(request):
+    pr = await query_collections(settings.ADMIN_USER, build_pq(request))
     response = []
     async for collection in pr.data:
         response.append(collection.view())
@@ -350,9 +348,7 @@ async def delete_collection(request, collection_id):
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
-    delete_collection_task.apply_async(args=[collection_id],
-                                       queue=LOCAL_QUEUE_NAME,
-                                       priority=1)
+    delete_collection_task.delay(collection_id)
     return success(collection.view())
 
 
@@ -676,6 +672,18 @@ async def list_bots(request):
         elif model in ["gpt-4-vision-preview", "gpt-4-32k", "gpt-4-32k-0613"]:
             bot_config["model"] = "gpt-4-1106-preview"
         bot.config = json.dumps(bot_config)
+        response.append(bot.view(collections))
+    return success(response, pr)
+
+
+@router.get("/system_bots")
+async def list_system_bots(request):
+    pr = await query_bots(settings.ADMIN_USER, build_pq(request))
+    response = []
+    async for bot in pr.data:
+        collections = []
+        async for collection in await sync_to_async(bot.collections.all)():
+            collections.append(collection.view())
         response.append(bot.view(collections))
     return success(response, pr)
 

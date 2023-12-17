@@ -20,6 +20,7 @@ from kubechat.source.base import get_source
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
 from kubechat.db.ops import query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
+
 logger = logging.getLogger(__name__)
 
 

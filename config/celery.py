@@ -1,16 +1,11 @@
 import os
-from kombu import Queue, Exchange
+
 from celery import Celery
-from config.settings import LOCAL_QUEUE_NAME
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 app = Celery("kubechat")
-app.conf.task_queues = (
-    Queue(LOCAL_QUEUE_NAME, Exchange(LOCAL_QUEUE_NAME), routing_key=LOCAL_QUEUE_NAME,priority=10),
-    Queue("celery", Exchange("celery")),
-)
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
@@ -18,10 +13,10 @@ app.conf.task_queues = (
 #   should have a `CELERY_` prefix.
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
-
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
+from config.settings import LOCAL_QUEUE_NAME
 
 if LOCAL_QUEUE_NAME != "":
     app.conf.task_routes = {

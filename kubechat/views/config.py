@@ -1,6 +1,9 @@
+import json
+
 from ninja import NinjaAPI, Router
 
 from config import settings
+from kubechat.db.ops import query_config
 from kubechat.views.utils import success
 
 api = NinjaAPI(version="1.0.0", urls_namespace="config")
@@ -21,4 +24,8 @@ def config(request):
         case "authing":
             auth["auth_domain"] = settings.AUTHING_DOMAIN
             auth["auth_app_id"] = settings.AUTHING_APP_ID
-    return success({"auth": auth})
+
+    values = query_config(key="public_ips")
+    public_ips = json.loads(values)
+
+    return success({"auth": auth, "public_ips": public_ips})

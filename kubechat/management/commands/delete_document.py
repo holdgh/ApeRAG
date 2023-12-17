@@ -23,7 +23,7 @@ class Command(BaseCommand):
         request = HttpRequest()
         request.method = "POST"
         request.META = {
-            KEY_USER_ID: settings.SYSTEM_USER,
+            KEY_USER_ID: settings.ADMIN_USER,
         }
         response = async_to_sync(delete_document)(request, collection_id, document_id)
         if int(response["code"]) != HTTPStatus.OK:

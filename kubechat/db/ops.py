@@ -14,7 +14,7 @@ from kubechat.db.models import (
     CollectionSyncHistory,
     Document,
     DocumentStatus,
-    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Quota, UserQuota,
+    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Config, UserQuota
 )
 
 
@@ -256,9 +256,9 @@ async def query_bots_count(user, pq: PagedQuery = None):
     return count
 
 
-def query_quota(key):
-    result = Quota.objects.filter(key=key).values_list('value', flat=True).first()
-    return result
+def query_config(key):
+    results = Config.objects.filter(key=key).values_list('value', flat=True).first()
+    return results
 
 
 async def query_user_quota(user, key):

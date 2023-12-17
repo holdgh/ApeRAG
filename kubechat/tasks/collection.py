@@ -51,8 +51,6 @@ def init_collection_task(collection_id, document_user_quota):
 @app.task
 def delete_collection_task(collection_id):
     collection = Collection.objects.get(id=collection_id)
-    # TODO(chen):revoke_by_stamped_headers api is failed here,try another way.
-    app.control.revoke_by_stamped_headers({'collection_id': str(collection_id)})
 
     # TODO remove the related collection in the vector db
     index_name = generate_fulltext_index_name(collection.id)
