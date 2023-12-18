@@ -12,6 +12,7 @@ from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.custom import CustomLLMPredictor
 from kubechat.db.models import ProtectAction
 from kubechat.llm.prompts import SENSITIVE_INFORMATION_TEMPLATE, CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE
+from config import settings
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -21,7 +22,11 @@ class SensitiveFilter(ABC):
     
     def __init__(self, **kwargs):
         self.prompt_template = PromptTemplate(template=SENSITIVE_INFORMATION_TEMPLATE, input_variables=["context","types"])
-        self.predictor = Predictor.from_model("chatgpt-3.5", PredictorType.CUSTOM_LLM, **kwargs) 
+        sensitive_filter_model = settings.SENSITIVE_FILTER_MODEL
+        self.sensitive_protect_llm = False
+        if sensitive_filter_model != '':
+            self.sensitive_protect_llm = True
+            self.predictor = Predictor.from_model(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs) 
 
     def sensitive_filter_llm(self, context, types = ["密码","API-KEY","special token"]):
         prompt = self.prompt_template.format(context=context,types = types)
@@ -53,7 +58,7 @@ class SensitiveFilter(ABC):
         
         return context, results
     
-    def sensitive_filter(self, text: str, sensitive_protect_method: str, sensitive_protect_llm: bool) -> Tuple[str, Dict]:
+    def sensitive_filter(self, text: str, sensitive_protect_method: str) -> Tuple[str, Dict]:
         output_sensitive_info = {}
         output_text = text        
         try:
@@ -70,7 +75,7 @@ class SensitiveFilter(ABC):
                     output_text = dlp_masktext
                 
                 # llm check
-                if sensitive_protect_llm:
+                if self.sensitive_protect_llm:
                     llm_masktext, llm_outputs = self.sensitive_filter_llm(text)
                     if len(llm_outputs)>0:
                         output_sensitive_info = {"chunk": text, "masked_chunk": llm_masktext, "sensitive_info": llm_outputs}
@@ -86,8 +91,11 @@ class SensitiveFilterClassify(ABC):
     
     def __init__(self, **kwargs):
         self.prompt_template = PromptTemplate(template=CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE, input_variables=["context","types"])
-        self.predictor = Predictor.from_model("chatgpt-3.5", PredictorType.CUSTOM_LLM, **kwargs)
-
+        sensitive_filter_model = settings.SENSITIVE_FILTER_MODEL
+        self.sensitive_protect_llm = False
+        if sensitive_filter_model != '':
+            self.sensitive_protect_llm = True
+            self.predictor = Predictor.from_model(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs) 
     def sensitive_filter_llm(self, context, types = ["密码","API-KEY","special token"]):
         prompt = self.prompt_template.format(context=context,types = types)
         response = ""
@@ -99,7 +107,7 @@ class SensitiveFilterClassify(ABC):
 
         return is_sensitive
     
-    def sensitive_filter(self, text: str, sensitive_protect_method: str, sensitive_protect_llm: bool) -> Tuple[str, Dict]:
+    def sensitive_filter(self, text: str, sensitive_protect_method: str) -> Tuple[str, Dict]:
         output_sensitive_info = {}
         output_text = text        
         try:
@@ -114,7 +122,7 @@ class SensitiveFilterClassify(ABC):
             
             if dlp_num > 0:
                 # llm check
-                if sensitive_protect_llm:
+                if self.sensitive_protect_llm:
                     is_sensitive = self.sensitive_filter_llm(text)
                 if is_sensitive:
                     output_sensitive_info = {"chunk": text, "masked_chunk": dlp_masktext, "sensitive_info": dlp_outputs}
