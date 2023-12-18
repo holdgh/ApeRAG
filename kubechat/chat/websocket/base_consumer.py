@@ -126,7 +126,9 @@ class BaseConsumer(AsyncWebsocketConsumer):
         references = []
         related_question = []
         message_id = f"{now_unix_milliseconds()}"
-
+        
+        # index = generate_total_question_index_name(document.collection.id)  # ！！改
+        # insert_question(index, message_id, message)
         try:
             # send start message
             await self.send(text_data=start_response(message_id))

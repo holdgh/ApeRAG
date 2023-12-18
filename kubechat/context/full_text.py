@@ -144,3 +144,54 @@ async def search_document(index: str, keywords: List[str], topk=3):
     for hit in hits["hits"]:
         result.append(hit["_source"])
     return result
+
+# insert document into elasticsearch
+def insert_question(index, que_id, content):
+    if es.indices.exists(index=index).body:
+        doc = {
+            'content': content,
+        }
+        es.index(index=index, id=f"{que_id}", document=doc)
+    else:
+        logger.warning("index %s not exists", index)
+
+
+def remove_question(index, que_id):
+    if es.indices.exists(index=index).body:
+        try:
+            es.delete(index=index, id=f"{que_id}")
+        except NotFoundError:
+            logger.warning("question %s not found in index %s", que_id, index)
+    else:
+        logger.warning("index %s not exists", index)
+
+async def search_question(index: str, keywords: List[str], topk=3):
+    resp = await async_es.indices.exists(index=index)
+    if not resp.body:
+        return []
+
+    if not keywords:
+        return []
+
+    query = {
+        "bool": {
+            "should": [
+                {"match": {"content": keyword}} for keyword in keywords
+            ],
+            "minimum_should_match": "80%",
+            # "minimum_should_match": "-1",
+        },
+    }
+    sort = [
+        {
+            "_score": {
+                "order": "desc"
+            }
+        }
+    ]
+    resp = await async_es.search(index=index, query=query, sort=sort, size=topk)
+    hits = resp.body["hits"]
+    result = []
+    for hit in hits["hits"]:
+        result.append(hit["_source"])
+    return result
