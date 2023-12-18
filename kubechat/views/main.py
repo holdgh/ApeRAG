@@ -614,13 +614,15 @@ async def create_bot(request, bot_in: BotIn):
             bot_limit = settings.MAX_BOT_COUNT
         if await query_bots_count(user) >= bot_limit:
             return fail(HTTPStatus.FORBIDDEN, f"bot number has reached the limit of {bot_limit}")
-
+    config = json.loads(bot_in.config)
+    config["app_secret"] = "gDuaJc6NqXBv1tApvDYA-hnF6QnjYQk-5_lF63al2oYsKVpfbsCaAmi-2IK-lOdl"
+    modified_json_str = json.dumps(config, ensure_ascii=False, indent=2)
     bot = Bot(
         user=user,
         title=bot_in.title,
         status=BotStatus.ACTIVE,
         description=bot_in.description,
-        config=bot_in.config,
+        config=modified_json_str,
     )
     config = json.loads(bot_in.config)
     model = config.get("model")

@@ -12,6 +12,7 @@ from kubechat.views.main import router as main_router
 from kubechat.views.feishu import router as feishu_router
 from kubechat.views.weixin import router as weixin_router
 from kubechat.views.web import router as web_router
+from kubechat.views.dingtalk import router as dingtalk_router
 
 api = NinjaAPI()
 api.add_exception_handler(ValidationError, validation_errors)
@@ -22,6 +23,7 @@ api.add_router("/", web_router)
 api.add_router("/config", config_router)
 api.add_router("/feishu", feishu_router)
 api.add_router("/weixin", weixin_router)
+api.add_router("/dingtalk", dingtalk_router)
 
 
 urlpatterns = [

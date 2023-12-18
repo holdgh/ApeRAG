@@ -270,6 +270,7 @@ class ChatPeer(models.TextChoices):
     SYSTEM = "system"
     FEISHU = "feishu"
     WEIXIN = "weixin"
+    DINGTALK = "dingtalk"
     WEB = "web"
 
 
