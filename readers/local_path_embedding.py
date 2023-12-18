@@ -44,7 +44,6 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
 
     def load_data(self, **kwargs) -> Tuple[List[str], str, List]:
         sensitive_protect = kwargs.get('sensitive_protect', False)
-        sensitive_protect_llm = kwargs.get('sensitive_protect_llm', False) 
         sensitive_protect_method = kwargs.get('sensitive_protect_method', ProtectAction.WARNING_NOT_STORED)
         docs, file_name = self.reader.load_data()
         if not docs:
@@ -100,7 +99,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                             doc.metadata.get("name", None), prefix)
 
             if sensitive_protect:
-                doc.text,output_sensitive_info = self.filter.sensitive_filter(doc.text, sensitive_protect_method, sensitive_protect_llm)
+                doc.text,output_sensitive_info = self.filter.sensitive_filter(doc.text, sensitive_protect_method)
                 if output_sensitive_info != {}:
                     sensitive_info.append(output_sensitive_info)
             
