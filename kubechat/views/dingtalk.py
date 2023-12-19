@@ -30,11 +30,8 @@ router = Router()
 @router.post("/webhook/event")
 async def post(request,user,bot_id):
     bot = await query_bot(user, bot_id)
-    if bot is None:
-        logger.warning("bot not found: %s", bot_id)
-        return
     bot_config = json.loads(bot.config)
-    if validate_sign(request.headers['Timestamp'], app_secret=bot_config["app_secret"],request_sign=request.headers['Sign']):
+    if validate_sign(request.headers['Timestamp'], app_secret=bot_config["client_secret"],request_sign=request.headers['Sign']):
         data = json.loads(request.body.decode('utf-8'))
         # sender_nick = data.get('senderNick')
         message_content = data.get('text', {}).get('content')
@@ -42,6 +39,10 @@ async def post(request,user,bot_id):
         session_webhook=data.get('sessionWebhook')
         msg_id=data.get('msgId')
         redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        if bot is None:
+            logger.warning("bot not found: %s", bot_id)
+            asyncio.create_task(send_message("bot not found",session_webhook,sender_id))
+            return
         asyncio.create_task(dingtalk_text_response(redis_client,user,bot,message_content,msg_id,sender_id,session_webhook))
         return success("")
 
