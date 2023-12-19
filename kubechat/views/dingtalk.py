@@ -22,14 +22,7 @@ from django.http import JsonResponse
 from kubechat.views.utils import  success,fail
 
 openai.api_key = os.environ.get("API_KEY")
-dd_token = "52bc23eef3d3df761f1dbe220390634a8375b85a99a7759d68551ffcf77fb75e"
 
-# Set up the model and prompt
-model_engine = "gpt-3.5-turbo"
-
-retry_times = 5
-
-global_dict = {}
 logger = logging.getLogger(__name__)
 
 router = Router()
@@ -45,14 +38,14 @@ async def post(request,user,bot_id):
         data = json.loads(request.body.decode('utf-8'))
         # sender_nick = data.get('senderNick')
         message_content = data.get('text', {}).get('content')
-        sender_id = data.get('senderId')
+        sender_id = data.get('senderStaffId')
         session_webhook=data.get('sessionWebhook')
         msg_id=data.get('msgId')
         redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
         asyncio.create_task(dingtalk_text_response(redis_client,user,bot,message_content,msg_id,sender_id,session_webhook))
         return success("")
 
-    return fail("validate dingtalk sign failed")
+    return fail(400,"validate dingtalk sign failed")
 
 
 def validate_sign(timestamp, app_secret, request_sign):
@@ -103,17 +96,17 @@ async def dingtalk_text_response(redis_client, user, bot, query, msg_id,sender_i
 async def notify_dingding(question,answer,webhook,sender_id):
     data = {
         "msgtype": "text",
-        "text": {
-            "content": f"Q:{question}"
-                       f"A:{answer}"
-        },
-
         "at": {
             "atUserIds": [
-                sender_id
+                f"{sender_id}"
             ],
             "isAtAll": False
+        },
+        "text": {
+            "content": f"Q:{question}\n"
+                       f"A:{answer}"
         }
+
     }
     try:
         r = requests.post(webhook, json=data)

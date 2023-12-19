@@ -624,7 +624,6 @@ async def create_bot(request, bot_in: BotIn):
         description=bot_in.description,
         config=modified_json_str,
     )
-    config = json.loads(bot_in.config)
     model = config.get("model")
     llm_config = config.get("llm")
     valid, msg = validate_bot_config(model, llm_config)
