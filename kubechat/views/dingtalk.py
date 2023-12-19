@@ -31,7 +31,8 @@ router = Router()
 async def post(request,user,bot_id):
     bot = await query_bot(user, bot_id)
     bot_config = json.loads(bot.config)
-    if validate_sign(request.headers['Timestamp'], app_secret=bot_config["client_secret"],request_sign=request.headers['Sign']):
+    secret=bot_config['dingtalk']['client_secret']
+    if validate_sign(request.headers['Timestamp'], app_secret=secret,request_sign=request.headers['Sign']):
         data = json.loads(request.body.decode('utf-8'))
         # sender_nick = data.get('senderNick')
         message_content = data.get('text', {}).get('content')
