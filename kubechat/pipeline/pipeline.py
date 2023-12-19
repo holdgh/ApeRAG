@@ -112,7 +112,8 @@ class Pipeline(ABC):
         
         if self.use_related_question:
             self.related_question_prompt = PromptTemplate(template=RELATED_QUESTIONS_TEMPLATE, input_variables=["query", "context"])
-            self.related_question_predictor = Predictor.from_model("chatgpt-3.5", PredictorType.CUSTOM_LLM) 
+            kwargs = {}
+            self.related_question_predictor = Predictor.from_model("gpt-4-1106-preview", **kwargs)
 
     @staticmethod
     async def new_human_message(message, message_id):
