@@ -32,7 +32,7 @@ async def post(request,user,bot_id):
     bot = await query_bot(user, bot_id)
     bot_config = json.loads(bot.config)
     secret=bot_config['dingtalk']['client_secret']
-    if validate_sign(request.headers['Timestamp'], app_secret=secret,request_sign=request.headers['Sign']):
+    if validate_sign(request.headers['Timestamp'], client_secret=secret, request_sign=request.headers['Sign']):
         data = json.loads(request.body.decode('utf-8'))
         # sender_nick = data.get('senderNick')
         message_content = data.get('text', {}).get('content')
@@ -50,11 +50,11 @@ async def post(request,user,bot_id):
     return fail(400,"validate dingtalk sign failed")
 
 
-def validate_sign(timestamp, app_secret, request_sign):
-    app_secret_enc = app_secret.encode('utf-8')
-    string_to_sign = '{}\n{}'.format(timestamp, app_secret)
+def validate_sign(timestamp, client_secret, request_sign):
+    client_secret_enc = client_secret.encode('utf-8')
+    string_to_sign = '{}\n{}'.format(timestamp, client_secret)
     string_to_sign_enc = string_to_sign.encode('utf-8')
-    hmac_code = hmac.new(app_secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+    hmac_code = hmac.new(client_secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
     sign = base64.b64encode(hmac_code).decode('utf-8')
     return sign==request_sign
 
