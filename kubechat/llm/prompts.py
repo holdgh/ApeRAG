@@ -213,3 +213,75 @@ CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE = """
 {context}
 -----------------------------------
 """
+
+CHINESE_TRANSLATION_TEMPLATE = """
+你是一个资深翻译专家，现在有一段文本需要翻译，你需要根据翻译要求将其翻译
+注意既要保留句子的原意，又要保证语句通畅
+
+翻译要求如下：
+-----------------------------------
+{query}
+-------------------------------------
+"""
+
+ENGLISH_TRANSLATION_TEMPLATE = """
+You are a seasoned translation expert.
+You need to translate the text based on the translation requirements.
+Ensure both the original meaning of the sentences and smooth language flow.
+
+Translation requirements is below：
+------------------------------------
+{query}
+------------------------------------
+"""
+
+CHINESE_TRANSLATION_MEMORY_TEMPLATE = """
+你是一个根据对话记录和翻译要求来回答的资深翻译专家，
+现在有一段文本需要翻译，你需要严格根据对话记录和翻译要求将其翻译
+注意既要保留句子的原意，又要保证语句通畅
+
+翻译要求如下：
+-----------------------------------
+{query}
+-------------------------------------
+"""
+
+ENGLISH_TRANSLATION_MEMORY_TEMPLATE = """
+You are a seasoned translation expert who responds based on the conversation history and translation requests.
+You need to strictly follow the conversation history and translation requirements to translate it.
+Ensure both the original meaning of the sentences and smooth language flow.
+
+Translation requirements is below：
+------------------------------------
+{query}
+------------------------------------
+"""
+
+CHINESE_TRANSLATION_FILE_TEMPLATE = """
+你是一个资深翻译专家，现在有一段文本需要翻译，你需要根据翻译要求将其翻译
+注意既要保留句子的原意，又要保证语句通畅
+
+翻译要求如下：
+-----------------------------------
+{query}
+-------------------------------------
+你需要翻译的文本如下：
+-----------------------------------
+{context}
+-----------------------------------
+"""
+
+ENGLISH_TRANSLATION_FILE_TEMPLATE = """
+You are a seasoned translation expert, and there is a piece of text that needs to be translated.
+You need to translate it based on the translation requirements.
+Ensure both the original meaning of the sentences and smooth language flow.
+
+Translation requirements is below：
+------------------------------------
+{query}
+------------------------------------
+Text need to be tanslated is below:
+--------------------------------------
+{context}
+--------------------------------------
+"""

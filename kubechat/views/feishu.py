@@ -13,7 +13,7 @@ from kubechat.db.ops import *
 from kubechat.views.utils import success, fail
 from kubechat.auth.validator import FeishuEventVerification
 from kubechat.db.models import ChatPeer
-from kubechat.pipeline.pipeline import KeywordPipeline
+from kubechat.pipeline.keyword_pipeline import KeywordPipeline
 from kubechat.source.feishu.feishu import FeishuClient
 from kubechat.utils.utils import AESCipher
 

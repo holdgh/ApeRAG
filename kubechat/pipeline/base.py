@@ -1,0 +1,156 @@
+import json
+import uuid
+from abc import ABC, abstractmethod
+from typing import Optional, List, Dict
+
+from langchain import PromptTemplate
+from langchain.schema import HumanMessage, AIMessage
+from pydantic import BaseModel
+
+from config import settings
+from kubechat.chat.history.base import BaseChatMessageHistory
+from kubechat.context.context import ContextManager
+from kubechat.llm.base import Predictor, PredictorType
+from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,RELATED_QUESTIONS_TEMPLATE
+from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
+    generate_qa_vector_db_collection_name
+from readers.base_embedding import get_embedding_model
+
+
+class Message(BaseModel):
+    id: str
+    query: Optional[str]
+    timestamp: Optional[int]
+    response: Optional[str]
+    references: Optional[List[Dict]]
+    collection_id: Optional[str]
+    embedding_model: Optional[str]
+    embedding_size: Optional[int]
+    embedding_score_threshold: Optional[float]
+    embedding_topk: Optional[int]
+    llm_model: Optional[str]
+    llm_prompt_template: Optional[str]
+    llm_context_window: Optional[int]
+
+
+class Pipeline(ABC):
+    def __init__(self,
+                 bot,
+                 collection,
+                 history: BaseChatMessageHistory,
+                 ):
+        self.bot = bot
+        self.collection = collection
+        self.history = history
+        self.collection_id = collection.id
+        bot_config = json.loads(self.bot.config)
+        self.llm_config = bot_config.get("llm", {})
+        self.model = bot_config.get("model", "baichuan-13b")
+        self.memory = bot_config.get("memory", False)
+        self.memory_count = 0
+        self.memory_limit_length = bot_config.get("memory_length", 0)
+        self.memory_limit_count = bot_config.get("memory_count", 10)
+        self.use_ai_memory = bot_config.get("use_ai_memory", True)
+        self.topk = self.llm_config.get("similarity_topk", 3)
+        self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
+        self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
+        self.context_window = self.llm_config.get("context_window", 3500)
+        self.use_related_question = bot_config.get("use_related_question", False)
+
+        welcome = bot_config.get("welcome", {})
+        faq = welcome.get("faq", [])
+        self.welcome_question = []
+        for qa in faq:
+            self.welcome_question.append(qa["question"])
+        self.oops = welcome.get("oops", "")
+
+        if self.memory:
+            self.prompt_template = self.llm_config.get("memory_prompt_template", None)
+        else:
+            self.prompt_template = self.llm_config.get("prompt_template", None)
+        if not self.prompt_template:
+            if self.memory:
+                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
+                                                                                 DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
+            else:
+                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model,
+                                                                          DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+        self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
+        collection_name = generate_vector_db_collection_name(collection.id)
+        self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
+        self.vectordb_ctx["collection"] = collection_name
+
+        config = json.loads(collection.config)
+        self.embedding_model_name = config.get("embedding_model", settings.EMBEDDING_MODEL)
+        self.embedding_model, self.vector_size = get_embedding_model(self.embedding_model_name)
+
+        self.context_manager = ContextManager(collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
+                                              self.vectordb_ctx)
+
+        qa_collection_name = generate_qa_vector_db_collection_name(self.collection.id)
+        self.qa_vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
+        self.qa_vectordb_ctx["collection"] = qa_collection_name
+        self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
+                                                 self.qa_vectordb_ctx)
+
+        kwargs = {"model": self.model}
+        kwargs.update(self.llm_config)
+        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
+
+        if self.use_related_question:
+            self.related_question_prompt = PromptTemplate(template=RELATED_QUESTIONS_TEMPLATE,
+                                                          input_variables=["query", "context"])
+            kwargs = {}
+            self.related_question_predictor = Predictor.from_model("gpt-4-1106-preview", **kwargs)
+
+    @staticmethod
+    async def new_human_message(message, message_id):
+        return Message(
+            id=message_id,
+            query=message,
+            timestamp=now_unix_milliseconds(),
+        )
+
+    async def new_ai_message(self, message, message_id, response, references):
+        return Message(
+            id=message_id,
+            query=message,
+            response=response,
+            timestamp=now_unix_milliseconds(),
+            references=references,
+            collection_id=self.collection_id,
+            embedding_model=self.embedding_model_name,
+            embedding_size=self.vector_size,
+            embedding_score_threshold=self.score_threshold,
+            embedding_topk=self.topk,
+            llm_model=self.model,
+            llm_prompt_template=self.prompt_template,
+            llm_context_window=self.context_window,
+        )
+
+    async def add_human_message(self, message, message_id):
+        if not message_id:
+            message_id = str(uuid.uuid4())
+
+        human_msg = await (self.new_human_message(message, message_id))
+        human_msg = human_msg.json(exclude_none=True)
+        await self.history.add_message(
+            HumanMessage(
+                content=human_msg,
+                additional_kwargs={"role": "human"}
+            )
+        )
+
+    async def add_ai_message(self, message, message_id, response, references):
+        ai_msg = await (self.new_ai_message(message, message_id, response, references))
+        ai_msg = ai_msg.json(exclude_none=True)
+        await self.history.add_message(
+            AIMessage(
+                content=ai_msg,
+                additional_kwargs={"role": "ai"}
+            )
+        )
+
+    @abstractmethod
+    async def run(self, query, gen_references=False, message_id=""):
+        pass

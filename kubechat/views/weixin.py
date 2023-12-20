@@ -10,7 +10,7 @@ import kubechat.chat.message
 from kubechat.apps import QuotaType
 from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.pipeline.pipeline import KeywordPipeline
+from kubechat.pipeline.keyword_pipeline import KeywordPipeline
 from kubechat.db.ops import *
 from kubechat.source.weixin.WXBizMsgCrypt import WXBizMsgCrypt
 from kubechat.source.weixin.client import WeixinClient

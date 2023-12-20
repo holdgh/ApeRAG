@@ -24,7 +24,7 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
 
     async def _handle(self, body):
         from kubechat.db.models import Chat
-        from kubechat.pipeline.pipeline import KeywordPipeline
+        from kubechat.pipeline.keyword_pipeline import KeywordPipeline
         from kubechat.db.ops import query_chat_by_peer, query_bot
         from kubechat.db.models import ChatPeer
         await self.send_headers(headers=[

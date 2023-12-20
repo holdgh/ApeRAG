@@ -1,7 +1,7 @@
 import logging
 
 from .base_consumer import BaseConsumer
-from kubechat.pipeline.pipeline import KeywordPipeline
+from kubechat.pipeline.keyword_pipeline import KeywordPipeline
 
 logger = logging.getLogger(__name__)
 

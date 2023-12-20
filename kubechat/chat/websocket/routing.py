@@ -47,6 +47,7 @@ async def bot_consumer_router(scope, receive, send):
 async def web_bot_consumer_router(scope, receive, send):
     from kubechat.db.ops import query_bot
     from kubechat.db.ops import query_web_chat
+    from kubechat.db.models import BotType
 
     path = scope["path"]
     bot_id, chat_id = extract_web_bot_and_chat_id(path)
@@ -61,8 +62,14 @@ async def web_bot_consumer_router(scope, receive, send):
         raise Exception("Chat not found")
     scope[KEY_CHAT_ID] = chat_id
 
-    from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
-    return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+    if bot.type == BotType.DOCUMENT_QA:
+        from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
+        return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+    elif bot.description == BotType.TRANSLATION:
+        from kubechat.chat.websocket.translation_consumer import TranslationConsumer
+        return await TranslationConsumer.as_asgi()(scope, receive, send)
+    else:
+        raise Exception("Invalid bot type")
 
 
 websocket_urlpatterns = [

@@ -15,7 +15,7 @@ import config.settings as settings
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import DEFAULT_USER
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
-from kubechat.pipeline.pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.pipeline.keyword_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.db.ops import query_bot, query_user_quota
 
 from kubechat.utils.utils import now_unix_milliseconds
