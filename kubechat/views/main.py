@@ -288,7 +288,7 @@ async def list_collections(request):
     return success(response, pr)
 
 
-@router.get("/system_collections")
+@router.get("/default_collections")
 async def list_system_collections(request):
     pr = await query_collections(settings.ADMIN_USER, build_pq(request))
     response = []

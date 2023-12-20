@@ -196,10 +196,8 @@ def add_index_for_document(self, document_id):
             config = json.loads(document.collection.config)
             sensitive_protect = config.get("sensitive_protect", False)
             sensitive_protect_method = config.get("sensitive_protect_method", ProtectAction.WARNING_NOT_STORED)
-            sensitive_protect_llm = config.get("sensitive_protect_llm", False)
             ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
-                                                                sensitive_protect_method=sensitive_protect_method,
-                                                                sensitive_protect_llm = sensitive_protect_llm)
+                                                                sensitive_protect_method=sensitive_protect_method)
             document.sensitive_info = sensitive_info
             if sensitive_protect and sensitive_info:
                 if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED:
@@ -301,10 +299,8 @@ def update_index(self, document_id):
         config = json.loads(document.collection.config)
         sensitive_protect = config.get("sensitive_protect", False)
         sensitive_protect_method = config.get("sensitive_protect_method", ProtectAction.WARNING_NOT_STORED)
-        sensitive_protect_llm = config.get("sensitive_protect_llm", False)
         ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
-                                                            sensitive_protect_method=sensitive_protect_method,
-                                                            sensitive_protect_llm=sensitive_protect_llm)
+                                                            sensitive_protect_method=sensitive_protect_method)
         document.sensitive_info = sensitive_info
         if sensitive_protect and sensitive_info != []:
             if sensitive_protect_method == ProtectAction.WARNING_NOT_STORED:
