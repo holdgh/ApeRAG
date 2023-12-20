@@ -13,6 +13,7 @@ from django.forms.models import model_to_dict
 from django.shortcuts import render
 from ninja import File, NinjaAPI, Schema, Router
 from ninja.files import UploadedFile
+import redis.asyncio as redis
 
 import kubechat.chat.message
 from config import settings
@@ -223,6 +224,17 @@ async def create_collection(request, collection: CollectionIn):
         is_validate, error_msg = validate_source_connect_config(config)
         if not is_validate:
             return fail(HTTPStatus.BAD_REQUEST, error_msg)
+
+    if config.get("source") == "tencent":
+        redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        if await redis_client.exists("tencent_code_"+user):
+            code = await redis_client.get("tencent_code_"+user)
+            redirect_uri = await redis_client.get("tencent_redirect_uri_"+user)
+            config["code"] = code.decode()
+            config["redirect_uri"] = redirect_uri
+            collection.config = json.dumps(config)
+        else:
+            return fail(HTTPStatus.BAD_REQUEST, "用户未进行授权或授权已过期，请重新操作")
 
     # there is quota limit on collection
     if settings.MAX_COLLECTION_COUNT:

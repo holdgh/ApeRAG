@@ -87,4 +87,7 @@ def get_source(ctx: Dict[str, Any]):
         case "url":
             from kubechat.source.url import URLSource
             source = URLSource(ctx)
+        case "tencent":
+            from kubechat.source.tencent.tencent import TencentSource
+            source = TencentSource(ctx)
     return source
