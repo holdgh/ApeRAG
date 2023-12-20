@@ -407,10 +407,15 @@ class KeywordPipeline(Pipeline):
         
         if self.use_related_question and need_related_question:
             related_question = await related_question_task
-            related_question = re.sub(r'\n+', '\n', related_question).split('\n')[1:]
+            related_question = re.sub(r'\n+', '\n', related_question).split('\n')
             for i,question in enumerate(related_question):
-                if question.startswith(str(i+1)+"."):
-                    related_question[i] = related_question[i][2:].strip()
+                match = re.match(r"\s*-\s*(.*)", question)
+                if match:
+                    question = match.group(1)
+                match = re.match(r"\s*\d+\.\s*(.*)", question)
+                if match:  
+                    question = match.group(1)
+                related_question[i] = question
             yield KUBE_CHAT_RELATED_QUESTIONS + str(related_question[:3])
             
         if gen_references:
