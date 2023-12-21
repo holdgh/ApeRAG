@@ -1,8 +1,8 @@
+import ast
 import json
 import logging
 import traceback
 from abc import abstractmethod
-import ast
 from datetime import datetime
 
 import websockets
@@ -17,6 +17,7 @@ from kubechat.auth.validator import DEFAULT_USER
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
 from kubechat.pipeline.keyword_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.db.ops import query_bot, query_user_quota
+from kubechat.db.models import BotType
 
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.utils.constant import KEY_USER_ID, KEY_BOT_ID, KEY_CHAT_ID, KEY_WEBSOCKET_PROTOCOL
@@ -42,7 +43,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         chat_id = self.scope[KEY_CHAT_ID]
         self.bot = await query_bot(self.user, bot_id)
 
-        if self.bot.collections.count() != 0:
+        if self.bot.type == BotType.DOCUMENT_QA:
             self.collection = await sync_to_async(self.bot.collections.first)()
             self.collection_id = self.collection.id
             self.embedding_model, self.vector_size = get_collection_embedding_model(self.collection)
