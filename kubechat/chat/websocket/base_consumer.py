@@ -29,13 +29,14 @@ logger = logging.getLogger(__name__)
 class BaseConsumer(AsyncWebsocketConsumer):
     def __init__(self):
         super().__init__()
+        self.bot = None
+        self.user = DEFAULT_USER
+        self.collection = None
         self.collection_id = None
         self.embedding_model = None
         self.vector_size = 0
         self.history = None
-        self.user = DEFAULT_USER
-        self.collection = None
-        self.bot = None
+        self.pipeline = None
 
     async def connect(self):
         self.user = self.scope[KEY_USER_ID]
