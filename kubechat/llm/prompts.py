@@ -258,31 +258,33 @@ Translation requirements are below：
 """
 
 CHINESE_TRANSLATION_FILE_TEMPLATE = """
-你是一个资深翻译专家，现在给定翻译要求和一段需要翻译的文本
-你需要理解给定的翻译要求，并严格根据翻译要求和需要翻译的文本，翻译相应的内容，并给出回答
+你是一个资深翻译专家，现在给定翻译要求和一段文本
+你需要理解给定的翻译要求，并严格根据翻译要求和文本，翻译出要求所指定的内容，并给出回答
 注意翻译时既要保留句子的原意，又要保证语句通畅
 
 翻译要求如下：
 -----------------------------------
 {query}
 -------------------------------------
-需要翻译的文本如下：
+
+文本如下：
 -----------------------------------
 {context}
 -----------------------------------
 """
 
 ENGLISH_TRANSLATION_FILE_TEMPLATE = """
-You are a seasoned translation expert, provided with translation requirements and a piece of text to be translated.
+You are a seasoned translation expert, provided with translation requirements and a piece of text.
 You need to understand the provided translation requirements,
-and accurately translate the corresponding content based on the translation requirements and the text to be translated, then provide a response.
+and accurately translate the corresponding content based on the translation requirements and the text, then provide a response.
 Ensure that the translation retains the original meaning of the sentences while maintaining fluency.
 
 Translation requirements are below：
 ------------------------------------
 {query}
 ------------------------------------
-Text need to be translated is below:
+
+Text is below:
 --------------------------------------
 {context}
 --------------------------------------
