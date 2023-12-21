@@ -26,6 +26,7 @@ class TranslationConsumer(BaseConsumer):
         data = json.loads(text_data)
         self.msg_type = data["type"]
         self.response_type = "message"
+        self.file = data.get("file", None)
 
         message = ""
         message_id = f"{now_unix_milliseconds()}"
@@ -40,7 +41,7 @@ class TranslationConsumer(BaseConsumer):
                     await self.send(text_data=fail_response(message_id, error=error))
                     return
 
-            async for tokens in self.predict(data["data"], message_id=message_id):
+            async for tokens in self.predict(data["data"], message_id=message_id, file=self.file):
                 # streaming response
                 response = success_response(message_id, tokens, issql=self.response_type == "sql")
                 await self.send(text_data=response)

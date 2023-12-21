@@ -1,10 +1,8 @@
-import json
 from langchain import PromptTemplate
-from kubechat.llm.base import Predictor, PredictorType
-from kubechat.llm.prompts import CHINESE_TRANSLATION_MEMORY_TEMPLATE, CHINESE_TRANSLATION_TEMPLATE
+from kubechat.llm.prompts import CHINESE_TRANSLATION_MEMORY_TEMPLATE, CHINESE_TRANSLATION_TEMPLATE, \
+    CHINESE_TRANSLATION_FILE_TEMPLATE
 from kubechat.pipeline.base_pipeline import Pipeline, Message
 import logging
-from kubechat.chat.history.base import BaseChatMessageHistory
 from kubechat.utils.utils import now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
@@ -25,6 +23,8 @@ class TranslationPipeline(Pipeline):
             else:
                 self.prompt_template = CHINESE_TRANSLATION_TEMPLATE
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
+        self.file_prompt = PromptTemplate(template=CHINESE_TRANSLATION_FILE_TEMPLATE,
+                                          input_variables=["query", "context"])
 
     async def new_ai_message(self, message, message_id, response, references):
         return Message(
@@ -38,14 +38,17 @@ class TranslationPipeline(Pipeline):
             llm_context_window=self.context_window,
         )
 
-    async def run(self, message, gen_references=False, message_id=""):
+    async def run(self, message, gen_references=False, message_id="", file=None):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
 
         response = ""
         history = []
-        context = ""
+        context = file.decode() if file else ""
+        if len(context) > self.context_window:
+            raise "file is too long"
         messages = await self.history.messages
+
         if self.memory and len(messages) > 0:
             history = self.predictor.get_latest_history(
                 messages=messages,
@@ -54,8 +57,10 @@ class TranslationPipeline(Pipeline):
                 use_ai_memory=self.use_ai_memory)
             self.memory_count = len(history)
 
-        # prompt = self.prompt.format(query=message, context=context)
-        prompt = self.prompt.format(query=message)
+        if context:
+            prompt = self.file_prompt.format(query=message, context=context)
+        else:
+            prompt = self.prompt.format(query=message)
         logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
         async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
