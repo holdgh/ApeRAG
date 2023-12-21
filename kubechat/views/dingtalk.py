@@ -44,6 +44,7 @@ async def post(request,user,bot_id):
             logger.warning("bot not found: %s", bot_id)
             asyncio.create_task(send_message("bot not found",session_webhook,sender_id))
             return
+        asyncio.create_task(send_message(f"我已经收到问题\"{message_content}\"啦，正在飞速生成回答中", session_webhook, sender_id))
         asyncio.create_task(dingtalk_text_response(redis_client,user,bot,message_content,msg_id,sender_id,session_webhook))
         return success("")
 
