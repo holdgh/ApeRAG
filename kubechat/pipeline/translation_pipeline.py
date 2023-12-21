@@ -1,9 +1,9 @@
+import logging
 from langchain import PromptTemplate
+from kubechat.utils.utils import now_unix_milliseconds
+from kubechat.pipeline.base_pipeline import Pipeline, Message
 from kubechat.llm.prompts import CHINESE_TRANSLATION_MEMORY_TEMPLATE, CHINESE_TRANSLATION_TEMPLATE, \
     CHINESE_TRANSLATION_FILE_TEMPLATE
-from kubechat.pipeline.base_pipeline import Pipeline, Message
-import logging
-from kubechat.utils.utils import now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class TranslationPipeline(Pipeline):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.prompt_template=None
+        # self.prompt_template=None
         if not self.prompt_template:
             if self.memory:
                 self.prompt_template = CHINESE_TRANSLATION_MEMORY_TEMPLATE
@@ -46,7 +46,7 @@ class TranslationPipeline(Pipeline):
         history = []
         context = file.decode() if file else ""
         if len(context) > self.context_window:
-            raise "file is too long"
+            raise Exception("file is too long")
         messages = await self.history.messages
 
         if self.memory and len(messages) > 0:
