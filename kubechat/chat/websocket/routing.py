@@ -65,7 +65,7 @@ async def web_bot_consumer_router(scope, receive, send):
     if bot.type == BotType.DOCUMENT_QA:
         from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
         return await DocumentQAConsumer.as_asgi()(scope, receive, send)
-    elif bot.description == BotType.TRANSLATION:
+    elif bot.type == BotType.TRANSLATION:
         from kubechat.chat.websocket.translation_consumer import TranslationConsumer
         return await TranslationConsumer.as_asgi()(scope, receive, send)
     else:
