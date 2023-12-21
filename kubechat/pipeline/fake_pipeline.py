@@ -1,4 +1,4 @@
-from kubechat.pipeline.base import Pipeline
+from kubechat.pipeline.base_pipeline import Pipeline
 import random
 import json
 from pathlib import Path

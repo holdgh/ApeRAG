@@ -10,8 +10,9 @@ from pydantic import BaseModel
 from config import settings
 from kubechat.chat.history.base import BaseChatMessageHistory
 from kubechat.context.context import ContextManager
+from kubechat.db.models import BotType
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES,DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,RELATED_QUESTIONS_TEMPLATE
+from kubechat.llm.prompts import RELATED_QUESTIONS_TEMPLATE
 from kubechat.utils.utils import generate_vector_db_collection_name, now_unix_milliseconds, \
     generate_qa_vector_db_collection_name
 from readers.base_embedding import get_embedding_model
@@ -42,7 +43,6 @@ class Pipeline(ABC):
         self.bot = bot
         self.collection = collection
         self.history = history
-        self.collection_id = collection.id
         bot_config = json.loads(self.bot.config)
         self.llm_config = bot_config.get("llm", {})
         self.model = bot_config.get("model", "baichuan-13b")
@@ -58,39 +58,35 @@ class Pipeline(ABC):
         self.use_related_question = bot_config.get("use_related_question", False)
 
         welcome = bot_config.get("welcome", {})
-        faq = welcome.get("faq", [])
-        self.welcome_question = []
-        for qa in faq:
-            self.welcome_question.append(qa["question"])
-        self.oops = welcome.get("oops", "")
+        if welcome:
+            faq = welcome.get("faq", [])
+            self.welcome_question = []
+            for qa in faq:
+                self.welcome_question.append(qa["question"])
+            self.oops = welcome.get("oops", "")
 
         if self.memory:
             self.prompt_template = self.llm_config.get("memory_prompt_template", None)
         else:
             self.prompt_template = self.llm_config.get("prompt_template", None)
-        if not self.prompt_template:
-            if self.memory:
-                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
-                                                                                 DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
-            else:
-                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model,
-                                                                          DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
-        self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
-        collection_name = generate_vector_db_collection_name(collection.id)
-        self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-        self.vectordb_ctx["collection"] = collection_name
 
-        config = json.loads(collection.config)
-        self.embedding_model_name = config.get("embedding_model", settings.EMBEDDING_MODEL)
-        self.embedding_model, self.vector_size = get_embedding_model(self.embedding_model_name)
+        if self.bot.type == BotType.DOCUMENT_QA:
+            self.collection_id = self.collection.id
+            collection_name = generate_vector_db_collection_name(self.collection_id)
+            self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
+            self.vectordb_ctx["collection"] = collection_name
 
-        self.context_manager = ContextManager(collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
-                                              self.vectordb_ctx)
+            config = json.loads(self.collection.config)
+            self.embedding_model_name = config.get("embedding_model", settings.EMBEDDING_MODEL)
+            self.embedding_model, self.vector_size = get_embedding_model(self.embedding_model_name)
 
-        qa_collection_name = generate_qa_vector_db_collection_name(self.collection.id)
-        self.qa_vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
-        self.qa_vectordb_ctx["collection"] = qa_collection_name
-        self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
+            self.context_manager = ContextManager(collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
+                                                  self.vectordb_ctx)
+
+            qa_collection_name = generate_qa_vector_db_collection_name(self.collection_id)
+            self.qa_vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
+            self.qa_vectordb_ctx["collection"] = qa_collection_name
+            self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                                  self.qa_vectordb_ctx)
 
         kwargs = {"model": self.model}

@@ -1,48 +1,22 @@
-import ast
 import json
 import logging
 import traceback
 import websockets
-from channels.generic.websocket import AsyncWebsocketConsumer
-from kubechat.chat.history.redis import RedisChatMessageHistory
-import redis.asyncio as redis
-
-import config.settings as settings
-from kubechat.apps import QuotaType
-from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
-from kubechat.pipeline.keyword_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KeywordPipeline,KUBE_CHAT_RELATED_QUESTIONS
-from kubechat.db.ops import query_bot, query_user_quota
-from kubechat.pipeline.translation_pipeline import TranslationPipeline
 
 from kubechat.utils.utils import now_unix_milliseconds
-from kubechat.utils.constant import KEY_USER_ID, KEY_BOT_ID, KEY_CHAT_ID, KEY_WEBSOCKET_PROTOCOL
-
 from kubechat.chat.websocket.base_consumer import BaseConsumer
+from kubechat.pipeline.translation_pipeline import TranslationPipeline
+from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
+
 
 logger = logging.getLogger(__name__)
 
 
 class TranslationConsumer(BaseConsumer):
     async def connect(self):
-        self.user = self.scope[KEY_USER_ID]
-        bot_id = self.scope[KEY_BOT_ID]
-        chat_id = self.scope[KEY_CHAT_ID]
-        self.bot = await query_bot(self.user, bot_id)
-
-        self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        self.redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
-        self.conversation_limit = await query_user_quota(self.user, QuotaType.MAX_CONVERSATION_COUNT)
-        if self.conversation_limit is None:
-            self.conversation_limit = settings.MAX_CONVERSATION_COUNT
-
+        await super().connect()
         self.pipeline = TranslationPipeline(bot=self.bot, collection=self.collection, history=self.history)
         self.use_default_token = self.pipeline.predictor.use_default_token
-
-        headers = []
-        token = self.scope.get(KEY_WEBSOCKET_PROTOCOL, None)
-        if token is not None:
-            headers.append((KEY_WEBSOCKET_PROTOCOL.encode("ascii"), token.encode("ascii")))
-        await super(AsyncWebsocketConsumer, self).send({"type": "websocket.accept", "headers": headers})
 
     async def predict(self, query, **kwargs):
         async for msg in self.pipeline.run(query, gen_references=True, **kwargs):
@@ -54,8 +28,6 @@ class TranslationConsumer(BaseConsumer):
         self.response_type = "message"
 
         message = ""
-        references = []
-        related_question = []
         message_id = f"{now_unix_milliseconds()}"
 
         try:
@@ -70,7 +42,7 @@ class TranslationConsumer(BaseConsumer):
 
             async for tokens in self.predict(data["data"], message_id=message_id):
                 # streaming response
-                response = success_response( message_id, tokens, issql=self.response_type == "sql")
+                response = success_response(message_id, tokens, issql=self.response_type == "sql")
                 await self.send(text_data=response)
 
                 # concat response tokens
@@ -85,4 +57,4 @@ class TranslationConsumer(BaseConsumer):
             if self.use_default_token and self.conversation_limit:
                 await self.manage_quota_usage()
             # send stop message
-            await self.send(text_data=stop_response(message_id, references, related_question, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, [], [], self.pipeline.memory_count))

@@ -1,16 +1,20 @@
-from kubechat.pipeline.base import Pipeline
+import re
 import json
+import asyncio
 import logging
 
 from config import settings
-from kubechat.pipeline.keyword_extractor import IKExtractor
-from kubechat.source.utils import async_run
-from kubechat.context.full_text import search_document
-from kubechat.utils.utils import generate_fulltext_index_name
+from langchain import PromptTemplate
 from query.query import get_packed_answer
 from readers.base_embedding import rerank
-import asyncio
-import re
+
+from kubechat.source.utils import async_run
+from kubechat.pipeline.base_pipeline import Pipeline
+from kubechat.pipeline.keyword_extractor import IKExtractor
+from kubechat.context.full_text import search_document
+from kubechat.utils.utils import generate_fulltext_index_name
+from kubechat.llm.prompts import DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_MODEL_PROMPT_TEMPLATES, \
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,15 @@ class KeywordPipeline(Pipeline):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        if not self.prompt_template:
+            if self.memory:
+                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
+                                                                                 DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
+            else:
+                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model,
+                                                                          DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+        self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
     async def filter_by_keywords(self, message, candidates):
         index = generate_fulltext_index_name(self.collection_id)

@@ -2,7 +2,7 @@ import json
 from langchain import PromptTemplate
 from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.prompts import CHINESE_TRANSLATION_MEMORY_TEMPLATE, CHINESE_TRANSLATION_TEMPLATE
-from kubechat.pipeline.base import Pipeline, Message
+from kubechat.pipeline.base_pipeline import Pipeline, Message
 import logging
 from kubechat.chat.history.base import BaseChatMessageHistory
 from kubechat.utils.utils import now_unix_milliseconds
@@ -15,29 +15,9 @@ KUBE_CHAT_RELATED_QUESTIONS = "|KUBE_CHAT_RELATED_QUESTIONS|"
 
 class TranslationPipeline(Pipeline):
 
-    def __init__(self,
-                 bot,
-                 collection,
-                 history: BaseChatMessageHistory,
-                 ):
-        self.bot = bot
-        self.collection = collection
-        self.history = history
-        # self.collection_id = collection.id
-        bot_config = json.loads(self.bot.config)
-        self.llm_config = bot_config.get("llm", {})
-        self.model = bot_config.get("model", "baichuan-13b")
-        self.memory = bot_config.get("memory", False)
-        self.memory_count = 0
-        self.memory_limit_length = bot_config.get("memory_length", 0)
-        self.memory_limit_count = bot_config.get("memory_count", 10)
-        self.use_ai_memory = bot_config.get("use_ai_memory", True)
-        self.context_window = self.llm_config.get("context_window", 3500)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-        if self.memory:
-            self.prompt_template = self.llm_config.get("memory_prompt_template", None)
-        else:
-            self.prompt_template = self.llm_config.get("prompt_template", None)
         self.prompt_template=None
         if not self.prompt_template:
             if self.memory:
@@ -45,19 +25,6 @@ class TranslationPipeline(Pipeline):
             else:
                 self.prompt_template = CHINESE_TRANSLATION_TEMPLATE
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
-        # collection_name = generate_vector_db_collection_name(collection.id)
-
-        kwargs = {"model": self.model}
-        kwargs.update(self.llm_config)
-        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
-
-    @staticmethod
-    async def new_human_message(message, message_id):
-        return Message(
-            id=message_id,
-            query=message,
-            timestamp=now_unix_milliseconds(),
-        )
 
     async def new_ai_message(self, message, message_id, response, references):
         return Message(
