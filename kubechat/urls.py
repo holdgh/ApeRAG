@@ -14,7 +14,9 @@ from kubechat.views.weixin import router as weixin_router
 from kubechat.views.tencent import router as tencent_router
 from kubechat.views.web import router as web_router
 
-api = NinjaAPI()
+from kubechat.source.weixin.renderer import MyJSONRenderer
+
+api = NinjaAPI(renderer=MyJSONRenderer)
 api.add_exception_handler(ValidationError, validation_errors)
 api.add_exception_handler(AuthenticationError, auth_errors)
 

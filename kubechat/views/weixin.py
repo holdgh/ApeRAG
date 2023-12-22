@@ -1,6 +1,9 @@
 import asyncio
+import hashlib
 import json
 import time
+import redis
+import redis.asyncio as aredis
 from datetime import datetime
 
 from ninja import Router
@@ -23,28 +26,30 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-async def check_quota_usage(client, user, conversation_limit):
+async def check_quota_usage(user, conversation_limit):
     key = "conversation_history:" + user
+    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
 
-    if await client.redis_client.exists(key):
-        if int(await client.redis_client.get(key)) >= conversation_limit:
+    if await redis_client.exists(key):
+        if int(await redis_client.get(key)) >= conversation_limit:
             return False
     return True
 
 
-async def manage_quota_usage(client, user, conversation_limit):
+async def manage_quota_usage(user, conversation_limit):
     key = "conversation_history:" + user
+    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
 
     # already used kubechat today
-    if await client.redis_client.exists(key):
-        if int(await client.redis_client.get(key)) < conversation_limit:
-            await client.redis_client.incr(key)
+    if await redis_client.exists(key):
+        if int(await redis_client.get(key)) < conversation_limit:
+            await redis_client.incr(key)
     # first time to use kubechat today
     else:
         now = datetime.now()
         end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
-        await client.redis_client.set(key, 1)
-        await client.redis_client.expireat(key, int(end_of_today.timestamp()))
+        await redis_client.set(key, 1)
+        await redis_client.expireat(key, int(end_of_today.timestamp()))
 
 
 async def weixin_text_response(client, user, bot, query, msg_id):
@@ -67,7 +72,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
 
     try:
         if use_default_token and conversation_limit:
-            if not await check_quota_usage(client, bot.user, conversation_limit):
+            if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 await client.send_message(error, user)
                 return
@@ -85,7 +90,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
         logger.exception(e)
     finally:
         if use_default_token and conversation_limit:
-            await manage_quota_usage(client, bot.user, conversation_limit)
+            await manage_quota_usage(bot.user, conversation_limit)
 
 
 async def weixin_card_response(client, user, bot, query, msg_id):
@@ -108,7 +113,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
 
     try:
         if use_default_token and conversation_limit:
-            if not await check_quota_usage(client, bot.user, conversation_limit):
+            if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 await client.send_message(error, user)
                 return
@@ -119,9 +124,6 @@ async def weixin_card_response(client, user, bot, query, msg_id):
         async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(query, message_id=msg_id):
             response += msg
 
-        if use_default_token and conversation_limit:
-            await manage_quota_usage(client, bot.user, conversation_limit)
-
         await client.redis_client.set(f"{task_id}2message", response)
         await client.redis_client.set(f"{task_id}2msg_id", msg_id)
         await client.update_card(response, user, response_code)
@@ -129,7 +131,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
         logger.exception(e)
     finally:
         if use_default_token and conversation_limit:
-            await manage_quota_usage(client, bot.user, conversation_limit)
+            await manage_quota_usage(bot.user, conversation_limit)
 
 
 async def weixin_feedback_response(client, user, bot, key, response_code, task_id):
@@ -241,3 +243,136 @@ async def callback(request, user, bot_id, msg_signature, timestamp, nonce):
             asyncio.create_task(weixin_feedback_response(client, user, bot, int(key), response_code, task_id))
 
     return "success"
+
+
+@router.get("/officaccount/webhook/event")
+async def officaccount_callback(request, user, bot_id, signature, timestamp, nonce, echostr):
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        logger.warning("bot not found: %s", bot_id)
+        return
+    bot_config = json.loads(bot.config)
+    weixin_config = bot_config.get("weixin_official_account")
+    api_token = weixin_config.get("api_token")
+
+    signature = unquote(signature)
+    timestamp = unquote(timestamp)
+    nonce = unquote(nonce)
+    logger.info(f"receive echostr: {echostr}")
+
+    sortlist = [api_token, timestamp, nonce]
+    sortlist.sort()
+    sha = hashlib.sha1()
+    sha.update("".join(sortlist).encode())
+    signature2 = sha.hexdigest()
+
+    if signature2 == signature:
+        return int(echostr)
+
+
+def generate_xml_response(to_user_name, from_user_name, create_time, msg_type, response):
+    response = response.replace('\n', '&#xA;')
+
+    resp = f"""<xml>\
+                <ToUserName><![CDATA[{to_user_name}]]></ToUserName>\
+                <FromUserName><![CDATA[{from_user_name}]]></FromUserName>\
+                <CreateTime>{create_time}</CreateTime>\
+                <MsgType><![CDATA[{msg_type}]]></MsgType>\
+                <Content>{response}</Content>\
+            </xml>"""
+
+    return resp
+
+
+async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
+    chat_id = to_user_name
+    chat = await query_chat_by_peer(bot.user, ChatPeer.WEIXIN_OFFICIAL, chat_id)
+    if chat is None:
+        chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.WEIXIN_OFFICIAL, peer_id=chat_id)
+        await chat.asave()
+
+    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+    collection = await sync_to_async(bot.collections.first)()
+    pipeline = KeywordPipeline(bot=bot, collection=collection, history=history)
+    use_default_token = pipeline.predictor.use_default_token
+    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
+    response = ""
+
+    conversation_limit = await query_user_quota(to_user_name, QuotaType.MAX_CONVERSATION_COUNT)
+    if conversation_limit is None:
+        conversation_limit = MAX_CONVERSATION_COUNT
+
+    try:
+        if use_default_token and conversation_limit:
+            if not await check_quota_usage(bot.user, conversation_limit):
+                error = f"conversation rounds have reached to the limit of {conversation_limit}"
+                logger.info(f"generate response failed, conversation rounds have reached to the limit")
+                await redis_client.set(to_user_name + msg_id, error)
+                return
+
+        async for msg in pipeline.run(query, message_id=msg_id):
+            response += msg
+        logger.info(f"response:{response}")
+
+        await redis_client.set(to_user_name + msg_id, response)
+        logger.info(f"generate response success, restored in redis, key:{to_user_name + msg_id}")
+    except Exception as e:
+        logger.exception(e)
+    finally:
+        if use_default_token and conversation_limit:
+            await manage_quota_usage(bot.user, conversation_limit)
+
+
+@router.post("/officaccount/webhook/event")
+async def officaccount_callback(request, user, bot_id, signature, timestamp, nonce, openid, encrypt_type, msg_signature):
+    bot = await query_bot(user, bot_id)
+    if bot is None:
+        logger.warning("bot not found: %s", bot_id)
+        return
+    bot_config = json.loads(bot.config)
+    weixin_config = bot_config.get("weixin_official_account")
+
+    api_token = weixin_config.get("api_token")
+    api_encoding_aes_key = weixin_config.get("api_encoding_aes_key")
+    app_id = weixin_config.get("app_id")
+
+    message = request.body.decode()
+    logger.info(f"receive message: {message}")
+    wxcpt = WXBizMsgCrypt(api_token, api_encoding_aes_key, app_id)
+    ret, decrypted_messgae = wxcpt.DecryptMsg(message, msg_signature, timestamp, nonce)
+    if ret != 0:
+        raise Exception(f"decrypt_messgae failed: {message}")
+    logger.info(f"decrypted message: {decrypted_messgae}")
+
+    xml_tree = ET.fromstring(decrypted_messgae)
+    user = xml_tree.find("FromUserName").text
+    redis_client = redis.from_url(settings.MEMORY_REDIS_URL)
+
+    # answer the question from user
+    if xml_tree.find("MsgType") is not None and xml_tree.find("MsgType").text == "text":
+        msg_id = xml_tree.find("MsgId").text
+        if redis_client.exists(msg_id):
+            logger.info(f"ignore duplicate messages: {msg_id}")
+            return
+        redis_client.set(msg_id, decrypted_messgae)
+
+        to_user_name = xml_tree.find("FromUserName").text
+        from_user_name = xml_tree.find("ToUserName").text
+        create_time = int(time.time())
+        query = xml_tree.find("Content").text
+        logger.info(f"query: {query}")
+
+        query_record = f"{user + query}_query"
+        query_answer = user + query
+        if redis_client.exists(query_record):
+            if redis_client.exists(query_answer):
+                response = redis_client.get(query_answer).decode()
+            else:
+                response = f"正在解答中，请稍后重新发送"
+        else:
+            asyncio.create_task(weixin_officaccount_response(query, msg_id, to_user_name, bot))
+            redis_client.set(f"{to_user_name+msg_id}_query", 1)
+            response = f"KubeChat已收到问题，请发送{msg_id}获取答案"
+
+        resp = generate_xml_response(to_user_name, from_user_name, create_time, "text", response)
+        return resp

@@ -232,6 +232,8 @@ class BotIntegrationType(models.TextChoices):
     SYSTEM = "system"
     FEISHU = "feishu"
     WEB = "web"
+    WEIXN = "weixin"
+    WEIXIN_OFFICIAL = "weixin_official"
 
 
 class BotIntegration(models.Model):
@@ -277,6 +279,7 @@ class ChatPeer(models.TextChoices):
     SYSTEM = "system"
     FEISHU = "feishu"
     WEIXIN = "weixin"
+    WEIXIN_OFFICIAL = "weixin_official"
     WEB = "web"
 
 
