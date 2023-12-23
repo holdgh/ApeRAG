@@ -46,7 +46,7 @@ class TranslationPipeline(Pipeline):
         history = []
         context = file.decode() if file else ""
         if len(context) > self.context_window:
-            raise Exception("file is too long")
+            context = context[:len(self.context_window)-500]
         messages = await self.history.messages
 
         if self.memory and len(messages) > 0:
