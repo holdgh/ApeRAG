@@ -44,8 +44,10 @@ class TranslationPipeline(Pipeline):
 
         response = ""
         history = []
-        context = file.decode() if file else ""
-        if len(context) > self.context_window:
+
+        # need to use reader to load_data() later.
+        context = file if file else ""
+        if len(context) > self.context_window-500:
             context = context[:len(self.context_window)-500]
         messages = await self.history.messages
 

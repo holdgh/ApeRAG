@@ -1,13 +1,17 @@
+import os
 import json
 import logging
 import traceback
 import websockets
 
+from ninja.files import UploadedFile
+from kubechat.source.utils import gen_temporary_file
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.chat.websocket.base_consumer import BaseConsumer
 from kubechat.pipeline.translation_pipeline import TranslationPipeline
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
-
+from readers.base_readers import DEFAULT_FILE_READER_CLS
+from readers.local_path_reader import InteractiveSimpleDirectoryReader
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +30,26 @@ class TranslationConsumer(BaseConsumer):
         data = json.loads(text_data)
         self.msg_type = data["type"]
         self.response_type = "message"
-        self.file = data.get("file", None)
 
         message = ""
         message_id = f"{now_unix_milliseconds()}"
+
+        self.file = None
+        if bytes_data:
+            file = UploadedFile(bytes_data)
+            file_suffix = os.path.splitext(file.name)[1].lower()
+            if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
+                error = f"unsupported file type {file_suffix}"
+                await self.send(text_data=fail_response(message_id, error=error))
+                return
+
+            temp_file = gen_temporary_file(file.name)
+            temp_file.write(file.read())
+            temp_file.close()
+
+            reader = InteractiveSimpleDirectoryReader(input_files=[temp_file.name])
+            docs, file_name = reader.load_data()
+            self.file = docs[0].text
 
         try:
             # send start message
