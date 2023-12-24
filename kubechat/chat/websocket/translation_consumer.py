@@ -36,19 +36,19 @@ class TranslationConsumer(BaseConsumer):
 
         self.file = None
         if bytes_data:
-            file = UploadedFile(bytes_data)
-            file_suffix = os.path.splitext(file.name)[1].lower()
+            file_name = data["file_name"]
+            file_suffix = os.path.splitext(file_name)[1].lower()
             if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
                 error = f"unsupported file type {file_suffix}"
                 await self.send(text_data=fail_response(message_id, error=error))
                 return
 
-            temp_file = gen_temporary_file(file.name)
-            temp_file.write(file.read())
+            temp_file = gen_temporary_file(file_name)
+            temp_file.write(bytes_data)
             temp_file.close()
 
-            reader = InteractiveSimpleDirectoryReader(input_files=[temp_file.name])
-            docs, file_name = reader.load_data()
+            reader = DEFAULT_FILE_READER_CLS[file_suffix]
+            docs = reader.load_data(temp_file.name)
             self.file = docs[0].text
 
         try:
