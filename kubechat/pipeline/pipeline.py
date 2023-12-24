@@ -323,6 +323,7 @@ class KeywordPipeline(Pipeline):
         logger.info("[%s] start processing", log_prefix)
 
         references = []
+        related_questions = []
         response = ""
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
@@ -366,8 +367,11 @@ class KeywordPipeline(Pipeline):
                     yield self.oops
                     need_generate_answer = False
                 if self.welcome_question != []:
-                    yield KUBE_CHAT_RELATED_QUESTIONS + str(self.welcome_question)
-                    need_related_question = False
+                    if len(self.welcome_question)>=3:
+                        related_questions = random.sample(self.welcome_question, 3)
+                        need_related_question = False
+                    else:
+                        related_questions = self.welcome_question
             
             if self.use_related_question and need_related_question:
                 related_question_prompt = self.related_question_prompt.format(query=message, context=context)
@@ -405,18 +409,20 @@ class KeywordPipeline(Pipeline):
         await self.add_ai_message(message, message_id, response, references)
         logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
         
-        if self.use_related_question and need_related_question:
-            related_question = await related_question_task
-            related_question = re.sub(r'\n+', '\n', related_question).split('\n')
-            for i,question in enumerate(related_question):
-                match = re.match(r"\s*-\s*(.*)", question)
-                if match:
-                    question = match.group(1)
-                match = re.match(r"\s*\d+\.\s*(.*)", question)
-                if match:  
-                    question = match.group(1)
-                related_question[i] = question
-            yield KUBE_CHAT_RELATED_QUESTIONS + str(related_question[:3])
+        if self.use_related_question:
+            if need_related_question:
+                related_question_generate = await related_question_task
+                related_question = re.sub(r'\n+', '\n', related_question_generate).split('\n')
+                for i,question in enumerate(related_question):
+                    match = re.match(r"\s*-\s*(.*)", question)
+                    if match:
+                        question = match.group(1)
+                    match = re.match(r"\s*\d+\.\s*(.*)", question)
+                    if match:  
+                        question = match.group(1)
+                    related_question[i] = question
+                related_questions.extend(related_question)
+            yield KUBE_CHAT_RELATED_QUESTIONS + str(related_questions[:3])
             
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
