@@ -4,6 +4,7 @@ import logging
 import traceback
 from abc import abstractmethod
 from datetime import datetime
+import random
 
 import websockets
 from asgiref.sync import sync_to_async
@@ -73,12 +74,18 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         message_id = f"{now_unix_milliseconds()}"
         bot_config = json.loads(self.bot.config)
+        self.related_question_prompt = bot_config.get("related_question_prompt","")
+        
         welcome = bot_config.get("welcome",{})
         faq = welcome.get("faq",[])
         questions = []
         for qa in faq:
             questions.append(qa["question"])
-        welcome_message = {"hello":welcome.get("hello",""), "faq":questions}
+        if len(questions) < 3:
+            random_questions = questions
+        else:
+            random_questions = random.sample(questions, 3)
+        welcome_message = {"hello":welcome.get("hello",""), "faq":random_questions}
         await self.send(text_data=welcome_response(message_id, welcome_message))
 
     async def disconnect(self, close_code):
@@ -154,6 +161,6 @@ class BaseConsumer(AsyncWebsocketConsumer):
             if self.use_default_token and self.conversation_limit:
                 await self.manage_quota_usage()
             # send stop message
-            await self.send(text_data=stop_response(message_id, references, related_question, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, references, related_question, self.related_question_prompt, self.pipeline.memory_count))
 
 
