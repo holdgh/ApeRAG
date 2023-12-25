@@ -62,12 +62,11 @@ class Pipeline(ABC):
         self.use_related_question = bot_config.get("use_related_question", False)
 
         welcome = bot_config.get("welcome", {})
-        if welcome:
-            faq = welcome.get("faq", [])
-            self.welcome_question = []
-            for qa in faq:
-                self.welcome_question.append(qa["question"])
-            self.oops = welcome.get("oops", "")
+        faq = welcome.get("faq", [])
+        self.welcome_question = []
+        for qa in faq:
+            self.welcome_question.append(qa["question"])
+        self.oops = welcome.get("oops", "")
 
         if self.memory:
             self.prompt_template = self.llm_config.get("memory_prompt_template", None)

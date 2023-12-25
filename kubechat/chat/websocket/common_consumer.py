@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 class CommonConsumer(BaseConsumer):
     async def connect(self):
         await super().connect()
+        self.file = None
+        self.file_name = None
         self.pipeline = CommonPipeline(bot=self.bot, collection=self.collection, history=self.history)
         self.use_default_token = self.pipeline.predictor.use_default_token
 
@@ -27,16 +29,12 @@ class CommonConsumer(BaseConsumer):
             yield msg
 
     async def receive(self, text_data=None, bytes_data=None):
-        data = json.loads(text_data)
-        self.msg_type = data["type"]
-        self.response_type = "message"
-
         message = ""
         message_id = f"{now_unix_milliseconds()}"
 
-        self.file = None
+        # 先在text_data里传file_name，再在bytes_data里传file_content，最后问问题
         if bytes_data:
-            file_name = data["file_name"]
+            file_name = self.file_name
             file_suffix = os.path.splitext(file_name)[1].lower()
             if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
                 error = f"unsupported file type {file_suffix}"
@@ -50,6 +48,19 @@ class CommonConsumer(BaseConsumer):
             reader = DEFAULT_FILE_READER_CLS[file_suffix]
             docs = reader.load_data(temp_file.name)
             self.file = docs[0].text
+            return
+
+        data = json.loads(text_data)
+        self.msg_type = data["type"]
+        self.response_type = "message"
+
+        if self.msg_type == "file_upload":
+            self.file_name = data["file_name"]
+            return
+        elif self.msg_type == "cancel_upload":
+            self.file = None
+            self.file_name = None
+            return
 
         try:
             # send start message
@@ -79,6 +90,8 @@ class CommonConsumer(BaseConsumer):
             logger.warning("[Oops] %s: %s", str(e), traceback.format_exc())
             await self.send(text_data=fail_response(message_id, str(e)))
         finally:
+            self.file = None
+            self.file_name = None
             if self.use_default_token and self.conversation_limit:
                 await self.manage_quota_usage()
             # send stop message
