@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.db.models import ssl_file_path, ssl_temp_file_path
+from kubechat.db.models import ssl_file_path, ssl_temp_file_path, BotType
 from kubechat.db.ops import query_chat_feedbacks, logger, PagedResult
 from kubechat.source.base import get_source, CustomSourceInitializationError
 from kubechat.utils.utils import AVAILABLE_SOURCE
@@ -82,7 +82,7 @@ def validate_source_connect_config(config: Dict) -> (bool, str):
     return True, ""
 
 
-def validate_bot_config(model, config: Dict) -> (bool, str):
+def validate_bot_config(model, config: Dict, bot) -> (bool, str):
     try:
         Predictor.from_model(model, PredictorType.CUSTOM_LLM, **config)
     except Exception as e:
@@ -91,14 +91,20 @@ def validate_bot_config(model, config: Dict) -> (bool, str):
     try:
         # validate the prompt
         prompt_template = config.get("prompt_template", None)
-        PromptTemplate(template=prompt_template, input_variables=["query", "context"])
+        if bot.type == BotType.KNOWLEDGE:
+            PromptTemplate(template=prompt_template, input_variables=["query", "context"])
+        elif bot.type == BotType.COMMON:
+            # PromptTemplate(template=prompt_template, input_variables=["query"])
+            pass
+        else:
+            return False, "Unsupported bot type"
     except ValidationError:
         return False, "Invalid prompt template"
 
     try:
         # validate the memory prompt
         prompt_template = config.get("memory_prompt_template", None)
-        if prompt_template:
+        if prompt_template and bot.type == BotType.KNOWLEDGE:
             PromptTemplate(template=prompt_template, input_variables=["query", "context"])
     except ValidationError:
         return False, "Invalid memory prompt template"

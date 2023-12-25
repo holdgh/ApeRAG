@@ -712,7 +712,7 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     new_config = json.loads(bot_in.config)
     model = new_config.get("model")
     llm_config = new_config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config)
+    valid, msg = validate_bot_config(model, llm_config, bot)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     old_config = json.loads(bot.config)

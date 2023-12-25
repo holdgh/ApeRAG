@@ -31,6 +31,7 @@ class CommonConsumer(BaseConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         message = ""
         message_id = f"{now_unix_milliseconds()}"
+        related_question = []
 
         # 先在text_data里传file_name，再在bytes_data里传file_content，最后问问题
         if bytes_data:
@@ -95,4 +96,4 @@ class CommonConsumer(BaseConsumer):
             if self.use_default_token and self.conversation_limit:
                 await self.manage_quota_usage()
             # send stop message
-            await self.send(text_data=stop_response(message_id, [], related_question, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, [], related_question, self.related_question_prompt, self.pipeline.memory_count))

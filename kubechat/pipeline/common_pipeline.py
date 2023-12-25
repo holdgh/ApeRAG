@@ -17,11 +17,10 @@ class CommonPipeline(Pipeline):
         super().__init__(**kwargs)
 
         # self.prompt_template=None
-        if not self.prompt_template:
-            if self.memory:
-                self.prompt_template = COMMON_MEMORY_TEMPLATE
-            else:
-                self.prompt_template = COMMON_TEMPLATE
+        if self.memory:
+            self.prompt_template = COMMON_MEMORY_TEMPLATE
+        elif not self.prompt_template:
+            self.prompt_template = COMMON_TEMPLATE
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
         self.file_prompt = PromptTemplate(template=COMMON_FILE_TEMPLATE,
                                           input_variables=["query", "context"])
@@ -50,6 +49,9 @@ class CommonPipeline(Pipeline):
 
         related_questions = []
         response = ""
+
+        need_generate_answer = True
+        need_related_question = True
 
         if self.oops != "":
             response = self.oops
