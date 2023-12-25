@@ -9,7 +9,7 @@ from query.query import get_packed_answer
 from readers.base_embedding import rerank
 
 from kubechat.source.utils import async_run
-from kubechat.pipeline.base_pipeline import Pipeline
+from kubechat.pipeline.base_pipeline import Pipeline, KUBE_CHAT_RELATED_QUESTIONS, KUBE_CHAT_DOC_QA_REFERENCES
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.context.full_text import search_document
 from kubechat.utils.utils import generate_fulltext_index_name
@@ -17,9 +17,6 @@ from kubechat.llm.prompts import DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
 
 logger = logging.getLogger(__name__)
-
-KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
-KUBE_CHAT_RELATED_QUESTIONS = "|KUBE_CHAT_RELATED_QUESTIONS|"
 
 
 class KeywordPipeline(Pipeline):

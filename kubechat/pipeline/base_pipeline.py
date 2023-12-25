@@ -34,6 +34,10 @@ class Message(BaseModel):
     llm_context_window: Optional[int]
 
 
+KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
+KUBE_CHAT_RELATED_QUESTIONS = "|KUBE_CHAT_RELATED_QUESTIONS|"
+
+
 class Pipeline(ABC):
     def __init__(self,
                  bot,
@@ -70,7 +74,7 @@ class Pipeline(ABC):
         else:
             self.prompt_template = self.llm_config.get("prompt_template", None)
 
-        if self.bot.type == BotType.DOCUMENT_QA:
+        if self.bot.type == BotType.KNOWLEDGE:
             self.collection_id = self.collection.id
             collection_name = generate_vector_db_collection_name(self.collection_id)
             self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)

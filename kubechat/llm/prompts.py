@@ -214,7 +214,41 @@ CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE = """
 -----------------------------------
 """
 
-CHINESE_TRANSLATION_TEMPLATE = """
+ORDINARY_TEMPLATE = """
+你是一个根据回答要求来回答问题的专家，你需要理解回答要求，并给出回答
+
+回答要求如下：
+-----------------------------------
+{query}
+-------------------------------------
+"""
+
+ORDINARY_MEMORY_TEMPLATE = """
+你是一个根据对话记录和回答要求来回答问题的专家，
+你需要理解回答要求，并严格根据对话记录和回答要求，给出回答
+
+回答要求如下：
+-----------------------------------
+{query}
+-------------------------------------
+"""
+
+ORDINARY_FILE_TEMPLATE = """
+你是一个根据回答要求和上下文信息来回答问题的专家
+你需要理解理解回答要求，并结合上下文信息，给出回答
+
+回答要求如下：
+-----------------------------------
+{query}
+-------------------------------------
+
+上下文信息如下：
+-----------------------------------
+{context}
+-----------------------------------
+"""
+
+TRANSLATION_TEMPLATE = """
 你是一个资深翻译专家，你需要理解给定的翻译要求，翻译相应的内容并给出回答
 注意翻译时既要保留句子的原意，又要保证语句通畅
 
@@ -224,18 +258,7 @@ CHINESE_TRANSLATION_TEMPLATE = """
 -------------------------------------
 """
 
-ENGLISH_TRANSLATION_TEMPLATE = """
-You are a seasoned translation expert.
-You need to understand the provided translation requirements, translate the corresponding content, and provide a response.
-Ensure that the translation retains the original meaning of the sentences while maintaining fluency.
-
-Translation requirements are below：
-------------------------------------
-{query}
-------------------------------------
-"""
-
-CHINESE_TRANSLATION_MEMORY_TEMPLATE = """
+TRANSLATION_MEMORY_TEMPLATE = """
 你是一个根据对话记录和翻译要求来回答的资深翻译专家，
 你需要理解给定的翻译要求，并严格根据对话记录和翻译要求，翻译相应的内容，并给出回答
 注意翻译时既要保留句子的原意，又要保证语句通畅
@@ -246,18 +269,7 @@ CHINESE_TRANSLATION_MEMORY_TEMPLATE = """
 -------------------------------------
 """
 
-ENGLISH_TRANSLATION_MEMORY_TEMPLATE = """
-You are a seasoned translation expert who responds based on the conversation history and translation requests.
-You need to understand the provided translation requirements, and strictly follow the conversation history and translation requirements to translate the corresponding content.
-Ensure that the translation retains the original meaning of the sentences while maintaining fluency.
-
-Translation requirements are below：
-------------------------------------
-{query}
-------------------------------------
-"""
-
-CHINESE_TRANSLATION_FILE_TEMPLATE = """
+TRANSLATION_FILE_TEMPLATE = """
 你是一个资深翻译专家，现在给定翻译要求和一段文本
 你需要理解给定的翻译要求，并严格根据翻译要求和文本，翻译出要求所指定的内容，并给出回答
 注意翻译时既要保留句子的原意，又要保证语句通畅
@@ -271,21 +283,4 @@ CHINESE_TRANSLATION_FILE_TEMPLATE = """
 -----------------------------------
 {context}
 -----------------------------------
-"""
-
-ENGLISH_TRANSLATION_FILE_TEMPLATE = """
-You are a seasoned translation expert, provided with translation requirements and a piece of text.
-You need to understand the provided translation requirements,
-and accurately translate the corresponding content based on the translation requirements and the text, then provide a response.
-Ensure that the translation retains the original meaning of the sentences while maintaining fluency.
-
-Translation requirements are below：
-------------------------------------
-{query}
-------------------------------------
-
-Text is below:
---------------------------------------
-{context}
---------------------------------------
 """

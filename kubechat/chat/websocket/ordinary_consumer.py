@@ -1,25 +1,25 @@
+import ast
 import os
 import json
 import logging
 import traceback
 import websockets
 
-from ninja.files import UploadedFile
+from kubechat.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.source.utils import gen_temporary_file
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.chat.websocket.base_consumer import BaseConsumer
-from kubechat.pipeline.translation_pipeline import TranslationPipeline
-from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
+from kubechat.pipeline.ordinary_pipeline import OrdinaryPipeline
+from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-from readers.local_path_reader import InteractiveSimpleDirectoryReader
 
 logger = logging.getLogger(__name__)
 
 
-class TranslationConsumer(BaseConsumer):
+class OrdinaryConsumer(BaseConsumer):
     async def connect(self):
         await super().connect()
-        self.pipeline = TranslationPipeline(bot=self.bot, collection=self.collection, history=self.history)
+        self.pipeline = OrdinaryPipeline(bot=self.bot, collection=self.collection, history=self.history)
         self.use_default_token = self.pipeline.predictor.use_default_token
 
     async def predict(self, query, **kwargs):
@@ -62,6 +62,10 @@ class TranslationConsumer(BaseConsumer):
                     return
 
             async for tokens in self.predict(data["data"], message_id=message_id, file=self.file):
+                if tokens.startswith(KUBE_CHAT_RELATED_QUESTIONS):
+                    related_question = ast.literal_eval(tokens[len(KUBE_CHAT_RELATED_QUESTIONS):])
+                    continue
+
                 # streaming response
                 response = success_response(message_id, tokens, issql=self.response_type == "sql")
                 await self.send(text_data=response)
@@ -78,4 +82,4 @@ class TranslationConsumer(BaseConsumer):
             if self.use_default_token and self.conversation_limit:
                 await self.manage_quota_usage()
             # send stop message
-            await self.send(text_data=stop_response(message_id, [], [], self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, [], related_question, self.pipeline.memory_count))

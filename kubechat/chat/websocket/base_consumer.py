@@ -15,7 +15,7 @@ import config.settings as settings
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import DEFAULT_USER
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
-from kubechat.pipeline.keyword_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.db.ops import query_bot, query_user_quota
 from kubechat.db.models import BotType
 
@@ -44,7 +44,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         chat_id = self.scope[KEY_CHAT_ID]
         self.bot = await query_bot(self.user, bot_id)
 
-        if self.bot.type == BotType.DOCUMENT_QA:
+        if self.bot.type == BotType.KNOWLEDGE:
             self.collection = await sync_to_async(self.bot.collections.first)()
             self.collection_id = self.collection.id
             self.embedding_model, self.vector_size = get_collection_embedding_model(self.collection)

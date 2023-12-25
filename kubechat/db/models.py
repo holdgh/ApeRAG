@@ -190,8 +190,8 @@ class Document(models.Model):
 
 
 class BotType(models.TextChoices):
-    DOCUMENT_QA = "document-qa"
-    TRANSLATION = "translation"
+    KNOWLEDGE = "knowledge"
+    ORDINARY = "ordinary"
 
 
 class Bot(models.Model):
