@@ -66,12 +66,21 @@ class KeywordPipeline(Pipeline):
             related_question += msg
         return related_question
 
+    async def generate_hyde_message(self, message):
+        hyde_message = ""
+        prompt = "写一篇文章回答这个问题: " + message
+        async for msg in self.predictor.agenerate_stream([], prompt, []):
+            hyde_message += msg
+        logger.info("hyde_message： [%s]", hyde_message)
+        return hyde_message
+
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
 
         references = []
         response = ""
+        # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
@@ -88,6 +97,12 @@ class KeywordPipeline(Pipeline):
             results = await async_run(self.context_manager.query, message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
             logger.info("[%s] find top %d relevant context in vector db end", log_prefix, len(results))
+            # hyde_message = await hyde_task
+            # new_vector = self.embedding_model.embed_query(hyde_message)
+            # results2 = await async_run(self.context_manager.query, message,
+            #                           score_threshold=self.score_threshold, topk=self.topk * 6, vector=new_vector)
+            # results_set = set([result.text for result in results])
+            # results.extend(result for result in results2 if result.text not in results_set)
             if len(results) > 1:
                 results = rerank(message, results)
                 logger.info("[%s] rerank candidates end", log_prefix)
