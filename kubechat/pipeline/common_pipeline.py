@@ -6,12 +6,12 @@ import re
 from langchain import PromptTemplate
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.pipeline.base_pipeline import Pipeline, Message, KUBE_CHAT_RELATED_QUESTIONS
-from kubechat.llm.prompts import ORDINARY_TEMPLATE, ORDINARY_MEMORY_TEMPLATE, ORDINARY_FILE_TEMPLATE
+from kubechat.llm.prompts import COMMON_TEMPLATE, COMMON_MEMORY_TEMPLATE, COMMON_FILE_TEMPLATE
 
 logger = logging.getLogger(__name__)
 
 
-class OrdinaryPipeline(Pipeline):
+class CommonPipeline(Pipeline):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -19,11 +19,11 @@ class OrdinaryPipeline(Pipeline):
         # self.prompt_template=None
         if not self.prompt_template:
             if self.memory:
-                self.prompt_template = ORDINARY_MEMORY_TEMPLATE
+                self.prompt_template = COMMON_MEMORY_TEMPLATE
             else:
-                self.prompt_template = ORDINARY_TEMPLATE
+                self.prompt_template = COMMON_TEMPLATE
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
-        self.file_prompt = PromptTemplate(template=ORDINARY_FILE_TEMPLATE,
+        self.file_prompt = PromptTemplate(template=COMMON_FILE_TEMPLATE,
                                           input_variables=["query", "context"])
 
     async def new_ai_message(self, message, message_id, response, references):

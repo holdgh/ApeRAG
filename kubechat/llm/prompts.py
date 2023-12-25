@@ -214,7 +214,7 @@ CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE = """
 -----------------------------------
 """
 
-ORDINARY_TEMPLATE = """
+COMMON_TEMPLATE = """
 你是一个根据回答要求来回答问题的专家，你需要理解回答要求，并给出回答
 
 回答要求如下：
@@ -223,7 +223,7 @@ ORDINARY_TEMPLATE = """
 -------------------------------------
 """
 
-ORDINARY_MEMORY_TEMPLATE = """
+COMMON_MEMORY_TEMPLATE = """
 你是一个根据对话记录和回答要求来回答问题的专家，
 你需要理解回答要求，并严格根据对话记录和回答要求，给出回答
 
@@ -233,7 +233,7 @@ ORDINARY_MEMORY_TEMPLATE = """
 -------------------------------------
 """
 
-ORDINARY_FILE_TEMPLATE = """
+COMMON_FILE_TEMPLATE = """
 你是一个根据回答要求和上下文信息来回答问题的专家
 你需要理解理解回答要求，并结合上下文信息，给出回答
 

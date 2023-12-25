@@ -9,17 +9,17 @@ from kubechat.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.source.utils import gen_temporary_file
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.chat.websocket.base_consumer import BaseConsumer
-from kubechat.pipeline.ordinary_pipeline import OrdinaryPipeline
+from kubechat.pipeline.common_pipeline import CommonPipeline
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
 
-class OrdinaryConsumer(BaseConsumer):
+class CommonConsumer(BaseConsumer):
     async def connect(self):
         await super().connect()
-        self.pipeline = OrdinaryPipeline(bot=self.bot, collection=self.collection, history=self.history)
+        self.pipeline = CommonPipeline(bot=self.bot, collection=self.collection, history=self.history)
         self.use_default_token = self.pipeline.predictor.use_default_token
 
     async def predict(self, query, **kwargs):

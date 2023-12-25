@@ -191,7 +191,7 @@ class Document(models.Model):
 
 class BotType(models.TextChoices):
     KNOWLEDGE = "knowledge"
-    ORDINARY = "ordinary"
+    COMMON = "common"
 
 
 class Bot(models.Model):

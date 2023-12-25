@@ -65,9 +65,9 @@ async def web_bot_consumer_router(scope, receive, send):
     if bot.type == BotType.KNOWLEDGE:
         from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
         return await DocumentQAConsumer.as_asgi()(scope, receive, send)
-    elif bot.type == BotType.ORDINARY:
-        from kubechat.chat.websocket.ordinary_consumer import OrdinaryConsumer
-        return await OrdinaryConsumer.as_asgi()(scope, receive, send)
+    elif bot.type == BotType.COMMON:
+        from kubechat.chat.websocket.common_consumer import CommonConsumer
+        return await CommonConsumer.as_asgi()(scope, receive, send)
     else:
         raise Exception("Invalid bot type")
 
