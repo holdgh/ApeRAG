@@ -6,17 +6,17 @@ from abc import ABC, abstractmethod
 from threading import Lock
 from typing import Any, List
 
+import aiohttp
 import torch
 from FlagEmbedding import FlagReranker
 from langchain.embeddings.base import Embeddings
 from transformers import AutoTokenizer, MT5EncoderModel, AutoModelForSequenceClassification
 
-from langchain.embeddings.huggingface import (HuggingFaceEmbeddings, HuggingFaceInstructEmbeddings,
-                                              HuggingFaceBgeEmbeddings)
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.embeddings.huggingface import (HuggingFaceEmbeddings, HuggingFaceBgeEmbeddings)
 
 from config.settings import EMBEDDING_MODEL, EMBEDDING_SERVICE_URL, EMBEDDING_SERVICE_MODEL, \
-    VECTOR_SIZE, EMBEDDING_BACKEND, EMBEDDING_DEVICE
+    VECTOR_SIZE, EMBEDDING_BACKEND, EMBEDDING_DEVICE, RERANK_BACKEND, RERANK_SERVICE_URL, EMBEDDING_SERVICE_MODEL_UID, \
+    RERANK_SERVICE_MODEL_UID
 from query.query import DocumentWithScore
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
@@ -25,29 +25,48 @@ import requests
 
 class EmbeddingService(Embeddings):
     def __init__(self, model_type):
-        self.localModel = EMBEDDING_MODEL_CLS.get(model_type)()
-        self.remoteModel = Embedding()
+        if EMBEDDING_BACKEND == "local":
+            self.model = EMBEDDING_MODEL_CLS.get(model_type)()
+        elif EMBEDDING_BACKEND == "xinference":
+            self.model = XinferenceEmbedding()
+        elif EMBEDDING_BACKEND == "openai":
+            self.model = OpenAIEmbedding()
+        else:
+            raise Exception("Unsupported embedding backend")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        if EMBEDDING_BACKEND == "remote":
-            return self.remoteModel.embed_documents(texts)
-        return self.localModel.embed_documents(texts)
+        return self.model.embed_documents(texts)
 
     def embed_query(self, text: str) -> List[float]:
-        if EMBEDDING_BACKEND == "remote":
-            return self.remoteModel.embed_query(text)
-        return self.localModel.embed_query(text)
+        return self.model.embed_query(text)
 
 
-class Embedding(Embeddings):
+class XinferenceEmbedding(Embeddings):
     def __init__(self):
-        self.url = EMBEDDING_SERVICE_URL
-        self.model = EMBEDDING_SERVICE_MODEL
+        self.url = f"{EMBEDDING_SERVICE_URL}/v1/embeddings"
+        self.model_uid = EMBEDDING_SERVICE_MODEL_UID
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-
         texts = list(map(lambda x: x.replace("\n", " "), texts))
 
+        response = requests.post(url=self.url, json={"model": self.model_uid, "input": texts})
+
+        results = (json.loads(response.content))["data"]
+        embeddings = [result["embedding"] for result in results]
+
+        return embeddings
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.embed_documents([text])[0]
+
+
+class OpenAIEmbedding(Embeddings):
+    def __init__(self):
+        self.url = f"{EMBEDDING_SERVICE_URL}/v1/embeddings"
+        self.model = f"BAAI/{EMBEDDING_SERVICE_MODEL}"
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        texts = list(map(lambda x: x.replace("\n", " "), texts))
         response = requests.post(url=self.url, json={"model": self.model, "input": texts})
 
         results = (json.loads(response.content))["data"]
@@ -177,6 +196,41 @@ class Ranker(ABC):
         pass
 
 
+class RankerService(Ranker):
+    def __init__(self):
+        if RERANK_BACKEND == "xinference":
+            self.ranker = XinferenceRanker()
+        elif RERANK_BACKEND == "local":
+            self.ranker = FlagCrossEncoderRanker()
+        else:
+            raise Exception("Unsupported embedding backend")
+
+    def rank(self, query, results: List[DocumentWithScore]):
+        return self.ranker.rank(query, results)
+
+
+class XinferenceRanker(Ranker):
+    def __init__(self):
+        self.url = f"{RERANK_SERVICE_URL}/v1/rerank"
+        self.model_uid = RERANK_SERVICE_MODEL_UID
+
+    async def rank(self, query, results: List[DocumentWithScore]):
+        documents = [document.text for document in results]
+        request_body = {
+            "model": self.model_uid,
+            "documents": documents,
+            "query": query,
+            "return_documents": False,
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self.url, json=request_body) as response:
+                response_data = await response.json()
+                if response.status != 200:
+                    raise RuntimeError(f"Failed to rerank documents, detail: {response_data['detail']}")
+                indices = [response['index'] for response in response_data['results']]
+                return [results[index] for index in indices]
+
+
 class ContentRatioRanker(Ranker):
     def __init__(self, query):
         self.query = query
@@ -235,15 +289,15 @@ rerank_model_cache = {}
 
 EMBEDDING_MODEL_CLS = {
     "huggingface": lambda: HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-mpnet-base-v2",
-                model_kwargs={'device': EMBEDDING_DEVICE},
-            ),
+        model_name="sentence-transformers/all-mpnet-base-v2",
+        model_kwargs={'device': EMBEDDING_DEVICE},
+    ),
     "text2vec": lambda: Text2VecEmbedding(device=EMBEDDING_DEVICE),
     "bge": lambda: HuggingFaceBgeEmbeddings(
-                model_name="BAAI/bge-large-zh",
-                model_kwargs={'device': EMBEDDING_DEVICE},
-                encode_kwargs={'normalize_embeddings': True, 'batch_size': 16}
-            )
+        model_name="BAAI/bge-large-zh",
+        model_kwargs={'device': EMBEDDING_DEVICE},
+        encode_kwargs={'normalize_embeddings': True, 'batch_size': 16}
+    )
 }
 
 
@@ -252,6 +306,7 @@ def synchronized(func):
     def wrapper(*args, **kwargs):
         with mutex:
             return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -260,14 +315,13 @@ def get_rerank_model(model_type: str = "bge-reranker-large"):
     # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
     if model_type in rerank_model_cache:
         return rerank_model_cache[model_type]
-    model = FlagCrossEncoderRanker()  # use fp16 can speed up computing
+    model = RankerService()
     rerank_model_cache[model_type] = model
     return model
 
 
 @synchronized
 def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> {Embeddings, int}:
-
     if model_type in embedding_model_cache:
         return embedding_model_cache[model_type]
 
@@ -281,9 +335,10 @@ def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> {Embedd
     return embedding_model, vector_size
 
 
-def rerank(message, results):
+async def rerank(message, results):
     model = get_rerank_model()
-    return model.rank(message, results)
+    results = await model.rank(message, results)
+    return results
 
 
 def get_collection_embedding_model(collection):

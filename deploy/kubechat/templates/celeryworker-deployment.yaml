@@ -118,11 +118,25 @@ spec:
                   key: PADDLEOCR_HOST
                   name: kubechat-config
             - name: EMBEDDING_BACKEND
-              value: {{ .Values.django.embeddingBackend }}
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_BACKEND
+                  name: kubechat-config
             - name: EMBEDDING_SERVICE_URL
-              value: {{ .Values.django.embeddingServiceUrl }}
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_SERVICE_URL
+                  name: kubechat-config
             - name: EMBEDDING_SERVICE_MODEL
-              value: {{ .Values.django.embeddingServiceModel }}
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_SERVICE_MODEL
+                  name: kubechat-config
+            - name: EMBEDDING_SERVICE_MODEL_UID
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_SERVICE_MODEL_UID
+                  name: kubechat-config
             {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:

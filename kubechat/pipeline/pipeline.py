@@ -342,7 +342,7 @@ class KeywordPipeline(Pipeline):
                                       score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
             logger.info("[%s] find top %d relevant context in vector db end", log_prefix, len(results))
             if len(results) > 1:
-                results = rerank(message, results)
+                results = await rerank(message, results)
                 logger.info("[%s] rerank candidates end", log_prefix)
             else:
                 logger.info("[%s] don't need to rerank ", log_prefix)

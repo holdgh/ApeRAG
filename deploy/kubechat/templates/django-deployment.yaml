@@ -250,6 +250,41 @@ spec:
                 configMapKeyRef:
                   key: EMBEDDING_DEVICE
                   name: kubechat-config
+            - name: EMBEDDING_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_BACKEND
+                  name: kubechat-config
+            - name: EMBEDDING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_SERVICE_URL
+                  name: kubechat-config
+            - name: EMBEDDING_SERVICE_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_SERVICE_MODEL
+                  name: kubechat-config
+            - name: EMBEDDING_SERVICE_MODEL_UID
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_SERVICE_MODEL_UID
+                  name: kubechat-config
+            - name: RERANK_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  key: RERANK_BACKEND
+                  name: kubechat-config
+            - name: RERANK_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: RERANK_SERVICE_URL
+                  name: kubechat-config
+            - name: RERANK_SERVICE_MODEL_UID
+              valueFrom:
+                configMapKeyRef:
+                  key: RERANK_SERVICE_MODEL_UID
+                  name: kubechat-config
             - name: ES_HOST
               valueFrom:
                 configMapKeyRef:
