@@ -100,7 +100,7 @@ jobs:
 
   check-image:
     needs: trigger-mode
-     if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[docker]') }}
+    if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[docker]') }}
     uses: apecloud/apecloud-cd/.github/workflows/release-image-check.yml@v0.1.49
     with:
       IMG: "apecloud/kubechat"
