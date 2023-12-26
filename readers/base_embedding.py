@@ -215,12 +215,13 @@ class FlagCrossEncoderRanker(Ranker):
 
     def rank(self, query, results: List[DocumentWithScore]):
         pairs = []
+        max_length = 512
         for idx, result in enumerate(results):
-            pairs.append((query, result.text))
+            pairs.append((query[:max_length], result.text[:max_length]))
             result.rank_before = idx
 
         with torch.no_grad():
-            scores = self.reranker.compute_score(pairs)
+            scores = self.reranker.compute_score(pairs, max_length=max_length)
             if len(pairs) == 1:
                 scores = [scores]
         results = [x for _, x in sorted(zip(scores, results), key=lambda k: k[0], reverse=True)]
