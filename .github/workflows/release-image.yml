@@ -53,6 +53,7 @@ jobs:
 
   release-kubechat-image:
     if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat' }}
+    name: release-kubechat
     needs: [ image-tag, enable-gke-runner ]
     uses: apecloud/apecloud-cd/.github/workflows/release-image-cache-amd-sync.yml@v0.1.36
     with:
@@ -63,6 +64,19 @@ jobs:
       REMOVE_PREFIX: false
       APECD_REF: "v0.1.36"
       ENABLE_SUBMODULE: true
+    secrets: inherit
+
+  release-kubechat-frontend-image:
+    if: ${{ github.event.action == 'published' || inputs.image_name == '' || inputs.image_name == 'kubechat' }}
+    name: release-kubechat-frontend
+    needs: [ image-tag ]
+    uses: apecloud/apecloud-cd/.github/workflows/trigger-workflow.yml@v0.1.42
+    with:
+      GITHUB_REPO: "apecloud/KubeChat-FrontEnd"
+      BRANCH_NAME: "main"
+      WORKFLOW_ID: "release-image.yml"
+      APECD_REF: "v0.1.42"
+      VERSION: "${{ needs.image-tag.outputs.tag-name }}"
     secrets: inherit
 
 #  release-kubechat-llmserver-image:
