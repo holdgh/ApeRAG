@@ -103,7 +103,7 @@ class KeywordPipeline(Pipeline):
             # results_set = set([result.text for result in results])
             # results.extend(result for result in results2 if result.text not in results_set)
             if len(results) > 1:
-                results = rerank(message, results)
+                results = await rerank(message, results)
                 logger.info("[%s] rerank candidates end", log_prefix)
             else:
                 logger.info("[%s] don't need to rerank ", log_prefix)
