@@ -205,8 +205,8 @@ class RankerService(Ranker):
         else:
             raise Exception("Unsupported embedding backend")
 
-    def rank(self, query, results: List[DocumentWithScore]):
-        return self.ranker.rank(query, results)
+    async def rank(self, query, results: List[DocumentWithScore]):
+        return await self.ranker.rank(query, results)
 
 
 class XinferenceRanker(Ranker):
@@ -235,7 +235,7 @@ class ContentRatioRanker(Ranker):
     def __init__(self, query):
         self.query = query
 
-    def rank(self, query, results: List[DocumentWithScore]):
+    async def rank(self, query, results: List[DocumentWithScore]):
         results.sort(key=lambda x: (x.metadata.get("content_ratio", 1), x.score), reverse=True)
         return results
 
@@ -247,7 +247,7 @@ class AutoCrossEncoderRanker(Ranker):
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.model.eval()
 
-    def rank(self, query, results: List[DocumentWithScore]):
+    async def rank(self, query, results: List[DocumentWithScore]):
         pairs = []
         for idx, result in enumerate(results):
             pairs.append((query, result.text))
@@ -267,7 +267,7 @@ class FlagCrossEncoderRanker(Ranker):
         # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
         self.reranker = FlagReranker(model_path)  # use fp16 can speed up computing
 
-    def rank(self, query, results: List[DocumentWithScore]):
+    async def rank(self, query, results: List[DocumentWithScore]):
         pairs = []
         max_length = 512
         for idx, result in enumerate(results):
