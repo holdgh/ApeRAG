@@ -94,8 +94,8 @@ def validate_bot_config(model, config: Dict, bot) -> (bool, str):
         if bot.type == BotType.KNOWLEDGE:
             PromptTemplate(template=prompt_template, input_variables=["query", "context"])
         elif bot.type == BotType.COMMON:
-            # PromptTemplate(template=prompt_template, input_variables=["query"])
-            pass
+            PromptTemplate(template=prompt_template, input_variables=["query"])
+            # pass
         else:
             return False, "Unsupported bot type"
     except ValidationError:
@@ -106,6 +106,9 @@ def validate_bot_config(model, config: Dict, bot) -> (bool, str):
         prompt_template = config.get("memory_prompt_template", None)
         if prompt_template and bot.type == BotType.KNOWLEDGE:
             PromptTemplate(template=prompt_template, input_variables=["query", "context"])
+        elif prompt_template and bot.type == BotType.COMMON:
+            # PromptTemplate(template=prompt_template, input_variables=["query"])
+            pass
     except ValidationError:
         return False, "Invalid memory prompt template"
 
