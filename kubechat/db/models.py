@@ -281,6 +281,7 @@ class ChatPeer(models.TextChoices):
     WEIXIN = "weixin"
     WEIXIN_OFFICIAL = "weixin_official"
     WEB = "web"
+    DINGTALK = "dingtalk"
 
 
 class Chat(models.Model):

@@ -234,9 +234,16 @@ MODEL_FAMILIES = env.str("MODEL_FAMILIES", default='[]')
 EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
 EMBEDDING_MODEL = env.str("EMBEDDING_MODEL", default="text2vec")
 EMBEDDING_BACKEND = env.str("EMBEDDING_BACKEND", default="local")
-EMBEDDING_SERVICE_URL = env.str("EMBEDDING_SERVICE_URL", default="http://34.42.156.228:8001/v1/embeddings")
-EMBEDDING_SERVICE_MODEL = env.str("EMBEDDING_SERVICE_MODEL", default="BAAI/bge-large-zh-v1.5")
+EMBEDDING_SERVICE_URL = env.str("EMBEDDING_SERVICE_URL", default="http://localhost:9997")
+# model is used by infinity, model_uid is used by xinference
+EMBEDDING_SERVICE_MODEL = env.str("EMBEDDING_SERVICE_MODEL", default="bge-large-zh-v1.5")
+EMBEDDING_SERVICE_MODEL_UID = env.str("EMBEDDING_SERVICE_MODEL_UID", default="")
 SENSITIVE_FILTER_MODEL = env.str("SENSITIVE_FILTER_MODEL", default="")
+
+RERANK_BACKEND = env.str("RERANK_BACKEND", default="local")
+RERANK_SERVICE_URL = env.str("RERANK_SERVICE_URL", default="http://localhost:9997")
+# xinference only needs model_uid, doesn't need model name
+RERANK_SERVICE_MODEL_UID = env.str("RERANK_SERVICE_MODEL_UID", default="")
 
 VECTOR_SIZE = {
     "huggingface": 768,

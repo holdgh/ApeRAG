@@ -101,22 +101,22 @@ jobs:
   check-image:
     needs: trigger-mode
     if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[docker]') }}
-    uses: apecloud/apecd/.github/workflows/release-image-check.yml@v0.7.1
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-check.yml@v0.1.49
     with:
-      MAKE_OPS: "build-manager-image"
       IMG: "apecloud/kubechat"
-      VERSION: "latest"
       BUILDX_PLATFORMS: "linux/amd64"
-      APECD_REF: "v0.7.1"
+      DOCKERFILE_PATH: "./Dockerfile"
+      PYTHON_VERSION: "3.11"
+      POETRY_VERSION: "1.6.1"
     secrets: inherit
 
   check-helm:
     needs: trigger-mode
     if: ${{ contains(needs.trigger-mode.outputs.trigger-mode, '[deploy]') }}
-    uses: apecloud/apecd/.github/workflows/release-charts-check.yml@v0.7.1
+    uses: apecloud/apecloud-cd/.github/workflows/release-charts-check.yml@v0.1.48
     with:
-      VERSION: "v0.1.0-check"
+      VERSION: "v0.4.0-check"
       CHART_NAME: "kubechat"
-      CHART_DIR: "deploy/helm"
-      APECD_REF: "v0.7.1"
+      CHART_DIR: "deploy"
+      APECD_REF: "v0.1.48"
     secrets: inherit

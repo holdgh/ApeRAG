@@ -12,7 +12,7 @@ image:
   console:
     registry: docker.io
     repository: apecloud/kubechat-console
-    tag: "latest"
+    tag: ""
   website:
     registry: docker.io
     repository: apecloud/kubechat-website
@@ -121,8 +121,12 @@ django:
   embeddingBackend: "local"
   whisperHost: http://openai-whisper-asr-service:9000
   paddleocrHost: http://paddleocr-hubserving-service:8866
-  embeddingServiceUrl: "http://kubechat-embedding:8001/v1/embeddings"
-  embeddingServiceModel: "BAAI/bge-large-zh"
+  embeddingServiceUrl: "http://localhost:9997"
+  embeddingServiceModel: "bge-large-zh-v1.5"
+  embeddingServiceModelUid: ""
+  rerankBackend: "local"
+  rerankServiceUrl: "http://localhost:9997"
+  rerankServiceModelUid: ""
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:
