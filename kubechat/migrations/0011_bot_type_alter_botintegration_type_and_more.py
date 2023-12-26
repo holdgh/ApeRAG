@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name="type",
             field=models.CharField(
                 choices=[("knowledge", "Knowledge"), ("common", "Common")],
-                default=None,
+                default="knowledge",
                 max_length=16,
             ),
             preserve_default=False,
