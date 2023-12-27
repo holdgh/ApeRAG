@@ -64,6 +64,7 @@ class CommonPipeline(Pipeline):
             else:
                 related_questions = self.welcome_question
 
+        # TODO: divide file_content into several parts and call API seperately.
         context = file if file else ""
         if len(context) > self.context_window - 500:
             context = context[:len(self.context_window) - 500]

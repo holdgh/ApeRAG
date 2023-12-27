@@ -33,17 +33,21 @@ class CommonConsumer(BaseConsumer):
         message_id = f"{now_unix_milliseconds()}"
         related_question = []
 
-        # 先在text_data里传file_name，再在bytes_data里传file_content，最后问问题
+        # bytes_data: [file_name_length, file_name, file_content]
         if bytes_data:
-            file_name = self.file_name
-            file_suffix = os.path.splitext(file_name)[1].lower()
+            file_name_length = int.from_bytes(bytes_data[:4], byteorder='big')
+            file_name_bytes = bytes_data[4:4 + file_name_length]
+            self.file_name = file_name_bytes.decode('utf-8')
+            file_content = bytes_data[4 + file_name_length:]
+
+            file_suffix = os.path.splitext(self.file_name)[1].lower()
             if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
                 error = f"unsupported file type {file_suffix}"
                 await self.send(text_data=fail_response(message_id, error=error))
                 return
 
-            temp_file = gen_temporary_file(file_name)
-            temp_file.write(bytes_data)
+            temp_file = gen_temporary_file(self.file_name)
+            temp_file.write(file_content)
             temp_file.close()
 
             reader = DEFAULT_FILE_READER_CLS[file_suffix]
@@ -55,10 +59,7 @@ class CommonConsumer(BaseConsumer):
         self.msg_type = data["type"]
         self.response_type = "message"
 
-        if self.msg_type == "file_upload":
-            self.file_name = data["file_name"]
-            return
-        elif self.msg_type == "cancel_upload":
+        if self.msg_type == "cancel_upload":
             self.file = None
             self.file_name = None
             return
