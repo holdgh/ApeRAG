@@ -15,8 +15,8 @@ from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.pipeline.keyword_pipeline import KeywordPipeline
 from kubechat.db.ops import *
-from kubechat.source.weixin.WXBizMsgCrypt import WXBizMsgCrypt
-from kubechat.source.weixin.client import WeixinClient
+from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
+from kubechat.utils.weixin.client import WeixinClient
 
 from urllib.parse import unquote
 import xml.etree.cElementTree as ET
