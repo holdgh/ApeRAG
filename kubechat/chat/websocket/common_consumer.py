@@ -9,6 +9,7 @@ from kubechat.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.source.utils import gen_temporary_file
 from kubechat.utils.utils import now_unix_milliseconds
 from kubechat.chat.websocket.base_consumer import BaseConsumer
+from kubechat.chat.utils import check_quota_usage, manage_quota_usage
 from kubechat.pipeline.common_pipeline import CommonPipeline
 from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
 from readers.base_readers import DEFAULT_FILE_READER_CLS
@@ -69,7 +70,7 @@ class CommonConsumer(BaseConsumer):
             await self.send(text_data=start_response(message_id))
 
             if self.use_default_token and self.conversation_limit:
-                if not await self.check_quota_usage():
+                if not await check_quota_usage(self.user, self.conversation_limit):
                     error = f"conversation rounds have reached to the limit of {self.conversation_limit}"
                     await self.send(text_data=fail_response(message_id, error=error))
                     return
@@ -95,6 +96,6 @@ class CommonConsumer(BaseConsumer):
             self.file = None
             self.file_name = None
             if self.use_default_token and self.conversation_limit:
-                await self.manage_quota_usage()
+                await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
             await self.send(text_data=stop_response(message_id, [], related_question, self.related_question_prompt, self.pipeline.memory_count))

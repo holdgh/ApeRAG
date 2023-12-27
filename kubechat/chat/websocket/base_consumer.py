@@ -3,13 +3,13 @@ import json
 import logging
 import traceback
 from abc import abstractmethod
-from datetime import datetime
 import random
 
 import websockets
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import check_quota_usage, manage_quota_usage
 import redis.asyncio as redis
 
 import config.settings as settings
@@ -95,28 +95,6 @@ class BaseConsumer(AsyncWebsocketConsumer):
     def predict(self, query, **kwargs):
         pass
 
-    async def check_quota_usage(self):
-        key = "conversation_history:" + self.user
-
-        if await self.redis_client.exists(key):
-            if int(await self.redis_client.get(key)) >= self.conversation_limit:
-                return False
-        return True
-
-    async def manage_quota_usage(self):
-        key = "conversation_history:" + self.user
-
-        # already used kubechat today
-        if await self.redis_client.exists(key):
-            if int(await self.redis_client.get(key)) < self.conversation_limit:
-                await self.redis_client.incr(key)
-        # first time to use kubechat today
-        else:
-            now = datetime.now()
-            end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
-            await self.redis_client.set(key, 1)
-            await self.redis_client.expireat(key, int(end_of_today.timestamp()))
-
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
         self.msg_type = data["type"]
@@ -132,7 +110,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=start_response(message_id))
 
             if self.use_default_token and self.conversation_limit:
-                if not await self.check_quota_usage():
+                if not await check_quota_usage(self.user, self.conversation_limit):
                     error = f"conversation rounds have reached to the limit of {self.conversation_limit}"
                     await self.send(text_data=fail_response(message_id, error=error))
                     return
@@ -159,7 +137,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=fail_response(message_id, str(e)))
         finally:
             if self.use_default_token and self.conversation_limit:
-                await self.manage_quota_usage()
+                await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
             await self.send(text_data=stop_response(message_id, references, related_question, self.related_question_prompt, self.pipeline.memory_count))
 

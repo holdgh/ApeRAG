@@ -13,6 +13,7 @@ import kubechat.chat.message
 from kubechat.apps import QuotaType
 from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import check_quota_usage, manage_quota_usage
 from kubechat.pipeline.keyword_pipeline import KeywordPipeline
 from kubechat.db.ops import *
 from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
@@ -24,32 +25,6 @@ import xml.etree.cElementTree as ET
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-async def check_quota_usage(user, conversation_limit):
-    key = "conversation_history:" + user
-    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
-
-    if await redis_client.exists(key):
-        if int(await redis_client.get(key)) >= conversation_limit:
-            return False
-    return True
-
-
-async def manage_quota_usage(user, conversation_limit):
-    key = "conversation_history:" + user
-    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
-
-    # already used kubechat today
-    if await redis_client.exists(key):
-        if int(await redis_client.get(key)) < conversation_limit:
-            await redis_client.incr(key)
-    # first time to use kubechat today
-    else:
-        now = datetime.now()
-        end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
-        await redis_client.set(key, 1)
-        await redis_client.expireat(key, int(end_of_today.timestamp()))
 
 
 async def weixin_text_response(client, user, bot, query, msg_id):
