@@ -3,22 +3,17 @@ import hashlib
 import base64
 import asyncio
 import json
-import time
-from datetime import datetime
+import redis.asyncio as redis
 
 from ninja import Router
 from config import settings
-import redis.asyncio as redis
-import kubechat.chat.message
 
 from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.pipeline.pipeline import KeywordPipeline
+from kubechat.chat.utils import check_quota_usage, manage_quota_usage
+from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.db.ops import *
-import openai
-import os
 import requests
-from django.http import JsonResponse
 from kubechat.views.utils import  success,fail
 
 
@@ -69,14 +64,14 @@ async def dingtalk_text_response(redis_client, user, bot, query, msg_id,sender_i
     collection = await sync_to_async(bot.collections.first)()
     response = ""
 
-    pipeline = KeywordPipeline(bot=bot, collection=collection, history=history)
+    pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
     use_default_token = pipeline.predictor.use_default_token
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
 
     try:
         if use_default_token and conversation_limit:
-            if not await check_quota_usage(redis_client, bot.user, conversation_limit):
+            if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 await send_message(error, user,sender_id)
                 return
@@ -93,7 +88,7 @@ async def dingtalk_text_response(redis_client, user, bot, query, msg_id,sender_i
         logger.exception(e)
     finally:
         if use_default_token and conversation_limit:
-            await manage_quota_usage(redis_client, bot.user, conversation_limit)
+            await manage_quota_usage(bot.user, conversation_limit)
 
 async def notify_dingding(question,answer,webhook,sender_id):
     data = {
@@ -136,24 +131,3 @@ async def send_message(msg,webhook,sender_id):
         logger.info("dingding: " + str(reply))
     except Exception as e:
         logger.error(e)
-
-async def check_quota_usage(redis_client, user, conversation_limit):
-    key = "conversation_history:" + user
-
-    if await redis_client.exists(key):
-        if int(await redis_client.get(key)) >= conversation_limit:
-            return False
-    return True
-async def manage_quota_usage(redis_client, user, conversation_limit):
-    key = "conversation_history:" + user
-
-    # already used kubechat today
-    if await redis_client.exists(key):
-        if int(await redis_client.get(key)) < conversation_limit:
-            await redis_client.incr(key)
-    # first time to use kubechat today
-    else:
-        now = datetime.now()
-        end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
-        await redis_client.set(key, 1)
-        await redis_client.expireat(key, int(end_of_today.timestamp()))

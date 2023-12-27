@@ -13,7 +13,7 @@ from kubechat.db.ops import *
 from kubechat.views.utils import success, fail
 from kubechat.auth.validator import FeishuEventVerification
 from kubechat.db.models import ChatPeer
-from kubechat.pipeline.pipeline import KeywordPipeline
+from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.source.feishu.feishu import FeishuClient
 from kubechat.utils.utils import AESCipher
 
@@ -131,7 +131,7 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))
     last_ts = time.time()
     try:
-        async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
+        async for msg in KnowledgePipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
             response += msg
             now = time.time()
             if now - last_ts < 0.2:

@@ -10,6 +10,7 @@ async def bot_consumer_router(scope, receive, send):
     from kubechat.db.models import CollectionType
     from kubechat.db.ops import query_chat
     from kubechat.db.ops import query_bot
+    from kubechat.db.models import BotType
 
     user = scope.get(KEY_USER_ID, None)
     path = scope["path"]
@@ -25,28 +26,34 @@ async def bot_consumer_router(scope, receive, send):
         raise Exception("Chat not found")
     scope[KEY_CHAT_ID] = chat_id
 
-    if collection.type == CollectionType.DOCUMENT:
+    if bot.type == BotType.KNOWLEDGE:
+        if collection.type == CollectionType.DOCUMENT:
 
-        if settings.CHAT_CONSUMER_IMPLEMENTATION == "document-qa":
-            from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
-            return await DocumentQAConsumer.as_asgi()(scope, receive, send)
-        elif settings.CHAT_CONSUMER_IMPLEMENTATION == "fake":
-            from kubechat.chat.websocket.fake_consumer import FakeConsumer
-            return await FakeConsumer.as_asgi()(scope, receive, send)
+            if settings.CHAT_CONSUMER_IMPLEMENTATION == "document-qa":
+                from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
+                return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+            elif settings.CHAT_CONSUMER_IMPLEMENTATION == "fake":
+                from kubechat.chat.websocket.fake_consumer import FakeConsumer
+                return await FakeConsumer.as_asgi()(scope, receive, send)
+            else:
+                from kubechat.chat.websocket.embedding_consumer import EmbeddingConsumer
+                return await EmbeddingConsumer.as_asgi()(scope, receive, send)
+        elif collection.type == CollectionType.DATABASE:
+            from kubechat.chat.websocket.text_2_sql_consumer import Text2SQLConsumer
+            return await Text2SQLConsumer.as_asgi()(scope, receive, send)
         else:
-            from kubechat.chat.websocket.embedding_consumer import EmbeddingConsumer
-            return await EmbeddingConsumer.as_asgi()(scope, receive, send)
-    elif collection.type == CollectionType.DATABASE:
-        from kubechat.chat.websocket.text_2_sql_consumer import Text2SQLConsumer
-
-        return await Text2SQLConsumer.as_asgi()(scope, receive, send)
+            raise Exception("Invalid collection type")
+    elif bot.type == BotType.COMMON:
+        from kubechat.chat.websocket.common_consumer import CommonConsumer
+        return await CommonConsumer.as_asgi()(scope, receive, send)
     else:
-        raise Exception("Invalid collection type")
+        raise Exception("Invalid bot type")
 
 
 async def web_bot_consumer_router(scope, receive, send):
     from kubechat.db.ops import query_bot
     from kubechat.db.ops import query_web_chat
+    from kubechat.db.models import BotType
 
     path = scope["path"]
     bot_id, chat_id = extract_web_bot_and_chat_id(path)
@@ -61,8 +68,14 @@ async def web_bot_consumer_router(scope, receive, send):
         raise Exception("Chat not found")
     scope[KEY_CHAT_ID] = chat_id
 
-    from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
-    return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+    if bot.type == BotType.KNOWLEDGE:
+        from kubechat.chat.websocket.document_qa_consumer import DocumentQAConsumer
+        return await DocumentQAConsumer.as_asgi()(scope, receive, send)
+    elif bot.type == BotType.COMMON:
+        from kubechat.chat.websocket.common_consumer import CommonConsumer
+        return await CommonConsumer.as_asgi()(scope, receive, send)
+    else:
+        raise Exception("Invalid bot type")
 
 
 websocket_urlpatterns = [

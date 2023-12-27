@@ -16,7 +16,7 @@ from Crypto.Cipher import AES
 import xml.etree.cElementTree as ET
 import socket
 
-from kubechat.source.weixin import ierror
+from kubechat.utils.weixin import ierror
 
 
 """

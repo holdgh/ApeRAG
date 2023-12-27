@@ -13,10 +13,11 @@ import kubechat.chat.message
 from kubechat.apps import QuotaType
 from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.pipeline.pipeline import KeywordPipeline
+from kubechat.chat.utils import check_quota_usage, manage_quota_usage
+from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.db.ops import *
-from kubechat.source.weixin.WXBizMsgCrypt import WXBizMsgCrypt
-from kubechat.source.weixin.client import WeixinClient
+from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
+from kubechat.utils.weixin.client import WeixinClient
 
 from urllib.parse import unquote
 import xml.etree.cElementTree as ET
@@ -24,32 +25,6 @@ import xml.etree.cElementTree as ET
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-async def check_quota_usage(user, conversation_limit):
-    key = "conversation_history:" + user
-    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
-
-    if await redis_client.exists(key):
-        if int(await redis_client.get(key)) >= conversation_limit:
-            return False
-    return True
-
-
-async def manage_quota_usage(user, conversation_limit):
-    key = "conversation_history:" + user
-    redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
-
-    # already used kubechat today
-    if await redis_client.exists(key):
-        if int(await redis_client.get(key)) < conversation_limit:
-            await redis_client.incr(key)
-    # first time to use kubechat today
-    else:
-        now = datetime.now()
-        end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
-        await redis_client.set(key, 1)
-        await redis_client.expireat(key, int(end_of_today.timestamp()))
 
 
 async def weixin_text_response(client, user, bot, query, msg_id):
@@ -63,7 +38,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
     collection = await sync_to_async(bot.collections.first)()
     response = ""
 
-    pipeline = KeywordPipeline(bot=bot, collection=collection, history=history)
+    pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
     use_default_token = pipeline.predictor.use_default_token
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
@@ -104,7 +79,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
     collection = await sync_to_async(bot.collections.first)()
     response = ""
 
-    pipeline = KeywordPipeline(bot=bot, collection=collection, history=history)
+    pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
     use_default_token = pipeline.predictor.use_default_token
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
@@ -121,7 +96,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
         task_id = int(time.time())
         resp, response_code = await client.send_card("KubeChat正在解答中，请稍候......", user, task_id)
 
-        async for msg in KeywordPipeline(bot=bot, collection=collection, history=history).run(query, message_id=msg_id):
+        async for msg in KnowledgePipeline(bot=bot, collection=collection, history=history).run(query, message_id=msg_id):
             response += msg
 
         await client.redis_client.set(f"{task_id}2message", response)
@@ -293,7 +268,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
 
     history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
     collection = await sync_to_async(bot.collections.first)()
-    pipeline = KeywordPipeline(bot=bot, collection=collection, history=history)
+    pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
     use_default_token = pipeline.predictor.use_default_token
     redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
     response = ""

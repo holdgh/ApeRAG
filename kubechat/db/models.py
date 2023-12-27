@@ -189,10 +189,16 @@ class Document(models.Model):
     collection_id.admin_order_field = 'collection'
 
 
+class BotType(models.TextChoices):
+    KNOWLEDGE = "knowledge"
+    COMMON = "common"
+
+
 class Bot(models.Model):
     id = models.CharField(primary_key=True, default=bot_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     title = models.CharField(max_length=256)
+    type = models.CharField(max_length=16, choices=BotType.choices, default=BotType.KNOWLEDGE)
     description = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=BotStatus.choices)
     config = models.TextField()
@@ -207,6 +213,7 @@ class Bot(models.Model):
         return {
             "id": str(self.id),
             "title": self.title,
+            "type": self.type,
             "description": self.description,
             "config": self.config,
             "collections": collections,

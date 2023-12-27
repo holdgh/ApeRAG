@@ -610,6 +610,7 @@ async def delete_chat(request, bot_id, chat_id):
 
 class BotIn(Schema):
     title: str
+    type: str
     description: Optional[str]
     config: Optional[str]
     collection_ids: Optional[List[str]]
@@ -630,26 +631,29 @@ async def create_bot(request, bot_in: BotIn):
     bot = Bot(
         user=user,
         title=bot_in.title,
+        type=bot_in.type,
         status=BotStatus.ACTIVE,
         description=bot_in.description,
         config=bot_in.config,
     )
     config = json.loads(bot_in.config)
+    memory = config.get("memory", False)
     model = config.get("model")
     llm_config = config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config)
+    valid, msg = validate_bot_config(model, llm_config, bot, memory)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     await bot.asave()
     collections = []
-    for cid in bot_in.collection_ids:
-        collection = await query_collection(user, cid)
-        if not collection:
-            return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
-        if collection.status == CollectionStatus.INACTIVE:
-            return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
-        await sync_to_async(bot.collections.add)(collection)
-        collections.append(collection.view())
+    if bot_in.collection_ids is not None:
+        for cid in bot_in.collection_ids:
+            collection = await query_collection(user, cid)
+            if not collection:
+                return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
+            if collection.status == CollectionStatus.INACTIVE:
+                return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
+            await sync_to_async(bot.collections.add)(collection)
+            collections.append(collection.view())
     await bot.asave()
     return success(bot.view(collections))
 
@@ -709,14 +713,16 @@ async def update_bot(request, bot_id, bot_in: BotIn):
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
     new_config = json.loads(bot_in.config)
     model = new_config.get("model")
+    memory = new_config.get("memory", False)
     llm_config = new_config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config)
+    valid, msg = validate_bot_config(model, llm_config, bot, memory)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     old_config = json.loads(bot.config)
     old_config.update(new_config)
     bot.config = json.dumps(old_config)
     bot.title = bot_in.title
+    bot.type = bot_in.type
     bot.description = bot_in.description
     if bot_in.collection_ids is not None:
         collections = []
@@ -727,8 +733,6 @@ async def update_bot(request, bot_id, bot_in: BotIn):
             if collection.status == CollectionStatus.INACTIVE:
                 return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
             collections.append(collection)
-        if len(collections) == 0:
-            return fail(HTTPStatus.BAD_REQUEST, "Collection is empty")
         await sync_to_async(bot.collections.set)(collections)
     await bot.asave()
 
