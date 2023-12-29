@@ -640,7 +640,7 @@ async def create_bot(request, bot_in: BotIn):
     memory = config.get("memory", False)
     model = config.get("model")
     llm_config = config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config, bot, memory)
+    valid, msg = validate_bot_config(model, llm_config, bot_in.type, memory)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     await bot.asave()
@@ -715,7 +715,7 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     model = new_config.get("model")
     memory = new_config.get("memory", False)
     llm_config = new_config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config, bot, memory)
+    valid, msg = validate_bot_config(model, llm_config, bot_in.type, memory)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     old_config = json.loads(bot.config)
