@@ -4,7 +4,6 @@ import json
 import time
 import redis
 import redis.asyncio as aredis
-from datetime import datetime
 
 from ninja import Router
 from config import settings
@@ -298,8 +297,8 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
             await manage_quota_usage(bot.user, conversation_limit)
 
 
-@router.post("/officaccount/webhook/event")
-async def officaccount_callback(request, user, bot_id, signature, timestamp, nonce, openid, encrypt_type, msg_signature):
+@router.post("/officialaccount/webhook/event")
+async def officialaccount_callback(request, user, bot_id, signature, timestamp, nonce, openid, encrypt_type, msg_signature):
     bot = await query_bot(user, bot_id)
     if bot is None:
         logger.warning("bot not found: %s", bot_id)
