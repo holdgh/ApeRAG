@@ -82,7 +82,7 @@ def validate_source_connect_config(config: Dict) -> (bool, str):
     return True, ""
 
 
-def validate_bot_config(model, config: Dict, bot, memory) -> (bool, str):
+def validate_bot_config(model, config: Dict, type, memory) -> (bool, str):
     try:
         Predictor.from_model(model, PredictorType.CUSTOM_LLM, **config)
     except Exception as e:
@@ -91,9 +91,9 @@ def validate_bot_config(model, config: Dict, bot, memory) -> (bool, str):
     try:
         # validate the prompt
         prompt_template = config.get("prompt_template", None)
-        if prompt_template and bot.type == BotType.KNOWLEDGE:
+        if prompt_template and type == BotType.KNOWLEDGE:
             PromptTemplate(template=prompt_template, input_variables=["query", "context"])
-        elif prompt_template and bot.type == BotType.COMMON:
+        elif prompt_template and type == BotType.COMMON:
             PromptTemplate(template=prompt_template, input_variables=["query"])
             # pass
     except ValidationError:
@@ -103,9 +103,9 @@ def validate_bot_config(model, config: Dict, bot, memory) -> (bool, str):
         try:
             # validate the memory prompt
             prompt_template = config.get("memory_prompt_template", None)
-            if prompt_template and bot.type == BotType.KNOWLEDGE:
+            if prompt_template and type == BotType.KNOWLEDGE:
                 PromptTemplate(template=prompt_template, input_variables=["query", "context"])
-            elif prompt_template and bot.type == BotType.COMMON:
+            elif prompt_template and type == BotType.COMMON:
                 PromptTemplate(template=prompt_template, input_variables=["query"])
                 # pass
         except ValidationError:
