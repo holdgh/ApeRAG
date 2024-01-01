@@ -212,7 +212,7 @@ class EmailSource(Source):
         under_line = name.find('_')
         order = name[:under_line]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order, name,self.protocol
+            self.conn, order, name, self.protocol
         )
         metadata["name"] = name
         return LocalDocument(name=name, path=temp_file_path, metadata=metadata)

@@ -25,16 +25,16 @@ class QuestionEmbedding(LocalPathEmbedding):
         super().__init__(**kwargs)
         self.question_generator = QuestionGenerator()
         self.questions = []
-        self.max_context_window = kwargs.get("max_context_window",5000)
+        self.max_context_window = kwargs.get("max_context_window", 5000)
 
-    def load_data(self,**kwargs) -> list[str]:
+    def load_data(self, **kwargs) -> list[str]:
                 
-        docs, file_name = self.reader.load_data()
+        docs, _ = self.reader.load_data()
         if not docs:
-            return [],[]
+            return [], []
 
         if not settings.ENABLE_QUESTION_GENERATOR:
-            return [],[]
+            return [], []
 
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
@@ -88,7 +88,7 @@ class QuestionEmbedding(LocalPathEmbedding):
             
             for q in questions:
                 node = Node(
-                    text=json.dumps({"question": q, "answer": ""}),  
+                    text=json.dumps({"question": q, "answer": ""}), 
                     doc_id=doc.doc_id,
                 )
                 node.relationships = {
@@ -117,7 +117,7 @@ class QuestionEmbeddingWithoutDocument(DocumentBaseEmbedding):
         super().__init__(vector_store_adaptor, embedding_model, vector_size)
         self.questions = []
 
-    def load_data(self,**kwargs) -> list[str]:
+    def load_data(self, **kwargs) -> list[str]:
         faq = kwargs.get('faq', [])
         
         nodes: List[Node] = []
@@ -125,7 +125,7 @@ class QuestionEmbeddingWithoutDocument(DocumentBaseEmbedding):
             question = qa["question"]
             answer = qa["answer"]
             node = Node(
-                text=json.dumps({"question": question, "answer": answer}),  
+                text=json.dumps({"question": question, "answer": answer}), 
                 doc_id='',
             )
     

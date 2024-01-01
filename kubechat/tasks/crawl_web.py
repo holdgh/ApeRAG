@@ -25,7 +25,7 @@ def crawl_domain(self, root_url, url, collection_id, user, max_pages):
 
     collection = Collection.objects.get(id=collection_id)
     redis_set_key = f"crawled_urls:{collection_id}:{root_url}"
-    if redis_conn.sismember(redis_set_key, redis_key) or redis_conn.scard(redis_set_key) >= max_pages or collection.status==CollectionStatus.DELETED:
+    if redis_conn.sismember(redis_set_key, redis_key) or redis_conn.scard(redis_set_key) >= max_pages or collection.status == CollectionStatus.DELETED:
         return
 
     try:
@@ -56,8 +56,8 @@ def crawl_domain(self, root_url, url, collection_id, user, max_pages):
             add_index_for_local_document.delay(document_instance.id)
         for link in soup.find_all('a', href=True):
             sub_url = urljoin(url, link['href']).split("#")[0]
-            sub_parts=urlparse(sub_url)
-            sub_redis_key=f"{sub_url}"
+            sub_parts = urlparse(sub_url)
+            sub_redis_key = f"{sub_url}"
             if root_parts.scheme != sub_parts.scheme or root_parts.netloc != sub_parts.netloc:
                 continue
             if sub_url == url or redis_conn.sismember(redis_set_key, sub_redis_key) or not sub_parts.path.startswith(root_parts.path):

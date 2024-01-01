@@ -69,6 +69,7 @@ class MyDocReader(BaseReader):
             )
             output, error = process.communicate()
             logger.debug(output)
+            logger.debug(error)
         except FileNotFoundError:
             raise FileNotFoundError(
                 """soffice command was not found. Please install libreoffice

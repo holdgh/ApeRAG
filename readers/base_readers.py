@@ -23,9 +23,9 @@ DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     # ".docx": MyDocxReader,
     ".doc": MyDocReader,
     ".pptx": PptxReader,
-    ".ppt":PptReader,
-    ".html":HtmlReader,
-    ".xlxs":ExcelReader,
+    ".ppt": PptReader,
+    ".html": HtmlReader,
+    ".xlxs": ExcelReader,
     ".jpg": ComposeImageReader,
     ".png": ComposeImageReader,
     ".jpeg": ComposeImageReader,
@@ -62,5 +62,5 @@ FULLTEXT_SUFFIX = {
 }
 
 
-SUPPORTED_COMPRESSED_EXTENSIONS=['.zip','.rar', '.r00','.7z','.tar', '.gz', '.xz', '.bz2', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.7z']
+SUPPORTED_COMPRESSED_EXTENSIONS = ['.zip', '.rar', '.r00', '.7z', '.tar', '.gz', '.xz', '.bz2', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.7z']
 

@@ -14,7 +14,7 @@ class QianWenPredictor(Predictor):
 
         self.url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
         self.model = kwargs.get("model", "qwen-turbo")
-        if self.model not in  ["qwen-turbo", "qwen-plus", "qwen-max"]:
+        if self.model not in ["qwen-turbo", "qwen-plus", "qwen-max"]:
             raise LLMConfigError("Please specify the correct model")
 
         self.api_key = kwargs.get("api_key", os.environ.get("QIANWEN_API_KEY", ""))
@@ -65,7 +65,7 @@ class QianWenPredictor(Predictor):
                         # if error occurs, output will return "code" "message" "request_id"
                         if "code" in response:
                             raise LLMAPIError('Request id: %s, error code: %s, error message: %s' % (
-                                response['request_id'],  response['code'], response['message']))
+                                response['request_id'], response['code'], response['message']))
 
                         output = response["output"]["choices"][0]
                         if output["finish_reason"] == "null":
@@ -77,7 +77,7 @@ class QianWenPredictor(Predictor):
     def generate_stream(self, history, prompt, memory=False):
         responses = Generation.call(
             model=self.model,
-            api_key= self.api_key,
+            api_key=self.api_key,
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             result_format='message',  # set the result to be "message" format.
             stream=True,
@@ -87,5 +87,5 @@ class QianWenPredictor(Predictor):
             if response.status_code == HTTPStatus.OK:
                 yield response.output.choices[0]['message']['content']
             else:
-                raise LLMAPIError('Request id: %s, Status code: %s, error code: %s, error message: %s' % (
-                    response.request_id, response.status_code,response.code, response.message))
+                raise LLMAPIError('Request id: %s, Status code: %s, error code: %s, error message: %s' %
+                                  (response.request_id, response.status_code, response.code, response.message))

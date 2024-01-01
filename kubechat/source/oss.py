@@ -23,25 +23,25 @@ class OSSSource(Source):
         self.buckets = self._connect_buckets()
 
     def _connect_buckets(self):
-        if self.bucket_name!='':
-            new_bucket_obj={}
-            new_bucket_obj['bucket']=self.bucket_name
-            new_bucket_obj['dir']=self.dir
+        if self.bucket_name != '':
+            new_bucket_obj = {}
+            new_bucket_obj['bucket'] = self.bucket_name
+            new_bucket_obj['dir'] = self.dir
             self.bucket_objs.append(new_bucket_obj)
-        bucket_dirs=[]
+        bucket_dirs = []
         for bucket_obj in self.bucket_objs:
-            bucket_dirs.append('/'+bucket_obj['dir'])
+            bucket_dirs.append('/' + bucket_obj['dir'])
         duplicates = find_duplicate_paths(bucket_dirs)
-        if len(duplicates)!=0:
+        if len(duplicates) != 0:
             raise CustomSourceInitializationError(f"There is duplicate dir in bucket dirs eg.({duplicates[0][0]},{duplicates[0][1]})")
-        buckets={}
+        buckets = {}
         for bucket_obj in self.bucket_objs:
             try:
-                bucket_name=bucket_obj['bucket']
+                bucket_name = bucket_obj['bucket']
                 auth = oss2.Auth(self.access_key_id, self.access_key_secret)
                 bucket = oss2.Bucket(auth, endpoint=self.endpoint, bucket_name=bucket_name, connect_timeout=3)
                 bucket.get_bucket_info()
-                buckets[bucket_name]=bucket
+                buckets[bucket_name] = bucket
             except oss2.exceptions.ClientError:
                 raise CustomSourceInitializationError("Error connecting to OSS server. Invalid parameter")
             except oss2.exceptions.AccessDenied:
@@ -56,8 +56,8 @@ class OSSSource(Source):
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         for bucket_obj in self.bucket_objs:
-            bucket_name=bucket_obj['bucket']
-            file_path=bucket_obj['dir']
+            bucket_name = bucket_obj['bucket']
+            file_path = bucket_obj['dir']
             for obj in oss2.ObjectIterator(self.buckets[bucket_name], prefix=file_path):  # get file in given directory
                 try:
                     doc = RemoteDocument(
@@ -65,7 +65,7 @@ class OSSSource(Source):
                         size=obj.size,
                         metadata={
                             "modified_time": datetime.utcfromtimestamp(int(obj.last_modified)),
-                            "bucket_name" : bucket_name,
+                            "bucket_name": bucket_name,
                         }
                     )
                     yield doc

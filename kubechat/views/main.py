@@ -119,10 +119,10 @@ class UpdateDocumentIn(Schema):
     config: Optional[str]
 
 class QuestionIn(Schema):
-    id:Optional[str]
-    question:str
-    answer:str
-    relate_ducuments:Optional[List[str]]
+    id: Optional[str]
+    question: str
+    answer: str
+    relate_ducuments: Optional[List[str]]
 
 class ConnectionInfo(Schema):
     db_type: str
@@ -290,9 +290,9 @@ async def create_collection(request, collection: CollectionIn):
 
     if config.get("source") == "tencent":
         redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
-        if await redis_client.exists("tencent_code_"+user):
-            code = await redis_client.get("tencent_code_"+user)
-            redirect_uri = await redis_client.get("tencent_redirect_uri_"+user)
+        if await redis_client.exists("tencent_code_" + user):
+            code = await redis_client.get("tencent_code_" + user)
+            redirect_uri = await redis_client.get("tencent_redirect_uri_" + user)
             config["code"] = code.decode()
             config["redirect_uri"] = redirect_uri
             collection.config = json.dumps(config)
@@ -439,8 +439,8 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     if not question_in.id:
         question_instance = Question(
             user=collection.user,
-            collection = collection,
-            status = QuestionStatus.PENDING,
+            collection=collection,
+            status=QuestionStatus.PENDING,
         )
         await question_instance.asave()
     else:
@@ -466,7 +466,7 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     return success(question_instance.view()) 
 
 @router.delete("/collections/{collection_id}/questions/{question_id}")
-async def delete_question(request, collection_id,question_id):
+async def delete_question(request, collection_id, question_id):
     
     user = get_user(request)
     collection = await query_collection(user, collection_id)

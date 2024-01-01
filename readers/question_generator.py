@@ -18,10 +18,10 @@ class QuestionGenerator(ABC):
     def gen_questions(self, text):
         prompt = self.prompt_template.format(context=text)
         response = ""
-        for tokens in self.predictor.generate_stream([],prompt):
+        for tokens in self.predictor.generate_stream([], prompt):
             response += tokens
         questions = response.split('\n')
-        for i,question in enumerate(questions):
-                if question.startswith(str(i+1)+"."):
-                    questions[i] = questions[i][2:].strip()
+        for i, question in enumerate(questions):
+            if question.startswith(str(i + 1) + "."):
+                questions[i] = questions[i][2:].strip()
         return questions

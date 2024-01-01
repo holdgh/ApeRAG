@@ -72,10 +72,10 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         message_id = f"{now_unix_milliseconds()}"
         bot_config = json.loads(self.bot.config)
-        self.related_question_prompt = bot_config.get("related_question_prompt","")
+        self.related_question_prompt = bot_config.get("related_question_prompt", "")
         
-        welcome = bot_config.get("welcome",{})
-        faq = welcome.get("faq",[])
+        welcome = bot_config.get("welcome", {})
+        faq = welcome.get("faq", [])
         questions = []
         for qa in faq:
             questions.append(qa["question"])
@@ -83,7 +83,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             random_questions = questions
         else:
             random_questions = random.sample(questions, 3)
-        welcome_message = {"hello":welcome.get("hello",""), "faq":random_questions}
+        welcome_message = {"hello": welcome.get("hello", ""), "faq": random_questions}
         await self.send(text_data=welcome_response(message_id, welcome_message))
 
     async def disconnect(self, close_code):

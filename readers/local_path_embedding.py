@@ -99,7 +99,7 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
                             doc.metadata.get("name", None), prefix)
 
             if sensitive_protect:
-                doc.text,output_sensitive_info = self.filter.sensitive_filter(doc.text, sensitive_protect_method)
+                doc.text, output_sensitive_info = self.filter.sensitive_filter(doc.text, sensitive_protect_method)
                 if output_sensitive_info != {}:
                     sensitive_info.append(output_sensitive_info)
             

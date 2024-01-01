@@ -11,7 +11,7 @@ class CompressedFileReader(BaseReader):
     def load_data(self, file: Path, metadata: Optional[Dict] = None) -> List[Document]:
         return [
             Document(
-                text="" ,
+                text="",
                 metadata=metadata or {},
             )
         ]

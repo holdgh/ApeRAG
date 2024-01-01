@@ -18,15 +18,15 @@ logger.setLevel(logging.INFO)
 class SensitiveFilter(ABC):
     
     def __init__(self, **kwargs):
-        self.prompt_template = PromptTemplate(template=SENSITIVE_INFORMATION_TEMPLATE, input_variables=["context","types"])
+        self.prompt_template = PromptTemplate(template=SENSITIVE_INFORMATION_TEMPLATE, input_variables=["context", "types"])
         sensitive_filter_model = settings.SENSITIVE_FILTER_MODEL
         self.sensitive_protect_llm = False
         if sensitive_filter_model != '':
             self.sensitive_protect_llm = True
             self.predictor = Predictor.from_model(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs) 
 
-    def sensitive_filter_llm(self, context, types = ["密码","API-KEY","special token"]):
-        prompt = self.prompt_template.format(context=context,types = types)
+    def sensitive_filter_llm(self, context, types=["密码", "API-KEY", "special token"]):
+        prompt = self.prompt_template.format(context=context, types=types)
         response = ""
         for tokens in self.predictor.generate_stream([], prompt):
             response += tokens
@@ -34,22 +34,22 @@ class SensitiveFilter(ABC):
         try:
             start = response.find('[')
             end = response.rfind(']')
-            raw_results = json.loads(response[start:end+1])
+            raw_results = json.loads(response[start:end + 1])
         
             # check raw results
             results = []
             for result in raw_results:
-                text = result.get("text","")
-                text_type  = result.get("type","")
+                text = result.get("text", "")
+                text_type = result.get("type", "")
                 if not text or (text not in context) or text_type not in types:
                     continue
                 while text in context:
-                    span = result.get("span",[0,0])
+                    span = result.get("span", [0, 0])
                     if context[span[0]:span[1]] != text:
                         span[0] = context.find(text)
                         span[1] = span[0] + len(text)
-                    context = context[:span[0]] + "*"*len(text) + context[span[1]:]
-                    results.append({"text":text,"span":span,"type":text_type})
+                    context = context[:span[0]] + "*" * len(text) + context[span[1]:]
+                    results.append({"text": text, "span": span, "type": text_type})
         except Exception:
             return context, []
         
@@ -74,7 +74,7 @@ class SensitiveFilter(ABC):
                 # llm check
                 if self.sensitive_protect_llm:
                     llm_masktext, llm_outputs = self.sensitive_filter_llm(text)
-                    if len(llm_outputs)>0:
+                    if len(llm_outputs) > 0:
                         output_sensitive_info = {"chunk": text, "masked_chunk": llm_masktext, "sensitive_info": llm_outputs}
                         if sensitive_protect_method == ProtectAction.REPLACE_WORDS:
                             output_text = llm_masktext
@@ -87,14 +87,14 @@ class SensitiveFilter(ABC):
 class SensitiveFilterClassify(ABC):
     
     def __init__(self, **kwargs):
-        self.prompt_template = PromptTemplate(template=CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE, input_variables=["context","types"])
+        self.prompt_template = PromptTemplate(template=CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE, input_variables=["context", "types"])
         sensitive_filter_model = settings.SENSITIVE_FILTER_MODEL
         self.sensitive_protect_llm = False
         if sensitive_filter_model != '':
             self.sensitive_protect_llm = True
             self.predictor = Predictor.from_model(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs) 
-    def sensitive_filter_llm(self, context, types = ["密码","API-KEY","special token"]):
-        prompt = self.prompt_template.format(context=context,types = types)
+    def sensitive_filter_llm(self, context, types=["密码", "API-KEY", "special token"]):
+        prompt = self.prompt_template.format(context=context, types=types)
         response = ""
         is_sensitive = False
         for tokens in self.predictor.generate_stream([], prompt):
@@ -126,6 +126,6 @@ class SensitiveFilterClassify(ABC):
                     if sensitive_protect_method == ProtectAction.REPLACE_WORDS:
                         output_text = dlp_masktext
         except Exception as e:
-           logger.error(f"sensitive filter failed:{e}")
+            logger.error(f"sensitive filter failed:{e}")
         
         return output_text, output_sensitive_info

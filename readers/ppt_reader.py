@@ -14,7 +14,7 @@ class PptReader(BaseReader):
             import subprocess
 
             ppt_path = str(file)
-            pdf_path=file.with_suffix('.pdf')
+            pdf_path = file.with_suffix('.pdf')
 
             try:
                 subprocess.run(

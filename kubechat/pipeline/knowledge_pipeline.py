@@ -146,7 +146,7 @@ class KnowledgePipeline(Pipeline):
         if len(related_questions) >= 3:
             need_related_question = False
             
-        if response != "" :
+        if response != "":
             yield response
             
             if self.use_related_question and need_related_question:
@@ -186,7 +186,7 @@ class KnowledgePipeline(Pipeline):
                     yield self.oops
                     need_generate_answer = False
                 if self.welcome_question:
-                    if len(self.welcome_question)>=3:
+                    if len(self.welcome_question) >= 3:
                         related_questions = random.sample(self.welcome_question, 3)
                         need_related_question = False
                     else:

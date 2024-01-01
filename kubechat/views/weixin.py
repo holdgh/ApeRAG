@@ -95,7 +95,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
                 return
 
         task_id = int(time.time())
-        resp, response_code = await client.send_card("KubeChat正在解答中，请稍候......", user, task_id)
+        _, response_code = await client.send_card("KubeChat正在解答中，请稍候......", user, task_id)
 
         async for msg in KnowledgePipeline(bot=bot, collection=collection, history=history).run(query, message_id=msg_id):
             response += msg
@@ -347,7 +347,7 @@ async def officialaccount_callback(request, user, bot_id, signature, timestamp, 
                 response = "正在解答中，请稍后重新发送"
         else:
             asyncio.create_task(weixin_officaccount_response(query, msg_id, to_user_name, bot))
-            redis_client.set(f"{to_user_name+msg_id}_query", 1)
+            redis_client.set(f"{to_user_name + msg_id}_query", 1)
             response = f"KubeChat已收到问题，请发送{msg_id}获取答案"
 
         resp = generate_xml_response(to_user_name, from_user_name, create_time, "text", response)

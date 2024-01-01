@@ -49,7 +49,7 @@ def init_collection_task(collection_id, document_user_quota):
     
     source = get_source(json.loads(collection.config))
     if source.sync_enabled():
-        sync_documents.delay(collection_id=collection_id,document_user_quota=document_user_quota)
+        sync_documents.delay(collection_id=collection_id, document_user_quota=document_user_quota)
 
 
 @app.task

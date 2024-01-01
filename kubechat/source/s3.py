@@ -24,16 +24,16 @@ class S3Source(Source):
         self.buckets = self._connect_buckets()
 
     def _connect_buckets(self):
-        if self.bucket_name!='':
-            new_bucket_obj={}
-            new_bucket_obj['bucket']=self.bucket_name
-            new_bucket_obj['dir']=self.dir
+        if self.bucket_name != '':
+            new_bucket_obj = {}
+            new_bucket_obj['bucket'] = self.bucket_name
+            new_bucket_obj['dir'] = self.dir
             self.bucket_objs.append(new_bucket_obj)
-        bucket_dirs=[]
+        bucket_dirs = []
         for bucket_obj in self.bucket_objs:
             bucket_dirs.append('/' + bucket_obj['dir'])
         duplicates = find_duplicate_paths(bucket_dirs)
-        if len(duplicates)!=0:
+        if len(duplicates) != 0:
             raise CustomSourceInitializationError(f"There is duplicate dir in bucket dirs eg.({duplicates[0][0]},{duplicates[0][1]})")
         buckets = {}
         for bucket_obj in self.bucket_objs:

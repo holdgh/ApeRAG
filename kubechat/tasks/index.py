@@ -379,7 +379,7 @@ def message_feedback(**kwargs):
 @app.task
 def generate_questions(document_id):
     document = Document.objects.get(id=document_id)   
-    embedding_model,_ = get_embedding_model("bge")
+    embedding_model, _ = get_embedding_model("bge")
 
     source = get_source(json.loads(document.collection.config))
     metadata = json.loads(document.metadata)
@@ -394,11 +394,11 @@ def generate_questions(document_id):
     for relate_id, question in zip(ids, questions):
         question_instance = Question(
             user=document.user,
-            question = question,
-            answer = '',
-            status = QuestionStatus.ACTIVE,
-            collection = document.collection,
-            relate_id = relate_id
+            question=question,
+            answer='',
+            status=QuestionStatus.ACTIVE,
+            collection=document.collection,
+            relate_id=relate_id
         )
         question_instance.save()
         question_instance.documents.add(document)
@@ -406,7 +406,7 @@ def generate_questions(document_id):
 @app.task
 def update_index_for_question(question_id):
     question = Question.objects.get(id=question_id)   
-    embedding_model,_ = get_embedding_model("bge")
+    embedding_model, _ = get_embedding_model("bge")
     
     q_loaders = QuestionEmbeddingWithoutDocument(embedding_model=embedding_model,
                             vector_store_adaptor=get_vector_db_connector(
@@ -415,7 +415,7 @@ def update_index_for_question(question_id):
     if question.relate_id is not None:
         q_loaders.delete(ids=[question.relate_id])
     if question.status != QuestionStatus.DELETED:
-        ids = q_loaders.load_data(faq = [{"question":question.question, "answer":question.answer}])
+        ids = q_loaders.load_data(faq=[{"question": question.question, "answer": question.answer}])
         question.relate_id = ids[0]
         question.status = QuestionStatus.ACTIVE
         question.save()

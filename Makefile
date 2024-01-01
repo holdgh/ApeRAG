@@ -96,14 +96,14 @@ compose-logs:
 	docker-compose -f compose.yml logs -f
 
 format:
-	poetry run ruff --fix .
+	poetry run ruff --preview --fix .
 
 lint: PYTHON_FILES=.
 lint_diff: PYTHON_FILES=$(shell git diff --name-only --diff-filter=d master | grep -E '\.py$$')
 
 lint lint_diff:
 	poetry run mypy $(PYTHON_FILES)
-	poetry run ruff .
+	poetry run ruff --preview .
 
 test:
 	echo "mock"
