@@ -1,15 +1,16 @@
 import json
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
 from langchain import PromptTemplate
-from langchain.schema import HumanMessage, AIMessage
+from langchain.schema import AIMessage, HumanMessage
 from pydantic import BaseModel
+
 from kubechat.chat.history.base import BaseChatMessageHistory
 from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.prompts import RELATED_QUESTIONS_TEMPLATE
-from kubechat.utils.utils import  now_unix_milliseconds
+from kubechat.utils.utils import now_unix_milliseconds
 
 
 class Message(BaseModel):

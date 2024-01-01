@@ -10,8 +10,8 @@ class PptReader(BaseReader):
         """Parse file."""
         try:
 
-            import subprocess
             import os
+            import subprocess
 
             ppt_path = str(file)
             pdf_path=file.with_suffix('.pdf')

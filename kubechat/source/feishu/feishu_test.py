@@ -1,6 +1,6 @@
 import os
 
-from kubechat.source.utils import FeishuClient, FeishuBlockParser
+from kubechat.source.utils import FeishuBlockParser, FeishuClient
 
 ctx = {
     "app_id": os.environ.get("APP_ID"),

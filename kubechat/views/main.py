@@ -4,40 +4,55 @@ import os
 from http import HTTPStatus
 from typing import List
 
+import redis.asyncio as redis
 import yaml
 from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
-from django.forms.models import model_to_dict
 from django.shortcuts import render
-from ninja import File, NinjaAPI, Schema, Router
+from ninja import File, NinjaAPI, Router, Schema
 from ninja.files import UploadedFile
-import redis.asyncio as redis
 
 import kubechat.chat.message
 from config import settings
 from config.celery import app
 from kubechat.apps import QuotaType
-from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.llm.base import Predictor
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
-    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
-from kubechat.source.base import get_source
-from kubechat.tasks.collection import init_collection_task, delete_collection_task
-from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback,\
-    generate_questions, update_index_for_question
-from kubechat.tasks.scan import delete_sync_documents_cron_job, \
-    update_sync_documents_cron_job
-from kubechat.tasks.crawl_web import crawl_domain
-from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
-from kubechat.db.ops import *
-from kubechat.utils.request import get_user, get_urls
-from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_source_connect_config, validate_bot_config, \
-    validate_url, success, fail, validation_errors, auth_errors
-from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
+from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.models import *
+from kubechat.db.ops import *
+from kubechat.llm.base import Predictor
+from kubechat.llm.prompts import (
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
+    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    DEFAULT_MODEL_PROMPT_TEMPLATES,
+)
+from kubechat.source.base import get_source
+from kubechat.tasks.collection import delete_collection_task, init_collection_task
+from kubechat.tasks.crawl_web import crawl_domain
+from kubechat.tasks.index import (
+    add_index_for_local_document,
+    generate_questions,
+    message_feedback,
+    remove_index,
+    update_index,
+    update_index_for_question,
+)
+from kubechat.tasks.scan import delete_sync_documents_cron_job, update_sync_documents_cron_job
+from kubechat.tasks.sync_documents_task import get_sync_progress, sync_documents
+from kubechat.utils.request import get_urls, get_user
+from kubechat.views.utils import (
+    add_ssl_file,
+    fail,
+    query_chat_messages,
+    success,
+    validate_bot_config,
+    validate_source_connect_config,
+    validate_url,
+)
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
@@ -477,7 +492,7 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             add_index_for_local_document.delay(document_instance.id)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
-        except Exception as e:
+        except Exception:
             logger.exception("add document failed")
             return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     return success(response)

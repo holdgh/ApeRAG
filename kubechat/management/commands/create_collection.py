@@ -1,13 +1,13 @@
 import json
+from http import HTTPStatus
 
 from asgiref.sync import async_to_sync
 from django.core.management.base import BaseCommand, CommandError
+from django.http import HttpRequest
 
 from config import settings
 from kubechat.utils.constant import KEY_USER_ID
-from kubechat.views.main import create_collection, CollectionIn
-from django.http import HttpRequest
-from http import HTTPStatus
+from kubechat.views.main import CollectionIn, create_collection
 
 
 class Command(BaseCommand):

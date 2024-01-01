@@ -1,8 +1,9 @@
 import json
+from datetime import datetime
+
 import redis.asyncio as redis
 
 from config import settings
-from datetime import datetime
 from kubechat.utils.utils import now_unix_milliseconds
 
 

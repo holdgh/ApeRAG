@@ -96,7 +96,7 @@ compose-logs:
 	docker-compose -f compose.yml logs -f
 
 format:
-	poetry run ruff --select I --fix .
+	poetry run ruff --fix .
 
 lint: PYTHON_FILES=.
 lint_diff: PYTHON_FILES=$(shell git diff --name-only --diff-filter=d master | grep -E '\.py$$')

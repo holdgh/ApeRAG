@@ -3,23 +3,21 @@ import json
 import logging
 import os
 import time
+from datetime import datetime
 
 from langchain import PromptTemplate
 from tabulate import tabulate
-from datetime import datetime
-
 
 from kubechat.context.context import ContextManager
+from kubechat.context.full_text import create_index, delete_index, insert_document, search_document
 from kubechat.llm.custom import CustomLLMPredictor
 from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
-from kubechat.context.full_text import insert_document, search_document, delete_index, create_index
 from kubechat.utils.utils import generate_fulltext_index_name
 from query.query import get_packed_answer
 from readers.base_embedding import get_embedding_model, get_rerank_model
 from readers.local_path_embedding import LocalPathEmbedding
 from vectorstore.connector import VectorStoreConnectorAdaptor
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

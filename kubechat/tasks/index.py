@@ -1,37 +1,41 @@
 import json
 import logging
 import os
+import tarfile
 import uuid
 import zipfile
-import tarfile
-from asgiref.sync import sync_to_async
+from pathlib import Path
 
 import py7zr
 import rarfile
-
 from celery import Task
-from django.utils import timezone
 from django.core.files.base import ContentFile
-from pathlib import Path
+from django.utils import timezone
+
 from config.celery import app
 from config.vector_db import get_vector_db_connector
-from kubechat.llm.base import Predictor, PredictorType
-
-from kubechat.db.models import Document, DocumentStatus, MessageFeedback,Collection,CollectionStatus, \
-    MessageFeedbackStatus, ProtectAction, Question, QuestionStatus
+from kubechat.context.full_text import insert_document, remove_document
+from kubechat.db.models import (
+    Document,
+    DocumentStatus,
+    MessageFeedback,
+    MessageFeedbackStatus,
+    ProtectAction,
+    Question,
+    QuestionStatus,
+)
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
-from kubechat.context.full_text import insert_document, remove_document
-from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
-    generate_fulltext_index_name
-from readers.base_readers import DEFAULT_FILE_READER_CLS
-from readers.base_embedding import get_collection_embedding_model,get_embedding_model
+from kubechat.utils.utils import (
+    generate_fulltext_index_name,
+    generate_qa_vector_db_collection_name,
+    generate_vector_db_collection_name,
+)
+from readers.base_embedding import get_collection_embedding_model, get_embedding_model
+from readers.base_readers import DEFAULT_FILE_READER_CLS, SUPPORTED_COMPRESSED_EXTENSIONS
 from readers.local_path_embedding import LocalPathEmbedding
-from readers.local_path_qa_embedding import LocalPathQAEmbedding
-from readers.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
 from readers.qa_embedding import QAEmbedding
-from django.core.files.base import ContentFile
-from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX, SUPPORTED_COMPRESSED_EXTENSIONS
+from readers.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
 
 logger = logging.getLogger(__name__)
 

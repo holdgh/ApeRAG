@@ -8,7 +8,7 @@ from ninja import NinjaAPI
 
 from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.chat.utils import success_response, stop_response, start_response, fail_response
+from kubechat.chat.utils import fail_response, start_response, stop_response, success_response
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,9 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
             logger.exception(e)
 
     async def _handle(self, body):
-        from kubechat.db.models import Chat
+        from kubechat.db.models import Chat, ChatPeer
+        from kubechat.db.ops import query_bot, query_chat_by_peer
         from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
-        from kubechat.db.ops import query_chat_by_peer, query_bot
-        from kubechat.db.models import ChatPeer
         await self.send_headers(headers=[
             (b"Cache-Control", b"no-cache"),
             (b"Content-Type", b"text/event-stream"),

@@ -1,13 +1,13 @@
 import base64
 import hashlib
 import logging
-from typing import Optional, Any
+from typing import Any, Optional
 
 from channels.middleware import BaseMiddleware
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest
 from ninja.security import HttpBearer
 from ninja.security.http import HttpAuthBase
-from django.core.exceptions import PermissionDenied
 
 import config.settings as settings
 from kubechat.auth import tv

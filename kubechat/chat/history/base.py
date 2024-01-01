@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from langchain.schema import BaseMessage, AIMessage, HumanMessage
+from langchain.schema import AIMessage, BaseMessage, HumanMessage
 
 
 class BaseChatMessageHistory(ABC):

@@ -1,15 +1,17 @@
 import asyncio
 import json
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import aiohttp
 from aioresponses import aioresponses
 from base import KubeBlocksLLMPredictor
-from kubechat.llm.custom import CustomLLMPredictor
-from kubechat.llm.chatglm import ChatGLMPredictor
-from kubechat.llm.wenxin import BaiduQianFan
+
 from kubechat.llm.baichuan import BaiChuanPredictor
+from kubechat.llm.chatglm import ChatGLMPredictor
+from kubechat.llm.custom import CustomLLMPredictor
 from kubechat.llm.openai import OpenAIPredictor
+from kubechat.llm.wenxin import BaiduQianFan
 
 
 class TestBaiChuanPredictor(unittest.IsolatedAsyncioTestCase):

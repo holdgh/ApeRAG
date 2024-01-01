@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import faulthandler
 import logging
-from typing import Any, List, Optional, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from langchain.embeddings.base import Embeddings
 from llama_index.data_structs.data_structs import Node
@@ -12,8 +12,8 @@ from llama_index.vector_stores.types import NodeWithEmbedding
 from kubechat.db.models import ProtectAction
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_reader import InteractiveSimpleDirectoryReader
+from readers.sensitive_filter import SensitiveFilterClassify
 from vectorstore.connector import VectorStoreConnectorAdaptor
-from readers.sensitive_filter import SensitiveFilter,SensitiveFilterClassify
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ def raise_warning_for_incompatible_cpu_offloading_configuration(
                 "Continuing without cpu-offloading enabled\n"
             )
             return False
-        if not "linux" in sys.platform:
+        if "linux" not in sys.platform:
             warnings.warn(
                 "CPU-offloading is only supported on linux-systems due to the limited compatability with the bitsandbytes-package\n"
                 "Continuing without cpu-offloading enabled\n"

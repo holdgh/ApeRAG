@@ -1,24 +1,30 @@
 import logging
 from typing import Any, Dict, Optional
 
+from asgiref.sync import sync_to_async
 from django.db.models import QuerySet
 from pydantic import BaseModel
-from asgiref.sync import sync_to_async
 
 from kubechat.db.models import (
     Bot,
+    BotIntegration,
+    BotIntegrationStatus,
+    BotStatus,
     Chat,
+    ChatPeer,
     ChatStatus,
     Collection,
     CollectionStatus,
     CollectionSyncHistory,
+    CollectionSyncStatus,
+    Config,
     Document,
     DocumentStatus,
+    MessageFeedback,
     Question,
     QuestionStatus,
-    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Config, UserQuota
+    UserQuota,
 )
-
 
 logger = logging.getLogger(__name__)
 

@@ -3,13 +3,16 @@ import json
 from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
+from kubechat.context.full_text import create_index, delete_index
 from kubechat.db.models import Collection, CollectionStatus
 from kubechat.source.base import get_source
-from kubechat.context.full_text import create_index, delete_index
-from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
-    generate_fulltext_index_name
-from readers.base_embedding import get_embedding_model
 from kubechat.tasks.sync_documents_task import sync_documents
+from kubechat.utils.utils import (
+    generate_fulltext_index_name,
+    generate_qa_vector_db_collection_name,
+    generate_vector_db_collection_name,
+)
+from readers.base_embedding import get_embedding_model
 
 
 @app.task

@@ -1,7 +1,8 @@
-from kubechat.pipeline.base_pipeline import Pipeline
-import random
 import json
+import random
 from pathlib import Path
+
+from kubechat.pipeline.base_pipeline import Pipeline
 
 KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
 

@@ -1,9 +1,9 @@
+import asyncio
 import json
 
-from django.apps import AppConfig
 import requests
-import asyncio
 from asgiref.sync import sync_to_async
+from django.apps import AppConfig
 
 
 class KubechatConfig(AppConfig):
@@ -16,8 +16,9 @@ class KubechatConfig(AppConfig):
 
 
 def get_ip_config():
-    from kubechat.db.models import Config
     from django.db import transaction
+
+    from kubechat.db.models import Config
 
     public_ip = requests.get('https://ifconfig.me').text.strip()
 

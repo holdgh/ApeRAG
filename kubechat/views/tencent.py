@@ -1,7 +1,7 @@
 import time
 
-from ninja import Router
 import redis.asyncio as redis
+from ninja import Router
 
 from config import settings
 

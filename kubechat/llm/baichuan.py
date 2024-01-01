@@ -7,7 +7,7 @@ import uuid
 import aiohttp
 import requests
 
-from kubechat.llm.base import Predictor, LLMConfigError, logger
+from kubechat.llm.base import LLMConfigError, Predictor, logger
 
 
 class BaiChuanPredictor(Predictor):

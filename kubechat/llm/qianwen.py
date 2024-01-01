@@ -3,10 +3,9 @@ import os
 from http import HTTPStatus
 
 import aiohttp
-
-from kubechat.llm.base import Predictor, LLMConfigError, LLMAPIError
-import dashscope
 from dashscope import Generation
+
+from kubechat.llm.base import LLMAPIError, LLMConfigError, Predictor
 
 
 class QianWenPredictor(Predictor):

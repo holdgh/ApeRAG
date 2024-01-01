@@ -1,7 +1,8 @@
-from ninja.responses import NinjaJSONEncoder
 import json
-from typing import Any, Type, Mapping
+from typing import Any, Mapping, Type
+
 from django.http import HttpRequest
+from ninja.responses import NinjaJSONEncoder
 
 
 class MyJSONRenderer:

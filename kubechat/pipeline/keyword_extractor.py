@@ -2,14 +2,13 @@ import logging
 import os.path
 import re
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
-from elasticsearch import Elasticsearch, AsyncElasticsearch
+from elasticsearch import AsyncElasticsearch
 from langchain import PromptTemplate
 
 from kubechat.llm.base import Predictor, PredictorType
 from kubechat.llm.prompts import KEYWORD_PROMPT_TEMPLATE
-
 
 logger = logging.getLogger(__name__)
 

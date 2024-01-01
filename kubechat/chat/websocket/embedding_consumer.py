@@ -5,9 +5,10 @@ import random
 import string
 
 from config import settings
-from .base_consumer import BaseConsumer
 from kubechat.context.context import ContextManager
 from kubechat.utils.utils import generate_vector_db_collection_name
+
+from .base_consumer import BaseConsumer
 
 logger = logging.getLogger(__name__)
 

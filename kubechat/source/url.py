@@ -1,10 +1,8 @@
 import tempfile
-from typing import Dict, Any, Iterator
-from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
-from kubechat.utils.spider.base_spider import url_selector,WebCannotBeCrawledException
+from typing import Any, Dict, Iterator
 
-
-
+from kubechat.source.base import LocalDocument, RemoteDocument, Source
+from kubechat.utils.spider.base_spider import WebCannotBeCrawledException, url_selector
 
 
 def download_web_text_to_temp_file(url, name):

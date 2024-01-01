@@ -1,19 +1,17 @@
 import inspect
+import logging
 from pathlib import Path
 from typing import Dict, List
 
 import openai
+
 from config.celery import app
-
-import logging
-
 from config.settings import CODE_STORAGE_DIR
 from kubechat.db.models import ChatStatus
+from kubechat.db.ops import query_chat, query_collection
 from kubechat.tasks.index import CustomLoadDocumentTask
-from kubechat.db.ops import query_collection, query_chat
 from kubechat.utils.utils import fix_path_name
-from services.code.code_gerenate.storage import DBs, DB
-
+from services.code.code_gerenate.storage import DB, DBs
 
 logger = logging.getLogger(__name__)
 

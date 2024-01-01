@@ -7,20 +7,27 @@ from threading import Lock
 from typing import Any, List
 
 import aiohttp
+import requests
 import torch
 from FlagEmbedding import FlagReranker
 from langchain.embeddings.base import Embeddings
-from transformers import AutoTokenizer, MT5EncoderModel, AutoModelForSequenceClassification
+from langchain.embeddings.huggingface import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, MT5EncoderModel
 
-from langchain.embeddings.huggingface import (HuggingFaceEmbeddings, HuggingFaceBgeEmbeddings)
-
-from config.settings import EMBEDDING_MODEL, EMBEDDING_SERVICE_URL, EMBEDDING_SERVICE_MODEL, \
-    VECTOR_SIZE, EMBEDDING_BACKEND, EMBEDDING_DEVICE, RERANK_BACKEND, RERANK_SERVICE_URL, EMBEDDING_SERVICE_MODEL_UID, \
-    RERANK_SERVICE_MODEL_UID
+from config.settings import (
+    EMBEDDING_BACKEND,
+    EMBEDDING_DEVICE,
+    EMBEDDING_MODEL,
+    EMBEDDING_SERVICE_MODEL,
+    EMBEDDING_SERVICE_MODEL_UID,
+    EMBEDDING_SERVICE_URL,
+    RERANK_BACKEND,
+    RERANK_SERVICE_MODEL_UID,
+    RERANK_SERVICE_URL,
+    VECTOR_SIZE,
+)
 from query.query import DocumentWithScore
 from vectorstore.connector import VectorStoreConnectorAdaptor
-
-import requests
 
 
 class EmbeddingService(Embeddings):
@@ -164,7 +171,7 @@ class MultilingualSentenceTransformer(Embeddings):
 
 class BertEmbedding(Embeddings):
     def __init__(self):
-        from transformers import BertTokenizer, BertForMaskedLM
+        from transformers import BertForMaskedLM, BertTokenizer
         model_name = "IDEA-CCNL/Erlangshen-TCBert-330M-Sentence-Embedding-Chinese"
         self.tokenizer = BertTokenizer.from_pretrained(model_name)
         self.model = BertForMaskedLM.from_pretrained(model_name)

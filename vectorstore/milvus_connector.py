@@ -6,7 +6,6 @@ from pymilvus import (
     connections,
 )
 
-from query.query import QueryResult, QueryWithEmbedding
 from vectorstore.base import VectorStoreConnector
 
 

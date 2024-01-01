@@ -1,6 +1,7 @@
 from django.contrib import admin
-from kubechat.db.models import Chat, Collection, Document, CollectionSyncHistory
 from django.utils.html import format_html
+
+from kubechat.db.models import Chat, Collection, CollectionSyncHistory, Document
 
 admin.site.site_header = 'Kubechat admin'  # set header
 admin.site.site_title = 'Kubechat admin'  # set title

@@ -9,17 +9,17 @@ from pathlib import Path
 
 from asgiref.sync import sync_to_async
 from django.http import HttpResponse
-from ninja import NinjaAPI, UploadedFile, File
+from ninja import File, NinjaAPI, UploadedFile
 
 from config import settings
 from kubechat.auth.validator import GlobalHTTPAuth
-from kubechat.db.models import ssl_temp_file_path, VerifyWay, Chat, DocumentStatus, ChatStatus
-from kubechat.db.ops import query_collection
 from kubechat.chat.utils import new_db_client
+from kubechat.db.models import Chat, ChatStatus, DocumentStatus, VerifyWay, ssl_temp_file_path
+from kubechat.db.ops import query_collection
 from kubechat.utils.request import get_user
-from kubechat.views.utils import success, fail
 from kubechat.utils.utils import fix_path_name
 from kubechat.views.main import ConnectionInfo
+from kubechat.views.utils import fail, success
 
 logger = logging.getLogger(__name__)
 

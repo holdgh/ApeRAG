@@ -1,10 +1,9 @@
 import logging
 from typing import List
-from elasticsearch import Elasticsearch, AsyncElasticsearch, NotFoundError
+
+from elasticsearch import AsyncElasticsearch, Elasticsearch, NotFoundError
 
 from config import settings
-from kubechat.utils.utils import generate_fulltext_index_name
-
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +18,6 @@ if settings.ENABLE_KEYWORD_SEARCH:
 # from redis.commands.json.path import Path
 # from redis.commands.search.field import TextField
 # from redis.commands.search.indexDefinition import IndexDefinition, IndexType
-
-from config.settings import REDIS_HOST, REDIS_PORT, REDIS_USERNAME, REDIS_PASSWORD
 
 
 # def get_redis_client() -> redis.Redis:

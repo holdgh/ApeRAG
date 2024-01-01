@@ -1,11 +1,11 @@
 import time
+from urllib.parse import urlparse
 
 import requests
-
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
-from kubechat.utils.spider.zhihu import get_zhihu
+
 from kubechat.utils.spider.stackoverflow import get_stackoverflow
+from kubechat.utils.spider.zhihu import get_zhihu
 
 
 class WebCannotBeCrawledException(BaseException):

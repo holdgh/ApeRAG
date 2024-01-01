@@ -1,17 +1,24 @@
 import ast
-import os
 import json
 import logging
+import os
 import traceback
+
 import websockets
 
+from kubechat.chat.utils import (
+    check_quota_usage,
+    fail_response,
+    manage_quota_usage,
+    start_response,
+    stop_response,
+    success_response,
+)
+from kubechat.chat.websocket.base_consumer import BaseConsumer
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.pipeline.common_pipeline import CommonPipeline
 from kubechat.source.utils import gen_temporary_file
 from kubechat.utils.utils import now_unix_milliseconds
-from kubechat.chat.websocket.base_consumer import BaseConsumer
-from kubechat.chat.utils import check_quota_usage, manage_quota_usage
-from kubechat.pipeline.common_pipeline import CommonPipeline
-from kubechat.chat.utils import start_response, success_response, stop_response, fail_response
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)

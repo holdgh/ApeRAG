@@ -1,9 +1,7 @@
-from langchain import PromptTemplate
-from pydantic import BaseModel
 import json
+
 import requests
-import openai
-import os
+from langchain import PromptTemplate
 
 query_str = "如何在windows中安装kbcli?"
 '''

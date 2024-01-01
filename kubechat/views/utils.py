@@ -11,10 +11,10 @@ from pydantic import ValidationError
 
 from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.db.models import BotType, ssl_file_path, ssl_temp_file_path
+from kubechat.db.ops import PagedResult, logger, query_chat_feedbacks
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.db.models import ssl_file_path, ssl_temp_file_path, BotType
-from kubechat.db.ops import query_chat_feedbacks, logger, PagedResult
-from kubechat.source.base import get_source, CustomSourceInitializationError
+from kubechat.source.base import CustomSourceInitializationError, get_source
 from kubechat.utils.utils import AVAILABLE_SOURCE
 
 

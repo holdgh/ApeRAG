@@ -1,13 +1,10 @@
 import logging
-import re
 from abc import ABC
 
 from langchain import PromptTemplate
-from config import settings
-from kubechat.llm.base import Predictor, PredictorType
-from kubechat.llm.custom import CustomLLMPredictor
-from kubechat.llm.prompts import QUESTION_EXTRACTION_PROMPT_TEMPLATE_V2
 
+from kubechat.llm.base import Predictor, PredictorType
+from kubechat.llm.prompts import QUESTION_EXTRACTION_PROMPT_TEMPLATE_V2
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

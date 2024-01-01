@@ -13,8 +13,8 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 from django.urls import path, re_path
 
-from kubechat.chat.websocket.routing import websocket_urlpatterns
 from kubechat.chat.sse.sse import ServerSentEventsConsumer
+from kubechat.chat.websocket.routing import websocket_urlpatterns
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 

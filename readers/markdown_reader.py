@@ -5,12 +5,12 @@ Contains parser for md files.
 
 """
 import re
-from mdsplit import split_by_heading, Chapter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document
+from mdsplit import Chapter, split_by_heading
 from pydantic import BaseModel
 
 CHUNK_SPLIT_THRESHOLD = 500

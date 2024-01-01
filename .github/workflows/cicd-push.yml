@@ -92,6 +92,7 @@ jobs:
           pip install mypy
           pip install black
           pip install ruff
+          make format
           make lint
 
       - name: make test

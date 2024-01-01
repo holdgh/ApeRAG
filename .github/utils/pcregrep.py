@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 import argparse
-import re
 import os
+import re
 
 parser = argparse.ArgumentParser(description='pcregrep checks Chinese characters')
 parser.add_argument('--source', '-s', help='pcregrep source file path', default="pcregrep.out")

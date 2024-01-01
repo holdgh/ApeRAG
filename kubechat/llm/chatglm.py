@@ -3,10 +3,10 @@ import time
 
 import aiohttp
 import jwt
-from zhipuai.utils.sse_client import SSEClient
 import requests
+from zhipuai.utils.sse_client import SSEClient
 
-from kubechat.llm.base import Predictor, LLMConfigError, logger
+from kubechat.llm.base import LLMConfigError, Predictor, logger
 
 
 class ChatGLMPredictor(Predictor):

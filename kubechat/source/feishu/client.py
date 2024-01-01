@@ -1,9 +1,9 @@
+import datetime
 import json
 import logging
-import datetime
 from abc import ABC
 from threading import Lock
-from typing import Dict, Any
+from typing import Any, Dict
 
 import requests
 from pydantic import BaseModel
@@ -124,7 +124,7 @@ class FeishuClient(ABC):
         """
         https://open.feishu.cn/document/server-docs/im-v1/message-card/delay-update-message-card
         """
-        self.post(f"interactive/v1/card/update", json=data)
+        self.post("interactive/v1/card/update", json=data)
 
     def update_card_message(self, message_id, data):
         """
@@ -199,7 +199,7 @@ class FeishuClient(ABC):
         params = {
             "token": token,
         }
-        resp = self.get(f"wiki/v2/spaces/get_node", params=params, **kwargs)
+        resp = self.get("wiki/v2/spaces/get_node", params=params, **kwargs)
         return resp["data"]["node"]
 
     def get_docx_plain_content(self, doc_id):

@@ -1,21 +1,20 @@
-import hmac
-import hashlib
-import base64
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
+
 import redis.asyncio as redis
-
+import requests
 from ninja import Router
-from config import settings
 
+from config import settings
 from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import check_quota_usage, manage_quota_usage
-from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.db.ops import *
-import requests
-from kubechat.views.utils import  success,fail
-
+from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
+from kubechat.views.utils import fail, success
 
 logger = logging.getLogger(__name__)
 

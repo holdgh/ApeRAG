@@ -1,4 +1,3 @@
-import copy
 from threading import Thread
 
 import torch

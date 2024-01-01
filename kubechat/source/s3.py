@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime
-from typing import Dict, Any, Iterator
+from typing import Any, Dict, Iterator
 
 import boto3
 import botocore
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
-from kubechat.source.utils import gen_temporary_file,find_duplicate_paths
+from kubechat.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
+from kubechat.source.utils import find_duplicate_paths, gen_temporary_file
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +50,13 @@ class S3Source(Source):
                 s3_client.head_bucket(Bucket=bucket_name)
                 buckets[bucket_name] = s3_client.Bucket(bucket_name)
             except botocore.exceptions.ClientError:
-                raise CustomSourceInitializationError(f"Error connecting to S3 server. Invalid parameter")
+                raise CustomSourceInitializationError("Error connecting to S3 server. Invalid parameter")
             except botocore.exceptions.NoCredentialsError:
-                raise CustomSourceInitializationError(f"Error connecting to S3 server. No valid AWS credentials provided")
+                raise CustomSourceInitializationError("Error connecting to S3 server. No valid AWS credentials provided")
             except botocore.exceptions.EndpointConnectionError:
-                raise CustomSourceInitializationError(f"Error connecting to S3 server. Unable to reach the endpoint")
+                raise CustomSourceInitializationError("Error connecting to S3 server. Unable to reach the endpoint")
             except botocore.exceptions.WaiterError:
-                raise CustomSourceInitializationError(f"Error connecting to S3 server. Connection timed out")
+                raise CustomSourceInitializationError("Error connecting to S3 server. Connection timed out")
         return buckets
 
     def scan_documents(self) -> Iterator[RemoteDocument]:

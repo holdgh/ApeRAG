@@ -1,8 +1,8 @@
 import json
 import logging
 from typing import List, Optional
-from langchain.schema.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, \
-    ChatMessage, FunctionMessage
+
+from langchain.schema.messages import AIMessage, BaseMessage, ChatMessage, FunctionMessage, HumanMessage, SystemMessage
 
 logger = logging.getLogger(__name__)
 

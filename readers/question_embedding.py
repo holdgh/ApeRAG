@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import logging
-from typing import List,Any
-from django.utils import timezone
 import json
+import logging
+from typing import Any, List
 
+from langchain.embeddings.base import Embeddings
 from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding
-from langchain.embeddings.base import Embeddings
 
 from config import settings
-from readers.local_path_embedding import LocalPathEmbedding
 from readers.base_embedding import DocumentBaseEmbedding
+from readers.local_path_embedding import LocalPathEmbedding
 from readers.question_generator import QuestionGenerator
-from kubechat.db.models import QuestionStatus,Question
 from vectorstore.connector import VectorStoreConnectorAdaptor
 
 logger = logging.getLogger(__name__)

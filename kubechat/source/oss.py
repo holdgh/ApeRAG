@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Iterator
+from typing import Any, Dict, Iterator
 
 import oss2
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
-from kubechat.source.utils import gen_temporary_file,find_duplicate_paths
+from kubechat.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
+from kubechat.source.utils import find_duplicate_paths, gen_temporary_file
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +43,15 @@ class OSSSource(Source):
                 bucket.get_bucket_info()
                 buckets[bucket_name]=bucket
             except oss2.exceptions.ClientError:
-                raise CustomSourceInitializationError(f"Error connecting to OSS server. Invalid parameter")
+                raise CustomSourceInitializationError("Error connecting to OSS server. Invalid parameter")
             except oss2.exceptions.AccessDenied:
-                raise CustomSourceInitializationError(f"Error connecting to OSS server. Access denied")
+                raise CustomSourceInitializationError("Error connecting to OSS server. Access denied")
             except oss2.exceptions.NoSuchBucket:
-                raise CustomSourceInitializationError(f"Error connecting to OSS server. Bucket does not exist")
+                raise CustomSourceInitializationError("Error connecting to OSS server. Bucket does not exist")
             except oss2.exceptions.RequestError:
-                raise CustomSourceInitializationError(f"Error connecting to OSS server. Request error")
+                raise CustomSourceInitializationError("Error connecting to OSS server. Request error")
             except oss2.exceptions.ServerError:
-                raise CustomSourceInitializationError(f"Error connecting to OSS server. Server error")
+                raise CustomSourceInitializationError("Error connecting to OSS server. Server error")
         return buckets
 
     def scan_documents(self) -> Iterator[RemoteDocument]:

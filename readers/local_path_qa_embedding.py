@@ -9,7 +9,7 @@ from llama_index.vector_stores.types import NodeWithEmbedding
 
 from config import settings
 from readers.local_path_embedding import LocalPathEmbedding
-from readers.qa_generator import AlgoletQAGenerator, BaiChuanQAGenerator
+from readers.qa_generator import BaiChuanQAGenerator
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

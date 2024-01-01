@@ -1,7 +1,8 @@
 import logging
 
-from .base_consumer import BaseConsumer
 from kubechat.pipeline.fake_pipeline import FakePipeline
+
+from .base_consumer import BaseConsumer
 
 logger = logging.getLogger(__name__)
 

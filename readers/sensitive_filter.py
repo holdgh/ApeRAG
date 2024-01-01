@@ -1,18 +1,15 @@
+import json
 import logging
-import re
+import subprocess
 from abc import ABC
+from typing import Dict, Tuple
 
 from langchain import PromptTemplate
 
-import subprocess
-import json
-from typing import Any, List, Optional, Dict, Tuple
-
-from kubechat.llm.base import Predictor, PredictorType
-from kubechat.llm.custom import CustomLLMPredictor
-from kubechat.db.models import ProtectAction
-from kubechat.llm.prompts import SENSITIVE_INFORMATION_TEMPLATE, CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE
 from config import settings
+from kubechat.db.models import ProtectAction
+from kubechat.llm.base import Predictor, PredictorType
+from kubechat.llm.prompts import CLASSIFY_SENSITIVE_INFORMATION_TEMPLATE, SENSITIVE_INFORMATION_TEMPLATE
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

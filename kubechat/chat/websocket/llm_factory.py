@@ -1,9 +1,11 @@
 import json
 import logging
 import os
-from typing import Any, Dict
 from abc import ABC, abstractmethod
+from typing import Any, Dict
+
 import requests
+
 from .openai_chat import openai_generate_stream
 
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ class CustomLLM(LLM):
                 data = buffer[: idx + 1]
                 try:
                     msg = json.loads(data)
-                except Exception as e:
+                except Exception:
                     continue
                 yield msg["text"]
                 buffer = buffer[idx + 1:]
@@ -148,7 +150,7 @@ class KubeBlocksLLM(LLM):
                             content = obj["choices"][0]["text"]
                             text += content
                             yield content
-                    except Exception as e:
+                    except Exception:
                         continue
 
     def generate(

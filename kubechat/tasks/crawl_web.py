@@ -1,14 +1,15 @@
 import json
+import re
+from urllib.parse import urljoin, urlparse
 
+import redis
 import requests
 from bs4 import BeautifulSoup
-import re
-from urllib.parse import urljoin,urlparse
+
 from config.celery import app
 from config.settings import REDIS_HOST, REDIS_PORT
 from kubechat.db.models import *
 from kubechat.tasks.index import add_index_for_local_document
-import redis
 
 redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}"
 

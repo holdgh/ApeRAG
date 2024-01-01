@@ -7,18 +7,23 @@ import sys
 from asgiref.sync import async_to_sync
 from celery import group
 from celery.result import GroupResult
-
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
 from pydantic import BaseModel
 
 from config.celery import app
 from config.settings import MAX_DOCUMENT_COUNT
-from kubechat.db.models import Document, DocumentStatus, Collection, CollectionStatus, CollectionSyncHistory, \
-    CollectionSyncStatus
+from kubechat.db.models import (
+    Collection,
+    CollectionStatus,
+    CollectionSyncHistory,
+    CollectionSyncStatus,
+    Document,
+    DocumentStatus,
+)
+from kubechat.db.ops import query_documents
 from kubechat.source.base import get_source
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
-from kubechat.db.ops import query_documents
 from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
@@ -89,7 +94,7 @@ def sync_documents(self, **kwargs):
 
     source = get_source(json.loads(collection.config))
     for src_doc in source.scan_documents():
-        if not os.path.splitext(src_doc.name)[1].lower() in DEFAULT_FILE_READER_CLS.keys():
+        if os.path.splitext(src_doc.name)[1].lower() not in DEFAULT_FILE_READER_CLS.keys():
             continue
         if src_doc.name in src_docs:
             logger.warning(f"Duplicate document {src_doc.name}")

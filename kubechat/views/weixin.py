@@ -2,24 +2,23 @@ import asyncio
 import hashlib
 import json
 import time
+import xml.etree.cElementTree as ET
+from urllib.parse import unquote
+
 import redis
 import redis.asyncio as aredis
-
 from ninja import Router
-from config import settings
-import kubechat.chat.message
 
-from kubechat.apps import QuotaType
+import kubechat.chat.message
+from config import settings
 from config.settings import MAX_CONVERSATION_COUNT
+from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import check_quota_usage, manage_quota_usage
-from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.db.ops import *
-from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
+from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.utils.weixin.client import WeixinClient
-
-from urllib.parse import unquote
-import xml.etree.cElementTree as ET
+from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +279,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
         if use_default_token and conversation_limit:
             if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
-                logger.info(f"generate response failed, conversation rounds have reached to the limit")
+                logger.info("generate response failed, conversation rounds have reached to the limit")
                 await redis_client.set(to_user_name + msg_id, error)
                 return
 
@@ -342,7 +341,7 @@ async def officialaccount_callback(request, user, bot_id, signature, timestamp, 
             if redis_client.exists(query_answer):
                 response = redis_client.get(query_answer).decode()
             else:
-                response = f"正在解答中，请稍后重新发送"
+                response = "正在解答中，请稍后重新发送"
         else:
             asyncio.create_task(weixin_officaccount_response(query, msg_id, to_user_name, bot))
             redis_client.set(f"{to_user_name+msg_id}_query", 1)

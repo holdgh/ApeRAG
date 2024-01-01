@@ -1,10 +1,9 @@
 import json
 
-from kubechat.db.ops import query_collection
 from kubechat.chat.utils import new_db_client
-from kubechat.utils.utils import extract_database
-
 from kubechat.chat.websocket.base_consumer import BaseConsumer
+from kubechat.db.ops import query_collection
+from kubechat.utils.utils import extract_database
 
 
 class Text2SQLConsumer(BaseConsumer):

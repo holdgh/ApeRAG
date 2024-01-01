@@ -1,6 +1,5 @@
-from typing import Optional, List, Dict, Any
 
-from llama_index import LangchainEmbedding, Document
+from llama_index import LangchainEmbedding
 from llama_index.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding

@@ -6,18 +6,18 @@
 
 """
 # ------------------------------------------------------------------------
-import logging
 import base64
-import random
 import hashlib
-import time
-import struct
-from Crypto.Cipher import AES
-import xml.etree.cElementTree as ET
+import logging
+import random
 import socket
+import struct
+import time
+import xml.etree.cElementTree as ET
+
+from Crypto.Cipher import AES
 
 from kubechat.utils.weixin import ierror
-
 
 """
 关于Crypto.Cipher模块，ImportError: No module named 'Crypto'解决方案
