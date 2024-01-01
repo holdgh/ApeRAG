@@ -28,7 +28,7 @@ def test_qdrant_connector():
     client = cast(QdrantClient, c.connector.client)
 
     try:
-        collection = client.get_collection("test")
+        client.get_collection("test")
     except UnexpectedResponse:
         client.create_collection(
             collection_name="test",

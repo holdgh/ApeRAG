@@ -16,7 +16,7 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
-from config.settings import LOCAL_QUEUE_NAME
+from config.settings import LOCAL_QUEUE_NAME  # noqa: E402
 
 if LOCAL_QUEUE_NAME != "":
     app.conf.task_routes = {

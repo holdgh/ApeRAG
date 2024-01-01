@@ -1,12 +1,14 @@
 import asyncio
 import hashlib
 import json
+import logging
 import time
 import xml.etree.cElementTree as ET
 from urllib.parse import unquote
 
 import redis
 import redis.asyncio as aredis
+from asgiref.sync import sync_to_async
 from ninja import Router
 
 import kubechat.chat.message
@@ -15,7 +17,8 @@ from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import check_quota_usage, manage_quota_usage
-from kubechat.db.ops import *
+from kubechat.db.models import Chat, ChatPeer
+from kubechat.db.ops import query_bot, query_chat_by_peer, query_user_quota
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.utils.weixin.client import WeixinClient
 from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
@@ -125,7 +128,7 @@ async def weixin_feedback_response(client, user, bot, key, response_code, task_i
 
 
 @router.get("/webhook/event")
-async def callback(request, user, bot_id, msg_signature, timestamp, nonce, echostr):
+async def verify_callback(request, user, bot_id, msg_signature, timestamp, nonce, echostr):
     bot = await query_bot(user, bot_id)
     if bot is None:
         logger.warning("bot not found: %s", bot_id)
@@ -155,7 +158,7 @@ async def callback(request, user, bot_id, msg_signature, timestamp, nonce, echos
 
 
 @router.post("/webhook/event")
-async def callback(request, user, bot_id, msg_signature, timestamp, nonce):
+async def event_callback(request, user, bot_id, msg_signature, timestamp, nonce):
     bot = await query_bot(user, bot_id)
     if bot is None:
         logger.warning("bot not found: %s", bot_id)

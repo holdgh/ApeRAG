@@ -1,16 +1,18 @@
 import asyncio
 import json
+import logging
 import time
 from http import HTTPStatus
 
+from asgiref.sync import sync_to_async
 from ninja import Router
 
 import kubechat.chat.message
 from config import settings
 from kubechat.auth.validator import FeishuEventVerification
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.db.models import ChatPeer
-from kubechat.db.ops import *
+from kubechat.db.models import Chat, ChatPeer
+from kubechat.db.ops import query_bot, query_chat_by_peer
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
 from kubechat.source.feishu.feishu import FeishuClient
 from kubechat.utils.utils import AESCipher

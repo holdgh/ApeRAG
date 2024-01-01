@@ -101,7 +101,7 @@ def uncompress_file(document: Document):
                 for name in zf.namelist():
                     try:
                         name_utf8 = name.encode('cp437').decode('utf-8')
-                    except:
+                    except Exception:
                         name_utf8 = name
                     zf.extract(name, tmp_dir)
                     if name_utf8 != name:
@@ -412,7 +412,7 @@ def update_index_for_question(question_id):
                             vector_store_adaptor=get_vector_db_connector(
                                 collection=generate_qa_vector_db_collection_name(
                                     collection=question.collection.id)))
-    if question.relate_id != None:
+    if question.relate_id is not None:
         q_loaders.delete(ids=[question.relate_id])
     if question.status != QuestionStatus.DELETED:
         ids = q_loaders.load_data(faq = [{"question":question.question, "answer":question.answer}])

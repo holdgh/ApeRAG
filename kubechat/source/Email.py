@@ -78,7 +78,7 @@ def decode_msg_header(header):
     value, charset = decode_header(header)[0]
     if charset:
         value = value.decode(charset)
-    if type(value) == bytes:
+    if isinstance(value, bytes):
         value.decode()
         value = value.decode()
     return value

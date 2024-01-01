@@ -14,7 +14,7 @@ from ninja import File, NinjaAPI, UploadedFile
 from config import settings
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.chat.utils import new_db_client
-from kubechat.db.models import Chat, ChatStatus, DocumentStatus, VerifyWay, ssl_temp_file_path
+from kubechat.db.models import Chat, ChatStatus, DocumentStatus, ssl_temp_file_path
 from kubechat.db.ops import query_collection
 from kubechat.utils.request import get_user
 from kubechat.utils.utils import fix_path_name
@@ -45,7 +45,6 @@ def ssl_file_upload(request, file: UploadedFile = File(...)):
 
 @api.post("/collections/test_connection")
 def connection_test(request, connection: ConnectionInfo):
-    verify = connection.verify != VerifyWay.PREFERRED
     host = connection.host
 
     if host == "":

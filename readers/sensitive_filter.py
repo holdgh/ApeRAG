@@ -50,7 +50,7 @@ class SensitiveFilter(ABC):
                         span[1] = span[0] + len(text)
                     context = context[:span[0]] + "*"*len(text) + context[span[1]:]
                     results.append({"text":text,"span":span,"type":text_type})
-        except:
+        except Exception:
             return context, []
         
         return context, results

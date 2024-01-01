@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 from config.celery import app
 from config.settings import REDIS_HOST, REDIS_PORT
-from kubechat.db.models import *
+from kubechat.db.models import Collection, CollectionStatus, Document, DocumentStatus
 from kubechat.tasks.index import add_index_for_local_document
 
 redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}"

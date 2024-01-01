@@ -46,7 +46,6 @@ class QdrantVectorStoreConnector(VectorStoreConnector):
         )
 
     def search(self, query: QueryWithEmbedding, **kwargs):
-        limit = kwargs.get("limit", 3)
         consistency = kwargs.get("consistency", "majority")
         search_params = kwargs.get("search_params")
         score_threshold = kwargs.get("score_threshold", 0.1)
