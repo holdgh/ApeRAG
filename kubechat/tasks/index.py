@@ -4,6 +4,7 @@ import os
 import uuid
 import zipfile
 import tarfile
+from asgiref.sync import sync_to_async
 
 import py7zr
 import rarfile
@@ -15,17 +16,19 @@ from pathlib import Path
 from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.db.models import Document, DocumentStatus, MessageFeedback, \
-    MessageFeedbackStatus, ProtectAction
+
+from kubechat.db.models import Document, DocumentStatus, MessageFeedback,Collection,CollectionStatus, \
+    MessageFeedbackStatus, ProtectAction, Question, QuestionStatus
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from kubechat.context.full_text import insert_document, remove_document
 from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
     generate_fulltext_index_name
 from readers.base_readers import DEFAULT_FILE_READER_CLS
-from readers.base_embedding import get_collection_embedding_model
+from readers.base_embedding import get_collection_embedding_model,get_embedding_model
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.local_path_qa_embedding import LocalPathQAEmbedding
+from readers.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
 from readers.qa_embedding import QAEmbedding
 from django.core.files.base import ContentFile
 from readers.base_readers import DEFAULT_FILE_READER_CLS, FULLTEXT_SUFFIX, SUPPORTED_COMPRESSED_EXTENSIONS
@@ -211,21 +214,23 @@ def add_index_for_document(self, document_id):
                 index = generate_fulltext_index_name(document.collection.id)
                 insert_document(index, document.id, local_doc.name, content)
 
-            predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
-            qa_loaders = LocalPathQAEmbedding(predictor=predictor,
-                                              input_files=[local_doc.path],
-                                              input_file_metadata_list=[local_doc.metadata],
-                                              embedding_model=embedding_model,
-                                              vector_store_adaptor=get_vector_db_connector(
-                                                  collection=generate_qa_vector_db_collection_name(
-                                                      collection=document.collection.id)))
-            qa_ids = qa_loaders.load_data()
-            logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
+            # predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
+            # qa_loaders = LocalPathQAEmbedding(predictor=predictor,
+            #                                   input_files=[local_doc.path],
+            #                                   input_file_metadata_list=[local_doc.metadata],
+            #                                   embedding_model=embedding_model,
+            #                                   vector_store_adaptor=get_vector_db_connector(
+            #                                       collection=generate_qa_vector_db_collection_name(
+            #                                           collection=document.collection.id)))
+            # qa_ids = qa_loaders.load_data()
+            # logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
+            
             relate_ids = {
                 "ctx": ctx_ids,
-                "qa": qa_ids,
+                # "qa": qa_ids,
             }
             document.relate_ids = json.dumps(relate_ids)
+            
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
@@ -265,11 +270,11 @@ def remove_index(self, document_id):
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.file}")
 
-        qa_vector_db = get_vector_db_connector(
-            collection=generate_qa_vector_db_collection_name(collection=document.collection.id))
-        qa_relate_ids = relate_ids.get("qa", [])
-        qa_vector_db.connector.delete(ids=qa_relate_ids)
-        logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
+        # qa_vector_db = get_vector_db_connector(
+        #     collection=generate_qa_vector_db_collection_name(collection=document.collection.id))
+        # qa_relate_ids = relate_ids.get("qa", [])
+        # qa_vector_db.connector.delete(ids=qa_relate_ids)
+        # logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
 
     except Exception as e:
         raise e
@@ -314,20 +319,20 @@ def update_index(self, document_id):
             index = generate_fulltext_index_name(document.collection.id)
             insert_document(index, document.id, local_doc.name, content)
 
-        predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
-        qa_loader = LocalPathQAEmbedding(predictor=predictor,
-                                         input_files=[local_doc.path],
-                                         input_file_metadata_list=[local_doc.metadata],
-                                         embedding_model=embedding_model,
-                                         vector_store_adaptor=get_vector_db_connector(
-                                             collection=generate_qa_vector_db_collection_name(
-                                                 collection=document.collection.id)))
-        qa_loader.connector.delete(ids=relate_ids.get("qa", []))
-        qa_ids = qa_loader.load_data()
-        logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
+        # predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
+        # qa_loader = LocalPathQAEmbedding(predictor=predictor,
+        #                                  input_files=[local_doc.path],
+        #                                  input_file_metadata_list=[local_doc.metadata],
+        #                                  embedding_model=embedding_model,
+        #                                  vector_store_adaptor=get_vector_db_connector(
+        #                                      collection=generate_qa_vector_db_collection_name(
+        #                                          collection=document.collection.id)))
+        # qa_loader.connector.delete(ids=relate_ids.get("qa", []))
+        # qa_ids = qa_loader.load_data()
+        # logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
         relate_ids = {
             "ctx": ctx_ids,
-            "qa": qa_ids,
+            # "qa": qa_ids,
         }
         document.relate_ids = json.dumps(relate_ids)
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
@@ -366,3 +371,47 @@ def message_feedback(**kwargs):
 
     feedback.status = MessageFeedbackStatus.COMPLETE
     feedback.save()
+
+@app.task
+def generate_questions(document_id):
+    document = Document.objects.get(id=document_id)   
+    embedding_model,_ = get_embedding_model("bge")
+
+    source = get_source(json.loads(document.collection.config))
+    metadata = json.loads(document.metadata)
+    local_doc = source.prepare_document(name=document.name, metadata=metadata)
+    q_loaders = QuestionEmbedding(input_files=[local_doc.path],
+                            input_file_metadata_list=[local_doc.metadata],
+                            embedding_model=embedding_model,
+                            vector_store_adaptor=get_vector_db_connector(
+                                collection=generate_qa_vector_db_collection_name(
+                                    collection=document.collection.id)))
+    ids, questions = q_loaders.load_data()
+    for relate_id, question in zip(ids, questions):
+        question_instance = Question(
+            user=document.user,
+            question = question,
+            answer = '',
+            status = QuestionStatus.ACTIVE,
+            collection = document.collection,
+            relate_id = relate_id
+        )
+        question_instance.save()
+        question_instance.documents.add(document)
+        
+@app.task
+def update_index_for_question(question_id):
+    question = Question.objects.get(id=question_id)   
+    embedding_model,_ = get_embedding_model("bge")
+    
+    q_loaders = QuestionEmbeddingWithoutDocument(embedding_model=embedding_model,
+                            vector_store_adaptor=get_vector_db_connector(
+                                collection=generate_qa_vector_db_collection_name(
+                                    collection=question.collection.id)))
+    if question.relate_id != None:
+        q_loaders.delete(ids=[question.relate_id])
+    if question.status != QuestionStatus.DELETED:
+        ids = q_loaders.load_data(faq = [{"question":question.question, "answer":question.answer}])
+        question.relate_id = ids[0]
+        question.status = QuestionStatus.ACTIVE
+        question.save()

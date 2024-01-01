@@ -79,10 +79,8 @@ def generate_fulltext_index_name(collection_id) -> str:
 def generate_vector_db_collection_name(collection_id) -> str:
     return str(collection_id)
 
-
 def generate_qa_vector_db_collection_name(collection) -> str:
     return str(collection) + "-qa"
-
 
 def fix_path_name(path) -> str:
     return str(path).replace("|", "-")

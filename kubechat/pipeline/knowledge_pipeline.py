@@ -115,19 +115,35 @@ class KnowledgePipeline(Pipeline):
         references = []
         related_questions = []
         response = ""
+        need_generate_answer = True
+        need_related_question = True
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=3, vector=vector)
         logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
-        if len(results) > 0:
-            response = results[0].text
+        
+        for result in results:
+            result = json.loads(result.text)
+            if result["answer"] != "":
+                response = result["answer"]
+            
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=6, vector=vector)
+        for result in results:
+            result = json.loads(result.text)
+            if result["question"] not in related_questions:
+                related_questions.append(result["question"])
+                
+        if len(related_questions) >= 3:
+            need_related_question = False
+            
+        if response != "" :
             yield response
-
-            if self.use_related_question:
+            
+            if self.use_related_question and need_related_question:
                 related_question_prompt = self.related_question_prompt.format(query=message, context=response)
                 related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
-
+          
         else:
             results = await async_run(self.context_manager.query, message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
@@ -151,9 +167,6 @@ class KnowledgePipeline(Pipeline):
             else:
                 logger.info("[%s] no need to filter keyword", log_prefix)
 
-            need_generate_answer = True
-            need_related_question = True
-
             context = ""
             if len(candidates) > 0:
                 # 500 is the estimated length of the prompt
@@ -164,7 +177,12 @@ class KnowledgePipeline(Pipeline):
                     yield self.oops
                     need_generate_answer = False
                 if self.welcome_question != []:
-                    if len(self.welcome_question) >= 3:
+                    if len(self.welcome_question)>=3:
+                        related_questions = random.sample(self.welcome_question, 3)
+                        need_related_question = False
+                    else:
+                        related_questions = self.welcome_question
+                    if len(self.welcome_question)>=3:
                         related_questions = random.sample(self.welcome_question, 3)
                         need_related_question = False
                     else:

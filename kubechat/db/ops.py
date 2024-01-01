@@ -14,6 +14,8 @@ from kubechat.db.models import (
     CollectionSyncHistory,
     Document,
     DocumentStatus,
+    Question,
+    QuestionStatus,
     BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Config, UserQuota
 )
 
@@ -129,7 +131,14 @@ async def query_documents_count(user, collection_id: str, pq: PagedQuery = None)
         user=user, collection_id=collection_id, **filters).count)()
     return count
 
-
+async def query_question(user, collection_id: str, question_id: str):
+    try:
+        return await Question.objects.exclude(status=QuestionStatus.DELETED).aget(
+            user=user, collection_id=collection_id, pk=question_id
+        )
+    except Question.DoesNotExist:
+        return None
+    
 async def query_chat(user, bot_id: str, chat_id: str):
     try:
         kwargs = {
