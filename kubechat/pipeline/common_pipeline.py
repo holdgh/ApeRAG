@@ -64,35 +64,48 @@ class CommonPipeline(Pipeline):
             else:
                 related_questions = self.welcome_question
 
-        # TODO: divide file_content into several parts and call API separately.
-        context = file if file else ""
-        if len(context) > self.context_window - 500:
-            context = context[:len(self.context_window) - 500]
+        # TODO: Ensure the divided part doesn't contain incomplete sentence.
+        contexts = []
+        # file = "test long file"
+
+        if file:
+            for i in range(0, len(file), self.context_window - 500):
+                end = min(i + self.context_window - 500, len(file))
+                contexts.append(file[i:end])
+        else:
+            contexts.append("")
 
         if self.use_related_question and need_related_question:
-            related_question_prompt = self.related_question_prompt.format(query=message, context=context)
+            related_question_prompt = self.related_question_prompt.format(query=message, context=contexts[0])
             related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
 
         if need_generate_answer:
-            history = []
-            messages = await self.history.messages
-            if self.memory and len(messages) > 0:
-                history = self.predictor.get_latest_history(
-                    messages=messages,
-                    limit_length=max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0),
-                    limit_count=self.memory_limit_count,
-                    use_ai_memory=self.use_ai_memory)
-                self.memory_count = len(history)
+            for context in contexts:
+                history = []
+                messages = await self.history.messages
+                if self.memory and len(messages) > 0:
+                    history = self.predictor.get_latest_history(
+                        messages=messages,
+                        limit_length=max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0),
+                        limit_count=self.memory_limit_count,
+                        use_ai_memory=self.use_ai_memory)
+                    self.memory_count = len(history)
 
-            if context:
-                prompt = self.file_prompt.format(query=message, context=context)
-            else:
-                prompt = self.prompt.format(query=message)
-            logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
+                if context:
+                    prompt = self.file_prompt.format(query=message, context=context)
+                else:
+                    prompt = self.prompt.format(query=message)
+                logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
-            async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
-                yield msg
-                response += msg
+                async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
+                    # skip unused part in large file
+                    if file and msg == "不知道":
+                        continue
+                    yield msg
+                    response += msg
+
+                if not response:
+                    yield "我无法根据文件中的信息回答这个问题"
 
             await self.add_human_message(message, message_id)
             logger.info("[%s] add human message end", log_prefix)
