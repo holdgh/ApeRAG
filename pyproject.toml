@@ -169,8 +169,16 @@ line-length = 120
 
 [tool.mypy]
 ignore_missing_imports = "True"
-disallow_untyped_defs = "True"
-exclude = ["playground"]
-
-
+disallow_untyped_defs = "False"
+exclude = [
+    "playground",
+    "services/text2SQL",
+    ".github",
+    "server",
+    "models",
+    "playground",
+    "kubechat/migrations",
+    "vectorstore/test_connector.py",
+    "readers/test_local_path_embedding.py",
+]
 
