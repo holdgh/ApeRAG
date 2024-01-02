@@ -180,6 +180,21 @@ spec:
                 configMapKeyRef:
                   key: VECTOR_DB_TYPE
                   name: kubechat-config
+            - name: MINIO_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  key: MINIO_ENDPOINT
+                  name: kubechat-config
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                configMapKeyRef:
+                  key: MINIO_ACCESS_KEY
+                  name: kubechat-config
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  key: MINIO_SECRET_KEY
+                  name: kubechat-config
             {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
               valueFrom:

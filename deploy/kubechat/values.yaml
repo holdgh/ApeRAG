@@ -114,6 +114,9 @@ django:
   metaDBDatabase: kubechat
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+  minioEndpoint: ""
+  minioAccessKey: ""
+  minioSecretKey: ""
   openaiAPIKey: ""
   openaiProxy: ""
   embeddingModel: "bge"
