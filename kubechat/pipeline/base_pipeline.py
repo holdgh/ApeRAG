@@ -64,10 +64,7 @@ class Pipeline(ABC):
             self.welcome_question.append(qa["question"])
         self.oops = welcome.get("oops", "")
 
-        if self.memory:
-            self.prompt_template = self.llm_config.get("memory_prompt_template", None)
-        else:
-            self.prompt_template = self.llm_config.get("prompt_template", None)
+        self.prompt_template = self.llm_config.get("prompt_template", None)
 
         kwargs = {"model": self.model}
         kwargs.update(self.llm_config)

@@ -54,12 +54,8 @@ class KnowledgePipeline(Pipeline):
                                                  self.qa_vectordb_ctx)
 
         if not self.prompt_template:
-            if self.memory:
-                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
-                                                                                 DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
-            else:
-                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model,
-                                                                          DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+            self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
+                                                                             DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
     async def new_ai_message(self, message, message_id, response, references):

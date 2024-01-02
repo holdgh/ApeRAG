@@ -99,18 +99,6 @@ def validate_bot_config(model, config: Dict, type, memory) -> (bool, str):
     except ValidationError:
         return False, "Invalid prompt template"
 
-    if memory:
-        try:
-            # validate the memory prompt
-            prompt_template = config.get("memory_prompt_template", None)
-            if prompt_template and type == BotType.KNOWLEDGE:
-                PromptTemplate(template=prompt_template, input_variables=["query", "context"])
-            elif prompt_template and type == BotType.COMMON:
-                PromptTemplate(template=prompt_template, input_variables=["query"])
-                # pass
-        except ValidationError:
-            return False, "Invalid memory prompt template"
-
     context_window = config.get("context_window")
     if context_window > 5120000 or context_window < 0:
         return False, "Invalid context window"
