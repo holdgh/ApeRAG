@@ -1,25 +1,12 @@
-import curses
 import json
 import os
-import sys
 import time
-from typing import cast
 
 import requests
 from langchain import PromptTemplate
-from langchain.llms.base import LLM
-from langchain.utilities import TextRequestsWrapper
-from llama_index.indices.query import ResponseSynthesizer
-from llama_index.prompts.default_prompts import (
-    DEFAULT_REFINE_PROMPT_TMPL,
-    DEFAULT_TEXT_QA_PROMPT_TMPL,
-)
-from qdrant_client import QdrantClient
-from requests import Response
 
-from query.query import QueryResult, QueryWithEmbedding, get_packed_answer
+from query.query import QueryWithEmbedding, get_packed_answer
 from readers.base_embedding import get_embedding_model
-from readers.compose_image_reader import ComposeImageReader
 from readers.local_path_embedding import LocalPathEmbedding
 from utils.date import elapsed_time
 from vectorstore.connector import VectorStoreConnectorAdaptor
@@ -67,7 +54,7 @@ def test_local_path_embedding_query(query: str, collection_name: str):
         "timeout": 1000,
     }
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
-    embedding, vector_size = get_embedding_model("huggingface")
+    embedding, _ = get_embedding_model("huggingface")
     vector = embedding.get_query_embedding(query)
     query_embedding = QueryWithEmbedding(query=query, top_k=3, embedding=vector)
 
@@ -123,7 +110,7 @@ def test_local_llm_qa(query: str, collection_name: str):
     }
     adaptor = VectorStoreConnectorAdaptor("qdrant", ctx)
 
-    embedding, vector_size = get_embedding_model("huggingface")
+    embedding, _ = get_embedding_model("huggingface")
     vector = embedding.get_query_embedding(query)
     query_embedding = QueryWithEmbedding(query=query, top_k=10, embedding=vector)
 

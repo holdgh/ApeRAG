@@ -1,12 +1,12 @@
 import logging
+import os
 import subprocess
 import tempfile
-import os
-
-from llama_index.readers.file.docs_reader import DocxReader
 from pathlib import Path
 from typing import Dict, List, Optional
+
 from llama_index.readers.base import BaseReader
+from llama_index.readers.file.docs_reader import DocxReader
 from llama_index.schema import Document
 
 logger = logging.getLogger(__name__)
@@ -69,6 +69,7 @@ class MyDocReader(BaseReader):
             )
             output, error = process.communicate()
             logger.debug(output)
+            logger.debug(error)
         except FileNotFoundError:
             raise FileNotFoundError(
                 """soffice command was not found. Please install libreoffice

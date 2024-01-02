@@ -1,24 +1,21 @@
 from typing import Dict, Type
 
 from llama_index.readers.base import BaseReader
-from llama_index.readers.file.docs_reader import PDFReader, DocxReader
+from llama_index.readers.file.docs_reader import DocxReader, PDFReader
 from llama_index.readers.file.ipynb_reader import IPYNBReader
 from llama_index.readers.file.mbox_reader import MboxReader
 from llama_index.readers.file.tabular_reader import PandasCSVReader
-from llama_index.readers.file.video_audio_reader import VideoAudioReader
 
-from readers.compose_image_reader import ComposeImageReader
-from readers.doc_reader import MyDocReader
-from readers.docx_reader import MyDocxReader
-from readers.epub_reader import EpubReader
-from readers.markdown_reader import MarkdownReader
-from readers.pptx_reader import PptxReader
 from readers.compose_audio_reader import ComposeAudioReader
-from readers.compressed_file_reader import  CompressedFileReader
+from readers.compose_image_reader import ComposeImageReader
+from readers.compressed_file_reader import CompressedFileReader
+from readers.doc_reader import MyDocReader
+from readers.epub_reader import EpubReader
 from readers.excel_reader import ExcelReader
-from readers.ppt_reader import PptReader
 from readers.html_reader import HtmlReader
-
+from readers.markdown_reader import MarkdownReader
+from readers.ppt_reader import PptReader
+from readers.pptx_reader import PptxReader
 
 DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     ".pdf": PDFReader,
@@ -26,9 +23,9 @@ DEFAULT_FILE_READER_CLS: Dict[str, Type[BaseReader]] = {
     # ".docx": MyDocxReader,
     ".doc": MyDocReader,
     ".pptx": PptxReader,
-    ".ppt":PptReader,
-    ".html":HtmlReader,
-    ".xlxs":ExcelReader,
+    ".ppt": PptReader,
+    ".html": HtmlReader,
+    ".xlxs": ExcelReader,
     ".jpg": ComposeImageReader,
     ".png": ComposeImageReader,
     ".jpeg": ComposeImageReader,
@@ -65,5 +62,5 @@ FULLTEXT_SUFFIX = {
 }
 
 
-SUPPORTED_COMPRESSED_EXTENSIONS=['.zip','.rar', '.r00','.7z','.tar', '.gz', '.xz', '.bz2', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.7z']
+SUPPORTED_COMPRESSED_EXTENSIONS = ['.zip', '.rar', '.r00', '.7z', '.tar', '.gz', '.xz', '.bz2', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.7z']
 

@@ -1,4 +1,5 @@
 import ssl
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -13,7 +14,7 @@ def get_page(url):
     try:
         r = requests.get(url, headers=headers, timeout=20)
         return BeautifulSoup(r.text, 'html.parser')
-    except:
+    except Exception:
         print('requirement fail', url)
         return None
 

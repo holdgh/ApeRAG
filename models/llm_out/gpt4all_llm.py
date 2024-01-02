@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-import sys
-import threading
-import time
 
 
 def gpt4all_generate_stream(model, tokenizer, params, device, max_position_embeddings):

@@ -2,15 +2,13 @@ from asgiref.sync import sync_to_async
 from django.urls import re_path
 
 from config import settings
+from kubechat.utils.constant import KEY_BOT_ID, KEY_CHAT_ID, KEY_USER_ID
 from kubechat.utils.utils import extract_bot_and_chat_id, extract_web_bot_and_chat_id
-from kubechat.utils.constant import KEY_USER_ID, KEY_BOT_ID, KEY_CHAT_ID
 
 
 async def bot_consumer_router(scope, receive, send):
-    from kubechat.db.models import CollectionType
-    from kubechat.db.ops import query_chat
-    from kubechat.db.ops import query_bot
-    from kubechat.db.models import BotType
+    from kubechat.db.models import BotType, CollectionType
+    from kubechat.db.ops import query_bot, query_chat
 
     user = scope.get(KEY_USER_ID, None)
     path = scope["path"]
@@ -51,9 +49,8 @@ async def bot_consumer_router(scope, receive, send):
 
 
 async def web_bot_consumer_router(scope, receive, send):
-    from kubechat.db.ops import query_bot
-    from kubechat.db.ops import query_web_chat
     from kubechat.db.models import BotType
+    from kubechat.db.ops import query_bot, query_web_chat
 
     path = scope["path"]
     bot_id, chat_id = extract_web_bot_and_chat_id(path)

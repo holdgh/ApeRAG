@@ -1,42 +1,100 @@
 import datetime
 import json
+import logging
 import os
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
+import redis.asyncio as redis
 import yaml
+from asgiref.sync import sync_to_async
 from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
-from django.forms.models import model_to_dict
 from django.shortcuts import render
-from ninja import File, NinjaAPI, Schema, Router
+from django.utils import timezone
+from ninja import File, NinjaAPI, Router, Schema
 from ninja.files import UploadedFile
-import redis.asyncio as redis
+from pydantic import BaseModel
 
 import kubechat.chat.message
 from config import settings
 from config.celery import app
 from kubechat.apps import QuotaType
-from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.llm.base import Predictor
-from kubechat.llm.prompts import DEFAULT_MODEL_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, \
-    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
-from kubechat.source.base import get_source
-from kubechat.tasks.collection import init_collection_task, delete_collection_task
-from kubechat.tasks.index import add_index_for_local_document, remove_index, update_index, message_feedback
-from kubechat.tasks.scan import delete_sync_documents_cron_job, \
-    update_sync_documents_cron_job
-from kubechat.tasks.crawl_web import crawl_domain
-from kubechat.tasks.sync_documents_task import sync_documents, get_sync_progress
-from kubechat.db.ops import *
-from kubechat.utils.request import get_user, get_urls
-from kubechat.views.utils import add_ssl_file, query_chat_messages, validate_source_connect_config, validate_bot_config, \
-    validate_url, success, fail, validation_errors, auth_errors
-from readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.auth.validator import GlobalHTTPAuth
-from kubechat.db.models import *
+from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.db.models import (
+    Bot,
+    BotIntegration,
+    BotIntegrationStatus,
+    BotStatus,
+    Chat,
+    ChatPeer,
+    ChatStatus,
+    Collection,
+    CollectionStatus,
+    CollectionSyncHistory,
+    CollectionSyncStatus,
+    CollectionType,
+    Document,
+    DocumentStatus,
+    Question,
+    QuestionStatus,
+    VerifyWay,
+)
+from kubechat.db.ops import (
+    build_pq,
+    query_bot,
+    query_bots,
+    query_bots_count,
+    query_chat,
+    query_chats,
+    query_collection,
+    query_collections,
+    query_collections_count,
+    query_document,
+    query_documents,
+    query_documents_count,
+    query_integration,
+    query_integrations,
+    query_question,
+    query_running_sync_histories,
+    query_sync_histories,
+    query_sync_history,
+    query_user_quota,
+)
+from kubechat.llm.base import Predictor
+from kubechat.llm.prompts import (
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
+    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    DEFAULT_MODEL_PROMPT_TEMPLATES,
+)
+from kubechat.source.base import get_source
+from kubechat.tasks.collection import delete_collection_task, init_collection_task
+from kubechat.tasks.crawl_web import crawl_domain
+from kubechat.tasks.index import (
+    add_index_for_local_document,
+    generate_questions,
+    message_feedback,
+    remove_index,
+    update_index,
+    update_index_for_question,
+)
+from kubechat.tasks.scan import delete_sync_documents_cron_job, update_sync_documents_cron_job
+from kubechat.tasks.sync_documents_task import get_sync_progress, sync_documents
+from kubechat.utils.request import get_urls, get_user
+from kubechat.views.utils import (
+    add_ssl_file,
+    fail,
+    query_chat_messages,
+    success,
+    validate_bot_config,
+    validate_source_connect_config,
+    validate_url,
+)
+from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +118,11 @@ class UpdateDocumentIn(Schema):
     name: str
     config: Optional[str]
 
+class QuestionIn(Schema):
+    id: Optional[str]
+    question: str
+    answer: str
+    relate_ducuments: Optional[List[str]]
 
 class ConnectionInfo(Schema):
     db_type: str
@@ -227,9 +290,9 @@ async def create_collection(request, collection: CollectionIn):
 
     if config.get("source") == "tencent":
         redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
-        if await redis_client.exists("tencent_code_"+user):
-            code = await redis_client.get("tencent_code_"+user)
-            redirect_uri = await redis_client.get("tencent_redirect_uri_"+user)
+        if await redis_client.exists("tencent_code_" + user):
+            code = await redis_client.get("tencent_code_" + user)
+            redirect_uri = await redis_client.get("tencent_redirect_uri_" + user)
             config["code"] = code.decode()
             config["redirect_uri"] = redirect_uri
             collection.config = json.dumps(config)
@@ -249,7 +312,7 @@ async def create_collection(request, collection: CollectionIn):
         type=collection.type,
         status=CollectionStatus.INACTIVE,
         title=collection.title,
-        description=collection.description,
+        description=collection.description
     )
 
     if collection.config is not None:
@@ -329,7 +392,7 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     bot_ids = []
     async for bot in bots:
         bot_ids.append(bot.id)
-
+           
     return success(instance.view(bot_ids=bot_ids))
 
 
@@ -349,9 +412,87 @@ async def delete_collection(request, collection_id):
     collection.status = CollectionStatus.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
+
     delete_collection_task.delay(collection_id)
+
     return success(collection.view())
 
+@router.post("/collections/{collection_id}/questions")
+async def create_questions(request, collection_id):
+    user = get_user(request)
+    collection = await query_collection(user, collection_id)
+    if collection is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
+    async for document in documents:
+        generate_questions.delay(document.id)
+    return success({}) 
+
+@router.put("/collections/{collection_id}/questions")
+async def update_question(request, collection_id, question_in: QuestionIn):
+    user = get_user(request)
+    collection = await query_collection(user, collection_id)
+    if collection is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    
+    # ceate question
+    if not question_in.id:
+        question_instance = Question(
+            user=collection.user,
+            collection=collection,
+            status=QuestionStatus.PENDING,
+        )
+        await question_instance.asave()
+    else:
+        question_instance = await query_question(user, collection_id, question_in.id)
+        if question_instance is None:
+            return fail(HTTPStatus.NOT_FOUND, "Question not found") 
+    
+    question_instance.question = question_in.question
+    question_instance.answer = question_in.answer
+    question_instance.status = QuestionStatus.PENDING
+    question_instance.documents.clear()
+    
+    if question_in.relate_ducuments:
+        for document_id in question_in.relate_ducuments:
+            document = await query_document(user, collection_id, document_id)
+            if document is None or document.status == DocumentStatus.DELETED:
+                return fail(HTTPStatus.NOT_FOUND, "Document not found")
+            question_instance.documents.add(document)
+            
+    await question_instance.asave()
+    update_index_for_question.delay(question_instance.id)
+    
+    return success(question_instance.view()) 
+
+@router.delete("/collections/{collection_id}/questions/{question_id}")
+async def delete_question(request, collection_id, question_id):
+    
+    user = get_user(request)
+    collection = await query_collection(user, collection_id)
+    if collection is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    
+    question_instance = Question.objects.get(id=question_id)      
+    question_instance.status = QuestionStatus.DELETED
+    question_instance.gmt_deleted = timezone.now() 
+    await question_instance.asave()
+    update_index_for_question.delay(question_instance.id)
+    
+    return success(question_instance.view()) 
+
+@router.get("/collections/{collection_id}/questions")
+async def list_questions(request, collection_id):
+    user = get_user(request)
+    collection = await query_collection(user, collection_id)
+    if collection is None:
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    
+    questions = await sync_to_async(collection.question_set.exclude)(status=QuestionStatus.DELETED)
+    response = []
+    async for question in questions:
+        response.append(question.view())
+    return success(response) 
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
@@ -393,7 +534,7 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
             add_index_for_local_document.delay(document_instance.id)
         except IntegrityError:
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
-        except Exception as e:
+        except Exception:
             logger.exception("add document failed")
             return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
     return success(response)
@@ -485,6 +626,12 @@ async def update_document(
     await instance.asave()
     # if user add labels for a document, we need to update index
     update_index.delay(instance.id)
+    
+    related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+    async for question in related_questions:
+        question.status = QuestionStatus.WARNING
+        await question.asave()
+
     return success(instance.view())
 
 
@@ -503,6 +650,13 @@ async def delete_document(request, collection_id, document_id):
     await document.asave()
 
     remove_index.delay(document.id)
+    
+    related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+    async for question in related_questions:
+        question.documents.remove(document)
+        question.status = QuestionStatus.WARNING
+        await question.asave()
+    
     return success(document.view())
 
 
@@ -520,6 +674,13 @@ async def delete_documents(request, collection_id, document_ids: List[str]):
             document.gmt_deleted = timezone.now()
             await document.asave()
             remove_index.delay(document.id)
+            
+            related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+            async for question in related_questions:
+                question.documents.remove(document)
+                question.status = QuestionStatus.WARNING
+                await question.asave()
+                
             ok.append(document.id)
         except Exception as e:
             logger.exception(e)
@@ -640,7 +801,7 @@ async def create_bot(request, bot_in: BotIn):
     memory = config.get("memory", False)
     model = config.get("model")
     llm_config = config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config, bot, memory)
+    valid, msg = validate_bot_config(model, llm_config, bot_in.type, memory)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     await bot.asave()
@@ -715,7 +876,7 @@ async def update_bot(request, bot_id, bot_in: BotIn):
     model = new_config.get("model")
     memory = new_config.get("memory", False)
     llm_config = new_config.get("llm")
-    valid, msg = validate_bot_config(model, llm_config, bot, memory)
+    valid, msg = validate_bot_config(model, llm_config, bot_in.type, memory)
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     old_config = json.loads(bot.config)

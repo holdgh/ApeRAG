@@ -3,13 +3,16 @@ import json
 from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
-from kubechat.db.models import Collection, CollectionStatus, ProtectAction
-from kubechat.source.base import get_source
 from kubechat.context.full_text import create_index, delete_index
-from kubechat.utils.utils import generate_vector_db_collection_name, generate_qa_vector_db_collection_name, \
-    generate_fulltext_index_name
-from readers.base_embedding import get_embedding_model
+from kubechat.db.models import Collection, CollectionStatus
+from kubechat.source.base import get_source
 from kubechat.tasks.sync_documents_task import sync_documents
+from kubechat.utils.utils import (
+    generate_fulltext_index_name,
+    generate_qa_vector_db_collection_name,
+    generate_vector_db_collection_name,
+)
+from readers.base_embedding import get_embedding_model
 
 
 @app.task
@@ -32,6 +35,7 @@ def init_collection_task(collection_id, document_user_quota):
         _, size = get_embedding_model(embedding_model, load=False)
     # pre-create collection in vector db
     vector_db_conn.connector.create_collection(vector_size=size)
+    
     qa_vector_db_conn = get_vector_db_connector(
         collection=generate_qa_vector_db_collection_name(collection=collection_id)
     )
@@ -45,7 +49,7 @@ def init_collection_task(collection_id, document_user_quota):
     
     source = get_source(json.loads(collection.config))
     if source.sync_enabled():
-        sync_documents.delay(collection_id=collection_id,document_user_quota=document_user_quota)
+        sync_documents.delay(collection_id=collection_id, document_user_quota=document_user_quota)
 
 
 @app.task
@@ -62,6 +66,6 @@ def delete_collection_task(collection_id):
     vector_db_conn.connector.delete_collection()
 
     qa_vector_db_conn = get_vector_db_connector(
-        collection=generate_vector_db_collection_name(collection_id=collection_id)
+        collection=generate_qa_vector_db_collection_name(collection=collection_id)
     )
     qa_vector_db_conn.connector.delete_collection()

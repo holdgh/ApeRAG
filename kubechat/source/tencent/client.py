@@ -1,14 +1,13 @@
-from abc import ABC
-from typing import Dict, Any, Iterator
-from threading import Lock
-
-import requests
-import redis
 import time
+from abc import ABC
+from threading import Lock
+from typing import Any, Dict, Iterator
+
+import redis
+import requests
 
 from config import settings
-
-from kubechat.source.base import CustomSourceInitializationError, RemoteDocument, LocalDocument
+from kubechat.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument
 from kubechat.source.utils import gen_temporary_file
 
 

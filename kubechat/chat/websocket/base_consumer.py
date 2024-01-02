@@ -1,24 +1,31 @@
 import ast
 import json
 import logging
+import random
 import traceback
 from abc import abstractmethod
-import random
 
+import redis.asyncio as redis
 import websockets
 from channels.generic.websocket import AsyncWebsocketConsumer
-from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.chat.utils import check_quota_usage, manage_quota_usage
-import redis.asyncio as redis
 
 import config.settings as settings
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.chat.utils import start_response, success_response, stop_response, fail_response, welcome_response
-from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import (
+    check_quota_usage,
+    fail_response,
+    manage_quota_usage,
+    start_response,
+    stop_response,
+    success_response,
+    welcome_response,
+)
 from kubechat.db.ops import query_bot, query_user_quota
+from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.utils.constant import KEY_BOT_ID, KEY_CHAT_ID, KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 from kubechat.utils.utils import now_unix_milliseconds
-from kubechat.utils.constant import KEY_USER_ID, KEY_BOT_ID, KEY_CHAT_ID, KEY_WEBSOCKET_PROTOCOL
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +72,10 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
         message_id = f"{now_unix_milliseconds()}"
         bot_config = json.loads(self.bot.config)
-        self.related_question_prompt = bot_config.get("related_question_prompt","")
+        self.related_question_prompt = bot_config.get("related_question_prompt", "")
         
-        welcome = bot_config.get("welcome",{})
-        faq = welcome.get("faq",[])
+        welcome = bot_config.get("welcome", {})
+        faq = welcome.get("faq", [])
         questions = []
         for qa in faq:
             questions.append(qa["question"])
@@ -76,7 +83,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             random_questions = questions
         else:
             random_questions = random.sample(questions, 3)
-        welcome_message = {"hello":welcome.get("hello",""), "faq":random_questions}
+        welcome_message = {"hello": welcome.get("hello", ""), "faq": random_questions}
         await self.send(text_data=welcome_response(message_id, welcome_message))
 
     async def disconnect(self, close_code):

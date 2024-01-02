@@ -1,14 +1,15 @@
-import re
-from pathlib import Path
-from typing import Callable, Dict, Generator, List, Optional, Type
 import base64
-import requests
 import json
-import PIL.Image
 from io import BytesIO
+from pathlib import Path
+from typing import Dict, List, Optional
+
+import PIL.Image
+import requests
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document, ImageDocument
 from PIL import Image
+
 import config.settings as settings
 
 OCR_SERVER_URL = settings.PADDLEOCR_HOST

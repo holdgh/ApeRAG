@@ -1,9 +1,8 @@
 import json
 import logging
 
-from django_celery_beat.models import CrontabSchedule, PeriodicTask
-
 from celery import Task
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from kubechat.db.models import Collection, CollectionStatus
 

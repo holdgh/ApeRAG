@@ -5,12 +5,12 @@ Contains parser for md files.
 
 """
 import re
-from mdsplit import split_by_heading, Chapter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 from llama_index.readers.base import BaseReader
 from llama_index.schema import Document
+from mdsplit import Chapter, split_by_heading
 from pydantic import BaseModel
 
 CHUNK_SPLIT_THRESHOLD = 500
@@ -66,7 +66,7 @@ class MarkdownReader(BaseReader):
             if header_match:
                 level = len(header_match[0][0])
                 if level == current_level:
-                    headers[-1] = (headers[-1][0]+line, level)
+                    headers[-1] = (headers[-1][0] + line, level)
                 elif level > current_level:
                     headers.append((line, level))
                 else:
@@ -76,7 +76,7 @@ class MarkdownReader(BaseReader):
                         else:
                             break
                     if len(headers) > 0:
-                        headers[-1] = (line,level)
+                        headers[-1] = (line, level)
                     else:
                         headers.append((line, level))
 

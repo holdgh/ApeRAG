@@ -7,7 +7,7 @@ import uuid
 import aiohttp
 import requests
 
-from kubechat.llm.base import Predictor, LLMConfigError, logger
+from kubechat.llm.base import LLMConfigError, Predictor, logger
 
 
 class BaiChuanPredictor(Predictor):
@@ -63,7 +63,7 @@ class BaiChuanPredictor(Predictor):
         headers = self.build_request_headers(data)
         timeout = aiohttp.ClientTimeout(connect=3)
         async with aiohttp.ClientSession(raise_for_status=True, timeout=timeout) as session:
-            async with session.post(self.url, json=data, headers=headers,ssl=False) as r:
+            async with session.post(self.url, json=data, headers=headers, ssl=False) as r:
                 async for line in r.content:
                     data = json.loads(line.decode("utf-8"))
                     if data["code"] != 0:

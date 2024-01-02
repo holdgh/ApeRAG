@@ -1,6 +1,6 @@
-from typing import Iterator, Dict, Any
+from typing import Any, Dict, Iterator
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument
+from kubechat.source.base import LocalDocument, RemoteDocument, Source
 from kubechat.source.tencent.client import TencentClient
 
 

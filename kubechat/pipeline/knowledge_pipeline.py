@@ -1,22 +1,31 @@
-import re
-import json
-import random
 import asyncio
+import json
 import logging
+import random
+import re
+
+from langchain import PromptTemplate
 
 from config import settings
-from langchain import PromptTemplate
-from query.query import get_packed_answer
-from readers.base_embedding import rerank, get_embedding_model
 from kubechat.context.context import ContextManager
-from kubechat.source.utils import async_run
-from kubechat.pipeline.base_pipeline import Pipeline, KUBE_CHAT_RELATED_QUESTIONS, KUBE_CHAT_DOC_QA_REFERENCES, Message
-from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.context.full_text import search_document
-from kubechat.utils.utils import generate_fulltext_index_name, generate_vector_db_collection_name, \
-    generate_qa_vector_db_collection_name, now_unix_milliseconds
-from kubechat.llm.prompts import DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES, DEFAULT_MODEL_PROMPT_TEMPLATES, \
-    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2, DEFAULT_CHINESE_PROMPT_TEMPLATE_V3
+from kubechat.llm.prompts import (
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
+    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
+    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    DEFAULT_MODEL_PROMPT_TEMPLATES,
+)
+from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
+from kubechat.pipeline.keyword_extractor import IKExtractor
+from kubechat.source.utils import async_run
+from kubechat.utils.utils import (
+    generate_fulltext_index_name,
+    generate_qa_vector_db_collection_name,
+    generate_vector_db_collection_name,
+    now_unix_milliseconds,
+)
+from query.query import get_packed_answer
+from readers.base_embedding import get_embedding_model, rerank
 
 logger = logging.getLogger(__name__)
 
@@ -115,19 +124,35 @@ class KnowledgePipeline(Pipeline):
         references = []
         related_questions = []
         response = ""
+        need_generate_answer = True
+        need_related_question = True
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=1, vector=vector)
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=3, vector=vector)
         logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
-        if len(results) > 0:
-            response = results[0].text
+        
+        for result in results:
+            result = json.loads(result.text)
+            if result["answer"] != "":
+                response = result["answer"]
+            
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=6, vector=vector)
+        for result in results:
+            result = json.loads(result.text)
+            if result["question"] not in related_questions:
+                related_questions.append(result["question"])
+                
+        if len(related_questions) >= 3:
+            need_related_question = False
+            
+        if response != "":
             yield response
-
-            if self.use_related_question:
+            
+            if self.use_related_question and need_related_question:
                 related_question_prompt = self.related_question_prompt.format(query=message, context=response)
                 related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
-
+          
         else:
             results = await async_run(self.context_manager.query, message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
@@ -151,9 +176,6 @@ class KnowledgePipeline(Pipeline):
             else:
                 logger.info("[%s] no need to filter keyword", log_prefix)
 
-            need_generate_answer = True
-            need_related_question = True
-
             context = ""
             if len(candidates) > 0:
                 # 500 is the estimated length of the prompt
@@ -163,7 +185,7 @@ class KnowledgePipeline(Pipeline):
                     response = self.oops
                     yield self.oops
                     need_generate_answer = False
-                if self.welcome_question != []:
+                if self.welcome_question:
                     if len(self.welcome_question) >= 3:
                         related_questions = random.sample(self.welcome_question, 3)
                         need_related_question = False

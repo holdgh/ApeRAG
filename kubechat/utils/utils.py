@@ -1,11 +1,12 @@
+import base64
+import hashlib
 import re
 from datetime import datetime
-import hashlib
-import base64
+
 from Crypto.Cipher import AES
 
 AVAILABLE_MODEL = [""]
-AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu","url"]
+AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu", "url"]
 
 
 def extract_bot_and_chat_id(path: str):
@@ -79,10 +80,8 @@ def generate_fulltext_index_name(collection_id) -> str:
 def generate_vector_db_collection_name(collection_id) -> str:
     return str(collection_id)
 
-
 def generate_qa_vector_db_collection_name(collection) -> str:
     return str(collection) + "-qa"
-
 
 def fix_path_name(path) -> str:
     return str(path).replace("|", "-")

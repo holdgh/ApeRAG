@@ -2,13 +2,13 @@ import datetime
 import json
 import logging
 import time
-from typing import Dict, Any, Iterator
+from typing import Any, Dict, Iterator
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
-from kubechat.source.utils import gen_temporary_file
-import kubechat.source.feishu.v2.parser as v2
 import kubechat.source.feishu.v1.parser as v1
+import kubechat.source.feishu.v2.parser as v2
+from kubechat.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
 from kubechat.source.feishu.client import FeishuClient
+from kubechat.source.utils import gen_temporary_file
 
 logger = logging.getLogger(__name__)
 

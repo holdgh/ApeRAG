@@ -1,22 +1,30 @@
 import logging
 from typing import Any, Dict, Optional
 
+from asgiref.sync import sync_to_async
 from django.db.models import QuerySet
 from pydantic import BaseModel
-from asgiref.sync import sync_to_async
 
 from kubechat.db.models import (
     Bot,
+    BotIntegration,
+    BotIntegrationStatus,
+    BotStatus,
     Chat,
+    ChatPeer,
     ChatStatus,
     Collection,
     CollectionStatus,
     CollectionSyncHistory,
+    CollectionSyncStatus,
+    Config,
     Document,
     DocumentStatus,
-    BotStatus, MessageFeedback, CollectionSyncStatus, BotIntegration, BotIntegrationStatus, ChatPeer, Config, UserQuota
+    MessageFeedback,
+    Question,
+    QuestionStatus,
+    UserQuota,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +137,14 @@ async def query_documents_count(user, collection_id: str, pq: PagedQuery = None)
         user=user, collection_id=collection_id, **filters).count)()
     return count
 
-
+async def query_question(user, collection_id: str, question_id: str):
+    try:
+        return await Question.objects.exclude(status=QuestionStatus.DELETED).aget(
+            user=user, collection_id=collection_id, pk=question_id
+        )
+    except Question.DoesNotExist:
+        return None
+    
 async def query_chat(user, bot_id: str, chat_id: str):
     try:
         kwargs = {

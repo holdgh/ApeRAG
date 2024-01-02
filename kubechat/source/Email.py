@@ -1,16 +1,16 @@
 import datetime
+import imaplib
 import logging
 import poplib
-import imaplib
 import re
 import tempfile
 from email import message_from_bytes, parser
 from email.header import decode_header
-from typing import Dict, Any, List, Iterator
+from typing import Any, Dict, Iterator
 
 from bs4 import BeautifulSoup
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
+from kubechat.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def decode_msg_header(header):
     value, charset = decode_header(header)[0]
     if charset:
         value = value.decode(charset)
-    if type(value) == bytes:
+    if isinstance(value, bytes):
         value.decode()
         value = value.decode()
     return value
@@ -93,8 +93,8 @@ def contains_chinese(text):
 
 # check if chinese/english email is spam
 def check_spam(title: str, body: str):
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
     import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
     chinese = contains_chinese(title)
     if chinese:
         model_name = "paulkm/chinese_spam_detect"
@@ -181,7 +181,7 @@ class EmailSource(Source):
 
                     msg_header = message_object["Subject"]
                     decoded_subject = decode_msg_header(msg_header)
-                    order_and_name = str(i + 1) + '_' + decoded_subject + f".txt"
+                    order_and_name = str(i + 1) + '_' + decoded_subject + ".txt"
 
                     # check if spam,if it is spam, jump to next email
                     if self.detect_spam:
@@ -212,7 +212,7 @@ class EmailSource(Source):
         under_line = name.find('_')
         order = name[:under_line]
         temp_file_path = download_email_body_to_temp_file(
-            self.conn, order, name,self.protocol
+            self.conn, order, name, self.protocol
         )
         metadata["name"] = name
         return LocalDocument(name=name, path=temp_file_path, metadata=metadata)

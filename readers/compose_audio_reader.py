@@ -1,8 +1,10 @@
-from llama_index.schema import Document
-from llama_index.readers.base import BaseReader
 from pathlib import Path
-from typing import Callable, Dict, Generator, List, Optional, Type
+from typing import Dict, List, Optional
+
 import requests
+from llama_index.readers.base import BaseReader
+from llama_index.schema import Document
+
 import config.settings as settings
 
 WHISPER_SERVER_URL = settings.WHISPER_HOST

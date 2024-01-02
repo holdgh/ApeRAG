@@ -1,34 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import json
 import logging
-from typing import List
+from typing import Any, List
 
+from langchain.embeddings.base import Embeddings
 from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding
 
 from config import settings
+from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_embedding import LocalPathEmbedding
-from readers.qa_generator import BaiChuanQAGenerator
+from readers.question_generator import QuestionGenerator
+from vectorstore.connector import VectorStoreConnectorAdaptor
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class LocalPathQAEmbedding(LocalPathEmbedding):
+class QuestionEmbedding(LocalPathEmbedding):
 
-    def __init__(self, predictor, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.qa_generator = BaiChuanQAGenerator(predictor=predictor)
-        self.qa_pairs = []
+        self.question_generator = QuestionGenerator()
+        self.questions = []
+        self.max_context_window = kwargs.get("max_context_window", 5000)
 
-    def load_data(self) -> list[str]:
-        docs, file_name = self.reader.load_data()
+    def load_data(self, **kwargs) -> list[str]:
+                
+        docs, _ = self.reader.load_data()
         if not docs:
-            return []
+            return [], []
 
-        if not settings.ENABLE_QA_GENERATOR:
-            return []
+        if not settings.ENABLE_QUESTION_GENERATOR:
+            return [], []
 
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
@@ -51,10 +57,10 @@ class LocalPathQAEmbedding(LocalPathEmbedding):
                 continue
 
             # ignore page larger than 200 characters
-            large_doc_threshold = 200
-            if len(doc.text) > large_doc_threshold:
-                logger.warning("ignore doc larger than %d", large_doc_threshold)
-                continue
+            # large_doc_threshold = 200
+            # if len(doc.text) > large_doc_threshold:
+            #     logger.warning("ignore doc larger than %d", large_doc_threshold)
+            #     continue
 
             paddings = []
             # padding titles of the hierarchy
@@ -74,18 +80,17 @@ class LocalPathQAEmbedding(LocalPathEmbedding):
             # embedding without the code block
             # text = re.sub(r"```.*?```", "", doc.text, flags=re.DOTALL)
             text = f"{prefix}\n{doc.text}"
-            qa_pairs = self.qa_generator.gen_qa_pairs(text)
-            if len(qa_pairs) == 0:
+            questions = self.question_generator.gen_questions(text[:self.max_context_window])
+            if len(questions) == 0:
                 continue
 
-            self.qa_pairs.extend(qa_pairs)
-
-            for q, a in qa_pairs:
+            self.questions.extend(questions)
+            
+            for q in questions:
                 node = Node(
-                    text=f"{a}",
+                    text=json.dumps({"question": q, "answer": ""}), 
                     doc_id=doc.doc_id,
                 )
-                logger.warning("pair question [%s] with answer [%s] in document %s" % (q, a, doc.metadata["name"]))
                 node.relationships = {
                     NodeRelationship.SOURCE: RelatedNodeInfo(
                         node_id=node.node_id, metadata={"source": f"{doc.metadata['name']}"}
@@ -93,8 +98,45 @@ class LocalPathQAEmbedding(LocalPathEmbedding):
                 }
                 vector = self.embedding.embed_query(q)
                 nodes.append(NodeWithEmbedding(node=node, embedding=vector))
-        print(f"processed file: {file_name} ")
+        
+        return self.connector.store.add(nodes), self.questions
+    
+    def delete(self, **kwargs) -> bool:
+        return self.connector.delete(**kwargs)
+
+
+class QuestionEmbeddingWithoutDocument(DocumentBaseEmbedding):
+
+    def __init__(
+            self,
+            vector_store_adaptor: VectorStoreConnectorAdaptor,
+            embedding_model: Embeddings = None,
+            vector_size: int = 0,
+            **kwargs: Any,
+    ) -> None:
+        super().__init__(vector_store_adaptor, embedding_model, vector_size)
+        self.questions = []
+
+    def load_data(self, **kwargs) -> list[str]:
+        faq = kwargs.get('faq', [])
+        
+        nodes: List[Node] = []
+        for qa in faq:
+            question = qa["question"]
+            answer = qa["answer"]
+            node = Node(
+                text=json.dumps({"question": question, "answer": answer}), 
+                doc_id='',
+            )
+    
+            node.relationships = {
+                NodeRelationship.SOURCE: RelatedNodeInfo(
+                    node_id=node.node_id, metadata={"source": ""}
+                )
+            }
+            vector = self.embedding.embed_query(question)
+            nodes.append(NodeWithEmbedding(node=node, embedding=vector))
         return self.connector.store.add(nodes)
 
     def delete(self, **kwargs) -> bool:
-        return self.connector.delete(**kwargs)
+        self.connector.delete(**kwargs)

@@ -1,6 +1,7 @@
 from django.contrib import admin
-from kubechat.db.models import Chat, Collection, Document, CollectionSyncHistory
 from django.utils.html import format_html
+
+from kubechat.db.models import Chat, Collection, CollectionSyncHistory, Document
 
 admin.site.site_header = 'Kubechat admin'  # set header
 admin.site.site_title = 'Kubechat admin'  # set title
@@ -17,7 +18,7 @@ class ChatInline(admin.StackedInline):
 
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    list_display = ('id','title', 'description', 'user', 'status', 'type', 'created_date', 'updated_date')
+    list_display = ('id', 'title', 'description', 'user', 'status', 'type', 'created_date', 'updated_date')
     list_filter = ('status',)
     search_fields = ('title',)
     inlines = [DocumentInline]  # Associated models displayed inline
@@ -83,5 +84,5 @@ class ChatAdmin(admin.ModelAdmin):
 @admin.register(CollectionSyncHistory)
 class SyncHistoryAdmin(admin.ModelAdmin):
     list_display = (
-    'id','user', 'collection','total_documents', 'new_documents', 'deleted_documents', 'processing_documents', 'modified_documents',
-    'failed_documents', 'successful_documents', 'total_documents_to_sync' ,'start_time', 'execution_time')
+    'id', 'user', 'collection', 'total_documents', 'new_documents', 'deleted_documents', 'processing_documents', 'modified_documents',
+    'failed_documents', 'successful_documents', 'total_documents_to_sync', 'start_time', 'execution_time')

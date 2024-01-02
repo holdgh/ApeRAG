@@ -28,7 +28,7 @@ def main(argv: list[str]) -> None:
     try:
         with open(release_note_template_path, "r") as file:
             template = file.read()
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print(f"template {release_note_template_path} not found, IGNORED")
 
     with open(release_note_path,'a') as f_dest:

@@ -11,7 +11,7 @@ class ExcelReader(BaseReader):
         try:
             from unstructured.partition.xlsx import partition_xlsx
             elements = partition_xlsx(filename=str(file))
-            content=''.join(item.text for item in elements)
+            content = ''.join(item.text for item in elements)
             return [Document(text=content, metadata=metadata or {})]
         except Exception as e:
             print(f"excel reader error:{e}")

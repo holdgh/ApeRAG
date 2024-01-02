@@ -1,11 +1,11 @@
 import logging
+import time
 from abc import ABC
 from threading import Lock
-from typing import Dict, Any
+from typing import Any, Dict
 
 import aiohttp
 import redis.asyncio as redis
-import time
 
 from config import settings
 from kubechat.source.base import CustomSourceInitializationError

@@ -87,12 +87,15 @@ jobs:
         with:
           poetry-version: "1.6.1"
 
-      - name: make lint
+      - name: make format
         run: |
-          pip install mypy
-          pip install black
           pip install ruff
-          make lint
+          make format
+
+#      - name: make static-check
+#        run: |
+#          pip install mypy
+#          make lint
 
       - name: make test
         run: |

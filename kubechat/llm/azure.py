@@ -3,9 +3,9 @@ import os
 
 import httpx
 import openai
-from openai import AzureOpenAI, AsyncAzureOpenAI
+from openai import AsyncAzureOpenAI, AzureOpenAI
 
-from kubechat.llm.base import Predictor, LLMConfigError
+from kubechat.llm.base import LLMConfigError, Predictor
 
 
 class AzureOpenAIPredictor(Predictor):

@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.db.models import MessageFeedbackStatus, MessageFeedback
+from kubechat.db.models import MessageFeedback, MessageFeedbackStatus
 from kubechat.views.utils import fail
 
 

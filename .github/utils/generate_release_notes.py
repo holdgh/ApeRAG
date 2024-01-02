@@ -74,7 +74,7 @@ def main(argv: list[str]) -> None:
         print(f"WARNING: found more than one milestone in release issue body, first milestone will be picked: {[i for i in repo_milestones]}")
 
     # find all issues and PRs in milestone
-    repo = gh.get_repo(f"apecloud/KubeChat")
+    repo = gh.get_repo("apecloud/KubeChat")
     milestone = repo.get_milestone(int(repo_milestones[0]))
     issue_or_prs = [i for i in repo.get_issues(milestone, state="closed")]
     print(f"Detected {len(issue_or_prs)} issues or pull requests")
@@ -130,7 +130,7 @@ def main(argv: list[str]) -> None:
     try:
         with open(release_note_template_path, "r") as file:
             template = file.read()
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print(f"template {release_note_template_path} not found, IGNORED")
 
     change_text = "\n".join(change_lines)

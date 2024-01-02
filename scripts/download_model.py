@@ -1,9 +1,6 @@
 import os
 
-from huggingface_hub import hf_hub_download, snapshot_download
 from langchain.embeddings import HuggingFaceBgeEmbeddings
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-
 
 if __name__ == "__main__":
     repo_is = [

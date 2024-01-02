@@ -3,10 +3,10 @@ import time
 
 import aiohttp
 import jwt
-from zhipuai.utils.sse_client import SSEClient
 import requests
+from zhipuai.utils.sse_client import SSEClient
 
-from kubechat.llm.base import Predictor, LLMConfigError, logger
+from kubechat.llm.base import LLMConfigError, Predictor, logger
 
 
 class ChatGLMPredictor(Predictor):
@@ -18,7 +18,7 @@ class ChatGLMPredictor(Predictor):
         self.temperature = kwargs.get("temperature", 0.01)
         self.top_p = kwargs.get("top_p", 0.7)
 
-        if self.model not in  ["chatglm_lite", "chatglm_std", "chatglm_pro", "chatglm_turbo"]:
+        if self.model not in ["chatglm_lite", "chatglm_std", "chatglm_pro", "chatglm_turbo"]:
             raise LLMConfigError("Please specify the correct model")
 
         self.api_key = kwargs.get("api_key", os.environ.get("GLM_API_KEY", ""))

@@ -3,8 +3,8 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 
-import yaml
 import requests
+import yaml
 
 from config import settings
 

@@ -2,10 +2,9 @@ import logging
 import os
 from datetime import datetime
 from ftplib import FTP
-from ftplib import error_perm
-from typing import Dict, Any, Iterator
+from typing import Any, Dict, Iterator
 
-from kubechat.source.base import Source, RemoteDocument, LocalDocument, CustomSourceInitializationError
+from kubechat.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
 from kubechat.source.utils import gen_temporary_file
 
 logger = logging.getLogger(__name__)
@@ -25,13 +24,13 @@ class FTPSource(Source):
             self.ftp.connect(str(self.host), self.port, timeout=3)
             self.ftp.login(self.user, self.password)
         except Exception:
-            raise CustomSourceInitializationError(f"Error connecting to FTP server")
+            raise CustomSourceInitializationError("Error connecting to FTP server")
 
     def isDir(self, path):
         try:
             self.ftp.cwd(path)
             return True
-        except Exception as e:
+        except Exception:
             return False
 
     def _deal_the_path(self, ftp, path="/"):

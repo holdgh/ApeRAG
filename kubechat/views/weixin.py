@@ -1,26 +1,27 @@
 import asyncio
 import hashlib
 import json
+import logging
 import time
+import xml.etree.cElementTree as ET
+from urllib.parse import unquote
+
 import redis
 import redis.asyncio as aredis
-from datetime import datetime
-
+from asgiref.sync import sync_to_async
 from ninja import Router
-from config import settings
-import kubechat.chat.message
 
-from kubechat.apps import QuotaType
+import kubechat.chat.message
+from config import settings
 from config.settings import MAX_CONVERSATION_COUNT
+from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import check_quota_usage, manage_quota_usage
+from kubechat.db.models import Chat, ChatPeer
+from kubechat.db.ops import query_bot, query_chat_by_peer, query_user_quota
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
-from kubechat.db.ops import *
-from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
 from kubechat.utils.weixin.client import WeixinClient
-
-from urllib.parse import unquote
-import xml.etree.cElementTree as ET
+from kubechat.utils.weixin.WXBizMsgCrypt import WXBizMsgCrypt
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
                 return
 
         task_id = int(time.time())
-        resp, response_code = await client.send_card("KubeChat正在解答中，请稍候......", user, task_id)
+        _, response_code = await client.send_card("KubeChat正在解答中，请稍候......", user, task_id)
 
         async for msg in KnowledgePipeline(bot=bot, collection=collection, history=history).run(query, message_id=msg_id):
             response += msg
@@ -127,7 +128,7 @@ async def weixin_feedback_response(client, user, bot, key, response_code, task_i
 
 
 @router.get("/webhook/event")
-async def callback(request, user, bot_id, msg_signature, timestamp, nonce, echostr):
+async def verify_callback(request, user, bot_id, msg_signature, timestamp, nonce, echostr):
     bot = await query_bot(user, bot_id)
     if bot is None:
         logger.warning("bot not found: %s", bot_id)
@@ -157,7 +158,7 @@ async def callback(request, user, bot_id, msg_signature, timestamp, nonce, echos
 
 
 @router.post("/webhook/event")
-async def callback(request, user, bot_id, msg_signature, timestamp, nonce):
+async def event_callback(request, user, bot_id, msg_signature, timestamp, nonce):
     bot = await query_bot(user, bot_id)
     if bot is None:
         logger.warning("bot not found: %s", bot_id)
@@ -281,7 +282,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
         if use_default_token and conversation_limit:
             if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
-                logger.info(f"generate response failed, conversation rounds have reached to the limit")
+                logger.info("generate response failed, conversation rounds have reached to the limit")
                 await redis_client.set(to_user_name + msg_id, error)
                 return
 
@@ -298,8 +299,8 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
             await manage_quota_usage(bot.user, conversation_limit)
 
 
-@router.post("/officaccount/webhook/event")
-async def officaccount_callback(request, user, bot_id, signature, timestamp, nonce, openid, encrypt_type, msg_signature):
+@router.post("/officialaccount/webhook/event")
+async def officialaccount_callback(request, user, bot_id, signature, timestamp, nonce, openid, encrypt_type, msg_signature):
     bot = await query_bot(user, bot_id)
     if bot is None:
         logger.warning("bot not found: %s", bot_id)
@@ -343,10 +344,10 @@ async def officaccount_callback(request, user, bot_id, signature, timestamp, non
             if redis_client.exists(query_answer):
                 response = redis_client.get(query_answer).decode()
             else:
-                response = f"正在解答中，请稍后重新发送"
+                response = "正在解答中，请稍后重新发送"
         else:
             asyncio.create_task(weixin_officaccount_response(query, msg_id, to_user_name, bot))
-            redis_client.set(f"{to_user_name+msg_id}_query", 1)
+            redis_client.set(f"{to_user_name + msg_id}_query", 1)
             response = f"KubeChat已收到问题，请发送{msg_id}获取答案"
 
         resp = generate_xml_response(to_user_name, from_user_name, create_time, "text", response)

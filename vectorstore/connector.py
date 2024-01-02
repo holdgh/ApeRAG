@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type
+from typing import Any, Dict
 
 from llama_index.vector_stores.registry import (
     VECTOR_STORE_TYPE_TO_VECTOR_STORE_CLASS,

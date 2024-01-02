@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from redisearch.client import Client, Query
 from redisearch import TextField
+from redisearch.client import Client, Query
 
 client = Client('idx')
 try:

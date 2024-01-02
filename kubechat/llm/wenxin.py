@@ -2,7 +2,7 @@ import os
 
 import qianfan
 
-from kubechat.llm.base import Predictor, LLMConfigError
+from kubechat.llm.base import LLMConfigError, Predictor
 
 
 class BaiduQianFan(Predictor):

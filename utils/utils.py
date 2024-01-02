@@ -5,9 +5,7 @@ import logging
 import logging.handlers
 import os
 import sys
-from pathlib import Path
 
-import requests
 import torch
 
 from configs.model_config import LOGDIR

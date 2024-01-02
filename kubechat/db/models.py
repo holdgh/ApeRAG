@@ -34,6 +34,8 @@ def int_pk():
 def collection_history_pk():
     return "colhist" + random_id()
 
+def que_pk():
+    return "que" + random_id()
 
 def upload_document_path(document, filename):
     user = document.user.replace("|", "-")
@@ -339,6 +341,39 @@ class MessageFeedback(models.Model):
 
     class Meta:
         unique_together = ('chat_id', 'message_id')
+
+
+class QuestionStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    WARNING = "WARNING"
+    DELETED = "DELETED"
+    PENDING = "PENDING"
+
+class Question(models.Model):
+    id = models.CharField(primary_key=True, default=que_pk, editable=False, max_length=24)
+    user = models.CharField(max_length=256)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    documents = models.ManyToManyField(Document, blank=True)
+    question = models.TextField()
+    answer = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=QuestionStatus.choices, null=True)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+    relate_id = models.CharField(null=True, max_length=256)
+    
+    def view(self):
+        relate_documents = [document.id for document in self.documents.all()]
+        return {
+            "id": str(self.id),
+            "status": self.status,
+            "question": self.question,
+            "answer": self.answer,
+            "relate_documents": relate_documents,
+            "created": self.gmt_created.isoformat(),
+            "updated": self.gmt_updated.isoformat(),
+        }
+
 
 
 class CollectionSyncHistory(models.Model):

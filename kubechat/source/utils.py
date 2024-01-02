@@ -31,7 +31,7 @@ def find_duplicate_paths(paths):
     duplicate_paths = []
 
     for i, path in enumerate(sorted_paths):
-        for other_path in sorted_paths[i+1:]:
+        for other_path in sorted_paths[i + 1:]:
             if other_path.startswith(path + os.sep):  # Check for parent-child relationship
                 duplicate_paths.append((path, other_path))
 

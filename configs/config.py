@@ -16,7 +16,7 @@ class Config(metaclass=Singleton):
         self.proxy_api_key = os.getenv("PROXY_API_KEY")
         self.proxy_server_url = os.getenv("PROXY_SERVER_URL")
 
-        ### LLM Model Service Configuration
+        # LLM Model Service Configuration
         self.LLM_MODEL = os.getenv("LLM_MODEL", "vicuna-13b")
         self.LIMIT_MODEL_CONCURRENCY = int(os.getenv("LIMIT_MODEL_CONCURRENCY", 5))
         self.MAX_POSITION_EMBEDDINGS = int(os.getenv("MAX_POSITION_EMBEDDINGS", 4096))

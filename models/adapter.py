@@ -2,19 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import os
-import torch
 from functools import cache
 from typing import List
-from transformers.generation.utils import GenerationConfig
-
 
 from transformers import (
     AutoModel,
     AutoModelForCausalLM,
     AutoTokenizer,
-    BitsAndBytesConfig,
     LlamaTokenizer,
 )
+from transformers.generation.utils import GenerationConfig
 
 from configs.config import Config
 from configs.model_config import DEVICE
@@ -179,7 +176,7 @@ class InternLMAdapter(BaseLLMAdaper):
         return "internlm-chat-7b" in model_path
 
     def loader(self, model_path: str, from_pretrained_kwargs: dict):
-        from transformers import AutoTokenizer, AutoModelForCausalLM
+        from transformers import AutoModelForCausalLM, AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, trust_remote_code=True)
         model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, trust_remote_code=True, **from_pretrained_kwargs)

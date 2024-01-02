@@ -1,4 +1,3 @@
-import tempfile
 from pathlib import Path
 
 from docx_reader import MyDocxReader

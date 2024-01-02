@@ -9,10 +9,9 @@ import kubechat.chat
 from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.models import Chat, ChatPeer
-from kubechat.db.ops import query_web_chats, build_pq, query_bot, query_web_chat
-from kubechat.views.utils import success, fail, query_chat_messages
+from kubechat.db.ops import build_pq, query_bot, query_web_chat, query_web_chats
 from kubechat.views.main import MessageFeedbackIn
-
+from kubechat.views.utils import fail, query_chat_messages, success
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +59,7 @@ async def create_chat(request, bot_id, session_id):
             peer_id=session_id
         )
         await instance.asave()
-    except IntegrityError as e:
+    except IntegrityError:
         return fail(HTTPStatus.BAD_REQUEST, "Only one chat is allowed for each client")
     return success(instance.view(bot_id))
 
