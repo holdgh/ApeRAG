@@ -24,7 +24,7 @@ from kubechat.utils.utils import (
     generate_vector_db_collection_name,
     now_unix_milliseconds,
 )
-from query.query import get_packed_answer
+from query.query import get_packed_answer, DocumentWithScore
 from readers.base_embedding import get_embedding_model, rerank
 
 logger = logging.getLogger(__name__)
@@ -159,6 +159,14 @@ class KnowledgePipeline(Pipeline):
             #                           score_threshold=self.score_threshold, topk=self.topk * 6, vector=new_vector)
             # results_set = set([result.text for result in results])
             # results.extend(result for result in results2 if result.text not in results_set)
+            
+            if self.bot_context != "":
+                bot_context_result = DocumentWithScore(
+                    text=self.bot_context,  # type: ignore
+                    score=0,
+                )
+                results.append(bot_context_result)
+                
             if len(results) > 1:
                 results = await rerank(message, results)
                 logger.info("[%s] rerank candidates end", log_prefix)
@@ -166,6 +174,7 @@ class KnowledgePipeline(Pipeline):
                 logger.info("[%s] don't need to rerank ", log_prefix)
 
             candidates = results[:self.topk]
+
             if self.enable_keyword_recall:
                 candidates = await self.filter_by_keywords(message, candidates)
                 logger.info("[%s] filter keyword end", log_prefix)
@@ -211,6 +220,9 @@ class KnowledgePipeline(Pipeline):
                     response += msg
 
                 for result in candidates:
+                    # filter bot_context
+                    if result.score == 0:
+                        continue
                     references.append({
                         "score": result.score,
                         "text": result.text,
