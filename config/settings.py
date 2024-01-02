@@ -305,6 +305,10 @@ REDIS_PORT = env.str("REDIS_PORT", default="6379")
 REDIS_USERNAME = env.str("REDIS_USERNAME", default="")
 REDIS_PASSWORD = env.str("REDIS_PASSWORD", default="")
 
+MINIO_ENDPOINT = env.str("MINIO_ENDPOINT", default="play.min.io")
+MINIO_ACCESS_KEY = env.str("MINIO_ACCESS_KEY", default="Q3AM3UQ867SPQQA43P2F")
+MINIO_SECRET_KEY = env.str("MINIO_SECRET_KEY", default="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
+
 ENABLE_KEYWORD_SEARCH = env.bool("ENABLE_KEYWORD_SEARCH", default=True)
 ES_HOST = env.str("ES_HOST", "http://localhost:9200")
 

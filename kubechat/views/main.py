@@ -7,6 +7,7 @@ from typing import List, Optional
 
 import redis.asyncio as redis
 import yaml
+from minio import Minio
 from asgiref.sync import sync_to_async
 from celery.result import GroupResult
 from django.contrib.auth.models import User
@@ -495,13 +496,19 @@ async def list_questions(request, collection_id):
     return success(response) 
 
 @router.post("/collections/{collection_id}/documents")
-async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
+async def create_document(request, collection_id, file: List[UploadedFile] = File(None), object_name=None):
     if len(file) > 500:
         return fail(HTTPStatus.BAD_REQUEST, "documents are too many,add document failed")
     user = get_user(request)
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+
+    bucket_name = collection_id
+    client = Minio(settings.MINIO_ENDPOINT,settings.MINIO_ACCESS_KEY,settings.MINIO_SECRET_KEY)
+    # use collection_id to represent a bucket
+    if object_name and not client.bucket_exists(bucket_name):
+        return fail(HTTPStatus.NOT_FOUND, "Collection not found in minio")
 
     # there is quota limit on document
     if settings.MAX_DOCUMENT_COUNT:
@@ -526,8 +533,17 @@ async def create_document(request, collection_id, file: List[UploadedFile] = Fil
                 file=ContentFile(item.read(), item.name),
             )
             await document_instance.asave()
+
+            # store file in minio
+            object_name = item.name
+            if not client.bucket_exists(bucket_name):
+                client.make_bucket(bucket_name)
+            client.fput_object(bucket_name, object_name, document_instance.file.path)
+
             document_instance.metadata = json.dumps({
                 "path": document_instance.file.path,
+                "bucket_name": bucket_name,
+                "object_name": object_name
             })
             await document_instance.asave()
             response.append(document_instance.view())
