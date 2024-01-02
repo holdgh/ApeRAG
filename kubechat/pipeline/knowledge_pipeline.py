@@ -129,19 +129,15 @@ class KnowledgePipeline(Pipeline):
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=3, vector=vector)
-        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
-        
-        for result in results:
-            result = json.loads(result.text)
-            if result["answer"] != "":
-                response = result["answer"]
-            
+
         results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=6, vector=vector)
+        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         for result in results:
-            result = json.loads(result.text)
-            if result["question"] not in related_questions:
-                related_questions.append(result["question"])
+            result_text = json.loads(result.text)
+            if result_text["answer"] != "" and result.score > 0.9:
+                response = result_text["answer"]
+            if result_text["question"] not in related_questions:
+                related_questions.append(result_text["question"])
                 
         if len(related_questions) >= 3:
             need_related_question = False
