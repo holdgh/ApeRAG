@@ -144,7 +144,13 @@ async def query_question(user, collection_id: str, question_id: str):
         )
     except Question.DoesNotExist:
         return None
-    
+
+async def query_questions(user, collection_id: str, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    query_set = Question.objects.exclude(status=QuestionStatus.DELETED).filter(
+        user=user, collection_id=collection_id, **filters)
+    return await build_pr(pq, query_set)
+
 async def query_chat(user, bot_id: str, chat_id: str):
     try:
         kwargs = {

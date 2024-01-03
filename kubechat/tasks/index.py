@@ -402,7 +402,9 @@ def generate_questions(document_id):
         )
         question_instance.save()
         question_instance.documents.add(document)
-        
+    document.collection.need_generate -= 1
+    document.collection.save()
+    
 @app.task
 def update_index_for_question(question_id):
     question = Question.objects.get(id=question_id)   

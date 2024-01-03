@@ -134,7 +134,7 @@ def validate_url(url):
         return False
 
 
-def success(data, pr: PagedResult = None):
+def success(data, pr: PagedResult = None, question_status = None):
     response = {
         "code": "%d" % HTTPStatus.OK,
         "data": data,
@@ -143,6 +143,8 @@ def success(data, pr: PagedResult = None):
         response["page_number"] = pr.page_number
         response["page_size"] = pr.page_size
         response["count"] = pr.count
+    if question_status is not None:
+        response["question_status"] = question_status
     return response
 
 

@@ -59,6 +59,7 @@ from kubechat.db.ops import (
     query_integration,
     query_integrations,
     query_question,
+    query_questions,
     query_running_sync_histories,
     query_sync_histories,
     query_sync_history,
@@ -422,6 +423,8 @@ async def create_questions(request, collection_id):
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
+    collection.need_generate = len(documents)
+    await collection.asave()
     async for document in documents:
         generate_questions.delay(document.id)
     return success({}) 
@@ -434,7 +437,7 @@ async def update_question(request, collection_id, question_in: QuestionIn):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     
     # ceate question
-    if not question_in.id:
+    if not question_in.id or question_in.id == "":
         question_instance = Question(
             user=collection.user,
             collection=collection,
@@ -485,12 +488,16 @@ async def list_questions(request, collection_id):
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    
-    questions = await sync_to_async(collection.question_set.exclude)(status=QuestionStatus.DELETED)
+        
+    pr = await query_questions(user, collection_id, build_pq(request))
     response = []
-    async for question in questions:
+    async for question in pr.data:
         response.append(question.view())
-    return success(response) 
+        
+    question_status = QuestionStatus.ACTIVE
+    if collection.need_generate > 0:
+        question_status = QuestionStatus.PENDING
+    return success(response, pr, question_status) 
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):

@@ -114,6 +114,11 @@ class VerifyWay(models.TextChoices):
     CAONLY = "ca_only"
     FULL = "full"
 
+class QuestionStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    WARNING = "WARNING"
+    DELETED = "DELETED"
+    PENDING = "PENDING"
 
 class Collection(models.Model):
     id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=24)
@@ -122,6 +127,7 @@ class Collection(models.Model):
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=CollectionStatus.choices)
     type = models.CharField(max_length=16, choices=CollectionType.choices)
+    need_generate = models.PositiveIntegerField(default=0)
     config = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
@@ -342,12 +348,6 @@ class MessageFeedback(models.Model):
     class Meta:
         unique_together = ('chat_id', 'message_id')
 
-
-class QuestionStatus(models.TextChoices):
-    ACTIVE = "ACTIVE"
-    WARNING = "WARNING"
-    DELETED = "DELETED"
-    PENDING = "PENDING"
 
 class Question(models.Model):
     id = models.CharField(primary_key=True, default=que_pk, editable=False, max_length=24)
