@@ -18,11 +18,7 @@ class CommonPipeline(Pipeline):
         super().__init__(**kwargs)
 
         if not self.prompt_template:
-            if self.memory:
-                self.prompt_template = COMMON_MEMORY_TEMPLATE
-            else:
-                self.prompt_template = COMMON_TEMPLATE
-
+            self.prompt_template = COMMON_MEMORY_TEMPLATE
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
         self.file_prompt = PromptTemplate(template=COMMON_FILE_TEMPLATE, input_variables=["query", "context"])
 
@@ -67,6 +63,8 @@ class CommonPipeline(Pipeline):
 
         # TODO: divide file_content into several parts and call API separately.
         context = file if file else ""
+        context += self.bot_context
+        
         if len(context) > self.context_window - 500:
             context = context[:len(self.context_window) - 500]
 

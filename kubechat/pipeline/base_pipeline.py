@@ -55,6 +55,7 @@ class Pipeline(ABC):
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
         self.context_window = self.llm_config.get("context_window", 3500)
         self.use_related_question = bot_config.get("use_related_question", False)
+        self.bot_context = ""
 
         welcome = bot_config.get("welcome", {})
         faq = welcome.get("faq", [])
@@ -63,10 +64,7 @@ class Pipeline(ABC):
             self.welcome_question.append(qa["question"])
         self.oops = welcome.get("oops", "")
 
-        if self.memory:
-            self.prompt_template = self.llm_config.get("memory_prompt_template", None)
-        else:
-            self.prompt_template = self.llm_config.get("prompt_template", None)
+        self.prompt_template = self.llm_config.get("prompt_template", None)
 
         kwargs = {"model": self.model}
         kwargs.update(self.llm_config)
@@ -115,3 +113,6 @@ class Pipeline(ABC):
     @abstractmethod
     async def run(self, query, gen_references=False, message_id=""):
         pass
+
+    async def update_bot_context(self,bot_context):
+        self.bot_context = bot_context
