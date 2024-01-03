@@ -24,7 +24,7 @@ from kubechat.utils.utils import (
     generate_vector_db_collection_name,
     now_unix_milliseconds,
 )
-from query.query import get_packed_answer
+from query.query import get_packed_answer, DocumentWithScore
 from readers.base_embedding import get_embedding_model, rerank
 
 logger = logging.getLogger(__name__)
@@ -54,12 +54,8 @@ class KnowledgePipeline(Pipeline):
                                                  self.qa_vectordb_ctx)
 
         if not self.prompt_template:
-            if self.memory:
-                self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
-                                                                                 DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
-            else:
-                self.prompt_template = DEFAULT_MODEL_PROMPT_TEMPLATES.get(self.model,
-                                                                          DEFAULT_CHINESE_PROMPT_TEMPLATE_V2)
+            self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
+                                                                             DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
     async def new_ai_message(self, message, message_id, response, references):
@@ -129,19 +125,15 @@ class KnowledgePipeline(Pipeline):
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
         # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.9, topk=3, vector=vector)
-        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
-        
-        for result in results:
-            result = json.loads(result.text)
-            if result["answer"] != "":
-                response = result["answer"]
-            
+
         results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=6, vector=vector)
+        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         for result in results:
-            result = json.loads(result.text)
-            if result["question"] not in related_questions:
-                related_questions.append(result["question"])
+            result_text = json.loads(result.text)
+            if result_text["answer"] != "" and result.score > 0.9:
+                response = result_text["answer"]
+            if result_text["question"] not in related_questions:
+                related_questions.append(result_text["question"])
                 
         if len(related_questions) >= 3:
             need_related_question = False
@@ -163,6 +155,14 @@ class KnowledgePipeline(Pipeline):
             #                           score_threshold=self.score_threshold, topk=self.topk * 6, vector=new_vector)
             # results_set = set([result.text for result in results])
             # results.extend(result for result in results2 if result.text not in results_set)
+            
+            if self.bot_context != "":
+                bot_context_result = DocumentWithScore(
+                    text=self.bot_context,  # type: ignore
+                    score=0,
+                )
+                results.append(bot_context_result)
+                
             if len(results) > 1:
                 results = await rerank(message, results)
                 logger.info("[%s] rerank candidates end", log_prefix)
@@ -170,6 +170,7 @@ class KnowledgePipeline(Pipeline):
                 logger.info("[%s] don't need to rerank ", log_prefix)
 
             candidates = results[:self.topk]
+
             if self.enable_keyword_recall:
                 candidates = await self.filter_by_keywords(message, candidates)
                 logger.info("[%s] filter keyword end", log_prefix)
@@ -215,6 +216,9 @@ class KnowledgePipeline(Pipeline):
                     response += msg
 
                 for result in candidates:
+                    # filter bot_context
+                    if result.score == 0:
+                        continue
                     references.append({
                         "score": result.score,
                         "text": result.text,
