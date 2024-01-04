@@ -483,7 +483,7 @@ async def delete_question(request, collection_id, question_id):
     
     question_instance = await query_question(user, collection_id, question_id)     
     if question_instance is None:
-         return fail(HTTPStatus.NOT_FOUND, "Question not found")
+        return fail(HTTPStatus.NOT_FOUND, "Question not found")
     question_instance.status = QuestionStatus.DELETED
     question_instance.gmt_deleted = timezone.now() 
     await question_instance.asave()
