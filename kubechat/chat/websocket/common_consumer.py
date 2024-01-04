@@ -6,6 +6,8 @@ import traceback
 
 import websockets
 
+from minio import Minio
+
 from kubechat.chat.utils import (
     check_quota_usage,
     fail_response,
@@ -27,8 +29,6 @@ logger = logging.getLogger(__name__)
 class CommonConsumer(BaseConsumer):
     async def connect(self):
         await super().connect()
-        self.file = None
-        self.file_name = None
         self.pipeline = CommonPipeline(bot=self.bot, collection=self.collection, history=self.history)
         self.use_default_token = self.pipeline.predictor.use_default_token
 
@@ -41,36 +41,36 @@ class CommonConsumer(BaseConsumer):
         message_id = f"{now_unix_milliseconds()}"
         related_question = []
 
-        # bytes_data: [file_name_length, file_name, file_content]
-        if bytes_data:
-            file_name_length = int.from_bytes(bytes_data[:4], byteorder='big')
-            file_name_bytes = bytes_data[4:4 + file_name_length]
-            self.file_name = file_name_bytes.decode('utf-8')
-            file_content = bytes_data[4 + file_name_length:]
+        data = json.loads(text_data)
+        self.msg_type = data["type"]
+        self.response_type = "message"
 
-            file_suffix = os.path.splitext(self.file_name)[1].lower()
+        file = None
+        object_name = data.get("object_name", "")
+        if object_name:
+            bucket_name = data.get("bucket_name", "")
+            # client = Minio(settings.MINIO_ENDPOINT, settings.MINIO_ACCESS_KEY, settings.MINIO_SECRET_KEY)
+            client = Minio()
+            try:
+                response = client.get_object(bucket_name, object_name)
+                file_content = response.read()
+            finally:
+                response.close()
+                response.release_conn()
+            file_name = object_name
+            file_suffix = os.path.splitext(file_name)[1].lower()
             if file_suffix not in DEFAULT_FILE_READER_CLS.keys():
                 error = f"unsupported file type {file_suffix}"
                 await self.send(text_data=fail_response(message_id, error=error))
                 return
 
-            temp_file = gen_temporary_file(self.file_name)
+            temp_file = gen_temporary_file(file_name)
             temp_file.write(file_content)
             temp_file.close()
 
             reader = DEFAULT_FILE_READER_CLS[file_suffix]
             docs = reader.load_data(temp_file.name)
-            self.file = docs[0].text
-            return
-
-        data = json.loads(text_data)
-        self.msg_type = data["type"]
-        self.response_type = "message"
-
-        if self.msg_type == "cancel_upload":
-            self.file = None
-            self.file_name = None
-            return
+            file = docs[0].text
 
         try:
             # send start message
@@ -82,7 +82,7 @@ class CommonConsumer(BaseConsumer):
                     await self.send(text_data=fail_response(message_id, error=error))
                     return
 
-            async for tokens in self.predict(data["data"], message_id=message_id, file=self.file):
+            async for tokens in self.predict(data["data"], message_id=message_id, file=file):
                 if tokens.startswith(KUBE_CHAT_RELATED_QUESTIONS):
                     related_question = ast.literal_eval(tokens[len(KUBE_CHAT_RELATED_QUESTIONS):])
                     continue
@@ -100,8 +100,6 @@ class CommonConsumer(BaseConsumer):
             logger.warning("[Oops] %s: %s", str(e), traceback.format_exc())
             await self.send(text_data=fail_response(message_id, str(e)))
         finally:
-            self.file = None
-            self.file_name = None
             if self.use_default_token and self.conversation_limit:
                 await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
