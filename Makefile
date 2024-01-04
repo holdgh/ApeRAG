@@ -98,12 +98,11 @@ compose-logs:
 format:
 	poetry run ruff --preview --fix .
 
-lint: PYTHON_FILES=.
-lint_diff: PYTHON_FILES=$(shell git diff --name-only --diff-filter=d master | grep -E '\.py$$')
-
-lint lint_diff:
-	poetry run mypy $(PYTHON_FILES)
+lint:
 	poetry run ruff --preview .
+
+static-check:
+	poetry run mypy .
 
 test:
 	echo "mock"

@@ -5,7 +5,7 @@ import re
 
 from langchain import PromptTemplate
 
-from kubechat.llm.prompts import COMMON_FILE_TEMPLATE, COMMON_MEMORY_TEMPLATE, COMMON_TEMPLATE
+from kubechat.llm.prompts import COMMON_FILE_TEMPLATE, COMMON_MEMORY_TEMPLATE
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
 from kubechat.utils.utils import now_unix_milliseconds
 
