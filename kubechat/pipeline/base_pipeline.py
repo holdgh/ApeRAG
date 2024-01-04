@@ -114,5 +114,5 @@ class Pipeline(ABC):
     async def run(self, query, gen_references=False, message_id=""):
         pass
 
-    async def update_bot_context(self,bot_context):
+    async def update_bot_context(self, bot_context):
         self.bot_context = bot_context

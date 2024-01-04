@@ -134,7 +134,7 @@ def validate_url(url):
         return False
 
 
-def success(data, pr: PagedResult = None, question_status = None):
+def success(data, pr: PagedResult = None, question_status=None):
     response = {
         "code": "%d" % HTTPStatus.OK,
         "data": data,

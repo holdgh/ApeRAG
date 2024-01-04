@@ -67,10 +67,8 @@ from kubechat.db.ops import (
 )
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
-    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
-    DEFAULT_MODEL_PROMPT_TEMPLATES,
 )
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import delete_collection_task, init_collection_task
@@ -122,7 +120,7 @@ class UpdateDocumentIn(Schema):
 class QuestionIn(Schema):
     id: Optional[str]
     question: str
-    answer: str
+    answer: Optional[str]
     relate_ducuments: Optional[List[str]]
 
 class ConnectionInfo(Schema):
@@ -437,7 +435,7 @@ async def update_question(request, collection_id, question_in: QuestionIn):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     
     # ceate question
-    if not question_in.id or question_in.id == "":
+    if not question_in.id:
         question_instance = Question(
             user=collection.user,
             collection=collection,
@@ -450,7 +448,7 @@ async def update_question(request, collection_id, question_in: QuestionIn):
             return fail(HTTPStatus.NOT_FOUND, "Question not found") 
     
     question_instance.question = question_in.question
-    question_instance.answer = question_in.answer
+    question_instance.answer = question_in.answer if question_instance.answer else ""
     question_instance.status = QuestionStatus.PENDING
     question_instance.documents.clear()
     
