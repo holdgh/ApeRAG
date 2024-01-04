@@ -427,10 +427,12 @@ async def create_questions(request, collection_id):
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
-    collection.need_generate = len(documents)
-    await collection.asave()
     async for document in documents:
         generate_questions.delay(document.id)
+    
+    documents = await sync_to_async(list)(documents)
+    collection.need_generate = len(documents)
+    await collection.asave()
     return success({}) 
 
 @router.put("/collections/{collection_id}/questions")
@@ -454,9 +456,9 @@ async def update_question(request, collection_id, question_in: QuestionIn):
             return fail(HTTPStatus.NOT_FOUND, "Question not found") 
     
     question_instance.question = question_in.question
-    question_instance.answer = question_in.answer if question_instance.answer else ""
+    question_instance.answer = question_in.answer if question_in.answer else ""
     question_instance.status = QuestionStatus.PENDING
-    question_instance.documents.clear()
+    await sync_to_async(question_instance.documents.clear)()
     
     if question_in.relate_ducuments:
         for document_id in question_in.relate_ducuments:
@@ -468,7 +470,8 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     await question_instance.asave()
     update_index_for_question.delay(question_instance.id)
     
-    return success(question_instance.view()) 
+    relate_documents = await sync_to_async(list)(question_instance.documents.all().values_list('id', flat=True))
+    return success(question_instance.view(relate_documents)) 
 
 @router.delete("/collections/{collection_id}/questions/{question_id}")
 async def delete_question(request, collection_id, question_id):
@@ -478,13 +481,16 @@ async def delete_question(request, collection_id, question_id):
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     
-    question_instance = Question.objects.get(id=question_id)      
+    question_instance = await query_question(user, collection_id, question_id)     
+    if question_instance is None:
+         return fail(HTTPStatus.NOT_FOUND, "Question not found")
     question_instance.status = QuestionStatus.DELETED
     question_instance.gmt_deleted = timezone.now() 
     await question_instance.asave()
     update_index_for_question.delay(question_instance.id)
     
-    return success(question_instance.view()) 
+    relate_documents = await sync_to_async(list)(question_instance.documents.all().values_list('id', flat=True))
+    return success(question_instance.view(relate_documents)) 
 
 @router.get("/collections/{collection_id}/questions")
 async def list_questions(request, collection_id):
@@ -496,7 +502,8 @@ async def list_questions(request, collection_id):
     pr = await query_questions(user, collection_id, build_pq(request))
     response = []
     async for question in pr.data:
-        response.append(question.view())
+        relate_documents = await sync_to_async(list)(question.documents.all().values_list('id', flat=True))
+        response.append(question.view(relate_documents))
         
     question_status = QuestionStatus.ACTIVE
     if collection.need_generate > 0:

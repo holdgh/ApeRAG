@@ -362,8 +362,7 @@ class Question(models.Model):
     gmt_deleted = models.DateTimeField(null=True, blank=True)
     relate_id = models.CharField(null=True, max_length=256)
     
-    def view(self):
-        relate_documents = [document.id for document in self.documents.all()]
+    def view(self, relate_documents):
         return {
             "id": str(self.id),
             "status": self.status,
