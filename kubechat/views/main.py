@@ -69,6 +69,7 @@ from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    MULTI_ROLE_PROMPT_TEMPLATES,
 )
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import delete_collection_task, init_collection_task
@@ -177,6 +178,11 @@ def list_models(request):
             })
     response.sort(key=lambda x: x["enabled"], reverse=True)
     return success(response)
+
+
+@router.get("/prompt_templates")
+def list_prompt_templates(request):
+    return success(MULTI_ROLE_PROMPT_TEMPLATES)
 
 
 @router.post("/collections/{collection_id}/sync")

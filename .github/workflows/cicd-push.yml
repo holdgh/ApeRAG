@@ -87,10 +87,10 @@ jobs:
         with:
           poetry-version: "1.6.1"
 
-      - name: make format
+      - name: make lint
         run: |
           pip install ruff
-          make format
+          make lint
 
 #      - name: make static-check
 #        run: |
