@@ -465,7 +465,7 @@ async def update_question(request, collection_id, question_in: QuestionIn):
             document = await query_document(user, collection_id, document_id)
             if document is None or document.status == DocumentStatus.DELETED:
                 return fail(HTTPStatus.NOT_FOUND, "Document not found")
-            question_instance.documents.add(document)
+            await sync_to_async(question_instance.documents.add)(document)
             
     await question_instance.asave()
     update_index_for_question.delay(question_instance.id)
