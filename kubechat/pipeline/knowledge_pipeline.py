@@ -10,10 +10,8 @@ from config import settings
 from kubechat.context.context import ContextManager
 from kubechat.context.full_text import search_document
 from kubechat.llm.prompts import (
-    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
-    DEFAULT_MODEL_PROMPT_TEMPLATES,
 )
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
 from kubechat.pipeline.keyword_extractor import IKExtractor
@@ -24,7 +22,7 @@ from kubechat.utils.utils import (
     generate_vector_db_collection_name,
     now_unix_milliseconds,
 )
-from query.query import get_packed_answer, DocumentWithScore
+from query.query import DocumentWithScore, get_packed_answer
 from readers.base_embedding import get_embedding_model, rerank
 
 logger = logging.getLogger(__name__)

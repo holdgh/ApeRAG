@@ -66,10 +66,9 @@ from kubechat.db.ops import (
 )
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
-    DEFAULT_CHINESE_PROMPT_TEMPLATE_V2,
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
-    DEFAULT_MODEL_PROMPT_TEMPLATES, MULTI_ROLE_PROMPT_TEMPLATES,
+    MULTI_ROLE_PROMPT_TEMPLATES,
 )
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import delete_collection_task, init_collection_task
