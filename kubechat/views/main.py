@@ -428,7 +428,7 @@ async def create_questions(request, collection_id):
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    if collection.question_status is CollectionStatus.PENDING:
+    if collection.question_status == CollectionStatus.PENDING:
         return fail(HTTPStatus.BAD_REQUEST, "Collection is generating questions")
     
     collection.question_status = CollectionStatus.PENDING

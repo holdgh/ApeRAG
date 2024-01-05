@@ -33,8 +33,8 @@ class QuestionEmbedding(LocalPathEmbedding):
         if not docs:
             return [], []
 
-        if not settings.ENABLE_QUESTION_GENERATOR:
-            return [], []
+        # if not settings.ENABLE_QUESTION_GENERATOR:
+        #     return [], []
 
         
         nodes: List[NodeWithEmbedding] = []
