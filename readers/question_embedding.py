@@ -40,7 +40,7 @@ class QuestionEmbedding(LocalPathEmbedding):
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
             doc.text = doc.text.strip()
-            logger.info("generating questions for document: %s",file_name)
+            logger.info("generating questions for document: %s", file_name)
 
             # ignore page less than 30 characters
             text_size_threshold = 30
@@ -86,7 +86,7 @@ class QuestionEmbedding(LocalPathEmbedding):
                 continue
 
             self.questions.extend(questions)
-            logger.info("generating questions: %s",str(questions))
+            logger.info("generating questions: %s", str(questions))
             
             for q in questions:
                 node = Node(

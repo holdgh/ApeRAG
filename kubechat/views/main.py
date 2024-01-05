@@ -8,8 +8,8 @@ from typing import List, Optional
 import redis.asyncio as redis
 import yaml
 from asgiref.sync import sync_to_async
-from celery.result import GroupResult
 from celery import chain, group
+from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
@@ -80,9 +80,9 @@ from kubechat.tasks.index import (
     generate_questions,
     message_feedback,
     remove_index,
+    update_collection_status,
     update_index,
     update_index_for_question,
-    update_collection_status,
 )
 from kubechat.tasks.scan import delete_sync_documents_cron_job, update_sync_documents_cron_job
 from kubechat.tasks.sync_documents_task import get_sync_progress, sync_documents

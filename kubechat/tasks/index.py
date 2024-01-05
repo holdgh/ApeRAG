@@ -16,6 +16,8 @@ from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.context.full_text import insert_document, remove_document
 from kubechat.db.models import (
+    Collection,
+    CollectionStatus,
     Document,
     DocumentStatus,
     MessageFeedback,
@@ -23,8 +25,6 @@ from kubechat.db.models import (
     ProtectAction,
     Question,
     QuestionStatus,
-    Collection,
-    CollectionStatus,
 )
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
