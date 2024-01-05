@@ -29,17 +29,18 @@ class QuestionEmbedding(LocalPathEmbedding):
 
     def load_data(self, **kwargs) -> list[str]:
                 
-        docs, _ = self.reader.load_data()
+        docs, file_name = self.reader.load_data()
         if not docs:
             return [], []
 
         if not settings.ENABLE_QUESTION_GENERATOR:
             return [], []
 
+        
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
-
             doc.text = doc.text.strip()
+            logger.info("generating questions for document: %s",file_name)
 
             # ignore page less than 30 characters
             text_size_threshold = 30
@@ -85,6 +86,7 @@ class QuestionEmbedding(LocalPathEmbedding):
                 continue
 
             self.questions.extend(questions)
+            logger.info("generating questions: %s",str(questions))
             
             for q in questions:
                 node = Node(

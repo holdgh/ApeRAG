@@ -62,6 +62,7 @@ class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
+    PENDING = "PENDING"
 
 
 class CollectionSyncStatus(models.TextChoices):
@@ -127,7 +128,7 @@ class Collection(models.Model):
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=CollectionStatus.choices)
     type = models.CharField(max_length=16, choices=CollectionType.choices)
-    need_generate = models.PositiveIntegerField(default=0)
+    question_status = models.CharField(max_length=16, choices=CollectionStatus.choices,default=CollectionStatus.ACTIVE)
     config = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)

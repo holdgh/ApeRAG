@@ -9,6 +9,7 @@ import redis.asyncio as redis
 import yaml
 from asgiref.sync import sync_to_async
 from celery.result import GroupResult
+from celery import chain, group
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
@@ -81,6 +82,7 @@ from kubechat.tasks.index import (
     remove_index,
     update_index,
     update_index_for_question,
+    update_collection_status,
 )
 from kubechat.tasks.scan import delete_sync_documents_cron_job, update_sync_documents_cron_job
 from kubechat.tasks.sync_documents_task import get_sync_progress, sync_documents
@@ -122,7 +124,7 @@ class QuestionIn(Schema):
     id: Optional[str]
     question: str
     answer: Optional[str]
-    relate_ducuments: Optional[List[str]]
+    relate_documents: Optional[List[str]]
 
 class ConnectionInfo(Schema):
     db_type: str
@@ -426,13 +428,20 @@ async def create_questions(request, collection_id):
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
-    async for document in documents:
-        generate_questions.delay(document.id)
+    if collection.question_status is CollectionStatus.PENDING:
+        return fail(HTTPStatus.BAD_REQUEST, "Collection is generating questions")
     
-    documents = await sync_to_async(list)(documents)
-    collection.need_generate = len(documents)
+    collection.question_status = CollectionStatus.PENDING
     await collection.asave()
+    
+    documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
+    generate_tasks = []
+    async for document in documents:
+        generate_tasks.append(generate_questions.si(document.id))
+    generate_group = group(*generate_tasks)
+    callback_chain = chain(generate_group, update_collection_status.s(collection.id))
+    callback_chain.delay()
+    
     return success({}) 
 
 @router.put("/collections/{collection_id}/questions")
@@ -460,8 +469,8 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     question_instance.status = QuestionStatus.PENDING
     await sync_to_async(question_instance.documents.clear)()
     
-    if question_in.relate_ducuments:
-        for document_id in question_in.relate_ducuments:
+    if question_in.relate_documents:
+        for document_id in question_in.relate_documents:
             document = await query_document(user, collection_id, document_id)
             if document is None or document.status == DocumentStatus.DELETED:
                 return fail(HTTPStatus.NOT_FOUND, "Document not found")
@@ -505,10 +514,7 @@ async def list_questions(request, collection_id):
         relate_documents = await sync_to_async(list)(question.documents.all().values_list('id', flat=True))
         response.append(question.view(relate_documents))
         
-    question_status = QuestionStatus.ACTIVE
-    if collection.need_generate > 0:
-        question_status = QuestionStatus.PENDING
-    return success(response, pr, question_status) 
+    return success(response, pr, collection.question_status) 
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):
