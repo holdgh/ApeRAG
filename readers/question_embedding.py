@@ -32,10 +32,6 @@ class QuestionEmbedding(LocalPathEmbedding):
         docs, file_name = self.reader.load_data()
         if not docs:
             return [], []
-
-        # if not settings.ENABLE_QUESTION_GENERATOR:
-        #     return [], []
-
         
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
