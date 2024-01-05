@@ -25,7 +25,7 @@ class QuestionEmbedding(LocalPathEmbedding):
         super().__init__(**kwargs)
         self.question_generator = QuestionGenerator()
         self.questions = []
-        self.max_context_window = kwargs.get("max_context_window", 4000)
+        self.max_context_window = kwargs.get("max_context_window", 3000)
 
     def load_data(self, **kwargs) -> list[str]:
                 
