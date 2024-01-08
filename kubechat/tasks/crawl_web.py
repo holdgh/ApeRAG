@@ -7,21 +7,16 @@ import requests
 from bs4 import BeautifulSoup
 
 from config.celery import app
-from config.settings import REDIS_HOST, REDIS_PORT
+from kubechat.chat.utils import get_sync_redis_client
 from kubechat.db.models import Collection, CollectionStatus, Document, DocumentStatus
 from kubechat.tasks.index import add_index_for_local_document
-
-redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}"
-
-try:
-    redis_conn = redis.Redis.from_url(redis_url)
-except Exception as e:
-    raise e
 
 
 @app.task(bind=True, max_retries=3)
 def crawl_domain(self, root_url, url, collection_id, user, max_pages):
     redis_key = f"{url}"
+    # redis_conn = redis.from_url(settings.MEMORY_REDIS_URL)
+    redis_conn = get_sync_redis_client()
 
     collection = Collection.objects.get(id=collection_id)
     redis_set_key = f"crawled_urls:{collection_id}:{root_url}"
@@ -68,6 +63,9 @@ def crawl_domain(self, root_url, url, collection_id, user, max_pages):
     except Exception as e:
         print(f"Error crawling {url}: {e}")
         self.retry(exc=e)
+    # finally:
+    #     # use synchronized redis_client here, need to be released manually
+    #     redis_conn.connection_pool.disconnect()
 
 
 @app.task

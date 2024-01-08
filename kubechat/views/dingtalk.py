@@ -5,13 +5,12 @@ import hmac
 import json
 import logging
 
-import redis.asyncio as redis
 import requests
 from asgiref.sync import sync_to_async
 from ninja import Router
 
-from config import settings
 from kubechat.apps import QuotaType
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import check_quota_usage, manage_quota_usage
 from kubechat.db.models import Chat, ChatPeer
@@ -35,13 +34,12 @@ async def post(request, user, bot_id):
         sender_id = data.get('senderStaffId')
         session_webhook = data.get('sessionWebhook')
         msg_id = data.get('msgId')
-        redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
         if bot is None:
             logger.warning("bot not found: %s", bot_id)
             asyncio.create_task(send_message("bot not found", session_webhook, sender_id))
             return
         asyncio.create_task(send_message(f"我已经收到问题\"{message_content}\"啦，正在飞速生成回答中", session_webhook, sender_id))
-        asyncio.create_task(dingtalk_text_response(redis_client, user, bot, message_content, msg_id, sender_id, session_webhook))
+        asyncio.create_task(dingtalk_text_response(user, bot, message_content, msg_id, sender_id, session_webhook))
         return success("")
 
     return fail(400, "validate dingtalk sign failed")
@@ -55,14 +53,14 @@ def validate_sign(timestamp, client_secret, request_sign):
     sign = base64.b64encode(hmac_code).decode('utf-8')
     return sign == request_sign
 
-async def dingtalk_text_response(redis_client, user, bot, query, msg_id, sender_id, session_webhook):
+async def dingtalk_text_response(user, bot, query, msg_id, sender_id, session_webhook):
     chat_id = user
     chat = await query_chat_by_peer(bot.user, ChatPeer.DINGTALK, chat_id)
     if chat is None:
         chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.DINGTALK, peer_id=chat_id)
         await chat.asave()
 
-    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     collection = await sync_to_async(bot.collections.first)()
     response = ""
 

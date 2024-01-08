@@ -1,14 +1,14 @@
 import json
 from http import HTTPStatus
 
-from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.models import MessageFeedback, MessageFeedbackStatus
 from kubechat.views.utils import fail
+from kubechat.chat.utils import get_async_redis_client
 
 
 async def feedback_message(user, chat_id, message_id, upvote, downvote, revised_answer=None):
-    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     msg = None
     for message in await history.messages:
         item = json.loads(message.content)

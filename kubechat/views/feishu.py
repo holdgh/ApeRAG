@@ -10,6 +10,7 @@ from ninja import Router
 import kubechat.chat.message
 from config import settings
 from kubechat.auth.validator import FeishuEventVerification
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import query_bot, query_chat_by_peer
@@ -126,7 +127,7 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
         chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.FEISHU, peer_id=chat_id)
         await chat.asave()
 
-    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     response = ""
     collection = await sync_to_async(bot.collections.first)()
     card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))

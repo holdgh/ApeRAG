@@ -1,9 +1,5 @@
 import json
 from datetime import datetime
-
-import redis.asyncio as redis
-
-from config import settings
 from kubechat.utils.utils import now_unix_milliseconds
 
 
@@ -115,7 +111,7 @@ def new_db_client(config):
 
 async def check_quota_usage(user, conversation_limit):
     key = "conversation_history:" + user
-    redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+    redis_client = get_async_redis_client()
 
     if await redis_client.exists(key):
         if int(await redis_client.get(key)) >= conversation_limit:
@@ -125,7 +121,7 @@ async def check_quota_usage(user, conversation_limit):
 
 async def manage_quota_usage(user, conversation_limit):
     key = "conversation_history:" + user
-    redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+    redis_client = get_async_redis_client()
 
     # already used kubechat today
     if await redis_client.exists(key):
@@ -137,3 +133,25 @@ async def manage_quota_usage(user, conversation_limit):
         end_of_today = datetime(now.year, now.month, now.day, 23, 59, 59)
         await redis_client.set(key, 1)
         await redis_client.expireat(key, int(end_of_today.timestamp()))
+
+
+async_redis_client = None
+sync_redis_client = None
+
+
+def get_async_redis_client():
+    global async_redis_client
+    if not async_redis_client:
+        import redis.asyncio as redis
+        from config.settings import MEMORY_REDIS_URL
+        async_redis_client = redis.Redis.from_url(MEMORY_REDIS_URL)
+    return async_redis_client
+
+
+def get_sync_redis_client():
+    global sync_redis_client
+    if not sync_redis_client:
+        import redis
+        from config.settings import MEMORY_REDIS_URL
+        sync_redis_client = redis.Redis.from_url(MEMORY_REDIS_URL)
+    return sync_redis_client

@@ -6,7 +6,7 @@ from asgiref.sync import sync_to_async
 from channels.generic.http import AsyncHttpConsumer
 from ninja import NinjaAPI
 
-from config import settings
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import fail_response, start_response, stop_response, success_response
 
@@ -53,7 +53,7 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
 
             msg = body.decode("utf-8")
             collection = await sync_to_async(bot.collections.first)()
-            history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+            history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
 
             event = start_response(message_id=msg_id)
             await self.send_event(event)

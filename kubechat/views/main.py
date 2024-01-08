@@ -5,7 +5,6 @@ import os
 from http import HTTPStatus
 from typing import List, Optional
 
-import redis.asyncio as redis
 import yaml
 from asgiref.sync import sync_to_async
 from celery.result import GroupResult
@@ -24,6 +23,7 @@ from config.celery import app
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.db.models import (
     Bot,
     BotIntegration,
@@ -292,7 +292,7 @@ async def create_collection(request, collection: CollectionIn):
             return fail(HTTPStatus.BAD_REQUEST, error_msg)
 
     if config.get("source") == "tencent":
-        redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        redis_client = get_async_redis_client()
         if await redis_client.exists("tencent_code_" + user):
             code = await redis_client.get("tencent_code_" + user)
             redirect_uri = await redis_client.get("tencent_redirect_uri_" + user)
@@ -728,7 +728,7 @@ async def update_chat(request, bot_id, chat_id):
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.summary = ""
     await chat.asave()
-    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     await history.clear()
     return success(chat.view(bot_id))
 
@@ -775,7 +775,7 @@ async def delete_chat(request, bot_id, chat_id):
     chat.status = ChatStatus.DELETED
     chat.gmt_deleted = timezone.now()
     await chat.asave()
-    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     await history.clear()
     return success(chat.view(bot_id))
 

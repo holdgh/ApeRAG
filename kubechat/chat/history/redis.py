@@ -14,14 +14,15 @@ class RedisChatMessageHistory:
                  session_id: str,
                  url: str = "redis://localhost:6379/0",
                  key_prefix: str = "message_store:",
-                 ttl: Optional[int] = None,):
+                 ttl: Optional[int] = None,
+                 redis_client=None,):
         try:
             import redis.asyncio as redis
         except ImportError:
             raise ImportError("Could not import redis.asyncio python package. "
                               "Please make sure that redis version >= 4.0.0")
         try:
-            self.redis_client = redis.Redis.from_url(url)
+            self.redis_client = redis_client or redis.Redis.from_url(url)
         except Exception as e:
             logger.error(e)
 
@@ -61,6 +62,9 @@ class RedisChatMessageHistory:
     async def clear(self) -> None:
         """Clear session memory from Redis"""
         await self.redis_client.delete(self.key)
+
+    async def release_redis(self):
+        await self.redis_client.close(close_connection_pool=True)
 
 
 async def message_from_dict(message: dict) -> BaseMessage:
