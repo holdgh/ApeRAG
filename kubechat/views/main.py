@@ -59,6 +59,7 @@ from kubechat.db.ops import (
     query_integration,
     query_integrations,
     query_question,
+    query_questions,
     query_running_sync_histories,
     query_sync_histories,
     query_sync_history,
@@ -446,14 +447,14 @@ async def update_question(request, collection_id, question_in: QuestionIn):
         )
         await question_instance.asave()
     else:
-        question_instance = await query_question(user, collection_id, question_in.id)
+        question_instance = await query_question(user, question_in.id)
         if question_instance is None:
             return fail(HTTPStatus.NOT_FOUND, "Question not found") 
     
     question_instance.question = question_in.question
     question_instance.answer = question_in.answer
     question_instance.status = QuestionStatus.PENDING
-    question_instance.documents.clear()
+    await sync_to_async(question_instance.documents.clear)()
     
     if question_in.relate_ducuments:
         for document_id in question_in.relate_ducuments:
@@ -464,37 +465,45 @@ async def update_question(request, collection_id, question_in: QuestionIn):
             
     await question_instance.asave()
     update_index_for_question.delay(question_instance.id)
-    
-    return success(question_instance.view()) 
+
+    return success(question_instance.view(question_in.relate_ducuments))
 
 @router.delete("/collections/{collection_id}/questions/{question_id}")
 async def delete_question(request, collection_id, question_id):
-    
     user = get_user(request)
-    collection = await query_collection(user, collection_id)
-    if collection is None:
-        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    
-    question_instance = Question.objects.get(id=question_id)      
-    question_instance.status = QuestionStatus.DELETED
-    question_instance.gmt_deleted = timezone.now() 
-    await question_instance.asave()
-    update_index_for_question.delay(question_instance.id)
-    
-    return success(question_instance.view()) 
+
+    question = await query_question(user, question_id)
+    if question is None:
+        return fail(HTTPStatus.NOT_FOUND, "Question not found")
+    question.status = QuestionStatus.DELETED
+    question.gmt_deleted = timezone.now()
+    await question.asave()
+    update_index_for_question.delay(question.id)
+
+    docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
+    doc_ids = []
+    async for doc in docs:
+        doc_ids.append(doc.id)
+    return success(question.view(relate_documents=doc_ids))
 
 @router.get("/collections/{collection_id}/questions")
 async def list_questions(request, collection_id):
     user = get_user(request)
-    collection = await query_collection(user, collection_id)
-    if collection is None:
-        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    
-    questions = await sync_to_async(collection.question_set.exclude)(status=QuestionStatus.DELETED)
+    pr = await query_questions(user, collection_id, build_pq(request))
     response = []
-    async for question in questions:
+    async for question in pr.data:
         response.append(question.view())
-    return success(response) 
+    return success(response)
+
+@router.get("/collections/{collection_id}/questions/{question_id}")
+async def get_question(request, question_id):
+    user = get_user(request)
+    question = await query_question(user, question_id)
+    docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
+    doc_ids = []
+    async for doc in docs:
+        doc_ids.append(doc.id)
+    return success(question.view(relate_documents=doc_ids))
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(...)):

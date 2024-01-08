@@ -137,10 +137,19 @@ async def query_documents_count(user, collection_id: str, pq: PagedQuery = None)
         user=user, collection_id=collection_id, **filters).count)()
     return count
 
-async def query_question(user, collection_id: str, question_id: str):
+
+async def query_questions(user, collection_id: str, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    query_set = Question.objects.exclude(status=QuestionStatus.DELETED).filter(
+        user=user, collection_id=collection_id, **filters
+    )
+    return await build_pr(pq, query_set)
+
+
+async def query_question(user, question_id: str):
     try:
         return await Question.objects.exclude(status=QuestionStatus.DELETED).aget(
-            user=user, collection_id=collection_id, pk=question_id
+            user=user, pk=question_id
         )
     except Question.DoesNotExist:
         return None
