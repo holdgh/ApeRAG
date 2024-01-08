@@ -16,7 +16,7 @@ class OSSSource(Source):
         super().__init__(ctx)
         self.access_key_id = ctx["access_key_id"]
         self.access_key_secret = ctx["secret_access_key"]
-        self.bucket_objs = ctx["buckets"]
+        self.bucket_objs = ctx.get("buckets", [])
         self.bucket_name = ctx.get("bucket", "")
         self.endpoint = ctx.get("endpoint", "") or ctx["region"]
         self.dir = ctx.get("dir", "")
