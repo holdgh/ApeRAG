@@ -359,7 +359,7 @@ Rules:
 - Accurately convey the facts and background of the original text when translating. 
 - Even if it is free translation, retain the original paragraph format, as well as retain terms, such as FLAC, JPEG, etc. Retain company abbreviations, such as Microsoft, Amazon, etc. 
 - Also retain references to papers and other technical articles, such as [20] references. 
-- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as “Figure 1: ", "Table 1: " is translated as: “Figure 1: ". 
+- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as "Figure 1: ", "Table 1: " is translated as: "Table 1: ". 
 - Replace full-width brackets with half-width brackets, add a half-width space before the left bracket, and add a half-width space after the right bracket. 
 - The input format is Markdown format, and the output format must also retain the original Markdown format 
 - The following is a common AI-related terminology correspondence table:
@@ -400,7 +400,7 @@ Rules:
 - Accurately convey the facts and background of the original text when translating. 
 - Even if it is free translation, retain the original paragraph format, as well as retain terms, such as FLAC, JPEG, etc. Retain company abbreviations, such as Microsoft, Amazon, etc. 
 - Also retain references to papers and other technical articles, such as [20] references. 
-- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as “Figure 1: ", "Table 1: " is translated as: “Figure 1: ". 
+- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as "Figure 1: ", "Table 1: " is translated as: "Table 1: ". 
 - Replace full-width brackets with half-width brackets, add a half-width space before the left bracket, and add a half-width space after the right bracket. 
 - The input format is Markdown format, and the output format must also retain the original Markdown format 
 - The following is a common AI-related terminology correspondence table:
@@ -441,7 +441,7 @@ Rules:
 - Accurately convey the facts and background of the original text when translating. 
 - Even if it is free translation, retain the original paragraph format, as well as retain terms, such as FLAC, JPEG, etc. Retain company abbreviations, such as Microsoft, Amazon, etc. 
 - Also retain references to papers and other technical articles, such as [20] references. 
-- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as “Figure 1: ", "Table 1: " is translated as: “Figure 1: ". 
+- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as "Figure 1: ", "Table 1: " is translated as: "Table 1: ". 
 - Replace full-width brackets with half-width brackets, add a half-width space before the left bracket, and add a half-width space after the right bracket. 
 - The input format is Markdown format, and the output format must also retain the original Markdown format 
 - The following is a common AI-related terminology correspondence table:
@@ -633,7 +633,7 @@ Rules：
 - When translating, accurately convey the facts and background of the original text.
 - Even if it's a bit of paraphrasing, maintain the original paragraph format, as well as retain terms such as FLAC, JPEG, etc. Keep company abbreviations like Microsoft, Amazon, etc.
 - At the same time, maintain references to papers and other technical articles, such as [20] references.
-- For Figures and Tables, while translating, maintain the original format, for example, "Figure 1: " is translated as "图 1: ", "Table 1: " is translated as "表 1: ".
+- For Figures and Tables, while translating, maintain the original format, for example, "图 1: " is translated as "Figure 1: ", "表 1: " is translated as "Table 1: ".
 - Change full-width parentheses to half-width parentheses, and add a half-width space before the left parenthesis and after the right parenthesis.
 - Input format is in Markdown, and the output format must also retain the original Markdown format.
 - Below is a common AI-related terminology vocabulary table:
@@ -674,7 +674,7 @@ Rules:
 - Accurately convey the facts and background of the original text when translating. 
 - Even if it is free translation, retain the original paragraph format, as well as retain terms, such as FLAC, JPEG, etc. Retain company abbreviations, such as Microsoft, Amazon, etc. 
 - Also retain references to papers and other technical articles, such as [20] references. 
-- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as “Figure 1: ", "Table 1: " is translated as: “Figure 1: ". 
+- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as "Figure 1: ", "Table 1: " is translated as: "Table 1: ". 
 - Replace full-width brackets with half-width brackets, add a half-width space before the left bracket, and add a half-width space after the right bracket. 
 - The input format is Markdown format, and the output format must also retain the original Markdown format 
 - The following is a common AI-related terminology correspondence table:
@@ -715,7 +715,7 @@ Rules:
 - Accurately convey the facts and background of the original text when translating. 
 - Even if it is free translation, retain the original paragraph format, as well as retain terms, such as FLAC, JPEG, etc. Retain company abbreviations, such as Microsoft, Amazon, etc. 
 - Also retain references to papers and other technical articles, such as [20] references. 
-- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as “Figure 1: ", "Table 1: " is translated as: “Figure 1: ". 
+- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as "Figure 1: ", "Table 1: " is translated as: "Table 1: ".  
 - Replace full-width brackets with half-width brackets, add a half-width space before the left bracket, and add a half-width space after the right bracket. 
 - The input format is Markdown format, and the output format must also retain the original Markdown format 
 - The following is a common AI-related terminology correspondence table:
@@ -756,7 +756,7 @@ Rules:
 - Accurately convey the facts and background of the original text when translating. 
 - Even if it is free translation, retain the original paragraph format, as well as retain terms, such as FLAC, JPEG, etc. Retain company abbreviations, such as Microsoft, Amazon, etc. 
 - Also retain references to papers and other technical articles, such as [20] references. 
-- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as “Figure 1: ", "Table 1: " is translated as: “Figure 1: ". 
+- For Figure and Table, keep the original format while translating, for example: "Figure 1: " is translated as "Figure 1: ", "Table 1: " is translated as: "Table 1: ". 
 - Replace full-width brackets with half-width brackets, add a half-width space before the left bracket, and add a half-width space after the right bracket. 
 - The input format is Markdown format, and the output format must also retain the original Markdown format 
 - The following is a common AI-related terminology correspondence table:
