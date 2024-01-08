@@ -31,8 +31,9 @@ async def feedback_message(user, chat_id, message_id, upvote, downvote, revised_
     if revised_answer is not None:
         data["revised_answer"] = revised_answer
     data["status"] = MessageFeedbackStatus.PENDING
+    collection_id = msg.get("collection_id", None)
     feedback, _ = await MessageFeedback.objects.aupdate_or_create(
-        user=user, chat_id=chat_id, message_id=message_id, collection_id=msg["collection_id"],
+        user=user, chat_id=chat_id, message_id=message_id, collection_id=collection_id,
         defaults=data
     )
     return feedback

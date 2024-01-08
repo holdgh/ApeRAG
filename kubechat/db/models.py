@@ -325,7 +325,7 @@ class MessageFeedbackStatus(models.TextChoices):
 
 class MessageFeedback(models.Model):
     user = models.CharField(max_length=256)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, null=True, blank=True)
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     message_id = models.CharField(max_length=256)
     upvote = models.IntegerField(default=0)

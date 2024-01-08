@@ -69,7 +69,8 @@ from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
-    MULTI_ROLE_PROMPT_TEMPLATES,
+    MULTI_ROLE_ZH_PROMPT_TEMPLATES,
+    MULTI_ROLE_EN_PROMPT_TEMPLATES
 )
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import delete_collection_task, init_collection_task
@@ -182,7 +183,13 @@ def list_models(request):
 
 @router.get("/prompt_templates")
 def list_prompt_templates(request):
-    return success(MULTI_ROLE_PROMPT_TEMPLATES)
+    language = request.headers.get('Lang', "zh-CN")
+    if language == "zh-CN":
+        return success(MULTI_ROLE_ZH_PROMPT_TEMPLATES)
+    elif language == "en-US":
+        return success(MULTI_ROLE_EN_PROMPT_TEMPLATES)
+    else:
+        return fail(HTTPStatus.BAD_REQUEST, "unsupported language of prompt templates")
 
 
 @router.post("/collections/{collection_id}/sync")
