@@ -5,8 +5,6 @@ import sys
 import warnings
 from typing import Optional
 
-import torch
-
 from configs.model_config import DEVICE
 from models.adapter import get_llm_model_adapter
 from models.compression import compress_module
@@ -54,6 +52,7 @@ class ModelLoader(metaclass=Singleton):
     def __init__(self, model_path) -> None:
         self.device = DEVICE
         self.model_path = model_path
+        import torch
         self.kwargs = {
             "torch_dtype": torch.float16,
             "device_map": "auto",
@@ -68,6 +67,7 @@ class ModelLoader(metaclass=Singleton):
         cpu_offloading=False,
         max_gpu_memory: Optional[str] = None,
     ):
+        import torch
         if self.device == "cpu":
             kwargs = {"torch_dtype": torch.float32}
 

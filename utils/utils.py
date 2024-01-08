@@ -6,8 +6,6 @@ import logging.handlers
 import os
 import sys
 
-import torch
-
 from configs.model_config import LOGDIR
 
 server_error_msg = (
@@ -18,6 +16,7 @@ handler = None
 
 
 def get_gpu_memory(max_gpus=None):
+    import torch
     gpu_memory = []
     num_gpus = (
         torch.cuda.device_count()
