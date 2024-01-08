@@ -36,9 +36,6 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    # 'smart_chart.smartui',
-    # 'smart_chart.echart',
-    "simpleui",
     "kubechat",
     "corsheaders",
     "django.contrib.admin",
@@ -260,25 +257,6 @@ VECTOR_DB_CONTEXT = env.str(
 )
 
 CODE_STORAGE_DIR = env.str("CODE_STORAGE_DIR", default=str(BASE_DIR))
-
-# simpleui
-SIMPLEUI_CONFIG = {
-    'system_keep': True,
-    # 'menu_display': [],
-    'dynamic': False,  # Set whether to enable dynamic menus. Default is False.
-}
-# Hide the advertisement links on the right side of SimpleUI and the usage analysis.
-SIMPLEUI_HOME_INFO = False
-SIMPLEUI_ANALYSIS = False
-
-# Hide the quick operations and recent actions on the homepage.
-SIMPLEUI_HOME_QUICK = True
-SIMPLEUI_HOME_ACTION = True
-
-SIMPLEUI_HOME_ICON = 'fa fa-eye'
-
-# Set the Home icon redirect link. It will open in a new window.
-SIMPLEUI_INDEX = 'https://www.apecloud.com'
 
 # prometheus
 INSTALLED_APPS += ["django_prometheus"]
