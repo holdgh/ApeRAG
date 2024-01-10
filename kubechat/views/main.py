@@ -7,6 +7,7 @@ from typing import List, Optional
 
 import yaml
 from asgiref.sync import sync_to_async
+from celery import chain, group
 from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -80,6 +81,7 @@ from kubechat.tasks.index import (
     generate_questions,
     message_feedback,
     remove_index,
+    update_collection_status,
     update_index,
     update_index_for_question,
 )
@@ -122,8 +124,8 @@ class UpdateDocumentIn(Schema):
 class QuestionIn(Schema):
     id: Optional[str]
     question: str
-    answer: str
-    relate_ducuments: Optional[List[str]]
+    answer: Optional[str]
+    relate_documents: Optional[List[str]]
 
 class ConnectionInfo(Schema):
     db_type: str
@@ -433,9 +435,20 @@ async def create_questions(request, collection_id):
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    if collection.status == CollectionStatus.QUESTION_PENDING:
+        return fail(HTTPStatus.BAD_REQUEST, "Collection is generating questions")
+    
+    collection.status = CollectionStatus.QUESTION_PENDING
+    await collection.asave()
+    
     documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
+    generate_tasks = []
     async for document in documents:
-        generate_questions.delay(document.id)
+        generate_tasks.append(generate_questions.si(document.id))
+    generate_group = group(*generate_tasks)
+    callback_chain = chain(generate_group, update_collection_status.s(collection.id))
+    callback_chain.delay()
+    
     return success({}) 
 
 @router.put("/collections/{collection_id}/questions")
@@ -459,21 +472,22 @@ async def update_question(request, collection_id, question_in: QuestionIn):
             return fail(HTTPStatus.NOT_FOUND, "Question not found") 
     
     question_instance.question = question_in.question
-    question_instance.answer = question_in.answer
+    question_instance.answer = question_in.answer if question_in.answer else ""
     question_instance.status = QuestionStatus.PENDING
     await sync_to_async(question_instance.documents.clear)()
     
-    if question_in.relate_ducuments:
-        for document_id in question_in.relate_ducuments:
+    if question_in.relate_documents:
+        for document_id in question_in.relate_documents:
             document = await query_document(user, collection_id, document_id)
             if document is None or document.status == DocumentStatus.DELETED:
                 return fail(HTTPStatus.NOT_FOUND, "Document not found")
-            question_instance.documents.add(document)
-            
+            await sync_to_async(question_instance.documents.add)(document)
+    else:
+        question_in.relate_documents = []
     await question_instance.asave()
     update_index_for_question.delay(question_instance.id)
 
-    return success(question_instance.view(question_in.relate_ducuments))
+    return success(question_instance.view(question_in.relate_documents))
 
 @router.delete("/collections/{collection_id}/questions/{question_id}")
 async def delete_question(request, collection_id, question_id):

@@ -62,6 +62,7 @@ class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
+    QUESTION_PENDING = "QUESTION_PENDING"
 
 
 class CollectionSyncStatus(models.TextChoices):
@@ -114,6 +115,11 @@ class VerifyWay(models.TextChoices):
     CAONLY = "ca_only"
     FULL = "full"
 
+class QuestionStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    WARNING = "WARNING"
+    DELETED = "DELETED"
+    PENDING = "PENDING"
 
 class Collection(models.Model):
     id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=24)
@@ -342,12 +348,6 @@ class MessageFeedback(models.Model):
     class Meta:
         unique_together = ('chat_id', 'message_id')
 
-
-class QuestionStatus(models.TextChoices):
-    ACTIVE = "ACTIVE"
-    WARNING = "WARNING"
-    DELETED = "DELETED"
-    PENDING = "PENDING"
 
 class Question(models.Model):
     id = models.CharField(primary_key=True, default=que_pk, editable=False, max_length=24)

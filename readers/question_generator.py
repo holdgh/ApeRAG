@@ -1,4 +1,5 @@
 import logging
+import re
 from abc import ABC
 
 from langchain import PromptTemplate
@@ -20,7 +21,7 @@ class QuestionGenerator(ABC):
         response = ""
         for tokens in self.predictor.generate_stream([], prompt):
             response += tokens
-        questions = response.split('\n')
+        questions = re.sub(r'\n+', '\n', response).split('\n')
         for i, question in enumerate(questions):
             if question.startswith(str(i + 1) + "."):
                 questions[i] = questions[i][2:].strip()

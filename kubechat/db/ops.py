@@ -153,7 +153,7 @@ async def query_question(user, question_id: str):
         )
     except Question.DoesNotExist:
         return None
-    
+
 async def query_chat(user, bot_id: str, chat_id: str):
     try:
         kwargs = {

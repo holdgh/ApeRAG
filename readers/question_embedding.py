@@ -9,7 +9,6 @@ from llama_index.data_structs.data_structs import Node
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import NodeWithEmbedding
 
-from config import settings
 from readers.base_embedding import DocumentBaseEmbedding
 from readers.local_path_embedding import LocalPathEmbedding
 from readers.question_generator import QuestionGenerator
@@ -25,20 +24,17 @@ class QuestionEmbedding(LocalPathEmbedding):
         super().__init__(**kwargs)
         self.question_generator = QuestionGenerator()
         self.questions = []
-        self.max_context_window = kwargs.get("max_context_window", 5000)
+        self.max_context_window = kwargs.get("max_context_window", 3000)
 
     def load_data(self, **kwargs) -> list[str]:
                 
-        docs, _ = self.reader.load_data()
+        docs, file_name = self.reader.load_data()
         if not docs:
             return [], []
-
-        if not settings.ENABLE_QUESTION_GENERATOR:
-            return [], []
-
+        
+        logger.info("generating questions for document: %s", file_name)
         nodes: List[NodeWithEmbedding] = []
         for doc in docs:
-
             doc.text = doc.text.strip()
 
             # ignore page less than 30 characters
@@ -85,6 +81,7 @@ class QuestionEmbedding(LocalPathEmbedding):
                 continue
 
             self.questions.extend(questions)
+            logger.info("generating questions: %s", str(questions))
             
             for q in questions:
                 node = Node(
