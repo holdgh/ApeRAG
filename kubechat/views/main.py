@@ -517,7 +517,7 @@ async def list_questions(request, collection_id):
     return success(response)
 
 @router.get("/collections/{collection_id}/questions/{question_id}")
-async def get_question(request, question_id):
+async def get_question(request, collection_id, question_id):
     user = get_user(request)
     question = await query_question(user, question_id)
     docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
