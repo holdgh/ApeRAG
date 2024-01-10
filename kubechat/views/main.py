@@ -514,7 +514,7 @@ async def list_questions(request, collection_id):
     response = []
     async for question in pr.data:
         response.append(question.view())
-    return success(response)
+    return success(response, pr)
 
 @router.get("/collections/{collection_id}/questions/{question_id}")
 async def get_question(request, collection_id, question_id):
