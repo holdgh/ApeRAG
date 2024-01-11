@@ -12,7 +12,7 @@ image:
   console:
     registry: docker.io
     repository: apecloud/kubechat-console
-    tag: ""
+    tag: "latest"
   website:
     registry: docker.io
     repository: apecloud/kubechat-website
