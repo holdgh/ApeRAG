@@ -9,6 +9,8 @@ from ninja import NinjaAPI
 from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import fail_response, start_response, stop_response, success_response
+from kubechat.db.models import BotType
+from kubechat.pipeline.common_pipeline import CommonPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -52,15 +54,24 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
                 await chat.asave()
 
             msg = body.decode("utf-8")
-            collection = await sync_to_async(bot.collections.first)()
             history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
 
             event = start_response(message_id=msg_id)
             await self.send_event(event)
 
-            async for msg in KnowledgePipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
-                event = success_response(message_id=msg_id, data=msg)
-                await self.send_event(event)
+            if bot.type == BotType.KNOWLEDGE:
+                collection = await sync_to_async(bot.collections.first)()
+                async for msg in KnowledgePipeline(bot=bot, collection=collection, history=history).run(msg, message_id=msg_id):
+                    event = success_response(message_id=msg_id, data=msg)
+                    await self.send_event(event)
+            elif bot.type == BotType.COMMON:
+                async for msg in CommonPipeline(bot=bot, collection=None, history=history).run(msg, message_id=msg_id):
+                    event = success_response(message_id=msg_id, data=msg)
+                    await self.send_event(event)
+            else:
+                event = fail_response(message_id=msg_id, error="Unsupported bot type")
+                await self.send_event(event, more_body=False)
+                return
 
             event = stop_response(message_id=msg_id, references=[])
             await self.send_event(event, more_body=False)
