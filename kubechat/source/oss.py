@@ -74,7 +74,8 @@ class OSSSource(Source):
                     raise e
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
-        content = self.buckets[metadata["bucket_name"]].get_object(name).read()
+        bucket_name = metadata.get("bucket_name", self.bucket_name)
+        content = self.buckets[bucket_name].get_object(name).read()
         temp_file = gen_temporary_file(name)
         temp_file.write(content)
         temp_file.close()
