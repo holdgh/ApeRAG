@@ -69,7 +69,7 @@ class XinferenceEmbedding(Embeddings):
 class OpenAIEmbedding(Embeddings):
     def __init__(self):
         self.url = f"{EMBEDDING_SERVICE_URL}/v1/embeddings"
-        self.model = f"BAAI/{EMBEDDING_SERVICE_MODEL}"
+        self.model = f"{EMBEDDING_SERVICE_MODEL}"
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         texts = list(map(lambda x: x.replace("\n", " "), texts))
