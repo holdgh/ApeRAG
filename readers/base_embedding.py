@@ -8,8 +8,7 @@ from typing import Any, List
 
 import aiohttp
 import requests
-import torch
-from FlagEmbedding import FlagReranker
+
 from langchain.embeddings.base import Embeddings
 from langchain.embeddings.huggingface import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, MT5EncoderModel
@@ -106,6 +105,7 @@ class MT5Embedding(Embeddings):
         self.model = MT5EncoderModel.from_pretrained(model_name)
 
     def _embed_text(self, text):
+        import torch
         inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
         outputs = self.model(**inputs, return_dict=True, output_hidden_states=True)
         r = torch.mean(outputs.hidden_states[-1].squeeze(), dim=0)
@@ -177,6 +177,7 @@ class BertEmbedding(Embeddings):
         self.model = BertForMaskedLM.from_pretrained(model_name)
 
     def _embed_text(self, text):
+        import torch
         input_tokens = self.tokenizer(text, add_special_tokens=True, padding=True, return_tensors='pt')
         bert_outputs = self.model(**input_tokens, return_dict=True, output_hidden_states=True)
         r = torch.mean(bert_outputs.hidden_states[-1].squeeze(), dim=0)
@@ -255,6 +256,7 @@ class AutoCrossEncoderRanker(Ranker):
         self.model.eval()
 
     async def rank(self, query, results: List[DocumentWithScore]):
+        import torch
         pairs = []
         for idx, result in enumerate(results):
             pairs.append((query, result.text))
@@ -270,11 +272,13 @@ class AutoCrossEncoderRanker(Ranker):
 
 class FlagCrossEncoderRanker(Ranker):
     def __init__(self):
+        from FlagEmbedding import FlagReranker
         model_path = os.environ.get("RERANK_MODEL_PATH", default_rerank_model_path)
         # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
         self.reranker = FlagReranker(model_path)  # use fp16 can speed up computing
 
     async def rank(self, query, results: List[DocumentWithScore]):
+        import torch
         pairs = []
         max_length = 512
         for idx, result in enumerate(results):
