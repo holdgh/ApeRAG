@@ -132,12 +132,6 @@ django:
   rerankServiceModelUid: ""
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
-    podAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              app.kubechat.io/component: celery-worker
-          topologyKey: kubernetes.io/hostname
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
         - weight: 100
