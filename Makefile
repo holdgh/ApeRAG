@@ -37,18 +37,22 @@ migrate:
 run-redis:
 	@echo "Starting redis"
 	@docker inspect kubechat-redis > /dev/null 2>&1 || docker run -d --name kubechat-redis -p 6379:6379 redis:latest
+	@docker start kubechat-redis
 
 run-postgres:
 	@echo "Starting postgres"
 	@docker inspect kubechat-postgres > /dev/null 2>&1 || docker run -d --name kubechat-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres
+	@docker start kubechat-postgres
 
 run-qdrant:
 	@echo "Starting qdrant"
 	@docker inspect kubechat-qdrant > /dev/null 2>&1 || docker run -d --name kubechat-qdrant -p 6333:6333 qdrant/qdrant
+	@docker start kubechat-qdrant
 
 run-es:
 	@echo "Starting elasticsearch"
 	@docker inspect kubechat-es > /dev/null 2>&1 || docker run -d --name kubechat-es -p 9200:9200 apecloud/elasticsearch:8.8.2
+	@docker start kubechat-es
 
 run-db: run-redis run-postgres run-qdrant run-es
 

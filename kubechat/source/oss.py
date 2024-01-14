@@ -16,7 +16,7 @@ class OSSSource(Source):
         super().__init__(ctx)
         self.access_key_id = ctx["access_key_id"]
         self.access_key_secret = ctx["secret_access_key"]
-        self.bucket_objs = ctx["buckets"]
+        self.bucket_objs = ctx.get("buckets", [])
         self.bucket_name = ctx.get("bucket", "")
         self.endpoint = ctx.get("endpoint", "") or ctx["region"]
         self.dir = ctx.get("dir", "")
@@ -74,7 +74,8 @@ class OSSSource(Source):
                     raise e
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
-        content = self.buckets[metadata["bucket_name"]].get_object(name).read()
+        bucket_name = metadata.get("bucket_name", self.bucket_name)
+        content = self.buckets[bucket_name].get_object(name).read()
         temp_file = gen_temporary_file(name)
         temp_file.write(content)
         temp_file.close()

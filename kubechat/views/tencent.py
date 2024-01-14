@@ -4,13 +4,14 @@ import redis.asyncio as redis
 from ninja import Router
 
 from config import settings
+from kubechat.chat.utils import get_async_redis_client
 
 router = Router()
 
 @router.get("/webhook/event")
 async def callback(request, code, state):
     # restore user_id in state, to distinguish code of different users
-    redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+    redis_client = get_async_redis_client()
     redirect_uri = str(request.url)
 
     await redis_client.set("tencent_code_" + state, code)

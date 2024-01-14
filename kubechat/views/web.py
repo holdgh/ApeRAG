@@ -6,8 +6,8 @@ from django.db import IntegrityError
 from ninja import Router
 
 import kubechat.chat
-from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import build_pq, query_bot, query_web_chat, query_web_chats
 from kubechat.views.main import MessageFeedbackIn
@@ -105,6 +105,6 @@ async def update_chat(request, bot_id, chat_id):
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.summary = ""
     await chat.asave()
-    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     await history.clear()
     return success(chat.view(bot_id))

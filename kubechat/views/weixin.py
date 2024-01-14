@@ -16,7 +16,7 @@ from config import settings
 from config.settings import MAX_CONVERSATION_COUNT
 from kubechat.apps import QuotaType
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.chat.utils import check_quota_usage, manage_quota_usage
+from kubechat.chat.utils import check_quota_usage, manage_quota_usage, get_async_redis_client, get_sync_redis_client
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import query_bot, query_chat_by_peer, query_user_quota
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
@@ -35,7 +35,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
         chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.WEIXIN, peer_id=chat_id)
         await chat.asave()
 
-    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     collection = await sync_to_async(bot.collections.first)()
     response = ""
 
@@ -76,7 +76,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
         chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.WEIXIN, peer_id=chat_id)
         await chat.asave()
 
-    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     collection = await sync_to_async(bot.collections.first)()
     response = ""
 
@@ -267,7 +267,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
         chat = Chat(user=bot.user, bot=bot, peer_type=ChatPeer.WEIXIN_OFFICIAL, peer_id=chat_id)
         await chat.asave()
 
-    history = RedisChatMessageHistory(session_id=str(chat.id), url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     collection = await sync_to_async(bot.collections.first)()
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
     use_default_token = pipeline.predictor.use_default_token
@@ -322,7 +322,8 @@ async def officialaccount_callback(request, user, bot_id, signature, timestamp, 
 
     xml_tree = ET.fromstring(decrypted_messgae)
     user = xml_tree.find("FromUserName").text
-    redis_client = redis.from_url(settings.MEMORY_REDIS_URL)
+    # redis_client = redis.from_url(settings.MEMORY_REDIS_URL)
+    redis_client = get_sync_redis_client()
 
     # answer the question from user
     if xml_tree.find("MsgType") is not None and xml_tree.find("MsgType").text == "text":
@@ -350,5 +351,7 @@ async def officialaccount_callback(request, user, bot_id, signature, timestamp, 
             redis_client.set(f"{to_user_name + msg_id}_query", 1)
             response = f"KubeChat已收到问题，请发送{msg_id}获取答案"
 
+        # # use synchronized redis_client here, need to be released manually
+        # redis_client.connection_pool.disconnect()
         resp = generate_xml_response(to_user_name, from_user_name, create_time, "text", response)
         return resp

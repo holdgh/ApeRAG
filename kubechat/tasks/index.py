@@ -16,6 +16,8 @@ from config.celery import app
 from config.vector_db import get_vector_db_connector
 from kubechat.context.full_text import insert_document, remove_document
 from kubechat.db.models import (
+    Collection,
+    CollectionStatus,
     Document,
     DocumentStatus,
     MessageFeedback,
@@ -378,44 +380,60 @@ def message_feedback(**kwargs):
 
 @app.task
 def generate_questions(document_id):
-    document = Document.objects.get(id=document_id)   
-    embedding_model, _ = get_embedding_model("bge")
+    try:
+        document = Document.objects.get(id=document_id)   
+        embedding_model, _ = get_collection_embedding_model(document.collection)
 
-    source = get_source(json.loads(document.collection.config))
-    metadata = json.loads(document.metadata)
-    local_doc = source.prepare_document(name=document.name, metadata=metadata)
-    q_loaders = QuestionEmbedding(input_files=[local_doc.path],
-                            input_file_metadata_list=[local_doc.metadata],
-                            embedding_model=embedding_model,
-                            vector_store_adaptor=get_vector_db_connector(
-                                collection=generate_qa_vector_db_collection_name(
-                                    collection=document.collection.id)))
-    ids, questions = q_loaders.load_data()
-    for relate_id, question in zip(ids, questions):
-        question_instance = Question(
-            user=document.user,
-            question=question,
-            answer='',
-            status=QuestionStatus.ACTIVE,
-            collection=document.collection,
-            relate_id=relate_id
-        )
-        question_instance.save()
-        question_instance.documents.add(document)
-        
+        source = get_source(json.loads(document.collection.config))
+        metadata = json.loads(document.metadata)
+        local_doc = source.prepare_document(name=document.name, metadata=metadata)
+        q_loaders = QuestionEmbedding(input_files=[local_doc.path],
+                                input_file_metadata_list=[local_doc.metadata],
+                                embedding_model=embedding_model,
+                                vector_store_adaptor=get_vector_db_connector(
+                                    collection=generate_qa_vector_db_collection_name(
+                                        collection=document.collection.id)))
+        ids, questions = q_loaders.load_data()
+        for relate_id, question in zip(ids, questions):
+            question_instance = Question(
+                user=document.user,
+                question=question,
+                answer='',
+                status=QuestionStatus.ACTIVE,
+                collection=document.collection,
+                relate_id=relate_id
+            )
+            question_instance.save()
+            question_instance.documents.add(document)
+    except Exception as e:
+        logger.error(e)
+        raise Exception("an error occur %s" % e)
+    
 @app.task
 def update_index_for_question(question_id):
-    question = Question.objects.get(id=question_id)   
-    embedding_model, _ = get_embedding_model("bge")
+    try:
+        question = Question.objects.get(id=question_id)   
+        embedding_model, _ = get_collection_embedding_model(question.collection)
+        
+        q_loaders = QuestionEmbeddingWithoutDocument(embedding_model=embedding_model,
+                                vector_store_adaptor=get_vector_db_connector(
+                                    collection=generate_qa_vector_db_collection_name(
+                                        collection=question.collection.id)))
+        if question.relate_id is not None:
+            q_loaders.delete(ids=[question.relate_id])
+        if question.status != QuestionStatus.DELETED:
+            ids = q_loaders.load_data(faq=[{"question": question.question, "answer": question.answer}])
+            question.relate_id = ids[0]
+            question.status = QuestionStatus.ACTIVE
+            question.save()
+    except Exception as e:
+        logger.error(e)
+        raise Exception("an error occur %s" % e)
     
-    q_loaders = QuestionEmbeddingWithoutDocument(embedding_model=embedding_model,
-                            vector_store_adaptor=get_vector_db_connector(
-                                collection=generate_qa_vector_db_collection_name(
-                                    collection=question.collection.id)))
-    if question.relate_id is not None:
-        q_loaders.delete(ids=[question.relate_id])
-    if question.status != QuestionStatus.DELETED:
-        ids = q_loaders.load_data(faq=[{"question": question.question, "answer": question.answer}])
-        question.relate_id = ids[0]
-        question.status = QuestionStatus.ACTIVE
-        question.save()
+
+@app.task
+def update_collection_status(status, collection_id):
+    Collection.objects.filter(
+        id=collection_id,
+        status=CollectionStatus.QUESTION_PENDING
+    ).update(status=CollectionStatus.ACTIVE)

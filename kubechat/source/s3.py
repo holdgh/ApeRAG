@@ -17,7 +17,7 @@ class S3Source(Source):
         super().__init__(ctx)
         self.access_key_id = ctx["access_key_id"]
         self.access_key_secret = ctx["secret_access_key"]
-        self.bucket_objs = ctx["buckets"]
+        self.bucket_objs = ctx.get("buckets", [])
         self.bucket_name = ctx.get("bucket", "")
         self.region = ctx.get("region")
         self.dir = ctx.get("dir", "")
@@ -79,7 +79,8 @@ class S3Source(Source):
                     raise e
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
-        obj = self.buckets[metadata["bucket_name"]].Object(name)
+        bucket_name = metadata.get("bucket_name", self.bucket_name)
+        obj = self.buckets[bucket_name].Object(name)
         content = obj.get()["Body"].read()
         temp_file = gen_temporary_file(name)
         temp_file.write(content)

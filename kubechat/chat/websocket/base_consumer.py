@@ -5,13 +5,13 @@ import random
 import traceback
 from abc import abstractmethod
 
-import redis.asyncio as redis
 import websockets
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 import config.settings as settings
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import DEFAULT_USER
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import (
     check_quota_usage,
@@ -48,8 +48,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         chat_id = self.scope[KEY_CHAT_ID]
         self.bot = await query_bot(self.user, bot_id)
 
-        self.history = RedisChatMessageHistory(session_id=chat_id, url=settings.MEMORY_REDIS_URL)
-        self.redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        self.history = RedisChatMessageHistory(session_id=chat_id, redis_client=get_async_redis_client())
         self.conversation_limit = await query_user_quota(self.user, QuotaType.MAX_CONVERSATION_COUNT)
         if self.conversation_limit is None:
             self.conversation_limit = settings.MAX_CONVERSATION_COUNT

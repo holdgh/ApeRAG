@@ -62,6 +62,7 @@ class CollectionStatus(models.TextChoices):
     INACTIVE = "INACTIVE"
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
+    QUESTION_PENDING = "QUESTION_PENDING"
 
 
 class CollectionSyncStatus(models.TextChoices):
@@ -114,6 +115,11 @@ class VerifyWay(models.TextChoices):
     CAONLY = "ca_only"
     FULL = "full"
 
+class QuestionStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    WARNING = "WARNING"
+    DELETED = "DELETED"
+    PENDING = "PENDING"
 
 class Collection(models.Model):
     id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=24)
@@ -325,7 +331,7 @@ class MessageFeedbackStatus(models.TextChoices):
 
 class MessageFeedback(models.Model):
     user = models.CharField(max_length=256)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, null=True, blank=True)
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     message_id = models.CharField(max_length=256)
     upvote = models.IntegerField(default=0)
@@ -343,12 +349,6 @@ class MessageFeedback(models.Model):
         unique_together = ('chat_id', 'message_id')
 
 
-class QuestionStatus(models.TextChoices):
-    ACTIVE = "ACTIVE"
-    WARNING = "WARNING"
-    DELETED = "DELETED"
-    PENDING = "PENDING"
-
 class Question(models.Model):
     id = models.CharField(primary_key=True, default=que_pk, editable=False, max_length=24)
     user = models.CharField(max_length=256)
@@ -362,8 +362,9 @@ class Question(models.Model):
     gmt_deleted = models.DateTimeField(null=True, blank=True)
     relate_id = models.CharField(null=True, max_length=256)
     
-    def view(self):
-        relate_documents = [document.id for document in self.documents.all()]
+    def view(self, relate_documents=None):
+        if not relate_documents:
+            relate_documents = []
         return {
             "id": str(self.id),
             "status": self.status,

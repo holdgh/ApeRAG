@@ -9,8 +9,8 @@ from langchain import PromptTemplate
 from ninja.main import Exc
 from pydantic import ValidationError
 
-from config import settings
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.db.models import BotType, ssl_file_path, ssl_temp_file_path
 from kubechat.db.ops import PagedResult, logger, query_chat_feedbacks
 from kubechat.llm.base import Predictor, PredictorType
@@ -38,7 +38,7 @@ async def query_chat_messages(user, chat_id):
     async for feedback in pr.data:
         feedback_map[feedback.message_id] = feedback
 
-    history = RedisChatMessageHistory(chat_id, url=settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     messages = []
     for message in await history.messages:
         try:
@@ -91,6 +91,8 @@ def validate_bot_config(model, config: Dict, type, memory) -> (bool, str):
     try:
         # validate the prompt
         prompt_template = config.get("prompt_template", None)
+        if not prompt_template and type == BotType.COMMON:
+            return False, "prompt of common bot cannot be null"
         if prompt_template and type == BotType.KNOWLEDGE:
             PromptTemplate(template=prompt_template, input_variables=["query", "context"])
         elif prompt_template and type == BotType.COMMON:

@@ -5,9 +5,8 @@ from threading import Lock
 from typing import Any, Dict
 
 import aiohttp
-import redis.asyncio as redis
 
-from config import settings
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.source.base import CustomSourceInitializationError
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class WeixinClient(ABC):
 
         self.mutex = Lock()
 
-        self.redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        self.redis_client = get_async_redis_client()
 
     async def send_message_to_all(self, message):
         return await self.send_message(message, "@all")

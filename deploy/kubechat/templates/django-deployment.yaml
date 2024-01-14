@@ -44,7 +44,7 @@ spec:
               ln -s /data/.cache/torch /root/.cache/
 
               # prepare rerank model
-              if [ ! -d /data/models/bge-reranker-large ]; then
+              if [ "$RERANK_BACKEND" = "local" ] && [ ! -d /data/models/bge-reranker-large ]; then
                 echo "downloading rerank model"
                 curl --progress-bar -OL https://llm-store.oss-cn-beijing.aliyuncs.com/bge-reranker-large.tar
                 tar -xvf bge-reranker-large.tar
@@ -56,7 +56,7 @@ spec:
               fi
 
               # prepare bge model
-              if [ ! -d /data/.cache/torch/sentence_transformers ]; then
+              if [ "$EMBEDDING_BACKEND" = "local" ] && [ ! -d /data/.cache/torch/sentence_transformers ]; then
                 echo "downloading bge model"
                 curl --progress-bar -OL https://llm-store.oss-cn-beijing.aliyuncs.com/BAAI_bge-large-zh.tar
                 tar -xvf BAAI_bge-large-zh.tar
@@ -66,6 +66,17 @@ spec:
               else
                 echo "bge model exists, skip downloading"
               fi
+          env:
+            - name: EMBEDDING_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  key: EMBEDDING_BACKEND
+                  name: kubechat-config
+            - name: RERANK_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  key: RERANK_BACKEND
+                  name: kubechat-config
           volumeMounts:
             - mountPath: /data
               name: data

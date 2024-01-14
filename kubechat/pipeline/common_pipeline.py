@@ -17,8 +17,6 @@ class CommonPipeline(Pipeline):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if not self.prompt_template:
-            self.prompt_template = COMMON_MEMORY_TEMPLATE
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
         self.file_prompt = PromptTemplate(template=COMMON_FILE_TEMPLATE, input_variables=["query", "context"])
 

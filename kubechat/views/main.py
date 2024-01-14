@@ -5,10 +5,10 @@ import os
 from http import HTTPStatus
 from typing import List, Optional
 
-import redis.asyncio as redis
 import yaml
 from minio import Minio
 from asgiref.sync import sync_to_async
+from celery import chain, group
 from celery.result import GroupResult
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -25,6 +25,7 @@ from config.celery import app
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import GlobalHTTPAuth
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.db.models import (
     Bot,
     BotIntegration,
@@ -60,6 +61,7 @@ from kubechat.db.ops import (
     query_integration,
     query_integrations,
     query_question,
+    query_questions,
     query_running_sync_histories,
     query_sync_histories,
     query_sync_history,
@@ -69,7 +71,8 @@ from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
-    MULTI_ROLE_PROMPT_TEMPLATES,
+    MULTI_ROLE_ZH_PROMPT_TEMPLATES,
+    MULTI_ROLE_EN_PROMPT_TEMPLATES
 )
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import delete_collection_task, init_collection_task
@@ -79,6 +82,7 @@ from kubechat.tasks.index import (
     generate_questions,
     message_feedback,
     remove_index,
+    update_collection_status,
     update_index,
     update_index_for_question,
 )
@@ -121,8 +125,8 @@ class UpdateDocumentIn(Schema):
 class QuestionIn(Schema):
     id: Optional[str]
     question: str
-    answer: str
-    relate_ducuments: Optional[List[str]]
+    answer: Optional[str]
+    relate_documents: Optional[List[str]]
 
 class ConnectionInfo(Schema):
     db_type: str
@@ -182,7 +186,13 @@ def list_models(request):
 
 @router.get("/prompt_templates")
 def list_prompt_templates(request):
-    return success(MULTI_ROLE_PROMPT_TEMPLATES)
+    language = request.headers.get('Lang', "zh-CN")
+    if language == "zh-CN":
+        return success(MULTI_ROLE_ZH_PROMPT_TEMPLATES)
+    elif language == "en-US":
+        return success(MULTI_ROLE_EN_PROMPT_TEMPLATES)
+    else:
+        return fail(HTTPStatus.BAD_REQUEST, "unsupported language of prompt templates")
 
 
 @router.post("/collections/{collection_id}/sync")
@@ -292,7 +302,7 @@ async def create_collection(request, collection: CollectionIn):
             return fail(HTTPStatus.BAD_REQUEST, error_msg)
 
     if config.get("source") == "tencent":
-        redis_client = redis.Redis.from_url(settings.MEMORY_REDIS_URL)
+        redis_client = get_async_redis_client()
         if await redis_client.exists("tencent_code_" + user):
             code = await redis_client.get("tencent_code_" + user)
             redirect_uri = await redis_client.get("tencent_redirect_uri_" + user)
@@ -426,9 +436,20 @@ async def create_questions(request, collection_id):
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    if collection.status == CollectionStatus.QUESTION_PENDING:
+        return fail(HTTPStatus.BAD_REQUEST, "Collection is generating questions")
+    
+    collection.status = CollectionStatus.QUESTION_PENDING
+    await collection.asave()
+    
     documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
+    generate_tasks = []
     async for document in documents:
-        generate_questions.delay(document.id)
+        generate_tasks.append(generate_questions.si(document.id))
+    generate_group = group(*generate_tasks)
+    callback_chain = chain(generate_group, update_collection_status.s(collection.id))
+    callback_chain.delay()
+    
     return success({}) 
 
 @router.put("/collections/{collection_id}/questions")
@@ -447,55 +468,64 @@ async def update_question(request, collection_id, question_in: QuestionIn):
         )
         await question_instance.asave()
     else:
-        question_instance = await query_question(user, collection_id, question_in.id)
+        question_instance = await query_question(user, question_in.id)
         if question_instance is None:
             return fail(HTTPStatus.NOT_FOUND, "Question not found") 
     
     question_instance.question = question_in.question
-    question_instance.answer = question_in.answer
+    question_instance.answer = question_in.answer if question_in.answer else ""
     question_instance.status = QuestionStatus.PENDING
-    question_instance.documents.clear()
+    await sync_to_async(question_instance.documents.clear)()
     
-    if question_in.relate_ducuments:
-        for document_id in question_in.relate_ducuments:
+    if question_in.relate_documents:
+        for document_id in question_in.relate_documents:
             document = await query_document(user, collection_id, document_id)
             if document is None or document.status == DocumentStatus.DELETED:
                 return fail(HTTPStatus.NOT_FOUND, "Document not found")
-            question_instance.documents.add(document)
-            
+            await sync_to_async(question_instance.documents.add)(document)
+    else:
+        question_in.relate_documents = []
     await question_instance.asave()
     update_index_for_question.delay(question_instance.id)
-    
-    return success(question_instance.view()) 
+
+    return success(question_instance.view(question_in.relate_documents))
 
 @router.delete("/collections/{collection_id}/questions/{question_id}")
 async def delete_question(request, collection_id, question_id):
-    
     user = get_user(request)
-    collection = await query_collection(user, collection_id)
-    if collection is None:
-        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    
-    question_instance = Question.objects.get(id=question_id)      
-    question_instance.status = QuestionStatus.DELETED
-    question_instance.gmt_deleted = timezone.now() 
-    await question_instance.asave()
-    update_index_for_question.delay(question_instance.id)
-    
-    return success(question_instance.view()) 
+
+    question = await query_question(user, question_id)
+    if question is None:
+        return fail(HTTPStatus.NOT_FOUND, "Question not found")
+    question.status = QuestionStatus.DELETED
+    question.gmt_deleted = timezone.now()
+    await question.asave()
+    update_index_for_question.delay(question.id)
+
+    docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
+    doc_ids = []
+    async for doc in docs:
+        doc_ids.append(doc.id)
+    return success(question.view(relate_documents=doc_ids))
 
 @router.get("/collections/{collection_id}/questions")
 async def list_questions(request, collection_id):
     user = get_user(request)
-    collection = await query_collection(user, collection_id)
-    if collection is None:
-        return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    
-    questions = await sync_to_async(collection.question_set.exclude)(status=QuestionStatus.DELETED)
+    pr = await query_questions(user, collection_id, build_pq(request))
     response = []
-    async for question in questions:
+    async for question in pr.data:
         response.append(question.view())
-    return success(response) 
+    return success(response, pr)
+
+@router.get("/collections/{collection_id}/questions/{question_id}")
+async def get_question(request, collection_id, question_id):
+    user = get_user(request)
+    question = await query_question(user, question_id)
+    docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
+    doc_ids = []
+    async for doc in docs:
+        doc_ids.append(doc.id)
+    return success(question.view(relate_documents=doc_ids))
 
 @router.post("/collections/{collection_id}/documents")
 async def create_document(request, collection_id, file: List[UploadedFile] = File(None), object_name=None):
@@ -735,7 +765,7 @@ async def update_chat(request, bot_id, chat_id):
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     chat.summary = ""
     await chat.asave()
-    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     await history.clear()
     return success(chat.view(bot_id))
 
@@ -782,7 +812,7 @@ async def delete_chat(request, bot_id, chat_id):
     chat.status = ChatStatus.DELETED
     chat.gmt_deleted = timezone.now()
     await chat.asave()
-    history = RedisChatMessageHistory(chat_id, settings.MEMORY_REDIS_URL)
+    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     await history.clear()
     return success(chat.view(bot_id))
 
