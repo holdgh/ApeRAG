@@ -158,6 +158,12 @@ class DocumentConfig(BaseModel):
     filepath: str = ""
 
 
+@router.get("/user_info")
+def get_user_info(request):
+    user = get_user(request)
+    return success({"is_admin": user == settings.ADMIN_USER})
+
+
 @router.get("/models")
 def list_models(request):
     response = []
@@ -356,16 +362,7 @@ async def create_collection(request, collection: CollectionIn):
 @router.get("/collections")
 async def list_collections(request):
     user = get_user(request)
-    pr = await query_collections(user, build_pq(request))
-    response = []
-    async for collection in pr.data:
-        response.append(collection.view())
-    return success(response, pr)
-
-
-@router.get("/default_collections")
-async def list_system_collections(request):
-    pr = await query_collections(settings.ADMIN_USER, build_pq(request))
+    pr = await query_collections([user, settings.ADMIN_USER], build_pq(request))
     response = []
     async for collection in pr.data:
         response.append(collection.view())
@@ -630,7 +627,7 @@ async def create_url_document(request, collection_id):
 @router.get("/collections/{collection_id}/documents")
 async def list_documents(request, collection_id):
     user = get_user(request)
-    pr = await query_documents(user, collection_id, build_pq(request))
+    pr = await query_documents([user, settings.ADMIN_USER], collection_id, build_pq(request))
     response = []
     async for document in pr.data:
         response.append(document.view())
@@ -695,7 +692,7 @@ async def delete_document(request, collection_id, document_id):
 @router.delete("/collections/{collection_id}/documents")
 async def delete_documents(request, collection_id, document_ids: List[str]):
     user = get_user(request)
-    documents = await query_documents(user, collection_id, build_pq(request))
+    documents = await query_documents([user], collection_id, build_pq(request))
     ok = []
     failed = []
     async for document in documents.data:
@@ -854,7 +851,7 @@ async def create_bot(request, bot_in: BotIn):
 @router.get("/bots")
 async def list_bots(request):
     user = get_user(request)
-    pr = await query_bots(user, build_pq(request))
+    pr = await query_bots([user, settings.ADMIN_USER], build_pq(request))
     response = []
     async for bot in pr.data:
         collections = []
@@ -870,18 +867,6 @@ async def list_bots(request):
         elif model in ["gpt-4-vision-preview", "gpt-4-32k", "gpt-4-32k-0613"]:
             bot_config["model"] = "gpt-4-1106-preview"
         bot.config = json.dumps(bot_config)
-        response.append(bot.view(collections))
-    return success(response, pr)
-
-
-@router.get("/system_bots")
-async def list_system_bots(request):
-    pr = await query_bots(settings.ADMIN_USER, build_pq(request))
-    response = []
-    async for bot in pr.data:
-        collections = []
-        async for collection in await sync_to_async(bot.collections.all)():
-            collections.append(collection.view())
         response.append(bot.view(collections))
     return success(response, pr)
 

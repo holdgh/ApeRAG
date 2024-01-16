@@ -31,7 +31,7 @@ def update_local_directory_index(user, collection_id):
         config["path"]
     )  # full_filename to file info
     # scan the db
-    documents = query_documents(collection.user, collection.id)
+    documents = query_documents([collection.user], collection.id)
     documents_in_db = {}
     for i, doc in enumerate(documents):
         documents_in_db[doc.name] = i

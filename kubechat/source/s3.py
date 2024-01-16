@@ -79,7 +79,8 @@ class S3Source(Source):
                     raise e
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
-        obj = self.buckets[metadata["bucket_name"]].Object(name)
+        bucket_name = metadata.get("bucket_name", self.bucket_name)
+        obj = self.buckets[bucket_name].Object(name)
         content = obj.get()["Body"].read()
         temp_file = gen_temporary_file(name)
         temp_file.write(content)

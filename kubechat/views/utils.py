@@ -91,6 +91,8 @@ def validate_bot_config(model, config: Dict, type, memory) -> (bool, str):
     try:
         # validate the prompt
         prompt_template = config.get("prompt_template", None)
+        if not prompt_template and type == BotType.COMMON:
+            return False, "prompt of common bot cannot be null"
         if prompt_template and type == BotType.KNOWLEDGE:
             PromptTemplate(template=prompt_template, input_variables=["query", "context"])
         elif prompt_template and type == BotType.COMMON:
