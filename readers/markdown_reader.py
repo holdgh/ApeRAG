@@ -206,7 +206,7 @@ class MarkdownReader(BaseReader):
             }
         )
 
-        with open(file) as fd:
+        with open(file, 'r', encoding="utf-8") as fd:
             content = fd.read()
             if len(content) < CHUNK_SPLIT_THRESHOLD:
                 return [Document(text=all_text, metadata=metadata)]
