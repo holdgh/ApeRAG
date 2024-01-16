@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from asgiref.sync import sync_to_async
 from django.db.models import QuerySet
@@ -103,9 +103,9 @@ async def query_collection(user, collection_id: str):
         return None
 
 
-async def query_collections(user, pq: PagedQuery = None):
+async def query_collections(users: List[str], pq: PagedQuery = None):
     filters = build_filters(pq)
-    query_set = Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user, **filters)
+    query_set = Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user__in=users, **filters)
     return await build_pr(pq, query_set)
 
 
@@ -124,10 +124,10 @@ async def query_document(user, collection_id: str, document_id: str):
         return None
 
 
-async def query_documents(user, collection_id: str, pq: PagedQuery = None):
+async def query_documents(users, collection_id: str, pq: PagedQuery = None):
     filters = build_filters(pq)
     query_set = Document.objects.exclude(status=DocumentStatus.DELETED).filter(
-        user=user, collection_id=collection_id, **filters)
+        user__in=users, collection_id=collection_id, **filters)
     return await build_pr(pq, query_set)
 
 
@@ -268,9 +268,9 @@ async def query_bot(user, bot_id: str):
         return None
 
 
-async def query_bots(user, pq: PagedQuery = None):
+async def query_bots(users: List[str], pq: PagedQuery = None):
     filters = build_filters(pq)
-    query_set = Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters)
+    query_set = Bot.objects.exclude(status=BotStatus.DELETED).filter(user__in=users, **filters)
     return await build_pr(pq, query_set)
 
 

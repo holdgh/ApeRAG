@@ -52,7 +52,7 @@ def sync_documents(self, **kwargs):
     logger.debug(f"sync_documents_cron_job() : sync collection{collection_id} start ")
 
     dst_docs = {}
-    pr = async_to_sync(query_documents)(user=collection.user, collection_id=collection_id, pq=None)
+    pr = async_to_sync(query_documents)(users=[collection.user], collection_id=collection_id, pq=None)
     for doc in pr.data:
         dst_docs[doc.name] = doc
 

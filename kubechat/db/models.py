@@ -6,6 +6,8 @@ from django.db.models import IntegerField
 from django.db.models.functions import Cast
 from django.utils import timezone
 
+from config import settings
+
 
 def random_id():
     return ''.join(random.sample(uuid.uuid4().hex, 16))
@@ -143,6 +145,7 @@ class Collection(models.Model):
             "status": self.status,
             "type": self.type,
             "bot_ids": bot_ids,
+            "system": self.user == settings.ADMIN_USER,
             "config": self.config,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
@@ -224,6 +227,7 @@ class Bot(models.Model):
             "type": self.type,
             "description": self.description,
             "config": self.config,
+            "system": self.user == settings.ADMIN_USER,
             "collections": collections,
             "created": self.gmt_created.isoformat(),
             "updated": self.gmt_updated.isoformat(),
