@@ -220,20 +220,8 @@ def add_index_for_document(self, document_id):
                 index = generate_fulltext_index_name(document.collection.id)
                 insert_document(index, document.id, local_doc.name, content)
 
-            # predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
-            # qa_loaders = LocalPathQAEmbedding(predictor=predictor,
-            #                                   input_files=[local_doc.path],
-            #                                   input_file_metadata_list=[local_doc.metadata],
-            #                                   embedding_model=embedding_model,
-            #                                   vector_store_adaptor=get_vector_db_connector(
-            #                                       collection=generate_qa_vector_db_collection_name(
-            #                                           collection=document.collection.id)))
-            # qa_ids = qa_loaders.load_data()
-            # logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
-            
             relate_ids = {
                 "ctx": ctx_ids,
-                # "qa": qa_ids,
             }
             document.relate_ids = json.dumps(relate_ids)
             
@@ -275,12 +263,6 @@ def remove_index(self, document_id):
         ctx_relate_ids = relate_ids.get("ctx", [])
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.file}")
-
-        # qa_vector_db = get_vector_db_connector(
-        #     collection=generate_qa_vector_db_collection_name(collection=document.collection.id))
-        # qa_relate_ids = relate_ids.get("qa", [])
-        # qa_vector_db.connector.delete(ids=qa_relate_ids)
-        # logger.info(f"remove qa qdrant points: {qa_relate_ids} for document {document.file}")
 
     except Exception as e:
         raise e
@@ -325,20 +307,8 @@ def update_index(self, document_id):
             index = generate_fulltext_index_name(document.collection.id)
             insert_document(index, document.id, local_doc.name, content)
 
-        # predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM)
-        # qa_loader = LocalPathQAEmbedding(predictor=predictor,
-        #                                  input_files=[local_doc.path],
-        #                                  input_file_metadata_list=[local_doc.metadata],
-        #                                  embedding_model=embedding_model,
-        #                                  vector_store_adaptor=get_vector_db_connector(
-        #                                      collection=generate_qa_vector_db_collection_name(
-        #                                          collection=document.collection.id)))
-        # qa_loader.connector.delete(ids=relate_ids.get("qa", []))
-        # qa_ids = qa_loader.load_data()
-        # logger.info(f"add qa qdrant points: {qa_ids} for document {local_doc.path}")
         relate_ids = {
             "ctx": ctx_ids,
-            # "qa": qa_ids,
         }
         document.relate_ids = json.dumps(relate_ids)
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")

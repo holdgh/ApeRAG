@@ -36,10 +36,10 @@ data:
   RERANK_BACKEND: "{{ .Values.django.rerankBackend }}"
   RERANK_SERVICE_URL: "{{ .Values.django.rerankServiceUrl }}"
   RERANK_SERVICE_MODEL_UID: "{{ .Values.django.rerankServiceModelUid }}"
-  ENABLE_QA_GENERATOR: "{{ .Values.django.enableQAGenerator }}"
   ES_HOST: "{{ .Values.django.esHost }}"
   WHISPER_HOST: "{{ .Values.django.whisperHost }}"
   PADDLEOCR_HOST: "{{ .Values.django.paddleocrHost }}"
+  ADMIN_USER: "{{ .Values.django.adminUser }}"
 kind: ConfigMap
 metadata:
   labels:

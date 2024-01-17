@@ -151,11 +151,6 @@ spec:
                   key: OPENAI_API_PROXY
                   name: kubechat-config
             {{- end}}
-            - name: ENABLE_QA_GENERATOR
-              valueFrom:
-                configMapKeyRef:
-                  key: ENABLE_QA_GENERATOR
-                  name: kubechat-config
             - name: MODEL_FAMILIES
               valueFrom:
                 configMapKeyRef:

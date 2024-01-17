@@ -107,11 +107,11 @@ django:
     #   cpu: 100m
     #   memory: 128Mi
   authType: none
-  enableQAGenerator: False
   esHost: http://elasticsearch-elasticsearch:9200
   redisSecret: redis-conn-credential
   metaDBSecret: postgresql-conn-credential
   metaDBDatabase: kubechat
+  adminUser: ""
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   openaiAPIKey: ""
@@ -410,17 +410,3 @@ paddleocr:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-embedding:
-   replicaCount: 1
-   resources:
-     limits:
-       nvidia.com/gpu: "1"
-   affinity:
-     podAntiAffinity:
-       preferredDuringSchedulingIgnoredDuringExecution:
-         - weight: 100
-           podAffinityTerm:
-             labelSelector:
-               matchLabels:
-                 app: kubechat-embedding
-             topologyKey: kubernetes.io/hostname

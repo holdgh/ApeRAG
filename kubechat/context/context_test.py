@@ -88,10 +88,6 @@ class EmbeddingCtx:
                 doc_content = f.read()
             insert_document(self.index, doc_id, local_doc["name"], doc_content)
 
-        # qa_loader = LocalPathQAEmbedding(predictor=predictor, input_files=[file_path], embedding_model=self.model,
-        #                                  vector_store_adaptor=self.qa_vector_db_conn)
-        # qa_loader.load_data()
-
     def load_dir(self, path):
         self.vector_db_conn.connector.create_collection(vector_size=self.vector_size)
         self.qa_vector_db_conn.connector.create_collection(vector_size=self.vector_size)
@@ -214,9 +210,6 @@ def main(datasets, documents, models, reload, **kwargs):
             headers.append(f"{ctx.model_name}-inference")
 
     return headers, table
-
-
-os.environ["ENABLE_QA_GENERATOR"] = "True"
 
 
 if __name__ == "__main__":
