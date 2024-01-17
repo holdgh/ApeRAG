@@ -1,0 +1,791 @@
+{
+    "paths": {
+        "/api/v1/organizations": {
+          "get": {
+            "description": "List organizations of current user",
+            "operationId": "listOrg",
+            "parameters": [
+              {
+                "description": "The pagination token in the List request",
+                "in": "query",
+                "name": "pageToken",
+                "type": "string"
+              },
+              {
+                "description": "The pagination size in the List request.",
+                "in": "query",
+                "name": "pageSize",
+                "type": "string"
+              }
+            ],
+            "produces": [
+              "application/json",
+              "application/yaml"
+            ],
+            "responses": {
+              "200": {
+                "description": "OK",
+                "schema": {
+                  "$ref": "#/definitions/orgList"
+                }
+              },
+              "401": {
+                "description": "Unauthorized"
+              }
+            },
+            "schemes": [
+              "https"
+            ],
+            "tags": [
+              "organization"
+            ]
+          },
+          "post": {
+            "consumes": [
+              "*/*"
+            ],
+            "description": "create a Organization",
+            "operationId": "createOrg",
+            "parameters": [
+              {
+                "in": "body",
+                "name": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/orgCreate"
+                }
+              }
+            ],
+            "produces": [
+              "application/json",
+              "application/yaml"
+            ],
+            "responses": {
+              "200": {
+                "description": "OK",
+                "schema": {
+                  "$ref": "#/definitions/org"
+                }
+              },
+              "401": {
+                "description": "Unauthorized"
+              }
+            },
+            "schemes": [
+              "https"
+            ],
+            "tags": [
+              "organization"
+            ]
+          }
+        },
+        "/api/v1/organizations/{orgName}": {
+          "delete": {
+            "consumes": [
+              "*/*"
+            ],
+            "description": "delete a Org",
+            "operationId": "deleteOrg",
+            "parameters": [],
+            "produces": [
+              "application/json",
+              "application/yaml"
+            ],
+            "responses": {
+              "204": {
+                "description": "No Content"
+              },
+              "401": {
+                "description": "Unauthorized"
+              },
+              "403": {
+                "description": "Forbidden"
+              },
+              "404": {
+                "description": "NotFound"
+              }
+            },
+            "schemes": [
+              "https"
+            ],
+            "tags": [
+              "organization"
+            ]
+          },
+          "get": {
+            "consumes": [
+              "*/*"
+            ],
+            "description": "read the specified Org",
+            "operationId": "readOrg",
+            "produces": [
+              "application/json",
+              "application/yaml"
+            ],
+            "responses": {
+              "200": {
+                "description": "OK",
+                "schema": {
+                  "$ref": "#/definitions/org"
+                }
+              },
+              "401": {
+                "description": "Unauthorized"
+              },
+              "403": {
+                "description": "Forbidden"
+              }
+            },
+            "schemes": [
+              "https"
+            ],
+            "tags": [
+              "organization"
+            ]
+          },
+          "parameters": [
+            {
+              "description": "name of the Org",
+              "in": "path",
+              "name": "orgName",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "patch": {
+            "consumes": [
+              "application/json-patch+json",
+              "application/merge-patch+json",
+              "application/strategic-merge-patch+json",
+              "application/apply-patch+yaml"
+            ],
+            "description": "partially update the specified Org",
+            "operationId": "patchOrg",
+            "parameters": [
+              {
+                "in": "body",
+                "name": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/orgUpdate"
+                }
+              }
+            ],
+            "produces": [
+              "application/json",
+              "application/yaml"
+            ],
+            "responses": {
+              "200": {
+                "description": "OK",
+                "schema": {
+                  "$ref": "#/definitions/org"
+                }
+              },
+              "201": {
+                "description": "Created",
+                "schema": {
+                  "$ref": "#/definitions/org"
+                }
+              },
+              "401": {
+                "description": "Unauthorized"
+              },
+              "403": {
+                "description": "Forbidden"
+              }
+            },
+            "schemes": [
+              "https"
+            ],
+            "tags": [
+              "organization"
+            ]
+          }
+        },
+        "/api/v1/organizations/{orgName}/members": {
+          "get": {
+            "consumes": [
+              "*/*"
+            ],
+            "description": "list members of the specified Org",
+            "operationId": "listOrgMember",
+            "parameters": [
+              {
+                "description": "The pagination token in the List request",
+                "in": "query",
+                "name": "pageToken",
+                "type": "string"
+              },
+              {
+                "description": "The pagination size in the List request.",
+                "in": "query",
+                "name": "pageSize",
+                "type": "string"
+              }
+            ],
+            "produces": [
+              "application/json",
+              "application/yaml"
+            ],
+            "responses": {
+              "200": {
+                "description": "OK",
+                "schema": {
+                  "$ref": "#/definitions/orgMemberList"
+                }
+              },
+              "401": {
+                "description": "Unauthorized"
+              },
+              "403": {
+                "description": "Forbidden"
+              }
+            },
+            "schemes": [
+              "https"
+            ],
+            "tags": [
+              "member"
+            ]
+          }
+        },
+        "/api/v1/user": {
+            "get": {
+                "description": "read current login User",
+                "operationId": "readUser",
+                "parameters": [],
+                "produces": [
+                    "application/json",
+                    "application/yaml"
+                ],
+                "responses": {
+                    "200": {
+                    "description": "OK",
+                    "schema": {
+                        "$ref": "#/definitions/user"
+                    }
+                    },
+                    "401": {
+                    "description": "Unauthorized"
+                    }
+                },
+                "schemes": [
+                    "https"
+                ],
+                "tags": [
+                    "user"
+                ]
+                },
+                "patch": {
+                "consumes": [
+                    "application/json-patch+json",
+                    "application/merge-patch+json",
+                    "application/strategic-merge-patch+json",
+                    "application/apply-patch+yaml"
+                ],
+                "description": "partially update the specified User. If you want to update phone number, you must request /api/v1/user/phone-verification-code first.",
+                "operationId": "patchUser",
+                "parameters": [
+                    {
+                    "in": "body",
+                    "name": "body",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/definitions/userUpdate"
+                    }
+                    }
+                ],
+                "produces": [
+                    "application/json",
+                    "application/yaml"
+                ],
+                "responses": {
+                    "204": {
+                    "description": "No Content"
+                    },
+                    "401": {
+                    "description": "Unauthorized"
+                    }
+                },
+                "schemes": [
+                    "https"
+                ],
+                "tags": [
+                    "user"
+                ]
+            }
+        },
+        "/api/v1/organizations/{orgName}/clusters": {
+            "get": {
+            "operationId": "listCluster",
+            "description": "list clusters of the specified Org",
+            "parameters": [
+                {
+                "description": "The clusterDefinitionn in the List request",
+                "in": "query",
+                "name": "clusterDefinition",
+                "type": "string"
+                },
+                {
+                "description": "Environment Type",
+                "in": "query",
+                "name": "environmentName",
+                "required": false,
+                "type": "string"
+                },
+                {
+                "description": "Environment Type",
+                "in": "query",
+                "name": "environmentType",
+                "required": false,
+                "type": "string",
+                "enum": [
+                    "managed",
+                    "registered"
+                ]
+                }
+            ],
+            "responses": {
+                "200": {
+                "description": "A successful response.",
+                "schema": {
+                    "$ref": "#/definitions/clusterList"
+                }
+                },
+                "401": {
+                "description": "Unauthorized"
+                },
+                "403": {
+                "description": "Forbidden"
+                },
+                "404": {
+                "description": "NotFound"
+                },
+                "default": {
+                "description": "An unexpected error response.",
+                "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                }
+                }
+            },
+            "tags": [
+                "cluster"
+            ]
+            },
+            "parameters": [
+            {
+                "description": "name of the Org",
+                "in": "path",
+                "name": "orgName",
+                "required": true,
+                "type": "string"
+            }
+            ],
+            "post": {
+            "operationId": "createCluster",
+            "responses": {
+                "200": {
+                "description": "A successful response.",
+                "schema": {
+                    "$ref": "#/definitions/cluster"
+                }
+                },
+                "401": {
+                "description": "Unauthorized"
+                },
+                "403": {
+                "description": "Forbidden"
+                },
+                "404": {
+                "description": "NotFound"
+                },
+                "default": {
+                "description": "An unexpected error response.",
+                "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                }
+                }
+            },
+            "parameters": [
+                {
+                "description": "name of the Org",
+                "in": "path",
+                "name": "orgName",
+                "required": true,
+                "type": "string"
+                },
+                {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                    "$ref": "#/definitions/cluster"
+                }
+                }
+            ],
+            "tags": [
+                "cluster"
+            ]
+            }
+        },
+        "/api/v1/organizations/{orgName}/clusters/{clusterName}": {
+            "get": {
+            "operationId": "readCluster",
+            "description": "list specified cluster info of the specified Org",
+            "responses": {
+                "200": {
+                "description": "A successful response.",
+                "schema": {
+                    "$ref": "#/definitions/cluster"
+                }
+                },
+                "401": {
+                "description": "Unauthorized"
+                },
+                "403": {
+                "description": "Forbidden"
+                },
+                "404": {
+                "description": "NotFound"
+                },
+                "409": {
+                "description": "Conflict"
+                },
+                "default": {
+                "description": "An unexpected error response.",
+                "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                }
+                }
+            },
+            "tags": [
+                "cluster"
+            ]
+            },
+            "parameters": [
+            {
+                "description": "name of the Org",
+                "in": "path",
+                "name": "orgName",
+                "required": true,
+                "type": "string"
+            },
+            {
+                "description": "name of the KubeBlocks cluster",
+                "in": "path",
+                "name": "clusterName",
+                "required": true,
+                "type": "string"
+            }
+            ],
+            "patch": {
+            "consumes": [
+                "application/json-patch+json",
+                "application/merge-patch+json",
+                "application/strategic-merge-patch+json",
+                "application/apply-patch+yaml"
+            ],
+            "description": "partially update the specified Cluster",
+            "operationId": "patchCluster",
+            "parameters": [
+                {
+                "in": "body",
+                "name": "body",
+                "required": true,
+                "schema": {
+                    "$ref": "#/definitions/clusterUpdate"
+                }
+                }
+            ],
+            "produces": [
+                "application/json",
+                "application/yaml"
+            ],
+            "responses": {
+                "200": {
+                "description": "No Content",
+                "schema": {
+                    "$ref": "#/definitions/cluster"
+                }
+                },
+                "401": {
+                "description": "Unauthorized"
+                }
+            },
+            "schemes": [
+                "https"
+            ],
+            "tags": [
+                "cluster"
+            ]
+            },
+            "delete": {
+            "operationId": "deleteCluster",
+            "responses": {
+                "204": {
+                "description": "Returned when project is deleted successfully.",
+                "schema": {}
+                },
+                "403": {
+                "description": "Returned when the user does not have permission to access the resource.",
+                "schema": {}
+                },
+                "404": {
+                "description": "Returned when the resource does not exist.",
+                "schema": {
+                    "type": "string",
+                    "format": "string"
+                }
+                },
+                "default": {
+                "description": "An unexpected error response.",
+                "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                }
+                }
+            },
+            "tags": [
+                "cluster"
+            ]
+            }
+        },
+        "/api/v1/organizations/{orgName}/environments": {
+            "get": {
+              "operationId": "listEnvironment",
+              "description": "list environments of the specified Org",
+              "responses": {
+                "200": {
+                  "description": "A successful response.",
+                  "schema": {
+                    "$ref": "#/definitions/environmentList"
+                  }
+                },
+                "403": {
+                  "description": "Returned when the user does not have permission to access the resource."
+                },
+                "404": {
+                  "description": "Returned when the resource does not exist."
+                },
+                "default": {
+                  "description": "An unexpected error response.",
+                  "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                  }
+                }
+              },
+              "parameters": [
+                {
+                  "description": "name of the Org",
+                  "in": "path",
+                  "name": "orgName",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "description": "type of the Environment",
+                  "in": "query",
+                  "name": "environmentType",
+                  "required": false,
+                  "type": "string",
+                  "enum": [
+                    "fullManaged",
+                    "managed",
+                    "registered"
+                  ]
+                }
+              ],
+              "tags": [
+                "environment"
+              ]
+            },
+            "post": {
+              "operationId": "createEnvironment",
+              "responses": {
+                "201": {
+                  "description": "Returned when environment is created successfully.",
+                  "schema": {
+                    "$ref": "#/definitions/environment"
+                  }
+                },
+                "403": {
+                  "description": "Returned when the user does not have permission to access the resource.",
+                  "schema": {}
+                },
+                "404": {
+                  "description": "Returned when the resource does not exist.",
+                  "schema": {
+                    "type": "string",
+                    "format": "string"
+                  }
+                },
+                "default": {
+                  "description": "An unexpected error response.",
+                  "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                  }
+                }
+              },
+              "parameters": [
+                {
+                  "description": "name of the Org",
+                  "in": "path",
+                  "name": "orgName",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "name": "body",
+                  "in": "body",
+                  "required": true,
+                  "schema": {
+                    "$ref": "#/definitions/environmentCreate"
+                  }
+                }
+              ],
+              "tags": [
+                "environment"
+              ]
+            }
+        },
+        "/api/v1/organizations/{orgName}/environments/{environmentName}": {
+            "get": {
+              "operationId": "getEnvironemnt",
+              "description": "list specified environment info of the specified Org",
+              "responses": {
+                "200": {
+                  "description": "A successful response.",
+                  "schema": {
+                    "$ref": "#/definitions/environment"
+                  }
+                },
+                "403": {
+                  "description": "Returned when the user does not have permission to access the resource.",
+                  "schema": {}
+                },
+                "404": {
+                  "description": "Returned when the resource does not exist.",
+                  "schema": {
+                    "type": "string",
+                    "format": "string"
+                  }
+                },
+                "default": {
+                  "description": "An unexpected error response.",
+                  "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                  }
+                }
+              },
+              "tags": [
+                "environment"
+              ]
+            },
+            "parameters": [
+              {
+                "description": "name of the Org",
+                "in": "path",
+                "name": "orgName",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "description": "name of the Environemnt",
+                "in": "path",
+                "name": "environmentName",
+                "required": true,
+                "type": "string"
+              }
+            ],
+            "patch": {
+              "consumes": [
+                "application/json-patch+json",
+                "application/merge-patch+json",
+                "application/strategic-merge-patch+json",
+                "application/apply-patch+yaml"
+              ],
+              "description": "partially update the specified Environemnt",
+              "operationId": "patchEnvironemnt",
+              "parameters": [
+                {
+                  "in": "body",
+                  "name": "body",
+                  "required": true,
+                  "schema": {
+                    "$ref": "#/definitions/environmentUpdate"
+                  }
+                }
+              ],
+              "produces": [
+                "application/json",
+                "application/yaml"
+              ],
+              "responses": {
+                "200": {
+                  "description": "OK",
+                  "schema": {
+                    "$ref": "#/definitions/environment"
+                  }
+                },
+                "401": {
+                  "description": "Unauthorized"
+                },
+                "403": {
+                  "description": "Forbidden"
+                }
+              },
+              "schemes": [
+                "https"
+              ],
+              "tags": [
+                "environment"
+              ]
+            },
+            "delete": {
+              "operationId": "deleteEnvironemnt",
+              "responses": {
+                "204": {
+                  "description": "Returned when project is deleted successfully.",
+                  "schema": {}
+                },
+                "403": {
+                  "description": "Returned when the user does not have permission to access the resource.",
+                  "schema": {}
+                },
+                "404": {
+                  "description": "Returned when the resource does not exist.",
+                  "schema": {
+                    "type": "string",
+                    "format": "string"
+                  }
+                },
+                "default": {
+                  "description": "An unexpected error response.",
+                  "schema": {
+                    "$ref": "#/definitions/googlerpcStatus"
+                  }
+                }
+              },
+              "parameters": [
+                {
+                  "description": "name of the Org",
+                  "in": "path",
+                  "name": "orgName",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "description": "name of the Environemnt",
+                  "in": "path",
+                  "name": "environmentName",
+                  "required": true,
+                  "type": "string"
+                }
+              ],
+              "tags": [
+                "environment"
+              ]
+            }
+        }
+    }
+}

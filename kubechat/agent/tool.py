@@ -4,15 +4,23 @@ import requests
 import os
 import re
 from langchain_community.vectorstores import FAISS
-os.environ['BEARER_TOKEN'] = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InlBa0ZPbkF3MTVfdzRTeW5wM1FNVEMzN2hpdHJLVWIxQms1dVdFMWtlNlUifQ.eyJ1cGRhdGVkX2F0IjoiMjAyNC0wMS0wOFQxMzowNjo0NS40MDVaIiwiYWRkcmVzcyI6eyJjb3VudHJ5IjpudWxsLCJwb3N0YWxfY29kZSI6bnVsbCwicmVnaW9uIjpudWxsLCJmb3JtYXR0ZWQiOm51bGx9LCJwaG9uZV9udW1iZXJfdmVyaWZpZWQiOmZhbHNlLCJwaG9uZV9udW1iZXIiOm51bGwsImxvY2FsZSI6bnVsbCwiem9uZWluZm8iOm51bGwsImJpcnRoZGF0ZSI6bnVsbCwiZ2VuZGVyIjoiVSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJlbWFpbCI6Imdhb21qQGJ1cHQuZWR1LmNuIiwid2Vic2l0ZSI6bnVsbCwicGljdHVyZSI6Imh0dHBzOi8vZmlsZXMuYXV0aGluZy5jby9hdXRoaW5nLWNvbnNvbGUvZGVmYXVsdC11c2VyLWF2YXRhci5wbmciLCJwcm9maWxlIjpudWxsLCJwcmVmZXJyZWRfdXNlcm5hbWUiOm51bGwsIm5pY2tuYW1lIjpudWxsLCJtaWRkbGVfbmFtZSI6bnVsbCwiZmFtaWx5X25hbWUiOm51bGwsImdpdmVuX25hbWUiOm51bGwsIm5hbWUiOm51bGwsInN1YiI6IjY1OWJmMzQxMjI1NTViOGFmZDljZDI1MCIsImV4dGVybmFsX2lkIjpudWxsLCJ1bmlvbmlkIjpudWxsLCJ1c2VybmFtZSI6bnVsbCwiZGF0YSI6eyJ0eXBlIjoidXNlciIsInVzZXJQb29sSWQiOiI2NTRjY2NjODQ3MDYwNzZhMDg2ZDgyZWUiLCJhcHBJZCI6IjY1NGNjZDFmZGRiYTcwZTMzY2Q5ZTExNiIsImlkIjoiNjU5YmYzNDEyMjU1NWI4YWZkOWNkMjUwIiwidXNlcklkIjoiNjU5YmYzNDEyMjU1NWI4YWZkOWNkMjUwIiwiX2lkIjoiNjU5YmYzNDEyMjU1NWI4YWZkOWNkMjUwIiwicGhvbmUiOm51bGwsImVtYWlsIjoiZ2FvbWpAYnVwdC5lZHUuY24iLCJ1c2VybmFtZSI6bnVsbCwidW5pb25pZCI6bnVsbCwib3BlbmlkIjpudWxsLCJjbGllbnRJZCI6IjY1NGNjY2M4NDcwNjA3NmEwODZkODJlZSJ9LCJ1c2VycG9vbF9pZCI6IjY1NGNjY2M4NDcwNjA3NmEwODZkODJlZSIsImF1ZCI6IjY1NGNjZDFmZGRiYTcwZTMzY2Q5ZTExNiIsImV4cCI6MTcwNTkyODgxMCwiaWF0IjoxNzA0NzE5MjEwLCJpc3MiOiJodHRwczovL2FwZWNsb3VkLWRldi5hdXRoaW5nLmNuL29pZGMiLCJrdWJlYmxvY2tzLmlvL3VpZCI6IjI2NzI3NzcwMjE3NDYyMTY5NiJ9.YwggcY5YQOtM2eMo-zvzv7gvr8DuSL1B6PWlS_HTSScWsr57XM6b7UXPBsErgMzgjyeOlKY9asb4nrujf0AEEn9op3zGM77dyWelJZMvZNSjx8WFNlSpcXc0rtouHlJD2M1Nv3rPPT1eF1dMuX_SMQA4slQ7J9hs4igif2mDsIkuHfTP_rSkU9-DtjnqZKCeiY-3_RlostS5zFrH8sDWwdNvRTjmia3ErRpoR3Z-cpNAgxT5grJ6qn31G25Mh2iSR6m4bUz8golM9vOevX10sAqlnzNTsJvIPVLU3utB43eYophbLXu6Hw2GtVGbYkn5ACVndN0VVZhSsLdBXIqGHA'
+os.environ['BEARER_TOKEN'] = ""
 from langchain_openai import OpenAIEmbeddings
 from langchain.schema import Document
+# class CountTool(BaseTool):
+#     def _run(self, data = None):
+#         try:
+#             json_data = json.loads(data)
+#         except:
+#             return "输入格式有误，必须是json格式的数据，不包括其他信息"
+        
+
 class APIDefinition(BaseTool):
     url: str
     method: str
     return_direct = False
     before_need_tool: list = []
-    before_prompt: str = "输入有误，请先调用工具：{before_need_tool}，结合回复获取本工具的必要输入参数，然后再调用本工具"
+    before_prompt: str = "输入有误，请先调用工具：{before_need_tool}"
     bearer_token = os.getenv('BEARER_TOKEN')
     tool_index : list = []
     
@@ -30,10 +38,10 @@ class APIDefinition(BaseTool):
         if input_datas == ['']:
             input_datas = []
         
-        before = "输入参数为list格式，需要以逗号分隔，分别代表：{arg_match}，不包括其他无关表达".format(arg_match = str(arg_match))
+        before = "输入参数为list格式，需要以逗号分隔，分别代表：{arg_match}，不包括其他无关表达。".format(arg_match = str(arg_match))
         after = self.before_prompt.format(before_need_tool = str(self.before_need_tool))
         headers = {'Authorization': f'Bearer {self.bearer_token}'}
-        if 'orgName' in arg_match and not input_datas:    
+        if arg_match == ['orgName']:    
             response = requests.get("https://api-dev.apecloud.cn/api/v1/organizations", headers=headers)
             input_datas = [json.loads(response.text)["items"][0]["name"]]
 
@@ -50,8 +58,7 @@ class APIDefinition(BaseTool):
         try:
             answer = json.loads(response.text)
             if answer.get("error",None) != None:
-                if answer["error"]["code"] == 403:
-                    return before+after
+                return before+after
             else:
                 return response.text
         except:

@@ -25,7 +25,7 @@ from kubechat.utils.utils import (
 from query.query import DocumentWithScore, get_packed_answer
 from readers.base_embedding import get_embedding_model, rerank
 from kubechat.agent.tool import SeleceTools
-from kubechat.agent.prompt import SUFFIX_CHINESE, TEMPLATE_TOOL_RESPONSE_CHINESE, FORMAT_INSTRUCTIONS_CHINESE
+from kubechat.agent.prompt import SUFFIX_CHINESE, TEMPLATE_TOOL_RESPONSE_CHINESE, FORMAT_INSTRUCTIONS_CHINESE, QA_SELECT_PROMPT
 from langchain.output_parsers.json import parse_json_markdown
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,10 @@ class KnowledgePipeline(Pipeline):
             # self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
             #                                                                  DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
+        
+        # agent
+        self.tools = SeleceTools("https://api-dev.apecloud.cn", "./kubechat/agent/test.json")
+
 
     async def new_ai_message(self, message, message_id, response, references):
         return Message(
@@ -150,10 +154,11 @@ class KnowledgePipeline(Pipeline):
                     return "Final Answer", action_input_value
                 else:
                     return action_value, action_input_value
+            else:
+                return "Final Answer", ""
     
     async def agent(self, message, max_iterations=5):
-        tools = SeleceTools("https://api-dev.apecloud.cn", "F:/apecloud/KubeChat/kubechat/agent/swagger.json")
-        select_tools = tools.select(message)
+        select_tools = self.tools.select(message)
         tool_names = ", ".join([tool.name for tool in select_tools])
         tool_strings = "\n".join([f"> {tool.name}: {tool.description}" for tool in select_tools])        
 
@@ -162,19 +167,28 @@ class KnowledgePipeline(Pipeline):
         async for msg in self.predictor.agenerate_stream("", prompt, False):
             response += msg
             
-        print(prompt,response)
         operate, context = self.parse(response)
         history = ''
+        tool_responses = ''
         iterations = 1
         while iterations < max_iterations and operate != "Final Answer":
-            tool_response = tools.make_run(operate, context)
-            history+='AI:{ai}\nHuman:{human}\n'.format(ai=str({operate:context}),human=tool_response)
-            prompt = SUFFIX_CHINESE.format(tools=tool_strings, input = message) +TEMPLATE_TOOL_RESPONSE_CHINESE.format(history = history) + FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)
+            tool_response = self.tools.make_run(operate, context)
+            print("[AI]:\n",response, '\n[TOOL]:\n',tool_response)
+            if "输入有误" not in tool_response:
+                tool_responses += tool_response+'\n'
+            history+='AI:{ai}\nHuman:{human}\n'.format(ai=str({"action":operate,"action_input":context}),human=tool_response)
+            prompt = SUFFIX_CHINESE.format(tools=tool_strings, input = message) + FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)+TEMPLATE_TOOL_RESPONSE_CHINESE.format(history = history,response = tool_response)
+            response = ''
             async for msg in self.predictor.agenerate_stream("", prompt, False):
                 response += msg
             operate, context = self.parse(response)
             iterations += 1
-        return context
+            
+        prompt = QA_SELECT_PROMPT.format(input = message, known_info = tool_responses, answer = context)
+        response = ''
+        async for msg in self.predictor.agenerate_stream("", prompt, False):
+            response += msg
+        return response
         
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"
@@ -274,14 +288,13 @@ class KnowledgePipeline(Pipeline):
                 prompt = self.prompt.format(query=message, context=context)
                 logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
-                # async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
-                #     yield msg
-                #     response += msg
-                
-                
                 response = await self.agent(message, max_iterations=5)
+                yield response
                 # await self.predictor.agenerate_stream(history, prompt, self.memory)
-                
+                # if operate != "Final Answer":
+                #     async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
+                #         yield msg
+                #         response += msg
 
                 for result in candidates:
                     # filter bot_context
