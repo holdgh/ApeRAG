@@ -976,59 +976,28 @@ Now please translate the following content into Japanese:
 ]
 
 
-PREFIX = """Assistant is a large language model trained by OpenAI.
+SUFFIX_CHINESE = """
+你需要综合历史对话记录和工具，来回答用户的问题。
+【工具】
 
-Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+你可以要求使用工具查找可能有助于回答用户原始问题的信息。你可以使用的工具包括：
 
-Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
+{tools}
 
-Overall, Assistant is a powerful system that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist."""
+【用户的问题】
+--------------------
+以下是用户的问题：
 
-PREFIX_CHINESE = """
-【助理】
-助理是由OpenAI训练的一款大型语言模型。
-
-助理旨在能够协助处理各种任务，从回答简单问题到就各种主题进行深入解释和讨论。作为一个语言模型，助理能够根据接收到的输入生成类似人类的文字，使其能够进行自然流畅的对话，并提供连贯且与手头话题相关的回答。
-
-助理不断学习和改进，其能力不断演进。它能够处理和理解大量文本，并利用这些知识对各种问题提供准确而丰富的回答。此外，助理能够根据接收到的输入生成自己的文字，使其能够就各种主题展开讨论，并提供解释和描述。
-
-总的来说，助理是一个强大的系统，可以处理各种任务，并在广泛的主题上提供有价值的见解和信息。无论您需要针对特定问题的帮助，还是只是想就某个特定主题进行对话，助理都在这里为您提供帮助。"""
-
-
-FORMAT_INSTRUCTIONS = """RESPONSE FORMAT INSTRUCTIONS
-----------------------------
-
-When responding to me, please output a response in one of two formats:
-
-**Option 1:**
-Use this if you want the human to use a tool.
-Markdown code snippet formatted in the following schema:
-
-```json
-{{{{
-    "action": string, \\\\ The action to take. Must be one of {tool_names}
-    "action_input": string \\\\ The input to the action
-}}}}
-```
-
-**Option #2:**
-Use this if you want to respond directly to the human. Markdown code snippet formatted in the following schema:
-
-```json
-{{{{
-    "action": "Final Answer",
-    "action_input": string \\\\ You should put what you want to return to use here
-}}}}
-```"""
+{input}"""
 
 FORMAT_INSTRUCTIONS_CHINESE = """
-【回应格式说明】
+【回复格式说明】
 ----------------------------
 
-在回应我的时候，请使用以下两种格式之一输出回复：
+在回复的时候，请使用以下两种格式之一输出回复：
 
-**选项 1:**
-如果您希望人类使用工具，请使用此选项。Markdown 代码片段格式如下所示：
+**格式 1:**
+如果你希望使用工具，请使用此选项。Markdown 代码片段格式如下所示：
 
 ```json
 {{{{
@@ -1037,8 +1006,8 @@ FORMAT_INSTRUCTIONS_CHINESE = """
 }}}}
 ```
 
-**选项 2:**
-如果您希望直接回复给人类，请使用此选项。Markdown 代码片段格式如下所示：
+**格式2:**
+如果你希望直接回复给人类，请使用此选项。Markdown 代码片段格式如下所示：
 
 ```json
 {{{{
@@ -1047,51 +1016,33 @@ FORMAT_INSTRUCTIONS_CHINESE = """
 }}}}
 ```"""
 
-SUFFIX = """TOOLS
-------
-Assistant can ask the user to use tools to look up information that may be helpful in answering the users original question. The tools the human can use are:
-
-{{tools}}
-
-{format_instructions}
-
-USER'S INPUT
---------------------
-Here is the user's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else):
-
-{{{{input}}}}"""
-
-SUFFIX_CHINESE = """
-【工具】
---------
-助理可以要求用户使用工具查找可能有助于回答用户原始问题的信息。人类可以使用的工具包括：
-
-{{tools}}
-
-{format_instructions}
-
-【用户输入】
---------------------
-以下是用户的输入（请记住使用一个 Markdown 代码片段的 JSON 对象来回复，仅包含单个动作，不要包含其他内容）：
-
-{{input}}"""
-
-
-TEMPLATE_TOOL_RESPONSE = """TOOL RESPONSE: 
----------------------
-{observation}
-
-USER'S INPUT
---------------------
-
-Okay, so what is the response to my last comment? If using information obtained from the tools you must mention it explicitly without mentioning the tool names - I have forgotten all TOOL RESPONSES! Remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else."""
-
-
 TEMPLATE_TOOL_RESPONSE_CHINESE = """
-【工具回复】 
+【历史对话记录】 
 ---------------------
-{observation}
+{history}
 --------------------
+综合历史对话记录和用户的问题，一步一步地思考，你是否可以直接回复用户的问题了？
+你需要特别注意历史对话记录中是否已经完成了必要需要的操作，如果操作已完成，请不要重复调用该工具。
+"""
 
-好的，那么对于用户输入，下一步的回复是什么？如果使用了工具获取信息，你必须明确提到，但不要提及工具名称 - 我已经忘记了所有工具回复的内容！
-请记住使用一个 Markdown 代码片段的 JSON 对象来回复，仅包含单个动作，不要包含其他内容。"""
+QA_SELECT_PROMPT = """
+你是一个对回答问题专家。你需要综合用户信息，上下文信息和预设的回答，针对用户的问题给出更加完善的回答。
+上下文信息如下：
+------------
+{context}
+------------
+用户信息如下：
+--------------
+{known_info}
+--------------
+预设的回答如下：
+--------------
+{answer}
+--------------
+用户的问题如下：
+--------------
+{input}
+--------------
+请你综合上下文信息、用户信息和预设的回答，针对用户的问题给出完善的回复。注意预设的回答可能有误，不过你不需要告诉用户。
+"""
+

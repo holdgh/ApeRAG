@@ -116,7 +116,7 @@
             "consumes": [
               "*/*"
             ],
-            "description": "read the specified Org",
+            "description": "读入指定组织的信息。输入参数为list格式[orgName]，分别代表：orgName：需要查询的组织名称",
             "operationId": "readOrg",
             "produces": [
               "application/json",
@@ -208,7 +208,7 @@
             "consumes": [
               "*/*"
             ],
-            "description": "list members of the specified Org",
+            "description": "列出指定组织的成员。输入参数需为list格式[orgName]，分别代表:orgName:指定组织的名称",
             "operationId": "listOrgMember",
             "parameters": [
               {
@@ -319,7 +319,7 @@
         "/api/v1/organizations/{orgName}/clusters": {
             "get": {
             "operationId": "listCluster",
-            "description": "list clusters of the specified Org",
+            "description": "列出指定组织的集群。输入参数需为list格式[orgName]，分别代表:orgName:指定组织的名称",
             "parameters": [
                 {
                 "description": "The clusterDefinitionn in the List request",
@@ -432,7 +432,7 @@
         "/api/v1/organizations/{orgName}/clusters/{clusterName}": {
             "get": {
             "operationId": "readCluster",
-            "description": "list specified cluster info of the specified Org",
+            "description": "列出指定组织的指定集群信息。输入参数需为list格式[orgName, clusterName]，分别代表:orgName:指定组织的名称, clusterName:指定集群的名称",
             "responses": {
                 "200": {
                 "description": "A successful response.",
@@ -553,7 +553,7 @@
         "/api/v1/organizations/{orgName}/environments": {
             "get": {
               "operationId": "listEnvironment",
-              "description": "list environments of the specified Org",
+              "description": "列出指定组织的环境。输入参数为list格式[orgName]，分别代表：orgName：需要查询的组织名称",
               "responses": {
                 "200": {
                   "description": "A successful response.",
@@ -651,7 +651,7 @@
         "/api/v1/organizations/{orgName}/environments/{environmentName}": {
             "get": {
               "operationId": "getEnvironemnt",
-              "description": "list specified environment info of the specified Org",
+              "description": "列出指定组织的指定环境的信息。输入参数为list格式[orgName,environmentName]，分别代表：orgName：需要查询的组织名称,environmentName:需要查询的环境名称",
               "responses": {
                 "200": {
                   "description": "A successful response.",
@@ -786,6 +786,65 @@
                 "environment"
               ]
             }
+        },
+        "/api/v1/organizations/{orgName}/clusters/{clusterName}/hscale": {
+          "parameters": [
+            {
+              "description": "name of the Org",
+              "in": "path",
+              "name": "orgName",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "description": "name of the KubeBlocks cluster",
+              "in": "path",
+              "name": "clusterName",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "post": {
+            "payload":["replicas"],
+            "operationId": "horizontalScaleCluster",
+            "description": "横向缩放集群。输入参数为list格式[orgName,clusterName,replicas]，分别代表：orgName：需要查询的组织名称；clusterName: 需要变化的集群名称；replicas：需要缩放到的节点数（注意，必须是整数）",
+            "responses": {
+              "202": {
+                "description": "Accepted",
+                "schema": {
+                  "$ref": "#/definitions/opsRequestName"
+                }
+              },
+              "401": {
+                "description": "Unauthorized"
+              },
+              "403": {
+                "description": "Forbidden"
+              },
+              "404": {
+                "description": "NotFound"
+              },
+              "default": {
+                "description": "An unexpected error response.",
+                "schema": {
+                  "$ref": "#/definitions/googlerpcStatus"
+                }
+              }
+            },
+            "parameters": [
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/opsHScale"
+                }
+              }
+            ],
+            "tags": [
+              "opsrequest"
+            ]
+          }
         }
     }
 }

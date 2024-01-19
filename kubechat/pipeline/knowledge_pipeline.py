@@ -12,6 +12,10 @@ from kubechat.context.full_text import search_document
 from kubechat.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    SUFFIX_CHINESE, 
+    TEMPLATE_TOOL_RESPONSE_CHINESE, 
+    FORMAT_INSTRUCTIONS_CHINESE, 
+    QA_SELECT_PROMPT
 )
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
 from kubechat.pipeline.keyword_extractor import IKExtractor
@@ -25,7 +29,6 @@ from kubechat.utils.utils import (
 from query.query import DocumentWithScore, get_packed_answer
 from readers.base_embedding import get_embedding_model, rerank
 from kubechat.agent.tool import SeleceTools
-from kubechat.agent.prompt import SUFFIX_CHINESE, TEMPLATE_TOOL_RESPONSE_CHINESE, FORMAT_INSTRUCTIONS_CHINESE, QA_SELECT_PROMPT
 from langchain.output_parsers.json import parse_json_markdown
 
 logger = logging.getLogger(__name__)
@@ -61,6 +64,7 @@ class KnowledgePipeline(Pipeline):
         
         # agent
         self.tools = SeleceTools("https://api-dev.apecloud.cn", "./kubechat/agent/test.json")
+        self.max_iterations = config.get("max_iterations",3)
 
 
     async def new_ai_message(self, message, message_id, response, references):
@@ -139,7 +143,7 @@ class KnowledgePipeline(Pipeline):
             if action:
                 action_value = action.group(1)
             else:
-                action_value = ""
+                action_value = "Final Answer"
             if action_input:
                 action_input_value = action_input.group(1)
             else:
@@ -147,46 +151,42 @@ class KnowledgePipeline(Pipeline):
                 action_input = re.search(action_input_pattern, cleaned_output)
                 action_input_value = action_input.group(1) if action_input else ""
             
-            
             # 如果遇到'Final Answer'，则判断为本次提问的最终答案
             if action_value and action_input_value:
-                if action_value == "Final Answer" or action_value == "":
-                    return "Final Answer", action_input_value
-                else:
-                    return action_value, action_input_value
+                return action_value, action_input_value
             else:
                 return "Final Answer", ""
-    
-    async def agent(self, message, max_iterations=5):
-        select_tools = self.tools.select(message)
-        tool_names = ", ".join([tool.name for tool in select_tools])
-        tool_strings = "\n".join([f"> {tool.name}: {tool.description}" for tool in select_tools])        
-
+        
+    async def agent(self, message, tot_history, tot_context):
+        tool_names, tool_strings = self.tools.select(message)
         prompt = SUFFIX_CHINESE.format(tools=tool_strings, input = message) + FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)
         response = ""
         async for msg in self.predictor.agenerate_stream("", prompt, False):
             response += msg
             
-        operate, context = self.parse(response)
+        operate, answer = self.parse(response)
         history = ''
-        tool_responses = ''
+        known_info = ''
+        
         iterations = 1
-        while iterations < max_iterations and operate != "Final Answer":
-            tool_response = self.tools.make_run(operate, context)
-            print("[AI]:\n",response, '\n[TOOL]:\n',tool_response)
+        while iterations < self.max_iterations and operate != "Final Answer":
+            tool_response = self.tools.make_run(operate, answer)
+            logger.info("[AI]:[%s]\n[TOOL]:%s\n", response, tool_response)
             if "输入有误" not in tool_response:
-                tool_responses += tool_response+'\n'
-            history+='AI:{ai}\nHuman:{human}\n'.format(ai=str({"action":operate,"action_input":context}),human=tool_response)
-            prompt = SUFFIX_CHINESE.format(tools=tool_strings, input = message) + FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)+TEMPLATE_TOOL_RESPONSE_CHINESE.format(history = history,response = tool_response)
+                known_info += tool_response+'\n'
+            history+='AI:{ai}\nHuman:{human}\n'.format(ai=str({"action":operate,"action_input":answer}),human=tool_response)
+            
+            prompt = SUFFIX_CHINESE.format(tools=tool_strings, input = message) +TEMPLATE_TOOL_RESPONSE_CHINESE.format(history = history,response = tool_response)+ FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)
             response = ''
             async for msg in self.predictor.agenerate_stream("", prompt, False):
                 response += msg
-            operate, context = self.parse(response)
+            operate, answer = self.parse(response)
             iterations += 1
-            
-        prompt = QA_SELECT_PROMPT.format(input = message, known_info = tool_responses, answer = context)
+        logger.info("[AI]:[%s]\n", response)
+        
+        prompt = QA_SELECT_PROMPT.format(input = message, known_info = known_info, answer = answer, context = tot_context)
         response = ''
-        async for msg in self.predictor.agenerate_stream("", prompt, False):
+        async for msg in self.predictor.agenerate_stream(tot_history, prompt, self.memory):
             response += msg
         return response
         
@@ -285,10 +285,10 @@ class KnowledgePipeline(Pipeline):
                         use_ai_memory=self.use_ai_memory)
                     self.memory_count = len(history)
 
-                prompt = self.prompt.format(query=message, context=context)
-                logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
+                # prompt = self.prompt.format(query=message, context=context)
+                # logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
-                response = await self.agent(message, max_iterations=5)
+                response = await self.agent(message, history, context)
                 yield response
                 # await self.predictor.agenerate_stream(history, prompt, self.memory)
                 # if operate != "Final Answer":
