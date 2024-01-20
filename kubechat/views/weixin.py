@@ -36,7 +36,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
         await chat.asave()
 
     history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
-    collection = await sync_to_async(bot.collections.first)()
+    collection = await sync_to_async(bot.collections.first, thread_sensitive=False)()
     response = ""
 
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
@@ -77,7 +77,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
         await chat.asave()
 
     history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
-    collection = await sync_to_async(bot.collections.first)()
+    collection = await sync_to_async(bot.collections.first, thread_sensitive=False)()
     response = ""
 
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
@@ -268,7 +268,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
         await chat.asave()
 
     history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
-    collection = await sync_to_async(bot.collections.first)()
+    collection = await sync_to_async(bot.collections.first, thread_sensitive=False)()
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
     use_default_token = pipeline.predictor.use_default_token
     redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)

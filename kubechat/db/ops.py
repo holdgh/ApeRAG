@@ -91,12 +91,12 @@ def build_filters(pq: PagedQuery) -> Dict:
 
 
 async def get_count(collection) -> int:
-    return await collection.acount()
+    return await sync_to_async(collection.count, thread_sensitive=False)()
 
 
 async def query_collection(user, collection_id: str):
     try:
-        return await Collection.objects.exclude(status=CollectionStatus.DELETED).aget(
+        return await sync_to_async(Collection.objects.exclude(status=CollectionStatus.DELETED).get, thread_sensitive=False)(
             user=user, pk=collection_id
         )
     except Collection.DoesNotExist:
@@ -111,13 +111,13 @@ async def query_collections(users: List[str], pq: PagedQuery = None):
 
 async def query_collections_count(user, pq: PagedQuery = None):
     filters = build_filters(pq)
-    count = await sync_to_async(Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user, **filters).count)()
+    count = await sync_to_async(Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user=user, **filters).count, thread_sensitive=False)()
     return count
 
 
 async def query_document(user, collection_id: str, document_id: str):
     try:
-        return await Document.objects.exclude(status=DocumentStatus.DELETED).aget(
+        return await sync_to_async(Document.objects.exclude(status=DocumentStatus.DELETED).get, thread_sensitive=False)(
             user=user, collection_id=collection_id, pk=document_id
         )
     except Document.DoesNotExist:
@@ -134,7 +134,7 @@ async def query_documents(users, collection_id: str, pq: PagedQuery = None):
 async def query_documents_count(user, collection_id: str, pq: PagedQuery = None):
     filters = build_filters(pq)
     count = await sync_to_async(Document.objects.exclude(status=DocumentStatus.DELETED).filter(
-        user=user, collection_id=collection_id, **filters).count)()
+        user=user, collection_id=collection_id, **filters).count, thread_sensitive=False)()
     return count
 
 
@@ -148,11 +148,12 @@ async def query_questions(user, collection_id: str, pq: PagedQuery = None):
 
 async def query_question(user, question_id: str):
     try:
-        return await Question.objects.exclude(status=QuestionStatus.DELETED).aget(
+        return await sync_to_async(Question.objects.exclude(status=QuestionStatus.DELETED).get, thread_sensitive=False)(
             user=user, pk=question_id
         )
     except Question.DoesNotExist:
         return None
+
 
 async def query_chat(user, bot_id: str, chat_id: str):
     try:
@@ -162,7 +163,7 @@ async def query_chat(user, bot_id: str, chat_id: str):
         }
         if user:
             kwargs["user"] = user
-        return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(**kwargs)
+        return await sync_to_async(Chat.objects.exclude(status=ChatStatus.DELETED).get, thread_sensitive=False)(**kwargs)
     except Chat.DoesNotExist:
         return None
 
@@ -175,7 +176,7 @@ async def query_web_chat(bot_id: str, chat_id: str):
             "bot_id": bot_id,
             "peer_type": ChatPeer.WEB,
         }
-        return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(**kwargs)
+        return await sync_to_async(Chat.objects.exclude(status=ChatStatus.DELETED).get, thread_sensitive=False)(**kwargs)
     except Chat.DoesNotExist:
         return None
 
@@ -190,7 +191,7 @@ async def query_chat_feedbacks(user, chat_id: str, pq: PagedQuery = None):
 
 async def query_message_feedback(user, bot_id: str, chat_id: str, message_id: str):
     try:
-        return await MessageFeedback.objects.exclude.aget(
+        return await sync_to_async(MessageFeedback.objects.exclude.get, thread_sensitive=False)(
             user=user, bot_id=bot_id, chat_id=chat_id, message_id=message_id)
     except MessageFeedback.DoesNotExist:
         return None
@@ -198,7 +199,7 @@ async def query_message_feedback(user, bot_id: str, chat_id: str, message_id: st
 
 async def query_chat_by_peer(user, peer_type, peer_id: str):
     try:
-        return await Chat.objects.exclude(status=ChatStatus.DELETED).aget(
+        return await sync_to_async(Chat.objects.exclude(status=ChatStatus.DELETED).get, thread_sensitive=False)(
             user=user, peer_type=peer_type, peer_id=peer_id)
     except Chat.DoesNotExist:
         return None
@@ -206,7 +207,7 @@ async def query_chat_by_peer(user, peer_type, peer_id: str):
 
 async def query_sync_history(user, collection_id: str, sync_history_id: str):
     try:
-        return await CollectionSyncHistory.objects.aget(
+        return await sync_to_async(CollectionSyncHistory.objects.get, thread_sensitive=False)(
             user=user, collection_id=collection_id, pk=sync_history_id
         )
     except CollectionSyncHistory.DoesNotExist:
@@ -251,7 +252,7 @@ async def query_integration(user, bot_id: str, integration_id: str):
         }
         if user:
             kwargs["user"] = user
-        return await BotIntegration.objects.exclude(status=BotIntegrationStatus.DELETED).aget(**kwargs)
+        return await sync_to_async(BotIntegration.objects.exclude(status=BotIntegrationStatus.DELETED).get, thread_sensitive=False)(**kwargs)
     except BotIntegration.DoesNotExist:
         return None
 
@@ -263,7 +264,7 @@ async def query_bot(user, bot_id: str):
         }
         if user:
             kwargs["user"] = user
-        return await Bot.objects.exclude(status=BotStatus.DELETED).aget(**kwargs)
+        return await sync_to_async(Bot.objects.exclude(status=BotStatus.DELETED).get, thread_sensitive=False)(**kwargs)
     except Bot.DoesNotExist:
         return None
 
@@ -276,7 +277,7 @@ async def query_bots(users: List[str], pq: PagedQuery = None):
 
 async def query_bots_count(user, pq: PagedQuery = None):
     filters = build_filters(pq)
-    count = await sync_to_async(Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters).count)()
+    count = await sync_to_async(Bot.objects.exclude(status=BotStatus.DELETED).filter(user=user, **filters).count, thread_sensitive=False)()
     return count
 
 
@@ -286,7 +287,7 @@ def query_config(key):
 
 
 async def query_user_quota(user, key):
-    result = await sync_to_async(UserQuota.objects.filter(user=user, key=key).values_list('value', flat=True).first)()
+    result = await sync_to_async(UserQuota.objects.filter(user=user, key=key).values_list('value', flat=True).first, thread_sensitive=False)()
     return result
 
 

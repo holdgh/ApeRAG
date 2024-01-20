@@ -129,7 +129,7 @@ async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
 
     history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     response = ""
-    collection = await sync_to_async(bot.collections.first)()
+    collection = await sync_to_async(bot.collections.first, thread_sensitive=False)()
     card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))
     last_ts = time.time()
     try:

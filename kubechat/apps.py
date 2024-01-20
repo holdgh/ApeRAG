@@ -12,7 +12,7 @@ class KubechatConfig(AppConfig):
 
     def ready(self):
         if asyncio.get_event_loop().is_running():
-            asyncio.create_task(sync_to_async(get_ip_config)())
+            asyncio.create_task(sync_to_async(get_ip_config, thread_sensitive=False)())
 
 
 def get_ip_config():

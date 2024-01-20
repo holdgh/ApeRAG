@@ -17,7 +17,7 @@ async def bot_consumer_router(scope, receive, send):
     if bot is None:
         raise Exception("Bot not found")
     scope[KEY_BOT_ID] = bot_id
-    collection = await sync_to_async(bot.collections.first)()
+    collection = await sync_to_async(bot.collections.first, thread_sensitive=False)()
 
     chat = await query_chat(user, bot_id, chat_id)
     if chat is None:

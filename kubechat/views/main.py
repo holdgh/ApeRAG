@@ -376,7 +376,7 @@ async def get_collection(request, collection_id):
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
-    bots = await sync_to_async(instance.bot_set.exclude)(status=BotStatus.DELETED)
+    bots = await sync_to_async(instance.bot_set.exclude, thread_sensitive=False)(status=BotStatus.DELETED)
     bot_ids = []
     async for bot in bots:
         bot_ids.append(bot.id)
@@ -397,7 +397,7 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     if source.sync_enabled():
         await update_sync_documents_cron_job(instance.id)
 
-    bots = await sync_to_async(instance.bot_set.exclude)(status=BotStatus.DELETED)
+    bots = await sync_to_async(instance.bot_set.exclude, thread_sensitive=False)(status=BotStatus.DELETED)
     bot_ids = []
     async for bot in bots:
         bot_ids.append(bot.id)
@@ -412,7 +412,7 @@ async def delete_collection(request, collection_id):
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     await delete_sync_documents_cron_job(collection.id)
-    bots = await sync_to_async(collection.bot_set.exclude)(status=BotStatus.DELETED)
+    bots = await sync_to_async(collection.bot_set.exclude, thread_sensitive=False)(status=BotStatus.DELETED)
     bot_ids = []
     async for bot in bots:
         bot_ids.append(bot.id)
@@ -438,7 +438,7 @@ async def create_questions(request, collection_id):
     collection.status = CollectionStatus.QUESTION_PENDING
     await collection.asave()
     
-    documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
+    documents = await sync_to_async(collection.document_set.exclude, thread_sensitive=False)(status=DocumentStatus.DELETED)
     generate_tasks = []
     async for document in documents:
         generate_tasks.append(generate_questions.si(document.id))
@@ -471,14 +471,14 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     question_instance.question = question_in.question
     question_instance.answer = question_in.answer if question_in.answer else ""
     question_instance.status = QuestionStatus.PENDING
-    await sync_to_async(question_instance.documents.clear)()
+    await sync_to_async(question_instance.documents.clear, thread_sensitive=False)()
     
     if question_in.relate_documents:
         for document_id in question_in.relate_documents:
             document = await query_document(user, collection_id, document_id)
             if document is None or document.status == DocumentStatus.DELETED:
                 return fail(HTTPStatus.NOT_FOUND, "Document not found")
-            await sync_to_async(question_instance.documents.add)(document)
+            await sync_to_async(question_instance.documents.add, thread_sensitive=False)(document)
     else:
         question_in.relate_documents = []
     await question_instance.asave()
@@ -498,7 +498,7 @@ async def delete_question(request, collection_id, question_id):
     await question.asave()
     update_index_for_question.delay(question.id)
 
-    docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
+    docs = await sync_to_async(question.documents.exclude, thread_sensitive=False)(status=DocumentStatus.DELETED)
     doc_ids = []
     async for doc in docs:
         doc_ids.append(doc.id)
@@ -517,7 +517,7 @@ async def list_questions(request, collection_id):
 async def get_question(request, collection_id, question_id):
     user = get_user(request)
     question = await query_question(user, question_id)
-    docs = await sync_to_async(question.documents.exclude)(status=DocumentStatus.DELETED)
+    docs = await sync_to_async(question.documents.exclude, thread_sensitive=False)(status=DocumentStatus.DELETED)
     doc_ids = []
     async for doc in docs:
         doc_ids.append(doc.id)
@@ -656,7 +656,7 @@ async def update_document(
     # if user add labels for a document, we need to update index
     update_index.delay(instance.id)
     
-    related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+    related_questions = await sync_to_async(document.question_set.exclude, thread_sensitive=False)(status=QuestionStatus.DELETED)
     async for question in related_questions:
         question.status = QuestionStatus.WARNING
         await question.asave()
@@ -680,7 +680,7 @@ async def delete_document(request, collection_id, document_id):
 
     remove_index.delay(document.id)
     
-    related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+    related_questions = await sync_to_async(document.question_set.exclude, thread_sensitive=False)(status=QuestionStatus.DELETED)
     async for question in related_questions:
         question.documents.remove(document)
         question.status = QuestionStatus.WARNING
@@ -704,7 +704,7 @@ async def delete_documents(request, collection_id, document_ids: List[str]):
             await document.asave()
             remove_index.delay(document.id)
             
-            related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+            related_questions = await sync_to_async(document.question_set.exclude, thread_sensitive=False)(status=QuestionStatus.DELETED)
             async for question in related_questions:
                 question.documents.remove(document)
                 question.status = QuestionStatus.WARNING
@@ -842,7 +842,7 @@ async def create_bot(request, bot_in: BotIn):
                 return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
             if collection.status == CollectionStatus.INACTIVE:
                 return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
-            await sync_to_async(bot.collections.add)(collection)
+            await sync_to_async(bot.collections.add, thread_sensitive=False)(collection)
             collections.append(collection.view())
     await bot.asave()
     return success(bot.view(collections))
@@ -855,7 +855,7 @@ async def list_bots(request):
     response = []
     async for bot in pr.data:
         collections = []
-        async for collection in await sync_to_async(bot.collections.all)():
+        async for collection in await sync_to_async(bot.collections.all, thread_sensitive=False)():
             collections.append(collection.view())
         bot_config = json.loads(bot.config)
         model = bot_config.get("model", None)
@@ -878,7 +878,7 @@ async def get_bot(request, bot_id):
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
     collections = []
-    async for collection in await sync_to_async(bot.collections.all)():
+    async for collection in await sync_to_async(bot.collections.all, thread_sensitive=False)():
         collections.append(collection.view())
     return success(bot.view(collections))
 
@@ -911,11 +911,11 @@ async def update_bot(request, bot_id, bot_in: BotIn):
             if collection.status == CollectionStatus.INACTIVE:
                 return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
             collections.append(collection)
-        await sync_to_async(bot.collections.set)(collections)
+        await sync_to_async(bot.collections.set, thread_sensitive=False)(collections)
     await bot.asave()
 
     collections = []
-    async for collection in await sync_to_async(bot.collections.all)():
+    async for collection in await sync_to_async(bot.collections.all, thread_sensitive=False)():
         collections.append(collection.view())
     return success(bot.view(collections))
 
