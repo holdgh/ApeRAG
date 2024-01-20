@@ -5,13 +5,18 @@ import random
 import re
 
 from langchain import PromptTemplate
+from langchain.output_parsers.json import parse_json_markdown
 
 from config import settings
+from kubechat.agent.tool import SeleceTools
 from kubechat.context.context import ContextManager
 from kubechat.context.full_text import search_document
 from kubechat.llm.prompts import (
-    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
-    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    FORMAT_INSTRUCTIONS_CHINESE,
+    QA_SELECT_PROMPT,
+    SUFFIX_CHINESE,
+    TEMPLATE_TOOL_RESPONSE_CHINESE,
+    GENERAL_AGENT_PROMPT
 )
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
 from kubechat.pipeline.keyword_extractor import IKExtractor
@@ -28,7 +33,7 @@ from readers.base_embedding import get_embedding_model, rerank
 logger = logging.getLogger(__name__)
 
 
-class KnowledgePipeline(Pipeline):
+class AgentPipeline(Pipeline):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -51,10 +56,17 @@ class KnowledgePipeline(Pipeline):
         self.qa_context_manager = ContextManager(qa_collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                                  self.qa_vectordb_ctx)
 
-        if not self.prompt_template:
-            self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
-                                                                             DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
+        # if not self.prompt_template:
+            # self.prompt_template = DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(self.model,
+            #                                                                  DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
+        
+        # agent
+        self.bearer_token = config.get("bearer_token", "")
+        self.tools = SeleceTools("https://api-dev.apecloud.cn", "./kubechat/agent/test.json",self.bearer_token)
+        self.max_iterations = config.get("max_iterations", 3)
+        
+
 
     async def new_ai_message(self, message, message_id, response, references):
         return Message(
@@ -111,6 +123,85 @@ class KnowledgePipeline(Pipeline):
         logger.info("hyde_message： [%s]", hyde_message)
         return hyde_message
 
+    def parse(self, text: str):
+        cleaned_output = text.strip()
+        cleaned_output = text.replace("\n", "")
+        try:
+            response = parse_json_markdown(text)
+            action_value = response.get("action", "")
+            action_input_value = str(response.get("action_input", ""))
+            if action_value == "Final Answer":
+                return "Final Answer", action_input_value
+            else:
+                return action_value, action_input_value
+        except:
+            # 定义匹配正则
+            action_pattern = r'"action"\s*:\s*"([^"]*)"'
+            action_input_pattern = r'input"\s*:\s*\[([^\]]*)\]'
+            # 提取出匹配到的action值
+            action = re.search(action_pattern, cleaned_output)
+            action_input = re.search(action_input_pattern, cleaned_output)
+            if action:
+                action_value = action.group(1)
+            else:
+                action_value = "Final Answer"
+            if action_input:
+                action_input_value = action_input.group(1)
+            else:
+                action_input_pattern = r'input"\s*:\s*"([^"]*)"'
+                action_input = re.search(action_input_pattern, cleaned_output)
+                action_input_value = action_input.group(1) if action_input else ""
+            
+            # 如果遇到'Final Answer'，则判断为本次提问的最终答案
+            if action_value and action_input_value:
+                return action_value, action_input_value
+            else:
+                return "Final Answer", ""
+        
+    async def agent(self, message, tot_history, tot_context):
+        tool_names, tool_strings = self.tools.select(message)
+        prompt = SUFFIX_CHINESE.format(tools=tool_strings, input=message) + FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)
+        response = ""
+        async for msg in self.predictor.agenerate_stream("", prompt, False):
+            response += msg
+            
+        operate, answer = self.parse(response)
+        history = ''
+        known_info = ''
+        
+        iterations = 1
+        while iterations < self.max_iterations and operate != "Final Answer":
+            tool_response = self.tools.make_run(operate, answer)
+            logger.info("\n[AI]:[%s]\n[TOOL]:%s\n", response, tool_response)
+            if "输入有误" not in tool_response:
+                known_info += tool_response + '\n'
+            history += 'AI:{ai}\nHuman:{human}\n'.format(ai=str({"action": operate, "action_input": answer}), human=tool_response)
+            
+            # Determine whether tools need to be called
+            # prompt = GENERAL_AGENT_PROMPT.format(input=message,tools=tool_strings,history = history)
+            # response = ''
+            # async for msg in self.predictor.agenerate_stream("", prompt, False):
+            #     response += msg
+            # logger.info("[check]:%s\n", response)
+            
+            # if "不" in response or "否" in response or 'no' in response:
+            #     break
+            
+            # Determine which tools need to be called
+            prompt = SUFFIX_CHINESE.format(tools=tool_strings, input=message) + TEMPLATE_TOOL_RESPONSE_CHINESE.format(history = history) + FORMAT_INSTRUCTIONS_CHINESE.format(tool_names=tool_names)
+            response = ''
+            async for msg in self.predictor.agenerate_stream("", prompt, False):
+                response += msg
+            operate, answer = self.parse(response)
+            iterations += 1
+        logger.info("\n[AI]:[%s]\n", response)
+        
+        prompt = QA_SELECT_PROMPT.format(input=message, known_info=known_info, answer=answer, context=tot_context)
+        response = ''
+        async for msg in self.predictor.agenerate_stream(tot_history, prompt, self.memory):
+            response += msg
+        return response
+        
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
@@ -206,12 +297,16 @@ class KnowledgePipeline(Pipeline):
                         use_ai_memory=self.use_ai_memory)
                     self.memory_count = len(history)
 
-                prompt = self.prompt.format(query=message, context=context)
-                logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
+                # prompt = self.prompt.format(query=message, context=context)
+                # logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
-                async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
-                    yield msg
-                    response += msg
+                response = await self.agent(message, history, context)
+                yield response
+                # await self.predictor.agenerate_stream(history, prompt, self.memory)
+                # if operate != "Final Answer":
+                #     async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
+                #         yield msg
+                #         response += msg
 
                 for result in candidates:
                     # filter bot_context
