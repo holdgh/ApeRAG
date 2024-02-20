@@ -3,7 +3,7 @@ import logging
 from asgiref.sync import sync_to_async
 
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
-from readers.base_embedding import get_collection_embedding_model
+from kubechat.readers.base_embedding import get_collection_embedding_model
 
 from .base_consumer import BaseConsumer
 

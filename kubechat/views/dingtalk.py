@@ -10,9 +10,8 @@ from asgiref.sync import sync_to_async
 from ninja import Router
 
 from kubechat.apps import QuotaType
-from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.chat.utils import check_quota_usage, manage_quota_usage
+from kubechat.chat.utils import check_quota_usage, get_async_redis_client, manage_quota_usage
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import query_bot, query_chat_by_peer, query_user_quota
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline

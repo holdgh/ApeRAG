@@ -1,5 +1,0 @@
-region        = "cn-northwest-1"
-cluster_name  = "kubeblocks-dev-00"
-instance_type = "t4g.medium"  # 2 vCPU, 4GB RAM
-arch          = "x86"
-capacity_type = "ON_DEMAND"

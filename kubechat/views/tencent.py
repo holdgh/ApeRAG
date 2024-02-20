@@ -1,9 +1,7 @@
 import time
 
-import redis.asyncio as redis
 from ninja import Router
 
-from config import settings
 from kubechat.chat.utils import get_async_redis_client
 
 router = Router()

@@ -6,8 +6,8 @@ import time
 from config.celery import app
 from kubechat.db.models import Document, DocumentStatus
 from kubechat.db.ops import query_collection, query_documents
+from kubechat.readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.tasks.index import add_index_for_document, remove_index, update_index
-from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 

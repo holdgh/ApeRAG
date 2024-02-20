@@ -15,6 +15,8 @@ from kubechat.llm.prompts import (
 )
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
 from kubechat.pipeline.keyword_extractor import IKExtractor
+from kubechat.query.query import DocumentWithScore, get_packed_answer
+from kubechat.readers.base_embedding import get_embedding_model, rerank
 from kubechat.source.utils import async_run
 from kubechat.utils.utils import (
     generate_fulltext_index_name,
@@ -22,8 +24,6 @@ from kubechat.utils.utils import (
     generate_vector_db_collection_name,
     now_unix_milliseconds,
 )
-from query.query import DocumentWithScore, get_packed_answer
-from readers.base_embedding import get_embedding_model, rerank
 
 logger = logging.getLogger(__name__)
 
@@ -102,14 +102,6 @@ class KnowledgePipeline(Pipeline):
         async for msg in self.related_question_predictor.agenerate_stream([], related_question_prompt):
             related_question += msg
         return related_question
-
-    async def generate_hyde_message(self, message):
-        hyde_message = ""
-        prompt = "写一篇文章回答这个问题: " + message
-        async for msg in self.predictor.agenerate_stream([], prompt, []):
-            hyde_message += msg
-        logger.info("hyde_message： [%s]", hyde_message)
-        return hyde_message
 
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"

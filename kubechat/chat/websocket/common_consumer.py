@@ -17,9 +17,9 @@ from kubechat.chat.utils import (
 from kubechat.chat.websocket.base_consumer import BaseConsumer
 from kubechat.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS
 from kubechat.pipeline.common_pipeline import CommonPipeline
+from kubechat.readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.source.utils import gen_temporary_file
 from kubechat.utils.utils import now_unix_milliseconds
-from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 

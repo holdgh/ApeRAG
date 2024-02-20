@@ -16,7 +16,6 @@ from django.shortcuts import render
 from django.utils import timezone
 from ninja import File, NinjaAPI, Router, Schema
 from ninja.files import UploadedFile
-from pydantic import BaseModel
 
 import kubechat.chat.message
 from config import settings
@@ -70,9 +69,10 @@ from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
+    MULTI_ROLE_EN_PROMPT_TEMPLATES,
     MULTI_ROLE_ZH_PROMPT_TEMPLATES,
-    MULTI_ROLE_EN_PROMPT_TEMPLATES
 )
+from kubechat.readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.source.base import get_source
 from kubechat.tasks.collection import delete_collection_task, init_collection_task
 from kubechat.tasks.crawl_web import crawl_domain
@@ -97,7 +97,6 @@ from kubechat.views.utils import (
     validate_source_connect_config,
     validate_url,
 )
-from readers.base_readers import DEFAULT_FILE_READER_CLS
 
 logger = logging.getLogger(__name__)
 
@@ -121,11 +120,13 @@ class UpdateDocumentIn(Schema):
     name: str
     config: Optional[str]
 
+
 class QuestionIn(Schema):
     id: Optional[str]
     question: str
     answer: Optional[str]
     relate_documents: Optional[List[str]]
+
 
 class ConnectionInfo(Schema):
     db_type: str
@@ -138,24 +139,6 @@ class ConnectionInfo(Schema):
     ca_cert: Optional[str]
     client_key: Optional[str]
     client_cert: Optional[str]
-
-
-class Auth(BaseModel):
-    username: str = ""
-    password: str = ""
-
-
-class Host(BaseModel):
-    source: str = "system"
-    host: str = ""
-    port: str = ""
-
-
-class DocumentConfig(BaseModel):
-    host: Host = Host
-    auth: Auth = Auth
-    filedir: str = ""
-    filepath: str = ""
 
 
 @router.get("/user_info")

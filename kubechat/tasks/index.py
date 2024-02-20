@@ -26,6 +26,11 @@ from kubechat.db.models import (
     Question,
     QuestionStatus,
 )
+from kubechat.readers.base_embedding import get_collection_embedding_model
+from kubechat.readers.base_readers import DEFAULT_FILE_READER_CLS, SUPPORTED_COMPRESSED_EXTENSIONS
+from kubechat.readers.local_path_embedding import LocalPathEmbedding
+from kubechat.readers.qa_embedding import QAEmbedding
+from kubechat.readers.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
 from kubechat.source.base import get_source
 from kubechat.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from kubechat.utils.utils import (
@@ -33,11 +38,6 @@ from kubechat.utils.utils import (
     generate_qa_vector_db_collection_name,
     generate_vector_db_collection_name,
 )
-from readers.base_embedding import get_collection_embedding_model, get_embedding_model
-from readers.base_readers import DEFAULT_FILE_READER_CLS, SUPPORTED_COMPRESSED_EXTENSIONS
-from readers.local_path_embedding import LocalPathEmbedding
-from readers.qa_embedding import QAEmbedding
-from readers.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
 
 logger = logging.getLogger(__name__)
 

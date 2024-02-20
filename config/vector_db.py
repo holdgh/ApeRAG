@@ -1,7 +1,7 @@
 import json
 
 from config.settings import VECTOR_DB_CONTEXT, VECTOR_DB_TYPE
-from vectorstore.connector import VectorStoreConnectorAdaptor
+from kubechat.vectorstore.connector import VectorStoreConnectorAdaptor
 
 
 def get_vector_db_connector(collection: str) -> VectorStoreConnectorAdaptor:

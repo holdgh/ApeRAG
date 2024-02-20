@@ -7,11 +7,11 @@ from ninja import Router
 from config import settings
 from kubechat.context.context import ContextManager
 from kubechat.db.ops import query_collection_without_user
+from kubechat.readers.base_embedding import get_embedding_model, rerank
 from kubechat.source.utils import async_run
 from kubechat.utils.request import get_user
 from kubechat.utils.utils import generate_vector_db_collection_name
 from kubechat.views.utils import fail, success
-from readers.base_embedding import get_embedding_model, rerank
 
 logger = logging.getLogger(__name__)
 

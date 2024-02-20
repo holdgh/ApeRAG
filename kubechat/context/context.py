@@ -1,7 +1,7 @@
 from abc import ABC
 
-from query.query import QueryWithEmbedding
-from vectorstore.connector import VectorStoreConnectorAdaptor
+from kubechat.query.query import QueryWithEmbedding
+from kubechat.vectorstore.connector import VectorStoreConnectorAdaptor
 
 
 class ContextManager(ABC):

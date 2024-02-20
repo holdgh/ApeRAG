@@ -2,9 +2,9 @@ import json
 from http import HTTPStatus
 
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.db.models import MessageFeedback, MessageFeedbackStatus
 from kubechat.views.utils import fail
-from kubechat.chat.utils import get_async_redis_client
 
 
 async def feedback_message(user, chat_id, message_id, upvote, downvote, revised_answer=None):

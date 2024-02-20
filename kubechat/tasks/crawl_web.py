@@ -2,7 +2,6 @@ import json
 import re
 from urllib.parse import urljoin, urlparse
 
-import redis
 import requests
 from bs4 import BeautifulSoup
 

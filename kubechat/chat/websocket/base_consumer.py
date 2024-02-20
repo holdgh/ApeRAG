@@ -11,11 +11,11 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 import config.settings as settings
 from kubechat.apps import QuotaType
 from kubechat.auth.validator import DEFAULT_USER
-from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
 from kubechat.chat.utils import (
     check_quota_usage,
     fail_response,
+    get_async_redis_client,
     manage_quota_usage,
     start_response,
     stop_response,

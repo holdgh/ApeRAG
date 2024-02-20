@@ -36,8 +36,10 @@ def int_pk():
 def collection_history_pk():
     return "colhist" + random_id()
 
+
 def que_pk():
     return "que" + random_id()
+
 
 def upload_document_path(document, filename):
     user = document.user.replace("|", "-")

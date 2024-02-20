@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+
 from kubechat.utils.utils import now_unix_milliseconds
 
 
@@ -143,6 +144,7 @@ def get_async_redis_client():
     global async_redis_client
     if not async_redis_client:
         import redis.asyncio as redis
+
         from config.settings import MEMORY_REDIS_URL
         async_redis_client = redis.Redis.from_url(MEMORY_REDIS_URL)
     return async_redis_client
@@ -152,6 +154,7 @@ def get_sync_redis_client():
     global sync_redis_client
     if not sync_redis_client:
         import redis
+
         from config.settings import MEMORY_REDIS_URL
         sync_redis_client = redis.Redis.from_url(MEMORY_REDIS_URL)
     return sync_redis_client

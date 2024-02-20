@@ -13,11 +13,11 @@ from kubechat.context.full_text import create_index, delete_index, insert_docume
 from kubechat.llm.custom import CustomLLMPredictor
 from kubechat.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from kubechat.pipeline.keyword_extractor import IKExtractor
+from kubechat.query.query import get_packed_answer
+from kubechat.readers.base_embedding import get_embedding_model, get_rerank_model
+from kubechat.readers.local_path_embedding import LocalPathEmbedding
 from kubechat.utils.utils import generate_fulltext_index_name
-from query.query import get_packed_answer
-from readers.base_embedding import get_embedding_model, get_rerank_model
-from readers.local_path_embedding import LocalPathEmbedding
-from vectorstore.connector import VectorStoreConnectorAdaptor
+from kubechat.vectorstore.connector import VectorStoreConnectorAdaptor
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

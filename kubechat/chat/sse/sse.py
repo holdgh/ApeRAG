@@ -6,9 +6,8 @@ from asgiref.sync import sync_to_async
 from channels.generic.http import AsyncHttpConsumer
 from ninja import NinjaAPI
 
-from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
-from kubechat.chat.utils import fail_response, start_response, stop_response, success_response
+from kubechat.chat.utils import fail_response, get_async_redis_client, start_response, stop_response, success_response
 from kubechat.db.models import BotType
 from kubechat.pipeline.common_pipeline import CommonPipeline
 

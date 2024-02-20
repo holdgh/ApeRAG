@@ -2,9 +2,10 @@ from django.urls import path
 from ninja import NinjaAPI
 from ninja.errors import AuthenticationError, ValidationError
 
-from kubechat.auth.validator import GlobalHTTPAuth, AdminAuth
+from kubechat.auth.validator import AdminAuth, GlobalHTTPAuth
 from kubechat.utils.weixin.renderer import MyJSONRenderer
 from kubechat.views import main
+from kubechat.views.admin import router as admin_router
 from kubechat.views.config import router as config_router
 from kubechat.views.dingtalk import router as dingtalk_router
 from kubechat.views.feishu import router as feishu_router
@@ -13,7 +14,6 @@ from kubechat.views.tencent import router as tencent_router
 from kubechat.views.utils import auth_errors, validation_errors
 from kubechat.views.web import router as web_router
 from kubechat.views.weixin import router as weixin_router
-from kubechat.views.admin import router as admin_router
 
 api = NinjaAPI(renderer=MyJSONRenderer)
 api.add_exception_handler(ValidationError, validation_errors)

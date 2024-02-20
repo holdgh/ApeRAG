@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 from asgiref.sync import sync_to_async
 from django.db.models import QuerySet

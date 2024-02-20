@@ -10,8 +10,8 @@ from ninja import Router
 import kubechat.chat.message
 from config import settings
 from kubechat.auth.validator import FeishuEventVerification
-from kubechat.chat.utils import get_async_redis_client
 from kubechat.chat.history.redis import RedisChatMessageHistory
+from kubechat.chat.utils import get_async_redis_client
 from kubechat.db.models import Chat, ChatPeer
 from kubechat.db.ops import query_bot, query_chat_by_peer
 from kubechat.pipeline.knowledge_pipeline import KnowledgePipeline
