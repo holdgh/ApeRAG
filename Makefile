@@ -1,5 +1,5 @@
 VERSION ?= v0.1.2
-VERSION_FILE ?= version/__init__.py
+VERSION_FILE ?= kubechat/version/__init__.py
 LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false

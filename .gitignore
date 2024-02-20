@@ -158,3 +158,5 @@ resources
 terraform.tfstate
 terraform.tfstate.backup
 .terraform
+.mirrord
+requirements.txt
