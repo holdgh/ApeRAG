@@ -30,6 +30,15 @@ def get_user_from_token(token):
     return user
 
 
+class AdminAuth(HttpBearer):
+    def authenticate(self, request, token):
+        if not settings.ADMIN_TOKEN or token != settings.ADMIN_TOKEN:
+            return None
+
+        request.META[KEY_USER_ID] = settings.ADMIN_USER
+        return token
+
+
 class GlobalHTTPAuth(HttpBearer):
     def authenticate(self, request, token):
         request.META[KEY_USER_ID] = get_user_from_token(token)

@@ -103,6 +103,13 @@ async def query_collection(user, collection_id: str):
         return None
 
 
+async def query_collection_without_user(collection_id: str):
+    try:
+        return await Collection.objects.exclude(status=CollectionStatus.DELETED).aget(pk=collection_id)
+    except Collection.DoesNotExist:
+        return None
+
+
 async def query_collections(users: List[str], pq: PagedQuery = None):
     filters = build_filters(pq)
     query_set = Collection.objects.exclude(status=CollectionStatus.DELETED).filter(user__in=users, **filters)
@@ -153,6 +160,7 @@ async def query_question(user, question_id: str):
         )
     except Question.DoesNotExist:
         return None
+
 
 async def query_chat(user, bot_id: str, chat_id: str):
     try:

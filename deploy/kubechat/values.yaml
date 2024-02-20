@@ -112,6 +112,7 @@ django:
   metaDBSecret: postgresql-conn-credential
   metaDBDatabase: kubechat
   adminUser: ""
+  adminToken: ""
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   openaiAPIKey: ""

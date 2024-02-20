@@ -13,6 +13,7 @@ django:
   replicaCount: 2
   embeddingModel: bge
   embeddingDevice: cuda
+  adminToken: 5TJdUEPYv0hcOvUjWmUKId8YStASGRgn
   authType: auth0
   auth0ClientId: "G6RuQZZNaDorHGUEOv7Mgq1COqfryTB2"
   auth0Domain: "kubechat.jp.auth0.com"

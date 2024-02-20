@@ -295,3 +295,5 @@ WHISPER_HOST = env.str("WHISPER_HOST", default="http://openai-whisper-asr-servic
 PADDLEOCR_HOST = env.str("PADDLEOCR_HOST", default="http://paddleocr-hubserving-service:8866")
 
 ADMIN_USER = env.str("ADMIN_USER", default="kubechat")
+ADMIN_TOKEN = env.str("ADMIN_TOKEN", default="")
+

@@ -306,6 +306,8 @@ spec:
                 configMapKeyRef:
                   key: ADMIN_USER
                   name: kubechat-config
+            - name: ADMIN_TOKEN
+              value: {{ .Values.django.adminToken | quote }}
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}
