@@ -12,6 +12,6 @@ if [ -f "static/web/index.html" ]; then
 fi
 
 # uvicorn supports multiple workers
-exec uvicorn config.asgi:application --host 0.0.0.0 --log-config uvicorn-log-config.yaml
+exec uvicorn config.asgi:application --host 0.0.0.0 --log-config scripts/uvicorn-log-config.yaml
 
 #exec daphne config.asgi:application -b 0.0.0.0

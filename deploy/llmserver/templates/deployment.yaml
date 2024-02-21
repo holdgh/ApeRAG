@@ -51,7 +51,7 @@ spec:
             - |
               mkdir -p /app/resources
               ln -s /data/models /app/resources
-              uvicorn server.llmserver:app --host 0.0.0.0 --log-config uvicorn-log-config.yaml
+              uvicorn server.llmserver:app --host 0.0.0.0 --log-config scripts/uvicorn-log-config.yaml
           ports:
             - name: http
               containerPort: 8000
