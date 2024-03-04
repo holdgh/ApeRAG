@@ -32,12 +32,6 @@ class CommonPipeline(Pipeline):
             llm_context_window=self.context_window,
         )
 
-    async def generate_related_question(self, related_question_prompt):
-        related_question = ""
-        async for msg in self.related_question_predictor.agenerate_stream([], related_question_prompt):
-            related_question += msg
-        return related_question
-
     async def run(self, message, gen_references=False, message_id="", file=None):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
@@ -100,14 +94,5 @@ class CommonPipeline(Pipeline):
             if self.use_related_question:
                 if need_related_question:
                     related_question_generate = await related_question_task
-                    related_question = re.sub(r'\n+', '\n', related_question_generate).split('\n')
-                    for i, question in enumerate(related_question):
-                        match = re.match(r"\s*-\s*(.*)", question)
-                        if match:
-                            question = match.group(1)
-                        match = re.match(r"\s*\d+\.\s*(.*)", question)
-                        if match:
-                            question = match.group(1)
-                        related_question[i] = question
-                    related_questions.extend(related_question)
+                    related_questions.extend(related_question_generate)
                 yield KUBE_CHAT_RELATED_QUESTIONS + str(related_questions[:3])

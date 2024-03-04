@@ -1,5 +1,6 @@
 import json
 import uuid
+import re
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
@@ -9,7 +10,7 @@ from pydantic import BaseModel
 
 from kubechat.chat.history.base import BaseChatMessageHistory
 from kubechat.llm.base import Predictor, PredictorType
-from kubechat.llm.prompts import RELATED_QUESTIONS_TEMPLATE
+from kubechat.llm.prompts import RELATED_QUESTIONS_TEMPLATE_V2
 from kubechat.utils.utils import now_unix_milliseconds
 
 
@@ -71,11 +72,52 @@ class Pipeline(ABC):
         self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
         if self.use_related_question:
-            self.related_question_prompt = PromptTemplate(template=RELATED_QUESTIONS_TEMPLATE,
+            self.related_question_prompt = PromptTemplate(template=RELATED_QUESTIONS_TEMPLATE_V2,
                                                           input_variables=["query", "context"])
-            kwargs = {}
-            self.related_question_predictor = Predictor.from_model("gpt-4-1106-preview", **kwargs)
+            kwargs = {"model": "gpt-4-0125-preview"}
+            self.related_question_predictor = Predictor.from_model("gpt-4", **kwargs)
 
+    async def generate_related_question(self, related_question_prompt):
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "ask_related_questions",
+                    "description": "ask further questions that are related to the input and output.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "question": {
+                                "type": "string",
+                                "description": "related question to the original question and context.",
+                            },
+                        },
+                        "required": ["question"],
+                    },
+                },
+            }
+        ]
+        related_questions = []
+        tool_responses, content = await self.related_question_predictor.agenerate_by_tools(related_question_prompt, tools)
+        if tool_responses:
+            for tool_response in tool_responses:
+                if tool_response.function.name == "ask_related_questions":
+                    function_args = json.loads(tool_response.function.arguments)
+                    question = function_args.get("question")
+                    if question:
+                        related_questions.append(question)
+        else:
+            related_questions = re.sub(r'\n+', '\n', content).split('\n')
+            for i, question in enumerate(related_questions):
+                match = re.match(r"\s*-\s*(.*)", question)
+                if match:
+                    question = match.group(1)
+                match = re.match(r"\s*\d+\.\s*(.*)", question)
+                if match:
+                    question = match.group(1)
+                related_questions[i] = question
+        return related_questions
+    
     @staticmethod
     async def new_human_message(message, message_id):
         return Message(

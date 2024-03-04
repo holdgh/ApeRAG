@@ -53,7 +53,7 @@ class OpenAIPredictor(Predictor):
             if choice.finish_reason == "stop":
                 return
             yield choice.delta.content
-
+            
     def _generate_stream(self, history, prompt, memory=False):
         timeout = httpx.Timeout(None, connect=3)
         client = OpenAI(timeout=timeout, api_key=self.token, base_url=self.endpoint, max_retries=0)
@@ -74,6 +74,20 @@ class OpenAIPredictor(Predictor):
     async def agenerate_stream(self, history, prompt, memory=False):
         async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
+    
+    async def agenerate_by_tools(self, prompt,tools):
+        timeout = httpx.Timeout(None, connect=3)
+        client = AsyncOpenAI(timeout=timeout, api_key=self.token, base_url=self.endpoint, max_retries=0)
+        response = await client.chat.completions.create(
+            model=self.model,
+            temperature=self.temperature,
+            messages= [{"role": "user", "content": prompt}],
+            tools=tools,
+            tool_choice="auto", 
+        )
+        
+        tool_calls = response.choices[0].message.tool_calls    
+        return tool_calls, response.choices[0].message.content
 
     def generate_stream(self, history, prompt, memory=False):
         for tokens in self._generate_stream(history, prompt, memory):
