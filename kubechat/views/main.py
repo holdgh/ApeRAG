@@ -42,6 +42,8 @@ from kubechat.db.models import (
     Question,
     QuestionStatus,
     VerifyWay,
+    ApiKeyToken,
+    ApiKeyStatus,
 )
 from kubechat.db.ops import (
     build_pq,
@@ -64,6 +66,7 @@ from kubechat.db.ops import (
     query_sync_histories,
     query_sync_history,
     query_user_quota,
+    query_apikey,
 )
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
@@ -279,6 +282,31 @@ async def get_sync_history(request, collection_id, sync_history_id):
         sync_history.pending_documents = progress.pending_documents
     return success(sync_history.view())
 
+@router.get("/settings")
+async def list_apikey(request):
+    user = get_user(request)
+    api_key = await query_apikey(user)
+    if api_key == None:
+        api_key = ApiKeyToken(
+            user=user,
+            status=ApiKeyStatus.ACTIVE,
+        )
+        await api_key.asave()
+    return success(api_key.view())
+
+@router.post("/settings")
+async def update_apikey(request):
+    user = get_user(request)
+    api_key = await query_apikey(user)
+    api_key.status = ApiKeyStatus.DELETED
+    api_key.gmt_deleted = timezone.now()
+    await api_key.asave()
+    new_api_key = ApiKeyToken(
+        user=user,
+        status=ApiKeyStatus.ACTIVE,
+    )
+    await new_api_key.asave()
+    return success(new_api_key.view())
 
 @router.post("/collections")
 async def create_collection(request, collection: CollectionIn):
