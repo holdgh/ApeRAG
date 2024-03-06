@@ -102,7 +102,7 @@ class KnowledgePipeline(Pipeline):
         logger.info("[%s] start processing", log_prefix)
 
         references = []
-        related_questions = []
+        related_questions = set()
         response = ""
         need_generate_answer = True
         need_related_question = True
@@ -116,11 +116,11 @@ class KnowledgePipeline(Pipeline):
             result_text = json.loads(result.text)
             if result_text["answer"] != "" and result.score > 0.9:
                 response = result_text["answer"]
-            if result_text["question"] not in related_questions:
-                related_questions.append(result_text["question"])
+            if  result.score < 0.8:
+                related_questions.add(result_text["question"])
                 
-        if len(related_questions) >= 3:
-            need_related_question = False
+        # if len(related_questions) >= 3:
+        #     need_related_question = False
             
         if response != "":
             yield response
@@ -171,12 +171,10 @@ class KnowledgePipeline(Pipeline):
                     yield self.oops
                     need_generate_answer = False
                 if self.welcome_question:
-                    if len(self.welcome_question) >= 3:
-                        related_questions = random.sample(self.welcome_question, 3)
+                    related_questions.update(self.welcome_question)
+                    if len(related_questions) >= 3:
                         need_related_question = False
-                    else:
-                        related_questions = self.welcome_question
-
+                  
             if self.use_related_question and need_related_question:
                 related_question_prompt = self.related_question_prompt.format(query=message, context=context)
                 related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
@@ -184,6 +182,10 @@ class KnowledgePipeline(Pipeline):
             if need_generate_answer:
                 history = []
                 messages = await self.history.messages
+                history_querys = [json.loads(message.content)["query"] for message in messages if message.additional_kwargs["role"] == "human"] 
+                history_querys.append(message)
+                related_questions = related_questions - set(history_querys[-5:])
+                
                 if self.memory and len(messages) > 0:
                     history = self.predictor.get_latest_history(
                         messages=messages,
@@ -218,7 +220,9 @@ class KnowledgePipeline(Pipeline):
         if self.use_related_question:
             if need_related_question:
                 related_question_generate = await related_question_task
-                related_questions.extend(related_question_generate)
+                related_questions.update(related_question_generate)
+            related_questions = list(related_questions)
+            random.shuffle(related_questions)
             yield KUBE_CHAT_RELATED_QUESTIONS + str(related_questions[:3])
 
         if gen_references:

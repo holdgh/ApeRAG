@@ -36,7 +36,7 @@ class CommonPipeline(Pipeline):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
 
-        related_questions = []
+        related_questions = set()
         response = ""
 
         need_generate_answer = True
@@ -47,11 +47,10 @@ class CommonPipeline(Pipeline):
             yield self.oops
             need_generate_answer = False
         if self.welcome_question != []:
+            related_questions.add(self.welcome_question)
             if len(self.welcome_question) >= 3:
-                related_questions = random.sample(self.welcome_question, 3)
                 need_related_question = False
-            else:
-                related_questions = self.welcome_question
+                
 
         # TODO: divide file_content into several parts and call API separately.
         context = file if file else ""
@@ -94,5 +93,7 @@ class CommonPipeline(Pipeline):
             if self.use_related_question:
                 if need_related_question:
                     related_question_generate = await related_question_task
-                    related_questions.extend(related_question_generate)
+                    related_questions.update(related_question_generate)
+                related_questions = list(related_questions)
+                random.shuffle(related_questions)
                 yield KUBE_CHAT_RELATED_QUESTIONS + str(related_questions[:3])

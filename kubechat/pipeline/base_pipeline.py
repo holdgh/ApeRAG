@@ -108,15 +108,18 @@ class Pipeline(ABC):
                     if question:
                         related_questions.append(question)
         else:
-            related_questions = re.sub(r'\n+', '\n', content).split('\n')
-            for i, question in enumerate(related_questions):
+            related_questions = [] 
+            if content=='':
+                return related_questions
+            questions = re.sub(r'\n+', '\n', content).split('\n')
+            for question in questions:
                 match = re.match(r"\s*-\s*(.*)", question)
                 if match:
                     question = match.group(1)
                 match = re.match(r"\s*\d+\.\s*(.*)", question)
                 if match:
                     question = match.group(1)
-                related_questions[i] = question
+                related_questions.append(question)
         return related_questions
     
     @staticmethod
