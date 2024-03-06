@@ -84,6 +84,7 @@ ingress:
   annotations: {}
 
 django:
+  logLevel: INFO
   dataPath: /data/kubechat
   replicaCount: 1
   feishu:
@@ -108,7 +109,9 @@ django:
     #   memory: 128Mi
   authType: none
   esHost: http://elasticsearch-elasticsearch:9200
-  redisSecret: redis-conn-credential
+  redisSecret: redis-redis-account-default
+  redisHost: redis-redis-redis
+  redisPort: 6379
   metaDBSecret: postgresql-conn-credential
   metaDBDatabase: kubechat
   adminUser: ""
@@ -119,9 +122,9 @@ django:
   openaiProxy: ""
   embeddingModel: "bge"
   embeddingDevice: "cpu"
-  embeddingBackend: "local"
   whisperHost: http://openai-whisper-asr-service:9000
   paddleocrHost: http://paddleocr-hubserving-service:8866
+  embeddingBackend: "local"
   embeddingServiceUrl: http://xinference-xinference:9997
   embeddingServiceModel: "bge-large-zh-v1.5"
   embeddingServiceModelUid: ""

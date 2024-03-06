@@ -37,15 +37,9 @@ spec:
               /app/scripts/entrypoint.sh /app/scripts/start-celery-worker.sh
           env:
             - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: host
+              value: {{ .Values.django.redisHost | quote }}
             - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: port
+              value: {{ .Values.django.redisPort | quote }}
             - name: REDIS_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -57,10 +51,7 @@ spec:
                   name: {{ .Values.django.redisSecret }}
                   key: password
             - name: DJANGO_LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  key: DJANGO_LOG_LEVEL
-                  name: kubechat-config
+              value: {{ .Values.django.logLevel | quote }}
             - name: POSTGRES_DB
               value: "{{ .Values.django.metaDBDatabase }}"
             - name: POSTGRES_HOST
@@ -85,15 +76,9 @@ spec:
                   key: password
 
             - name: VECTOR_DB_CONTEXT
-              valueFrom:
-                configMapKeyRef:
-                  key: VECTOR_DB_CONTEXT
-                  name: kubechat-config
+              value: {{ .Values.django.vectorDBContext | quote }}
             - name: VECTOR_DB_TYPE
-              valueFrom:
-                configMapKeyRef:
-                  key: VECTOR_DB_TYPE
-                  name: kubechat-config
+              value: {{ .Values.django.vectorDBType | quote }}
             - name: MEDIA_ROOT
               value: /data/media
             - name: NODE_IP
@@ -101,66 +86,33 @@ spec:
                 fieldRef:
                   fieldPath: status.hostIP
             - name: EMBEDDING_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_MODEL
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingModel | quote }}
             - name: EMBEDDING_DEVICE
-              value: {{ index .Values "celery-worker" "embeddingDevice" }}
-            - name: WHISPER_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: WHISPER_HOST
-                  name: kubechat-config
-            - name: PADDLEOCR_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: PADDLEOCR_HOST
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingDevice | quote }}
             - name: EMBEDDING_BACKEND
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_BACKEND
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingBackend | quote }}
             - name: EMBEDDING_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_SERVICE_URL
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingServiceUrl | quote }}
             - name: EMBEDDING_SERVICE_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_SERVICE_MODEL
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingServiceModel | quote }}
             - name: EMBEDDING_SERVICE_MODEL_UID
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_SERVICE_MODEL_UID
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingServiceModelUid | quote }}
+            - name: WHISPER_HOST
+              value: {{ .Values.django.whisperHost | quote }}
+            - name: PADDLEOCR_HOST
+              value: {{ .Values.django.paddleocrHost | quote }}
             {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: OPENAI_API_KEY
-                  name: kubechat-config
+              value: {{ .Values.django.openaiAPIKey | quote }}
             {{- end}}
             {{- if .Values.django.openaiProxy }}
             - name: OPENAI_API_PROXY
-              valueFrom:
-                configMapKeyRef:
-                  key: OPENAI_API_PROXY
-                  name: kubechat-config
+              value: {{ .Values.django.openaiProxy | quote }}
             {{- end}}
             - name: MODEL_FAMILIES
-              valueFrom:
-                configMapKeyRef:
-                  key: MODEL_FAMILIES
-                  name: kubechat-config
+              value: {{ .Values.django.modelFamilies | toJson | quote }}
             - name: ES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: ES_HOST
-                  name: kubechat-config
+              value: {{ .Values.django.esHost | quote }}
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           name: kubechat-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}

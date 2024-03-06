@@ -31,15 +31,9 @@ spec:
               /app/scripts/entrypoint.sh /app/scripts/start-celery-beat.sh
           env:
             - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: host
+              value: {{ .Values.django.redisHost | quote }}
             - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: port
+              value: {{ .Values.django.redisPort | quote }}
             - name: REDIS_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -51,10 +45,7 @@ spec:
                   name: {{ .Values.django.redisSecret }}
                   key: password
             - name: DJANGO_LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  key: DJANGO_LOG_LEVEL
-                  name: kubechat-config
+              value: {{ .Values.django.logLevel | quote }}
             - name: POSTGRES_DB
               value: "{{ .Values.django.metaDBDatabase }}"
             - name: POSTGRES_HOST

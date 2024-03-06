@@ -68,15 +68,9 @@ spec:
               fi
           env:
             - name: EMBEDDING_BACKEND
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_BACKEND
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingBackend | quote }}
             - name: RERANK_BACKEND
-              valueFrom:
-                configMapKeyRef:
-                  key: RERANK_BACKEND
-                  name: kubechat-config
+              value: {{ .Values.django.rerankBackend | quote }}
           volumeMounts:
             - mountPath: /data
               name: data
@@ -92,43 +86,22 @@ spec:
               /app/scripts/entrypoint.sh /app/scripts/start-django.sh
           env:
             - name: AUTH_TYPE
-              valueFrom:
-                configMapKeyRef:
-                  key: AUTH_TYPE
-                  name: kubechat-config
+              value: {{ .Values.django.authType | quote}}
             {{ if eq .Values.django.authType "auth0" }}
             - name: AUTH0_CLIENT_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: AUTH0_CLIENT_ID
-                  name: kubechat-config
+              value: {{ .Values.django.auth0ClientId | quote }}
             - name: AUTH0_DOMAIN
-              valueFrom:
-                configMapKeyRef:
-                  key: AUTH0_DOMAIN
-                  name: kubechat-config
+              value: {{ .Values.django.auth0Domain | quote }}
             {{ else if eq .Values.django.authType "authing" }}
             - name: AUTHING_APP_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: AUTHING_APP_ID
-                  name: kubechat-config
+              value: {{ .Values.django.authingAppId | quote }}
             - name: AUTHING_DOMAIN
-              valueFrom:
-                configMapKeyRef:
-                  key: AUTHING_DOMAIN
-                  name: kubechat-config
+              value: {{ .Values.django.authingDomain | quote }}
             {{- end }}
             - name: REDIS_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: host
+              value: {{ .Values.django.redisHost | quote }}
             - name: REDIS_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: port
+              value: {{ .Values.django.redisPort | quote }}
             - name: REDIS_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -140,25 +113,13 @@ spec:
                   name: {{ .Values.django.redisSecret }}
                   key: password
             - name: CELERY_FLOWER_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: CELERY_FLOWER_PASSWORD
-                  name: kubechat-config
+              value: {{ .Values.flower.password | quote }}
             - name: CELERY_FLOWER_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: CELERY_FLOWER_USER
-                  name: kubechat-config
+              value: {{ .Values.flower.user | quote }}
             - name: DJANGO_LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  key: DJANGO_LOG_LEVEL
-                  name: kubechat-config
+              value: {{ .Values.django.logLevel | quote }}
             - name: MODEL_FAMILIES
-              valueFrom:
-                configMapKeyRef:
-                  key: MODEL_FAMILIES
-                  name: kubechat-config
+              value: {{ .Values.django.modelFamilies | toJson | quote }}
             - name: POSTGRES_DB
               value: "{{ .Values.django.metaDBDatabase }}"
             - name: POSTGRES_HOST
@@ -182,34 +143,19 @@ spec:
                   name: {{ .Values.django.metaDBSecret }}
                   key: password
             - name: VECTOR_DB_CONTEXT
-              valueFrom:
-                configMapKeyRef:
-                  key: VECTOR_DB_CONTEXT
-                  name: kubechat-config
+              value: {{ .Values.django.vectorDBContext | quote }}
             - name: VECTOR_DB_TYPE
-              valueFrom:
-                configMapKeyRef:
-                  key: VECTOR_DB_TYPE
-                  name: kubechat-config
+              value: {{ .Values.django.vectorDBType | quote }}
             {{- if .Values.django.openaiAPIKey }}
             - name: OPENAI_API_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: OPENAI_API_KEY
-                  name: kubechat-config
-                  optional: true
+              value: {{ .Values.django.openaiAPIKey | quote }}
             {{- end }}
             {{- if .Values.django.openaiProxy }}
             - name: OPENAI_API_PROXY
-              valueFrom:
-                configMapKeyRef:
-                  key: OPENAI_API_PROXY
-                  name: kubechat-config
+              value: {{ .Values.django.openaiProxy | quote }}
             {{- end }}
             - name: MEDIA_ROOT
               value: /data/media
-            - name: CODE_STORAGE_DIR
-              value: /data/codegen
             - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
               value: python
             - name: NODE_IP
@@ -217,95 +163,41 @@ spec:
                 fieldRef:
                   fieldPath: status.hostIP
             - name: FEISHU_APP_ID
-              valueFrom:
-                  configMapKeyRef:
-                    key: FEISHU_APP_ID
-                    name: kubechat-config
+              value: {{ .Values.django.feishu.appID | quote }}
             - name: FEISHU_APP_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  key: FEISHU_APP_SECRET
-                  name: kubechat-config
+              value: {{ .Values.django.feishu.appSecret | quote }}
             - name: FEISHU_ENCRIPT_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: FEISHU_ENCRYPT_KEY
-                  name: kubechat-config
+              value: {{ .Values.django.feishu.encryptKey | quote }}
             - name: MAX_BOT_COUNT
-              valueFrom:
-                configMapKeyRef:
-                  key: MAX_BOT_COUNT
-                  name: kubechat-config
+              value: {{ .Values.django.quota.maxBotCount | quote }}
             - name: MAX_COLLECTION_COUNT
-              valueFrom:
-                configMapKeyRef:
-                  key: MAX_COLLECTION_COUNT
-                  name: kubechat-config
+              value: {{ .Values.django.quota.maxCollectionCount | quote }}
             - name: MAX_DOCUMENT_COUNT
-              valueFrom:
-                configMapKeyRef:
-                  key: MAX_DOCUMENT_COUNT
-                  name: kubechat-config
+              value: {{ .Values.django.quota.maxDocumentCount | quote }}
             - name: MAX_CONVERSATION_COUNT
-              valueFrom:
-                configMapKeyRef:
-                  key: MAX_CONVERSATION_COUNT
-                  name: kubechat-config
+              value: {{ .Values.django.quota.maxConversationCount | quote }}
             - name: EMBEDDING_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_MODEL
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingModel | quote }}
             - name: EMBEDDING_DEVICE
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_DEVICE
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingDevice | quote }}
             - name: EMBEDDING_BACKEND
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_BACKEND
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingBackend | quote }}
             - name: EMBEDDING_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_SERVICE_URL
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingServiceUrl | quote }}
             - name: EMBEDDING_SERVICE_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_SERVICE_MODEL
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingServiceModel | quote }}
             - name: EMBEDDING_SERVICE_MODEL_UID
-              valueFrom:
-                configMapKeyRef:
-                  key: EMBEDDING_SERVICE_MODEL_UID
-                  name: kubechat-config
+              value: {{ .Values.django.embeddingServiceModelUid | quote }}
             - name: RERANK_BACKEND
-              valueFrom:
-                configMapKeyRef:
-                  key: RERANK_BACKEND
-                  name: kubechat-config
+              value: {{ .Values.django.rerankBackend | quote }}
             - name: RERANK_SERVICE_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: RERANK_SERVICE_URL
-                  name: kubechat-config
+              value: {{ .Values.django.rerankServiceUrl | quote }}
             - name: RERANK_SERVICE_MODEL_UID
-              valueFrom:
-                configMapKeyRef:
-                  key: RERANK_SERVICE_MODEL_UID
-                  name: kubechat-config
+              value: {{ .Values.django.rerankServiceModelUid | quote }}
             - name: ES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: ES_HOST
-                  name: kubechat-config
+              value: {{ .Values.django.esHost | quote }}
             - name: ADMIN_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: ADMIN_USER
-                  name: kubechat-config
+              value: {{ .Values.django.adminUser | quote }}
             - name: ADMIN_TOKEN
               value: {{ .Values.django.adminToken | quote }}
           image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
