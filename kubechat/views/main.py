@@ -313,12 +313,7 @@ async def delete_apikey(request, apikey_id):
     api_key.status = ApiKeyStatus.DELETED
     api_key.gmt_deleted = timezone.now()
     await api_key.asave()
-    
-    pr = await query_apikeys(user, build_pq(request))
-    response = []
-    async for key in pr.data:
-        response.append(key.view())
-    return success(response, pr)
+    return success(api_key.view())
 
 @router.post("/collections")
 async def create_collection(request, collection: CollectionIn):
