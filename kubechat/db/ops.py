@@ -24,6 +24,8 @@ from kubechat.db.models import (
     Question,
     QuestionStatus,
     UserQuota,
+    ApiKeyToken,
+    ApiKeyStatus
 )
 
 logger = logging.getLogger(__name__)
@@ -161,6 +163,18 @@ async def query_question(user, question_id: str):
     except Question.DoesNotExist:
         return None
 
+async def query_apikeys(user, pq: PagedQuery = None):
+    filters = build_filters(pq)
+    apikey_set = ApiKeyToken.objects.exclude(status=CollectionStatus.DELETED).filter(user=user, **filters)
+    return await build_pr(pq, apikey_set)
+
+async def query_apikey(user, apikey_id: str):
+    try:
+        return await ApiKeyToken.objects.exclude(status=ApiKeyStatus.DELETED).aget(
+            user=user, pk=apikey_id
+        )
+    except ApiKeyToken.DoesNotExist:
+        return None
 
 async def query_chat(user, bot_id: str, chat_id: str):
     try:

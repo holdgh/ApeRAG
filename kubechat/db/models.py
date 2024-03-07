@@ -40,6 +40,8 @@ def collection_history_pk():
 def que_pk():
     return "que" + random_id()
 
+def app_id():
+    return ''.join(random.sample(uuid.uuid4().hex, 12))
 
 def upload_document_path(document, filename):
     user = document.user.replace("|", "-")
@@ -124,6 +126,10 @@ class QuestionStatus(models.TextChoices):
     WARNING = "WARNING"
     DELETED = "DELETED"
     PENDING = "PENDING"
+    
+class ApiKeyStatus(models.TextChoices):
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
 class Collection(models.Model):
     id = models.CharField(primary_key=True, default=collection_pk, editable=False, max_length=24)
@@ -381,6 +387,22 @@ class Question(models.Model):
             "updated": self.gmt_updated.isoformat(),
         }
 
+
+class ApiKeyToken(models.Model):
+    id = models.CharField(primary_key=True, default=app_id, editable=False, max_length=24)
+    key = models.CharField(max_length=40, editable=False)
+    user = models.CharField(max_length=256)
+    status = models.CharField(max_length=16, choices=ApiKeyStatus.choices, null=True)
+    count_times = models.IntegerField(blank=True, null=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+    
+    def view(self):
+        return {
+            "id": str(self.id),
+            "key": self.key,
+        }
 
 
 class CollectionSyncHistory(models.Model):

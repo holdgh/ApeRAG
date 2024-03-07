@@ -12,6 +12,10 @@ from ninja.security.http import HttpAuthBase
 import config.settings as settings
 from kubechat.auth import tv
 from kubechat.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
+from kubechat.db.models import ApiKeyToken, ApiKeyStatus
+from ninja.compatibility.request import get_headers
+from django.core.cache import cache
+from asgiref.sync import sync_to_async
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,21 @@ def get_user_from_token(token):
             user = DEFAULT_USER
     return user
 
+async def get_user_from_api_key(key):
+    cache_key = f"api_key:{key}"
+    user = cache.get(cache_key)
+    if user is not None:
+        return user
+    try:
+        # api_key = ApiKeyToken.objects.get(key=key)
+        api_key = await sync_to_async(ApiKeyToken.objects.get)(key=key)
+    except ApiKeyToken.DoesNotExist:
+        return None
+    if api_key.status == ApiKeyStatus.DELETED:
+        return None
+    
+    cache.set(cache_key, api_key.user)
+    return api_key.user
 
 class AdminAuth(HttpBearer):
     def authenticate(self, request, token):
@@ -39,9 +58,32 @@ class AdminAuth(HttpBearer):
         return token
 
 
-class GlobalHTTPAuth(HttpBearer):
-    def authenticate(self, request, token):
-        request.META[KEY_USER_ID] = get_user_from_token(token)
+class GlobalHTTPAuth(HttpAuthBase):
+    api_key_scheme: str = "api-key"
+    openapi_scheme: str = "bearer"
+    header: str = "Authorization"
+    async def __call__(self, request: HttpRequest) -> Optional[Any]:
+        headers = get_headers(request)
+        auth_value = headers.get(self.header)
+        if not auth_value:
+            return None
+        parts = auth_value.split(" ")
+
+        if parts[0].lower() not in (self.openapi_scheme, self.api_key_scheme):
+            if settings.DEBUG:
+                logger.error(f"Unexpected auth - '{auth_value}'")
+            return None
+        token = " ".join(parts[1:])
+        return await self.authenticate(request, token, parts[0].lower())
+    
+    async def authenticate(self, request, token, scheme):
+        if scheme == self.openapi_scheme:
+            request.META[KEY_USER_ID] = get_user_from_token(token)
+        elif scheme == self.api_key_scheme:
+            user = await get_user_from_api_key(token)
+            if user == None:
+                return None
+            request.META[KEY_USER_ID] = user
         return token
 
 

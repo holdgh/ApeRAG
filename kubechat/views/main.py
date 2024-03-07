@@ -4,6 +4,7 @@ import logging
 import os
 from http import HTTPStatus
 from typing import List, Optional
+import secrets
 
 import yaml
 from asgiref.sync import sync_to_async
@@ -42,6 +43,8 @@ from kubechat.db.models import (
     Question,
     QuestionStatus,
     VerifyWay,
+    ApiKeyToken,
+    ApiKeyStatus,
 )
 from kubechat.db.ops import (
     build_pq,
@@ -64,6 +67,8 @@ from kubechat.db.ops import (
     query_sync_histories,
     query_sync_history,
     query_user_quota,
+    query_apikeys,
+    query_apikey
 )
 from kubechat.llm.base import Predictor
 from kubechat.llm.prompts import (
@@ -279,6 +284,41 @@ async def get_sync_history(request, collection_id, sync_history_id):
         sync_history.pending_documents = progress.pending_documents
     return success(sync_history.view())
 
+@router.get("/apikeys")
+async def list_apikey(request):
+    user = get_user(request)
+    pr = await query_apikeys(user, build_pq(request))
+    response = []
+    async for key in pr.data:
+        response.append(key.view())
+    return success(response, pr)
+
+@router.post("/apikeys")
+async def create_apikey(request):
+    user = get_user(request)
+    new_api_key = ApiKeyToken(
+        user=user,
+        status=ApiKeyStatus.ACTIVE,
+        key = secrets.token_hex(20)
+    )
+    await new_api_key.asave()
+    return success(new_api_key.view())
+
+@router.delete("/apikeys/{apikey_id}")
+async def delete_apikey(request, apikey_id):
+    user = get_user(request)
+    api_key = await query_apikey(user, apikey_id)
+    if api_key is None:
+        return fail(HTTPStatus.NOT_FOUND, "api_key not found")
+    api_key.status = ApiKeyStatus.DELETED
+    api_key.gmt_deleted = timezone.now()
+    await api_key.asave()
+    
+    pr = await query_apikeys(user, build_pq(request))
+    response = []
+    async for key in pr.data:
+        response.append(key.view())
+    return success(response, pr)
 
 @router.post("/collections")
 async def create_collection(request, collection: CollectionIn):
