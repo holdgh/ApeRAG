@@ -108,15 +108,14 @@ class KnowledgePipeline(Pipeline):
         need_related_question = True
         vector = self.embedding_model.embed_query(message)
         logger.info("[%s] embedding query end", log_prefix)
-        # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
 
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=6, vector=vector)
+        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=10, vector=vector)
         logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         for result in results:
             result_text = json.loads(result.text)
             if result_text["answer"] != "" and result.score > 0.9:
                 response = result_text["answer"]
-            if  result.score < 0.8:
+            if result.score < 0.8:
                 related_questions.add(result_text["question"])
                 
         # if len(related_questions) >= 3:
@@ -133,13 +132,7 @@ class KnowledgePipeline(Pipeline):
             results = await async_run(self.context_manager.query, message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
             logger.info("[%s] find top %d relevant context in vector db end", log_prefix, len(results))
-            # hyde_message = await hyde_task
-            # new_vector = self.embedding_model.embed_query(hyde_message)
-            # results2 = await async_run(self.context_manager.query, message,
-            #                           score_threshold=self.score_threshold, topk=self.topk * 6, vector=new_vector)
-            # results_set = set([result.text for result in results])
-            # results.extend(result for result in results2 if result.text not in results_set)
-            
+
             if self.bot_context != "":
                 bot_context_result = DocumentWithScore(
                     text=self.bot_context,  # type: ignore
@@ -165,15 +158,15 @@ class KnowledgePipeline(Pipeline):
             if len(candidates) > 0:
                 # 500 is the estimated length of the prompt
                 context = get_packed_answer(candidates, max(self.context_window - 500, 0))
-            else:
-                if self.oops != "":
-                    response = self.oops
-                    yield self.oops
-                    need_generate_answer = False
-                if self.welcome_question:
-                    related_questions.update(self.welcome_question)
-                    if len(related_questions) >= 3:
-                        need_related_question = False
+            # else:
+            #     if self.oops != "":
+            #         response = self.oops
+            #         yield self.oops
+            #         need_generate_answer = False
+            #     if self.welcome_question:
+            #         related_questions.update(self.welcome_question)
+            #         if len(related_questions) >= 3:
+            #             need_related_question = False
                   
             if self.use_related_question and need_related_question:
                 related_question_prompt = self.related_question_prompt.format(query=message, context=context)
@@ -202,7 +195,6 @@ class KnowledgePipeline(Pipeline):
                     response += msg
 
                 for result in candidates:
-                    # filter bot_context
                     if result.score == 0:
                         continue
                     references.append({
