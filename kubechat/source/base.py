@@ -90,4 +90,7 @@ def get_source(ctx: Dict[str, Any]):
         case "tencent":
             from kubechat.source.tencent.tencent import TencentSource
             source = TencentSource(ctx)
+        case "github":
+            from kubechat.source.github import GitHubSource
+            source = GitHubSource(ctx)
     return source
