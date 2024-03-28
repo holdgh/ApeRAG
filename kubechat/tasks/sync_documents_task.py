@@ -99,6 +99,9 @@ def sync_documents(self, **kwargs):
         if src_doc.name in src_docs:
             logger.warning(f"Duplicate document {src_doc.name}")
             continue
+        
+        if not os.path.exists(src_doc.metadata["path"]):
+            continue
 
         src_docs[src_doc.name] = src_doc
         collection_sync_history.total_documents += 1
@@ -107,8 +110,9 @@ def sync_documents(self, **kwargs):
         if dst_doc:
             # modify
             metadata = json.loads(dst_doc.metadata)
+            src_modified_time = datetime.datetime.strptime(src_doc.metadata["modified_time"], "%Y-%m-%dT%H:%M:%S")
             dst_modified_time = datetime.datetime.strptime(metadata["modified_time"], "%Y-%m-%dT%H:%M:%S")
-            if src_doc.metadata["modified_time"] > dst_modified_time or dst_doc.status == DocumentStatus.PENDING:
+            if src_modified_time > dst_modified_time or dst_doc.status == DocumentStatus.PENDING:
                 collection_sync_history.total_documents_to_sync += 1
                 collection_sync_history.modified_documents += 1
                 collection_sync_history.save()

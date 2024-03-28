@@ -31,12 +31,11 @@ class GitHubSource(Source):
                 file_path = os.path.join(root, file)
                 try:
                     file_stat = os.stat(file_path)
-                    modified_time = datetime.utcfromtimestamp(file_stat.st_mtime)
+                    modified_time = datetime.utcfromtimestamp(file_stat.st_mtime).strftime("%Y-%m-%dT%H:%M:%S")
                     doc = RemoteDocument(
                         name=file,
                         size=file_stat.st_size,
-                        modified_time=modified_time,
-                        metadata = {"path":os.path.normpath(file_path),"document_link":file_path.replace(self.tmp_dir, self.repo_url)}
+                        metadata = {"path":os.path.normpath(file_path),"document_link":file_path.replace(self.tmp_dir, self.repo_url),"modified_time":modified_time}
                     )
                     documents.append(doc)
                 except Exception as e:
@@ -54,3 +53,6 @@ class GitHubSource(Source):
 
     def sync_enabled(self):
         return True
+    
+    def cleanup_document(self, filepath: str):
+        pass
