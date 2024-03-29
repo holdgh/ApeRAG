@@ -121,8 +121,10 @@ django:
   openaiAPIKey: ""
   openaiProxy: ""
   openaiAPIBase: ""
-  openaiAPIVersion: ""
   azureOpenAIDeploymentName: ""
+  azureOpenAIAPIKey: ""
+  azureOpenAIAPIBase: ""
+  azureOpenAIAPIVersion: ""
   embeddingModel: "bge"
   embeddingDevice: "cpu"
   whisperHost: http://openai-whisper-asr-service:9000

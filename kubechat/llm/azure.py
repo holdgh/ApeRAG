@@ -19,15 +19,15 @@ class AzureOpenAIPredictor(Predictor):
         if not self.deployment_id:
             raise LLMConfigError("Please specify the deployment ID")
 
-        self.endpoint = kwargs.get("endpoint", os.environ.get("OPENAI_API_BASE", ""))
+        self.endpoint = kwargs.get("endpoint", os.environ.get("AZURE_OPENAI_API_BASE", ""))
         if not self.endpoint:
             raise LLMConfigError("Please specify the API endpoint")
 
-        self.api_version = kwargs.get("api_version", os.environ.get("OPENAI_API_VERSION", ""))
+        self.api_version = kwargs.get("api_version", os.environ.get("AZURE_OPENAI_API_VERSION", ""))
         if not self.api_version:
             raise LLMConfigError("Please specify the API version")
 
-        self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
+        self.token = kwargs.get("token", os.environ.get("AZURE_OPENAI_API_KEY", ""))
         if not self.token:
             raise LLMConfigError("Please specify the API token")
 

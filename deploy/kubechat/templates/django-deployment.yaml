@@ -154,17 +154,25 @@ spec:
             - name: OPENAI_API_PROXY
               value: {{ .Values.django.openaiProxy | quote }}
             {{- end }}
-            {{- if .Values.django.openaiAPIBase}}
+            {{- if .Values.django.openaiAPIBase }}
             - name: OPENAI_API_BASE
               value: {{ .Values.django.openaiAPIBase | quote }}
             {{- end }}
-            {{- if .Values.django.openaiAPIVersion }}
-            - name: OPENAI_API_VERSION
-              value: {{ .Values.django.openaiAPIVersion | quote }}
+            {{- if .Values.django.azureOpenAIAPIVersion }}
+            - name: AZURE_OPENAI_API_VERSION
+              value: {{ .Values.django.azureOpenAIAPIVersion | quote }}
             {{- end }}
             {{- if .Values.django.azureOpenAIDeploymentName }}
             - name: AZURE_OPENAI_DEPLOYMENT_NAME
               value: {{ .Values.django.azureOpenAIDeploymentName | quote }}
+            {{- end }}
+            {{- if .Values.django.azureOpenAIAPIKey }}
+            - name: AZURE_OPENAI_API_KEY
+              value: {{ .Values.django.azureOpenAIAPIKey | quote }}
+            {{- end }}
+            {{- if .Values.django.azureOpenAIAPIBase }}
+            - name: AZURE_OPENAI_API_BASE
+              value: {{ .Values.django.azureOpenAIAPIBase | quote }}
             {{- end }}
             - name: MEDIA_ROOT
               value: /data/media
