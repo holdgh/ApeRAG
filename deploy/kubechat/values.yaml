@@ -120,6 +120,9 @@ django:
   vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   openaiAPIKey: ""
   openaiProxy: ""
+  openaiAPIBase: ""
+  openaiAPIVersion: ""
+  azureOpenAIDeploymentName: ""
   embeddingModel: "bge"
   embeddingDevice: "cpu"
   whisperHost: http://openai-whisper-asr-service:9000

@@ -154,6 +154,18 @@ spec:
             - name: OPENAI_API_PROXY
               value: {{ .Values.django.openaiProxy | quote }}
             {{- end }}
+            {{- if .Values.django.openaiAPIBase}}
+            - name: OPENAI_API_BASE
+              value: {{ .Values.django.openaiAPIBase | quote }}
+            {{- end }}
+            {{- if .Values.django.openaiAPIVersion }}
+            - name: OPENAI_API_VERSION
+              value: {{ .Values.django.openaiAPIVersion | quote }}
+            {{- end }}
+            {{- if .Values.django.azureOpenAIDeploymentName }}
+            - name: AZURE_OPENAI_DEPLOYMENT_NAME
+              value: {{ .Values.django.azureOpenAIDeploymentName | quote }}
+            {{- end }}
             - name: MEDIA_ROOT
               value: /data/media
             - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION

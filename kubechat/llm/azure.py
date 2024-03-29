@@ -15,13 +15,22 @@ class AzureOpenAIPredictor(Predictor):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.deployment_id = kwargs.get("deployment_id", "gpt-4")
-        self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
-        self.api_version = kwargs.get("api_version", "2023-05-15")
+        self.deployment_id = kwargs.get("deployment_id", os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", ""))
+        if not self.deployment_id:
+            raise LLMConfigError("Please specify the deployment ID")
+
+        self.endpoint = kwargs.get("endpoint", os.environ.get("OPENAI_API_BASE", ""))
+        if not self.endpoint:
+            raise LLMConfigError("Please specify the API endpoint")
+
+        self.api_version = kwargs.get("api_version", os.environ.get("OPENAI_API_VERSION", ""))
+        if not self.api_version:
+            raise LLMConfigError("Please specify the API version")
 
         self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
         if not self.token:
             raise LLMConfigError("Please specify the API token")
+
         self.use_default_token = not kwargs.get("token", "")
         """
         # https://github.com/openai/openai-python/issues/279
