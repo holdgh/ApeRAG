@@ -12,12 +12,15 @@ class OpenAIPredictor(Predictor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.model = kwargs.get("model", "gpt-3.5-turbo")
-        self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
+        if self.trial:
+            self.endpoint = os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1")
+            self.token = os.environ.get("OPENAI_API_KEY", "")
+        else:
+            self.endpoint = kwargs.get("endpoint", "https://api.openai.com/v1")
+            self.token = kwargs.get("token", "")
 
-        self.token = kwargs.get("token", os.environ.get("OPENAI_API_KEY", ""))
         if not self.token:
             raise LLMConfigError("Please specify the API token")
-        self.use_default_token = not kwargs.get("token", "")
 
         """
         # https://github.com/openai/openai-python/issues/279

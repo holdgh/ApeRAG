@@ -39,14 +39,14 @@ async def weixin_text_response(client, user, bot, query, msg_id):
     response = ""
 
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
-    use_default_token = pipeline.predictor.use_default_token
+    trial = pipeline.predictor.trial
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
     if conversation_limit is None:
         conversation_limit = MAX_CONVERSATION_COUNT
 
     try:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 await client.send_message(error, user)
@@ -64,7 +64,7 @@ async def weixin_text_response(client, user, bot, query, msg_id):
     except Exception as e:
         logger.exception(e)
     finally:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             await manage_quota_usage(bot.user, conversation_limit)
 
 
@@ -80,14 +80,14 @@ async def weixin_card_response(client, user, bot, query, msg_id):
     response = ""
 
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
-    use_default_token = pipeline.predictor.use_default_token
+    trial = pipeline.predictor.trial
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
     if conversation_limit is None:
         conversation_limit = MAX_CONVERSATION_COUNT
 
     try:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 await client.send_message(error, user)
@@ -105,7 +105,7 @@ async def weixin_card_response(client, user, bot, query, msg_id):
     except Exception as e:
         logger.exception(e)
     finally:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             await manage_quota_usage(bot.user, conversation_limit)
 
 
@@ -269,7 +269,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
     history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     collection = await sync_to_async(bot.collections.first)()
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
-    use_default_token = pipeline.predictor.use_default_token
+    trial = pipeline.predictor.trial
     redis_client = aredis.Redis.from_url(settings.MEMORY_REDIS_URL)
     response = ""
 
@@ -278,7 +278,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
         conversation_limit = MAX_CONVERSATION_COUNT
 
     try:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 logger.info("generate response failed, conversation rounds have reached to the limit")
@@ -294,7 +294,7 @@ async def weixin_officaccount_response(query, msg_id, to_user_name, bot):
     except Exception as e:
         logger.exception(e)
     finally:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             await manage_quota_usage(bot.user, conversation_limit)
 
 

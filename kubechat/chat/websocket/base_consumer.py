@@ -110,7 +110,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             # send start message
             await self.send(text_data=start_response(message_id))
 
-            if self.use_default_token and self.conversation_limit:
+            if self.free_tier and self.conversation_limit:
                 if not await check_quota_usage(self.user, self.conversation_limit):
                     error = f"conversation rounds have reached to the limit of {self.conversation_limit}"
                     await self.send(text_data=fail_response(message_id, error=error))
@@ -137,7 +137,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             logger.warning("[Oops] %s: %s", str(e), traceback.format_exc())
             await self.send(text_data=fail_response(message_id, str(e)))
         finally:
-            if self.use_default_token and self.conversation_limit:
+            if self.free_tier and self.conversation_limit:
                 await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
             await self.send(text_data=stop_response(message_id, references, related_question, self.related_question_prompt, self.pipeline.memory_count))

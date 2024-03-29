@@ -163,6 +163,7 @@ def list_models(request):
                 "label": model_server.get("label", model_server["name"]),
                 "enabled": model_server.get("enabled", "true").lower() == "true",
                 "memory": model_server.get("memory", "disabled").lower() == "enabled",
+                "free_tier": model_server.get("free_tier", False),
                 "default_token": Predictor.check_default_token(model_name=model_server["name"]),
                 "prompt_template": DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"],
                                                                                     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3),

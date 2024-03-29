@@ -22,7 +22,6 @@ class BaiduQianFan(Predictor):
         if not self.secret_key:
             raise LLMConfigError("Please specify the Secret Key")
 
-        self.use_default_token = not kwargs.get("api_key", "") or not kwargs.get("secret_key", "")
 
         self.chat_comp = qianfan.ChatCompletion(ak=self.api_key, sk=self.secret_key)
 

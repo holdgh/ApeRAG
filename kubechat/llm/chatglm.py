@@ -28,7 +28,6 @@ class ChatGLMPredictor(Predictor):
         if not (len(parts) == 2 and all(parts)):
             raise LLMConfigError("Please specify the correct API KEY")
 
-        self.use_default_token = not kwargs.get("api_key", "")
 
     @staticmethod
     def provide_default_token():

@@ -17,7 +17,7 @@ class DocumentQAConsumer(BaseConsumer):
         self.collection_id = self.collection.id
         self.embedding_model, self.vector_size = get_collection_embedding_model(self.collection)
         self.pipeline = KnowledgePipeline(bot=self.bot, collection=self.collection, history=self.history)
-        self.use_default_token = self.pipeline.predictor.use_default_token
+        self.free_tier = self.pipeline.predictor.trial
 
     async def predict(self, query, **kwargs):
         async for msg in self.pipeline.run(query, gen_references=True, **kwargs):

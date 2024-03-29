@@ -64,12 +64,12 @@ async def dingtalk_text_response(user, bot, query, msg_id, sender_id, session_we
     response = ""
 
     pipeline = KnowledgePipeline(bot=bot, collection=collection, history=history)
-    use_default_token = pipeline.predictor.use_default_token
+    trial = pipeline.predictor.trial
 
     conversation_limit = await query_user_quota(user, QuotaType.MAX_CONVERSATION_COUNT)
 
     try:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             if not await check_quota_usage(bot.user, conversation_limit):
                 error = f"conversation rounds have reached to the limit of {conversation_limit}"
                 await send_message(error, user, sender_id)
@@ -86,7 +86,7 @@ async def dingtalk_text_response(user, bot, query, msg_id, sender_id, session_we
     except Exception as e:
         logger.exception(e)
     finally:
-        if use_default_token and conversation_limit:
+        if trial and conversation_limit:
             await manage_quota_usage(bot.user, conversation_limit)
 
 async def notify_dingding(question, answer, webhook, sender_id):

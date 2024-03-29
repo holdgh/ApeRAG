@@ -15,23 +15,29 @@ class AzureOpenAIPredictor(Predictor):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.deployment_id = kwargs.get("deployment_id", os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", ""))
+        if self.trial:
+            self.deployment_id = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "")
+            self.endpoint = os.environ.get("AZURE_OPENAI_API_BASE", "")
+            self.api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "")
+            self.token = os.environ.get("AZURE_OPENAI_API_KEY", "")
+        else:
+            self.deployment_id = kwargs.get("deployment_id", "")
+            self.endpoint = kwargs.get("endpoint", "")
+            self.api_version = kwargs.get("api_version", "")
+            self.token = kwargs.get("token", "")
+
         if not self.deployment_id:
             raise LLMConfigError("Please specify the deployment ID")
 
-        self.endpoint = kwargs.get("endpoint", os.environ.get("AZURE_OPENAI_API_BASE", ""))
         if not self.endpoint:
             raise LLMConfigError("Please specify the API endpoint")
 
-        self.api_version = kwargs.get("api_version", os.environ.get("AZURE_OPENAI_API_VERSION", ""))
         if not self.api_version:
             raise LLMConfigError("Please specify the API version")
 
-        self.token = kwargs.get("token", os.environ.get("AZURE_OPENAI_API_KEY", ""))
         if not self.token:
             raise LLMConfigError("Please specify the API token")
 
-        self.use_default_token = not kwargs.get("token", "")
         """
         # https://github.com/openai/openai-python/issues/279
         Example:

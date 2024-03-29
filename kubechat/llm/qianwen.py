@@ -21,7 +21,6 @@ class QianWenPredictor(Predictor):
         if not self.api_key:
             raise LLMConfigError("Please specify the API KEY")
 
-        self.use_default_token = not kwargs.get("api_key", "")
 
     @staticmethod
     def provide_default_token():

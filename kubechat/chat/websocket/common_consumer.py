@@ -30,7 +30,7 @@ class CommonConsumer(BaseConsumer):
         self.file = None
         self.file_name = None
         self.pipeline = CommonPipeline(bot=self.bot, collection=self.collection, history=self.history)
-        self.use_default_token = self.pipeline.predictor.use_default_token
+        self.free_tier = self.pipeline.predictor.trial
 
     async def predict(self, query, **kwargs):
         async for msg in self.pipeline.run(query, gen_references=True, **kwargs):
@@ -76,7 +76,7 @@ class CommonConsumer(BaseConsumer):
             # send start message
             await self.send(text_data=start_response(message_id))
 
-            if self.use_default_token and self.conversation_limit:
+            if self.free_tier and self.conversation_limit:
                 if not await check_quota_usage(self.user, self.conversation_limit):
                     error = f"conversation rounds have reached to the limit of {self.conversation_limit}"
                     await self.send(text_data=fail_response(message_id, error=error))
@@ -102,7 +102,7 @@ class CommonConsumer(BaseConsumer):
         finally:
             self.file = None
             self.file_name = None
-            if self.use_default_token and self.conversation_limit:
+            if self.free_tier and self.conversation_limit:
                 await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
             await self.send(text_data=stop_response(message_id, [], related_question, self.related_question_prompt, self.pipeline.memory_count))
