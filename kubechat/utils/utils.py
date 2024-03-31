@@ -6,7 +6,7 @@ from datetime import datetime
 from Crypto.Cipher import AES
 
 AVAILABLE_MODEL = [""]
-AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu", "url"]
+AVAILABLE_SOURCE = ["system", "local", "s3", "oss", "ftp", "email", "feishu", "url","github"]
 
 
 def extract_bot_and_chat_id(path: str):
