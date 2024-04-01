@@ -23,7 +23,8 @@ from kubechat.chat.utils import (
     welcome_response,
 )
 from kubechat.db.ops import query_bot, query_user_quota
-from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS
+from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, \
+    KUBE_CHAT_DOCUMENT_URLS
 from kubechat.utils.constant import KEY_BOT_ID, KEY_CHAT_ID, KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 from kubechat.utils.utils import now_unix_milliseconds
 
@@ -104,6 +105,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
         message = ""
         references = []
         related_question = []
+        urls = []
         message_id = f"{now_unix_milliseconds()}"
 
         try:
@@ -123,6 +125,9 @@ class BaseConsumer(AsyncWebsocketConsumer):
                 if tokens.startswith(KUBE_CHAT_RELATED_QUESTIONS):
                     related_question = ast.literal_eval(tokens[len(KUBE_CHAT_RELATED_QUESTIONS):])
                     continue
+                if tokens.startswith(KUBE_CHAT_DOCUMENT_URLS):
+                    urls = ast.literal_eval(tokens[len(KUBE_CHAT_DOCUMENT_URLS):])
+                    continue
 
                 # streaming response
                 response = success_response(message_id, tokens, issql=self.response_type == "sql")
@@ -140,6 +145,7 @@ class BaseConsumer(AsyncWebsocketConsumer):
             if self.free_tier and self.conversation_limit:
                 await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
-            await self.send(text_data=stop_response(message_id, references, related_question, self.related_question_prompt, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, references, related_question,
+                                                    self.related_question_prompt, self.pipeline.memory_count, urls=urls))
 
 

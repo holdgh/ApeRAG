@@ -19,6 +19,7 @@ class Message(BaseModel):
     query: Optional[str]
     timestamp: Optional[int]
     response: Optional[str]
+    urls: Optional[List[str]]
     references: Optional[List[Dict]]
     collection_id: Optional[str]
     embedding_model: Optional[str]
@@ -32,6 +33,7 @@ class Message(BaseModel):
 
 KUBE_CHAT_DOC_QA_REFERENCES = "|KUBE_CHAT_DOC_QA_REFERENCES|"
 KUBE_CHAT_RELATED_QUESTIONS = "|KUBE_CHAT_RELATED_QUESTIONS|"
+KUBE_CHAT_DOCUMENT_URLS = "|KUBE_CHAT_DOCUMENT_URLS|"
 
 
 class Pipeline(ABC):
@@ -130,7 +132,7 @@ class Pipeline(ABC):
             timestamp=now_unix_milliseconds(),
         )
 
-    async def new_ai_message(self, message, message_id, response, references):
+    async def new_ai_message(self, message, message_id, response, references, urls):
         pass
 
     async def add_human_message(self, message, message_id):
@@ -146,8 +148,8 @@ class Pipeline(ABC):
             )
         )
 
-    async def add_ai_message(self, message, message_id, response, references):
-        ai_msg = await (self.new_ai_message(message, message_id, response, references))
+    async def add_ai_message(self, message, message_id, response, references, urls):
+        ai_msg = await (self.new_ai_message(message, message_id, response, references, urls))
         ai_msg = ai_msg.json(exclude_none=True)
         await self.history.add_message(
             AIMessage(

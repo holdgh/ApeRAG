@@ -44,7 +44,7 @@ class FakePipeline(Pipeline):
                 "metadata": {"source": ref[:20]},
             })
 
-        await self.add_ai_message(message, message_id, response, references)
+        await self.add_ai_message(message, message_id, response, references, urls=[])
 
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)

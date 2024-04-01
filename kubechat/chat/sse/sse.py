@@ -72,7 +72,7 @@ class ServerSentEventsConsumer(AsyncHttpConsumer):
                 await self.send_event(event, more_body=False)
                 return
 
-            event = stop_response(message_id=msg_id, references=[])
+            event = stop_response(message_id=msg_id, references=[], urls=[])
             await self.send_event(event, more_body=False)
         except Exception as e:
             logger.exception(e)

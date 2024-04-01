@@ -20,12 +20,13 @@ class CommonPipeline(Pipeline):
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query"])
         self.file_prompt = PromptTemplate(template=COMMON_FILE_TEMPLATE, input_variables=["query", "context"])
 
-    async def new_ai_message(self, message, message_id, response, references):
+    async def new_ai_message(self, message, message_id, response, references, urls):
         return Message(
             id=message_id,
             query=message,
             response=response,
             timestamp=now_unix_milliseconds(),
+            urls=urls,
             references=references,
             llm_model=self.model,
             llm_prompt_template=self.prompt_template,
@@ -87,7 +88,7 @@ class CommonPipeline(Pipeline):
             await self.add_human_message(message, message_id)
             logger.info("[%s] add human message end", log_prefix)
 
-            await self.add_ai_message(message, message_id, response, references=[])
+            await self.add_ai_message(message, message_id, response, references=[], urls=[])
             logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
             if self.use_related_question:

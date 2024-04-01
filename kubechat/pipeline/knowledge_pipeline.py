@@ -13,7 +13,8 @@ from kubechat.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
     DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
 )
-from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
+from kubechat.pipeline.base_pipeline import KUBE_CHAT_DOC_QA_REFERENCES, KUBE_CHAT_RELATED_QUESTIONS, \
+    Message, Pipeline, KUBE_CHAT_DOCUMENT_URLS
 from kubechat.pipeline.keyword_extractor import IKExtractor
 from kubechat.query.query import DocumentWithScore, get_packed_answer
 from kubechat.readers.base_embedding import get_embedding_model, rerank
@@ -56,13 +57,14 @@ class KnowledgePipeline(Pipeline):
                                                                              DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
-    async def new_ai_message(self, message, message_id, response, references):
+    async def new_ai_message(self, message, message_id, response, references, urls):
         return Message(
             id=message_id,
             query=message,
             response=response,
             timestamp=now_unix_milliseconds(),
             references=references,
+            urls=urls,
             collection_id=self.collection_id,
             embedding_model=self.embedding_model_name,
             embedding_size=self.vector_size,
@@ -104,6 +106,7 @@ class KnowledgePipeline(Pipeline):
         references = []
         related_questions = set()
         response = ""
+        document_urls = set()
         need_generate_answer = True
         need_related_question = True
         vector = self.embedding_model.embed_query(message)
@@ -116,7 +119,7 @@ class KnowledgePipeline(Pipeline):
             result_text = json.loads(result.text)
             if result_text["answer"] != "" and result.score > 0.9:
                 response = result_text["answer"]
-            if  result.score < 0.8:
+            if result.score < 0.8:
                 related_questions.add(result_text["question"])
                 
         # if len(related_questions) >= 3:
@@ -210,11 +213,14 @@ class KnowledgePipeline(Pipeline):
                         "text": result.text,
                         "metadata": result.metadata
                     })
+                    url = result.metadata.get("url")
+                    if url:
+                        document_urls.add(result.metadata.get("url"))
 
         await self.add_human_message(message, message_id)
         logger.info("[%s] add human message end", log_prefix)
 
-        await self.add_ai_message(message, message_id, response, references)
+        await self.add_ai_message(message, message_id, response, references, list(document_urls))
         logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
         if self.use_related_question:
@@ -227,3 +233,7 @@ class KnowledgePipeline(Pipeline):
 
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
+
+        if document_urls:
+            yield KUBE_CHAT_DOCUMENT_URLS + json.dumps(list(document_urls))
+

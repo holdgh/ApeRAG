@@ -24,7 +24,8 @@ from kubechat.db.models import (
 from kubechat.db.ops import query_documents
 from kubechat.readers.base_readers import DEFAULT_FILE_READER_CLS
 from kubechat.source.base import get_source
-from kubechat.tasks.index import add_index_for_document, remove_index, update_index
+from kubechat.tasks.index import add_index_for_document, remove_index, \
+    update_index_for_document, add_index_for_local_document, update_index_for_local_document
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,10 @@ def sync_documents(self, **kwargs):
                 collection_sync_history.total_documents_to_sync += 1
                 collection_sync_history.modified_documents += 1
                 collection_sync_history.save()
-                tasks.append(update_index.s(dst_doc.id))
+                if is_local_doc(src_doc):
+                    tasks.append(update_index_for_local_document.s(dst_doc.id))
+                else:
+                    tasks.append(update_index_for_document.s(dst_doc.id))
 
         else:  # add
             if document_limit and docs_count >= document_limit:
@@ -124,7 +128,10 @@ def sync_documents(self, **kwargs):
                 continue
             doc = add_document(src_doc)
             docs_count += 1
-            tasks.append(add_index_for_document.s(doc.id))
+            if is_local_doc(src_doc):
+                tasks.append(add_index_for_local_document.s(doc.id))
+            else:
+                tasks.append(add_index_for_document.s(doc.id))
 
     for name, dst_doc in dst_docs.items():  # delete
         if name not in src_docs.keys():
@@ -214,3 +221,9 @@ def monitor_sync_tasks(self, collection_sync_history_id):
         # Maximum number of retries before giving up.
         # A value of None means task will retry forever. By default, this option is set to 3.
         raise self.retry(countdown=5, max_retries=None)
+
+
+def is_local_doc(doc):
+    if doc.metadata.get("path"):
+        return True
+    return False

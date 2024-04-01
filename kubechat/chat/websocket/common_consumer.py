@@ -105,4 +105,4 @@ class CommonConsumer(BaseConsumer):
             if self.free_tier and self.conversation_limit:
                 await manage_quota_usage(self.user, self.conversation_limit)
             # send stop message
-            await self.send(text_data=stop_response(message_id, [], related_question, self.related_question_prompt, self.pipeline.memory_count))
+            await self.send(text_data=stop_response(message_id, [], related_question, self.related_question_prompt, self.pipeline.memory_count, urls=[]))

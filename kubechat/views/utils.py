@@ -59,7 +59,8 @@ async def query_chat_messages(user, chat_id):
             msg["data"] = item["query"]
         else:
             msg["data"] = item["response"]
-            msg["references"] = item.get("references")
+            msg["references"] = item.get("references", [])
+            msg["urls"] = item.get("urls", [])
         feedback = feedback_map.get(item.get("id", ""), None)
         if role == "ai" and feedback:
             msg["upvote"] = feedback.upvote

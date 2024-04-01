@@ -7,7 +7,7 @@ from config.celery import app
 from kubechat.db.models import Document, DocumentStatus
 from kubechat.db.ops import query_collection, query_documents
 from kubechat.readers.base_readers import DEFAULT_FILE_READER_CLS
-from kubechat.tasks.index import add_index_for_document, remove_index, update_index
+from kubechat.tasks.index import add_index_for_document, remove_index, update_index_for_document
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def update_local_directory_index(user, collection_id):
                     latest_time=document_in_db.metadata, file_size=document_in_db.size
                 ),
             ):
-                update_index.delay(document_in_db.id)
+                update_index_for_document.delay(document_in_db.id)
     # for delete
     for filename in documents_in_db.keys():
         if filename not in docments_in_direct.keys():

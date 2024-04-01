@@ -269,7 +269,18 @@ def remove_index(self, document_id):
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
-def update_index(self, document_id):
+def update_index_for_local_document(self, document_id):
+    try:
+        update_index_for_document(document_id)
+    except Exception as e:
+        for info in e.args:
+            if isinstance(info, str) and "sensitive information" in info:
+                raise e
+        raise self.retry(exc=e, countdown=5, max_retries=1)
+
+
+@app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
+def update_index_for_document(self, document_id):
     document = Document.objects.get(id=document_id)
     document.status = DocumentStatus.RUNNING
     document.save()

@@ -87,7 +87,7 @@ from kubechat.tasks.index import (
     message_feedback,
     remove_index,
     update_collection_status,
-    update_index,
+    update_index_for_document,
     update_index_for_question,
 )
 from kubechat.tasks.scan import delete_sync_documents_cron_job, update_sync_documents_cron_job
@@ -673,7 +673,7 @@ async def update_document(
             return fail(HTTPStatus.BAD_REQUEST, "invalid document config")
     await instance.asave()
     # if user add labels for a document, we need to update index
-    update_index.delay(instance.id)
+    update_index_for_document.delay(instance.id)
     
     related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
     async for question in related_questions:
