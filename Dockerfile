@@ -6,7 +6,7 @@ RUN curl -sL http://kubeblocks.oss-cn-hangzhou.aliyuncs.com/dlptool  -o /tmp/dlp
 FROM python:3.11.1-slim
 
 RUN apt update && \
-    apt install --no-install-recommends -y build-essential
+    apt install --no-install-recommends -y build-essential git
 
 COPY requirements.txt /requirements.txt
 

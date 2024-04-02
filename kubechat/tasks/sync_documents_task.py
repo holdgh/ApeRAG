@@ -68,7 +68,7 @@ def sync_documents(self, **kwargs):
     collection_sync_history.update_execution_time()
     collection_sync_history.save()
 
-    document_limit = kwargs["document_user_quota"]
+    document_limit = kwargs.get("document_user_quota")
     if document_limit is None:
         document_limit = MAX_DOCUMENT_COUNT
 
