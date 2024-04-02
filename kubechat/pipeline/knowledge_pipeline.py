@@ -106,7 +106,8 @@ class KnowledgePipeline(Pipeline):
         references = []
         related_questions = set()
         response = ""
-        document_urls = set()
+        document_url_list = []
+        document_url_set = set()
         need_generate_answer = True
         need_related_question = True
         vector = self.embedding_model.embed_query(message)
@@ -214,13 +215,14 @@ class KnowledgePipeline(Pipeline):
                         "metadata": result.metadata
                     })
                     url = result.metadata.get("url")
-                    if url:
-                        document_urls.add(result.metadata.get("url"))
+                    if url and url not in document_url_set:
+                        document_url_set.add(result.metadata.get("url"))
+                        document_url_list.append(result.metadata.get("url"))
 
         await self.add_human_message(message, message_id)
         logger.info("[%s] add human message end", log_prefix)
 
-        await self.add_ai_message(message, message_id, response, references, list(document_urls))
+        await self.add_ai_message(message, message_id, response, references, document_url_list)
         logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
         if self.use_related_question:
@@ -234,6 +236,6 @@ class KnowledgePipeline(Pipeline):
         if gen_references:
             yield KUBE_CHAT_DOC_QA_REFERENCES + json.dumps(references)
 
-        if document_urls:
-            yield KUBE_CHAT_DOCUMENT_URLS + json.dumps(list(document_urls))
+        if document_url_list:
+            yield KUBE_CHAT_DOCUMENT_URLS + json.dumps(document_url_list)
 
