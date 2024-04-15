@@ -103,6 +103,14 @@ class KnowledgePipeline(Pipeline):
         log_prefix = f"{message_id}|{message}"
         logger.info("[%s] start processing", log_prefix)
 
+        history = []
+        tot_history_querys = ''
+        messages = await self.history.messages
+        history_querys = [json.loads(message.content)["query"] for message in messages if message.additional_kwargs["role"] == "human"] 
+        
+        if self.memory:
+            tot_history_querys = '\n'.join(history_querys[-self.memory_limit_count:])+'\n'
+        
         references = []
         related_questions = set()
         response = ""
@@ -110,11 +118,11 @@ class KnowledgePipeline(Pipeline):
         document_url_set = set()
         need_generate_answer = True
         need_related_question = True
-        vector = self.embedding_model.embed_query(message)
+        vector = self.embedding_model.embed_query(tot_history_querys+message)
         logger.info("[%s] embedding query end", log_prefix)
         # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
-
-        results = await async_run(self.qa_context_manager.query, message, score_threshold=0.5, topk=6, vector=vector)
+                
+        results = await async_run(self.qa_context_manager.query, tot_history_querys + message, score_threshold=0.5, topk=6, vector=vector)
         logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
         for result in results:
             result_text = json.loads(result.text)
@@ -134,7 +142,7 @@ class KnowledgePipeline(Pipeline):
                 related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
           
         else:
-            results = await async_run(self.context_manager.query, message,
+            results = await async_run(self.context_manager.query, tot_history_querys + message,
                                       score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
             logger.info("[%s] find top %d relevant context in vector db end", log_prefix, len(results))
             # hyde_message = await hyde_task
@@ -184,12 +192,8 @@ class KnowledgePipeline(Pipeline):
                 related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
 
             if need_generate_answer:
-                history = []
-                messages = await self.history.messages
-                history_querys = [json.loads(message.content)["query"] for message in messages if message.additional_kwargs["role"] == "human"] 
                 history_querys.append(message)
                 related_questions = related_questions - set(history_querys[-5:])
-                
                 if self.memory and len(messages) > 0:
                     history = self.predictor.get_latest_history(
                         messages=messages,
