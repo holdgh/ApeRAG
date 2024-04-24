@@ -65,14 +65,14 @@ class CommonPipeline(Pipeline):
             related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
 
         if need_generate_answer:
-            history = []
+            history = [{"role": "system", "content": self.prompt.format(query="")}]
             messages = await self.history.messages
             if self.memory and len(messages) > 0:
-                history = self.predictor.get_latest_history(
+                history.extend(self.predictor.get_latest_history(
                     messages=messages,
                     limit_length=max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0),
                     limit_count=self.memory_limit_count,
-                    use_ai_memory=self.use_ai_memory)
+                    use_ai_memory=self.use_ai_memory))
                 self.memory_count = len(history)
 
             if context:
@@ -81,7 +81,7 @@ class CommonPipeline(Pipeline):
                 prompt = self.prompt.format(query=message)
             logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
-            async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
+            async for msg in self.predictor.agenerate_stream(history, message, self.memory):
                 yield msg
                 response += msg
 
