@@ -48,7 +48,7 @@ class CommonPipeline(Pipeline):
             yield self.oops
             need_generate_answer = False
         if self.welcome_question != []:
-            related_questions.add(self.welcome_question)
+            related_questions.update(self.welcome_question)
             if len(self.welcome_question) >= 3:
                 need_related_question = False
                 
