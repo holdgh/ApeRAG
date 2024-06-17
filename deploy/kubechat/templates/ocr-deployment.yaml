@@ -1,3 +1,4 @@
+{{- if .Values.paddleocr.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,3 +23,4 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+{{- end }}

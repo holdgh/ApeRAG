@@ -26,8 +26,8 @@ spec:
         {{- include "django.labels" . | nindent 8 }}
     spec:
       initContainers:
-        - name: prepare-models
-          image: curlimages/curl:8.4.0
+        - name: prepare-embedding-models
+          image: {{ .Values.image.registry | default "docker.io" }}/apecloud/kubechat-embedding-models:bge-large-zh
           securityContext:
             runAsUser: 0
             privileged: true
@@ -43,32 +43,41 @@ spec:
               mkdir -p /data/.cache/torch
               ln -s /data/.cache/torch /root/.cache/
 
-              # prepare rerank model
-              if [ "$RERANK_BACKEND" = "local" ] && [ ! -d /data/models/bge-reranker-large ]; then
-                echo "downloading rerank model"
-                curl --progress-bar -OL https://llm-store.oss-cn-beijing.aliyuncs.com/bge-reranker-large.tar
-                tar -xvf bge-reranker-large.tar
-                mkdir -p /data/models
-                mv bge-reranker-large /data/models/
-                echo "successfully downloaded rerank model"
-              else
-                echo "rerank model exists, skip downloading"
-              fi
-
-              # prepare bge model
               if [ "$EMBEDDING_BACKEND" = "local" ] && [ ! -d /data/.cache/torch/sentence_transformers ]; then
-                echo "downloading bge model"
-                curl --progress-bar -OL https://llm-store.oss-cn-beijing.aliyuncs.com/BAAI_bge-large-zh.tar
-                tar -xvf BAAI_bge-large-zh.tar
+                echo "initializing embedding model"
+                tar -xvf /models/BAAI_bge-large-zh.tar
                 mkdir -p /data/.cache/torch/sentence_transformers
                 mv BAAI_bge-large-zh/ /data/.cache/torch/sentence_transformers/
-                echo "successfully downloaded bge model"
+                echo "successfully initialized embedding model"
               else
-                echo "bge model exists, skip downloading"
+                echo "embedding model exists, skip initialize"
               fi
           env:
             - name: EMBEDDING_BACKEND
               value: {{ .Values.django.embeddingBackend | quote }}
+          volumeMounts:
+            - mountPath: /data
+              name: data
+        - name: prepare-rerank-models
+          image: {{ .Values.image.registry | default "docker.io" }}/apecloud/kubechat-rerank-models:bge-rerank-large
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # prepare rerank model
+              if [ "$RERANK_BACKEND" = "local" ] && [ ! -d /data/models/bge-reranker-large ]; then
+                echo "initializing rerank model"
+                tar -xvf /models/bge-reranker-large.tar
+                mkdir -p /data/models
+                mv bge-reranker-large /data/models/
+                echo "successfully initialized rerank model"
+              else
+                echo "rerank model exists, skip initialize"
+              fi
+          env:
             - name: RERANK_BACKEND
               value: {{ .Values.django.rerankBackend | quote }}
           volumeMounts:

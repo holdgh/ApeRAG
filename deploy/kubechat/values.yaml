@@ -390,6 +390,7 @@ flower:
     #   memory: 128Mi
 
 whisper:
+  enabled: false
   replicaCount: 1
   resources:
     limits:
@@ -406,6 +407,7 @@ whisper:
   #   memory: 128Mi
 
 paddleocr:
+  enabled: false
   replicaCount: 1
   resources:
     limits:

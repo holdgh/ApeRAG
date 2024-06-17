@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kubechat-website
-  namespace: kubechat
   labels:
     app: kubechat-website
 spec:
@@ -31,7 +30,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kubechat-console
-  namespace: kubechat
   labels:
     app: kubechat-console
 spec:

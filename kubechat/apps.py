@@ -20,7 +20,11 @@ def get_ip_config():
 
     from kubechat.db.models import Config
 
-    public_ip = requests.get('https://ifconfig.me').text.strip()
+    try:
+        public_ip = requests.get('https://ifconfig.me', timeout=5).text.strip()
+    except Exception as e:
+        print(e)
+        return
 
     with transaction.atomic():
         Config.objects.get_or_create(key="public_ips", defaults={'value': '[]'})
