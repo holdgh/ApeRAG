@@ -114,16 +114,6 @@ llmserver = "server.llmserver:start"
 webserver = "server.webserver:start"
 test_local_path_embedding = "readers.test_local_path_embedding:start"
 
-[[tool.poetry.source]]
-name = "aliyun"
-url = "https://mirrors.aliyun.com/pypi/simple/"
-priority = "primary"
-
-
-[[tool.poetry.source]]
-name = "PyPI"
-priority = "supplemental"
-
 [tool.ruff]
 select = [
     "E",  # pycodestyle
