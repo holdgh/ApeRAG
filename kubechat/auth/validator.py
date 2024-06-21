@@ -24,7 +24,7 @@ DEFAULT_USER = "kubechat"
 
 def get_user_from_token(token):
     match settings.AUTH_TYPE:
-        case "auth0" | "authing":
+        case "auth0" | "authing" | "logto":
             payload = tv.verify(token)
             user = payload["sub"]
         case "none":

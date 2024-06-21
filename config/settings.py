@@ -157,6 +157,10 @@ AUTH0_CLIENT_ID = env.str("AUTH0_CLIENT_ID", default="")
 AUTHING_DOMAIN = env.str("AUTHING_DOMAIN", default="kubechat.authing.cn")
 AUTHING_APP_ID = env.str("AUTHING_APP_ID", default="")
 
+# Load Logto application settings into memory
+LOGTO_DOMAIN = env.str("LOGTO_DOMAIN", default="kubechat.authing.cn")
+LOGTO_APP_ID = env.str("LOGTO_APP_ID", default="")
+
 # Celery
 # ------------------------------------------------------------------------------
 if USE_TZ:

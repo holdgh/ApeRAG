@@ -51,6 +51,10 @@ match settings.AUTH_TYPE:
         issuer = f"https://{settings.AUTHING_DOMAIN}/oidc"
         jwks_url = f"https://{settings.AUTHING_DOMAIN}/oidc/.well-known/jwks.json"
         tv = get_jwt_token_verifier(jwks_url, issuer, settings.AUTHING_APP_ID)
+    case "logto":
+        issuer = f"http://{settings.LOGTO_DOMAIN}/oidc"
+        jwks_url = f"http://{settings.LOGTO_DOMAIN}/oidc/jwks"
+        tv = get_jwt_token_verifier(jwks_url, issuer, settings.LOGTO_APP_ID)
     case _:
         tv = None
 

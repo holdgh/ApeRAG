@@ -24,6 +24,9 @@ def config(request):
         case "authing":
             auth["auth_domain"] = settings.AUTHING_DOMAIN
             auth["auth_app_id"] = settings.AUTHING_APP_ID
+        case "logto":
+            auth["auth_domain"] = "http://" + settings.LOGTO_DOMAIN
+            auth["auth_app_id"] = settings.LOGTO_APP_ID
 
     values = query_config(key="public_ips")
     public_ips = json.loads(values)
