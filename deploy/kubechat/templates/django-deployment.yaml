@@ -26,6 +26,7 @@ spec:
         {{- include "django.labels" . | nindent 8 }}
     spec:
       initContainers:
+        {{- if eq .Values.django.embeddingBackend "local" }}
         - name: prepare-embedding-models
           image: {{ .Values.image.registry | default "docker.io" }}/apecloud/kubechat-embedding-models:bge-large-zh
           securityContext:
@@ -37,13 +38,7 @@ spec:
             - |
               # fail fast
               set -e
-              mkdir -p /root/.cache
-              mkdir -p /data/.cache/huggingface
-              ln -s /data/.cache/huggingface /root/.cache/
-              mkdir -p /data/.cache/torch
-              ln -s /data/.cache/torch /root/.cache/
-
-              if [ "$EMBEDDING_BACKEND" = "local" ] && [ ! -d /data/.cache/torch/sentence_transformers ]; then
+              if [ ! -d /data/.cache/torch/sentence_transformers ]; then
                 echo "initializing embedding model"
                 tar -xvf /models/BAAI_bge-large-zh.tar
                 mkdir -p /data/.cache/torch/sentence_transformers
@@ -58,6 +53,8 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: data
+        {{- end }}
+        {{- if eq .Values.django.rerankBackend "local" }}
         - name: prepare-rerank-models
           image: {{ .Values.image.registry | default "docker.io" }}/apecloud/kubechat-rerank-models:bge-rerank-large
           securityContext:
@@ -67,8 +64,9 @@ spec:
             - /bin/sh
             - -c
             - |
-              # prepare rerank model
-              if [ "$RERANK_BACKEND" = "local" ] && [ ! -d /data/models/bge-reranker-large ]; then
+              # fail fast
+              set -e
+              if [ ! -d /data/models/bge-reranker-large ]; then
                 echo "initializing rerank model"
                 tar -xvf /models/bge-reranker-large.tar
                 mkdir -p /data/models
@@ -83,6 +81,7 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: data
+        {{- end }}
       containers:
         - command:
             - /bin/sh
