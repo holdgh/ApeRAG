@@ -77,8 +77,7 @@ class Pipeline(ABC):
             self.related_prompt_template = self.llm_config.get("related_prompt_template", RELATED_QUESTIONS_TEMPLATE_V2)
             self.related_question_prompt = PromptTemplate(template=self.related_prompt_template,
                                                           input_variables=["query", "context"])
-            kwargs = {"model": "gpt-4-0125-preview"}
-            self.related_question_predictor = Predictor.from_model("gpt-4", **kwargs)
+            self.related_question_predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
     async def generate_related_question(self, related_question_prompt):
         tools = [
