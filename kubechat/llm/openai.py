@@ -22,6 +22,9 @@ class OpenAIPredictor(Predictor):
         if not self.token:
             raise LLMConfigError("Please specify the API token")
 
+        self.token = self.token.strip()
+        self.endpoint = self.endpoint.strip()
+
         """
         # https://github.com/openai/openai-python/issues/279
         Example:

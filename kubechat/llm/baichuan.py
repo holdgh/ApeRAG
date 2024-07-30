@@ -23,6 +23,10 @@ class BaiChuanPredictor(Predictor):
         if not self.secret_key:
             raise LLMConfigError("Please specify the Secret Key")
 
+        self.url = self.url.strip()
+        self.api_key = self.api_key.strip()
+        self.secret_key = self.secret_key.strip()
+
 
     @staticmethod
     def provide_default_token():

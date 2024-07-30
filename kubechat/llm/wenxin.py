@@ -22,6 +22,8 @@ class BaiduQianFan(Predictor):
         if not self.secret_key:
             raise LLMConfigError("Please specify the Secret Key")
 
+        self.api_key = self.api_key.strip()
+        self.secret_key = self.secret_key.strip()
 
         self.chat_comp = qianfan.ChatCompletion(ak=self.api_key, sk=self.secret_key)
 

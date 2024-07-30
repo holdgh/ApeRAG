@@ -21,6 +21,9 @@ class QianWenPredictor(Predictor):
         if not self.api_key:
             raise LLMConfigError("Please specify the API KEY")
 
+        self.url = self.url.strip()
+        self.api_key = self.api_key.strip()
+
 
     @staticmethod
     def provide_default_token():

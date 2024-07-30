@@ -26,6 +26,9 @@ class AzureOpenAIPredictor(Predictor):
             self.api_version = kwargs.get("api_version", "")
             self.token = kwargs.get("token", "")
 
+        self.endpoint = self.endpoint.strip()
+        self.token = self.token.strip()
+
         if not self.deployment_id:
             raise LLMConfigError("Please specify the deployment ID")
 
