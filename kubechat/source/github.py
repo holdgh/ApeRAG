@@ -35,7 +35,7 @@ class GitHubSource(Source):
                     modified_time = datetime.utcfromtimestamp(file_stat.st_mtime).strftime("%Y-%m-%dT%H:%M:%S")
 
                     doc = RemoteDocument(
-                        name=file,
+                        name=file_path.replace(self.tmp_dir, ""),
                         size=file_stat.st_size,
                         metadata={"path": os.path.normpath(file_path),
                                   "url": file_path.replace(self.tmp_dir, base_url),

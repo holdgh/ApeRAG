@@ -108,7 +108,7 @@ django:
     #   cpu: 100m
     #   memory: 128Mi
   authType: none
-  esHost: http://elasticsearch-elasticsearch:9200
+  esHost: http://elasticsearch-mdit-http:9200
   redisSecret: redis-redis-account-default
   redisHost: redis-redis-redis
   redisPort: 6379
