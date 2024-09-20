@@ -28,8 +28,9 @@ run-name: Release Image:${{ inputs.image_name }}:${{ inputs.image_tag }} ${{ git
 
 jobs:
   enable-gke-runner:
-    uses: apecloud/apecloud-cd/.github/workflows/enable-gke-runner.yml@v0.1.36
+    uses: apecloud/apecloud-cd/.github/workflows/enable-self-runner.yml@v0.1.76
     with:
+      CLOUD_PROVIDER: "eks"
       GITHUB_REPO: "apecloud/KubeChat"
       RUNNER_LABEL: "kubechat-image-runner"
     secrets: inherit
@@ -96,8 +97,9 @@ jobs:
   disable-gke-runner:
     if: ${{ always() }}
     needs: [ release-kubechat-image ]
-    uses: apecloud/apecloud-cd/.github/workflows/enable-gke-runner.yml@v0.1.36
+    uses: apecloud/apecloud-cd/.github/workflows/enable-self-runner.yml@v0.1.76
     with:
+      CLOUD_PROVIDER: "eks"
       GITHUB_REPO: "apecloud/KubeChat"
       RUNNER_LABEL: "kubechat-image-runner"
       ENABLE: "disable"
