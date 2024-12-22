@@ -103,16 +103,26 @@ fi
 rm -rf ${KC_CREATE_COLLECTION_DATA_FILE}
 
 if [ -z "${new_collection_id}" ]; then
-  info "can not find collection with title ${KC_NEW_COLLECTION_NAME}"
+  info "Can not find collection with title ${KC_NEW_COLLECTION_NAME}"
   exit 1
 fi
+
+while true; do
+  status=`curl -s "${KC_CURL_OPTIONS[@]}" ${KC_CURL_ENDPOINT}/api/v1/collections/${new_collection_id} | jq -r '.data.status'`
+  if [ "${status}" == "ACTIVE" ]; then
+    info "Collection ${KC_NEW_COLLECTION_NAME} is active now"
+    break
+  fi
+  info "Waiting for collection ${KC_NEW_COLLECTION_NAME} to be active"
+  sleep 5
+done
 
 while true; do
   pending_docs=`curl -s "${KC_CURL_OPTIONS[@]}" ${KC_CURL_ENDPOINT}/api/v1/collections/${new_collection_id}/documents | jq -r '.data[] | select(.status != "COMPLETE") | .id' | wc -l`
   if [ "${pending_docs}" == "0" ]; then
     break
   fi
-  info "waiting for ${pending_docs} docs to be completed"
+  info "Waiting for ${pending_docs} docs to be completed"
   sleep 5
 done
 
