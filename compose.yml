@@ -1,16 +1,16 @@
 version: '3'
 
 volumes:
-  kubechat_postgres_data: {}
-  kubechat_qdrant_data: {}
+  deeprag_postgres_data: {}
+  deeprag_qdrant_data: {}
 
 services:
   django: &django
     build:
       context: .
       dockerfile: ./Dockerfile
-    image: kubechat_django
-    container_name: kubechat_django
+    image: deeprag_django
+    container_name: deeprag_django
     depends_on:
       - postgres
       - redis
@@ -26,26 +26,26 @@ services:
 
   postgres:
     image: postgres:14
-    container_name: kubechat_postgres
+    container_name: deeprag_postgres
     volumes:
-      - kubechat_postgres_data:/var/lib/postgresql/data
+      - deeprag_postgres_data:/var/lib/postgresql/data
     env_file:
       - .docker-env
 
   redis:
     image: redis:6
-    container_name: kubechat_redis
+    container_name: deeprag_redis
 
   qdrant:
     image: qdrant/qdrant
-    container_name: kubechat_qdrant
+    container_name: deeprag_qdrant
     volumes:
-      - kubechat_qdrant_data:/qdrant/storage
+      - deeprag_qdrant_data:/qdrant/storage
 
   celeryworker:
     <<: *django
-    image: kubechat_django
-    container_name: kubechat_celeryworker
+    image: deeprag_django
+    container_name: deeprag_celeryworker
     depends_on:
       - redis
       - postgres
@@ -53,14 +53,14 @@ services:
     volumes:
       - .:/app:z
       - ~/.cache:/root/.cache
-      - ./resources:/Users/ziang/git/KubeChat/resources
+      - ./resources:/Users/ziang/git/DeepRAG/resources
     ports: []
     command: /app/scripts/start-celery-worker.sh
 
   celerybeat:
     <<: *django
-    image: kubechat_django
-    container_name: kubechat_celerybeat
+    image: deeprag_django
+    container_name: deeprag_celerybeat
     depends_on:
       - redis
       - postgres
@@ -69,8 +69,8 @@ services:
 
   flower:
     <<: *django
-    image: kubechat_django
-    container_name: kubechat_flower
+    image: deeprag_django
+    container_name: deeprag_flower
     ports:
       - "5555:5555"
     command: /app/scripts/start-celery-flower.sh
