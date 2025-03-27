@@ -1,10 +1,10 @@
-name: E2E Test KubeChat
+name: E2E Test deeprag
 
 on:
   workflow_dispatch:
     inputs:
       VERSION:
-        description: 'kubechat release version'
+        description: 'deeprag release version'
         required: true
         default: ''
       KUBEBLOCKS_VERSION:
@@ -45,7 +45,7 @@ on:
         default: '1'
 
 
-run-name: kubechat:${{ inputs.VERSION }} ${{ inputs.CLOUD_PROVIDER }}:${{ inputs.CLUSTER_VERSION }}:${{ inputs.NODE_TYPE }}
+run-name: deeprag:${{ inputs.VERSION }} ${{ inputs.CLOUD_PROVIDER }}:${{ inputs.CLUSTER_VERSION }}:${{ inputs.NODE_TYPE }}
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -62,9 +62,9 @@ jobs:
   e2e:
     name: ${{ inputs.CLOUD_PROVIDER }}
     needs: [ check-version ]
-    uses: apecloud/apecloud-cd/.github/workflows/kubechat-test-k8s.yml@main
+    uses: apecloud/apecloud-cd/.github/workflows/deeprag-test-k8s.yml@main
     with:
-      KUBECHAT_VERSION: "${{ needs.check-version.outputs.release-version }}"
+      deeprag_VERSION: "${{ needs.check-version.outputs.release-version }}"
       KUBEBLOCKS_VERSION: "${{ inputs.KUBEBLOCKS_VERSION }}"
       CLOUD_PROVIDER: "${{ inputs.CLOUD_PROVIDER }}"
       CLUSTER_VERSION: "${{ inputs.CLUSTER_VERSION }}"
