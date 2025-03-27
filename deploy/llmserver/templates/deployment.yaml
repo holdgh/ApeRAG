@@ -77,7 +77,7 @@ spec:
       volumes:
         - name: data
           hostPath:
-            path: /data/kubechat
+            path: /data/deeprag
 
 {{- end }}
 {{- end }}

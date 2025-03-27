@@ -1,7 +1,7 @@
-# KubeChat
+# DeepRAG
 
-KubeChat is a chat tool for KubeBlocks, it is used for Text2SQL, Text2CD, Text2CV, Text2Cluster, Chatbot and
-troubleshooting. KubeChat adopts the open-source LLM for local serving, so it can promise 100% privacy.
+DeepRAG is a chat tool for KubeBlocks, it is used for Text2SQL, Text2CD, Text2CV, Text2Cluster, Chatbot and
+troubleshooting. DeepRAG adopts the open-source LLM for local serving, so it can promise 100% privacy.
 
 # Development Guide
 
@@ -55,9 +55,9 @@ Option 1:
 
 ```bash
 
-git clone https://github.com/apecloud/KubeChat-FrontEnd.git
+git clone https://github.com/apecloud/DeepRAG-FrontEnd.git
 
-cd KubeChat-FrontEnd
+cd DeepRAG-FrontEnd
 
 echo 'API_ENDPOINT=http://127.0.0.1:8000' >> .env
 
@@ -68,8 +68,8 @@ yarn dev
 Option 2 [Not Ready]:
 
 ```bash
-docker run --rm -p 8001:8001 -e "API_ENDPOINT=http://127.0.0.1:8000" apecloud/kubechat-console:latest
+docker run --rm -p 8001:8001 -e "API_ENDPOINT=http://127.0.0.1:8000" apecloud/deeprag-console:latest
 ```
 
 
-then open the kubechat frontend console: http://localhost:8001
+then open the deeprag frontend console: http://localhost:8001

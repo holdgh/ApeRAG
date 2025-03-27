@@ -17,9 +17,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 django_asgi_app = get_asgi_application()
 
-from kubechat.auth.validator import WebSocketAuthMiddleware  # noqa: E402
-from kubechat.chat.sse.sse import ServerSentEventsConsumer  # noqa: E402
-from kubechat.chat.websocket.routing import websocket_urlpatterns  # noqa: E402
+from deeprag.auth.validator import WebSocketAuthMiddleware  # noqa: E402
+from deeprag.chat.sse.sse import ServerSentEventsConsumer  # noqa: E402
+from deeprag.chat.websocket.routing import websocket_urlpatterns  # noqa: E402
 
 application = ProtocolTypeRouter(
     {
