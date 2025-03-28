@@ -11,6 +11,7 @@ You should install Python 3.11 first.
 
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
+poetry self add poetry-plugin-shell	
 ```
 
 * install dependencies
