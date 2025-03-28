@@ -10,7 +10,7 @@ You should install Python 3.11 first.
 * install poetry
 
 ```bash
-pip3.11 install poetry
+curl -sSL https://install.python-poetry.org | python3 -
 ```
 
 * install dependencies
