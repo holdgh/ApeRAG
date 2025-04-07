@@ -1,7 +1,7 @@
 # ApeRAG
 
-ApeRAG is a chat tool for KubeBlocks, it is used for Text2SQL, Text2CD, Text2CV, Text2Cluster, Chatbot and
-troubleshooting. ApeRAG adopts the open-source LLM for local serving, so it can promise 100% privacy.
+ApeRAG is a RAG system focused on the deep understanding of documents and multimedia materials, the parallel construction of vector indexes, and the evaluation of retrieval performance. It also provides features such as workflow orchestration, LLM management, data source management, automatic synchronization, and office tool integration.
+
 
 # Development Guide
 
