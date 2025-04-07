@@ -56,6 +56,17 @@ run-es:
 		-v esdata:/usr/share/elasticsearch/data \
 		apecloud/elasticsearch:8.8.2
 	@docker start aperag-es || true
+	@echo "Checking if IK Analyzer is installed..."
+	@docker exec aperag-es bash -c \
+		"if [ ! -d plugins/analysis-ik ]; then \
+			echo 'Installing IK Analyzer from get.infini.cloud...'; \
+			bin/elasticsearch-plugin install -b https://get.infini.cloud/elasticsearch/analysis-ik/8.8.2; \
+			echo 'Restarting Elasticsearch to apply changes...'; \
+		else \
+			echo 'IK Analyzer is already installed.'; \
+		fi"
+	@docker restart aperag-es > /dev/null
+	@echo "Elasticsearch is ready with IK Analyzer!"
 
 run-db: run-redis run-postgres run-qdrant run-es
 
