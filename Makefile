@@ -45,9 +45,17 @@ run-qdrant:
 	@docker start aperag-qdrant
 
 run-es:
-	@echo "Starting elasticsearch"
-	@docker inspect aperag-es > /dev/null 2>&1 || docker run -d --name aperag-es -p 9200:9200 apecloud/elasticsearch:8.8.2
-	@docker start aperag-es
+	@echo "Starting Elasticsearch (development mode)"
+	@docker inspect aperag-es > /dev/null 2>&1 || \
+	docker run -d \
+		--name aperag-es \
+		-p 9200:9200 \
+		-e discovery.type=single-node \
+		-e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
+		-e xpack.security.enabled=false \
+		-v esdata:/usr/share/elasticsearch/data \
+		apecloud/elasticsearch:8.8.2
+	@docker start aperag-es || true
 
 run-db: run-redis run-postgres run-qdrant run-es
 
