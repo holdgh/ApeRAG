@@ -22,19 +22,19 @@ from config.settings import (
     RERANK_BACKEND,
     RERANK_SERVICE_MODEL_UID,
     RERANK_SERVICE_URL,
-    VECTOR_SIZE,
+    EMBEDDING_DIMENSIONS,
 )
 from aperag.query.query import DocumentWithScore
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 
 
 class EmbeddingService(Embeddings):
-    def __init__(self, model_type):
-        if EMBEDDING_BACKEND == "local":
+    def __init__(self, embedding_backend, model_type):
+        if embedding_backend == "local":
             self.model = EMBEDDING_MODEL_CLS.get(model_type)()
-        elif EMBEDDING_BACKEND == "xinference":
+        elif embedding_backend == "xinference":
             self.model = XinferenceEmbedding()
-        elif EMBEDDING_BACKEND == "openai":
+        elif embedding_backend == "openai":
             self.model = OpenAIEmbedding()
         else:
             raise Exception("Unsupported embedding backend")
@@ -336,13 +336,22 @@ def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> {Embedd
         return embedding_model_cache[model_type]
 
     embedding_model = None
-    vector_size = VECTOR_SIZE.get(model_type, 1024)
+    vector_size = get_embedding_dimension(EMBEDDING_BACKEND, model_type, EMBEDDING_SERVICE_MODEL)
 
     if load:
-        embedding_model = EmbeddingService(model_type)
+        embedding_model = EmbeddingService(EMBEDDING_BACKEND, model_type)
         embedding_model_cache[model_type] = (embedding_model, vector_size)
 
     return embedding_model, vector_size
+
+
+def get_embedding_dimension(embedding_backend: str, model_type: str, service_model: str = None) -> int:
+    rules = EMBEDDING_DIMENSIONS.get(embedding_backend, {})
+
+    if embedding_backend == "openai":
+        return rules.get(service_model, rules["__default__"])
+
+    return rules.get(model_type, rules["__default__"])
 
 
 async def rerank(message, results):
