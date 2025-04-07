@@ -4,8 +4,6 @@ LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
-FRONTEND_BRANCH ?= main
-FRONTEND_REPO_DIR ?= /tmp/DeepRAG-FrontEnd
 
 init:
 	cp envs/.env.template .env
@@ -68,20 +66,9 @@ clean:
 	@echo "Removing container deeprag-es"
 	@docker rm -fv deeprag-es > /dev/null 2>&1 || true
 
-frontend.%:
-	if cd $(FRONTEND_REPO_DIR) > /dev/null 2>&1; then \
-		cd $(FRONTEND_REPO_DIR) && rm .env && git pull origin $(FRONTEND_BRANCH) && git checkout $(FRONTEND_BRANCH); \
-	else \
-		git clone https://github.com/apecloud/DeepRAG-FrontEnd.git $(FRONTEND_REPO_DIR); \
-	fi
-	cp .env.$@ $(FRONTEND_REPO_DIR)/.env
-	mkdir -p /tmp/deeprag-static-files/
-	mkdir -p static/web/
-	cd $(FRONTEND_REPO_DIR) && yarn install && yarn build
-	cp -r /tmp/deeprag-static-files/* static/web/
-	if [ -f "static/web/index.html" ]; then \
-  		cp static/web/index.html deeprag/templates/404.html; \
- 	fi
+run-frontend:
+	cp ./web/deploy/env.local.template ./web/.env
+	cd ./web && yarn install && yarn dev
 
 run-backend: migrate
 	python manage.py collectstatic --noinput

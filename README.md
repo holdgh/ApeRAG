@@ -56,26 +56,8 @@ PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l 
 
 * run the frontend
 
-There are two options to run the frontend, one is to run the frontend from source directly, the other is to run the frontend in docker.
-
-Option 1:
-
-```bash
-
-git clone https://github.com/apecloud/DeepRAG-FrontEnd.git
-
-cd DeepRAG-FrontEnd
-
-echo '\nAPI_ENDPOINT=http://127.0.0.1:8000' >> .env
-
-yarn dev
-
 ```
-
-Option 2 [Not Ready]:
-
-```bash
-docker run --rm -p 8001:8001 -e "API_ENDPOINT=http://127.0.0.1:8000" apecloud/deeprag-console:latest
+make run-backend
 ```
 
 
