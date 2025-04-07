@@ -1,7 +1,6 @@
 # ApeRAG
 
-ApeRAG is a RAG system focused on the deep understanding of documents and multimedia materials, the parallel construction of vector indexes, and the evaluation of retrieval performance. It also provides features such as workflow orchestration, LLM management, data source management, automatic synchronization, and office tool integration.
-
+ApeRAG is a powerful RAG system that deeply analyzes documents and multimedia content while building vector indexes in parallel and measuring retrieval quality. It streamlines workflows with integrated LLM management, data source handling, automatic syncing, and seamless office tool compatibility.
 
 # Development Guide
 
