@@ -116,3 +116,21 @@ flower:
 
 poetry-lock-no-update:
 	poetry lock --no-update
+
+addlicense:
+	@echo "Adding license headers..."
+	addlicense -c "ApeCloud, Inc." -y 2025 -l apache \
+	  -ignore "**/*.md" \
+	  -ignore "**/*.sh" \
+	  -ignore "**/*.yml" \
+	  -ignore "**/*.yaml" \
+	  -ignore "**/*.toml" \
+	  -ignore "**/Makefile" \
+	  -ignore "**/Dockerfile" \
+	  -ignore "**/compose.yml" \
+	  -ignore "**/__pycache__/**" \
+	  -ignore "**/migrations/**" \
+	  -ignore "**/templates/**" \
+	  -ignore "aperag/readers/**" \
+	  -ignore "aperag/vectorstore/**" \
+	  .
