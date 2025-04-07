@@ -1,5 +1,5 @@
 VERSION ?= v0.1.2
-VERSION_FILE ?= deeprag/version/__init__.py
+VERSION_FILE ?= aperag/version/__init__.py
 LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
@@ -20,7 +20,7 @@ build-requirements:
 	sh scripts/export-requirements.sh
 
 image: build-requirements version
-	docker buildx build -t $(REGISTRY)/apecloud/deeprag:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
+	docker buildx build -t $(REGISTRY)/apecloud/aperag:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile  .
 
 diff:
 	@python manage.py diffsettings
@@ -31,40 +31,40 @@ migrate:
 
 run-redis:
 	@echo "Starting redis"
-	@docker inspect deeprag-redis > /dev/null 2>&1 || docker run -d --name deeprag-redis -p 6379:6379 redis:latest
-	@docker start deeprag-redis
+	@docker inspect aperag-redis > /dev/null 2>&1 || docker run -d --name aperag-redis -p 6379:6379 redis:latest
+	@docker start aperag-redis
 
 run-postgres:
 	@echo "Starting postgres"
-	@docker inspect deeprag-postgres > /dev/null 2>&1 || docker run -d --name deeprag-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres
-	@docker start deeprag-postgres
+	@docker inspect aperag-postgres > /dev/null 2>&1 || docker run -d --name aperag-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres
+	@docker start aperag-postgres
 
 run-qdrant:
 	@echo "Starting qdrant"
-	@docker inspect deeprag-qdrant > /dev/null 2>&1 || docker run -d --name deeprag-qdrant -p 6333:6333 qdrant/qdrant
-	@docker start deeprag-qdrant
+	@docker inspect aperag-qdrant > /dev/null 2>&1 || docker run -d --name aperag-qdrant -p 6333:6333 qdrant/qdrant
+	@docker start aperag-qdrant
 
 run-es:
 	@echo "Starting elasticsearch"
-	@docker inspect deeprag-es > /dev/null 2>&1 || docker run -d --name deeprag-es -p 9200:9200 apecloud/elasticsearch:8.8.2
-	@docker start deeprag-es
+	@docker inspect aperag-es > /dev/null 2>&1 || docker run -d --name aperag-es -p 9200:9200 apecloud/elasticsearch:8.8.2
+	@docker start aperag-es
 
 run-db: run-redis run-postgres run-qdrant run-es
 
 connect-metadb:
-	@docker exec -it deeprag-postgres psql -p 5432 -U postgres
+	@docker exec -it aperag-postgres psql -p 5432 -U postgres
 
 clean:
 	@echo "Removing db.sqlite3"
 	@/bin/rm -f db.sqlite3
-	@echo "Removing container deeprag-postgres"
-	@docker rm -fv deeprag-postgres > /dev/null 2>&1 || true
-	@echo "Removing container deeprag-redis"
-	@docker rm -fv deeprag-redis > /dev/null 2>&1 || true
-	@echo "Removing container deeprag-qdrant"
-	@docker rm -fv deeprag-qdrant > /dev/null 2>&1 || true
-	@echo "Removing container deeprag-es"
-	@docker rm -fv deeprag-es > /dev/null 2>&1 || true
+	@echo "Removing container aperag-postgres"
+	@docker rm -fv aperag-postgres > /dev/null 2>&1 || true
+	@echo "Removing container aperag-redis"
+	@docker rm -fv aperag-redis > /dev/null 2>&1 || true
+	@echo "Removing container aperag-qdrant"
+	@docker rm -fv aperag-qdrant > /dev/null 2>&1 || true
+	@echo "Removing container aperag-es"
+	@docker rm -fv aperag-es > /dev/null 2>&1 || true
 
 run-frontend:
 	cp ./web/deploy/env.local.template ./web/.env

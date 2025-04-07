@@ -1,7 +1,7 @@
-# DeepRAG
+# ApeRAG
 
-DeepRAG is a chat tool for KubeBlocks, it is used for Text2SQL, Text2CD, Text2CV, Text2Cluster, Chatbot and
-troubleshooting. DeepRAG adopts the open-source LLM for local serving, so it can promise 100% privacy.
+ApeRAG is a chat tool for KubeBlocks, it is used for Text2SQL, Text2CD, Text2CV, Text2Cluster, Chatbot and
+troubleshooting. ApeRAG adopts the open-source LLM for local serving, so it can promise 100% privacy.
 
 # Development Guide
 
@@ -57,8 +57,8 @@ PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l 
 * run the frontend
 
 ```
-make run-backend
+make run-frontend
 ```
 
 
-then open the deeprag frontend console: http://localhost:8001
+then open the aperag frontend console: http://localhost:8001
