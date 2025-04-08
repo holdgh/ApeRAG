@@ -79,6 +79,7 @@ torch = "^2.0.1"
 text2vec = "^1.2.2"
 flagembedding = "^1.1.1"
 sentence-transformers = "^2.2.2"
+transformers = "4.50.3"
 
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.1.9"
