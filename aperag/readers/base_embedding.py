@@ -17,6 +17,7 @@ from config.settings import (
     EMBEDDING_DEVICE,
     EMBEDDING_MODEL,
     EMBEDDING_SERVICE_MODEL,
+    EMBEDDING_SERVICE_TOKEN,
     EMBEDDING_SERVICE_MODEL_UID,
     EMBEDDING_SERVICE_URL,
     RERANK_BACKEND,
@@ -69,10 +70,15 @@ class OpenAIEmbedding(Embeddings):
     def __init__(self):
         self.url = f"{EMBEDDING_SERVICE_URL}/v1/embeddings"
         self.model = f"{EMBEDDING_SERVICE_MODEL}"
+        self.openai_api_key = f"{EMBEDDING_SERVICE_TOKEN}"
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         texts = list(map(lambda x: x.replace("\n", " "), texts))
-        response = requests.post(url=self.url, json={"model": self.model, "input": texts})
+        headers = {
+            "Authorization": f"Bearer {self.openai_api_key}",
+            "Content-Type": "application/json"
+        }
+        response = requests.post(url=self.url, headers=headers, json={"model": self.model, "input": texts})
 
         results = (json.loads(response.content))["data"]
         embeddings = [result["embedding"] for result in results]
