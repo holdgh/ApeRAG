@@ -260,10 +260,22 @@ RERANK_SERVICE_URL = env.str("RERANK_SERVICE_URL", default="http://localhost:999
 # xinference only needs model_uid, doesn't need model name
 RERANK_SERVICE_MODEL_UID = env.str("RERANK_SERVICE_MODEL_UID", default="")
 
-VECTOR_SIZE = {
-    "huggingface": 768,
-    "text2vec": 768,
-    "bge": 1024
+EMBEDDING_DIMENSIONS = {
+    "local": {
+        "huggingface": 768,
+        "text2vec": 768,
+        "bge": 1024,
+        "__default__": 1024
+    },
+    "xinference": {
+        "__default__": 1024
+    },
+    "openai": {
+        "text-embedding-ada-002": 1536,
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+        "__default__": 1536
+    }
 }
 
 # Memory backend
