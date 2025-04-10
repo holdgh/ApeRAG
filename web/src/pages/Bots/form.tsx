@@ -300,8 +300,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
             <Switch />
           </Form.Item>
         )}
-
-        {currentModel?.indexOf('gpt') !== -1 ? (
+        {currentModel?.indexOf('gpt') !== -1 || currentModel?.indexOf('deepseek') !== -1 ? (
           <Form.Item
             className="form-item-children-wrap"
             label={<FormattedMessage id="text.model_config" />}
