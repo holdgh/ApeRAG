@@ -20,7 +20,7 @@ import re
 from langchain import PromptTemplate
 
 from aperag.llm.prompts import COMMON_FILE_TEMPLATE
-from aperag.pipeline.base_pipeline import KUBE_CHAT_RELATED_QUESTIONS, Message, Pipeline
+from aperag.pipeline.base_pipeline import RELATED_QUESTIONS, Message, Pipeline
 from aperag.utils.utils import now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
@@ -111,4 +111,4 @@ class CommonPipeline(Pipeline):
                     related_questions.update(related_question_generate)
                 related_questions = list(related_questions)
                 random.shuffle(related_questions)
-                yield KUBE_CHAT_RELATED_QUESTIONS + str(related_questions[:3])
+                yield RELATED_QUESTIONS + str(related_questions[:3])
