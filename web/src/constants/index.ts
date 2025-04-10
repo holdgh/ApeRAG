@@ -27,6 +27,7 @@ import IconLink from '@/assets/link.svg';
 import IconLinkOn from '@/assets/link-on.svg';
 import IconGithub from '@/assets/github.svg';
 import IconGithubOn from '@/assets/github-on.svg';
+import IconDeepSeek from '@/assets/deepseek.svg';
 
 import {
   TypesCollectionConfig,
@@ -69,6 +70,9 @@ export const COLLECTION_MODEL_OPTIONS_CONFIG: {
 } = {
   'vicuna': {
     icon: VicunaIcon,
+  },
+  'deepseek': {
+    icon: IconDeepSeek,
   },
   'chatglm': {
     icon: ChatglmIcon,
