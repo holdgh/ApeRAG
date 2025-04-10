@@ -18,7 +18,6 @@ from urllib.parse import parse_qsl
 
 from asgiref.sync import sync_to_async
 from channels.generic.http import AsyncHttpConsumer
-from ninja import NinjaAPI
 
 from aperag.chat.history.redis import RedisChatMessageHistory
 from aperag.chat.utils import fail_response, get_async_redis_client, start_response, stop_response, success_response
@@ -26,8 +25,6 @@ from aperag.db.models import BotType
 from aperag.pipeline.common_pipeline import CommonPipeline
 
 logger = logging.getLogger(__name__)
-
-api = NinjaAPI(version="1.0.0", urls_namespace="events")
 
 
 class ServerSentEventsConsumer(AsyncHttpConsumer):

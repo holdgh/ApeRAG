@@ -119,7 +119,6 @@ from aperag.views.utils import (
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI(version="1.0.0", auth=GlobalHTTPAuth(), urls_namespace="collection")
 router = Router()
 
 
@@ -161,13 +160,13 @@ class ConnectionInfo(Schema):
 
 
 @router.get("/user_info")
-def get_user_info(request):
+async def get_user_info(request):
     user = get_user(request)
     return success({"is_admin": user == settings.ADMIN_USER})
 
 
 @router.get("/models")
-def list_models(request):
+async def list_models(request):
     response = []
     model_families = yaml.safe_load(settings.MODEL_FAMILIES)
     for model_family in model_families:
@@ -193,7 +192,7 @@ def list_models(request):
 
 
 @router.get("/prompt_templates")
-def list_prompt_templates(request):
+async def list_prompt_templates(request):
     language = request.headers.get('Lang', "zh-CN")
     if language == "zh-CN":
         return success(MULTI_ROLE_ZH_PROMPT_TEMPLATES)
@@ -434,7 +433,7 @@ async def update_collection(request, collection_id, collection: CollectionIn):
     bot_ids = []
     async for bot in bots:
         bot_ids.append(bot.id)
-           
+
     return success(instance.view(bot_ids=bot_ids))
 
 
@@ -467,10 +466,10 @@ async def create_questions(request, collection_id):
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     if collection.status == CollectionStatus.QUESTION_PENDING:
         return fail(HTTPStatus.BAD_REQUEST, "Collection is generating questions")
-    
+
     collection.status = CollectionStatus.QUESTION_PENDING
     await collection.asave()
-    
+
     documents = await sync_to_async(collection.document_set.exclude)(status=DocumentStatus.DELETED)
     generate_tasks = []
     async for document in documents:
@@ -478,8 +477,8 @@ async def create_questions(request, collection_id):
     generate_group = group(*generate_tasks)
     callback_chain = chain(generate_group, update_collection_status.s(collection.id))
     callback_chain.delay()
-    
-    return success({}) 
+
+    return success({})
 
 @router.put("/collections/{collection_id}/questions")
 async def update_question(request, collection_id, question_in: QuestionIn):
@@ -487,7 +486,7 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
-    
+
     # ceate question
     if not question_in.id:
         question_instance = Question(
@@ -499,13 +498,13 @@ async def update_question(request, collection_id, question_in: QuestionIn):
     else:
         question_instance = await query_question(user, question_in.id)
         if question_instance is None:
-            return fail(HTTPStatus.NOT_FOUND, "Question not found") 
-    
+            return fail(HTTPStatus.NOT_FOUND, "Question not found")
+
     question_instance.question = question_in.question
     question_instance.answer = question_in.answer if question_in.answer else ""
     question_instance.status = QuestionStatus.PENDING
     await sync_to_async(question_instance.documents.clear)()
-    
+
     if question_in.relate_documents:
         for document_id in question_in.relate_documents:
             document = await query_document(user, collection_id, document_id)
@@ -688,7 +687,7 @@ async def update_document(
     await instance.asave()
     # if user add labels for a document, we need to update index
     update_index_for_document.delay(instance.id)
-    
+
     related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
     async for question in related_questions:
         question.status = QuestionStatus.WARNING
@@ -712,13 +711,13 @@ async def delete_document(request, collection_id, document_id):
     await document.asave()
 
     remove_index.delay(document.id)
-    
+
     related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
     async for question in related_questions:
         question.documents.remove(document)
         question.status = QuestionStatus.WARNING
         await question.asave()
-    
+
     return success(document.view())
 
 
@@ -736,13 +735,13 @@ async def delete_documents(request, collection_id, document_ids: List[str]):
             document.gmt_deleted = timezone.now()
             await document.asave()
             remove_index.delay(document.id)
-            
+
             related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
             async for question in related_questions:
                 question.documents.remove(document)
                 question.status = QuestionStatus.WARNING
                 await question.asave()
-                
+
             ok.append(document.id)
         except Exception as e:
             logger.exception(e)
