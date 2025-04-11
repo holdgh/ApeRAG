@@ -163,8 +163,15 @@ class KnowledgePipeline(Pipeline):
         This function will be implemented in a future PR.
         It should take the query and return the context string.
         """
-        logger.info("[%s] Skipping LightRAG pipeline (placeholder)", log_prefix)
-        return None
+        logger.info("[%s] Running LightRAG pipeline (placeholder)", log_prefix)
+        from aperag.graph import lightrag_wrapper
+        from lightrag import QueryParam
+        from aperag.utils.utils import generate_lightrag_namespace_prefix
+        return await lightrag_wrapper.query_lightrag(
+            query_with_history,
+            param=QueryParam(mode="hybrid", only_need_context=True),
+            namespace_prefix=generate_lightrag_namespace_prefix(self.collection_id),
+        )
 
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"
@@ -219,17 +226,13 @@ class KnowledgePipeline(Pipeline):
             # --- 3a. Choose and Run RAG method(s) ---
             # For now, we run standard RAG. LightRAG is a placeholder.
             # In the future, logic can be added here to choose, combine, or run in parallel.
-            standard_context, candidates = await self._run_standard_rag(query_with_history, vector, log_prefix)
-            # lightrag_context = await self._run_light_rag(query_with_history, log_prefix)
+            # standard_context, candidates = await self._run_standard_rag(query_with_history, vector, log_prefix)
+            if settings.RETRIEVE_MODE == "classic":
+                context = await self._run_standard_rag(query_with_history, vector, log_prefix)
+            else:
+                context = await self._run_light_rag(query_with_history)
 
-            # --- 3b. Select Context ---
-            # For now, prioritize standard RAG context. Future logic could combine or select.
-            context = standard_context
-            # if lightrag_context: # Example of prioritizing LightRAG if available
-            #    context = lightrag_context
-            #    candidates = [] # Clear candidates if LightRAG context is used (no direct candidates from it yet)
-
-            # --- 3c. Handle No Context Found ---
+            # --- 3b. Handle No Context Found ---
             if not context:
                 if self.oops != "":
                     response = self.oops
