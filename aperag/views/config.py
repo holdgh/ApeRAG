@@ -14,13 +14,11 @@
 
 import json
 
-from ninja import NinjaAPI, Router
+from ninja import Router
 
-from config import settings
 from aperag.db.ops import query_config
 from aperag.views.utils import success
-
-api = NinjaAPI(version="1.0.0", urls_namespace="config")
+from config import settings
 
 router = Router()
 

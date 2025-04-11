@@ -119,7 +119,6 @@ from aperag.views.utils import (
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI(version="1.0.0", auth=GlobalHTTPAuth(), urls_namespace="collection")
 router = Router()
 
 
@@ -161,13 +160,13 @@ class ConnectionInfo(Schema):
 
 
 @router.get("/user_info")
-def get_user_info(request):
+async def get_user_info(request):
     user = get_user(request)
     return success({"is_admin": user == settings.ADMIN_USER})
 
 
 @router.get("/models")
-def list_models(request):
+async def list_models(request):
     response = []
     model_families = yaml.safe_load(settings.MODEL_FAMILIES)
     for model_family in model_families:
@@ -194,7 +193,7 @@ def list_models(request):
 
 
 @router.get("/prompt_templates")
-def list_prompt_templates(request):
+async def list_prompt_templates(request):
     language = request.headers.get('Lang', "zh-CN")
     if language == "zh-CN":
         return success(MULTI_ROLE_ZH_PROMPT_TEMPLATES)

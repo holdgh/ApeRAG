@@ -52,8 +52,7 @@ async def get_user_from_api_key(key):
     if user is not None:
         return user
     try:
-        # api_key = ApiKeyToken.objects.get(key=key)
-        api_key = await sync_to_async(ApiKeyToken.objects.get)(key=key)
+        api_key = await ApiKeyToken.objects.aget(key=key)
     except ApiKeyToken.DoesNotExist:
         return None
     if api_key.status == ApiKeyStatus.DELETED:
@@ -94,7 +93,7 @@ class GlobalHTTPAuth(HttpAuthBase):
             request.META[KEY_USER_ID] = get_user_from_token(token)
         elif scheme == self.api_key_scheme:
             user = await get_user_from_api_key(token)
-            if user == None:
+            if user is None:
                 return None
             request.META[KEY_USER_ID] = user
         return token
