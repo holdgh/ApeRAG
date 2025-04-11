@@ -300,7 +300,7 @@ def update_index_for_document(self, document_id):
     document.save()
 
     try:
-        relate_ids = json.loads(document.relate_ids)
+        relate_ids = json.loads(document.relate_ids) if document.relate_ids.strip() else {}
         source = get_source(json.loads(document.collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
