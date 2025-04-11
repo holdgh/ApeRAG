@@ -92,6 +92,18 @@ class QianWenPredictor(Predictor):
                             yield output["message"]["content"]
                             return
 
+    # https://help.aliyun.com/zh/model-studio/use-qwen-by-calling-api
+    async def agenerate_by_tools(self, prompt, tools):
+        responses = Generation.call(
+            model=self.model,
+            api_key=self.api_key,
+            messages=[{"role": "user", "content": prompt}],
+            tools=tools,
+            tool_choice="auto",
+        )
+        if responses.status_code == HTTPStatus.OK:
+            return "", responses.output.choices[0]['message']['content']
+
     def generate_stream(self, history, prompt, memory=False):
         responses = Generation.call(
             model=self.model,
