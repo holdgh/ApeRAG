@@ -21,7 +21,8 @@ from ninja import Router
 from config import settings
 from aperag.context.context import ContextManager
 from aperag.db.ops import query_collection_without_user
-from aperag.readers.base_embedding import get_embedding_model, rerank
+from aperag.readers.base_embedding import get_embedding_model
+from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
 from aperag.utils.request import get_user
 from aperag.utils.utils import generate_vector_db_collection_name

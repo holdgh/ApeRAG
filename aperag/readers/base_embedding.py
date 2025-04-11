@@ -6,13 +6,11 @@ from abc import ABC, abstractmethod
 from threading import Lock
 from typing import Any, List
 
-import aiohttp
 import requests
 from langchain.embeddings.base import Embeddings
 from langchain_huggingface import HuggingFaceEmbeddings
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, MT5EncoderModel
+from transformers import AutoTokenizer, MT5EncoderModel
 
-from aperag.query.query import DocumentWithScore
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 from config.settings import (
     EMBEDDING_BACKEND,
@@ -23,9 +21,6 @@ from config.settings import (
     EMBEDDING_SERVICE_MODEL_UID,
     EMBEDDING_SERVICE_TOKEN,
     EMBEDDING_SERVICE_URL,
-    RERANK_BACKEND,
-    RERANK_SERVICE_MODEL_UID,
-    RERANK_SERVICE_URL,
 )
 
 
@@ -171,7 +166,7 @@ class MultilingualSentenceTransformer(Embeddings):
 
     def embed_query(self, text: str) -> List[float]:
         embeddings = self.model.encode([f"query: {text}"], normalize_embeddings=True)
-        return embeddings.tolist()
+        return embeddings.tolist()[0]  # Corrected original code - should return list[0]
 
 
 class BertEmbedding(Embeddings):
@@ -199,109 +194,8 @@ class BertEmbedding(Embeddings):
         return self.embed_documents([text])[0]
 
 
-default_rerank_model_path = "/data/models/bge-reranker-large"
-
-
-class Ranker(ABC):
-
-    @abstractmethod
-    def rank(self, query, results: List[DocumentWithScore]):
-        pass
-
-
-class RankerService(Ranker):
-    def __init__(self):
-        if RERANK_BACKEND == "xinference":
-            self.ranker = XinferenceRanker()
-        elif RERANK_BACKEND == "local":
-            self.ranker = FlagCrossEncoderRanker()
-        else:
-            raise Exception("Unsupported embedding backend")
-
-    async def rank(self, query, results: List[DocumentWithScore]):
-        return await self.ranker.rank(query, results)
-
-
-class XinferenceRanker(Ranker):
-    def __init__(self):
-        self.url = f"{RERANK_SERVICE_URL}/v1/rerank"
-        self.model_uid = RERANK_SERVICE_MODEL_UID
-
-    async def rank(self, query, results: List[DocumentWithScore]):
-        documents = [document.text for document in results]
-        request_body = {
-            "model": self.model_uid,
-            "documents": documents,
-            "query": query,
-            "return_documents": False,
-        }
-        async with aiohttp.ClientSession() as session:
-            async with session.post(self.url, json=request_body) as response:
-                response_data = await response.json()
-                if response.status != 200:
-                    raise RuntimeError(f"Failed to rerank documents, detail: {response_data['detail']}")
-                indices = [response['index'] for response in response_data['results']]
-                return [results[index] for index in indices]
-
-
-class ContentRatioRanker(Ranker):
-    def __init__(self, query):
-        self.query = query
-
-    async def rank(self, query, results: List[DocumentWithScore]):
-        results.sort(key=lambda x: (x.metadata.get("content_ratio", 1), x.score), reverse=True)
-        return results
-
-
-class AutoCrossEncoderRanker(Ranker):
-    def __init__(self):
-        model_path = os.environ.get("RERANK_MODEL_PATH", default_rerank_model_path)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
-        self.model.eval()
-
-    async def rank(self, query, results: List[DocumentWithScore]):
-        import torch
-        pairs = []
-        for idx, result in enumerate(results):
-            pairs.append((query, result.text))
-            result.rank_before = idx
-
-        with torch.no_grad():
-            inputs = self.tokenizer(pairs, padding=True, truncation=True, return_tensors='pt', max_length=512)
-            scores = self.model(**inputs, return_dict=True).logits.view(-1, ).float()
-            results = [x for _, x in sorted(zip(scores, results), key=lambda k: k[0], reverse=True)]
-
-        return results
-
-
-class FlagCrossEncoderRanker(Ranker):
-    def __init__(self):
-        from FlagEmbedding import FlagReranker
-        model_path = os.environ.get("RERANK_MODEL_PATH", default_rerank_model_path)
-        # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
-        self.reranker = FlagReranker(model_path)  # use fp16 can speed up computing
-
-    async def rank(self, query, results: List[DocumentWithScore]):
-        import torch
-        pairs = []
-        max_length = 512
-        for idx, result in enumerate(results):
-            pairs.append((query[:max_length], result.text[:max_length]))
-            result.rank_before = idx
-
-        with torch.no_grad():
-            scores = self.reranker.compute_score(pairs, max_length=max_length)
-            if len(pairs) == 1:
-                scores = [scores]
-        results = [x for _, x in sorted(zip(scores, results), key=lambda k: k[0], reverse=True)]
-
-        return results
-
-
 mutex = Lock()
 embedding_model_cache = {}
-rerank_model_cache = {}
 
 EMBEDDING_MODEL_CLS = {
     "huggingface": lambda: HuggingFaceEmbeddings(
@@ -317,7 +211,6 @@ EMBEDDING_MODEL_CLS = {
 }
 
 
-# synchronized decorator
 def synchronized(func):
     def wrapper(*args, **kwargs):
         with mutex:
@@ -327,17 +220,7 @@ def synchronized(func):
 
 
 @synchronized
-def get_rerank_model(model_type: str = "bge-reranker-large"):
-    # self.reranker = FlagReranker('BAAI/bge-reranker-large', use_fp16=True) #use fp16 can speed up computing
-    if model_type in rerank_model_cache:
-        return rerank_model_cache[model_type]
-    model = RankerService()
-    rerank_model_cache[model_type] = model
-    return model
-
-
-@synchronized
-def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> {Embeddings, int}:
+def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> tuple[Embeddings | None, int]:
     if model_type in embedding_model_cache:
         return embedding_model_cache[model_type]
 
@@ -347,23 +230,21 @@ def get_embedding_model(model_type: str = "bge", load=True, **kwargs) -> {Embedd
     if load:
         embedding_model = EmbeddingService(EMBEDDING_BACKEND, model_type)
         embedding_model_cache[model_type] = (embedding_model, vector_size)
-
-    return embedding_model, vector_size
+        return embedding_model, vector_size  # Return inside if load
+    else:
+        # Return tuple with None embedding if load is False
+        return None, vector_size
 
 
 def get_embedding_dimension(embedding_backend: str, model_type: str, service_model: str = None) -> int:
     rules = EMBEDDING_DIMENSIONS.get(embedding_backend, {})
 
     if embedding_backend == "openai":
-        return rules.get(service_model, rules["__default__"])
+        # Use service_model for openai, fallback to __default__ within openai rules
+        return rules.get(service_model, rules.get("__default__", 1536))
 
-    return rules.get(model_type, rules["__default__"])
-
-
-async def rerank(message, results):
-    model = get_rerank_model()
-    results = await model.rank(message, results)
-    return results
+    # Use model_type for others, fallback to __default__ for that backend
+    return rules.get(model_type, rules.get("__default__", 768))
 
 
 def get_collection_embedding_model(collection):
@@ -371,24 +252,27 @@ def get_collection_embedding_model(collection):
     model_name = config.get("embedding_model", "text2vec")
     return get_embedding_model(model_name)
 
-
-# preload embedding model will cause model hanging, so we load it when first time use
-# get_default_embedding_model()
-
-
 class DocumentBaseEmbedding(ABC):
     def __init__(
             self,
             vector_store_adaptor: VectorStoreConnectorAdaptor,
-            embedding_model: Embeddings,
-            vector_size: int,
+            embedding_model: Embeddings = None,
+            vector_size: int = None,
             **kwargs: Any,
     ) -> None:
         self.connector = vector_store_adaptor.connector
-        if embedding_model is None:
-            self.embedding, self.vector_size = get_embedding_model(EMBEDDING_MODEL)
+        # Improved logic to handle optional embedding_model/vector_size
+        if embedding_model is None or vector_size is None:
+            loaded_embedding, loaded_vector_size = get_embedding_model(EMBEDDING_MODEL)
+            self.embedding = embedding_model if embedding_model is not None else loaded_embedding
+            self.vector_size = vector_size if vector_size is not None else loaded_vector_size
         else:
             self.embedding, self.vector_size = embedding_model, vector_size
+
+        # Ensure embedding is loaded if needed
+        if self.embedding is None:
+            raise ValueError("Embedding model could not be loaded or provided.")
+
         self.client = vector_store_adaptor.connector.client
 
     @abstractmethod
