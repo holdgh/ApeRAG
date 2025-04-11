@@ -689,7 +689,7 @@ async def update_document(
     # if user add labels for a document, we need to update index
     update_index_for_document.delay(instance.id)
 
-    related_questions = await sync_to_async(document.question_set.exclude)(status=QuestionStatus.DELETED)
+    related_questions = await sync_to_async(instance.question_set.exclude)(status=QuestionStatus.DELETED)
     async for question in related_questions:
         question.status = QuestionStatus.WARNING
         await question.asave()
