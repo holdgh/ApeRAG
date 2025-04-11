@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 import random
+from typing import List, Tuple, Optional
 
 from langchain_core.prompts import PromptTemplate
 
@@ -112,147 +113,223 @@ class KnowledgePipeline(Pipeline):
             result.append(item)
         return result
 
+    async def _run_standard_rag(self, query_with_history: str, vector: List[float], log_prefix: str) -> Tuple[str, List[DocumentWithScore]]:
+        """
+        Executes the standard RAG pipeline: vector search, rerank, keyword filtering, context packing.
+        Returns the packed context string and the list of candidate documents.
+        """
+        logger.info("[%s] Running standard RAG pipeline", log_prefix)
+        results = await async_run(self.context_manager.query, query_with_history,
+                                  score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
+        logger.info("[%s] Found %d relevant documents in vector db", log_prefix, len(results))
+
+        if self.bot_context != "":
+            bot_context_result = DocumentWithScore(
+                text=self.bot_context,  # type: ignore
+                score=0,  # Use score 0 to easily identify and filter later if needed
+                metadata={} # Add empty metadata
+            )
+            results.append(bot_context_result)
+
+        if len(results) > 1:
+            results = await rerank(query_with_history, results) # Use query_with_history for reranking
+            logger.info("[%s] Reranked %d candidates", log_prefix, len(results))
+        else:
+            logger.info("[%s] No need to rerank (candidates <= 1)", log_prefix)
+
+        candidates = results[:self.topk]
+
+        if self.enable_keyword_recall:
+            candidates = await self.filter_by_keywords(query_with_history.split('\n')[-1], candidates) # Use original message for keywords
+            logger.info("[%s] Filtered candidates by keyword, %d remaining", log_prefix, len(candidates))
+        else:
+            logger.info("[%s] Keyword filtering disabled", log_prefix)
+
+        context = ""
+        if len(candidates) > 0:
+            # 500 is the estimated length of the prompt and memory overhead
+            context_allowance = max(self.context_window - 500, 0)
+            context = get_packed_answer(candidates, context_allowance)
+            logger.info("[%s] Packed context generated (length: %d)", log_prefix, len(context))
+        else:
+            logger.info("[%s] No candidates found after filtering", log_prefix)
+
+        return context, candidates
+
+    async def _run_light_rag(self, query_with_history: str, log_prefix: str) -> Optional[str]:
+        """
+        Placeholder for executing the LightRAG (GraphRAG) pipeline.
+        This function will be implemented in a future PR.
+        It should take the query and return the context string.
+        """
+        logger.info("[%s] Skipping LightRAG pipeline (placeholder)", log_prefix)
+        return None
+
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"
-        logger.info("[%s] start processing", log_prefix)
+        logger.info("[%s] Start processing request", log_prefix)
 
-        history = []
-        tot_history_querys = ''
-        messages = await self.history.messages
-        history_querys = [json.loads(message.content)["query"] for message in messages if message.additional_kwargs["role"] == "human"]
-
-        if self.memory:
-            tot_history_querys = '\n'.join(history_querys[-self.memory_limit_count:])+'\n'
-
+        # --- 1. Common Setup & History Processing ---
+        response = ""
         references = []
         related_questions = set()
-        response = ""
         document_url_list = []
         document_url_set = set()
+        context = ""
+        candidates = [] # Keep track of candidates for references/URLs
+        related_question_task = None
         need_generate_answer = True
         need_related_question = True
-        vector = self.embedding_model.embed_query(tot_history_querys+message)
-        logger.info("[%s] embedding query end", log_prefix)
-        # hyde_task = asyncio.create_task(self.generate_hyde_message(message))
 
-        results = await async_run(self.qa_context_manager.query, tot_history_querys + message, score_threshold=0.5, topk=6, vector=vector)
-        logger.info("[%s] find relevant qa pairs in vector db end", log_prefix)
-        for result in results:
-            result_text = json.loads(result.text)
-            if result_text["answer"] != "" and result.score > 0.9:
-                response = result_text["answer"]
-            if result.score < 0.8:
-                related_questions.add(result_text["question"])
+        messages = await self.history.messages
+        history_querys = [json.loads(msg.content)["query"] for msg in messages if msg.additional_kwargs.get("role") == "human"]
+        tot_history_querys = '\n'.join(history_querys[-self.memory_limit_count:]) + '\n' if self.memory else ''
+        query_with_history = tot_history_querys + message
 
-        # if len(related_questions) >= 3:
-        #     need_related_question = False
+        # --- 2. QA Cache Check (Optional Shortcut) ---
+        logger.info("[%s] Checking QA cache", log_prefix)
+        vector = self.embedding_model.embed_query(query_with_history) # Embedding needed for QA cache and standard RAG
+        logger.info("[%s] Query embedded", log_prefix)
+        qa_results = await async_run(self.qa_context_manager.query, query_with_history, score_threshold=0.5, topk=6, vector=vector)
+        logger.info("[%s] QA cache query returned %d results", log_prefix, len(qa_results))
 
-        if response != "":
-            yield response
+        cached_answer_found = False
+        for result in qa_results:
+            try:
+                result_text = json.loads(result.text)
+                if result_text.get("answer") and result.score > 0.9: # High confidence match
+                    response = result_text["answer"]
+                    context = response # Use cached answer as context for related questions
+                    cached_answer_found = True
+                    need_generate_answer = False # No need to call LLM
+                    logger.info("[%s] Found high-confidence answer in QA cache.", log_prefix)
+                    yield response # Start yielding cached answer
+                    break # Stop after finding one good answer
+                elif result.score >= 0.8: # Add potential related questions from cache
+                     related_questions.add(result_text["question"])
+            except (json.JSONDecodeError, KeyError) as e:
+                 logger.warning("[%s] Failed to parse QA cache result: %s, error: %s", log_prefix, result.text, e)
 
-            if self.use_related_question and need_related_question:
-                related_question_prompt = self.related_question_prompt.format(query=message, context=response)
-                related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
 
-        else:
-            results = await async_run(self.context_manager.query, tot_history_querys + message,
-                                      score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
-            logger.info("[%s] find top %d relevant context in vector db end", log_prefix, len(results))
-            # hyde_message = await hyde_task
-            # new_vector = self.embedding_model.embed_query(hyde_message)
-            # results2 = await async_run(self.context_manager.query, message,
-            #                           score_threshold=self.score_threshold, topk=self.topk * 6, vector=new_vector)
-            # results_set = set([result.text for result in results])
-            # results.extend(result for result in results2 if result.text not in results_set)
+        # --- 3. Main RAG Processing (if no QA cache hit) ---
+        if not cached_answer_found:
+            logger.info("[%s] No high-confidence answer in QA cache, proceeding with RAG pipeline", log_prefix)
 
-            if self.bot_context != "":
-                bot_context_result = DocumentWithScore(
-                    text=self.bot_context,  # type: ignore
-                    score=0,
-                )
-                results.append(bot_context_result)
+            # --- 3a. Choose and Run RAG method(s) ---
+            # For now, we run standard RAG. LightRAG is a placeholder.
+            # In the future, logic can be added here to choose, combine, or run in parallel.
+            standard_context, candidates = await self._run_standard_rag(query_with_history, vector, log_prefix)
+            # lightrag_context = await self._run_light_rag(query_with_history, log_prefix)
 
-            if len(results) > 1:
-                results = await rerank(message, results)
-                logger.info("[%s] rerank candidates end", log_prefix)
-            else:
-                logger.info("[%s] don't need to rerank ", log_prefix)
+            # --- 3b. Select Context ---
+            # For now, prioritize standard RAG context. Future logic could combine or select.
+            context = standard_context
+            # if lightrag_context: # Example of prioritizing LightRAG if available
+            #    context = lightrag_context
+            #    candidates = [] # Clear candidates if LightRAG context is used (no direct candidates from it yet)
 
-            candidates = results[:self.topk]
-
-            if self.enable_keyword_recall:
-                candidates = await self.filter_by_keywords(message, candidates)
-                logger.info("[%s] filter keyword end", log_prefix)
-            else:
-                logger.info("[%s] no need to filter keyword", log_prefix)
-
-            context = ""
-            if len(candidates) > 0:
-                # 500 is the estimated length of the prompt
-                context = get_packed_answer(candidates, max(self.context_window - 500, 0))
-            else:
+            # --- 3c. Handle No Context Found ---
+            if not context:
                 if self.oops != "":
                     response = self.oops
                     yield self.oops
                     need_generate_answer = False
+                    logger.info("[%s] No context found, yielding 'oops' message.", log_prefix)
                 if self.welcome_question:
                     related_questions.update(self.welcome_question)
-                    if len(related_questions) >= 3:
-                        need_related_question = False
+                    logger.info("[%s] Adding welcome questions as related questions.", log_prefix)
 
-            if self.use_related_question and need_related_question:
-                related_question_prompt = self.related_question_prompt.format(query=message, context=context)
-                related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
 
-            if need_generate_answer:
-                history_querys.append(message)
-                related_questions = related_questions - set(history_querys[-5:])
-                if self.memory and len(messages) > 0:
-                    history = self.predictor.get_latest_history(
-                        messages=messages,
-                        limit_length=max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0),
-                        limit_count=self.memory_limit_count,
-                        use_ai_memory=self.use_ai_memory)
-                    self.memory_count = len(history)
+        # --- 4. Generate Related Questions (if enabled) ---
+        if self.use_related_question and need_related_question:
+            # Only start the task if we have some context (either from cache or RAG) or no context but welcome questions
+            if context or (not context and self.welcome_question):
+                 # Check if we already have enough related questions from QA cache or welcome questions
+                 if len(related_questions) < 3:
+                    related_question_prompt_context = context if context else "No context found." # Provide some context even if empty
+                    related_question_prompt = self.related_question_prompt.format(query=message, context=related_question_prompt_context)
+                    related_question_task = asyncio.create_task(self.generate_related_question(related_question_prompt))
+                    logger.info("[%s] Created related question generation task.", log_prefix)
+                 else:
+                    logger.info("[%s] Skipping related question generation task (already have %d).", log_prefix, len(related_questions))
+            else:
+                logger.info("[%s] Skipping related question generation task (no context and no welcome questions).", log_prefix)
 
-                prompt = self.prompt.format(query=message, context=context)
-                logger.info("[%s] final prompt is\n%s", log_prefix, prompt)
 
-                async for msg in self.predictor.agenerate_stream(history, prompt, self.memory):
-                    yield msg
-                    response += msg
+        # --- 5. Generate LLM Answer (if needed) ---
+        if need_generate_answer:
+            logger.info("[%s] Generating LLM answer.", log_prefix)
+            history = []
+            if self.memory and len(messages) > 0:
+                history_context_allowance = max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0)
+                history = self.predictor.get_latest_history(
+                    messages=messages,
+                    limit_length=history_context_allowance,
+                    limit_count=self.memory_limit_count,
+                    use_ai_memory=self.use_ai_memory)
+                self.memory_count = len(history)
+                logger.info("[%s] Prepared %d history entries for LLM.", log_prefix, len(history))
 
-                for result in candidates:
-                    # filter bot_context
-                    if result.score == 0:
-                        continue
-                    references.append({
-                        "score": result.score,
-                        "text": result.text,
-                        "metadata": result.metadata
-                    })
-                    url = result.metadata.get("url")
-                    if url and url not in document_url_set:
-                        document_url_set.add(result.metadata.get("url"))
-                        document_url_list.append(result.metadata.get("url"))
+            prompt = self.prompt.format(query=message, context=context)
+            logger.debug("[%s] Final prompt for LLM:\n%s", log_prefix, prompt) # Use debug level for potentially long prompts
 
+            async for msg_chunk in self.predictor.agenerate_stream(history, prompt, self.memory):
+                yield msg_chunk
+                response += msg_chunk
+            logger.info("[%s] LLM stream finished.", log_prefix)
+
+            # Populate references and URLs from the candidates used for the context
+            for result in candidates:
+                # Filter out bot_context placeholder if it exists and wasn't filtered earlier
+                if result.score == 0 and result.text == self.bot_context:
+                    continue
+                references.append({
+                    "score": result.score,
+                    "text": result.text,
+                    "metadata": result.metadata
+                })
+                url = result.metadata.get("url")
+                if url and url not in document_url_set:
+                    document_url_set.add(url)
+                    document_url_list.append(url)
+
+        # --- 6. Finalization: Save Messages & Yield Metadata ---
         await self.add_human_message(message, message_id)
-        logger.info("[%s] add human message end", log_prefix)
+        logger.info("[%s] Human message saved.", log_prefix)
 
+        # Ensure AI message includes references/URLs derived from the context used
         await self.add_ai_message(message, message_id, response, references, document_url_list)
-        logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
+        logger.info("[%s] AI message saved.", log_prefix)
 
+        # Yield related questions if generated/collected
         if self.use_related_question:
-            if need_related_question:
-                related_question_generate = await related_question_task
-                related_questions.update(related_question_generate)
-            related_questions = list(related_questions)
-            random.shuffle(related_questions)
-            yield RELATED_QUESTIONS + str(related_questions[:3])
+            final_related_questions = list(related_questions)
+            if related_question_task:
+                try:
+                    generated_questions = await related_question_task
+                    logger.info("[%s] Related question generation task finished.", log_prefix)
+                    # Avoid duplicates and filter out recent history
+                    history_querys.append(message) # Add current message to history for filtering
+                    recent_queries = set(history_querys[-5:])
+                    for q in generated_questions:
+                        if q not in final_related_questions and q not in recent_queries:
+                            final_related_questions.append(q)
+                except Exception as e:
+                    logger.error("[%s] Related question generation failed: %s", log_prefix, e)
 
-        if gen_references:
+            if final_related_questions:
+                random.shuffle(final_related_questions)
+                yield RELATED_QUESTIONS + json.dumps(final_related_questions[:3])
+                logger.info("[%s] Yielded related questions.", log_prefix)
+
+        # Yield references if requested
+        if gen_references and references:
             yield DOC_QA_REFERENCES + json.dumps(references)
+            logger.info("[%s] Yielded references.", log_prefix)
 
+        # Yield document URLs if available
         if document_url_list:
             yield DOCUMENT_URLS + json.dumps(document_url_list)
+            logger.info("[%s] Yielded document URLs.", log_prefix)
 
+        logger.info("[%s] Processing finished successfully.", log_prefix)
