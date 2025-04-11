@@ -75,7 +75,7 @@ class JinaRanker(Ranker):
         }
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer ${self.auth_token}"
+            "Authorization": f"Bearer {self.auth_token}"
         }
         async with aiohttp.ClientSession() as session:
             async with session.post(self.url, headers=headers, json=body) as resp:
