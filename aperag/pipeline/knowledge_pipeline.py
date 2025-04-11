@@ -71,7 +71,6 @@ class KnowledgePipeline(Pipeline):
                                                                              DEFAULT_CHINESE_PROMPT_TEMPLATE_V3)
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
-    # No changes needed in new_ai_message
     async def new_ai_message(self, message, message_id, response, references, urls):
         return Message(
             id=message_id,
@@ -90,7 +89,6 @@ class KnowledgePipeline(Pipeline):
             llm_context_window=self.context_window,
         )
 
-    # No changes needed in filter_by_keywords
     async def filter_by_keywords(self, message, candidates):
         index = generate_fulltext_index_name(self.collection_id)
         async with IKExtractor({"index_name": index, "es_host": settings.ES_HOST}) as extractor:
@@ -124,14 +122,6 @@ class KnowledgePipeline(Pipeline):
         results = await async_run(self.context_manager.query, query_with_history,
                                   score_threshold=self.score_threshold, topk=self.topk * 6, vector=vector)
         logger.info("[%s] Found %d relevant documents in vector db", log_prefix, len(results))
-
-        # Optional: Hyde logic could be added here if needed later
-        # hyde_message = await self.generate_hyde_message(message)
-        # new_vector = self.embedding_model.embed_query(hyde_message)
-        # results2 = await async_run(self.context_manager.query, message,
-        #                           score_threshold=self.score_threshold, topk=self.topk * 6, vector=new_vector)
-        # results_set = set([result.text for result in results])
-        # results.extend(result for result in results2 if result.text not in results_set)
 
         if self.bot_context != "":
             bot_context_result = DocumentWithScore(
@@ -173,21 +163,6 @@ class KnowledgePipeline(Pipeline):
         It should take the query and return the context string.
         """
         logger.info("[%s] Skipping LightRAG pipeline (placeholder)", log_prefix)
-        # In the future, this will call the LightRAG client:
-        # try:
-        #     # Example call structure (adjust based on actual LightRAG client)
-        #     lightrag_client = ... # Initialize LightRAG client
-        #     response = await lightrag_client.aquery(
-        #         query_with_history,
-        #         param=QueryParam(mode="global", only_need_context=True), # Example params
-        #     )
-        #     context = response.get_context() # Or however context is retrieved
-        #     logger.info("[%s] LightRAG pipeline returned context (length: %d)", log_prefix, len(context))
-        #     return context
-        # except Exception as e:
-        #     logger.error("[%s] LightRAG pipeline failed: %s", log_prefix, e)
-        #     return None
-        await asyncio.sleep(0) # Simulate async operation if needed for testing structure
         return None
 
     async def run(self, message, gen_references=False, message_id=""):
