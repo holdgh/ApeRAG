@@ -43,6 +43,8 @@ poetry shell
 make run-backend
 ```
 
+To debug django service, see [HOW-TO-DEBUG.md](docs%2FHOW-TO-DEBUG.md)
+
 * run the celery service
 
 ```bash
@@ -52,6 +54,8 @@ poetry shell
 ```
 PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --pool threads
 ```
+
+To debug celery service, see [HOW-TO-DEBUG.md](docs%2FHOW-TO-DEBUG.md)
 
 * run the frontend
 
