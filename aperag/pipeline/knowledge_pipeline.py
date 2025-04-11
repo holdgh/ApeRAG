@@ -30,7 +30,8 @@ from aperag.pipeline.base_pipeline import DOC_QA_REFERENCES, RELATED_QUESTIONS, 
     Message, Pipeline, DOCUMENT_URLS
 from aperag.pipeline.keyword_extractor import IKExtractor
 from aperag.query.query import DocumentWithScore, get_packed_answer
-from aperag.readers.base_embedding import get_embedding_model, rerank
+from aperag.readers.base_embedding import get_embedding_model
+from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
 from aperag.utils.utils import (
     generate_fulltext_index_name,
