@@ -40,11 +40,11 @@ from aperag.db.models import (
     Question,
     QuestionStatus,
 )
-from aperag.readers.base_embedding import get_collection_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_model
 from aperag.readers.base_readers import DEFAULT_FILE_READER_CLS, SUPPORTED_COMPRESSED_EXTENSIONS
-from aperag.readers.local_path_embedding import LocalPathEmbedding
-from aperag.readers.qa_embedding import QAEmbedding
-from aperag.readers.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
+from aperag.embed.local_path_embedding import LocalPathEmbedding
+from aperag.embed.qa_embedding import QAEmbedding
+from aperag.embed.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
 from aperag.source.base import get_source
 from aperag.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from aperag.utils.utils import (
