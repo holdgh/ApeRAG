@@ -188,7 +188,7 @@ class KnowledgePipeline(Pipeline):
         This function will be implemented in a future PR.
         It should take the query and return the context string.
         """
-        logger.info("[%s] Running LightRAG pipeline (placeholder)", log_prefix)
+        logger.info("[%s] Running LightRAG pipeline", log_prefix)
         from aperag.graph import lightrag_wrapper
         from lightrag import QueryParam
         from aperag.utils.utils import generate_lightrag_namespace_prefix

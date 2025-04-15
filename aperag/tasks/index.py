@@ -244,7 +244,7 @@ def add_index_for_document(self, document_id):
             logger.info(f"begin for index for LightRAG")
             namespace_prefix = generate_lightrag_namespace_prefix(document.collection.id)
             rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(namespace_prefix=namespace_prefix)
-            rag.insert(content, ids=document.id)
+            rag.insert(content, ids=document.id, file_paths=local_doc.path)
             logger.info(f"end for index for LightRAG")
             
     except FeishuNoPermission:
@@ -349,6 +349,14 @@ def update_index_for_document(self, document_id):
         }
         document.relate_ids = json.dumps(relate_ids)
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
+
+        logger.info(f"begin updating index for LightRAG")
+        namespace_prefix = generate_lightrag_namespace_prefix(document.collection.id)
+        rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(namespace_prefix=namespace_prefix)
+        async_to_sync(rag.adelete_by_doc_id)(document_id)
+        rag.insert(content, ids=document.id, file_paths=local_doc.path)
+        logger.info(f"end updating index for LightRAG")
+
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
     except FeishuPermissionDenied:
