@@ -31,7 +31,7 @@ from aperag.pipeline.base_pipeline import DOC_QA_REFERENCES, RELATED_QUESTIONS, 
     Message, Pipeline, DOCUMENT_URLS
 from aperag.pipeline.keyword_extractor import IKExtractor
 from aperag.query.query import DocumentWithScore, get_packed_answer
-from aperag.embed.base_embedding import get_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_model, loads_or_use_default_embedding_configs
 from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
 from aperag.utils.utils import (
@@ -55,9 +55,9 @@ class KnowledgePipeline(Pipeline):
         self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.vectordb_ctx["collection"] = collection_name
 
-        config = json.loads(self.collection.config)
-        self.embedding_model_name = config.get("embedding_model", settings.EMBEDDING_MODEL)
-        self.embedding_model, self.vector_size = get_embedding_model(self.embedding_model_name)
+        config = loads_or_use_default_embedding_configs(json.loads(self.collection.config))
+        self.embedding_model_name = config["embedding_model"]
+        self.embedding_model, self.vector_size = get_collection_embedding_model(self.collection)
 
         self.context_manager = ContextManager(collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                               self.vectordb_ctx)

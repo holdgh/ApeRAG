@@ -25,6 +25,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
+import warnings
+from django.utils.deprecation import RemovedInNextVersionWarning
 
 import environ
 
@@ -246,22 +248,18 @@ LOGGING = {
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 MODEL_FAMILIES = env.str("MODEL_FAMILIES", default='[]')
 
-EMBEDDING_DEVICE = env.str("EMBEDDING_DEVICE", default="cpu")
-EMBEDDING_MODEL = env.str("EMBEDDING_MODEL", default="text2vec")
 EMBEDDING_BACKEND = env.str("EMBEDDING_BACKEND", default="local")
+EMBEDDING_MODEL = env.str("EMBEDDING_MODEL", default="text2vec")
+EMBEDDING_DIM = env.int("EMBEDDING_DIM", default=1024)
 EMBEDDING_SERVICE_URL = env.str("EMBEDDING_SERVICE_URL", default="http://localhost:9997")
-# model is used by infinity, model_uid is used by xinference
-EMBEDDING_SERVICE_MODEL = env.str("EMBEDDING_SERVICE_MODEL", default="bge-large-zh-v1.5")
-EMBEDDING_SERVICE_TOKEN = env.str("EMBEDDING_SERVICE_TOKEN", default="")
-EMBEDDING_SERVICE_MODEL_UID = env.str("EMBEDDING_SERVICE_MODEL_UID", default="")
+EMBEDDING_SERVICE_API_KEY = env.str("EMBEDDING_SERVICE_API_KEY", default="")
+
 SENSITIVE_FILTER_MODEL = env.str("SENSITIVE_FILTER_MODEL", default="")
 
 RERANK_BACKEND = env.str("RERANK_BACKEND", default="local")
 RERANK_SERVICE_URL = env.str("RERANK_SERVICE_URL", default="http://localhost:9997")
-RERANK_SERVICE_MODEL = env.str("RERANK_SERVICE_MODEL")
-RERANK_SERVICE_TOKEN = env.str("RERANK_SERVICE_TOKEN")
-# xinference only needs model_uid, doesn't need model name
-RERANK_SERVICE_MODEL_UID = env.str("RERANK_SERVICE_MODEL_UID", default="")
+RERANK_SERVICE_MODEL = env.str("RERANK_SERVICE_MODEL",  default="")
+RERANK_SERVICE_TOKEN_API_KEY = env.str("RERANK_SERVICE_TOKEN_API_KEY")
 
 EMBEDDING_DIMENSIONS = {
     "local": {

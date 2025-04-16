@@ -42,8 +42,6 @@ VECTOR_DB_TYPE = "qdrant"
 VECTOR_DB_CONTEXT = {"url": "http://127.0.0.1", "port": 6333, "distance": "Cosine", "timeout": 1000}
 
 
-os.environ["RERANK_MODEL_PATH"] = "/Users/ziang/.cache/huggingface/hub/bge-reranker-large"
-
 
 table_format = """
 <html>
@@ -71,7 +69,7 @@ class TestCase:
 class EmbeddingCtx:
     def __init__(self, collection_name, model_name):
         self.model_name = model_name
-        self.model, self.vector_size = get_embedding_model(model_name)
+        self.model, self.vector_size = get_embedding_model()
         self.collection_name = f"{collection_name}_{model_name}_{self.vector_size}"
         ctx = VECTOR_DB_CONTEXT.copy()
         ctx["collection"] = self.collection_name
