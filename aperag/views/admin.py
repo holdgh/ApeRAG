@@ -21,7 +21,7 @@ from ninja import Router
 from config import settings
 from aperag.context.context import ContextManager
 from aperag.db.ops import query_collection_without_user
-from aperag.embed.base_embedding import get_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_model
 from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
 from aperag.utils.request import get_user
@@ -46,15 +46,13 @@ async def query_similar(request, collection_id, topk=3, score_threshold=0.5):
 
     query = request.body.decode('utf-8')
     log_prefix = "query_similar|collection_id: %s|query: %s" % (collection_id, query)
-    config = json.loads(collection.config)
-    embedding_model_name = config.get("embedding_model", settings.EMBEDDING_MODEL)
-    embedding_model, vector_size = get_embedding_model(embedding_model_name)
 
+    embedding_svc, vector_size = get_collection_embedding_model(collection)
     collection_name = generate_vector_db_collection_name(collection_id)
     vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
     vectordb_ctx["collection"] = collection_name
-    context_manager = ContextManager(collection_name, embedding_model, settings.VECTOR_DB_TYPE, vectordb_ctx)
-    vector = embedding_model.embed_query(query)
+    context_manager = ContextManager(collection_name, embedding_svc, settings.VECTOR_DB_TYPE, vectordb_ctx)
+    vector = embedding_svc.embed_query(query)
     results = await async_run(context_manager.query, query,
                               score_threshold=score_threshold, topk=topk * 6, vector=vector)
 
