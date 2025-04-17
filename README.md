@@ -65,6 +65,19 @@ cp envs/env.template .env
 make run-db
 ```
 
+* optional: enable MinerU
+
+   ApeRAG supports parsing PDF and Microsoft Office documents using MinerU. However, this feature requires pre-downloaded models for document layout detection, as well as a magic_pdf.json configuration file. Therefore, it is disabled by default.
+
+   To enable MinerU, run the following script. It will automatically download the necessary models and generate the configuration file for you:
+
+   ```bash
+   pip install huggingface_hub
+   python ./scripts/prepare_for_mineru.py
+   ```
+
+   You can further customize the `magic_pdf.json` file to configure LLM-related settings under the `llm-aided-config` section. Be sure to set the `enable` field to `true`. When enabled, MinerU will leverage an LLM to enhance parsing capabilities, for example, correcting OCR errors in text and formulas, and adjusting title levels (by default, all titles are set to level 1).
+
 * run the django service
 
 ```bash
