@@ -189,13 +189,12 @@ class KnowledgePipeline(Pipeline):
         It should take the query and return the context string.
         """
         logger.info("[%s] Running LightRAG pipeline", log_prefix)
-        from aperag.graph import lightrag_wrapper
+        from aperag.graph import lightrag_holder
         from lightrag import QueryParam
-        return await lightrag_wrapper.query_lightrag(
-            query_with_history,
-            param=QueryParam(mode="hybrid", only_need_context=True),
-            collection=self.collection,
-        )
+        from aperag.graph.lightrag_holder import LightRagHolder
+
+        rag: LightRagHolder = lightrag_holder.get_lightrag_holder(self.collection)
+        return await rag.aquery(query=query_with_history, param=QueryParam(mode="hybrid", only_need_context=True))
 
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"

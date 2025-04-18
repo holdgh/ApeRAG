@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Optional, List, Any, Dict, Callable, Awaitable, Tuple
+from typing import Optional, List, Any, Dict, Callable, Awaitable, Tuple, AsyncIterator
 
 import numpy
 from lightrag import LightRAG, QueryParam
@@ -58,8 +58,23 @@ class LightRagHolder:
         self.llm_func = llm_func
         self.embed_impl = embed_impl
 
-    async def query(self, query: str, param: QueryParam) -> Any:
-        return await self.rag.aquery(query, param=param)
+    def insert(
+        self,
+        input: str | list[str],
+        split_by_character: str | None = None,
+        split_by_character_only: bool = False,
+        ids: str | list[str] | None = None,
+        file_paths: str | list[str] | None = None,
+    ) -> None:
+        return self.rag.insert(input, split_by_character, split_by_character_only, ids, file_paths)
+
+    async def aquery(self, query: str, param: QueryParam = QueryParam(), system_prompt: str | None = None) -> str | AsyncIterator[str]:
+        return await self.rag.aquery(query, param, system_prompt)
+
+    async def adelete_by_doc_id(self, doc_id: str) -> None:
+        return await self.rag.adelete_by_doc_id(doc_id)
+
+
 
 
 # ---------- Default llm_func & embed_impl ---------- #
@@ -144,7 +159,7 @@ def gen_lightrag_embed_func(collection: Collection) -> Tuple[
 
     return lightrag_embed_func, dim
 
-async def get_lightrag_instance(
+async def get_lightrag_holder(
     collection: Collection,
     llm_func: Callable[..., Awaitable[str]] = _default_llm_func,
 ) -> LightRagHolder:
@@ -175,17 +190,3 @@ async def get_lightrag_instance(
             raise RuntimeError(
                 f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'"
             ) from e
-
-
-async def query_lightrag(query: str, param: QueryParam, collection) -> Optional[Any]:
-    try:
-        client = await get_lightrag_instance(collection=collection)
-        return await client.query(query, param=param)
-    except (RuntimeError, ValueError) as e:
-        logger.error(f"Cannot query LightRAG for collection '{collection.id}': {e}")
-        return None
-    except Exception as e:
-        logger.exception(
-            f"Error during LightRAG query for collection '{collection.id}', query '{query[:50]}...'", exc_info=e
-        )
-        return None
