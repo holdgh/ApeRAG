@@ -1,13 +1,15 @@
 import asyncio
 import logging
-from typing import Optional, List, Any, Dict, Callable, Awaitable
+from typing import Optional, List, Any, Dict, Callable, Awaitable, Tuple
 
 import numpy
 from lightrag import LightRAG, QueryParam
-from lightrag.utils import EmbeddingFunc
-from lightrag.llm.openai import openai_embed, openai_complete_if_cache
 from lightrag.kg.shared_storage import initialize_pipeline_status
+from lightrag.llm.openai import openai_embed, openai_complete_if_cache
+from lightrag.utils import EmbeddingFunc
 
+from aperag.db.models import Collection
+from aperag.embed.base_embedding import get_collection_embedding_model
 from aperag.utils.utils import generate_lightrag_namespace_prefix
 from config.settings import (
     LIGHT_RAG_LLM_API_KEY,
@@ -131,11 +133,20 @@ async def _create_and_initialize_lightrag(
     logger.debug(f"LightRAG object for namespace '{namespace_prefix}' fully initialized.")
     return LightRagHolder(rag=rag, llm_func=llm_func, embed_impl=embed_impl)
 
+def gen_lightrag_embed_func(collection: Collection) -> Tuple[
+    Callable[[list[str]], Awaitable[numpy.ndarray]],
+    int
+]:
+    embedding_svc, dim = get_collection_embedding_model(collection)
+    async def lightrag_embed_func(texts: list[str]) -> numpy.ndarray:
+        embeddings = await embedding_svc.aembed_documents(texts)
+        return numpy.array(embeddings)
+
+    return lightrag_embed_func, dim
 
 async def get_lightrag_instance(
-    collection,
+    collection: Collection,
     llm_func: Callable[..., Awaitable[str]] = _default_llm_func,
-    embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]] = _default_embed_impl,
 ) -> LightRagHolder:
     namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
     if not namespace_prefix or not isinstance(namespace_prefix, str):
@@ -150,7 +161,8 @@ async def get_lightrag_instance(
 
         logger.info(f"Initializing LightRAG instance for namespace '{namespace_prefix}' (lazy loading)...")
         try:
-            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_impl)
+            embed_func, dim = gen_lightrag_embed_func(collection=collection)
+            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func)
             _lightrag_instances[namespace_prefix] = client
             logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized successfully.")
             return client
