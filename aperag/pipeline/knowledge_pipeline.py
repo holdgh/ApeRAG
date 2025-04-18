@@ -118,16 +118,16 @@ class KnowledgePipeline(Pipeline):
         return result
 
     async def build_context(self, query_with_history: str, vector: List[float], log_prefix: str) -> Tuple[str, List[DocumentWithScore]]:
-        vector_context = ""
-        kg_context = ""
+        vector_context = None
+        kg_context = None
         if settings.RETRIEVE_MODE in ["classic", "mix"]:
             vector_context = await self._run_classic_rag(query_with_history, vector, log_prefix)
-        if settings.RETRIEVE_MODE in ["local", "global", "hybrid", "mix"]:
+        if settings.RETRIEVE_MODE in ["local", "global", "hybrid", "graph", "mix"]:
             kg_context = await self._run_light_rag(query_with_history, log_prefix)
 
-        if settings.RETRIEVE_MODE in ["classic"]:
+        if settings.RETRIEVE_MODE in ["classic"] or kg_context is None:
             return vector_context
-        elif settings.RETRIEVE_MODE in ["local", "global", "hybrid"]:
+        elif settings.RETRIEVE_MODE in ["local", "global", "hybrid", "graph"] or vector_context is None:
             return kg_context
         else:
             context = f"""
