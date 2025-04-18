@@ -193,8 +193,13 @@ class KnowledgePipeline(Pipeline):
         from lightrag import QueryParam
         from aperag.graph.lightrag_holder import LightRagHolder
 
-        rag: LightRagHolder = lightrag_holder.get_lightrag_holder(self.collection)
-        return await rag.aquery(query=query_with_history, param=QueryParam(mode="hybrid", only_need_context=True))
+        rag: LightRagHolder = await lightrag_holder.get_lightrag_holder(self.collection)
+        param : QueryParam = QueryParam(
+            mode="hybrid",
+            only_need_context=True,
+            top_k=self.topk,
+        )
+        return await rag.aquery(query=query_with_history, param=param)
 
     async def run(self, message, gen_references=False, message_id=""):
         log_prefix = f"{message_id}|{message}"

@@ -15,11 +15,6 @@ from config.settings import (
     LIGHT_RAG_LLM_API_KEY,
     LIGHT_RAG_LLM_BASE_URL,
     LIGHT_RAG_LLM_MODEL,
-    LIGHT_RAG_EMBEDDING_API_KEY,
-    LIGHT_RAG_EMBEDDING_BASE_URL,
-    LIGHT_RAG_EMBEDDING_MODEL,
-    LIGHT_RAG_EMBEDDING_DIM,
-    LIGHT_RAG_EMBEDDING_MAX_TOKENS,
     LIGHT_RAG_WORKING_DIR,
     LIGHT_RAG_ENABLE_LLM_CACHE,
     LIGHT_RAG_MAX_PARALLEL_INSERT,
@@ -29,11 +24,6 @@ from config.settings import (
 LLM_API_KEY = LIGHT_RAG_LLM_API_KEY
 LLM_BASE_URL = LIGHT_RAG_LLM_BASE_URL
 LLM_MODEL = LIGHT_RAG_LLM_MODEL
-EMBEDDING_MODEL = LIGHT_RAG_EMBEDDING_MODEL
-EMBEDDING_API_KEY = LIGHT_RAG_EMBEDDING_API_KEY
-EMBEDDING_BASE_URL = LIGHT_RAG_EMBEDDING_BASE_URL
-EMBEDDING_DIM = LIGHT_RAG_EMBEDDING_DIM
-EMBEDDING_MAX_TOKENS = LIGHT_RAG_EMBEDDING_MAX_TOKENS
 WORKING_DIR = LIGHT_RAG_WORKING_DIR
 ENABLE_LLM_CACHE = LIGHT_RAG_ENABLE_LLM_CACHE
 MAX_PARALLEL_INSERT = LIGHT_RAG_MAX_PARALLEL_INSERT
@@ -97,16 +87,6 @@ async def _default_llm_func(
         **merged_kwargs,
     )
 
-
-async def _default_embed_impl(texts: List[str]) -> numpy.ndarray:
-    return await openai_embed(
-        texts,
-        model=EMBEDDING_MODEL,
-        api_key=EMBEDDING_API_KEY,
-        base_url=EMBEDDING_BASE_URL,
-    )
-
-
 # Module-level cache
 _lightrag_instances: Dict[str, LightRagHolder] = {}
 _initialization_lock = asyncio.Lock()
@@ -116,6 +96,7 @@ async def _create_and_initialize_lightrag(
     namespace_prefix: str,
     llm_func: Callable[..., Awaitable[str]],
     embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]],
+    embed_dim: int
 ) -> LightRagHolder:
     """
     Creates the LightRAG dependencies, instantiates the object for a specific namespace,
@@ -134,8 +115,8 @@ async def _create_and_initialize_lightrag(
         working_dir=WORKING_DIR,
         llm_model_func=llm_func,
         embedding_func=EmbeddingFunc(
-            embedding_dim=EMBEDDING_DIM,
-            max_token_size=EMBEDDING_MAX_TOKENS,
+            embedding_dim=embed_dim,
+            max_token_size=8192,
             func=embed_impl,
         ),
         enable_llm_cache=ENABLE_LLM_CACHE,
@@ -177,7 +158,7 @@ async def get_lightrag_holder(
         logger.info(f"Initializing LightRAG instance for namespace '{namespace_prefix}' (lazy loading)...")
         try:
             embed_func, dim = gen_lightrag_embed_func(collection=collection)
-            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func)
+            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func, embed_dim=dim)
             _lightrag_instances[namespace_prefix] = client
             logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized successfully.")
             return client
