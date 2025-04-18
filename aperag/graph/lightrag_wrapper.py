@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Callable, Awaitable
 
 import numpy
 from lightrag import LightRAG, QueryParam
@@ -22,6 +22,7 @@ from config.settings import (
     LIGHT_RAG_ENABLE_LLM_CACHE,
     LIGHT_RAG_MAX_PARALLEL_INSERT,
 )
+
 # --- Configuration Parameters---
 LLM_API_KEY = LIGHT_RAG_LLM_API_KEY
 LLM_BASE_URL = LIGHT_RAG_LLM_BASE_URL
@@ -37,58 +38,83 @@ MAX_PARALLEL_INSERT = LIGHT_RAG_MAX_PARALLEL_INSERT
 # --- End Configuration Parameters ---
 
 logger = logging.getLogger(__name__)
-# Set up basic logging if running standalone
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
-# Module-level dictionary to hold LightRAG instances keyed by namespace_prefix
-_lightrag_instances: Dict[str, LightRAG] = {}
-# Single lock to manage concurrent initialization *attempts* across all namespaces
-# This prevents multiple coroutines trying to create the *same* namespace instance simultaneously.
+class LightRagHolder:
+    """
+    Wrapper class holding a LightRAG instance and its llm / embedding implementations.
+    """
+
+    def __init__(
+        self,
+        rag: LightRAG,
+        llm_func: Callable[..., Awaitable[str]],
+        embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]],
+    ) -> None:
+        self.rag = rag
+        self.llm_func = llm_func
+        self.embed_impl = embed_impl
+
+    async def query(self, query: str, param: QueryParam) -> Any:
+        return await self.rag.aquery(query, param=param)
+
+
+# ---------- Default llm_func & embed_impl ---------- #
+async def _default_llm_func(
+    prompt: str,
+    system_prompt: Optional[str] = None,
+    history_messages: List = [],
+    **kwargs,
+) -> str:
+    merged_kwargs = {
+        "api_key": LLM_API_KEY,
+        "base_url": LLM_BASE_URL,
+        "model": LLM_MODEL,
+        **kwargs,
+    }
+    return await openai_complete_if_cache(
+        prompt=prompt,
+        system_prompt=system_prompt,
+        history_messages=history_messages,
+        **merged_kwargs,
+    )
+
+
+async def _default_embed_impl(texts: List[str]) -> numpy.ndarray:
+    return await openai_embed(
+        texts,
+        model=EMBEDDING_MODEL,
+        api_key=EMBEDDING_API_KEY,
+        base_url=EMBEDDING_BASE_URL,
+    )
+
+
+# Module-level cache
+_lightrag_instances: Dict[str, LightRagHolder] = {}
 _initialization_lock = asyncio.Lock()
 
-async def _create_and_initialize_lightrag(namespace_prefix: str) -> LightRAG:
+
+async def _create_and_initialize_lightrag(
+    namespace_prefix: str,
+    llm_func: Callable[..., Awaitable[str]],
+    embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]],
+) -> LightRagHolder:
     """
     Creates the LightRAG dependencies, instantiates the object for a specific namespace,
-    and runs its asynchronous initializers using pre-defined constants.
-    Returns a fully ready instance for the given namespace.
+    and runs its asynchronous initializers using supplied callable implementations.
+    Returns a fully ready LightRagClient for the given namespace.
 
     Args:
-        namespace_prefix: The namespace prefix for this LightRAG instance,
-                          acting like a collection name.
+        namespace_prefix: The namespace prefix for this LightRAG instance.
+        llm_func: Async callable that produces LLM completions.
+        embed_impl: Async callable that produces embeddings.
     """
     logger.debug(f"Creating and initializing LightRAG object for namespace: '{namespace_prefix}'...")
 
-    # --- Define LLM function inline ---
-    async def llm_func(
-            prompt: str, system_prompt: Optional[str] = None, history_messages: List = [], **kwargs
-    ) -> str:
-        merged_kwargs = {
-            "api_key": LLM_API_KEY,
-            "base_url": LLM_BASE_URL,
-            "model": LLM_MODEL,
-            **kwargs
-        }
-        return await openai_complete_if_cache(
-            prompt=prompt,
-            system_prompt=system_prompt,
-            history_messages=history_messages,
-            **merged_kwargs,
-        )
-
-    # --- Define Embedding function implementation inline ---
-    async def embed_impl(texts: list[str]) -> numpy.ndarray:
-        return await openai_embed(
-            texts,
-            model=EMBEDDING_MODEL,
-            api_key=EMBEDDING_API_KEY,
-            base_url=EMBEDDING_BASE_URL,
-        )
-
-    # --- Instantiate LightRAG with constants AND the namespace_prefix ---
     rag = LightRAG(
-        namespace_prefix=namespace_prefix, # Pass the namespace prefix here
-        working_dir=WORKING_DIR, # Note: All instances share the same base working dir
+        namespace_prefix=namespace_prefix,
+        working_dir=WORKING_DIR,
         llm_model_func=llm_func,
         embedding_func=EmbeddingFunc(
             embedding_dim=EMBEDDING_DIM,
@@ -98,66 +124,56 @@ async def _create_and_initialize_lightrag(namespace_prefix: str) -> LightRAG:
         enable_llm_cache=ENABLE_LLM_CACHE,
         max_parallel_insert=MAX_PARALLEL_INSERT,
     )
-    logger.debug(f"LightRAG object created for namespace: '{namespace_prefix}'.")
 
-    # --- Run async initializers ---
-    logger.debug(f"Initializing LightRAG instance storages for namespace: '{namespace_prefix}'...")
     await rag.initialize_storages()
-    logger.debug(f"LightRAG instance storages initialized for namespace: '{namespace_prefix}'.")
-
-    # --- Initialize pipeline status (optional, check if it needs to be per-namespace or global) ---
-    # Assuming it's okay or idempotent to call this potentially multiple times
-    # (once per namespace initialization)
     await initialize_pipeline_status()
-    logger.debug(f"Pipeline status initialized (called during init of namespace: '{namespace_prefix}').")
 
     logger.debug(f"LightRAG object for namespace '{namespace_prefix}' fully initialized.")
-    return rag
+    return LightRagHolder(rag=rag, llm_func=llm_func, embed_impl=embed_impl)
 
 
-async def get_lightrag_instance(collection) -> LightRAG:
+async def get_lightrag_instance(
+    collection,
+    llm_func: Callable[..., Awaitable[str]] = _default_llm_func,
+    embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]] = _default_embed_impl,
+) -> LightRagHolder:
     namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
     if not namespace_prefix or not isinstance(namespace_prefix, str):
-         raise ValueError("A valid namespace_prefix string must be provided.")
+        raise ValueError("A valid namespace_prefix string must be provided.")
 
-    # Fast path: Check if already initialized without acquiring the lock
     if namespace_prefix in _lightrag_instances:
         return _lightrag_instances[namespace_prefix]
 
-    # Acquire lock to handle concurrent initialization attempts for the *same* namespace
     async with _initialization_lock:
-        # Double-check if another coroutine initialized it while waiting for the lock
         if namespace_prefix in _lightrag_instances:
             return _lightrag_instances[namespace_prefix]
 
         logger.info(f"Initializing LightRAG instance for namespace '{namespace_prefix}' (lazy loading)...")
         try:
-            # --- Call the creation and initialization function for the specific namespace ---
-            initialized_instance = await _create_and_initialize_lightrag(namespace_prefix)
-
-            # Store the initialized instance in the dictionary
-            _lightrag_instances[namespace_prefix] = initialized_instance
-
+            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_impl)
+            _lightrag_instances[namespace_prefix] = client
             logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized successfully.")
-            return initialized_instance
-
+            return client
         except Exception as e:
-            # Log the specific error during creation or initialization for this namespace
-            logger.exception(f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'.", exc_info=e)
-            # Ensure the entry is not added on failure so subsequent calls retry
-            if namespace_prefix in _lightrag_instances:
-                 del _lightrag_instances[namespace_prefix] # Clean up potential partial state if needed
-            raise RuntimeError(f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'") from e
+            logger.exception(
+                f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'.",
+                exc_info=e,
+            )
+            _lightrag_instances.pop(namespace_prefix, None)
+            raise RuntimeError(
+                f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'"
+            ) from e
 
 
 async def query_lightrag(query: str, param: QueryParam, collection) -> Optional[Any]:
     try:
-        rag_instance = await get_lightrag_instance(collection=collection)
-        result = await rag_instance.aquery(query, param=param)
-        return result
-    except (RuntimeError, ValueError) as e: # Catch initialization/lookup errors from get_lightrag_instance
-         logger.error(f"Cannot query LightRAG for collection '{collection.id}': {e}")
-         return None
+        client = await get_lightrag_instance(collection=collection)
+        return await client.query(query, param=param)
+    except (RuntimeError, ValueError) as e:
+        logger.error(f"Cannot query LightRAG for collection '{collection.id}': {e}")
+        return None
     except Exception as e:
-        logger.exception(f"Error during LightRAG query for collection '{collection.id}', query '{query[:50]}...'", exc_info=e)
+        logger.exception(
+            f"Error during LightRAG query for collection '{collection.id}', query '{query[:50]}...'", exc_info=e
+        )
         return None
