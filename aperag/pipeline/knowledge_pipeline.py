@@ -191,11 +191,10 @@ class KnowledgePipeline(Pipeline):
         logger.info("[%s] Running LightRAG pipeline", log_prefix)
         from aperag.graph import lightrag_wrapper
         from lightrag import QueryParam
-        from aperag.utils.utils import generate_lightrag_namespace_prefix
         return await lightrag_wrapper.query_lightrag(
             query_with_history,
             param=QueryParam(mode="hybrid", only_need_context=True),
-            namespace_prefix=generate_lightrag_namespace_prefix(self.collection_id),
+            collection=self.collection,
         )
 
     async def run(self, message, gen_references=False, message_id=""):

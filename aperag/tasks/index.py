@@ -243,7 +243,7 @@ def add_index_for_document(self, document_id):
 
             logger.info(f"begin for index for LightRAG")
             namespace_prefix = generate_lightrag_namespace_prefix(document.collection.id)
-            rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(namespace_prefix=namespace_prefix)
+            rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(collection=document.collection)
             rag.insert(content, ids=document.id, file_paths=local_doc.path)
             logger.info(f"end for index for LightRAG")
             
@@ -287,7 +287,7 @@ def remove_index(self, document_id):
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.file}")
 
         namespace_prefix = generate_lightrag_namespace_prefix(document.collection.id)
-        rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(namespace_prefix=namespace_prefix)
+        rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(collection=document.collection)
         async_to_sync(rag.adelete_by_doc_id)(document_id)
 
     except Exception as e:
@@ -352,7 +352,7 @@ def update_index_for_document(self, document_id):
 
         logger.info(f"begin updating index for LightRAG")
         namespace_prefix = generate_lightrag_namespace_prefix(document.collection.id)
-        rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(namespace_prefix=namespace_prefix)
+        rag: LightRAG = async_to_sync(lightrag_wrapper.get_lightrag_instance)(collection=document.collection)
         async_to_sync(rag.adelete_by_doc_id)(document_id)
         rag.insert(content, ids=document.id, file_paths=local_doc.path)
         logger.info(f"end updating index for LightRAG")

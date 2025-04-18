@@ -7,6 +7,8 @@ from lightrag import LightRAG, QueryParam
 from lightrag.utils import EmbeddingFunc
 from lightrag.llm.openai import openai_embed, openai_complete_if_cache
 from lightrag.kg.shared_storage import initialize_pipeline_status
+
+from aperag.utils.utils import generate_lightrag_namespace_prefix
 from config.settings import (
     LIGHT_RAG_LLM_API_KEY,
     LIGHT_RAG_LLM_BASE_URL,
@@ -113,23 +115,8 @@ async def _create_and_initialize_lightrag(namespace_prefix: str) -> LightRAG:
     return rag
 
 
-async def get_lightrag_instance(namespace_prefix: str) -> LightRAG:
-    """
-    Gets the LightRAG instance for a specific namespace_prefix, performing
-    lazy creation and initialization if needed. Uses an asyncio Lock to
-    ensure thread-safe initialization for each specific namespace.
-
-    Args:
-        namespace_prefix: The namespace (like a collection name) for the
-                          desired LightRAG instance.
-
-    Returns:
-        The initialized LightRAG instance for the given namespace.
-
-    Raises:
-        RuntimeError: If creation or initialization fails for the specific namespace.
-        ValueError: If namespace_prefix is empty or invalid.
-    """
+async def get_lightrag_instance(collection) -> LightRAG:
+    namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
     if not namespace_prefix or not isinstance(namespace_prefix, str):
          raise ValueError("A valid namespace_prefix string must be provided.")
 
@@ -163,27 +150,14 @@ async def get_lightrag_instance(namespace_prefix: str) -> LightRAG:
             raise RuntimeError(f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'") from e
 
 
-async def query_lightrag(query: str, param: QueryParam, namespace_prefix: str) -> Optional[Any]:
-    """
-    Performs a query using the initialized LightRAG instance for the specified namespace.
-
-    Args:
-        query: The query string.
-        param: A LightRAG QueryParam object specifying query details (mode, etc.).
-        namespace_prefix: The namespace of the LightRAG instance to use for the query.
-
-    Returns:
-        The result from LightRAG's aquery method, or None if an error occurs
-        (including errors getting the instance).
-    """
+async def query_lightrag(query: str, param: QueryParam, collection) -> Optional[Any]:
     try:
-        # Get the specific instance for the requested namespace
-        rag_instance = await get_lightrag_instance(namespace_prefix)
+        rag_instance = await get_lightrag_instance(collection=collection)
         result = await rag_instance.aquery(query, param=param)
         return result
     except (RuntimeError, ValueError) as e: # Catch initialization/lookup errors from get_lightrag_instance
-         logger.error(f"Cannot query LightRAG for namespace '{namespace_prefix}': {e}")
+         logger.error(f"Cannot query LightRAG for collection '{collection.id}': {e}")
          return None
     except Exception as e:
-        logger.exception(f"Error during LightRAG query for namespace '{namespace_prefix}', query '{query[:50]}...'", exc_info=e)
+        logger.exception(f"Error during LightRAG query for collection '{collection.id}', query '{query[:50]}...'", exc_info=e)
         return None
