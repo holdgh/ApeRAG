@@ -21,20 +21,14 @@ bots:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/bot.yaml#/bot'
+              $ref: '../components/schemas/bot.yaml#/botList'
       '401':
         description: Unauthorized
         content:
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/failResponse'
+
   post:
     summary: Create a new bot
     description: Create a new bot
@@ -47,8 +41,18 @@ bots:
           schema:
             $ref: '../components/schemas/bot.yaml#/botCreate'
     responses:
-      '201':
+      '200':
         description: Bot created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/bot.yaml#/bot'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
   
 bot:
   get:
@@ -68,12 +72,7 @@ bot:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/bot.yaml#/bot'
+              $ref: '../components/schemas/bot.yaml#/bot'
       '401':
         description: Unauthorized
         content:

@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from asgiref.sync import sync_to_async
 from django.db.models import QuerySet
+from django.contrib.auth import aauthenticate, alogin, alogout
 from pydantic import BaseModel
 
 from aperag.db.models import (
@@ -42,6 +43,9 @@ from aperag.db.models import (
     ApiKeyStatus,
     ModelServiceProvider,
     ModelServiceProviderStatus,
+    User,
+    Invitation,
+    Role
 )
 
 logger = logging.getLogger(__name__)
@@ -294,7 +298,7 @@ async def query_integration(user, bot_id: str, integration_id: str):
         return None
 
 
-async def query_bot(user, bot_id: str):
+async def query_bot(user: str, bot_id: str):
     try:
         kwargs = {
             "pk": bot_id
@@ -356,3 +360,81 @@ async def query_msp(user, provider, filterDeletion=True):
             return await ModelServiceProvider.objects.aget(user=user, pk=provider)
     except ModelServiceProvider.DoesNotExist:
         return None
+async def query_user_by_username(username: str):
+    try:
+        return await User.objects.aget(username=username)
+    except User.DoesNotExist:
+        return None
+
+async def query_user_by_email(email: str):
+    try:
+        return await User.objects.aget(email=email)
+    except User.DoesNotExist:
+        return None
+
+async def query_user_exists(username: str = None, email: str = None):
+    if username:
+        return await User.objects.filter(username=username).aexists()
+    if email:
+        return await User.objects.filter(email=email).aexists()
+    return False
+
+async def query_first_user_exists():
+    return await User.objects.aexists()
+
+async def create_user(username: str, email: str, password: str, role: Role):
+    return await User.objects.acreate(
+        username=username,
+        email=email,
+        password=password,
+        role=role,
+        is_staff= role == Role.ADMIN
+    )
+
+async def authenticate_user(username: str, password: str):
+    return await aauthenticate(username=username, password=password)
+
+async def login_user(request, user):
+    await alogin(request, user)
+
+async def logout_user(request):
+    await alogout(request)
+
+async def set_user_password(user: User, password: str):
+    await sync_to_async(user.set_password)(password)
+    await user.asave()
+
+async def delete_user(user: User):
+    await user.adelete()
+
+async def query_invitation_by_token(token: str):
+    try:
+        return await Invitation.objects.aget(token=token)
+    except Invitation.DoesNotExist:
+        return None
+
+async def create_invitation(email: str, token: str, created_by: str, role: Role):
+    invitation = Invitation(
+        email=email,
+        token=token,
+        created_by=created_by,
+        role=role
+    )
+    await invitation.asave()
+    return invitation
+
+async def mark_invitation_used(invitation: Invitation):
+    await invitation.use()
+
+def query_users(pq: PagedQuery = None):
+    filters = build_filters(pq)
+    return User.objects.filter(**filters)
+
+async def query_admin_count():
+    return await User.objects.filter(role=Role.ADMIN).acount()
+
+async def query_invitations():
+    """Query all valid invitations"""
+    return await sync_to_async(Invitation.objects.filter( is_used=False,).order_by('-created_at').all)()
+
+

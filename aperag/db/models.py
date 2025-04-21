@@ -19,6 +19,8 @@ from django.db import models
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
+from datetime import timedelta
 
 from config import settings
 
@@ -45,6 +47,10 @@ def chat_pk():
 
 def int_pk():
     return "int" + random_id()
+
+
+def invitation_pk():
+    return "invite" + random_id()
 
 
 def collection_history_pk():
@@ -83,8 +89,6 @@ class CollectionSyncStatus(models.TextChoices):
 
 class CollectionType(models.TextChoices):
     DOCUMENT = "document"
-    DATABASE = "database"
-    CODE = "code"
 
 
 class DocumentStatus(models.TextChoices):
@@ -303,7 +307,7 @@ class Chat(models.Model):
     peer_id = models.CharField(max_length=256, null=True)
     status = models.CharField(max_length=16, choices=ChatStatus.choices)
     bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
-    summary = models.TextField()
+    title = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
@@ -316,7 +320,7 @@ class Chat(models.Model):
             messages = []
         return {
             "id": str(self.id),
-            "summary": self.summary,
+            "summary": self.title,
             "bot_id": bot_id,
             "history": messages,
             "peer_type": self.peer_type,
@@ -466,3 +470,44 @@ class ModelServiceProvider(models.Model):
     
     def __str__(self):
         return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, base_url={self.base_url}, api_key={self.api_key}, extra={self.extra})"
+
+class Role(models.TextChoices):
+    ADMIN = "admin"
+    RW = "rw"
+    RO = "ro"
+    
+class User(AbstractUser):
+    """Custom user model that extends AbstractUser"""
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=16, choices=Role.choices, default=Role.RO)
+
+    class Meta:
+        app_label = 'aperag'  # Set app_label to 'aperag' since we're using AUTH_USER_MODEL = 'aperag.User'
+
+class Invitation(models.Model):
+    """Invitation model for user registration"""
+    id = models.CharField(primary_key=True, default=invitation_pk, editable=False, max_length=24)
+    email = models.EmailField()
+    token = models.CharField(max_length=64, unique=True)
+    created_by = models.CharField(max_length=256)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    role = models.CharField(max_length=16, choices=Role.choices, default=Role.RO)
+    
+    class Meta:
+        app_label = 'aperag'
+        
+    async def asave(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=7)
+        await super().asave(*args, **kwargs)
+        
+    def is_valid(self):
+        return not self.is_used and self.expires_at > timezone.now()
+        
+    async def use(self):
+        self.is_used = True
+        self.used_at = timezone.now()
+        await self.asave()

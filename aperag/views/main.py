@@ -104,14 +104,8 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@router.get("/user_info")
-async def get_user_info(request) -> view_models.UserInfo:
-    user = get_user(request)
-    return success(view_models.UserInfo(is_admin=user == settings.ADMIN_USER))
-
-
 @router.get("/models")
-async def list_models(request) -> List[view_models.Model]:
+async def list_models(request) -> view_models.ModelList:
     models = []
     model_families = yaml.safe_load(settings.MODEL_FAMILIES)
     for model_family in model_families:
@@ -135,11 +129,11 @@ async def list_models(request) -> List[view_models.Model]:
                 family_name=model_family["name"],
                 family_label=model_family["label"],
             ))
-    return success(models)
+    return success(view_models.ModelList(items=models))
 
 
-@router.get("/prompt_templates")
-async def list_prompt_templates(request) -> List[view_models.PromptTemplate]:
+@router.get("/prompt-templates")
+async def list_prompt_templates(request) -> view_models.PromptTemplateList:
     language = request.headers.get('Lang', "zh-CN")
     if language == "zh-CN":
         templates = MULTI_ROLE_ZH_PROMPT_TEMPLATES
@@ -154,7 +148,7 @@ async def list_prompt_templates(request) -> List[view_models.PromptTemplate]:
             prompt=template["prompt"],
             description=template["description"],
         ))
-    return success(response)
+    return success(view_models.PromptTemplateList(items=response))
 
 
 @router.post("/collections/{collection_id}/sync")
@@ -254,7 +248,7 @@ async def get_sync_history(request, collection_id, sync_history_id):
     return success(sync_history.view())
 
 @router.get("/apikeys")
-async def list_apikey(request) -> List[view_models.ApiKey]:
+async def list_apikey(request) -> view_models.ApiKeyList:
     user = get_user(request)
     pr = await query_apikeys(user, build_pq(request))
     response = []
@@ -263,7 +257,7 @@ async def list_apikey(request) -> List[view_models.ApiKey]:
             id=key.id,
             key=key.key,
         ))
-    return success(response)
+    return success(view_models.ApiKeyList(items=response), pr=pr)
 
 @router.post("/apikeys")
 async def create_apikey(request) -> view_models.ApiKey:
@@ -345,11 +339,13 @@ async def create_collection(request, collection: view_models.CollectionCreate) -
         description=instance.description,
         type=instance.type,
         config=instance.config,
+        created=instance.gmt_created.isoformat(),
+        updated=instance.gmt_updated.isoformat(),
     ))
 
 
 @router.get("/collections")
-async def list_collections(request) -> List[view_models.Collection]:
+async def list_collections(request) -> view_models.CollectionList:
     user = get_user(request)
     pr = await query_collections([user, settings.ADMIN_USER], build_pq(request))
     response = []
@@ -361,8 +357,10 @@ async def list_collections(request) -> List[view_models.Collection]:
             status=collection.status,
             type=collection.type,
             config=collection.config,
+            created=collection.gmt_created.isoformat(),
+            updated=collection.gmt_updated.isoformat(),
         ))
-    return success(response)
+    return success(view_models.CollectionList(items=response), pr=pr)
 
 
 @router.get("/collections/{collection_id}")
@@ -383,6 +381,8 @@ async def get_collection(request, collection_id: str) -> view_models.Collection:
         description=instance.description,
         type=instance.type,
         config=instance.config,
+        created=instance.gmt_created.isoformat(),
+        updated=instance.gmt_updated.isoformat(),
     ))
 
 
@@ -412,6 +412,8 @@ async def update_collection(request, collection_id: str, collection: view_models
         type=instance.type,
         config=instance.config,
         status=instance.status,
+        created=instance.gmt_created.isoformat(),
+        updated=instance.gmt_updated.isoformat(),
     ))
 
 
@@ -531,7 +533,7 @@ async def delete_question(request, collection_id: str, question_id: str) -> view
     ))
 
 @router.get("/collections/{collection_id}/questions")
-async def list_questions(request, collection_id: str) -> List[view_models.Question]:
+async def list_questions(request, collection_id: str) -> view_models.QuestionList:
     user = get_user(request)
     pr = await query_questions(user, collection_id, build_pq(request))
     response = []
@@ -542,7 +544,7 @@ async def list_questions(request, collection_id: str) -> List[view_models.Questi
             answer=question.answer,
             relate_documents=question.documents,
         ))
-    return success(response)
+    return success(view_models.QuestionList(items=response), pr=pr)
 
 @router.get("/collections/{collection_id}/questions/{question_id}")
 async def get_question(request, collection_id: str, question_id: str) -> view_models.Question:
@@ -667,7 +669,7 @@ async def create_url_document(request, collection_id: str) -> List[view_models.D
 
 
 @router.get("/collections/{collection_id}/documents")
-async def list_documents(request, collection_id: str) -> List[view_models.Document]:
+async def list_documents(request, collection_id: str) -> view_models.DocumentList:
     user = get_user(request)
     pr = await query_documents([user, settings.ADMIN_USER], collection_id, build_pq(request))
     response = []
@@ -681,7 +683,7 @@ async def list_documents(request, collection_id: str) -> List[view_models.Docume
             updated=document.gmt_updated,
             sensitive_info=document.sensitive_info,
         ))
-    return success(response)
+    return success(view_models.DocumentList(items=response), pr=pr)
 
 
 @router.put("/collections/{collection_id}/documents/{document_id}")
@@ -747,7 +749,6 @@ async def delete_document(request, collection_id: str, document_id: str) -> view
         name=document.name,
         status=document.status,
         size=document.size,
-        collection=document.collection,
     ))
 
 
@@ -789,45 +790,49 @@ async def create_chat(request, bot_id: str) -> view_models.Chat:
     await instance.asave()
     return success(view_models.Chat(
         id=instance.id,
-        summary=instance.summary,
+        title=instance.title,
         bot_id=instance.bot_id,
         peer_type=instance.peer_type,
         peer_id=instance.peer_id,
+        created=instance.gmt_created.isoformat(),
+        updated=instance.gmt_updated.isoformat(),
     ))
 
 
 @router.get("/bots/{bot_id}/chats")
-async def list_chats(request, bot_id: str) -> List[view_models.Chat]:
+async def list_chats(request, bot_id: str) -> view_models.ChatList:
     user = get_user(request)
     pr = await query_chats(user, bot_id, build_pq(request))
     response = []
     async for chat in pr.data:
         response.append(view_models.Chat(
             id=chat.id,
-            summary=chat.summary,
+            title=chat.title,
             bot_id=chat.bot_id,
             peer_type=chat.peer_type,
             peer_id=chat.peer_id,
+            created=chat.gmt_created.isoformat(),
+            updated=chat.gmt_updated.isoformat(),
         ))
-    return success(response)
+    return success(view_models.ChatList(items=response), pr=pr)
 
 
 @router.put("/bots/{bot_id}/chats/{chat_id}")
-async def update_chat(request, bot_id: str, chat_id: str) -> view_models.Chat:
+async def update_chat(request, bot_id: str, chat_id: str, chat_in: view_models.ChatUpdate) -> view_models.Chat:
     user = get_user(request)
     chat = await query_chat(user, bot_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
-    chat.summary = ""
+    chat.title = chat_in.title
     await chat.asave()
-    history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
-    await history.clear()
     return success(view_models.Chat(
         id=chat.id,
-        summary=chat.summary,
+        title=chat.title,
         bot_id=chat.bot_id,
         peer_type=chat.peer_type,
         peer_id=chat.peer_id,
+        created=chat.gmt_created.isoformat(),
+        updated=chat.gmt_updated.isoformat(),
     ))
 
 
@@ -839,12 +844,15 @@ async def get_chat(request, bot_id: str, chat_id: str) -> view_models.Chat:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
 
     messages = await query_chat_messages(user, chat_id)
-    return success(view_models.Chat(
+    return success(view_models.ChatDetails(
         id=chat.id,
-        summary=chat.summary,
+        title=chat.title,
         bot_id=chat.bot_id,
+        history=messages,
         peer_type=chat.peer_type,
         peer_id=chat.peer_id,
+        created=chat.gmt_created.isoformat(),
+        updated=chat.gmt_updated.isoformat(),
     ))
 
 
@@ -877,7 +885,7 @@ async def delete_chat(request, bot_id: str, chat_id: str) -> view_models.Chat:
     await history.clear()
     return success(view_models.Chat(
         id=chat.id,
-        summary=chat.summary,
+        title=chat.title,
         bot_id=chat.bot_id,
         peer_type=chat.peer_type,
         peer_id=chat.peer_id,
@@ -937,7 +945,7 @@ async def create_bot(request, bot_in: view_models.BotCreate) -> view_models.Bot:
 
 
 @router.get("/bots")
-async def list_bots(request) -> List[view_models.Bot]:
+async def list_bots(request) -> view_models.BotList:
     user = get_user(request)
     pr = await query_bots([user, settings.ADMIN_USER], build_pq(request))
     response = []
@@ -963,11 +971,12 @@ async def list_bots(request) -> List[view_models.Bot]:
             title=bot.title,
             description=bot.description,
             type=bot.type,
+            config=bot.config,
             collection_ids=collection_ids,
             created=bot.gmt_created,
             updated=bot.gmt_updated,
         ))
-    return success(response)
+    return success(view_models.BotList(items=response), pr=pr)
 
 
 @router.get("/bots/{bot_id}")
@@ -976,15 +985,18 @@ async def get_bot(request, bot_id: str) -> view_models.Bot:
     bot = await query_bot(user, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
-    collections = []
+    collection_ids = []
     async for collection in await sync_to_async(bot.collections.all)():
-        collections.append(collection.view())
+        collection_ids.append(collection.id)
     return success(view_models.Bot(
         id=bot.id,
         title=bot.title,
         description=bot.description,
         type=bot.type,
-        collection_ids=bot.collection_ids,
+        config=bot.config,
+        collection_ids=collection_ids,
+        created=bot.gmt_created.isoformat(),
+        updated=bot.gmt_updated.isoformat(),
     ))
 
 
@@ -1028,7 +1040,9 @@ async def update_bot(request, bot_id: str, bot_in: view_models.BotUpdate) -> vie
         description=bot.description,
         config=bot.config,
         type=bot.type,
-        collection_ids=collection_ids
+        collection_ids=collection_ids,
+        created=bot.gmt_created.isoformat(),
+        updated=bot.gmt_updated.isoformat(),
     ))
 
 

@@ -25,7 +25,7 @@ from aperag.chat.utils import get_async_redis_client
 from aperag.db.models import Chat, ChatPeer
 from aperag.db.ops import build_pq, query_bot, query_web_chat, query_web_chats
 from aperag.views.utils import fail, query_chat_messages, success
-from aperag.views.models import Feedback
+from aperag.views import models as view_models
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def check_origin(request, bot):
 
 
 @router.get("/bots/{bot_id}/web-chats")
-async def list_chats(request, bot_id, session_id):
+async def list_chats(request, bot_id: str, session_id: str) -> view_models.ChatList:
     bot = await query_bot(None, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
@@ -54,12 +54,19 @@ async def list_chats(request, bot_id, session_id):
     pr = await query_web_chats(bot_id, session_id, build_pq(request))
     response = []
     async for chat in pr.data:
-        response.append(chat.view(bot_id))
-    return success(response, pr)
+        response.append(view_models.Chat(
+            id=chat.id,
+            title=chat.title,
+            bot_id=chat.bot_id,
+            status=chat.status,
+            created=chat.gmt_created.isoformat(),
+            updated=chat.gmt_updated.isoformat(),
+        ))
+    return success(view_models.ChatList(items=response), pr=pr)
 
 
 @router.post("/bots/{bot_id}/web-chats")
-async def create_chat(request, bot_id, session_id):
+async def create_chat(request, bot_id: str, session_id: str) -> view_models.Chat:
     bot = await query_bot(None, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
@@ -75,11 +82,18 @@ async def create_chat(request, bot_id, session_id):
         await instance.asave()
     except IntegrityError:
         return fail(HTTPStatus.BAD_REQUEST, "Only one chat is allowed for each client")
-    return success(instance.view(bot_id))
+    return success(view_models.Chat(
+        id=instance.id,
+        title=instance.title,
+        bot_id=instance.bot_id,
+        status=instance.status,
+        created=instance.gmt_created.isoformat(),
+        updated=instance.gmt_updated.isoformat(),
+    ))
 
 
 @router.get("/bots/{bot_id}/web-chats/{chat_id}")
-async def get_chat(request, bot_id, chat_id):
+async def get_chat(request, bot_id: str, chat_id: str) -> view_models.ChatDetails:
     bot = await query_bot(None, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
@@ -89,11 +103,19 @@ async def get_chat(request, bot_id, chat_id):
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
     messages = await query_chat_messages(None, chat_id)
-    return success(chat.view(bot_id, messages))
+    return success(view_models.ChatDetails(
+        id=chat.id,
+        title=chat.title,
+        bot_id=chat.bot_id,
+        history=messages,
+        status=chat.status,
+        created=chat.gmt_created.isoformat(),
+        updated=chat.gmt_updated.isoformat(),
+    ))
 
 
 @router.post("/bots/{bot_id}/web-chats/{chat_id}/messages/{message_id}")
-async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Feedback):
+async def feedback_message(request, bot_id: str, chat_id: str, message_id: str, msg_in: view_models.Feedback):
     bot = await query_bot(None, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
@@ -108,7 +130,7 @@ async def feedback_message(request, bot_id, chat_id, message_id, msg_in: Feedbac
 
 
 @router.put("/bots/{bot_id}/web-chats/{chat_id}")
-async def update_chat(request, bot_id, chat_id):
+async def update_chat(request, bot_id: str, chat_id: str) -> view_models.Chat:
     bot = await query_bot(None, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
@@ -117,8 +139,15 @@ async def update_chat(request, bot_id, chat_id):
     chat = await query_web_chat(bot_id, chat_id)
     if chat is None:
         return fail(HTTPStatus.NOT_FOUND, "Chat not found")
-    chat.summary = ""
+    chat.title = ""
     await chat.asave()
     history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
     await history.clear()
-    return success(chat.view(bot_id))
+    return success(view_models.Chat(
+        id=chat.id,
+        title=chat.title,
+        bot_id=chat.bot_id,
+        status=chat.status,
+        created=chat.gmt_created.isoformat(),
+        updated=chat.gmt_updated.isoformat(),
+    ))

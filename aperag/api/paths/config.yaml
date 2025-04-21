@@ -10,12 +10,7 @@ config:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/config.yaml#/config'
+              $ref: '../components/schemas/config.yaml#/config'
       '401':
         description: Unauthorized
         content:

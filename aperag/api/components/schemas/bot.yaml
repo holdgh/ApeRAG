@@ -52,6 +52,8 @@ bot:
       enum:
         - knowledge
         - common
+    config:
+      type: string
     collection_ids:
       type: array
       items:
@@ -62,3 +64,14 @@ bot:
     updated:
       type: string
       format: date-time
+
+botList:
+  type: object
+  description: A list of bots
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/bot'
+    pageResult:
+      $ref: './common.yaml#/pageResult'

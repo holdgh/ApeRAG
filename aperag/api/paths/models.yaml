@@ -8,14 +8,7 @@ models:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/model.yaml#/model'
+              $ref: '../components/schemas/model.yaml#/modelList'
       '401':
         description: Unauthorized
         content:

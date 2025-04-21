@@ -14,13 +14,15 @@
 
 import json
 from http import HTTPStatus
-from typing import Dict
+from typing import Dict, Any, Generic, TypeVar
 
 from django.http import HttpRequest, HttpResponse
 from langchain_core.prompts import PromptTemplate
 from ninja.main import Exc
-from pydantic import ValidationError
+from ninja.errors import HttpError
 
+from pydantic import ValidationError
+from asgiref.sync import sync_to_async
 from aperag.chat.history.redis import RedisChatMessageHistory
 from aperag.chat.utils import get_async_redis_client
 from aperag.db.models import BotType
@@ -28,9 +30,12 @@ from aperag.db.ops import PagedResult, logger, query_chat_feedbacks
 from aperag.llm.base import Predictor, PredictorType
 from aperag.source.base import CustomSourceInitializationError, get_source
 from aperag.utils.utils import AVAILABLE_SOURCE
+from django.conf import settings
+from aperag.auth.validator import GlobalHTTPAuth
+from aperag.utils import constant
+from aperag.views import models as view_models
 
-
-async def query_chat_messages(user, chat_id):
+async def query_chat_messages(user: str, chat_id: str) -> list[view_models.ChatMessage]:
     pr = await query_chat_feedbacks(user, chat_id)
     feedback_map = {}
     async for feedback in pr.data:
@@ -47,24 +52,30 @@ async def query_chat_messages(user, chat_id):
         role = message.additional_kwargs.get("role", "")
         if not role:
             continue
-        msg = {
-            "id": item["id"],
-            "type": "message",
-            "timestamp": item["timestamp"],
-            "role": role,
-        }
+        msg = view_models.ChatMessage(
+            id=item["id"],
+            type="message",
+            timestamp=item["timestamp"],
+            role=role,
+        )
         if role == "human":
-            msg["data"] = item["query"]
+            msg.data = item["query"]
         else:
-            msg["data"] = item["response"]
-            msg["references"] = item.get("references", [])
-            msg["urls"] = item.get("urls", [])
+            msg.data = item["response"]
+            msg.references = []
+            for ref in item.get("references", []):
+                msg.references.append(view_models.Reference(
+                    score=ref["score"],
+                    text=ref["text"],
+                    metadata=ref["metadata"]
+                ))
+            msg.urls = item.get("urls", [])
         feedback = feedback_map.get(item.get("id", ""), None)
         if role == "ai" and feedback:
-            msg["upvote"] = feedback.upvote
-            msg["downvote"] = feedback.downvote
-            msg["revised_answer"] = feedback.revised_answer
-            msg["feed_back_status"] = feedback.status
+            msg.upvote = feedback.upvote
+            msg.downvote = feedback.downvote
+            msg.revised_answer = feedback.revised_answer
+            msg.feed_back_status = feedback.status
         messages.append(msg)
     return messages
 
@@ -134,36 +145,47 @@ def validate_url(url):
     except Exception:
         return False
 
-
 def success(data, pr: PagedResult = None):
-    response = {
-        "code": "%d" % HTTPStatus.OK,
-        "data": data,
-    }
-    if pr is not None and pr.count > 0:
-        response["page_number"] = pr.page_number
-        response["page_size"] = pr.page_size
-        response["count"] = pr.count
-    return response
+    if not hasattr(data, "pageResult") or pr is None:
+        return data
+    
+    data.pageResult = view_models.PageResult(
+        count=pr.count,
+        page_number=pr.page_number,
+        page_size=pr.page_size,
+    )
+    return data
 
 
-def fail(code, message):
-    return {
-        "code": "%d" % code,
-        "message": message,
-    }
+def fail(status: HTTPStatus, message: str, raise_exception: bool = True):
+    if raise_exception:
+        raise HttpError(status, message)
+    return status, view_models.FailResponse(code=status.name, message=message)
 
+async def async_auth(request: HttpRequest):
+    user = await request.auser()
+    if user.is_authenticated:
+        request.META[constant.KEY_USER_ID] = "%d" % user.id
+        return user
+    return None
+
+if settings.AUTH_TYPE == "cookie":
+    auth_middleware = async_auth
+elif settings.AUTH_TYPE == "jwt":
+    auth_middleware = GlobalHTTPAuth
+else:
+    auth_middleware = None
 
 def validation_errors(request: HttpRequest, exc: Exc) -> HttpResponse:
     msgs = []
     for err in exc.errors:
         for field in err["loc"]:
             msgs.append(f"{err['msg']}: {field}")
-    content = json.dumps(fail(HTTPStatus.UNPROCESSABLE_ENTITY, ", ".join(msgs)))
-    return HttpResponse(status=HTTPStatus.OK, content=content)
+    status, content = fail(HTTPStatus.UNPROCESSABLE_ENTITY, ", ".join(msgs), raise_exception=False)
+    return HttpResponse(status=status, content=content.model_dump_json())
 
 
 def auth_errors(request: HttpRequest, exc: Exc) -> HttpResponse:
-    content = json.dumps(fail(HTTPStatus.UNAUTHORIZED, "Unauthorized"))
-    return HttpResponse(status=HTTPStatus.OK, content=content)
+    status, content = fail(HTTPStatus.UNAUTHORIZED, "Unauthorized", raise_exception=False)
+    return HttpResponse(status=status, content=content.model_dump_json())
 

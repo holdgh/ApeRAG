@@ -15,7 +15,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from aperag.db.models import Chat, Collection, CollectionSyncHistory, Document
+from aperag.db.models import Chat, Collection, CollectionSyncHistory, Document, User, Invitation
+from django.contrib.auth.admin import UserAdmin
 
 admin.site.site_header = 'ApeRAG admin'  # set header
 admin.site.site_title = 'ApeRAG admin'  # set title
@@ -80,7 +81,6 @@ class DocumentAdmin(admin.ModelAdmin):
     updated_date.short_description = 'updated'
 
 
-# admin.site.register(Chat)
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
     list_display = ('user', 'status', 'collection', 'gmt_created', 'gmt_updated')
@@ -100,3 +100,6 @@ class SyncHistoryAdmin(admin.ModelAdmin):
     list_display = (
     'id', 'user', 'collection', 'total_documents', 'new_documents', 'deleted_documents', 'processing_documents', 'modified_documents',
     'failed_documents', 'successful_documents', 'total_documents_to_sync', 'start_time', 'execution_time')
+
+admin.site.register(Invitation)
+admin.site.register(User, UserAdmin)

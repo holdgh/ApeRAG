@@ -105,7 +105,7 @@ class CommonConsumer(BaseConsumer):
                     continue
 
                 # streaming response
-                response = success_response(message_id, tokens, issql=self.response_type == "sql")
+                response = success_response(message_id, tokens)
                 await self.send(text_data=response)
 
                 # concat response tokens

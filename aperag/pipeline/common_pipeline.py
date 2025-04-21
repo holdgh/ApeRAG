@@ -71,7 +71,7 @@ class CommonPipeline(Pipeline):
         context += self.bot_context
 
         if len(context) > self.context_window - 500:
-            context = context[:len(self.context_window) - 500]
+            context = context[:self.context_window - 500]
 
         if self.use_related_question and need_related_question:
             related_question_prompt = self.related_question_prompt.format(query=message, context=context)
