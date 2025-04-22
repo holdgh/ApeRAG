@@ -290,6 +290,10 @@ MAX_CONVERSATION_COUNT = env.int("MAX_CONVERSATION_COUNT", default=100)
 CHAT_CONSUMER_IMPLEMENTATION = env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")
 RETRIEVE_MODE = env.str("RETRIEVE_MODE", default="classic")
 
+# Chunking Settings
+CHUNK_SIZE = env.int("CHUNK_SIZE", default=400)
+CHUNK_OVERLAP_SIZE = env.int("CHUNK_OVERLAP_SIZE", default=20)
+
 # --- LLM Settings ---
 LIGHT_RAG_LLM_API_KEY = env.str("LIGHT_RAG_LLM_API_KEY", default="")
 LIGHT_RAG_LLM_BASE_URL = env.str("LIGHT_RAG_LLM_BASE_URL", default="")
