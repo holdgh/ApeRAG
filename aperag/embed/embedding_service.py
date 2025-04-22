@@ -4,6 +4,7 @@ from typing import List
 import requests
 from langchain.embeddings.base import Embeddings
 
+import logging
 
 class EmbeddingService(Embeddings):
     def __init__(self, embedding_backend, embedding_model, embedding_dim,
@@ -11,6 +12,10 @@ class EmbeddingService(Embeddings):
         if embedding_backend == "xinference":
             self.model = XinferenceEmbedding(embedding_model, embedding_service_url)
         elif embedding_backend == "openai":
+            self.model = OpenAIEmbedding(embedding_model, embedding_service_url, embedding_service_api_key, embedding_max_chunks_in_batch)
+        elif embedding_backend == "alibabacloud":
+            self.model = OpenAIEmbedding(embedding_model, embedding_service_url, embedding_service_api_key, embedding_max_chunks_in_batch)
+        elif embedding_backend == "siliconflow":
             self.model = OpenAIEmbedding(embedding_model, embedding_service_url, embedding_service_api_key, embedding_max_chunks_in_batch)
         else:
             raise Exception("Unsupported embedding backend")
@@ -24,7 +29,7 @@ class EmbeddingService(Embeddings):
 
 class XinferenceEmbedding(Embeddings):
     def __init__(self, embedding_model, embedding_service_url):
-        self.url = f"{embedding_service_url}/v1/embeddings"
+        self.url = f"{embedding_service_url}/embeddings"
         self.model_uid = embedding_model
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
@@ -43,7 +48,7 @@ class XinferenceEmbedding(Embeddings):
 
 class OpenAIEmbedding(Embeddings):
     def __init__(self, embedding_model, embedding_service_url, embedding_service_api_key, embedding_max_chunks_in_batch):
-        self.url = f"{embedding_service_url}/v1/embeddings"
+        self.url = f"{embedding_service_url}/embeddings"
         self.model = f"{embedding_model}"
         self.openai_api_key = f"{embedding_service_api_key}"
         self.max_chunks = embedding_max_chunks_in_batch
