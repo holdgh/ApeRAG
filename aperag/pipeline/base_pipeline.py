@@ -70,7 +70,7 @@ class Pipeline(ABC):
         self.topk = self.llm_config.get("similarity_topk", 3)
         self.enable_keyword_recall = self.llm_config.get("enable_keyword_recall", False)
         self.score_threshold = self.llm_config.get("similarity_score_threshold", 0.5)
-        self.context_window = self.llm_config.get("context_window", 3500)
+        self.context_window = self.llm_config.get("context_window", 4096)
         self.use_related_question = bot_config.get("use_related_question", False)
         self.bot_context = ""
 

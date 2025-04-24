@@ -189,11 +189,6 @@ class KnowledgePipeline(Pipeline):
         return context, candidates
 
     async def _run_light_rag(self, query_with_history: str, log_prefix: str) -> Optional[str]:
-        """
-        Placeholder for executing the LightRAG (GraphRAG) pipeline.
-        This function will be implemented in a future PR.
-        It should take the query and return the context string.
-        """
         logger.info("[%s] Running LightRAG pipeline", log_prefix)
         from aperag.graph import lightrag_holder
         from lightrag import QueryParam
