@@ -28,26 +28,6 @@ def synchronized(func):
 
     return wrapper
 
-# TODO: delete this function
-def loads_or_use_default_embedding_configs(config):
-    """
-    Load embedding configurations from the provided config dict,
-    or use default values from settings if not present.
-
-    Args:
-        config (dict): The configuration dictionary to load from
-
-    Returns:
-        dict: The updated configuration dictionary with all embedding settings
-    """
-    config["embedding_backend"] = config.get("embedding_backend", EMBEDDING_BACKEND)
-    config["embedding_model"] = config.get("embedding_model", EMBEDDING_MODEL)
-    config["embedding_dim"] = config.get("embedding_dim", EMBEDDING_DIM)
-    config["embedding_service_url"] = config.get("embedding_service_url", EMBEDDING_SERVICE_URL)
-    config["embedding_service_api_key"] = config.get("embedding_service_api_key", EMBEDDING_SERVICE_API_KEY)
-    config["embedding_max_chunks_in_batch"] = config.get("embedding_max_chunks_in_batch", EMBEDDING_MAX_CHUNKS_IN_BATCH)
-    return config
-
 
 _dimension_cache: dict[tuple[str, str], int] = {}
 
