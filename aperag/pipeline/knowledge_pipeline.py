@@ -31,7 +31,7 @@ from aperag.pipeline.base_pipeline import DOC_QA_REFERENCES, RELATED_QUESTIONS, 
     Message, Pipeline, DOCUMENT_URLS
 from aperag.pipeline.keyword_extractor import IKExtractor
 from aperag.query.query import DocumentWithScore, get_packed_answer
-from aperag.embed.base_embedding import get_collection_embedding_model, loads_or_use_default_embedding_configs
+from aperag.embed.base_embedding import get_collection_embedding_model
 from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
 from aperag.utils.utils import (
@@ -189,11 +189,6 @@ class KnowledgePipeline(Pipeline):
         return context, candidates
 
     async def _run_light_rag(self, query_with_history: str, log_prefix: str) -> Optional[str]:
-        """
-        Placeholder for executing the LightRAG (GraphRAG) pipeline.
-        This function will be implemented in a future PR.
-        It should take the query and return the context string.
-        """
         logger.info("[%s] Running LightRAG pipeline", log_prefix)
         from aperag.graph import lightrag_holder
         from lightrag import QueryParam

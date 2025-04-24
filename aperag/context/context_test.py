@@ -29,7 +29,7 @@ from aperag.llm.prompts import DEFAULT_CHINESE_PROMPT_TEMPLATE_V2
 from aperag.pipeline.keyword_extractor import IKExtractor
 from aperag.query.query import get_packed_answer
 from aperag.embed.base_embedding import get_embedding_model
-from aperag.rank.reranker import get_rerank_model
+from aperag.rank.reranker import RankerService
 from aperag.embed.local_path_embedding import LocalPathEmbedding
 from aperag.utils.utils import generate_fulltext_index_name
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
@@ -83,7 +83,7 @@ class EmbeddingCtx:
         self.qa_vector_db_conn = VectorStoreConnectorAdaptor(VECTOR_DB_TYPE, ctx=qa_ctx)
 
         self.index = generate_fulltext_index_name(self.collection_name)
-        self.ranker = get_rerank_model()
+        self.ranker = RankerService()
 
     def load_file(self, file_path):
         meta_file = file_path + "-metadata"

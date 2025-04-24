@@ -291,11 +291,6 @@ SUPPORTED_MODEL_SERVICE_PROVIDERS = [
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
 MODEL_FAMILIES = env.str("MODEL_FAMILIES", default='[]')
 
-EMBEDDING_BACKEND = env.str("EMBEDDING_BACKEND", default="local")
-EMBEDDING_MODEL = env.str("EMBEDDING_MODEL", default="text2vec")
-EMBEDDING_DIM = env.int("EMBEDDING_DIM", default=1024)
-EMBEDDING_SERVICE_URL = env.str("EMBEDDING_SERVICE_URL", default="http://localhost:9997")
-EMBEDDING_SERVICE_API_KEY = env.str("EMBEDDING_SERVICE_API_KEY", default="")
 EMBEDDING_MAX_CHUNKS_IN_BATCH = env.int("EMBEDDING_MAX_CHUNKS_IN_BATCH", default=64)
 
 
@@ -305,37 +300,6 @@ RERANK_BACKEND = env.str("RERANK_BACKEND", default="local")
 RERANK_SERVICE_URL = env.str("RERANK_SERVICE_URL", default="http://localhost:9997")
 RERANK_SERVICE_MODEL = env.str("RERANK_SERVICE_MODEL",  default="")
 RERANK_SERVICE_TOKEN_API_KEY = env.str("RERANK_SERVICE_TOKEN_API_KEY")
-
-
-EMBEDDING_DIMENSIONS = {
-    "local": {
-        "huggingface": 768,
-        "text2vec": 768,
-        "bge": 1024,
-        "__default__": 1024
-    },
-    "xinference": {
-        "__default__": 1024
-    },
-    "openai": {
-        "text-embedding-ada-002": 1536,
-        "text-embedding-3-small": 1536,
-        "text-embedding-3-large": 3072,
-        "__default__": 1536
-    },
-    "alibabacloud": {
-        "text-embedding-v1" : 1536,
-        "text-embedding-v2" : 1536,
-        "text-embedding-v3" : 1024,
-        "__default__": 1536,
-    },
-    "siliconflow": {
-        "BAAI/bge-large-en-v1.5": 1024,
-        "BAAI/bge-large-zh-v1.5": 1024,
-        "BAAI/bge-m3": 1024,
-        "__default__": 1024
-    }
-}
 
 # Memory backend
 MEMORY_REDIS_URL = env.str("MEMORY_REDIS_URL", default="redis://127.0.0.1:6379/1")
