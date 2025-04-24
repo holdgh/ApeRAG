@@ -68,10 +68,10 @@ def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_backend:
 
 @synchronized
 def get_embedding_model(
-        embedding_backend: str = EMBEDDING_BACKEND,
-        embedding_model: str = EMBEDDING_MODEL,
-        embedding_service_url: str = EMBEDDING_SERVICE_URL,
-        embedding_service_api_key: str = EMBEDDING_SERVICE_API_KEY,
+        embedding_backend: str,
+        embedding_model: str,
+        embedding_service_url: str,
+        embedding_service_api_key: str,
         embedding_max_chunks_in_batch: int = EMBEDDING_MAX_CHUNKS_IN_BATCH,
         **kwargs) -> tuple[Embeddings | None, int]:
     embedding_svc = EmbeddingService(embedding_backend, embedding_model,
