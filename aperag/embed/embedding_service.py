@@ -4,7 +4,7 @@ import litellm
 from langchain.embeddings.base import Embeddings
 
 class EmbeddingService(Embeddings):
-    def __init__(self, embedding_backend, embedding_model, embedding_dim,
+    def __init__(self, embedding_backend, embedding_model,
                  embedding_service_url, embedding_service_api_key, embedding_max_chunks_in_batch):
         self.model = f"{embedding_backend}/{embedding_model}"
         self.api_base = f"{embedding_service_url}"
