@@ -1,8 +1,6 @@
-import os
 from typing import Dict, Any
 
 import pandas as pd
-from datasets import Dataset
 from langchain_openai import ChatOpenAI
 from ragas import evaluate
 from ragas.metrics import (
@@ -11,6 +9,11 @@ from ragas.metrics import (
     context_precision,
     context_recall
 )
+import csv
+import json
+import os
+from datetime import datetime
+from datasets import Dataset
 
 llm_for_eval = ChatOpenAI(
     base_url=os.environ["OPENAI_API_BASE"],
@@ -18,6 +21,7 @@ llm_for_eval = ChatOpenAI(
     model="gpt-3.5-turbo",
     temperature=0
 )
+
 
 # --- Step 2: Define Your RAG System Interface ---
 def my_rag_system(question: str) -> Dict[str, Any]:
@@ -37,7 +41,7 @@ def my_rag_system(question: str) -> Dict[str, Any]:
 def create_tiny_testset() -> Dataset:
     print("Creating test dataset...")
     df = pd.read_csv("./datasets/qa-1300.csv")
-    df = df.head(30)
+    df = df.head(10)
     print(f"Load dataset: len={len(df)}")
     return Dataset.from_pandas(df)
 
@@ -68,13 +72,6 @@ def prepare_evaluation_data(ds: Dataset) -> Dataset:
         "contexts": contexts_list,
         "ground_truth": ground_truth_list,
     })
-
-
-import csv
-import json
-import os
-from datetime import datetime
-from datasets import Dataset
 
 
 def print_evaluation_metrics(ds: Dataset, output_dir: str = "."):
@@ -125,19 +122,17 @@ def evaluate_rag_with_ragas(dataset: Dataset):
 
 
 # --- Main Execution Block ---
-def display_results(evaluation_results: Dataset):
+def display_results(evaluation_results: Dataset, output_dir: str = "."):
     if not evaluation_results:
         print("[Error] Ragas evaluation failed.")
         return
 
     print("\n--- RAGAS 评分汇总 ---")
-    metrics = ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]
-    avg = {m: round(sum(evaluation_results[m]) / len(evaluation_results[m]), 4) for m in metrics}
-    for k, v in avg.items():
-        print(f"{k:<18}: {v}")
-
-    pd.set_option("display.max_colwidth", 200)
-    pd.set_option("display.width", 120)
+    # 生成带时间戳的文件名
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
+    filename = f"eval-output-{timestamp}.csv"
+    output_path = os.path.join(output_dir, filename)
+    evaluation_results.to_csv(output_path)
     print(evaluation_results.to_pandas())
 
 
