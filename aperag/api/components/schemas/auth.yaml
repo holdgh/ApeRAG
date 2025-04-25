@@ -28,6 +28,9 @@ register:
 invitationCreate:
   type: object
   properties:
+    username:
+      type: string
+      description: The username of the user
     email:
       type: string
       description: The email of the user

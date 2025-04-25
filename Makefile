@@ -37,6 +37,7 @@ diff:
 migrate:
 	@python manage.py makemigrations
 	@python manage.py migrate aperag
+	@python manage.py migrate
 
 run-redis:
 	@echo "Starting redis"

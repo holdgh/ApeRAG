@@ -1,4 +1,5 @@
 from django.contrib.auth import aauthenticate, login, logout
+from django.contrib.auth.hashers import make_password
 from ninja import Router
 from ninja.security import django_auth
 from aperag.db.models import User
@@ -33,8 +34,8 @@ async def create_invitation_view(request, data: view_models.InvitationCreate) ->
         return fail(HTTPStatus.FORBIDDEN, "Only admin members can create invitations")
 
     # Check if user already exists
-    if await query_user_exists(email=data.email):
-        return fail(HTTPStatus.BAD_REQUEST, "User with this email already exists")
+    if await query_user_exists(username=data.username, email=data.email):
+        return fail(HTTPStatus.BAD_REQUEST, "User with this email or username already exists")
         
     # Generate unique token
     token = secrets.token_urlsafe(32)
@@ -91,7 +92,7 @@ async def list_invitations(request) -> view_models.InvitationList:
 async def register(request, data: view_models.Register) -> view_models.User:
     """Register a new user with invitation token"""
     # Check if this is the first user (will be admin)
-    is_first_user = await query_first_user_exists()
+    is_first_user = not await query_first_user_exists()
     need_invitation = settings.REGISTER_MODE == 'invitation' and not is_first_user
     
     if need_invitation:
@@ -137,8 +138,7 @@ async def register(request, data: view_models.Register) -> view_models.User:
 async def login_view(request, data: view_models.Login) -> view_models.User:
     """Login a user"""
     user = await aauthenticate(username=data.username, password=data.password)
-    
-    if user is None:
+    if not user:
         return fail(HTTPStatus.BAD_REQUEST, "Invalid credentials")
         
     await login_user(request, user)

@@ -377,5 +377,5 @@ EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env.str('DEFAULT_FROM_EMAIL', default='noreply@aperag.com')
 SITE_URL = env.str('SITE_URL', default='http://localhost:8000')
 
-REGISTER_MODE = env.str('REGISTER_MODE', default='invitation')
+REGISTER_MODE = env.str('REGISTER_MODE', default='unlimited')
 

@@ -478,7 +478,7 @@ class Role(models.TextChoices):
     
 class User(AbstractUser):
     """Custom user model that extends AbstractUser"""
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, blank=True, null=True)
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.RO)
 
     class Meta:

@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from asgiref.sync import sync_to_async
 from django.db.models import QuerySet
 from django.contrib.auth import aauthenticate, alogin, alogout
+from django.contrib.auth.hashers import make_password
 from pydantic import BaseModel
 
 from aperag.db.models import (
@@ -386,7 +387,7 @@ async def create_user(username: str, email: str, password: str, role: Role):
     return await User.objects.acreate(
         username=username,
         email=email,
-        password=password,
+        password=make_password(password),
         role=role,
         is_staff= role == Role.ADMIN
     )
