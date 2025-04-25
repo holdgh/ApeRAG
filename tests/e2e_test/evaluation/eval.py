@@ -1,7 +1,9 @@
-import csv
-import json
 import os
-from typing import List, Dict, Any
+from typing import Dict, Any
+
+import pandas as pd
+from datasets import Dataset
+from langchain_openai import ChatOpenAI
 from ragas import evaluate
 from ragas.metrics import (
     faithfulness,
@@ -9,9 +11,6 @@ from ragas.metrics import (
     context_precision,
     context_recall
 )
-from datasets import Dataset
-from langchain_openai import ChatOpenAI
-import pandas as pd
 
 llm_for_eval = ChatOpenAI(
     base_url=os.environ["OPENAI_API_BASE"],
@@ -124,8 +123,13 @@ def evaluate_rag_with_ragas(dataset: Dataset):
     )
     return results
 
+
 # --- Main Execution Block ---
 def display_results(evaluation_results: Dataset):
+    if not evaluation_results:
+        print("[Error] Ragas evaluation failed.")
+        return
+
     print("\n--- RAGAS 评分汇总 ---")
     metrics = ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]
     avg = {m: round(sum(evaluation_results[m]) / len(evaluation_results[m]), 4) for m in metrics}
@@ -134,8 +138,7 @@ def display_results(evaluation_results: Dataset):
 
     pd.set_option("display.max_colwidth", 200)
     pd.set_option("display.width", 120)
-    print("\n--- 逐条打分明细（前几行）---")
-    print(evaluation_results.to_pandas().head())
+    print(evaluation_results.to_pandas())
 
 
 if __name__ == "__main__":
@@ -145,11 +148,7 @@ if __name__ == "__main__":
     print_evaluation_metrics(eval_dataset)
     print("[Info] Evaluation input written to ragas_input.csv")
 
-    # eval_results = evaluate_rag_with_ragas(eval_dataset)
-    #
-    # if eval_results:
-    #     display_results(eval_results)
-    # else:
-    #     print("[Error] Ragas evaluation failed.")
-    #
-    # print("\n--- Script execution finished ---")
+    eval_results = evaluate_rag_with_ragas(eval_dataset)
+    display_results(eval_results)
+
+    print("\n--- Script execution finished ---")
