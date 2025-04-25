@@ -1072,13 +1072,13 @@ async def list_model_service_providers(request):
     user = get_user(request)
     response = []
     for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS:
-        response.append({
-            "name": supported_msp["name"],
-            "label": supported_msp["label"],
-            "allow_custom_base_url": supported_msp["allow_custom_base_url"],
-            "base_url" : supported_msp["base_url"],
-        })
-    return success(response)
+        response.append(view_models.SupportedModelServiceProvider(
+            name=supported_msp["name"],
+            label=supported_msp["label"],
+            allow_custom_base_url=supported_msp["allow_custom_base_url"],
+            base_url=supported_msp["base_url"],
+        ))
+    return success(view_models.SupportedModelServiceProviderList( items=response,))
 
 @router.get("/model_service_providers")
 async def list_model_service_providers(request):
@@ -1090,14 +1090,13 @@ async def list_model_service_providers(request):
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             supported_msp = supported_msp_dict[msp.name]
-            response.append({
-                "name" : msp.name,
-                "label": msp.name,
-                "allow_custom_base_url": supported_msp["allow_custom_base_url"],
-                "base_url": msp.base_url,
-                "api_key": msp.api_key,
-            })
-    return success(response)
+            response.append(view_models.SupportedModelServiceProvider(
+                name=msp.name,
+                label=msp.name,
+                allow_custom_base_url=supported_msp["allow_custom_base_url"],
+                base_url=msp.base_url,
+            ))
+    return success(view_models.SupportedModelServiceProviderList( items=response,))
 
 class ModelServiceProviderIn(Schema):
     name: str
@@ -1171,11 +1170,11 @@ async def list_available_embeddings(request):
         if msp.name in supported_msp_dict:
             supported_msp = supported_msp_dict[msp.name]
             for embedding in supported_msp.get("embeddings", []):
-                response.append({
-                    "model_service_provider" : msp.name,
-                    "embedding_name" : embedding,
-                })
-    return success(response)
+                response.append(view_models.AvailableEmbedding(
+                    model_service_provider=msp.name,
+                    embedding_name=embedding,
+                ))
+    return success(view_models.AvailableEmbeddingList( items=response,))
 
 
 def default_page(request, exception):
