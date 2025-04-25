@@ -44,13 +44,14 @@ modelServiceProvider:
         required: true
         schema:
           type: string
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/model.yaml#/modelServiceProviderUpdate'
     responses:
       '200':
         description: Model service provider
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/model.yaml#/modelServiceProviderUpdate'
       '401':
         description: Unauthorized
         content:
