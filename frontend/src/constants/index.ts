@@ -1,0 +1,220 @@
+import AzureOpenAiIcon from '@/assets/models/azure-openai.png';
+import BaiChuanIcon from '@/assets/models/baichuan.jpeg';
+import ChatGPTIcon from '@/assets/models/chat-gpt.png';
+import ChatglmIcon from '@/assets/models/chatglm.png';
+import DeepseekIcon from '@/assets/models/deepseek.svg';
+import FalconIcon from '@/assets/models/falcon.png';
+import GorillaIcon from '@/assets/models/gorilla.png';
+import GuanacoIcon from '@/assets/models/guanaco.png';
+import QianwenIcon from '@/assets/models/qianwen.png';
+import VicunaIcon from '@/assets/models/vicuna.jpg';
+import WenxinYiyanIcon from '@/assets/models/wenxinyiyan.png';
+
+import EmailIcon from '@/assets/collection_source/email.png';
+import FeishuIcon from '@/assets/collection_source/feishu.png';
+import FtpIcon from '@/assets/collection_source/ftp_icon.png';
+import GithubIcon from '@/assets/collection_source/github.png';
+import LocalPathIcon from '@/assets/collection_source/local.png';
+import OssIcon from '@/assets/collection_source/oss.png';
+import S3Icon from '@/assets/collection_source/s3.png';
+import SystemIcon from '@/assets/collection_source/system.png';
+import UrlIcon from '@/assets/collection_source/url.png';
+
+import GmailIcon from '@/assets/collection_source/gmail.png';
+import OutlookIcon from '@/assets/collection_source/outlook.png';
+import QQGmailIcon from '@/assets/collection_source/qq.png';
+
+import { CollectionStatusEnum, DocumentStatusEnum } from '@/api';
+import type {
+  CollectionConfig,
+  CollectionConfigSource,
+  CollectionEmailSource,
+} from '@/types';
+
+export * from './theme';
+
+export const CSS_PREFIX = 'ape';
+export const TOPBAR_HEIGHT = 50;
+export const SIDEBAR_WIDTH = 55;
+export const NAVIGATION_WIDTH = 220;
+
+export const LOCALES = [
+  {
+    key: 'en-US',
+    label: 'English',
+  },
+  {
+    key: 'zh-CN',
+    label: '简体中文',
+  },
+];
+
+export const DATETIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
+export const MODEL_FAMILYS_ICON: {
+  [key in string]: string;
+} = {
+  vicuna: VicunaIcon,
+  chatglm: ChatglmIcon,
+  chatgpt: ChatGPTIcon,
+  baichuan: BaiChuanIcon,
+  wenxinyiyan: WenxinYiyanIcon,
+  'azure-openai': AzureOpenAiIcon,
+  guanaco: GuanacoIcon,
+  falcon: FalconIcon,
+  gorilla: GorillaIcon,
+  qianwen: QianwenIcon,
+  deepseek: DeepseekIcon,
+};
+
+export const COLLECTION_SOURCE: {
+  [key in CollectionConfigSource]: {
+    icon: React.ReactNode;
+    enabled?: boolean;
+  };
+} = {
+  system: {
+    icon: SystemIcon,
+    enabled: true,
+  },
+  local: {
+    icon: LocalPathIcon,
+  },
+  s3: {
+    icon: S3Icon,
+  },
+  oss: {
+    icon: OssIcon,
+  },
+  ftp: {
+    icon: FtpIcon,
+  },
+  email: {
+    icon: EmailIcon,
+  },
+  url: {
+    icon: UrlIcon,
+  },
+  github: {
+    icon: GithubIcon,
+  },
+  feishu: {
+    icon: FeishuIcon,
+  },
+};
+
+export const COLLECTION_SOURCE_EMAIL: {
+  [key in CollectionEmailSource]: {
+    icon: string;
+    pop_server: string;
+    port: number;
+  };
+} = {
+  gmail: {
+    icon: GmailIcon,
+    pop_server: 'pop.gmail.com',
+    port: 995,
+  },
+  outlook: {
+    icon: OutlookIcon,
+    pop_server: 'outlook.office365.com',
+    port: 995,
+  },
+  qqmail: {
+    icon: QQGmailIcon,
+    pop_server: 'pop.qq.com',
+    port: 995,
+  },
+  others: {
+    icon: EmailIcon,
+    pop_server: '',
+    port: 995,
+  },
+};
+
+export const DOCUMENT_DEFAULT_CONFIG: CollectionConfig = {
+  source: 'system',
+  crontab: {
+    enabled: false,
+    minute: '0',
+    hour: '0',
+    day_of_month: '*',
+    month: '*',
+    day_of_week: '*',
+  },
+};
+
+export const UI_COLLECTION_STATUS: {
+  [key in CollectionStatusEnum]:
+    | 'success'
+    | 'processing'
+    | 'error'
+    | 'default'
+    | 'warning';
+} = {
+  ACTIVE: 'success',
+  INACTIVE: 'error',
+  DELETED: 'error',
+  QUESTION_PENDING: 'warning',
+};
+
+export const UI_DOCUMENT_STATUS: {
+  [key in DocumentStatusEnum]:
+    | 'success'
+    | 'processing'
+    | 'error'
+    | 'default'
+    | 'warning';
+} = {
+  PENDING: 'warning',
+  RUNNING: 'processing',
+  FAILED: 'error',
+  COMPLETE: 'success',
+  DELETED: 'default',
+  DELETING: 'warning',
+  WARNING: 'warning',
+};
+
+export const SUPPORTED_DOC_EXTENSIONS = [
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.ppt',
+  '.pptx',
+  '.csv',
+  '.xls',
+  '.xlsx',
+  '.epub',
+  '.md',
+  '.mbox',
+  '.ipynb',
+  '.txt',
+  '.htm',
+  '.html',
+];
+export const SUPPORTED_MEDIA_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webm',
+  '.mp3',
+  '.mp4',
+  '.mpeg',
+  '.mpga',
+  '.m4a',
+  '.wav',
+];
+export const SUPPORTED_COMPRESSED_EXTENSIONS = [
+  '.zip',
+  '.rar',
+  '.r00',
+  '.7z',
+  '.tar',
+  '.gz',
+  '.xz',
+  '.bz2',
+  '.tar.gz',
+  '.tar.xz',
+  '.tar.bz2',
+  '.tar.7z',
+];

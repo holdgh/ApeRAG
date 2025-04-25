@@ -1,0 +1,7 @@
+node_modules
+.umi
+.umi-production
+public
+build
+dist
+api
