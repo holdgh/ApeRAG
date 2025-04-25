@@ -86,6 +86,13 @@ def create_tiny_testset() -> List[Dict[str, str]]:
 # Run your RAG system on the test questions and format the results for Ragas.
 def prepare_evaluation_data(test_cases: List[Dict[str, str]]) -> Dataset:
     print("Preparing data for Ragas evaluation...")
+
+    df = pd.read_csv("./datasets/qa-1300.csv")
+
+    print(df)
+
+    dataset = Dataset.from_pandas(df)
+
     questions = []
     answers = []
     contexts_list = []
