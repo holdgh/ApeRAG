@@ -2,9 +2,10 @@ import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import {
   COLLECTION_SOURCE,
   DATETIME_FORMAT,
+  MODEL_PROVIDER_ICON,
   UI_COLLECTION_STATUS,
 } from '@/constants';
-import { CollectionConfigSource } from '@/types';
+import { CollectionConfig, CollectionConfigSource } from '@/types';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Avatar,
@@ -116,11 +117,12 @@ export default () => {
   if (collections === undefined) return;
 
   const _collections = collections?.filter((item) => {
+    const config = item.config as CollectionConfig;
     const titleMatch = searchParams?.title
       ? item.title?.includes(searchParams.title)
       : true;
     const sourceMatch = searchParams?.source
-      ? item.config?.source === searchParams.source
+      ? config?.source === searchParams.source
       : true;
     return titleMatch && sourceMatch;
   });
@@ -138,10 +140,10 @@ export default () => {
       ) : (
         <Row gutter={[24, 24]}>
           {_collections?.map((collection) => {
-            const source = collection.config?.source as CollectionConfigSource;
-            const sourceIcon = source
-              ? COLLECTION_SOURCE[source].icon
-              : undefined;
+            const config = collection.config as CollectionConfig;
+            const embedding_model_service_provider =
+              config?.embedding_model_service_provider || '';
+            const embedding_model_name = config?.embedding_model_name;
             return (
               <Col
                 key={collection.id}
@@ -160,10 +162,12 @@ export default () => {
                       <Avatar
                         style={{ flex: 'none' }}
                         size={40}
-                        src={sourceIcon}
+                        src={
+                          MODEL_PROVIDER_ICON[embedding_model_service_provider]
+                        }
                         shape="square"
                       />
-                      <div style={{ flex: 'auto', maxWidth: '65%' }}>
+                      <div style={{ flex: 'auto', maxWidth: '75%' }}>
                         <div>
                           <Typography.Text ellipsis>
                             {collection.title}
@@ -171,9 +175,7 @@ export default () => {
                         </div>
                         <div>
                           <Typography.Text ellipsis type="secondary">
-                            <FormattedMessage
-                              id={`collection.source.${collection.config?.source}`}
-                            />
+                            {embedding_model_name}
                           </Typography.Text>
                         </div>
                       </div>

@@ -143,7 +143,7 @@ export default () => {
       },
     },
     {
-      title: formatMessage({ id: 'action' }),
+      title: formatMessage({ id: 'action.name' }),
       width: 80,
       render: (value, record) => {
         return (

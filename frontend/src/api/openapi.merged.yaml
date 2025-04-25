@@ -953,6 +953,105 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/failResponse'
+  /supported_model_service_providers:
+    get:
+      summary: Get supported model service providers
+      description: Get supported model service providers
+      responses:
+        '200':
+          description: Supported model service providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/supportedModelServiceProviderList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
+  /model_service_providers:
+    get:
+      summary: Get model service providers
+      description: Get model service providers
+      responses:
+        '200':
+          description: Model service providers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/modelServiceProviderList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
+  /model_service_providers/{provider}:
+    put:
+      summary: Update model service provider
+      description: Update model service provider
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/modelServiceProviderUpdate'
+      responses:
+        '200':
+          description: Model service provider
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
+    delete:
+      summary: Delete model service provider
+      description: Delete model service provider
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Model service provider
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
+        '404':
+          description: Model service provider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
+  /available_embeddings:
+    get:
+      summary: Get available embeddings
+      description: Get available embeddings
+      responses:
+        '200':
+          description: Available embeddings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/availableEmbeddingList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
   /config:
     get:
       summary: Get system configuration
@@ -1728,6 +1827,73 @@ components:
             $ref: '#/components/schemas/model'
         pageResult:
           $ref: '#/components/schemas/pageResult'
+    supportedModelServiceProvider:
+      type: object
+      properties:
+        name:
+          type: string
+        label:
+          type: string
+        allow_custom_base_url:
+          type: boolean
+        base_url:
+          type: string
+    supportedModelServiceProviderList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/supportedModelServiceProvider'
+        pageResult:
+          $ref: '#/components/schemas/pageResult'
+    modelServiceProvider:
+      type: object
+      properties:
+        name:
+          type: string
+        label:
+          type: string
+        allow_custom_base_url:
+          type: boolean
+        base_url:
+          type: string
+        api_key:
+          type: string
+    modelServiceProviderList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/modelServiceProvider'
+        pageResult:
+          $ref: '#/components/schemas/pageResult'
+    modelServiceProviderUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        api_key:
+          type: string
+        base_url:
+          type: string
+        extra:
+          type: string
+    availableEmbedding:
+      type: object
+      properties:
+        model_service_provider:
+          type: string
+        embedding_name:
+          type: string
+    availableEmbeddingList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/availableEmbedding'
     config:
       type: object
       properties:

@@ -26,7 +26,21 @@ export const model = {
   'model.related_question_prompt': 'You can continue to ask me',
   'model.related_question_tips': 'Related questions prompt',
   'model.related_prompt_template': 'Related Questions Prompt Template',
-  'model.provider': 'Model providers',
+};
+
+export const model_provider = {
+  'model.provider': 'Model Provider',
+  'model.provider.required': 'Model Provider is required',
   'model.provider.description':
     'Set the service URI and API Key of the model service provider',
+
+  'model.provider.settings': 'Provider Settings',
+  'model.provider.enable': 'Enable',
+  'model.provider.disable': 'Disable',
+  'model.provider.disable.confirm': 'Are you sure to disable {label} provider?',
+  'model.provider.uri': 'Provider URI',
+  'model.provider.uri.required': 'Provider URI is required',
+  'model.provider.api_key': 'Provider API Key',
+  'model.provider.api_key.required': 'Provider API Key is required',
+  'model.provider.add': 'Add Provider',
 };

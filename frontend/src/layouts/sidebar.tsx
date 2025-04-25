@@ -23,7 +23,6 @@ const StyledSidebar = styled('aside').withConfig({
       display: flex;
       justify-content: space-between;
       flex-direction: column;
-      // background: ${token.colorBgContainer};
     `;
   }}
 `;
@@ -38,21 +37,30 @@ const StyledSidebarLink = styled(Link).withConfig({
     const gap = 6;
     const size = SIDEBAR_WIDTH - gap * 2;
     return css`
-      color: ${active ? token.colorText : token.colorTextSecondary};
+      color: ${active ? token.colorPrimary : token.colorTextSecondary};
       background: ${active ? token.controlItemBgActive : 'none'};
-      display: block;
-      text-align: center;
+      display: flex;
       width: ${size}px;
       height: ${size}px;
-      line-height: ${size}px;
       border-radius: ${gap}px;
       margin: ${gap}px;
-      padding-top: 2px;
-      font-size: 18px;
       transition: all 0.3s;
+      padding: 8px 4px;
+      transition: all 0.3s;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
       &:hover {
-        color: var(--ape-color-text);
-        background: var(--ape-color-border-secondary);
+        color: ${active ? token.colorPrimary : token.colorText};
+        background: ${token.controlItemBgActive};
+      }
+      > svg {
+        font-size: 18px;
+        line-height: 18px;
+      }
+      > div {
+        font-size: 10px;
+        line-height: 10px;
       }
     `;
   }}
@@ -68,10 +76,12 @@ export default () => {
     {
       path: '/bots',
       icon: <BsChatText />,
+      label: formatMessage({ id: 'bot.name_short' }),
     },
     {
       path: '/collections',
       icon: <BsFiletypeDoc />,
+      label: formatMessage({ id: 'collection.name' }),
     },
   ];
 
@@ -89,6 +99,7 @@ export default () => {
               to={item.path}
             >
               {item.icon}
+              <div>{item.label}</div>
             </StyledSidebarLink>
           );
         })}
@@ -104,6 +115,7 @@ export default () => {
             to="/settings"
           >
             <BsGear />
+            <div>{formatMessage({ id: 'action.settings' })}</div>
           </StyledSidebarLink>
         </div>
       </Tooltip>

@@ -10,6 +10,9 @@ import QianwenIcon from '@/assets/models/qianwen.png';
 import VicunaIcon from '@/assets/models/vicuna.jpg';
 import WenxinYiyanIcon from '@/assets/models/wenxinyiyan.png';
 
+import AlibabaIcon from '@/assets/models/alibabacloud.svg';
+import SiliconflowIcon from '@/assets/models/siliconflow.svg';
+
 import EmailIcon from '@/assets/collection_source/email.png';
 import FeishuIcon from '@/assets/collection_source/feishu.png';
 import FtpIcon from '@/assets/collection_source/ftp_icon.png';
@@ -35,7 +38,7 @@ export * from './theme';
 
 export const CSS_PREFIX = 'ape';
 export const TOPBAR_HEIGHT = 50;
-export const SIDEBAR_WIDTH = 55;
+export const SIDEBAR_WIDTH = 65;
 export const NAVIGATION_WIDTH = 220;
 
 export const LOCALES = [
@@ -50,6 +53,15 @@ export const LOCALES = [
 ];
 
 export const DATETIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
+export const MODEL_PROVIDER_ICON: {
+  [key in string]: string;
+} = {
+  openai: ChatGPTIcon,
+  deepseek: DeepseekIcon,
+  alibabacloud: AlibabaIcon,
+  siliconflow: SiliconflowIcon,
+};
 
 export const MODEL_FAMILYS_ICON: {
   [key in string]: string;
@@ -134,6 +146,7 @@ export const COLLECTION_SOURCE_EMAIL: {
 
 export const DOCUMENT_DEFAULT_CONFIG: CollectionConfig = {
   source: 'system',
+  enable_light_rag: true,
   crontab: {
     enabled: false,
     minute: '0',

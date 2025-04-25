@@ -1,24 +1,39 @@
-import { Collection } from '@/api';
+import {
+  AvailableEmbedding,
+  Collection,
+  SupportedModelServiceProvider,
+} from '@/api';
 import { ApeMarkdown, CheckCard } from '@/components';
-import { COLLECTION_SOURCE, COLLECTION_SOURCE_EMAIL } from '@/constants';
+import {
+  COLLECTION_SOURCE,
+  COLLECTION_SOURCE_EMAIL,
+  MODEL_PROVIDER_ICON,
+} from '@/constants';
+import { api } from '@/services';
+import { UndrawEmpty } from 'react-undraw-illustrations';
+
 import { CollectionConfigSource, CollectionEmailSource } from '@/types';
 import {
   Alert,
   Avatar,
   Button,
   Card,
+  Col,
   Divider,
   Form,
   FormInstance,
   Input,
   Radio,
+  Row,
   Segmented,
+  Select,
   Space,
   Switch,
+  theme,
   Typography,
 } from 'antd';
 import _ from 'lodash';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'umi';
 import DocumentCloudFormItems from './DocumentCloudFormItems';
 import DocumentEmailFormItems from './DocumentEmailFormItems';
@@ -36,6 +51,12 @@ type Props = {
 
 export default ({ onSubmit, action, values, form }: Props) => {
   const { formatMessage } = useIntl();
+  const { token } = theme.useToken();
+
+  const [availableEmbeddings, setAvailableEmbeddings] =
+    useState<AvailableEmbedding[]>();
+  const [supportedModelServiceProviders, setSupportedModelServiceProviders] =
+    useState<SupportedModelServiceProvider[]>();
 
   const source = Form.useWatch(['config', 'source'], form);
   const emailSource: CollectionEmailSource | undefined = Form.useWatch(
@@ -43,11 +64,59 @@ export default ({ onSubmit, action, values, form }: Props) => {
     form,
   );
   const sensitiveProtect = Form.useWatch(['config', 'sensitive_protect'], form);
+  const embeddingModel = Form.useWatch(['config', 'embedding_model'], form);
+
+  const getEmbeddings = async () => {
+    const [availableEmbeddingsRes, supportedModelServiceProvidersRes] =
+      await Promise.all([
+        api.availableEmbeddingsGet(),
+        api.supportedModelServiceProvidersGet(),
+      ]);
+
+    setAvailableEmbeddings(availableEmbeddingsRes.data.items);
+    setSupportedModelServiceProviders(
+      supportedModelServiceProvidersRes.data.items,
+    );
+  };
+
+  const embeddingModelOptions = useMemo(
+    () =>
+      _.map(
+        _.groupBy(availableEmbeddings, 'model_service_provider'),
+        (aebs, providerName) => {
+          const provider = supportedModelServiceProviders?.find(
+            (smp) => smp.name === providerName,
+          );
+          return {
+            label: provider?.label || providerName,
+            options: aebs.map((aeb) => {
+              return {
+                label: aeb.embedding_name,
+                value: `${providerName}:${aeb.embedding_name}`,
+              };
+            }),
+          };
+        },
+      ),
+    [availableEmbeddings, supportedModelServiceProviders],
+  );
 
   const onFinish = async () => {
     const data = await form.validateFields();
     onSubmit(data);
   };
+
+  useEffect(() => {
+    if (embeddingModel) {
+      const [model_service_provider, embedding_name] =
+        embeddingModel.split(':');
+      form.setFieldValue(
+        ['config', 'embedding_model_service_provider'],
+        model_service_provider,
+      );
+      form.setFieldValue(['config', 'embedding_model_name'], embedding_name);
+    }
+  }, [embeddingModel]);
 
   useEffect(() => {
     if (source === 'ftp') {
@@ -68,6 +137,10 @@ export default ({ onSubmit, action, values, form }: Props) => {
       }
     }
   }, [source, emailSource]);
+
+  useEffect(() => {
+    getEmbeddings();
+  }, []);
 
   return (
     <Form
@@ -97,17 +170,93 @@ export default ({ onSubmit, action, values, form }: Props) => {
           <Input.TextArea maxLength={300} rows={3} />
         </Form.Item>
 
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              name={['config', 'embedding_model']}
+              rules={[
+                {
+                  required: true,
+                  message: formatMessage({
+                    id: 'collection.embedding_model.required',
+                  }),
+                },
+              ]}
+              className="form-item-wrap"
+              label={formatMessage({ id: 'collection.embedding_model' })}
+            >
+              <Select
+                options={embeddingModelOptions}
+                labelRender={({ label, value }) => {
+                  const [model_service_provider, model_name] = (
+                    value as string
+                  ).split(':');
+                  return (
+                    <Space style={{ alignItems: 'center' }}>
+                      <Avatar
+                        size={24}
+                        shape="square"
+                        src={MODEL_PROVIDER_ICON[model_service_provider]}
+                        style={{
+                          transform: 'translateY(-1px)',
+                        }}
+                      />
+                      {label || model_name}
+                    </Space>
+                  );
+                }}
+                notFoundContent={
+                  <Space
+                    direction="vertical"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBlock: 24,
+                    }}
+                  >
+                    <UndrawEmpty
+                      primaryColor={token.colorPrimary}
+                      height="80px"
+                    />
+                    <Typography.Text type="secondary">
+                      <FormattedMessage id="collection.embedding_model_not_found" />
+                    </Typography.Text>
+                  </Space>
+                }
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['config', 'embedding_model_service_provider']}
+              hidden
+            >
+              <Input type="hidden" />
+            </Form.Item>
+            <Form.Item name={['config', 'embedding_model_name']} hidden>
+              <Input type="hidden" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              label={formatMessage({ id: 'collection.enable_light_rag' })}
+              valuePropName="checked"
+              name={['config', 'enable_light_rag']}
+            >
+              <Switch />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Form.Item
           label={
-            <>
+            <Space>
               <Typography.Text>
                 {formatMessage({ id: 'text.sensitive.protect' })}
               </Typography.Text>
-              &nbsp;
               <Typography.Text type="secondary">
                 ({formatMessage({ id: 'text.sensitive.help' })})
               </Typography.Text>
-            </>
+            </Space>
           }
           valuePropName="checked"
           name={['config', 'sensitive_protect']}

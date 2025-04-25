@@ -1,5 +1,6 @@
 import { bot } from './zh-CN/bots';
-import { model } from './zh-CN/models';
+import { collection } from './zh-CN/collection';
+import { model, model_provider } from './zh-CN/models';
 import { user, users } from './zh-CN/users';
 
 export default {
@@ -7,6 +8,8 @@ export default {
   ...users,
   ...bot,
   ...model,
+  ...model_provider,
+  ...collection,
 
   'text.welcome': '欢迎使用ApeRAG',
   'text.authorizing': '授权中',
@@ -143,7 +146,8 @@ export default {
   'github.path': '路径',
   'github.path.required': '路径为必填项',
 
-  action: '操作',
+  action: '----------------------',
+  'action.name': '操作',
   'action.search': '搜索',
   'action.backToHome': '返回首页',
   'action.signin': '登录',
@@ -163,35 +167,6 @@ export default {
   'action.refresh': '刷新',
   'action.confirm': '确认',
   'action.rename': '重命名',
-
-  collection: '------------------------------',
-  'collection.name': '知识库',
-  'collection.files': '全部文件',
-  'collection.sync': '文件同步',
-  'collection.questions': '相关问题',
-  'collection.settings': '设置',
-  'collection.add': '添加知识库',
-  'collection.tips': '你可以在知识库里导入和管理你的数据源以增强LLM的上下文。',
-  'collection.source': '数据来源',
-  'collection.source.required': '请选择数据来源',
-  'collection.source.system': '文件上传',
-  'collection.source.local': '本地目录',
-  'collection.source.s3': 'AWS S3',
-  'collection.source.oss': '阿里云 OSS',
-  'collection.source.ftp': 'FTP',
-  'collection.source.email': '邮箱',
-  'collection.source.url': '互联网地址',
-  'collection.source.github': 'Github',
-  'collection.source.feishu': '飞书',
-  'collection.source.local.placeholder': '目录地址',
-  'collection.source.local.required': '目录地址为必填项',
-  'collection.status.QUESTION_PENDING': '待解答',
-  'collection.status.ACTIVE': '已激活',
-  'collection.status.INACTIVE': '未激活',
-  'collection.status.DELETED': '已删除',
-  'collection.status.DELETING': '删除中',
-  'collection.delete': '删除知识库',
-  'collection.delete.confirm': '知识库 "{name}" 将会被删除，确定此操作吗？',
 
   document: '文档',
   'document.upload': '上传文档',

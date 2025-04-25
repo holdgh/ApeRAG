@@ -1,5 +1,6 @@
 import { bot } from './en-US/bots';
-import { model } from './en-US/models';
+import { collection } from './en-US/collection';
+import { model, model_provider } from './en-US/models';
 import { user, users } from './en-US/users';
 
 export default {
@@ -7,6 +8,8 @@ export default {
   ...users,
   ...bot,
   ...model,
+  ...model_provider,
+  ...collection,
 
   'text.welcome': 'Welcome to ApeRAG',
   'text.authorizing': 'Authorizing',
@@ -145,7 +148,8 @@ export default {
   'github.path': 'Path',
   'github.path.required': 'Path is required',
 
-  action: 'Actions',
+  action: '----------------------',
+  'action.name': 'Actions',
   'action.search': 'Search',
   'action.backToHome': 'Home',
   'action.signin': 'Sign in',
@@ -165,37 +169,6 @@ export default {
   'action.refresh': 'Refresh',
   'action.confirm': 'Confirm',
   'action.rename': 'Rename',
-
-  collection: '------------------------------',
-  'collection.name': 'Dataset',
-  'collection.files': 'All files',
-  'collection.sync': 'Files synchronous',
-  'collection.questions': 'Related questions',
-  'collection.settings': 'Settings',
-  'collection.add': 'Add Dataset',
-  'collection.tips':
-    'You can import and manage your data sources in dataset to enhance the context of LLM.',
-  'collection.source': 'Data source',
-  'collection.source.required': 'Data source is required',
-  'collection.source.system': 'File upload',
-  'collection.source.local': 'Local path',
-  'collection.source.s3': 'AWS S3',
-  'collection.source.oss': 'Aliyun OSS',
-  'collection.source.ftp': 'FTP',
-  'collection.source.email': 'Email',
-  'collection.source.url': 'Internet URL',
-  'collection.source.github': 'Github',
-  'collection.source.feishu': 'Feishu',
-  'collection.source.local.placeholder': 'Path',
-  'collection.source.local.required': 'Path is required',
-  'collection.status.QUESTION_PENDING': 'Pending',
-  'collection.status.ACTIVE': 'Active',
-  'collection.status.INACTIVE': 'Inactive',
-  'collection.status.DELETED': 'Deleted',
-  'collection.status.DELETING': 'Deleting',
-  'collection.delete': 'Delete collection',
-  'collection.delete.confirm':
-    'The collection "{name}" will be deleted, confirm the current operation.',
 
   document: 'Documents',
   'document.upload': 'Upload',

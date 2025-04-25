@@ -18,7 +18,7 @@ export default () => {
       },
       {
         label: <FormattedMessage id="model.provider" />,
-        key: `/settings/model_providers`,
+        key: `/settings/modelProviders`,
       },
     ],
     [],

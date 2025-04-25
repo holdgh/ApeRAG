@@ -82,7 +82,6 @@ export default () => {
 
   const onRenameChat = useCallback(async () => {
     const data = await form.validateFields();
-
     if (!data?.id || !botId) return;
 
     await api.botsBotIdChatsChatIdPut({

@@ -15,6 +15,10 @@ export type CollectionEmailSource = 'gmail' | 'outlook' | 'qqmail' | 'others';
 export type CollectionConfig = {
   source?: CollectionConfigSource;
 
+  embedding_model_name?: string;
+  embedding_model_service_provider?: string;
+  enable_light_rag?: boolean;
+
   sensitive_protect?: boolean;
   sensitive_protect_method?: 'nostore' | 'replace';
 

@@ -69,7 +69,7 @@ export default () => {
       render: (value) => moment(value).format(DATETIME_FORMAT),
     },
     {
-      title: formatMessage({ id: 'action' }),
+      title: formatMessage({ id: 'action.name' }),
       width: 80,
       render: () => {
         return (

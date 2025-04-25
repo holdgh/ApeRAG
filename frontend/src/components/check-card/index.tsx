@@ -1,4 +1,13 @@
-import { Avatar, Card, Col, Row, Space, theme, Typography } from 'antd';
+import {
+  Avatar,
+  Card,
+  Col,
+  ColProps,
+  Row,
+  Space,
+  theme,
+  Typography,
+} from 'antd';
 import { ReactNode, useEffect, useState } from 'react';
 
 import classNames from 'classnames';
@@ -17,7 +26,8 @@ type PropsType = {
   onChange?: (str: string, record: any) => void;
   options?: OptionType[];
   disabled?: boolean;
-  block?: boolean;
+  layout?: ColProps;
+  gutter?: [number, number];
 };
 
 export const CheckCard = ({
@@ -26,7 +36,15 @@ export const CheckCard = ({
   onChange = () => {},
   options = [],
   disabled,
-  block = false,
+  layout = {
+    xs: 24,
+    sm: 12,
+    md: 8,
+    lg: 6,
+    xl: 4,
+    xxl: 4,
+  },
+  gutter = [16, 16],
 }: PropsType) => {
   const { token } = theme.useToken();
   const [currentValue, setCurrentValue] = useState<string | undefined>(
@@ -43,22 +61,8 @@ export const CheckCard = ({
     setCurrentValue(value);
   }, [value]);
 
-  const blockLayout = {
-    span: 24,
-  };
-
-  const inlineLayout = {
-    xs: 24,
-    sm: 12,
-    md: 8,
-    lg: 6,
-    xl: 4,
-    xxl: 4,
-  };
-  const layout = block ? blockLayout : inlineLayout;
-
   return (
-    <Row gutter={[16, 16]}>
+    <Row gutter={gutter}>
       {options.map((option, key) => (
         <Col key={key} {...layout}>
           <Card

@@ -79,7 +79,6 @@ const StyledTopbar = styled('header').withConfig({
     right: 0;
     top: 0;
     box-shadow: ${token.boxShadowTertiary};
-    // background: ${token.colorBgContainer};
   `}
 `;
 

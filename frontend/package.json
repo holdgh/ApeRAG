@@ -2,7 +2,7 @@
   "private": true,
   "author": "sailwebs <sailwebs@apecloud.com>",
   "scripts": {
-    "api:build": "yarn install && yarn api:clean && yarn api:bundle && openapi-generator-cli generate && yarn api:clear",
+    "api:build": "yarn api:clean && yarn api:bundle && openapi-generator-cli generate && yarn api:clear",
     "api:bundle": "redocly bundle ../aperag/api/openapi.yaml > ./src/api/openapi.merged.yaml",
     "api:clean": "rm -rf ./src/api/*",
     "api:clear": "rm -rf ./src/api/.openapi-generator && rm -rf ./src/api/.gitignore && rm -rf ./src/api/.npmignore && rm -rf ./src/api/.openapi-generator-ignore && rm -rf ./src/api/git_push.sh",

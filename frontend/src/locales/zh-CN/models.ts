@@ -27,3 +27,19 @@ export const model = {
   'model.provider': '模型服务商',
   'model.provider.description': '设置模型服务商的服务URI及API Key',
 };
+
+export const model_provider = {
+  'model.provider': '模型服务商',
+  'model.provider.required': '请选择模型服务商',
+  'model.provider.description': '设置模型服务商的服务URI及API Key',
+
+  'model.provider.settings': '服务商设置',
+  'model.provider.enable': '启用',
+  'model.provider.disable': '禁用',
+  'model.provider.disable.confirm': '确定禁用 {label} 吗？',
+  'model.provider.uri': '模型服务商 URI',
+  'model.provider.uri.required': '请输入模型服务商URI',
+  'model.provider.api_key': '模型服务商API Key',
+  'model.provider.api_key.required': '请输入模型服务商API Key',
+  'model.provider.add': '添加服务商',
+};

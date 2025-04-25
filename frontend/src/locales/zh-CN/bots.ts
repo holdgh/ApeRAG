@@ -1,5 +1,6 @@
 export const bot = {
   'bot.name': '应用',
+  'bot.name_short': '应用',
   'bot.settings': '应用设置',
   'bot.description':
     'ApeRAG 是一种基于本地数据集并利用多种大型语言模型的新型聊天机器人。',
