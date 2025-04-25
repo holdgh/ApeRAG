@@ -1,6 +1,8 @@
 export type BotConfig = {
   model?: string;
+  chractor?: string;
   llm?: {
+    endpoint?: string;
     similarity_score_threshold?: number;
     similarity_topk?: number;
     context_window?: number;

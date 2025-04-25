@@ -34,13 +34,6 @@ export default {
   'text.title': 'Title',
   'text.title.required': 'Title is required',
   'text.description': 'Description',
-  'text.sensitive.protect': 'Sensitive information protect',
-  'text.sensitive.protect.method': 'Protect method',
-  'text.sensitive.protect.method.required': 'Protect method is required',
-  'text.sensitive.help':
-    'Will not affect the protection status of uploaded documents',
-  'text.sensitive.nostore': 'Warning and remove sensitive words',
-  'text.sensitive.replace': 'Replace sensitive words with "*"',
   'text.trial': 'Free Trial',
 
   tips: 'Tips',

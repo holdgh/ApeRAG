@@ -2,8 +2,8 @@ import { Bot, CollectionStatusEnum } from '@/api';
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, RefreshButton } from '@/components';
-import { COLLECTION_SOURCE, UI_COLLECTION_STATUS } from '@/constants';
-import { CollectionConfigSource } from '@/types';
+import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
+import { BotConfig, CollectionConfig } from '@/types';
 import {
   Avatar,
   Badge,
@@ -77,9 +77,10 @@ export default ({ form, onSubmit, values, action }: Props) => {
   }, [botChractor, promptTemplates]);
 
   useEffect(() => {
-    let memory = Boolean(values.config?.memory);
+    const config = values.config as unknown as BotConfig;
+    let memory = Boolean(config?.memory);
 
-    const llm = values.config?.llm;
+    const llm = config?.llm;
     let endpoint = llm?.endpoint;
     let template = llm?.prompt_template;
 
@@ -94,7 +95,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
       ? llm?.similarity_score_threshold
       : 0.5;
 
-    if (botModel !== values.config?.model) {
+    if (botModel !== config?.model) {
       endpoint = currentModel?.endpoint || '';
       memory = false;
       contextWindow = _.isNumber(currentModel?.context_window)
@@ -113,10 +114,10 @@ export default ({ form, onSubmit, values, action }: Props) => {
         : 0.5;
     }
 
-    if (botType === 'knowledge' && botModel !== values.config?.model) {
+    if (botType === 'knowledge' && botModel !== config?.model) {
       template = currentModel?.prompt_template;
     }
-    if (botType === 'common' && botChractor !== values.config?.chractor) {
+    if (botType === 'common' && botChractor !== config?.chractor) {
       template = currentPromptTemplate?.prompt;
     }
 
@@ -134,7 +135,8 @@ export default ({ form, onSubmit, values, action }: Props) => {
   }, [botType, currentModel, currentPromptTemplate, values]);
 
   useEffect(() => {
-    if (_.isEmpty(values.config?.model)) {
+    const config = values.config as unknown as BotConfig;
+    if (_.isEmpty(config?.model)) {
       form.setFieldValue(['config', 'model'], models?.[0]?.value);
     }
   }, [models]);
@@ -201,7 +203,16 @@ export default ({ form, onSubmit, values, action }: Props) => {
           />
         </Form.Item>
         <Row gutter={24}>
-          <Col span={12}>
+          <Col
+            {...{
+              xs: 24,
+              sm: 24,
+              md: 12,
+              lg: 12,
+              xl: 12,
+              xxl: 12,
+            }}
+          >
             <Form.Item
               name={['config', 'model']}
               label={<FormattedMessage id="model.name" />}
@@ -215,7 +226,16 @@ export default ({ form, onSubmit, values, action }: Props) => {
               <Select options={modelOptions} />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col
+            {...{
+              xs: 24,
+              sm: 24,
+              md: 12,
+              lg: 12,
+              xl: 12,
+              xxl: 12,
+            }}
+          >
             {botType === 'knowledge' ? (
               <Form.Item
                 label={<FormattedMessage id="collection.name" />}
@@ -259,10 +279,12 @@ export default ({ form, onSubmit, values, action }: Props) => {
                     disabled: collection.status !== 'ACTIVE',
                   }))}
                   optionRender={(option) => {
-                    const source = option.data.config
-                      ?.source as CollectionConfigSource;
+                    const config = option.data.config as CollectionConfig;
                     const status = option.data.status as CollectionStatusEnum;
                     const isActive = status === 'ACTIVE';
+                    const embedding_model_service_provider =
+                      config?.embedding_model_service_provider || '';
+                    const embedding_model_name = config?.embedding_model_name;
                     return (
                       <Tooltip
                         placement="left"
@@ -277,7 +299,11 @@ export default ({ form, onSubmit, values, action }: Props) => {
                         <Space>
                           <Avatar
                             shape="square"
-                            src={COLLECTION_SOURCE[source].icon}
+                            src={
+                              MODEL_PROVIDER_ICON[
+                                embedding_model_service_provider
+                              ]
+                            }
                           />
                           <div>
                             <div>
@@ -292,9 +318,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
                               style={{ fontSize: 12 }}
                             >
                               <Space split={<Divider type="vertical" />}>
-                                <FormattedMessage
-                                  id={`collection.source.${source}`}
-                                />
+                                {embedding_model_name}
                                 <Space>
                                   <Badge
                                     status={UI_COLLECTION_STATUS[status]}

@@ -176,7 +176,16 @@ export default ({ onSubmit, action, values, form }: Props) => {
         </Form.Item>
 
         <Row gutter={24}>
-          <Col span={12}>
+          <Col
+            {...{
+              xs: 24,
+              sm: 24,
+              md: 12,
+              lg: 12,
+              xl: 12,
+              xxl: 12,
+            }}
+          >
             <Form.Item
               name={['config', 'embedding_model']}
               rules={[
@@ -241,7 +250,16 @@ export default ({ onSubmit, action, values, form }: Props) => {
               <Input type="hidden" />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col
+            {...{
+              xs: 24,
+              sm: 24,
+              md: 12,
+              lg: 12,
+              xl: 12,
+              xxl: 12,
+            }}
+          >
             <Form.Item
               label={formatMessage({ id: 'collection.enable_light_rag' })}
               valuePropName="checked"
@@ -254,14 +272,14 @@ export default ({ onSubmit, action, values, form }: Props) => {
 
         <Form.Item
           label={
-            <Space>
+            <>
               <Typography.Text>
-                {formatMessage({ id: 'text.sensitive.protect' })}
+                {formatMessage({ id: 'collection.sensitive.protect' })}
               </Typography.Text>
               <Typography.Text type="secondary">
-                ({formatMessage({ id: 'text.sensitive.help' })})
+                （{formatMessage({ id: 'collection.sensitive.help' })}）
               </Typography.Text>
-            </Space>
+            </>
           }
           valuePropName="checked"
           name={['config', 'sensitive_protect']}
@@ -271,14 +289,16 @@ export default ({ onSubmit, action, values, form }: Props) => {
         {sensitiveProtect ? (
           <>
             <Form.Item
-              label={formatMessage({ id: 'text.sensitive.protect.method' })}
+              label={formatMessage({
+                id: 'collection.sensitive.protect.method',
+              })}
               name={['config', 'sensitive_protect_method']}
               required
               rules={[
                 {
                   required: true,
                   message: formatMessage({
-                    id: 'text.sensitive.protect.method.required',
+                    id: 'collection.sensitive.protect.method.required',
                   }),
                 },
               ]}
@@ -291,11 +311,15 @@ export default ({ onSubmit, action, values, form }: Props) => {
                 }}
                 options={[
                   {
-                    label: formatMessage({ id: 'text.sensitive.nostore' }),
+                    label: formatMessage({
+                      id: 'collection.sensitive.nostore',
+                    }),
                     value: 'nostore',
                   },
                   {
-                    label: formatMessage({ id: 'text.sensitive.replace' }),
+                    label: formatMessage({
+                      id: 'collection.sensitive.replace',
+                    }),
                     value: 'replace',
                   },
                 ]}

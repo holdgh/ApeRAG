@@ -33,12 +33,6 @@ export default {
   'text.title': '标题',
   'text.title.required': '标题为必填项',
   'text.description': '描述',
-  'text.sensitive.protect': '敏感信息保护',
-  'text.sensitive.protect.method': '保护策略',
-  'text.sensitive.protect.method.required': '请选择保护策略',
-  'text.sensitive.help': '是否开启都不会影响已上传文档的保护状态',
-  'text.sensitive.nostore': '发现敏感信息告警且移除',
-  'text.sensitive.replace': '将敏感信息替换成 "*"',
   'text.trial': '免费试用',
 
   tips: '提示',
