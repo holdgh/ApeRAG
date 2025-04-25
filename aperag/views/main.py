@@ -1090,13 +1090,14 @@ async def list_model_service_providers(request):
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             supported_msp = supported_msp_dict[msp.name]
-            response.append(view_models.SupportedModelServiceProvider(
+            response.append(view_models.ModelServiceProvider(
                 name=msp.name,
                 label=msp.name,
                 allow_custom_base_url=supported_msp["allow_custom_base_url"],
                 base_url=msp.base_url,
+                api_key=msp.api_key,
             ))
-    return success(view_models.SupportedModelServiceProviderList( items=response,))
+    return success(view_models.ModelServiceProviderList(items=response))
 
 class ModelServiceProviderIn(Schema):
     name: str
