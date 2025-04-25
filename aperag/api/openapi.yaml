@@ -63,13 +63,22 @@ paths:
   # models
   /models:
     $ref: './paths/models.yaml#/models'
+  /supported_model_service_providers:
+    $ref: './paths/models.yaml#/supportedModelServiceProviders'
+  /model_service_providers:
+    $ref: './paths/models.yaml#/modelServiceProviders'
+  /model_service_providers/{provider}:
+    $ref: './paths/models.yaml#/modelServiceProvider'
+  /available_embeddings:
+    $ref: './paths/models.yaml#/availableEmbeddings'
+
 
   # config
   /config:
     $ref: './paths/config.yaml#/config'
   /prompt-templates:
     $ref: './paths/prompt_templates.yaml#/promptTemplates'
-
+  
   # users
   /invite:
     $ref: './paths/auth.yaml#/invite'
