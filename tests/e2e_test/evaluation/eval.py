@@ -56,51 +56,27 @@ def my_rag_system(question: str) -> Dict[str, Any]:
 
 # --- Step 3: Create a Simple Test Dataset ---
 # Define a small set of questions and their ideal answers (ground truths).
-def create_tiny_testset() -> List[Dict[str, str]]:
-    """
-    Creates a small dataset for evaluation.
-    'ground_truth' is the ideal answer used for metrics like context_recall.
-
-    Returns:
-        List of dictionaries, each with 'question' and 'ground_truth'.
-    """
-    print("Creating a small test dataset...")
-    test_cases = [
-        {
-            "question": "What is Retrieval-Augmented Generation (RAG)?",
-            "ground_truth": "Retrieval-Augmented Generation (RAG) is an AI framework for improving Large Language Model (LLM) responses by grounding them in external knowledge sources. It combines a retrieval system, which fetches relevant information, with a generation system (the LLM), which uses that information to craft the final answer.",
-        },
-        {
-            "question": "How does the Ragas library help?",
-            "ground_truth": "Ragas is a framework specifically designed for evaluating RAG pipelines. It provides objective metrics to measure different aspects like the faithfulness of the answer to the context, the relevance of the answer to the question, and the quality (precision, recall) of the retrieved context.",
-        },
-        {
-            "question": "What is the capital of France?",
-            "ground_truth": "The capital of France is Paris.",
-        }
-    ]
-    return test_cases
+def create_tiny_testset() -> Dataset:
+    print("Creating test dataset...")
+    df = pd.read_csv("./datasets/qa-1300.csv")
+    df = df.head(30)
+    print(f"Load dataset: len={len(df)}")
+    return Dataset.from_pandas(df)
 
 
 # --- Step 4: Prepare Data for Ragas Evaluation ---
 # Run your RAG system on the test questions and format the results for Ragas.
-def prepare_evaluation_data(test_cases: List[Dict[str, str]]) -> Dataset:
-    print("Preparing data for Ragas evaluation...")
+def prepare_evaluation_data(ds: Dataset) -> Dataset:
+    print("Preparing data for Ragas evaluation...\n")
 
-    df = pd.read_csv("./datasets/qa-1300.csv")
-
-    print(df)
-
-    dataset = Dataset.from_pandas(df)
-
-    questions = []
-    answers = []
+    question_list = []
+    answer_list = []
     contexts_list = []
-    ground_truths = []
+    ground_truth_list = []
 
-    for test_case in test_cases:
+    for test_case in ds:
         question = test_case["question"]
-        ground_truth = test_case["ground_truth"]
+        ground_truth = test_case["answer"]
         print(f"\nProcessing question: {question}")
 
         # Call YOUR RAG system
@@ -109,10 +85,10 @@ def prepare_evaluation_data(test_cases: List[Dict[str, str]]) -> Dataset:
         contexts = rag_output["contexts"]
 
         # Append results to lists
-        questions.append(question)
-        answers.append(answer)
+        question_list.append(question)
+        answer_list.append(answer)
         contexts_list.append(contexts) # contexts should be List[str]
-        ground_truths.append(ground_truth)
+        ground_truth_list.append(ground_truth)
 
         print(f"  - Ground Truth: {ground_truth}")
         print(f"  - RAG Answer: {answer}")
@@ -120,10 +96,10 @@ def prepare_evaluation_data(test_cases: List[Dict[str, str]]) -> Dataset:
 
     # Create a dictionary suitable for datasets.Dataset
     data_dict = {
-        "question": questions,
-        "answer": answers,
+        "question": question_list,
+        "answer": answer_list,
         "contexts": contexts_list,
-        "ground_truth": ground_truths, # Ragas expects this column name for ground truth answers
+        "ground_truth": ground_truth_list, # Ragas expects this column name for ground truth answers
     }
 
     # Convert to Hugging Face Dataset object
@@ -208,10 +184,10 @@ if __name__ == "__main__":
     print("--- RAG System Evaluation Script ---")
 
     # 1. 创建测试数据集
-    test_data = create_tiny_testset()
+    dataset = create_tiny_testset()
 
     # 2. 准备评估数据
-    ragas_input_dataset = prepare_evaluation_data(test_data)
+    ragas_input_dataset = prepare_evaluation_data(dataset)
     if not ragas_input_dataset:
         print("\nData preparation failed, skipping evaluation.")
         print("\n--- Script execution finished ---")
