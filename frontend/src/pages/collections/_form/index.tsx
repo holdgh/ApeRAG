@@ -12,7 +12,11 @@ import {
 import { api } from '@/services';
 import { UndrawEmpty } from 'react-undraw-illustrations';
 
-import { CollectionConfigSource, CollectionEmailSource } from '@/types';
+import {
+  CollectionConfig,
+  CollectionConfigSource,
+  CollectionEmailSource,
+} from '@/types';
 import {
   Alert,
   Avatar,
@@ -144,6 +148,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
 
   return (
     <Form
+      autoComplete="off"
       onFinish={onFinish}
       // disabled={readonly}
       layout="vertical"
@@ -311,14 +316,17 @@ export default ({ onSubmit, action, values, form }: Props) => {
           ]}
         >
           <CheckCard
-            options={Object.keys(COLLECTION_SOURCE).map((key) => ({
-              label: formatMessage({ id: `collection.source.${key}` }),
-              value: key,
-              icon: COLLECTION_SOURCE[key as CollectionConfigSource].icon,
-              disabled:
-                !COLLECTION_SOURCE[key as CollectionConfigSource].enabled ||
-                (action === 'edit' && key !== values.config?.source),
-            }))}
+            options={Object.keys(COLLECTION_SOURCE).map((key) => {
+              const config = values.config as CollectionConfig;
+              return {
+                label: formatMessage({ id: `collection.source.${key}` }),
+                value: key,
+                icon: COLLECTION_SOURCE[key as CollectionConfigSource].icon,
+                disabled:
+                  !COLLECTION_SOURCE[key as CollectionConfigSource].enabled ||
+                  (action === 'edit' && key !== config?.source),
+              };
+            })}
           />
         </Form.Item>
 

@@ -59,8 +59,8 @@ const StyledSidebarLink = styled(Link).withConfig({
         line-height: 18px;
       }
       > div {
-        font-size: 10px;
-        line-height: 10px;
+        font-size: 11px;
+        line-height: 11px;
       }
     `;
   }}

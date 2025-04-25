@@ -27,16 +27,18 @@ const StyledNavigation = styled('nav').withConfig({
 `;
 
 const StyledNavigationHeader = styled('div').withConfig({
-  shouldForwardProp: (prop) => !['token'].includes(prop),
+  shouldForwardProp: (prop) => !['token', 'hasBackTo'].includes(prop),
 })<{
   token: GlobalToken;
+  hasBackTo?: boolean;
 }>`
-  ${({ token }) => {
+  ${({ token, hasBackTo }) => {
     return css`
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: ${token.paddingXS}px;
+      padding-left: ${hasBackTo ? token.paddingXS : token.paddingSM}px;
       min-height: 48px;
     `;
   }}
@@ -82,7 +84,7 @@ export const NavbarHeader = ({
   const isHovering = useHover(ref);
 
   return (
-    <StyledNavigationHeader ref={ref} token={token}>
+    <StyledNavigationHeader hasBackTo={Boolean(backTo)} ref={ref} token={token}>
       {backTo ? (
         <Link to={backTo}>
           <Space>

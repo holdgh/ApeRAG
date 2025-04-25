@@ -227,7 +227,7 @@ export default () => {
         }}
       >
         <Divider />
-        <Form layout="vertical" form={form}>
+        <Form autoComplete="off" layout="vertical" form={form}>
           <Form.Item
             name="name"
             hidden

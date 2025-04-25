@@ -38,11 +38,11 @@ export const CheckCard = ({
   disabled,
   layout = {
     xs: 24,
-    sm: 12,
-    md: 8,
+    sm: 24,
+    md: 12,
     lg: 6,
-    xl: 4,
-    xxl: 4,
+    xl: 6,
+    xxl: 6,
   },
   gutter = [16, 16],
 }: PropsType) => {

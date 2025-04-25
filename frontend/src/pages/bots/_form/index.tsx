@@ -154,6 +154,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
   return (
     <>
       <Form
+        autoComplete="off"
         onFinish={onFinish}
         layout="vertical"
         form={form}

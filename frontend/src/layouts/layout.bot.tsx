@@ -220,12 +220,13 @@ export default () => {
             key: `/bots/${botId}/flow`,
           },
           {
-            label: formatMessage({ id: 'text.integrations' }),
-            key: `/bots/${botId}/integrations`,
-          },
-          {
             label: formatMessage({ id: 'bot.settings' }),
             key: `/bots/${botId}/settings`,
+          },
+          {
+            label: formatMessage({ id: 'text.integrations' }),
+            key: `/bots/${botId}/integrations`,
+            disabled: true,
           },
         ],
       },
@@ -293,7 +294,7 @@ export default () => {
         onCancel={() => setRenameVisible(false)}
       >
         <Divider />
-        <Form layout="vertical" form={form}>
+        <Form autoComplete="off" layout="vertical" form={form}>
           <FormItem name="id" hidden>
             <Input />
           </FormItem>

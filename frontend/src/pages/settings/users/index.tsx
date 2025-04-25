@@ -96,7 +96,7 @@ export default () => {
         title={formatMessage({ id: 'users.management' })}
         description={formatMessage({ id: 'users.management_tips' })}
       >
-        <Button type="primary">
+        <Button type="primary" disabled>
           <FormattedMessage id="users.invite" />
         </Button>
         <RefreshButton loading={usersLoading} onClick={() => getUsers()} />
@@ -121,6 +121,7 @@ export default () => {
             label: '邀请列表',
             key: 'invitations',
             children: '',
+            disabled: true,
           },
         ]}
       />
