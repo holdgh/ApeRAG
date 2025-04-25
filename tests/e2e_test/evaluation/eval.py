@@ -74,7 +74,7 @@ def prepare_evaluation_data(ds: Dataset) -> Dataset:
     })
 
 
-def print_evaluation_metrics(ds: Dataset, output_dir: str = "."):
+def print_evaluation_output(ds: Dataset, output_dir: str = "."):
     def preprocess_row(row):
         # 处理 contexts 列表，转换为 JSON 字符串格式
         if 'contexts' in row and isinstance(row['contexts'], list):
@@ -122,7 +122,7 @@ def evaluate_rag_with_ragas(dataset: Dataset):
 
 
 # --- Main Execution Block ---
-def display_results(evaluation_results: Dataset, output_dir: str = "."):
+def print_metrics(evaluation_results: Dataset, output_dir: str = "."):
     if not evaluation_results:
         print("[Error] Ragas evaluation failed.")
         return
@@ -130,20 +130,20 @@ def display_results(evaluation_results: Dataset, output_dir: str = "."):
     print("\n--- RAGAS 评分汇总 ---")
     # 生成带时间戳的文件名
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    filename = f"eval-output-{timestamp}.csv"
+    filename = f"eval-metrics-{timestamp}.csv"
     output_path = os.path.join(output_dir, filename)
-    evaluation_results.to_csv(output_path)
-    print(evaluation_results.to_pandas())
+    df = evaluation_results.to_pandas()
+    print(df)
+    df.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":
     print("--- RAG System Evaluation Script ---")
     ds = create_tiny_testset()
     eval_dataset = prepare_evaluation_data(ds)
-    print_evaluation_metrics(eval_dataset)
-    print("[Info] Evaluation input written to ragas_input.csv")
+    # print_evaluation_output(eval_dataset)
 
     eval_results = evaluate_rag_with_ragas(eval_dataset)
-    display_results(eval_results)
+    print_metrics(eval_results)
 
     print("\n--- Script execution finished ---")
