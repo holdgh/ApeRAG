@@ -115,3 +115,5 @@ supportedModelServiceProviders:
         description: Unauthorized
         content:
           application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
