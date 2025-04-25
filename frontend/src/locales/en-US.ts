@@ -167,14 +167,14 @@ export default {
   'action.rename': 'Rename',
 
   collection: '------------------------------',
-  'collection.name': 'Collections',
-  'collection.files': 'Collection files',
+  'collection.name': 'Dataset',
+  'collection.files': 'All files',
   'collection.sync': 'Files synchronous',
   'collection.questions': 'Related questions',
   'collection.settings': 'Settings',
-  'collection.add': 'Add collection',
+  'collection.add': 'Add Dataset',
   'collection.tips':
-    'You can import and manage your data sources in collections to enhance the context of LLM.',
+    'You can import and manage your data sources in dataset to enhance the context of LLM.',
   'collection.source': 'Data source',
   'collection.source.required': 'Data source is required',
   'collection.source.system': 'File upload',

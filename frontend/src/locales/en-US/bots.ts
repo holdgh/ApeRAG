@@ -1,16 +1,16 @@
 export const bot = {
-  'bot.name': 'Bots',
-  'bot.settings': 'Bot Settings',
+  'bot.name': 'Applications',
+  'bot.settings': 'Settings',
   'bot.description':
     'ApeRAG is a new chatbot based on local datasets and utilizes multiple large language models.',
-  'bot.add': 'Add bot',
-  'bot.delete': 'Delete bot',
+  'bot.add': 'Add Application',
+  'bot.delete': 'Delete Application',
   'bot.delete_confirm':
-    'The bot "{name}" will be deleted, confirm the current operation.',
-  'bot.type': 'Bot type',
-  'bot.type_knowledge': 'Knowledge Bot',
-  'bot.type_common': 'Common Bot',
-  'bot.colelction_required': 'Collections is required',
-  'bot.character': 'Bot Character',
-  'bot.character_required': 'Bot Character is required',
+    'The Application "{name}" will be deleted, confirm the current operation.',
+  'bot.type': 'Application type',
+  'bot.type_knowledge': 'Knowledge',
+  'bot.type_common': 'Common',
+  'bot.colelction_required': 'Dataset is required',
+  'bot.character': 'Application Character',
+  'bot.character_required': 'Application Character is required',
 };

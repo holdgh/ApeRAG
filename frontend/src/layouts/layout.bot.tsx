@@ -63,7 +63,7 @@ export default () => {
         history.push('/bots');
       }
     }
-  }, [botId]);
+  }, [botId, bot]);
 
   const onCreateChat = useCallback(async () => {
     if (botId) {
