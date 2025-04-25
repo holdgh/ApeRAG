@@ -121,7 +121,6 @@ def evaluate_rag_with_ragas(dataset: Dataset):
     return results
 
 
-# --- Main Execution Block ---
 def print_metrics(evaluation_results: Dataset, output_dir: str = "."):
     if not evaluation_results:
         print("[Error] Ragas evaluation failed.")
@@ -137,6 +136,7 @@ def print_metrics(evaluation_results: Dataset, output_dir: str = "."):
     df.to_csv(output_path, index=False)
 
 
+# --- Main Execution Block ---
 if __name__ == "__main__":
     print("--- RAG System Evaluation Script ---")
     ds = create_tiny_testset()
