@@ -1092,7 +1092,7 @@ async def list_model_service_providers(request):
             supported_msp = supported_msp_dict[msp.name]
             response.append(view_models.ModelServiceProvider(
                 name=msp.name,
-                label=msp.name,
+                label=supported_msp["label"],
                 allow_custom_base_url=supported_msp["allow_custom_base_url"],
                 base_url=msp.base_url,
                 api_key=msp.api_key,
