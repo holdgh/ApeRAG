@@ -52,6 +52,8 @@ export default () => {
             return {
               label: formatMessage({ id: `collection.source.${key}` }),
               value: key,
+              disabled:
+                !COLLECTION_SOURCE[key as CollectionConfigSource].enabled,
             };
           })}
           allowClear

@@ -1,5 +1,6 @@
 import { LOCALES, TOPBAR_HEIGHT } from '@/constants';
 import { api } from '@/services';
+import { getLogo } from '@/utils';
 import {
   CheckOutlined,
   GithubOutlined,
@@ -27,7 +28,6 @@ import alpha from 'color-alpha';
 import { useAuth } from 'oidc-react';
 import { useMemo } from 'react';
 import {
-  createGlobalStyle,
   css,
   getLocale,
   Link,
@@ -39,34 +39,13 @@ import {
 } from 'umi';
 import styles from './topbar.less';
 
-export const GlobalStyles = createGlobalStyle<{
-  token: GlobalToken;
-}>`
-  ${({ token }) => {
-    return `
-      body {
-        background: ${token.colorBgLayout};
-        --toastify-font-family: ${token.fontFamily};
-        --toastify-color-light: ${token.colorBgContainer};
-        --toastify-color-dark: ${token.colorBgContainer};
-        --toastify-color-info: ${token.colorInfo};
-        --toastify-color-success: ${token.colorSuccess};
-        --toastify-color-warning: ${token.colorWarning};
-        --toastify-color-error: ${token.colorError};
-        --toastify-toast-shadow: ${token.boxShadow};
-        --toastify-toast-offset: 24px;
-      }
-    `;
-  }}
-`;
-
 const StyledTopbar = styled('header').withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
 })<{
   token: GlobalToken;
 }>`
   ${({ token }) => css`
-    padding-inline: ${token.padding}px;
+    padding-inline: 18px;
     height: ${TOPBAR_HEIGHT}px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
     display: flex;
@@ -138,27 +117,16 @@ export default () => {
     shape: 'circle',
   };
 
-  const getLogoSrc = () => {
-    const defaultImgSrc = `${PUBLIC_PATH}logo_${themeName}.png`;
-    switch (themeName) {
-      case 'light':
-        return APERAG_CONFIG.logo_light
-          ? APERAG_CONFIG.logo_light
-          : defaultImgSrc;
-      case 'dark':
-        return APERAG_CONFIG.logo_dark
-          ? APERAG_CONFIG.logo_dark
-          : defaultImgSrc;
-    }
-  };
-
   return (
     <>
-      <GlobalStyles token={token} />
       <StyledTopbar token={token}>
         <Link to="/" className={styles.logo}>
           <Space>
-            <Image className={styles.img} src={getLogoSrc()} preview={false} />
+            <Image
+              className={styles.img}
+              src={getLogo(themeName)}
+              preview={false}
+            />
             <Typography.Text className={styles.text}>
               {APERAG_CONFIG.title}
             </Typography.Text>

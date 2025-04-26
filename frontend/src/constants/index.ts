@@ -4,6 +4,7 @@ import ChatGPTIcon from '@/assets/models/chat-gpt.png';
 import ChatglmIcon from '@/assets/models/chatglm.png';
 import DeepseekIcon from '@/assets/models/deepseek.svg';
 import FalconIcon from '@/assets/models/falcon.png';
+import Glm4Icon from '@/assets/models/glm4.png';
 import GorillaIcon from '@/assets/models/gorilla.png';
 import GuanacoIcon from '@/assets/models/guanaco.png';
 import QianwenIcon from '@/assets/models/qianwen.png';
@@ -77,6 +78,7 @@ export const MODEL_FAMILYS_ICON: {
   gorilla: GorillaIcon,
   qianwen: QianwenIcon,
   deepseek: DeepseekIcon,
+  'glm-4': Glm4Icon,
 };
 
 export const COLLECTION_SOURCE: {

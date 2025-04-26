@@ -2,22 +2,21 @@ import { CSS_PREFIX, THEME_TOKENS } from '@/constants';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useDebounce, useFavicon, useTitle } from 'ahooks';
 import { App, ConfigProvider, theme } from 'antd';
+import moment from 'moment';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Slide, ToastContainer } from 'react-toastify';
 import LoadingBar, { LoadingBarRef } from 'react-top-loading-bar';
 import { getLocale, Outlet, useLocation, useModel } from 'umi';
 import UrlPattern from 'url-pattern';
-import { Auth, AuthProvider } from './auth';
-import Layout from './layout';
-import LayoutBot from './layout.bot';
-import LayoutCollection from './layout.collection';
-import LayoutSettings from './layout.settings';
-import Topbar from './topbar';
+import { AuthProvider } from './auth';
 
-import moment from 'moment';
-type LayoutConfig = {
-  [key in string]: React.ReactNode;
-};
+import Layout from './layout';
+
+import { LayoutBot } from '@/pages/bots/$botId/_layout';
+import { NavbarBot } from '@/pages/bots/$botId/_navbar';
+import { LayoutCollection } from '@/pages/collections/$collectionId/_layout';
+import { NavbarCollection } from '@/pages/collections/$collectionId/_navbar';
+import { NavbarSettings } from '@/pages/settings/_navbar';
 
 const { darkAlgorithm, defaultAlgorithm } = theme;
 
@@ -25,28 +24,19 @@ const { darkAlgorithm, defaultAlgorithm } = theme;
  * url pattern rules
  * https://www.npmjs.com/package/url-pattern
  */
-const config: LayoutConfig = {
-  '/bots(/*)': (
-    <>
-      <Auth>
-        <LayoutBot />
-      </Auth>
-    </>
+const config: {
+  [key in string]: React.ReactNode;
+} = {
+  '/bots/:botId/*': <Layout navbar={<NavbarBot />} outlet={<LayoutBot />} />,
+  '/bots(/*)': <Layout />,
+
+  '/collections/:collectionId/*': (
+    <Layout navbar={<NavbarCollection />} outlet={<LayoutCollection />} />
   ),
-  '/collections(/*)': (
-    <>
-      <Auth>
-        <LayoutCollection />
-      </Auth>
-    </>
-  ),
-  '/settings(/*)': (
-    <>
-      <Auth>
-        <LayoutSettings />
-      </Auth>
-    </>
-  ),
+  '/collections(/*)': <Layout />,
+
+  '/settings(/*)': <Layout navbar={<NavbarSettings />} />,
+
   '*': <Layout auth={false} sidebar={false} />,
 };
 
@@ -102,10 +92,7 @@ export default () => {
             token: THEME_TOKENS[themeName],
           }}
         >
-          <App>
-            <Topbar />
-            {getLayout()}
-          </App>
+          <App>{getLayout()}</App>
           <LoadingBar ref={ref} color={token.colorPrimary} />
           <ToastContainer
             theme={themeName}

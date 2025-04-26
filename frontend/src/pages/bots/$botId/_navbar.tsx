@@ -1,4 +1,5 @@
 import { Chat } from '@/api';
+import { Navbar, NavbarBody, NavbarHeader } from '@/components';
 import { api } from '@/services';
 import {
   DeleteOutlined,
@@ -21,21 +22,11 @@ import {
 import FormItem from 'antd/es/form/FormItem';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  history,
-  Outlet,
-  useIntl,
-  useLocation,
-  useModel,
-  useParams,
-} from 'umi';
-import { BodyContainer } from './body';
-import { Navbar, NavbarBody, NavbarHeader } from './navbar';
-import Sidebar from './sidebar';
+import { history, useIntl, useLocation, useModel, useParams } from 'umi';
 
 type MenuItem = Required<MenuProps>['items'][number];
 
-export default () => {
+export const NavbarBot = () => {
   const { botId, chatId } = useParams();
   const [renameVisible, setRenameVisible] = useState<boolean>();
   const { bot, chats, getBot, setBot, setChats, getChats } = useModel('bot');
@@ -46,7 +37,6 @@ export default () => {
   const location = useLocation();
   const { formatMessage } = useIntl();
   const [modal, contextHolder] = Modal.useModal();
-  const isDetail = botId !== undefined;
   const [form] = Form.useForm<Chat>();
 
   const onDeleteBot = useCallback(async () => {
@@ -239,80 +229,75 @@ export default () => {
     };
   }, [botId]);
 
+  if (!bot) return;
+
   return (
     <>
       {contextHolder}
-      <Sidebar />
-      {isDetail && (
-        <Navbar>
-          <NavbarHeader
-            title={bot?.title || formatMessage({ id: 'bot.name' })}
-            backTo="/bots"
+      <Navbar>
+        <NavbarHeader
+          title={bot?.title || formatMessage({ id: 'bot.name' })}
+          backTo="/bots"
+        >
+          <Tooltip
+            title={formatMessage({ id: 'bot.delete' })}
+            placement="right"
           >
-            <Tooltip
-              title={formatMessage({ id: 'bot.delete' })}
-              placement="right"
-            >
-              <Button
-                type="text"
-                danger
-                loading={loading}
-                icon={<DeleteOutlined />}
-                onClick={() => onDeleteBot()}
-              />
-            </Tooltip>
-          </NavbarHeader>
-          <NavbarBody>
-            <Menu
-              onClick={({ key }) => history.push(key)}
-              mode="inline"
-              selectedKeys={[location.pathname]}
-              items={chatMenuItems}
-              style={{
-                padding: 0,
-                background: 'none',
-                border: 'none',
-              }}
+            <Button
+              type="text"
+              danger
+              loading={loading}
+              icon={<DeleteOutlined />}
+              onClick={() => onDeleteBot()}
             />
-            <Menu
-              onClick={({ key }) => history.push(key)}
-              mode="inline"
-              selectedKeys={[location.pathname]}
-              items={[
-                {
-                  label: formatMessage({ id: 'action.settings' }),
-                  key: `/bots/${botId}/settings`,
-                  type: 'group',
-                  children: [
-                    {
-                      label: formatMessage({ id: 'flow.settings' }),
-                      key: `/bots/${botId}/flow`,
-                    },
-                    {
-                      label: formatMessage({ id: 'bot.settings' }),
-                      key: `/bots/${botId}/settings`,
-                    },
-                    {
-                      label: formatMessage({ id: 'text.integrations' }),
-                      key: `/bots/${botId}/integrations`,
-                      disabled: true,
-                    },
-                  ],
-                },
-              ]}
-              style={{
-                padding: 0,
-                background: 'none',
-                border: 'none',
-              }}
-            />
-          </NavbarBody>
-        </Navbar>
-      )}
-
-      <BodyContainer sidebar={true} navbar={isDetail}>
-        <Outlet />
-      </BodyContainer>
+          </Tooltip>
+        </NavbarHeader>
+        <NavbarBody>
+          <Menu
+            onClick={({ key }) => history.push(key)}
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={chatMenuItems}
+            style={{
+              padding: 0,
+              background: 'none',
+              border: 'none',
+            }}
+          />
+          <Menu
+            onClick={({ key }) => history.push(key)}
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={[
+              {
+                label: formatMessage({ id: 'action.settings' }),
+                key: `/bots/${botId}/settings`,
+                type: 'group',
+                children: [
+                  {
+                    label: formatMessage({ id: 'flow.settings' }),
+                    key: `/bots/${botId}/flow`,
+                  },
+                  {
+                    label: formatMessage({ id: 'bot.settings' }),
+                    key: `/bots/${botId}/settings`,
+                  },
+                  {
+                    label: formatMessage({ id: 'text.integrations' }),
+                    key: `/bots/${botId}/integrations`,
+                    disabled: true,
+                  },
+                ],
+              },
+            ]}
+            style={{
+              padding: 0,
+              background: 'none',
+              border: 'none',
+            }}
+          />
+        </NavbarBody>
+      </Navbar>
 
       <Modal
         width={400}

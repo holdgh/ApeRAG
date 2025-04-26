@@ -2,7 +2,11 @@ import { Bot, CollectionStatusEnum } from '@/api';
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, RefreshButton } from '@/components';
-import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
+import {
+  MODEL_FAMILYS_ICON,
+  MODEL_PROVIDER_ICON,
+  UI_COLLECTION_STATUS,
+} from '@/constants';
 import { BotConfig, CollectionConfig } from '@/types';
 import {
   Avatar,
@@ -225,7 +229,29 @@ export default ({ form, onSubmit, values, action }: Props) => {
                 },
               ]}
             >
-              <Select options={modelOptions} />
+              <Select
+                options={modelOptions}
+                labelRender={({ label, value }) => {
+                  const mod = models?.find((m) => m.value === value);
+                  return (
+                    <Space>
+                      <Avatar
+                        size={24}
+                        shape="square"
+                        src={
+                          mod?.family_name
+                            ? MODEL_FAMILYS_ICON[mod.family_name]
+                            : undefined
+                        }
+                        style={{
+                          transform: 'translateY(-1px)',
+                        }}
+                      />
+                      {label}
+                    </Space>
+                  );
+                }}
+              />
             </Form.Item>
           </Col>
           <Col
