@@ -4,7 +4,7 @@ export const users = {
     'Manage user identities including password resets, creating and provisioning, blocking and deleting users.',
   'users.invite': 'Invite User',
   'users.all': 'All User',
-  'users.invitations': 'Invitations'
+  'users.invitations': 'Invitations',
 };
 
 export const user = {

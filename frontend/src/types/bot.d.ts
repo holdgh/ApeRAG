@@ -1,3 +1,5 @@
+import { Bot } from '@/api';
+
 export type BotConfig = {
   model?: string;
   chractor?: string;
@@ -16,3 +18,10 @@ export type BotConfig = {
     encrypt_key?: string;
   };
 };
+
+export type ApeBot = Merge<
+  Bot,
+  {
+    config?: BotConfig;
+  }
+>;

@@ -1,6 +1,6 @@
-import { Bot } from '@/api';
 import { PageContainer, PageHeader } from '@/components';
 import { api } from '@/services';
+import { ApeBot } from '@/types';
 import { stringifyConfig } from '@/utils';
 import { Card, Form } from 'antd';
 import { history, useIntl, useModel } from 'umi';
@@ -8,11 +8,11 @@ import BotForm from './_form';
 
 export default () => {
   const { formatMessage } = useIntl();
-  const [form] = Form.useForm<Bot>();
+  const [form] = Form.useForm<ApeBot>();
 
   const { setLoading } = useModel('global');
 
-  const onFinish = async (values: Bot) => {
+  const onFinish = async (values: ApeBot) => {
     setLoading(true);
     const botRes = await api.botsPost({
       botCreate: {
@@ -42,7 +42,7 @@ export default () => {
       <Card variant="borderless">
         <BotForm
           form={form}
-          onSubmit={(values: Bot) => onFinish(values)}
+          onSubmit={(values: ApeBot) => onFinish(values)}
           action="add"
           values={{
             type: 'knowledge',

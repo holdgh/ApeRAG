@@ -1,6 +1,6 @@
-import { Bot } from '@/api';
 import { PageContainer, PageHeader } from '@/components';
 import { api } from '@/services';
+import { ApeBot } from '@/types';
 import { stringifyConfig } from '@/utils';
 import { Card, Form } from 'antd';
 import { toast } from 'react-toastify';
@@ -11,8 +11,8 @@ export default () => {
   const { formatMessage } = useIntl();
   const { bot, getBot } = useModel('bot');
   const { setLoading } = useModel('global');
-  const [form] = Form.useForm<Bot>();
-  const onFinish = async (values: Bot) => {
+  const [form] = Form.useForm<ApeBot>();
+  const onFinish = async (values: ApeBot) => {
     if (!bot?.id) return;
     setLoading(true);
     const res = await api.botsBotIdPut({
@@ -38,7 +38,7 @@ export default () => {
       <Card variant="borderless">
         <BotForm
           form={form}
-          onSubmit={(values: Bot) => onFinish(values)}
+          onSubmit={(values: ApeBot) => onFinish(values)}
           action="edit"
           values={bot}
         />

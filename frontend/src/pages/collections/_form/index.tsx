@@ -1,8 +1,4 @@
-import {
-  AvailableEmbedding,
-  Collection,
-  SupportedModelServiceProvider,
-} from '@/api';
+import { AvailableEmbedding, SupportedModelServiceProvider } from '@/api';
 import { ApeMarkdown, CheckCard } from '@/components';
 import {
   COLLECTION_SOURCE,
@@ -13,7 +9,7 @@ import { api } from '@/services';
 import { UndrawEmpty } from 'react-undraw-illustrations';
 
 import {
-  CollectionConfig,
+  ApeCollection,
   CollectionConfigSource,
   CollectionEmailSource,
 } from '@/types';
@@ -48,9 +44,9 @@ import DocumentLocalFormItems from './DocumentLocalFormItems';
 
 type Props = {
   action: 'add' | 'edit';
-  values: Collection;
-  form: FormInstance<Collection>;
-  onSubmit: (data: Collection) => void;
+  values: ApeCollection;
+  form: FormInstance<ApeCollection>;
+  onSubmit: (data: ApeCollection) => void;
 };
 
 export default ({ onSubmit, action, values, form }: Props) => {
@@ -352,7 +348,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
         >
           <CheckCard
             options={Object.keys(COLLECTION_SOURCE).map((key) => {
-              const config = values.config as CollectionConfig;
+              const config = values.config;
               return {
                 label: formatMessage({ id: `collection.source.${key}` }),
                 value: key,

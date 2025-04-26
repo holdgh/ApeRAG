@@ -1,6 +1,5 @@
-import { Collection, Document } from '@/api';
 import { api } from '@/services';
-import { CollectionConfig, DocumentConfig } from '@/types';
+import { ApeCollection, ApeDocument } from '@/types';
 import { parseConfig, stringifyConfig } from '@/utils';
 import { useCallback, useState } from 'react';
 import { useModel } from 'umi';
@@ -8,25 +7,24 @@ import { useModel } from 'umi';
 export default () => {
   const { setLoading } = useModel('global');
 
-  const [collection, setCollection] = useState<Collection>();
+  const [collection, setCollection] = useState<ApeCollection>();
   const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
 
-  const [collections, setCollections] = useState<Collection[]>();
+  const [collections, setCollections] = useState<ApeCollection[]>();
   const [collectionsLoading, setCollectionsLoading] = useState<boolean>(false);
 
-  const [documents, setDocuments] = useState<Document[]>();
+  const [documents, setDocuments] = useState<ApeDocument[]>();
   const [documentsLoading, setDocumentsLoading] = useState(false);
 
   // collection
   const getCollection = useCallback(async (collectionId: string) => {
     setLoading(true);
     setCollectionLoading(true);
-
     const res = await api.collectionsCollectionIdGet({ collectionId });
-    if (typeof res.data?.config === 'string') {
-      res.data.config = parseConfig(res.data.config) as CollectionConfig;
-    }
-    setCollection(res.data);
+    setCollection({
+      ...res.data,
+      config: parseConfig(res.data.config),
+    });
     setLoading(false);
     setCollectionLoading(false);
   }, []);
@@ -40,7 +38,7 @@ export default () => {
   );
 
   const updateCollection = useCallback(
-    async (data: Collection): Promise<boolean | undefined> => {
+    async (data: ApeCollection): Promise<boolean | undefined> => {
       if (!data.id) return;
       const config = stringifyConfig(data.config) as string;
       const res = await api.collectionsCollectionIdPut({
@@ -51,7 +49,7 @@ export default () => {
       if (success) {
         setCollection({
           ...res.data,
-          config: parseConfig(res.data?.config as string),
+          config: parseConfig(res.data?.config),
         });
       }
       return success;
@@ -64,14 +62,15 @@ export default () => {
     setLoading(true);
     setCollectionsLoading(true);
     const res = await api.collectionsGet();
-    res.data.items?.forEach((item) => {
-      if (typeof item.config === 'string') {
-        item.config = parseConfig(item.config) as CollectionConfig;
-      }
-    });
+
     setLoading(false);
     setCollectionsLoading(false);
-    setCollections(res.data.items);
+    setCollections(
+      res.data.items?.map((item) => ({
+        ...item,
+        config: parseConfig(item.config),
+      })),
+    );
   }, []);
 
   // collection documents
@@ -79,13 +78,15 @@ export default () => {
     setLoading(true);
     setDocumentsLoading(true);
     const res = await api.collectionsCollectionIdDocumentsGet({ collectionId });
-    res?.data.items?.forEach((document) => {
-      if (typeof document.config === 'string') {
-        document.config = parseConfig(document.config) as DocumentConfig;
-      }
-    });
+
     setLoading(false);
-    setDocuments(res.data.items);
+    setDocuments(
+      res.data.items?.map((document) => ({
+        ...document,
+        config: parseConfig(document.config),
+      })),
+    );
+
     setDocumentsLoading(false);
   }, []);
 

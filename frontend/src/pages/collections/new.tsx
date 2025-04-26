@@ -1,7 +1,7 @@
-import { Collection } from '@/api';
 import { PageContainer, PageHeader } from '@/components';
 import { DOCUMENT_DEFAULT_CONFIG } from '@/constants';
 import { api } from '@/services';
+import { ApeCollection } from '@/types';
 import { stringifyConfig } from '@/utils';
 import { Form } from 'antd';
 import _ from 'lodash';
@@ -12,9 +12,9 @@ import CollectionForm from './_form';
 export default () => {
   const { formatMessage } = useIntl();
   const { setLoading } = useModel('global');
-  const [form] = Form.useForm<Collection>();
+  const [form] = Form.useForm<ApeCollection>();
 
-  const onFinish = async (values: Collection) => {
+  const onFinish = async (values: ApeCollection) => {
     const data = _.merge(
       {
         type: 'document',
@@ -22,10 +22,13 @@ export default () => {
       },
       values,
     );
-
-    data.config = stringifyConfig(data.config) as string;
     setLoading(true);
-    const res = await api.collectionsPost({ collectionCreate: data });
+    const res = await api.collectionsPost({
+      collectionCreate: {
+        ...data,
+        config: stringifyConfig(data.config),
+      },
+    });
     setLoading(false);
     if (res.data.id) {
       toast.success(formatMessage({ id: 'tips.create.success' }));
@@ -42,10 +45,10 @@ export default () => {
       />
       <CollectionForm
         form={form}
-        onSubmit={(values: Collection) => onFinish(values)}
+        onSubmit={(values: ApeCollection) => onFinish(values)}
         action="add"
         values={{
-          config: DOCUMENT_DEFAULT_CONFIG as string,
+          config: DOCUMENT_DEFAULT_CONFIG,
         }}
       />
     </PageContainer>

@@ -1,6 +1,5 @@
 import { PageContainer, PageHeader } from '@/components';
 import { DATETIME_FORMAT, UI_COLLECTION_STATUS } from '@/constants';
-import { CollectionConfig } from '@/types';
 import { DeleteOutlined } from '@ant-design/icons';
 import {
   Badge,
@@ -39,10 +38,7 @@ export const LayoutCollection = () => {
     }
   }, [collection]);
 
-  const config = useMemo(
-    () => collection?.config,
-    [collection],
-  ) as CollectionConfig;
+  const config = useMemo(() => collection?.config, [collection]);
 
   return (
     <>
