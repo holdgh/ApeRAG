@@ -1,4 +1,4 @@
-import { Bot, CollectionStatusEnum } from '@/api';
+import { CollectionStatusEnum } from '@/api';
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, RefreshButton } from '@/components';
@@ -7,7 +7,7 @@ import {
   MODEL_PROVIDER_ICON,
   UI_COLLECTION_STATUS,
 } from '@/constants';
-import { BotConfig, CollectionConfig } from '@/types';
+import { ApeBot } from '@/types';
 import {
   Avatar,
   Badge,
@@ -32,9 +32,9 @@ import { FormattedMessage, Link, useIntl, useModel } from 'umi';
 
 type Props = {
   action: 'add' | 'edit';
-  values: Bot;
-  form: FormInstance<Bot>;
-  onSubmit: (data: Bot) => void;
+  values: ApeBot;
+  form: FormInstance<ApeBot>;
+  onSubmit: (data: ApeBot) => void;
 };
 
 export default ({ form, onSubmit, values, action }: Props) => {
@@ -98,7 +98,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
   }, [botChractor, promptTemplates]);
 
   useEffect(() => {
-    const config = values.config as unknown as BotConfig;
+    const config = values.config;
     let memory = Boolean(config?.memory);
 
     const llm = config?.llm;
@@ -156,7 +156,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
   }, [botType, currentModel, currentPromptTemplate, values]);
 
   useEffect(() => {
-    const config = values.config as unknown as BotConfig;
+    const config = values.config;
     if (_.isEmpty(config?.model)) {
       form.setFieldValue(['config', 'model'], models?.[0]?.value);
     }
@@ -322,7 +322,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
                     disabled: collection.status !== 'ACTIVE',
                   }))}
                   optionRender={(option) => {
-                    const config = option.data.config as CollectionConfig;
+                    const config = option.data.config;
                     const status = option.data.status as CollectionStatusEnum;
                     const isActive = status === 'ACTIVE';
                     const embedding_model_service_provider =

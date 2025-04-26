@@ -1,5 +1,6 @@
-import { Bot, Chat, ChatDetails } from '@/api';
+import { Chat, ChatDetails } from '@/api';
 import { api } from '@/services';
+import { ApeBot } from '@/types';
 import { parseConfig } from '@/utils';
 import { useState } from 'react';
 import { useModel } from 'umi';
@@ -7,10 +8,10 @@ import { useModel } from 'umi';
 export default () => {
   const { setLoading } = useModel('global');
 
-  const [bot, setBot] = useState<Bot>();
+  const [bot, setBot] = useState<ApeBot>();
   const [botLoading, setBotLoading] = useState<boolean>(false);
 
-  const [bots, setBots] = useState<Bot[]>();
+  const [bots, setBots] = useState<ApeBot[]>();
   const [botsLoading, setBotsLoading] = useState<boolean>(false);
 
   const [chat, setChat] = useState<ChatDetails>();
@@ -23,12 +24,15 @@ export default () => {
     setLoading(true);
     setBotsLoading(true);
     const res = await api.botsGet();
-    res.data.items?.forEach(
-      (item) => (item.config = parseConfig(item.config as string)),
-    );
+
     setLoading(false);
     setBotsLoading(false);
-    setBots(res.data.items);
+    setBots(
+      res.data.items?.map((item) => ({
+        ...item,
+        config: parseConfig(item.config),
+      })),
+    );
   };
 
   // bot
@@ -36,12 +40,13 @@ export default () => {
     setLoading(true);
     setBotLoading(true);
     const res = await api.botsBotIdGet({ botId });
-    if (res.data.config) {
-      res.data.config = parseConfig(res.data.config);
-    }
+
     setLoading(false);
     setBotLoading(false);
-    setBot(res.data);
+    setBot({
+      ...res.data,
+      config: parseConfig(res.data.config),
+    });
   };
 
   // chats

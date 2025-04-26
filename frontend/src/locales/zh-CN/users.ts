@@ -4,7 +4,7 @@ export const users = {
     '管理用户身份，包括密码重置、创建和配置、禁用和删除用户。',
   'users.invite': '邀请用户',
   'users.all': '全部用户',
-  'users.invitations': '邀请用户'
+  'users.invitations': '邀请用户',
 };
 
 export const user = {

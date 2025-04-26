@@ -5,7 +5,7 @@ import {
   MODEL_PROVIDER_ICON,
   UI_COLLECTION_STATUS,
 } from '@/constants';
-import { CollectionConfig, CollectionConfigSource } from '@/types';
+import { CollectionConfigSource } from '@/types';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Avatar,
@@ -119,7 +119,7 @@ export default () => {
   if (collections === undefined) return;
 
   const _collections = collections?.filter((item) => {
-    const config = item.config as CollectionConfig;
+    const config = item.config;
     const titleMatch = searchParams?.title
       ? item.title?.includes(searchParams.title)
       : true;
@@ -142,7 +142,7 @@ export default () => {
       ) : (
         <Row gutter={[24, 24]}>
           {_collections?.map((collection) => {
-            const config = collection.config as CollectionConfig;
+            const config = collection.config;
             const embedding_model_service_provider =
               config?.embedding_model_service_provider || '';
             const embedding_model_name = config?.embedding_model_name;

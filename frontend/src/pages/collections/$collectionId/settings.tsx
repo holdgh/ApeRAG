@@ -1,4 +1,4 @@
-import { Collection } from '@/api';
+import { ApeCollection } from '@/types';
 import { Form } from 'antd';
 import _ from 'lodash';
 import { toast } from 'react-toastify';
@@ -7,11 +7,11 @@ import CollectionForm from '../_form';
 
 export default () => {
   const { formatMessage } = useIntl();
-  const [form] = Form.useForm<Collection>();
+  const [form] = Form.useForm<ApeCollection>();
   const { collection, updateCollection } = useModel('collection');
   const { setLoading } = useModel('global');
 
-  const onFinish = async (values: Collection) => {
+  const onFinish = async (values: ApeCollection) => {
     const data = _.merge(collection, values);
     setLoading(true);
     const created = await updateCollection(data);
@@ -28,7 +28,7 @@ export default () => {
   return (
     <CollectionForm
       form={form}
-      onSubmit={(values: Collection) => onFinish(values)}
+      onSubmit={(values: ApeCollection) => onFinish(values)}
       action="edit"
       values={collection}
     />

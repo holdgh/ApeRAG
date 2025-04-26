@@ -1,3 +1,5 @@
+import { Collection } from '@/api';
+
 export type CollectionConfigSource =
   | 'system'
   | 'local'
@@ -58,6 +60,13 @@ export type CollectionConfig = {
   app_secret?: string;
   space_id?: string;
 };
+
+export type ApeCollection = Merge<
+  Collection,
+  {
+    config?: CollectionConfig;
+  }
+>;
 
 export type CollectionSyncHistory = {
   id: string;

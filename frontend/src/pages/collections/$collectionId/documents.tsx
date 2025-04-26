@@ -1,4 +1,3 @@
-import { Document } from '@/api';
 import { RefreshButton } from '@/components';
 import {
   DATETIME_FORMAT,
@@ -8,7 +7,7 @@ import {
   UI_DOCUMENT_STATUS,
 } from '@/constants';
 import { getAuthorizationHeader } from '@/models/user';
-import { CollectionConfig } from '@/types';
+import { ApeDocument } from '@/types';
 import {
   DeleteOutlined,
   MoreOutlined,
@@ -58,7 +57,7 @@ export default () => {
 
   const { formatMessage } = useIntl();
 
-  const getActions = useCallback((record: Document): MenuProps['items'] => {
+  const getActions = useCallback((record: ApeDocument): MenuProps['items'] => {
     return [
       // {
       //   key: 'tags',
@@ -89,7 +88,7 @@ export default () => {
       },
     ];
   }, []);
-  const columns: TableProps<Document>['columns'] = [
+  const columns: TableProps<ApeDocument>['columns'] = [
     {
       title: formatMessage({ id: 'document.name' }),
       dataIndex: 'name',
@@ -204,10 +203,7 @@ export default () => {
     return titleMatch;
   });
 
-  const config = useMemo(
-    () => collection?.config,
-    [collection],
-  ) as CollectionConfig;
+  const config = useMemo(() => collection?.config, [collection]);
 
   return (
     <>
