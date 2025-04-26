@@ -26,10 +26,6 @@ from datasets import Dataset
 # 依赖于 question、context 和 ground truth。它衡量context是否包含了ground truth中所有必要的信息，以正确回答问题。
 # 适合确保检索系统不遗漏关键信息。例如，在医疗问答中，确保返回所有相关诊断信息。
 
-# Noise Sensitivity
-# 依赖 question、context、ground truth 和 answer
-# 用于衡量模型在处理包含噪声（无关或干扰信息）的上下文时，生成正确答案的能力。
-
 # Answer Relevance
 # 依赖于 question 和 answer
 # 用于衡量模型生成的答案与用户提问的相关性。评估模型生成的答案是否直接回答了用户的问题，而不是偏离主题或提供无关信息。
