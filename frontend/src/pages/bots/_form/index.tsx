@@ -57,8 +57,23 @@ export default ({ form, onSubmit, values, action }: Props) => {
         const children = models?.filter(
           (item) => item.family_name === familyName,
         );
+        const mod = children?.[0];
+
         return {
-          label: children?.[0]?.family_label,
+          label: (
+            <Space>
+              <Avatar
+                size={24}
+                shape="square"
+                src={
+                  mod?.family_name
+                    ? MODEL_FAMILYS_ICON[mod.family_name]
+                    : undefined
+                }
+              />
+              {mod?.family_label}
+            </Space>
+          ),
           options: children,
         };
       }),
