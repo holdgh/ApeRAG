@@ -17,6 +17,17 @@ question:
       type: string
       format: date-time
 
+questionList:
+  type: object
+  description: A list of questions
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/question'
+    pageResult:
+      $ref: './common.yaml#/pageResult'
+
 questionUpdate:
   type: object
   properties:

@@ -7,3 +7,14 @@ promptTemplate:
       type: string
     description:
       type: string
+
+promptTemplateList:
+  type: object
+  description: A list of prompt templates
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/promptTemplate'
+    pageResult:
+      $ref: './common.yaml#/pageResult'

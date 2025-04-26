@@ -36,6 +36,7 @@ diff:
 
 migrate:
 	@python manage.py makemigrations
+	@python manage.py migrate aperag
 	@python manage.py migrate
 
 run-redis:
@@ -95,8 +96,8 @@ clean:
 	@docker rm -fv aperag-es-dev > /dev/null 2>&1 || true
 
 run-frontend:
-	cp ./web/deploy/env.local.template ./web/.env
-	cd ./web && yarn install && yarn dev
+	cp ./frontend/deploy/env.local.template ./frontend/.env
+	cd ./frontend && yarn dev
 
 run-backend: migrate
 	python manage.py collectstatic --noinput

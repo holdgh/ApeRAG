@@ -18,10 +18,10 @@ from datetime import datetime
 from aperag.utils.utils import now_unix_milliseconds
 
 
-def success_response(message_id, data, issql=False):
+def success_response(message_id, data):
     return json.dumps(
         {
-            "type": "message" if not issql else "sql",
+            "type": "message",
             "id": message_id,
             "data": data,
             "timestamp": now_unix_milliseconds(),

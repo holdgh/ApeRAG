@@ -29,7 +29,7 @@ from aperag.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 from aperag.db.models import ApiKeyToken, ApiKeyStatus
 from django.core.cache import cache
 from asgiref.sync import sync_to_async
-
+from ninja.security import APIKeyCookie
 logger = logging.getLogger(__name__)
 
 DEFAULT_USER = "aperag"
@@ -69,11 +69,11 @@ class AdminAuth(HttpBearer):
         request.META[KEY_USER_ID] = settings.ADMIN_USER
         return token
 
-
 class GlobalHTTPAuth(HttpAuthBase):
     api_key_scheme: str = "api-key"
     openapi_scheme: str = "bearer"
     header: str = "Authorization"
+
     async def __call__(self, request: HttpRequest) -> Optional[Any]:
         headers = request.headers
         auth_value = headers.get(self.header)

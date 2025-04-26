@@ -160,3 +160,14 @@ collection:
     updated:
       type: string
       format: date-time
+
+collectionList:
+  type: object
+  description: A list of collections
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/collection'
+    pageResult:
+      $ref: './common.yaml#/pageResult'

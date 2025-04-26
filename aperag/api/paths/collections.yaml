@@ -21,14 +21,7 @@ collections:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/collection.yaml#/collection'
+              $ref: '../components/schemas/collection.yaml#/collectionList'
       '401':
         description: Unauthorized
         content:
@@ -53,13 +46,7 @@ collections:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/collection.yaml#/collection'
-
+              $ref: '../components/schemas/collection.yaml#/collection'
 
 collection:
   get:
@@ -79,12 +66,7 @@ collection:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/collection.yaml#/collection'
+              $ref: '../components/schemas/collection.yaml#/collection'
       '401':
         description: Unauthorized
         content:
@@ -136,12 +118,7 @@ collection:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/collection.yaml#/collection'
+              $ref: '../components/schemas/collection.yaml#/collection'
 
 documents:
   get:
@@ -171,26 +148,14 @@ documents:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/document.yaml#/document'
+              $ref: '../components/schemas/document.yaml#/documentList'
       '401':
         description: Unauthorized
         content:
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Collection not found
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
+
   post:
     summary: Create a new document
     description: Create a new document
@@ -209,25 +174,14 @@ documents:
           schema:
             $ref: '../components/schemas/document.yaml#/documentCreate'
     responses:
-      '201':
+      '200':
         description: Document created successfully
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/document.yaml#/document'
+              $ref: '../components/schemas/document.yaml#/documentList'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Collection not found
         content:
           application/json:
             schema:
@@ -256,12 +210,7 @@ document:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/document.yaml#/document'
+              $ref: '../components/schemas/document.yaml#/document'
       '401':
         description: Unauthorized
         content:
@@ -333,12 +282,7 @@ document:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/document.yaml#/document'
+              $ref: '../components/schemas/document.yaml#/document'
       '401':
         description: Unauthorized
         content:
@@ -380,22 +324,9 @@ questions:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/question.yaml#/question'
+              $ref: '../components/schemas/question.yaml#/questionList'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Collection not found
         content:
           application/json:
             schema:
@@ -414,19 +345,8 @@ questions:
     responses:
       '201':
         description: Question generation triggered successfully
-        content:
-          application/json:
-            schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Collection not found
         content:
           application/json:
             schema:
@@ -455,12 +375,7 @@ question:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/question.yaml#/question'
+              $ref: '../components/schemas/question.yaml#/question'
       '401':
         description: Unauthorized
         content:
@@ -501,12 +416,7 @@ question:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/question.yaml#/question'
+              $ref: '../components/schemas/question.yaml#/question'
       '401':
         description: Unauthorized
         content:

@@ -126,15 +126,16 @@ class KnowledgePipeline(Pipeline):
     async def build_context(self, query_with_history: str, vector: List[float], log_prefix: str) -> Tuple[str, List[DocumentWithScore]]:
         vector_context = None
         kg_context = None
+        candidates = []
         if settings.RETRIEVE_MODE in ["classic", "mix"]:
-            vector_context = await self._run_classic_rag(query_with_history, vector, log_prefix)
+            vector_context, candidates = await self._run_classic_rag(query_with_history, vector, log_prefix)
         if settings.RETRIEVE_MODE in ["local", "global", "hybrid", "graph", "mix"]:
             kg_context = await self._run_light_rag(query_with_history, log_prefix)
 
         if settings.RETRIEVE_MODE in ["classic"] or kg_context is None:
-            return vector_context
+            return vector_context, candidates
         elif settings.RETRIEVE_MODE in ["local", "global", "hybrid", "graph"] or vector_context is None:
-            return kg_context
+            return kg_context, []
         else:
             context = f"""
             1. From Knowledge Graph(KG):
@@ -143,7 +144,7 @@ class KnowledgePipeline(Pipeline):
             2. From Document Chunks(DC):
             {vector_context}
             """.strip()
-            return context
+            return context, []
 
     async def _run_classic_rag(self, query_with_history: str, vector: List[float], log_prefix: str) -> Tuple[str, List[DocumentWithScore]]:
         """
@@ -253,7 +254,7 @@ class KnowledgePipeline(Pipeline):
             logger.info("[%s] No high-confidence answer in QA cache, proceeding with RAG pipeline", log_prefix)
 
             # --- 3a. Choose and Run RAG method(s) ---
-            context = await self.build_context(query_with_history, vector, log_prefix)
+            context, candidates = await self.build_context(query_with_history, vector, log_prefix)
 
             # --- 3b. Handle No Context Found ---
             if not context:

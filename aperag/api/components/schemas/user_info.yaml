@@ -1,5 +1,0 @@
-user_info:
-  type: object
-  properties:
-    is_admin:
-      type: boolean

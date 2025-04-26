@@ -162,8 +162,11 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 # CSRF
 CSRF_TRUSTED_ORIGINS = ["https://*.kubeblocks.io", "https://*.apecloud.com"]
 
+SESSION_COOKIE_NAME = env.str("SESSION_COOKIE_NAME", default="sessionid")
+
 # Auth
 AUTH_TYPE = env.str("AUTH_TYPE", default="none")
+AUTH_USER_MODEL = 'aperag.User'
 
 # Load Auth0 application settings into memory
 AUTH0_DOMAIN = env.str("AUTH0_DOMAIN", default="aperag-dev.auting.cn")
@@ -363,4 +366,16 @@ PADDLEOCR_HOST = env.str("PADDLEOCR_HOST", default="http://paddleocr-hubserving-
 
 ADMIN_USER = env.str("ADMIN_USER", default="aperag")
 ADMIN_TOKEN = env.str("ADMIN_TOKEN", default="")
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env.str('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env.str('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env.str('DEFAULT_FROM_EMAIL', default='noreply@aperag.com')
+SITE_URL = env.str('SITE_URL', default='http://localhost:8000')
+
+REGISTER_MODE = env.str('REGISTER_MODE', default='unlimited')
 

@@ -5,8 +5,13 @@ chat:
       type: string
     title:
       type: string
-    collection_id:
+    bot_id:
       type: string
+    peer_id:
+      type: string
+    peer_type:
+      type: string
+      enum: [system, feishu, weixin, weixin_official, web, dingtalk]
     status:
       type: string
       enum: [active, archived]
@@ -17,12 +22,94 @@ chat:
       type: string
       format: date-time
 
+reference:
+  type: object
+  properties:
+    score:
+      type: number
+    text:
+      type: string
+    metadata:
+      type: object
+
+chatMessage:
+  type: object
+  properties:
+    id:
+      type: string
+    type:
+      type: string
+      enum: [welcome, message, start, stop, error]
+    timestamp:
+      type: number
+    role:
+      type: string
+      enum: [human, ai]
+    data:
+      type: string
+    references:
+      type: array
+      items:
+        $ref: '#/reference'
+    urls:
+      type: array
+      items:
+        type: string
+    upvote:
+      type: number
+    downvote:
+      type: number
+    revised_answer:
+      type: string
+    feed_back_status:
+      type: string
+      enum: [PENDING, RUNNING, COMPLETE, FAILED]
+
+chatDetails:
+  type: object
+  properties:
+    id:
+      type: string
+    title:
+      type: string
+    bot_id:
+      type: string
+    peer_id:
+      type: string
+    peer_type:
+      type: string
+      enum: [system, feishu, weixin, weixin_official, web, dingtalk]
+    history:
+      type: array
+      items:
+        $ref: '#/chatMessage'
+    status:
+      type: string
+      enum: [active, archived]
+    created:
+      type: string
+      format: date-time
+    updated:
+      type: string
+      format: date-time
+
+chatList:
+  type: object
+  description: A list of chats
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/chat'
+    pageResult:
+      $ref: './common.yaml#/pageResult'
+
 chatCreate:
   type: object
   properties:
     title:
       type: string
-    collection_id:
+    bot_id:
       type: string
 
 chatUpdate:
@@ -30,9 +117,6 @@ chatUpdate:
   properties:
     title:
       type: string
-    status:
-      type: string
-      enum: [active, archived]
 
 message:
   type: object
@@ -49,6 +133,17 @@ message:
     created:
       type: string
       format: date-time
+
+messageList:
+  type: object
+  description: A list of messages
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/message'
+    pageResult:
+      $ref: './common.yaml#/pageResult'
 
 messageCreate:
   type: object

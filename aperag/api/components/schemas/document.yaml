@@ -30,6 +30,16 @@ document:
       items:
         type: string
 
+documentList:
+  type: object
+  description: A list of documents
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/document'
+    pageResult:
+      $ref: './common.yaml#/pageResult'
 
 documentCreate:
   type: object

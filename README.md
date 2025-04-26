@@ -15,7 +15,7 @@ ApeRAG is a powerful RAG system that deeply analyzes documents and multimedia co
 1. Configure environment variables:
    ```bash
    cp envs/env.template .env
-   cp web/deploy/env.local.template web/.env
+   cp frontend/deploy/env.local.template frontend/.env
    ```
 
    **Then edit the `.env` file to configure your AI service settings.**
@@ -40,7 +40,7 @@ ApeRAG is a powerful RAG system that deeply analyzes documents and multimedia co
    docker compose up --build -d
    ```
 
-5. Access the services: http://localhost:8001/web/
+5. Access the services: http://localhost:3000/web/
 
 ## License
 
@@ -93,6 +93,8 @@ source .venv/bin/activate
 ```
 
 ```
+# The node engine version should be ">=20"
+
 make run-backend
 ```
 
@@ -116,4 +118,4 @@ To debug celery service, see [HOW-TO-DEBUG.md](docs%2FHOW-TO-DEBUG.md)
 make run-frontend
 ```
 
-then open the aperag frontend console: http://localhost:8001
+then open the aperag frontend console: http://localhost:3000

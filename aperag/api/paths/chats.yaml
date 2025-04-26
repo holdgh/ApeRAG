@@ -5,7 +5,7 @@ chats:
     security:
       - BearerAuth: []
     parameters:
-      - name: collection_id
+      - name: bot_id
         in: path
         required: true
         schema:
@@ -26,22 +26,9 @@ chats:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/chat.yaml#/chat'
+              $ref: '../components/schemas/chat.yaml#/chatList'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Collection not found
         content:
           application/json:
             schema:
@@ -52,7 +39,7 @@ chats:
     security:
       - BearerAuth: []
     parameters:
-      - name: collection_id
+      - name: bot_id
         in: path
         required: true
         schema:
@@ -69,20 +56,9 @@ chats:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/chat.yaml#/chat'
+              $ref: '../components/schemas/chat.yaml#/chat'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Collection not found
         content:
           application/json:
             schema:
@@ -95,7 +71,7 @@ chat:
     security:
       - BearerAuth: []
     parameters:
-      - name: collection_id
+      - name: bot_id
         in: path
         required: true
         schema:
@@ -111,12 +87,7 @@ chat:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/chat.yaml#/chat'
+              $ref: '../components/schemas/chat.yaml#/chatDetails'
       '401':
         description: Unauthorized
         content:
@@ -135,7 +106,7 @@ chat:
     security:
       - BearerAuth: []
     parameters:
-      - name: collection_id
+      - name: bot_id
         in: path
         required: true
         schema:
@@ -157,12 +128,7 @@ chat:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/chat.yaml#/chat'
+              $ref: '../components/schemas/chat.yaml#/chat'
       '401':
         description: Unauthorized
         content:
@@ -181,7 +147,7 @@ chat:
     security:
       - BearerAuth: []
     parameters:
-      - name: collection_id
+      - name: bot_id
         in: path
         required: true
         schema:
@@ -240,22 +206,9 @@ messages:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/chat.yaml#/message'
+              $ref: '../components/schemas/chat.yaml#/messageList'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Chat not found
         content:
           application/json:
             schema:
@@ -288,20 +241,9 @@ messages:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '../components/schemas/chat.yaml#/message'
+              $ref: '../components/schemas/chat.yaml#/message'
       '401':
         description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-      '404':
-        description: Chat not found
         content:
           application/json:
             schema:
@@ -315,21 +257,15 @@ web_chats:
       - name: bot_id
         in: path
         required: true
-        type: string
+        schema:
+          type: string
     responses:
       '200':
         description: A list of web chats
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/chat.yaml#/chat'
+              $ref: '../components/schemas/chat.yaml#/chatList'
   post:
     summary: Create a new web chat
     description: Create a new web chat
@@ -337,7 +273,8 @@ web_chats:
       - name: bot_id
         in: path
         required: true
-        type: string
+        schema:
+          type: string
     responses:
       '200':
         description: A web chat   
@@ -350,18 +287,20 @@ web_chat:
       - name: bot_id
         in: path
         required: true
-        type: string
+        schema:
+          type: string
       - name: chat_id
         in: path
         required: true
-        type: string
+        schema:
+          type: string
     responses:
       '200':
         description: A web chat
         content:
           application/json:
             schema:
-              $ref: '../components/schemas/chat.yaml#/chat'
+              $ref: '../components/schemas/chat.yaml#/chatDetails'
   put:
     summary: Update a web chat
     description: Update a web chat
@@ -369,11 +308,13 @@ web_chat:
       - name: bot_id
         in: path
         required: true
-        type: string
+        schema:
+          type: string
       - name: chat_id
         in: path
         required: true
-        type: string
+        schema:
+          type: string
     responses:
       '200':
         description: A web chat

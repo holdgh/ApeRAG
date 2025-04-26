@@ -8,14 +8,110 @@ models:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '../components/schemas/common.yaml#/successResponse'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '../components/schemas/model.yaml#/model'
+              $ref: '../components/schemas/model.yaml#/modelList'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+availableEmbeddings:
+  get:
+    summary: Get available embeddings
+    description: Get available embeddings
+    responses:
+      '200':
+        description: Available embeddings
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/model.yaml#/availableEmbeddingList'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+modelServiceProvider:
+  put:
+    summary: Update model service provider
+    description: Update model service provider
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/model.yaml#/modelServiceProviderUpdate'
+    responses:
+      '200':
+        description: Model service provider
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+  delete:
+    summary: Delete model service provider
+    description: Delete model service provider
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Model service provider
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '404':
+        description: Model service provider not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+modelServiceProviders:
+  get:
+    summary: Get model service providers
+    description: Get model service providers
+    responses:
+      '200':
+        description: Model service providers
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/model.yaml#/modelServiceProviderList'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+supportedModelServiceProviders:
+  get:
+    summary: Get supported model service providers
+    description: Get supported model service providers
+    responses:
+      '200':
+        description: Supported model service providers
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/model.yaml#/supportedModelServiceProviderList'
       '401':
         description: Unauthorized
         content:

@@ -16,31 +16,42 @@ import json
 
 from ninja import Router
 
-from aperag.db.ops import query_config
+from aperag.db.ops import query_config, query_first_user_exists
 from aperag.views.utils import success
+from aperag.views.models import Config, Auth, Auth0, Authing, Logto
 from config import settings
 
 router = Router()
 
 
 @router.get("")
-def config(request):
-    auth = {
-        "type": settings.AUTH_TYPE,
-    }
-
+async def config(request) -> Config:
+    auth = Auth(
+        type=settings.AUTH_TYPE,
+    )
     match settings.AUTH_TYPE:
         case "auth0":
-            auth["auth_domain"] = settings.AUTH0_DOMAIN
-            auth["auth_app_id"] = settings.AUTH0_CLIENT_ID
+            auth.auth0 = Auth0(
+                auth_domain=settings.AUTH0_DOMAIN,
+                auth_app_id=settings.AUTH0_CLIENT_ID,
+            )
         case "authing":
-            auth["auth_domain"] = settings.AUTHING_DOMAIN
-            auth["auth_app_id"] = settings.AUTHING_APP_ID
+            auth.authing = Authing(
+                auth_domain=settings.AUTHING_DOMAIN,
+                auth_app_id=settings.AUTHING_APP_ID,
+            )
         case "logto":
-            auth["auth_domain"] = "http://" + settings.LOGTO_DOMAIN
-            auth["auth_app_id"] = settings.LOGTO_APP_ID
+            auth.logto = Logto(
+                auth_domain="http://" + settings.LOGTO_DOMAIN,
+                auth_app_id=settings.LOGTO_APP_ID,
+            )
+        case "cookie":
+            pass
+        case _:
+            raise ValueError(f"Unsupported auth type: {settings.AUTH_TYPE}")
 
-    values = query_config(key="public_ips")
-    public_ips = json.loads(values)
-
-    return success({"auth": auth, "public_ips": public_ips})
+    result = Config(
+        auth=auth,
+        admin_user_exists=await query_first_user_exists(),
+    )
+    return success(result)
