@@ -1,13 +1,11 @@
+import { Navbar, NavbarBody, NavbarHeader } from '@/components';
 import { Menu, MenuProps } from 'antd';
 import { useMemo } from 'react';
-import { FormattedMessage, history, Outlet, useIntl, useLocation } from 'umi';
-import { BodyContainer } from './body';
-import { Navbar, NavbarBody, NavbarHeader } from './navbar';
-import Sidebar from './sidebar';
+import { FormattedMessage, history, useIntl, useLocation } from 'umi';
 
 type MenuItem = Required<MenuProps>['items'][number];
 
-export default () => {
+export const NavbarSettings = () => {
   const location = useLocation();
   const { formatMessage } = useIntl();
   const menuItems = useMemo(
@@ -26,7 +24,6 @@ export default () => {
 
   return (
     <>
-      <Sidebar />
       <Navbar>
         <NavbarHeader title={formatMessage({ id: 'system.management' })} />
         <NavbarBody>
@@ -43,9 +40,6 @@ export default () => {
           />
         </NavbarBody>
       </Navbar>
-      <BodyContainer sidebar={true} navbar={true}>
-        <Outlet />
-      </BodyContainer>
     </>
   );
 };

@@ -8,6 +8,7 @@ import {
   UI_DOCUMENT_STATUS,
 } from '@/constants';
 import { getAuthorizationHeader } from '@/models/user';
+import { CollectionConfig } from '@/types';
 import {
   DeleteOutlined,
   MoreOutlined,
@@ -203,6 +204,11 @@ export default () => {
     return titleMatch;
   });
 
+  const config = useMemo(
+    () => collection?.config,
+    [collection],
+  ) as CollectionConfig;
+
   return (
     <>
       <Space
@@ -226,7 +232,7 @@ export default () => {
           value={searchParams?.name}
         />
         <Space>
-          {collection?.config?.source === 'system' ? (
+          {config?.source === 'system' ? (
             <Upload {...uploadProps}>
               <Button type="primary">
                 <FormattedMessage id="document.upload" />

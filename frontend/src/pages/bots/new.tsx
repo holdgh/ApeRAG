@@ -3,20 +3,24 @@ import { PageContainer, PageHeader } from '@/components';
 import { api } from '@/services';
 import { stringifyConfig } from '@/utils';
 import { Card, Form } from 'antd';
-import { history, useIntl } from 'umi';
+import { history, useIntl, useModel } from 'umi';
 import BotForm from './_form';
 
 export default () => {
   const { formatMessage } = useIntl();
   const [form] = Form.useForm<Bot>();
 
+  const { setLoading } = useModel('global');
+
   const onFinish = async (values: Bot) => {
+    setLoading(true);
     const botRes = await api.botsPost({
       botCreate: {
         ...values,
         config: stringifyConfig(values.config),
       },
     });
+    setLoading(false);
     if (botRes.data.id) {
       await api.botsBotIdChatsPost({
         botId: botRes.data.id,

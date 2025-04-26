@@ -2,7 +2,11 @@ import { Bot, CollectionStatusEnum } from '@/api';
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, RefreshButton } from '@/components';
-import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
+import {
+  MODEL_FAMILYS_ICON,
+  MODEL_PROVIDER_ICON,
+  UI_COLLECTION_STATUS,
+} from '@/constants';
 import { BotConfig, CollectionConfig } from '@/types';
 import {
   Avatar,
@@ -38,6 +42,8 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const { collections, collectionsLoading, getCollections } =
     useModel('collection');
   const { models, promptTemplates, getPromptTemplates } = useModel('models');
+  const { loading } = useModel('global');
+
   const { token } = theme.useToken();
 
   const onFinish = async () => {
@@ -51,8 +57,23 @@ export default ({ form, onSubmit, values, action }: Props) => {
         const children = models?.filter(
           (item) => item.family_name === familyName,
         );
+        const mod = children?.[0];
+
         return {
-          label: children?.[0]?.family_label,
+          label: (
+            <Space>
+              <Avatar
+                size={24}
+                shape="square"
+                src={
+                  mod?.family_name
+                    ? MODEL_FAMILYS_ICON[mod.family_name]
+                    : undefined
+                }
+              />
+              {mod?.family_label}
+            </Space>
+          ),
           options: children,
         };
       }),
@@ -223,7 +244,29 @@ export default ({ form, onSubmit, values, action }: Props) => {
                 },
               ]}
             >
-              <Select options={modelOptions} />
+              <Select
+                options={modelOptions}
+                labelRender={({ label, value }) => {
+                  const mod = models?.find((m) => m.value === value);
+                  return (
+                    <Space>
+                      <Avatar
+                        size={24}
+                        shape="square"
+                        src={
+                          mod?.family_name
+                            ? MODEL_FAMILYS_ICON[mod.family_name]
+                            : undefined
+                        }
+                        style={{
+                          transform: 'translateY(-1px)',
+                        }}
+                      />
+                      {label}
+                    </Space>
+                  );
+                }}
+              />
             </Form.Item>
           </Col>
           <Col
@@ -730,7 +773,12 @@ export default ({ form, onSubmit, values, action }: Props) => {
         <br />
         <Divider />
         <div style={{ textAlign: 'right' }}>
-          <Button style={{ minWidth: 160 }} type="primary" htmlType="submit">
+          <Button
+            loading={loading}
+            style={{ minWidth: 160 }}
+            type="primary"
+            htmlType="submit"
+          >
             <FormattedMessage
               id={action !== 'add' ? 'action.update' : 'action.save'}
             />

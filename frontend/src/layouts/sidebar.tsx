@@ -1,15 +1,17 @@
 import { SIDEBAR_WIDTH, TOPBAR_HEIGHT } from '@/constants';
-import { GlobalToken, theme, Tooltip } from 'antd';
+import { getLogo } from '@/utils';
+import { GlobalToken, Image, theme, Tooltip } from 'antd';
 import { BsChatText, BsFiletypeDoc, BsGear } from 'react-icons/bs';
-import { css, Link, styled, useIntl, useLocation } from 'umi';
+import { css, Link, styled, useIntl, useLocation, useModel } from 'umi';
 import UrlPattern from 'url-pattern';
 
 const StyledSidebar = styled('aside').withConfig({
-  shouldForwardProp: (prop) => !['token'].includes(prop),
+  shouldForwardProp: (prop) => !['token', 'topbar'].includes(prop),
 })<{
   token: GlobalToken;
+  topbar: boolean;
 }>`
-  ${({ token }) => {
+  ${({ token, topbar }) => {
     return css`
       width: ${SIDEBAR_WIDTH}px;
       overflow: auto;
@@ -17,7 +19,7 @@ const StyledSidebar = styled('aside').withConfig({
       position: fixed;
       text-align: center;
       left: 0px;
-      top: ${TOPBAR_HEIGHT}px;
+      top: ${topbar ? TOPBAR_HEIGHT : 0}px;
       bottom: 0;
       z-index: ${token.zIndexPopupBase};
       display: flex;
@@ -66,10 +68,10 @@ const StyledSidebarLink = styled(Link).withConfig({
   }}
 `;
 
-export default () => {
+export const Sidebar = ({ topbar }: { topbar: boolean }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-
+  const { themeName } = useModel('global');
   const location = useLocation();
 
   const sidebar_items = [
@@ -86,23 +88,38 @@ export default () => {
   ];
 
   return (
-    <StyledSidebar token={token}>
+    <StyledSidebar token={token} topbar={topbar}>
       <div>
-        {sidebar_items.map((item, index) => {
-          const pattern = new UrlPattern(`${item.path}*`);
-          const active = pattern.match(location.pathname);
-          return (
-            <StyledSidebarLink
-              key={index}
-              token={token}
-              active={active}
-              to={item.path}
-            >
-              {item.icon}
-              <div>{item.label}</div>
-            </StyledSidebarLink>
-          );
-        })}
+        {!topbar && (
+          <Link
+            to="/"
+            style={{ marginTop: 12, marginBottom: 19, display: 'block' }}
+          >
+            <Image
+              style={{ height: 25, width: 30, marginLeft: 2 }}
+              src={getLogo(themeName)}
+              preview={false}
+            />
+          </Link>
+        )}
+
+        <div>
+          {sidebar_items.map((item, index) => {
+            const pattern = new UrlPattern(`${item.path}*`);
+            const active = pattern.match(location.pathname);
+            return (
+              <StyledSidebarLink
+                key={index}
+                token={token}
+                active={active}
+                to={item.path}
+              >
+                {item.icon}
+                <div>{item.label}</div>
+              </StyledSidebarLink>
+            );
+          })}
+        </div>
       </div>
       <Tooltip
         title={formatMessage({ id: 'action.settings' })}

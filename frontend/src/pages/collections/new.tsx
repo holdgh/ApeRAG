@@ -6,11 +6,12 @@ import { stringifyConfig } from '@/utils';
 import { Form } from 'antd';
 import _ from 'lodash';
 import { toast } from 'react-toastify';
-import { history, useIntl } from 'umi';
+import { history, useIntl, useModel } from 'umi';
 import CollectionForm from './_form';
 
 export default () => {
   const { formatMessage } = useIntl();
+  const { setLoading } = useModel('global');
   const [form] = Form.useForm<Collection>();
 
   const onFinish = async (values: Collection) => {
@@ -23,8 +24,9 @@ export default () => {
     );
 
     data.config = stringifyConfig(data.config) as string;
+    setLoading(true);
     const res = await api.collectionsPost({ collectionCreate: data });
-
+    setLoading(false);
     if (res.data.id) {
       toast.success(formatMessage({ id: 'tips.create.success' }));
       history.push(`/collections/${res.data.id}/documents`);

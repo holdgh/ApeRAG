@@ -1,5 +1,6 @@
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { MODEL_FAMILYS_ICON } from '@/constants';
+import { BotConfig } from '@/types';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Avatar,
@@ -52,11 +53,12 @@ export default () => {
   const _bots = useMemo(
     () =>
       bots?.filter((item) => {
+        const config = item.config as unknown as BotConfig;
         const titleMatch = searchParams?.title
           ? item.title?.includes(searchParams.title)
           : true;
         const modelMatch = searchParams?.model
-          ? item.config?.model === searchParams.model
+          ? config?.model === searchParams.model
           : true;
         return titleMatch && modelMatch;
       }),
@@ -128,9 +130,8 @@ export default () => {
       ) : (
         <Row gutter={[24, 24]}>
           {_bots?.map((bot) => {
-            const model = models?.find(
-              (item) => item.value === bot.config?.model,
-            );
+            const config = bot.config as unknown as BotConfig;
+            const model = models?.find((item) => item.value === config?.model);
             const modelIcon = model?.family_name
               ? MODEL_FAMILYS_ICON[model.family_name]
               : undefined;
