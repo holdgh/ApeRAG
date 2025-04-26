@@ -38,6 +38,8 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const { collections, collectionsLoading, getCollections } =
     useModel('collection');
   const { models, promptTemplates, getPromptTemplates } = useModel('models');
+  const { loading } = useModel('global');
+
   const { token } = theme.useToken();
 
   const onFinish = async () => {
@@ -730,7 +732,12 @@ export default ({ form, onSubmit, values, action }: Props) => {
         <br />
         <Divider />
         <div style={{ textAlign: 'right' }}>
-          <Button style={{ minWidth: 160 }} type="primary" htmlType="submit">
+          <Button
+            loading={loading}
+            style={{ minWidth: 160 }}
+            type="primary"
+            htmlType="submit"
+          >
             <FormattedMessage
               id={action !== 'add' ? 'action.update' : 'action.save'}
             />

@@ -39,6 +39,10 @@ export default () => {
   const { botId, chatId } = useParams();
   const [renameVisible, setRenameVisible] = useState<boolean>();
   const { bot, chats, getBot, setBot, setChats, getChats } = useModel('bot');
+  const { loading, setLoading } = useModel('global');
+
+  const [chatLoading, setChatLoading] = useState<boolean>(false);
+
   const location = useLocation();
   const { formatMessage } = useIntl();
   const [modal, contextHolder] = Modal.useModal();
@@ -55,10 +59,13 @@ export default () => {
       ),
       okButtonProps: {
         danger: true,
+        loading,
       },
     });
     if (confirmed) {
+      setLoading(true);
       const res = await api.botsBotIdDelete({ botId });
+      setLoading(false);
       if (res.status === 200) {
         history.push('/bots');
       }
@@ -67,12 +74,14 @@ export default () => {
 
   const onCreateChat = useCallback(async () => {
     if (botId) {
+      setChatLoading(true);
       const res = await api.botsBotIdChatsPost({
         botId,
         chatCreate: {
           title: '',
         },
       });
+      setChatLoading(false);
       if (res.status === 200 && res?.data.id) {
         setChats((cs) => cs?.concat(res.data));
         history.push(`/bots/${botId}/chats/${res.data.id}`);
@@ -82,15 +91,17 @@ export default () => {
 
   const onRenameChat = useCallback(async () => {
     const data = await form.validateFields();
-    if (!data?.id || !botId) return;
+    if (!data?.id || !data?.bot_id) return;
 
+    setChatLoading(true);
     await api.botsBotIdChatsChatIdPut({
-      botId,
+      botId: data.bot_id,
       chatId: data.id,
       chatUpdate: data,
     });
+    setChatLoading(false);
 
-    await getChats(botId);
+    await getChats(data.bot_id);
 
     setRenameVisible(false);
   }, []);
@@ -103,13 +114,16 @@ export default () => {
         content: formatMessage({ id: 'chat.delete.confirm' }),
         okButtonProps: {
           danger: true,
+          loading,
         },
       });
       if (!confirmed) return;
+      setChatLoading(true);
       const res = await api.botsBotIdChatsChatIdDelete({
         botId,
         chatId: item.id,
       });
+      setChatLoading(false);
       if (res.status === 200) {
         const data = chats?.filter((c) => c.id !== item.id) || [];
         setChats(data);
@@ -124,7 +138,7 @@ export default () => {
     [botId, chatId, chats],
   );
 
-  const menuItems = useMemo((): MenuItem[] => {
+  const chatMenuItems = useMemo((): MenuItem[] => {
     return [
       {
         key: 'chat',
@@ -144,6 +158,7 @@ export default () => {
               <Button
                 type="text"
                 icon={<PlusOutlined />}
+                loading={chatLoading}
                 onClick={() => onCreateChat()}
                 style={{
                   transform: 'translateX(8px)',
@@ -210,28 +225,8 @@ export default () => {
           };
         }),
       },
-      {
-        label: formatMessage({ id: 'action.settings' }),
-        key: `/bots/${botId}/settings`,
-        type: 'group',
-        children: [
-          {
-            label: formatMessage({ id: 'flow.settings' }),
-            key: `/bots/${botId}/flow`,
-          },
-          {
-            label: formatMessage({ id: 'bot.settings' }),
-            key: `/bots/${botId}/settings`,
-          },
-          {
-            label: formatMessage({ id: 'text.integrations' }),
-            key: `/bots/${botId}/integrations`,
-            disabled: true,
-          },
-        ],
-      },
     ];
-  }, [botId, chats, onCreateChat, onDeleteChat, onRenameChat]);
+  }, [botId, chats, chatLoading, onCreateChat, onDeleteChat, onRenameChat]);
 
   useEffect(() => {
     if (botId) {
@@ -261,6 +256,7 @@ export default () => {
               <Button
                 type="text"
                 danger
+                loading={loading}
                 icon={<DeleteOutlined />}
                 onClick={() => onDeleteBot()}
               />
@@ -271,7 +267,39 @@ export default () => {
               onClick={({ key }) => history.push(key)}
               mode="inline"
               selectedKeys={[location.pathname]}
-              items={menuItems}
+              items={chatMenuItems}
+              style={{
+                padding: 0,
+                background: 'none',
+                border: 'none',
+              }}
+            />
+            <Menu
+              onClick={({ key }) => history.push(key)}
+              mode="inline"
+              selectedKeys={[location.pathname]}
+              items={[
+                {
+                  label: formatMessage({ id: 'action.settings' }),
+                  key: `/bots/${botId}/settings`,
+                  type: 'group',
+                  children: [
+                    {
+                      label: formatMessage({ id: 'flow.settings' }),
+                      key: `/bots/${botId}/flow`,
+                    },
+                    {
+                      label: formatMessage({ id: 'bot.settings' }),
+                      key: `/bots/${botId}/settings`,
+                    },
+                    {
+                      label: formatMessage({ id: 'text.integrations' }),
+                      key: `/bots/${botId}/integrations`,
+                      disabled: true,
+                    },
+                  ],
+                },
+              ]}
               style={{
                 padding: 0,
                 background: 'none',
@@ -292,10 +320,16 @@ export default () => {
         onOk={() => onRenameChat()}
         title={formatMessage({ id: 'action.rename' })}
         onCancel={() => setRenameVisible(false)}
+        okButtonProps={{
+          loading: chatLoading,
+        }}
       >
         <Divider />
         <Form autoComplete="off" layout="vertical" form={form}>
           <FormItem name="id" hidden>
+            <Input />
+          </FormItem>
+          <FormItem name="bot_id" hidden>
             <Input />
           </FormItem>
           <FormItem

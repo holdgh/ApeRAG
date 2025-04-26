@@ -17,7 +17,7 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BsRobot } from 'react-icons/bs';
 
 import { useIntl, useModel } from 'umi';
@@ -48,25 +48,26 @@ export default () => {
     [providerName],
   );
 
-  const getSupportedModelProviders = async () => {
+  const getSupportedModelProviders = useCallback(async () => {
     setLoading(true);
     const res = await api.supportedModelServiceProvidersGet();
     setSupportedModelProviders(res.data.items);
     setLoading(false);
-  };
-  const getModelProviders = async () => {
+  }, []);
+
+  const getModelProviders = useCallback(async () => {
     setLoading(true);
     const res = await api.modelServiceProvidersGet();
     setModelProviders(res.data.items);
     setLoading(false);
-  };
+  }, []);
 
-  const onEditProvider = async (item: ListModelProvider) => {
+  const onEditProvider = useCallback(async (item: ListModelProvider) => {
     setVisible(true);
     form.setFieldsValue(item);
-  };
+  }, []);
 
-  const onUpdateProvider = async () => {
+  const onUpdateProvider = useCallback(async () => {
     setLoading(true);
     const provider = await form.validateFields();
     if (!provider.name) return;
@@ -77,101 +78,109 @@ export default () => {
     await getModelProviders();
     setVisible(false);
     setLoading(false);
-  };
+  }, []);
 
-  const onToggleProvider = async (enable: boolean, item: ListModelProvider) => {
-    if (!item.name) return;
+  const onToggleProvider = useCallback(
+    async (enable: boolean, item: ListModelProvider) => {
+      if (!item.name) return;
 
-    if (enable) {
-      // add model service provider
-      await onEditProvider(item);
-    } else {
-      // delete model service provider
-      const confirmed = await modal.confirm({
-        title: formatMessage({ id: 'action.confirm' }),
-        content: formatMessage(
-          { id: 'model.provider.disable.confirm' },
-          { label: item.label },
-        ),
-        okButtonProps: {
-          danger: true,
-        },
-      });
-      if (confirmed) {
-        setLoading(true);
-        await api.modelServiceProvidersProviderDelete({ provider: item.name });
-        await getModelProviders();
-        setLoading(false);
+      if (enable) {
+        // add model service provider
+        await onEditProvider(item);
+      } else {
+        // delete model service provider
+        const confirmed = await modal.confirm({
+          title: formatMessage({ id: 'action.confirm' }),
+          content: formatMessage(
+            { id: 'model.provider.disable.confirm' },
+            { label: item.label },
+          ),
+          okButtonProps: {
+            danger: true,
+          },
+        });
+        if (confirmed) {
+          setLoading(true);
+          await api.modelServiceProvidersProviderDelete({
+            provider: item.name,
+          });
+          await getModelProviders();
+          setLoading(false);
+        }
       }
-    }
-  };
+    },
+    [onEditProvider, getModelProviders],
+  );
 
-  const columns: TableProps<ListModelProvider>['columns'] = [
-    {
-      title: formatMessage({ id: 'model.provider' }),
-      dataIndex: 'label',
-      render: (value, record) => {
-        return (
-          <Space>
-            <Avatar
-              shape="square"
-              src={MODEL_PROVIDER_ICON[record.name || '']}
-              icon={<BsRobot />}
-            />
-            <Typography.Text type={record.enabled ? undefined : 'secondary'}>
-              {value}
-            </Typography.Text>
-          </Space>
-        );
-      },
-    },
-    {
-      title: formatMessage({ id: 'model.provider.uri' }),
-      dataIndex: 'base_url',
-      render: (value, record) => (
-        <Typography.Text type={record.enabled ? undefined : 'secondary'}>
-          {value}
-        </Typography.Text>
-      ),
-    },
-    {
-      title: formatMessage({ id: 'model.provider.api_key' }),
-      dataIndex: 'api_key',
-      render: (value, record) => (
-        <Typography.Text type={record.enabled ? undefined : 'secondary'}>
-          {value ? '************' : ''}
-        </Typography.Text>
-      ),
-    },
-    {
-      title: formatMessage({ id: 'action.name' }),
-      render: (value, record) => {
-        return (
-          <Space split={<Divider type="vertical" />}>
-            <Tooltip
-              title={formatMessage({
-                id: record.enabled
-                  ? 'model.provider.disable'
-                  : 'model.provider.enable',
-              })}
-            >
-              <Switch
-                size="small"
-                checked={record.enabled}
-                onChange={(v) => onToggleProvider(v, record)}
+  const columns: TableProps<ListModelProvider>['columns'] = useMemo(
+    () => [
+      {
+        title: formatMessage({ id: 'model.provider' }),
+        dataIndex: 'label',
+        render: (value, record) => {
+          return (
+            <Space>
+              <Avatar
+                shape="square"
+                src={MODEL_PROVIDER_ICON[record.name || '']}
+                icon={<BsRobot />}
               />
-            </Tooltip>
-            <Button
-              disabled={!record.enabled}
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => onEditProvider(record)}
-            />
-          </Space>
-        );
+              <Typography.Text type={record.enabled ? undefined : 'secondary'}>
+                {value}
+              </Typography.Text>
+            </Space>
+          );
+        },
       },
-    },
-  ];
+      {
+        title: formatMessage({ id: 'model.provider.uri' }),
+        dataIndex: 'base_url',
+        render: (value, record) => (
+          <Typography.Text type={record.enabled ? undefined : 'secondary'}>
+            {value}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: formatMessage({ id: 'model.provider.api_key' }),
+        dataIndex: 'api_key',
+        render: (value, record) => (
+          <Typography.Text type={record.enabled ? undefined : 'secondary'}>
+            {value ? '************' : ''}
+          </Typography.Text>
+        ),
+      },
+      {
+        title: formatMessage({ id: 'action.name' }),
+        render: (value, record) => {
+          return (
+            <Space split={<Divider type="vertical" />}>
+              <Tooltip
+                title={formatMessage({
+                  id: record.enabled
+                    ? 'model.provider.disable'
+                    : 'model.provider.enable',
+                })}
+              >
+                <Switch
+                  size="small"
+                  checked={record.enabled}
+                  onChange={(v) => onToggleProvider(v, record)}
+                />
+              </Tooltip>
+              <Button
+                disabled={!record.enabled}
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => onEditProvider(record)}
+              />
+            </Space>
+          );
+        },
+      },
+    ],
+    [onToggleProvider, onEditProvider],
+  );
 
   const listModelProviders: ListModelProvider[] = useMemo(
     () =>

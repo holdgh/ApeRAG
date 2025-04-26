@@ -1,5 +1,6 @@
 import { PageContainer, PageHeader } from '@/components';
 import { DATETIME_FORMAT, UI_COLLECTION_STATUS } from '@/constants';
+import { CollectionConfig } from '@/types';
 import { DeleteOutlined } from '@ant-design/icons';
 import {
   Badge,
@@ -117,6 +118,11 @@ export default () => {
     return () => setCollection(undefined);
   }, [collectionId]);
 
+  const config = useMemo(
+    () => collection?.config,
+    [collection],
+  ) as CollectionConfig;
+
   return (
     <>
       {contextHolder}
@@ -138,7 +144,7 @@ export default () => {
                     <Tooltip title={formatMessage({ id: 'collection.source' })}>
                       <Typography.Text type="secondary">
                         <FormattedMessage
-                          id={`collection.source.${collection?.config?.source}`}
+                          id={`collection.source.${config?.source}`}
                         />
                       </Typography.Text>
                     </Tooltip>

@@ -19,7 +19,7 @@ import {
 export default () => {
   const [form] = Form.useForm<Register & { password_repeat?: string }>();
   const { formatMessage } = useIntl();
-  const { themeName } = useModel('global');
+  const { themeName, loading, setLoading } = useModel('global');
 
   const [searchParams] = useSearchParams();
   const redirectUri = searchParams.get('redirectUri');
@@ -35,8 +35,9 @@ export default () => {
       return;
     }
 
+    setLoading(true);
     const res = await api.registerPost({ register: values });
-
+    setLoading(false);
     if (res.status === 200) {
       toast.success(formatMessage({ id: 'user.signup_success' }));
       history.push(`/accounts/signin${redirectString}`);
@@ -146,7 +147,7 @@ export default () => {
             />
           </Form.Item>
 
-          <Button htmlType="submit" block type="primary">
+          <Button loading={loading} htmlType="submit" block type="primary">
             <FormattedMessage id="user.signup" />
           </Button>
         </Form>

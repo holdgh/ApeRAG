@@ -47,7 +47,6 @@ const config: LayoutConfig = {
       </Auth>
     </>
   ),
-  '/model(/*)': <Layout auth={true} sidebar={true} />,
   '*': <Layout auth={false} sidebar={false} />,
 };
 
