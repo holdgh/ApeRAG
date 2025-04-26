@@ -38,7 +38,7 @@ import {
 } from 'antd';
 import _ from 'lodash';
 import { useEffect, useMemo, useState } from 'react';
-import { FormattedMessage, useIntl } from 'umi';
+import { FormattedMessage, useIntl, useModel } from 'umi';
 import DocumentCloudFormItems from './DocumentCloudFormItems';
 import DocumentEmailFormItems from './DocumentEmailFormItems';
 import DocumentFeishuFormItems from './DocumentFeishuFormItems';
@@ -56,6 +56,7 @@ type Props = {
 export default ({ onSubmit, action, values, form }: Props) => {
   const { formatMessage } = useIntl();
   const { token } = theme.useToken();
+  const { setLoading, loading } = useModel('global');
 
   const [availableEmbeddings, setAvailableEmbeddings] =
     useState<AvailableEmbedding[]>();
@@ -71,12 +72,13 @@ export default ({ onSubmit, action, values, form }: Props) => {
   const embeddingModel = Form.useWatch(['config', 'embedding_model'], form);
 
   const getEmbeddings = async () => {
+    setLoading(true);
     const [availableEmbeddingsRes, supportedModelServiceProvidersRes] =
       await Promise.all([
         api.availableEmbeddingsGet(),
         api.supportedModelServiceProvidersGet(),
       ]);
-
+    setLoading(false);
     setAvailableEmbeddings(availableEmbeddingsRes.data.items);
     setSupportedModelServiceProviders(
       supportedModelServiceProvidersRes.data.items,
@@ -423,7 +425,12 @@ export default ({ onSubmit, action, values, form }: Props) => {
         <br />
         <Divider />
         <div style={{ textAlign: 'right' }}>
-          <Button style={{ minWidth: 160 }} type="primary" htmlType="submit">
+          <Button
+            loading={loading}
+            style={{ minWidth: 160 }}
+            type="primary"
+            htmlType="submit"
+          >
             {formatMessage({ id: 'action.save' })}
           </Button>
         </div>

@@ -20,7 +20,7 @@ export default () => {
   const [form] = Form.useForm<ChangePassword>();
   const { formatMessage } = useIntl();
   const [searchParams] = useSearchParams();
-  const { themeName } = useModel('global');
+  const { themeName, loading, setLoading } = useModel('global');
   const redirectUri = searchParams.get('redirectUri');
   const redirectString = redirectUri
     ? '?redirectUri=' + encodeURIComponent(redirectUri)
@@ -29,9 +29,11 @@ export default () => {
   const onFinish = useCallback(async () => {
     const values = await form.validateFields();
 
+    setLoading(true);
     const res = await api.changePasswordPost({
       changePassword: values,
     });
+    setLoading(false);
     if (res.status === 200) {
       toast.success(formatMessage({ id: 'user.password_reset_success' }));
       history.push(`/accounts/signin${redirectString}`);
@@ -130,7 +132,7 @@ export default () => {
             />
           </Form.Item>
 
-          <Button htmlType="submit" block type="primary">
+          <Button loading={loading} htmlType="submit" block type="primary">
             <FormattedMessage id="user.password_reset" />
           </Button>
         </Form>

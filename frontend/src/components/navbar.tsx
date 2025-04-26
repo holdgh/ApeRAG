@@ -1,27 +1,15 @@
-import { NAVIGATION_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from '@/constants';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useHover } from 'ahooks';
 import { Button, GlobalToken, Space, theme, Typography } from 'antd';
 import { useRef } from 'react';
 import { css, Link, styled } from 'umi';
 
-const StyledNavigation = styled('nav').withConfig({
-  shouldForwardProp: (prop) => !['token', 'sidebar', 'navbar'].includes(prop),
-})<{
-  token: GlobalToken;
-  sidebar: boolean;
-}>`
-  ${({ token, sidebar }) => {
+const StyledNavigation = styled('div')`
+  ${() => {
     return css`
-      width: ${NAVIGATION_WIDTH}px;
-      left: ${sidebar ? SIDEBAR_WIDTH : 0}px;
-      top: ${TOPBAR_HEIGHT}px;
-      bottom: 0;
-      overflow: auto;
-      border-right: 1px solid ${token.colorBorderSecondary};
-      position: fixed;
       display: flex;
       flex-direction: column;
+      height: 100%;
     `;
   }}
 `;
@@ -54,19 +42,8 @@ const StyledNavigationBody = styled('div')`
   }}
 `;
 
-export const Navbar = ({
-  sidebar = true,
-  children,
-}: {
-  sidebar?: boolean;
-  children: React.ReactNode;
-}) => {
-  const { token } = theme.useToken();
-  return (
-    <StyledNavigation token={token} sidebar={sidebar}>
-      {children}
-    </StyledNavigation>
-  );
+export const Navbar = ({ children }: { children: React.ReactNode }) => {
+  return <StyledNavigation>{children}</StyledNavigation>;
 };
 
 export const NavbarHeader = ({

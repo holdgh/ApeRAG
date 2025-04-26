@@ -18,7 +18,7 @@ import {
 export default () => {
   const [form] = Form.useForm<Login>();
   const { formatMessage } = useIntl();
-  const { themeName } = useModel('global');
+  const { themeName, loading, setLoading } = useModel('global');
   const [searchParams] = useSearchParams();
   const redirectUri = searchParams.get('redirectUri');
   const redirectString = redirectUri
@@ -27,7 +27,9 @@ export default () => {
 
   const onFinish = useCallback(async () => {
     const values = await form.validateFields();
+    setLoading(true);
     await api.loginPost({ login: values });
+    setLoading(false);
 
     toast.success(formatMessage({ id: 'user.signin_success' }));
     window.location.href = redirectUri || '/';
@@ -107,7 +109,7 @@ export default () => {
             />
           </Form.Item>
 
-          <Button htmlType="submit" block type="primary">
+          <Button loading={loading} htmlType="submit" block type="primary">
             <FormattedMessage id="user.signin" />
           </Button>
         </Form>
