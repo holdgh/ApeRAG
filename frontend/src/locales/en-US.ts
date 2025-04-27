@@ -2,6 +2,7 @@ import { bot } from './en-US/bots';
 import { collection } from './en-US/collection';
 import { model, model_provider } from './en-US/models';
 import { user, users } from './en-US/users';
+import { apiKeys } from './en-US/apiKeys';
 
 export default {
   ...user,
@@ -10,6 +11,7 @@ export default {
   ...model,
   ...model_provider,
   ...collection,
+  ...apiKeys,
 
   'text.welcome': 'Welcome to ApeRAG',
   'text.authorizing': 'Authorizing',

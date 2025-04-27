@@ -18,6 +18,10 @@ export const NavbarSettings = () => {
         label: <FormattedMessage id="model.provider" />,
         key: `/settings/modelProviders`,
       },
+      {
+        label: <FormattedMessage id="apiKeys.title" />,
+        key: `/settings/apiKeys`,
+      },
     ],
     [],
   );

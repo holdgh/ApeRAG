@@ -2,6 +2,7 @@ import { bot } from './zh-CN/bots';
 import { collection } from './zh-CN/collection';
 import { model, model_provider } from './zh-CN/models';
 import { user, users } from './zh-CN/users';
+import { apiKeys } from './zh-CN/apiKeys';
 
 export default {
   ...user,
@@ -10,6 +11,7 @@ export default {
   ...model,
   ...model_provider,
   ...collection,
+  ...apiKeys,
 
   'text.welcome': '欢迎使用ApeRAG',
   'text.authorizing': '授权中',
