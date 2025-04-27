@@ -7,19 +7,21 @@ import {
   UI_DOCUMENT_STATUS,
 } from '@/constants';
 import { getAuthorizationHeader } from '@/models/user';
+import { api } from '@/services';
 import { ApeDocument } from '@/types';
+import { parseConfig } from '@/utils';
 import {
   DeleteOutlined,
   MoreOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import { useRequest } from 'ahooks';
 import {
   Avatar,
   Badge,
   Button,
   Dropdown,
   Input,
-  MenuProps,
   Modal,
   Space,
   Table,
@@ -42,52 +44,42 @@ export default () => {
   const [searchParams, setSearchParams] = useState<{
     name?: string;
   }>();
-  const {
-    collection,
-    documents,
-    documentsLoading,
-    getDocuments,
-    setDocuments,
-    deleteDocument,
-  } = useModel('collection');
+  const { collection } = useModel('collection');
   const { setLoading } = useModel('global');
   const { collectionId } = useParams();
   const { token } = theme.useToken();
   const [modal, contextHolder] = Modal.useModal();
-
   const { formatMessage } = useIntl();
+  const {
+    data: documentsRes,
+    run: getDocuments,
+    loading: documentsLoading,
+  } = useRequest(
+    () =>
+      api.collectionsCollectionIdDocumentsGet({
+        collectionId: collectionId || '',
+      }),
+    {
+      refreshDeps: [collectionId],
+      pollingInterval: 3000,
+    },
+  );
 
-  const getActions = useCallback((record: ApeDocument): MenuProps['items'] => {
-    return [
-      // {
-      //   key: 'tags',
-      //   label: formatMessage({ id: 'text.tags' }),
-      //   icon: <TagsOutlined />,
-      // },
-      {
-        key: 'delete',
-        label: formatMessage({ id: 'action.delete' }),
-        danger: true,
-        icon: <DeleteOutlined />,
-        disabled: record.status === 'DELETING',
-        onClick: async () => {
-          const confirmed = await modal.confirm({
-            title: formatMessage({ id: 'action.confirm' }),
-            content: formatMessage(
-              { id: 'document.delete.confirm' },
-              { name: record.name },
-            ),
-            okButtonProps: {
-              danger: true,
-            },
-          });
-          if (confirmed && record.id && (await deleteDocument(record.id))) {
-            toast.success(formatMessage({ id: 'tips.delete.success' }));
-          }
-        },
-      },
-    ];
-  }, []);
+  const deleteDocument = useCallback(
+    async (documentId?: string) => {
+      if (!collectionId || !documentId) return;
+      const res = await api.collectionsCollectionIdDocumentsDocumentIdDelete({
+        collectionId,
+        documentId,
+      });
+      if (res) {
+        toast.success(formatMessage({ id: 'tips.delete.success' }));
+        getDocuments();
+      }
+    },
+    [collectionId],
+  );
+
   const columns: TableProps<ApeDocument>['columns'] = [
     {
       title: formatMessage({ id: 'document.name' }),
@@ -149,7 +141,37 @@ export default () => {
         return (
           <Dropdown
             trigger={['click']}
-            menu={{ items: getActions(record) }}
+            menu={{
+              items: [
+                // {
+                //   key: 'tags',
+                //   label: formatMessage({ id: 'text.tags' }),
+                //   icon: <TagsOutlined />,
+                // },
+                {
+                  key: 'delete',
+                  label: formatMessage({ id: 'action.delete' }),
+                  danger: true,
+                  icon: <DeleteOutlined />,
+                  disabled: record.status === 'DELETING',
+                  onClick: async () => {
+                    const confirmed = await modal.confirm({
+                      title: formatMessage({ id: 'action.confirm' }),
+                      content: formatMessage(
+                        { id: 'document.delete.confirm' },
+                        { name: record.name },
+                      ),
+                      okButtonProps: {
+                        danger: true,
+                      },
+                    });
+                    if (confirmed) {
+                      deleteDocument(record.id);
+                    }
+                  },
+                },
+              ],
+            }}
             overlayStyle={{ width: 160 }}
           >
             <Button type="text" icon={<MoreOutlined />} />
@@ -177,7 +199,7 @@ export default () => {
         const { status } = info.file; // todo
         if (status === 'done') {
           if (collectionId) {
-            getDocuments(collectionId);
+            getDocuments();
           }
           setLoading(false);
         } else {
@@ -191,19 +213,23 @@ export default () => {
     [collectionId],
   );
 
-  useEffect(() => {
-    if (collectionId) getDocuments(collectionId);
-    return () => setDocuments([]);
-  }, [collectionId]);
+  const documents: ApeDocument[] | undefined = useMemo(
+    () =>
+      documentsRes?.data.items
+        ?.map((document) => ({
+          ...document,
+          config: parseConfig(document.config),
+        }))
+        .filter((item) => {
+          const titleMatch = searchParams?.name
+            ? item.name?.includes(searchParams.name)
+            : true;
+          return titleMatch;
+        }),
+    [documentsRes, searchParams],
+  );
 
-  const _documents = documents?.filter((item) => {
-    const titleMatch = searchParams?.name
-      ? item.name?.includes(searchParams.name)
-      : true;
-    return titleMatch;
-  });
-
-  const config = useMemo(() => collection?.config, [collection]);
+  useEffect(() => setLoading(documentsLoading), [documentsLoading]);
 
   return (
     <>
@@ -228,7 +254,7 @@ export default () => {
           value={searchParams?.name}
         />
         <Space>
-          {config?.source === 'system' ? (
+          {collection?.config?.source === 'system' ? (
             <Upload {...uploadProps}>
               <Button type="primary">
                 <FormattedMessage id="document.upload" />
@@ -237,17 +263,11 @@ export default () => {
           ) : null}
           <RefreshButton
             loading={documentsLoading}
-            onClick={() => collectionId && getDocuments(collectionId)}
+            onClick={() => collectionId && getDocuments()}
           />
         </Space>
       </Space>
-      <Table
-        rowKey="id"
-        bordered
-        columns={columns}
-        dataSource={_documents}
-        loading={documentsLoading}
-      />
+      <Table rowKey="id" bordered columns={columns} dataSource={documents} />
       {contextHolder}
     </>
   );
