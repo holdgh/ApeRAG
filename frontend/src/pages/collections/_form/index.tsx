@@ -262,7 +262,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
             >
               <Select
                 options={embeddingModelOptions}
-                disabled={action == 'edit'}
+                disabled={action === 'edit'}
                 labelRender={({ label, value }) => {
                   const [model_service_provider, model_name] = (
                     value as string
