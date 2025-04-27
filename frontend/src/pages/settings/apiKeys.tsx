@@ -152,6 +152,7 @@ export default () => {
           <RefreshButton onClick={() => getApiKeys()} loading={listLoading} />
         </PageHeader>
         <Table
+          bordered
           loading={listLoading}
           rowKey="id"
           columns={columns}
