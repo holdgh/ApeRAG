@@ -1,22 +1,6 @@
 import os
 import pytest
-from dotenv import load_dotenv
 from aperag.embed.embedding_service import EmbeddingService
-
-
-def load_test_environment():
-    print("\n--- Loading environment variables from .env.test ---")
-    dotenv_path = os.path.join('../.env.test')
-    # override=True ensures that variables from .env.test take precedence
-    # over existing system environment variables within this process.
-    loaded = load_dotenv(dotenv_path=dotenv_path, override=True)
-    if loaded:
-        print(f"Successfully loaded: {dotenv_path}")
-    else:
-        print(f"Warning: .env.test file not found or empty at {dotenv_path}")
-
-
-load_test_environment()
 
 
 BACKEND = "openai"
