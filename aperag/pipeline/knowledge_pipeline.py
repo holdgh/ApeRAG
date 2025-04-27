@@ -135,7 +135,7 @@ class KnowledgePipeline(Pipeline):
         if settings.RETRIEVE_MODE in ["classic"] or kg_context is None:
             return vector_context, candidates
         elif settings.RETRIEVE_MODE in ["local", "global", "hybrid", "graph"] or vector_context is None:
-            return kg_context, []
+            return kg_context, candidates
         else:
             context = f"""
             1. From Knowledge Graph(KG):
@@ -144,7 +144,7 @@ class KnowledgePipeline(Pipeline):
             2. From Document Chunks(DC):
             {vector_context}
             """.strip()
-            return context, []
+            return context, candidates
 
     async def _run_classic_rag(self, query_with_history: str, vector: List[float], log_prefix: str) -> Tuple[str, List[DocumentWithScore]]:
         """

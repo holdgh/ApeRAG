@@ -124,7 +124,7 @@ static-check:
 	uvx mypy .
 
 test:
-	echo "mock"
+	pytest tests/ -v
 
 celery:
 	celery -A config.celery worker -B -l INFO
