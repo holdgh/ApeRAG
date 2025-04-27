@@ -169,7 +169,6 @@ async def gen_lightrag_embed_func(collection: Collection) -> Tuple[
 async def get_lightrag_holder(
     collection: Collection
 ) -> LightRagHolder:
-    # Fixme: if lightrag_model changes, we need to re-initialize the lightrag instance
     namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
     if not namespace_prefix or not isinstance(namespace_prefix, str):
         raise ValueError("A valid namespace_prefix string must be provided.")
