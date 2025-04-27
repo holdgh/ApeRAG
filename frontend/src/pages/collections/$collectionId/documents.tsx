@@ -44,9 +44,9 @@ export default () => {
   const [searchParams, setSearchParams] = useState<{
     name?: string;
   }>();
+  const { collectionId } = useParams();
   const { collection } = useModel('collection');
   const { setLoading } = useModel('global');
-  const { collectionId } = useParams();
   const { token } = theme.useToken();
   const [modal, contextHolder] = Modal.useModal();
   const { formatMessage } = useIntl();

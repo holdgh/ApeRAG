@@ -1,58 +1,18 @@
+import { DOCUMENT_DEFAULT_CONFIG } from '@/constants';
 import { api } from '@/services';
 import { ApeCollection } from '@/types';
 import { parseConfig, stringifyConfig } from '@/utils';
+import _ from 'lodash';
 import { useCallback, useState } from 'react';
 import { useModel } from 'umi';
 
 export default () => {
   const { setLoading } = useModel('global');
-
   const [collection, setCollection] = useState<ApeCollection>();
   const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
 
   const [collections, setCollections] = useState<ApeCollection[]>();
   const [collectionsLoading, setCollectionsLoading] = useState<boolean>(false);
-
-  // collection
-  const getCollection = useCallback(async (collectionId: string) => {
-    setLoading(true);
-    setCollectionLoading(true);
-    const res = await api.collectionsCollectionIdGet({ collectionId });
-    setCollection({
-      ...res.data,
-      config: parseConfig(res.data.config),
-    });
-    setLoading(false);
-    setCollectionLoading(false);
-  }, []);
-
-  const deleteCollection = useCallback(
-    async (collectionId: string): Promise<boolean | undefined> => {
-      const res = await api.collectionsCollectionIdDelete({ collectionId });
-      return res.status === 200;
-    },
-    [],
-  );
-
-  const updateCollection = useCallback(
-    async (data: ApeCollection): Promise<boolean | undefined> => {
-      if (!data.id) return;
-      const config = stringifyConfig(data.config) as string;
-      const res = await api.collectionsCollectionIdPut({
-        collectionId: data.id,
-        collectionUpdate: { ...data, config },
-      });
-      const success = res.status === 200;
-      if (success) {
-        setCollection({
-          ...res.data,
-          config: parseConfig(res.data?.config),
-        });
-      }
-      return success;
-    },
-    [],
-  );
 
   // collections
   const getCollections = useCallback(async () => {
@@ -70,18 +30,80 @@ export default () => {
     );
   }, []);
 
+  // collection
+  const getCollection = useCallback(async (collectionId: string) => {
+    setLoading(true);
+    setCollectionLoading(true);
+    const res = await api.collectionsCollectionIdGet({ collectionId });
+    setCollection({
+      ...res.data,
+      config: parseConfig(res.data.config),
+    });
+    setLoading(false);
+    setCollectionLoading(false);
+  }, []);
+
+  const deleteCollection = useCallback(async (): Promise<
+    boolean | undefined
+  > => {
+    if (!collection?.id) return;
+    const res = await api.collectionsCollectionIdDelete({
+      collectionId: collection.id,
+    });
+    return res.status === 200;
+  }, []);
+
+  const createCollection = useCallback(
+    async (values: ApeCollection): Promise<string | undefined> => {
+      const data = _.merge(
+        {
+          type: 'document',
+          config: DOCUMENT_DEFAULT_CONFIG,
+        },
+        values,
+      );
+      setLoading(true);
+      const res = await api.collectionsPost({
+        collectionCreate: {
+          ...data,
+          config: stringifyConfig(data.config),
+        },
+      });
+      setLoading(false);
+      return res.data.id;
+    },
+    [],
+  );
+
+  const updateCollection = useCallback(
+    async (values: ApeCollection): Promise<boolean | undefined> => {
+      if (!collection?.id) return;
+      const data = _.merge(collection, values);
+      setLoading(true);
+      const res = await api.collectionsCollectionIdPut({
+        collectionId: collection.id,
+        collectionUpdate: { ...data, config: stringifyConfig(data.config) },
+      });
+      setLoading(false);
+      const updated = res.status === 200;
+      if (updated) getCollection(collection.id);
+      return updated;
+    },
+    [collection],
+  );
+
   return {
-    collection,
-    collectionLoading,
-    getCollection,
-    setCollection,
-
-    deleteCollection,
-    updateCollection,
-
     collections,
     collectionsLoading,
     getCollections,
     setCollections,
+
+    collection,
+    collectionLoading,
+    getCollection,
+    setCollection,
+    createCollection,
+    updateCollection,
+    deleteCollection,
   };
 };

@@ -44,7 +44,7 @@ import DocumentLocalFormItems from './DocumentLocalFormItems';
 
 type Props = {
   action: 'add' | 'edit';
-  values: ApeCollection;
+  values?: ApeCollection;
   form: FormInstance<ApeCollection>;
   onSubmit: (data: ApeCollection) => void;
 };

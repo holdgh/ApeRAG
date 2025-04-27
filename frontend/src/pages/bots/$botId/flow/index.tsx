@@ -1,11 +1,11 @@
 import { PageContainer } from '@/components';
 import {
   ApeEdge,
+  ApeLayoutDirection,
   ApeNode,
+  ApeNodeHandlePosition,
   ApeNodeType,
-  LayoutDirection,
-  NodeHandlePosition,
-} from '@/types/flow';
+} from '@/types';
 import Dagre from '@dagrejs/dagre';
 import {
   addEdge,
@@ -90,9 +90,9 @@ export const StyledReactFlow = styled(ReactFlow).withConfig({
 `;
 
 const getNodeHandlePositions = (
-  direction: LayoutDirection | undefined = 'LR',
-): NodeHandlePosition => {
-  const positions: NodeHandlePosition = {};
+  direction: ApeLayoutDirection | undefined = 'LR',
+): ApeNodeHandlePosition => {
+  const positions: ApeNodeHandlePosition = {};
   switch (direction) {
     case 'TB':
       Object.assign(positions, {
@@ -113,7 +113,7 @@ const getNodeHandlePositions = (
 const getLayoutedElements = (
   nodes: ApeNode[],
   edges: ApeEdge[],
-  options: { direction: LayoutDirection },
+  options: { direction: ApeLayoutDirection },
 ): {
   nodes: ApeNode[];
   edges: ApeEdge[];
@@ -256,7 +256,7 @@ export default () => {
   }, []);
 
   const setLayout = useCallback(
-    (d: LayoutDirection) => {
+    (d: ApeLayoutDirection) => {
       const layouted = getLayoutedElements(nodes, edges, {
         direction: d,
       });
