@@ -64,10 +64,7 @@ export default () => {
       );
       setLoading(true);
       const res = await api.collectionsPost({
-        collectionCreate: {
-          ...data,
-          config: stringifyConfig(data.config),
-        },
+        collectionCreate: { ...data, config: stringifyConfig(data.config) },
       });
       setLoading(false);
       return res.data.id;

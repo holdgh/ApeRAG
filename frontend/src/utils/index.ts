@@ -1,6 +1,6 @@
 import { ThemeType } from 'ahooks/lib/useTheme';
 
-export const parseConfig = (str?: string) => {
+export const parseConfig = <T>(str?: string): T => {
   let result;
   try {
     result = JSON.parse(str || '');
@@ -10,12 +10,12 @@ export const parseConfig = (str?: string) => {
   return result;
 };
 
-export const stringifyConfig = (conf?: any): string => {
-  let result = '';
+export const stringifyConfig = <T>(conf?: T): string => {
+  let result: string;
   try {
     result = JSON.stringify(conf);
   } catch (err) {
-    result = '';
+    result = '{}';
   }
   return result;
 };
