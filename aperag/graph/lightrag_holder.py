@@ -73,8 +73,6 @@ class LightRagHolder:
         return await self.rag.adelete_by_doc_id(doc_id)
 
 
-
-
 # ---------- Default llm_func & embed_impl ---------- #
 async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]:
     config = json.loads(collection.config)
