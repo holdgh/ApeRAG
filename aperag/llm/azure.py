@@ -16,8 +16,8 @@ import json
 import os
 
 import httpx
+import litellm
 import openai
-from openai import AsyncAzureOpenAI, AzureOpenAI
 
 from aperag.llm.base import LLMConfigError, Predictor
 
@@ -66,26 +66,22 @@ class AzureOpenAIPredictor(Predictor):
         proxy = json.loads(os.environ.get("OPENAI_API_PROXY", "{}"))
         if proxy:
             openai.proxy = proxy
-        self.api_type = "azure"
 
     @staticmethod
     def provide_default_token():
         return bool(os.environ.get("OPENAI_API_KEY", ""))
 
     async def _agenerate_stream(self, history, prompt, memory=False):
-        timeout = httpx.Timeout(None, connect=3)
-        client = AsyncAzureOpenAI(
-            timeout=timeout,
-            api_key=self.token,
-            api_version=self.api_version,
-            max_retries=0,
-            azure_endpoint=self.endpoint,
-        )
-        response = await client.chat.completions.create(
+        response = litellm.completion(
             model=self.deployment_id,
             stream=True,
             temperature=self.temperature,
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
+            timeout=httpx.Timeout(None, connect=3),
+            api_key=self.token,
+            api_version=self.api_version,
+            max_retries=0,
+            base_url=self.endpoint,
         )
         async for chunk in response:
             if not chunk.choices:
@@ -99,19 +95,17 @@ class AzureOpenAIPredictor(Predictor):
             yield choice.delta.content
 
     def _generate_stream(self, history, prompt, memory=False):
-        timeout = httpx.Timeout(None, connect=3)
-        client = AzureOpenAI(
-            timeout=timeout,
-            api_key=self.token,
-            api_version=self.api_version,
-            max_retries=0,
-            azure_endpoint=self.endpoint,
-        )
-        response = client.chat.completions.create(
+        response = litellm.completion(
             model=self.deployment_id,
             stream=True,
             temperature=self.temperature,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
+            messages=history + [{"role": "user", "content": prompt}] if memory else [
+                {"role": "user", "content": prompt}],
+            timeout=httpx.Timeout(None, connect=3),
+            api_key=self.token,
+            api_version=self.api_version,
+            max_retries=0,
+            base_url=self.endpoint,
         )
         for chunk in response:
             if not chunk.choices:

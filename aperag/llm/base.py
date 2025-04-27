@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 
 class PredictorType(Enum):
-    KB_VLLM = "kb-vllm"
     CUSTOM_LLM = "custom-llm"
 
 
@@ -89,12 +88,6 @@ class Predictor(ABC):
             case "azure-openai":
                 from aperag.llm.azure import AzureOpenAIPredictor
                 return AzureOpenAIPredictor
-            case "baichuan-53b":
-                from aperag.llm.baichuan import BaiChuanPredictor
-                return BaiChuanPredictor
-            case "ernie-bot-turbo":
-                from aperag.llm.wenxin import BaiduQianFan
-                return BaiduQianFan
             case "qwen-turbo" | "qwen-plus" | "qwen-max":
                 from aperag.llm.qianwen import QianWenPredictor
                 return QianWenPredictor
@@ -109,8 +102,6 @@ class Predictor(ABC):
             predictor_type = ctx.get("type", PredictorType.CUSTOM_LLM)
 
         match predictor_type:
-            case PredictorType.KB_VLLM:
-                return KubeBlocksLLMPredictor
             case PredictorType.CUSTOM_LLM:
                 from aperag.llm.custom import CustomLLMPredictor
                 return CustomLLMPredictor
@@ -151,41 +142,4 @@ class Predictor(ABC):
             latest_history = latest_history[:-1]
 
         return latest_history[::-1]
-
-
-class KubeBlocksLLMPredictor(Predictor):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.endpoint = kwargs.get("endpoint", "http://localhost:18000")
-        self.use_deafult_token = False
-
-    @staticmethod
-    def provide_default_token():
-        return False
-
-    def _generate_stream(self, history, prompt, memory=False):
-        input = {
-            "prompt": prompt,
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens,
-            "stream": True,
-        }
-        response = requests.post("%s/generate" % self.endpoint, json=input, stream=True)
-        output = prompt
-        for chunk in response.iter_lines():
-            if chunk:
-                data = json.loads(chunk.decode("utf-8"))
-                tokens = data["text"][0][len(output):]
-                yield tokens
-                output = data["text"][0]
-
-    async def agenerate_stream(self, history, prompt, memory=False):
-        for tokens in self._generate_stream(prompt):
-            yield tokens
-
-    def generate_stream(self, history, prompt, memory=False):
-        for tokens in self._generate_stream(prompt):
-            yield tokens
-
 

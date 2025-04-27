@@ -16,8 +16,8 @@ import json
 import os
 
 import httpx
+import litellm
 import openai
-from openai import AsyncOpenAI, OpenAI
 
 from aperag.llm.base import LLMConfigError, Predictor
 
@@ -51,20 +51,20 @@ class OpenAIPredictor(Predictor):
         if proxy:
             openai.proxy = proxy
 
-        self.api_type = ""
 
     @staticmethod
     def provide_default_token():
         return bool(os.environ.get("OPENAI_API_KEY", ""))
 
     async def _agenerate_stream(self, history, prompt, memory=False):
-        timeout = httpx.Timeout(None, connect=3)
-        client = AsyncOpenAI(timeout=timeout, api_key=self.token, base_url=self.endpoint, max_retries=0)
-        response = await client.chat.completions.create(
+        response = litellm.completion(
             model=self.model,
+            api_key=self.token,
+            base_url=self.endpoint,
             temperature=self.temperature,
-            stream=True,
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
+            stream=True,
+            timeout=httpx.Timeout(None, connect=3),
         )
         async for chunk in response:
             if not chunk.choices:
@@ -73,15 +73,17 @@ class OpenAIPredictor(Predictor):
             if choice.finish_reason == "stop":
                 return
             yield choice.delta.content
-            
+
     def _generate_stream(self, history, prompt, memory=False):
-        timeout = httpx.Timeout(None, connect=3)
-        client = OpenAI(timeout=timeout, api_key=self.token, base_url=self.endpoint, max_retries=0)
-        response = client.chat.completions.create(
+        response = litellm.completion(
             model=self.model,
+            api_key=self.token,
+            base_url=self.endpoint,
             temperature=self.temperature,
+            messages=history + [{"role": "user", "content": prompt}] if memory else [
+                {"role": "user", "content": prompt}],
             stream=True,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
+            timeout=httpx.Timeout(None, connect=3),
         )
         for chunk in response:
             if not chunk.choices:
@@ -94,19 +96,18 @@ class OpenAIPredictor(Predictor):
     async def agenerate_stream(self, history, prompt, memory=False):
         async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
-    
+
     async def agenerate_by_tools(self, prompt,tools):
-        timeout = httpx.Timeout(None, connect=3)
-        client = AsyncOpenAI(timeout=timeout, api_key=self.token, base_url=self.endpoint, max_retries=0)
-        response = await client.chat.completions.create(
+        response = litellm.completion(
             model=self.model,
+            api_key=self.token,
+            base_url=self.endpoint,
             temperature=self.temperature,
-            messages= [{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": prompt}],
             tools=tools,
-            tool_choice="auto", 
+            tool_choice="auto",
         )
-        
-        tool_calls = response.choices[0].message.tool_calls    
+        tool_calls = response.choices[0].message.tool_calls
         return tool_calls, response.choices[0].message.content
 
     def generate_stream(self, history, prompt, memory=False):
