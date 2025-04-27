@@ -1,3 +1,4 @@
+import { apiKeys } from './en-US/apiKeys';
 import { bot } from './en-US/bots';
 import { collection } from './en-US/collection';
 import { model, model_provider } from './en-US/models';
@@ -10,6 +11,7 @@ export default {
   ...model,
   ...model_provider,
   ...collection,
+  ...apiKeys,
 
   'text.welcome': 'Welcome to ApeRAG',
   'text.authorizing': 'Authorizing',
@@ -24,6 +26,7 @@ export default {
   'text.tags': 'Tags',
   'text.createdAt': 'Creation time',
   'text.updatedAt': 'Update time',
+  'text.lastUsedAt': 'Last used time',
   'text.status': 'Status',
   'text.history.records': 'History',
   'text.direction': 'Direction',

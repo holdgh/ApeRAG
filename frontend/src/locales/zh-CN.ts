@@ -1,3 +1,4 @@
+import { apiKeys } from './zh-CN/apiKeys';
 import { bot } from './zh-CN/bots';
 import { collection } from './zh-CN/collection';
 import { model, model_provider } from './zh-CN/models';
@@ -10,6 +11,7 @@ export default {
   ...model,
   ...model_provider,
   ...collection,
+  ...apiKeys,
 
   'text.welcome': '欢迎使用ApeRAG',
   'text.authorizing': '授权中',
@@ -23,6 +25,7 @@ export default {
   'text.tags': '标签',
   'text.createdAt': '创建时间',
   'text.updatedAt': '更新时间',
+  'text.lastUsedAt': '最近使用时间',
   'text.status': '状态',
   'text.history.records': '历史记录',
   'text.direction': '方向',

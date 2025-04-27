@@ -31,3 +31,10 @@ export const getLogo = (themeName: ThemeType) => {
       return APERAG_CONFIG.logo_dark ? APERAG_CONFIG.logo_dark : defaultImgSrc;
   }
 };
+
+export const sensitiveStringReplace = (
+  str: string = '',
+  start: number = 5,
+  end: number = 10,
+): string =>
+  str.substring(0, start) + '*'.repeat(end - start) + str.substring(end);
