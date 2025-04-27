@@ -51,7 +51,7 @@ export default () => {
       collectionId: collection.id,
     });
     return res.status === 200;
-  }, []);
+  }, [collection]);
 
   const createCollection = useCallback(
     async (values: ApeCollection): Promise<string | undefined> => {
