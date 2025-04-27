@@ -1,8 +1,8 @@
+import { apiKeys } from './en-US/apiKeys';
 import { bot } from './en-US/bots';
 import { collection } from './en-US/collection';
 import { model, model_provider } from './en-US/models';
 import { user, users } from './en-US/users';
-import { apiKeys } from './en-US/apiKeys';
 
 export default {
   ...user,
@@ -26,6 +26,7 @@ export default {
   'text.tags': 'Tags',
   'text.createdAt': 'Creation time',
   'text.updatedAt': 'Update time',
+  'text.lastUsedAt': 'Last used time',
   'text.status': 'Status',
   'text.history.records': 'History',
   'text.direction': 'Direction',

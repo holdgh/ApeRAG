@@ -1,8 +1,8 @@
+import { apiKeys } from './zh-CN/apiKeys';
 import { bot } from './zh-CN/bots';
 import { collection } from './zh-CN/collection';
 import { model, model_provider } from './zh-CN/models';
 import { user, users } from './zh-CN/users';
-import { apiKeys } from './zh-CN/apiKeys';
 
 export default {
   ...user,
@@ -25,6 +25,7 @@ export default {
   'text.tags': '标签',
   'text.createdAt': '创建时间',
   'text.updatedAt': '更新时间',
+  'text.lastUsedAt': '最近使用时间',
   'text.status': '状态',
   'text.history.records': '历史记录',
   'text.direction': '方向',

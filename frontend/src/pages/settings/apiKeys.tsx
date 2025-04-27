@@ -1,6 +1,7 @@
 import { ApiKey } from '@/api';
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { api } from '@/services';
+import { sensitiveStringReplace } from '@/utils';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import {
@@ -14,6 +15,7 @@ import {
   TableProps,
   Typography,
 } from 'antd';
+import moment from 'moment';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { FormattedMessage, useIntl } from 'umi';
@@ -38,8 +40,7 @@ export default () => {
   }, []);
   const updateApiKeys = useCallback(async (values: ApiKey) => {
     if (!values.id) return;
-    if (!values.id) return;
-    await api.apikeysPut({
+    await api.apikeysApikeyIdPut({
       apikeyId: values.id,
       apiKeyUpdate: values,
     });
@@ -61,10 +62,7 @@ export default () => {
     if (!record.id) return;
     const confirmed = await modal.confirm({
       title: formatMessage({ id: 'action.confirm' }),
-      content: formatMessage(
-        { id: 'apiKeys.delete.confirm' },
-        // { name: collection?.title },
-      ),
+      content: formatMessage({ id: 'apiKeys.delete.confirm' }),
       okButtonProps: {
         danger: true,
       },
@@ -88,19 +86,33 @@ export default () => {
   }, []);
 
   const records = useMemo(() => apikeysGetRes?.data.items, [apikeysGetRes]);
-  
+
   const columns: TableProps<ApiKey>['columns'] = useMemo(
     () => [
       {
         title: formatMessage({ id: 'apiKeys.keys' }),
         dataIndex: 'key',
         render: (value) => {
-          <Typography.Text copyable={{ text: value }}>{value}</Typography.Text>
-        }
+          return (
+            <Typography.Text copyable={{ text: value }}>
+              {sensitiveStringReplace(value, 8, 30)}
+            </Typography.Text>
+          );
+        },
       },
       {
         title: formatMessage({ id: 'apiKeys.description' }),
         dataIndex: 'description',
+      },
+      {
+        title: formatMessage({ id: 'text.createdAt' }),
+        dataIndex: 'created_at',
+        render: (value) => (value ? moment(value).fromNow() : ''),
+      },
+      {
+        title: formatMessage({ id: 'text.lastUsedAt' }),
+        dataIndex: 'last_used_at',
+        render: (value) => (value ? moment(value).fromNow() : ''),
       },
       {
         width: 50,
@@ -155,7 +167,7 @@ export default () => {
       >
         <Divider />
 
-        <Form autoComplete='off' form={form} layout="vertical">
+        <Form autoComplete="off" form={form} layout="vertical">
           <Form.Item name="id" hidden>
             <Input />
           </Form.Item>

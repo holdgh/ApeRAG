@@ -32,5 +32,29 @@ export interface ApiKey {
      * @memberof ApiKey
      */
     'key'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiKey
+     */
+    'description'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiKey
+     */
+    'created_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiKey
+     */
+    'updated_at'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiKey
+     */
+    'last_used_at'?: string;
 }
 

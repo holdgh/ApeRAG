@@ -1,4 +1,8 @@
-import { AvailableEmbedding, AvailableModel, SupportedModelServiceProvider } from '@/api';
+import {
+  AvailableEmbedding,
+  AvailableModel,
+  SupportedModelServiceProvider,
+} from '@/api';
 import { ApeMarkdown, CheckCard } from '@/components';
 import {
   COLLECTION_SOURCE,
@@ -56,8 +60,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
 
   const [availableEmbeddings, setAvailableEmbeddings] =
     useState<AvailableEmbedding[]>();
-  const [availableModels, setAvailableModels] =
-    useState<AvailableModel[]>();
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>();
   const [supportedModelServiceProviders, setSupportedModelServiceProviders] =
     useState<SupportedModelServiceProvider[]>();
 
@@ -73,12 +76,15 @@ export default ({ onSubmit, action, values, form }: Props) => {
 
   const getEmbeddingsAndModels = async () => {
     setLoading(true);
-    const [availableEmbeddingsRes, availableModelsRes, supportedModelServiceProvidersRes] =
-      await Promise.all([
-        api.availableEmbeddingsGet(),
-        api.availableModelsGet(),
-        api.supportedModelServiceProvidersGet(),
-      ]);
+    const [
+      availableEmbeddingsRes,
+      availableModelsRes,
+      supportedModelServiceProvidersRes,
+    ] = await Promise.all([
+      api.availableEmbeddingsGet(),
+      api.availableModelsGet(),
+      api.supportedModelServiceProvidersGet(),
+    ]);
     setLoading(false);
     setAvailableEmbeddings(availableEmbeddingsRes.data.items);
     setAvailableModels(availableModelsRes.data.items);
@@ -117,7 +123,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
       ),
     [availableEmbeddings, supportedModelServiceProviders],
   );
-
 
   const modelsOptions = useMemo(
     () =>
@@ -166,7 +171,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
       form.setFieldValue(['config', 'embedding_model_name'], embedding_name);
     }
   }, [embeddingModel]);
-
 
   useEffect(() => {
     if (lightRAGModel) {
@@ -395,7 +399,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
               <Input type="hidden" />
             </Form.Item>
           </>
-        ) : null }
+        ) : null}
 
         <Form.Item
           label={

@@ -24,7 +24,11 @@ import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError
 // @ts-ignore
 import type { ApiKey } from '../models';
 // @ts-ignore
+import type { ApiKeyCreate } from '../models';
+// @ts-ignore
 import type { ApiKeyList } from '../models';
+// @ts-ignore
+import type { ApiKeyUpdate } from '../models';
 // @ts-ignore
 import type { AvailableEmbeddingList } from '../models';
 // @ts-ignore
@@ -146,6 +150,50 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Update API key
+         * @summary Update API key
+         * @param {string} apikeyId 
+         * @param {ApiKeyUpdate} apiKeyUpdate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apikeysApikeyIdPut: async (apikeyId: string, apiKeyUpdate: ApiKeyUpdate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apikeyId' is not null or undefined
+            assertParamExists('apikeysApikeyIdPut', 'apikeyId', apikeyId)
+            // verify required parameter 'apiKeyUpdate' is not null or undefined
+            assertParamExists('apikeysApikeyIdPut', 'apiKeyUpdate', apiKeyUpdate)
+            const localVarPath = `/apikeys/{apikey_id}`
+                .replace(`{${"apikey_id"}}`, encodeURIComponent(String(apikeyId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiKeyUpdate, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get API keys
          * @summary Get API keys
          * @param {*} [options] Override http request option.
@@ -178,10 +226,13 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
         /**
          * Create API key
          * @summary Create API key
+         * @param {ApiKeyCreate} apiKeyCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apikeysPost: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        apikeysPost: async (apiKeyCreate: ApiKeyCreate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'apiKeyCreate' is not null or undefined
+            assertParamExists('apikeysPost', 'apiKeyCreate', apiKeyCreate)
             const localVarPath = `/apikeys`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -200,9 +251,12 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
 
 
     
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(apiKeyCreate, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -2131,6 +2185,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Update API key
+         * @summary Update API key
+         * @param {string} apikeyId 
+         * @param {ApiKeyUpdate} apiKeyUpdate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apikeysApikeyIdPut(apikeyId: string, apiKeyUpdate: ApiKeyUpdate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apikeysApikeyIdPut(apikeyId, apiKeyUpdate, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.apikeysApikeyIdPut']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get API keys
          * @summary Get API keys
          * @param {*} [options] Override http request option.
@@ -2145,11 +2213,12 @@ export const DefaultApiFp = function(configuration?: Configuration) {
         /**
          * Create API key
          * @summary Create API key
+         * @param {ApiKeyCreate} apiKeyCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apikeysPost(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiKey>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apikeysPost(options);
+        async apikeysPost(apiKeyCreate: ApiKeyCreate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apikeysPost(apiKeyCreate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.apikeysPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -2834,6 +2903,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.apikeysApikeyIdDelete(requestParameters.apikeyId, options).then((request) => request(axios, basePath));
         },
         /**
+         * Update API key
+         * @summary Update API key
+         * @param {DefaultApiApikeysApikeyIdPutRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apikeysApikeyIdPut(requestParameters: DefaultApiApikeysApikeyIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiKey> {
+            return localVarFp.apikeysApikeyIdPut(requestParameters.apikeyId, requestParameters.apiKeyUpdate, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get API keys
          * @summary Get API keys
          * @param {*} [options] Override http request option.
@@ -2845,11 +2924,12 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
         /**
          * Create API key
          * @summary Create API key
+         * @param {DefaultApiApikeysPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apikeysPost(options?: RawAxiosRequestConfig): AxiosPromise<ApiKey> {
-            return localVarFp.apikeysPost(options).then((request) => request(axios, basePath));
+        apikeysPost(requestParameters: DefaultApiApikeysPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiKey> {
+            return localVarFp.apikeysPost(requestParameters.apiKeyCreate, options).then((request) => request(axios, basePath));
         },
         /**
          * Get available embeddings
@@ -3350,6 +3430,16 @@ export interface DefaultApiInterface {
     apikeysApikeyIdDelete(requestParameters: DefaultApiApikeysApikeyIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
+     * Update API key
+     * @summary Update API key
+     * @param {DefaultApiApikeysApikeyIdPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    apikeysApikeyIdPut(requestParameters: DefaultApiApikeysApikeyIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiKey>;
+
+    /**
      * Get API keys
      * @summary Get API keys
      * @param {*} [options] Override http request option.
@@ -3361,11 +3451,12 @@ export interface DefaultApiInterface {
     /**
      * Create API key
      * @summary Create API key
+     * @param {DefaultApiApikeysPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApiInterface
      */
-    apikeysPost(options?: RawAxiosRequestConfig): AxiosPromise<ApiKey>;
+    apikeysPost(requestParameters: DefaultApiApikeysPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiKey>;
 
     /**
      * Get available embeddings
@@ -3860,6 +3951,41 @@ export interface DefaultApiApikeysApikeyIdDeleteRequest {
      * @memberof DefaultApiApikeysApikeyIdDelete
      */
     readonly apikeyId: string
+}
+
+/**
+ * Request parameters for apikeysApikeyIdPut operation in DefaultApi.
+ * @export
+ * @interface DefaultApiApikeysApikeyIdPutRequest
+ */
+export interface DefaultApiApikeysApikeyIdPutRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiApikeysApikeyIdPut
+     */
+    readonly apikeyId: string
+
+    /**
+     * 
+     * @type {ApiKeyUpdate}
+     * @memberof DefaultApiApikeysApikeyIdPut
+     */
+    readonly apiKeyUpdate: ApiKeyUpdate
+}
+
+/**
+ * Request parameters for apikeysPost operation in DefaultApi.
+ * @export
+ * @interface DefaultApiApikeysPostRequest
+ */
+export interface DefaultApiApikeysPostRequest {
+    /**
+     * 
+     * @type {ApiKeyCreate}
+     * @memberof DefaultApiApikeysPost
+     */
+    readonly apiKeyCreate: ApiKeyCreate
 }
 
 /**
@@ -4645,6 +4771,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     }
 
     /**
+     * Update API key
+     * @summary Update API key
+     * @param {DefaultApiApikeysApikeyIdPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public apikeysApikeyIdPut(requestParameters: DefaultApiApikeysApikeyIdPutRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).apikeysApikeyIdPut(requestParameters.apikeyId, requestParameters.apiKeyUpdate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Get API keys
      * @summary Get API keys
      * @param {*} [options] Override http request option.
@@ -4658,12 +4796,13 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     /**
      * Create API key
      * @summary Create API key
+     * @param {DefaultApiApikeysPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public apikeysPost(options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).apikeysPost(options).then((request) => request(this.axios, this.basePath));
+    public apikeysPost(requestParameters: DefaultApiApikeysPostRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).apikeysPost(requestParameters.apiKeyCreate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
