@@ -153,6 +153,7 @@ async def _create_and_initialize_lightrag(
     logger.debug(f"LightRAG object for namespace '{namespace_prefix}' fully initialized.")
     return LightRagHolder(rag=rag, llm_func=llm_func, embed_impl=embed_impl)
 
+
 async def gen_lightrag_embed_func(collection: Collection) -> Tuple[
     Callable[[list[str]], Awaitable[numpy.ndarray]],
     int
@@ -163,6 +164,7 @@ async def gen_lightrag_embed_func(collection: Collection) -> Tuple[
         return numpy.array(embeddings)
 
     return lightrag_embed_func, dim
+
 
 async def get_lightrag_holder(
     collection: Collection
@@ -196,3 +198,16 @@ async def get_lightrag_holder(
             raise RuntimeError(
                 f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'"
             ) from e
+
+
+async def reload_lightrag_holder(collection: Collection):
+    namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
+    if not namespace_prefix or not isinstance(namespace_prefix, str):
+        raise ValueError("A valid namespace_prefix string must be provided.")
+
+    if namespace_prefix in _lightrag_instances:
+        logger.info(f"Removing existing LightRAG instance for namespace '{namespace_prefix}' for reload...")
+        _lightrag_instances.pop(namespace_prefix, None)
+
+    logger.info(f"Reloading LightRAG instance for namespace '{namespace_prefix}'...")
+    await get_lightrag_holder(collection)

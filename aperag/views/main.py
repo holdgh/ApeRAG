@@ -34,6 +34,7 @@ from ninja.files import UploadedFile
 
 import aperag.chat.message
 import aperag.views.models
+from aperag.graph.lightrag_holder import get_lightrag_holder
 from config import settings
 from config.celery import app
 from aperag.apps import QuotaType
