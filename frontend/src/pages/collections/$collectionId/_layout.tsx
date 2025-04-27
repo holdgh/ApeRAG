@@ -11,17 +11,25 @@ import {
   Typography,
 } from 'antd';
 import moment from 'moment';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { FormattedMessage, history, Outlet, useIntl, useModel } from 'umi';
+import {
+  FormattedMessage,
+  history,
+  Outlet,
+  useIntl,
+  useModel,
+  useParams,
+} from 'umi';
 
 export const LayoutCollection = () => {
-  const { collection, deleteCollection } = useModel('collection');
   const [modal, contextHolder] = Modal.useModal();
   const { formatMessage } = useIntl();
+  const { collectionId } = useParams();
+  const { collection, deleteCollection, getCollection, setCollection } =
+    useModel('collection');
 
   const onDeleteCollection = useCallback(async () => {
-    if (!collection?.id) return;
     const confirmed = await modal.confirm({
       title: formatMessage({ id: 'action.confirm' }),
       content: formatMessage(
@@ -32,13 +40,24 @@ export const LayoutCollection = () => {
         danger: true,
       },
     });
-    if (confirmed && (await deleteCollection(collection.id))) {
+    if (confirmed && (await deleteCollection())) {
       toast.success(formatMessage({ id: 'tips.delete.success' }));
       history.push('/collections');
     }
   }, [collection]);
 
   const config = useMemo(() => collection?.config, [collection]);
+
+  useEffect(() => {
+    if (collectionId) {
+      getCollection(collectionId);
+    } else {
+      setCollection(undefined);
+    }
+    return () => setCollection(undefined);
+  }, [collectionId]);
+
+  if (!collection) return;
 
   return (
     <>

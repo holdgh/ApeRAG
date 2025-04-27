@@ -1,9 +1,9 @@
 import { Edge, Node, Position } from '@xyflow/react';
 
-export type LayoutDirection = 'TB' | 'LR';
+export type ApeLayoutDirection = 'TB' | 'LR';
 export type ApeNodeType = 'start' | 'end' | 'normal';
 
-export type NodeHandlePosition = {
+export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
   targetPosition?: Position;
 };

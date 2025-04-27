@@ -2,8 +2,6 @@ import { Config } from '@/api';
 import 'umi/typings';
 
 declare global {
-  // interface Window {}
-
   const APERAG_CONFIG: {
     title?: string;
     favicon?: string;

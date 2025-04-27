@@ -1,6 +1,6 @@
 import { Navbar, NavbarBody, NavbarHeader } from '@/components';
 import { Menu, MenuProps } from 'antd';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   FormattedMessage,
   history,
@@ -14,7 +14,7 @@ type MenuItem = Required<MenuProps>['items'][number];
 export const NavbarCollection = () => {
   const { collectionId } = useParams();
   const location = useLocation();
-  const { collection, getCollection, setCollection } = useModel('collection');
+  const { collection } = useModel('collection');
 
   const menuItems = useMemo(
     (): MenuItem[] => [
@@ -39,15 +39,6 @@ export const NavbarCollection = () => {
     ],
     [collectionId],
   );
-
-  useEffect(() => {
-    if (collectionId) {
-      getCollection(collectionId);
-    } else {
-      setCollection(undefined);
-    }
-    return () => setCollection(undefined);
-  }, [collectionId]);
 
   if (!collection) return;
 
