@@ -33,7 +33,7 @@ def random_id():
 def upload_document_path(document, filename):
     user = document.user.replace("|", "-")
     return "documents/user-{0}/{1}/{2}".format(
-        user, document.collection.id, filename
+        user, document.collection_id, filename
     )
 
 
@@ -84,6 +84,18 @@ class Collection(models.Model):
             "updated": self.gmt_updated.isoformat(),
         }
 
+    async def bots(self, only_ids=False):
+        """Get all active bots related to this collection"""
+        from aperag.db import models as db_models
+        result = []
+        async for rel in db_models.BotCollectionRelation.objects.filter(collection_id=self.id, gmt_deleted__isnull=True).all():
+            if only_ids:
+                result.append(rel.bot_id)
+            else:
+                bot = await db_models.Bot.objects.aget(id=rel.bot_id)
+                result.append(bot)
+        return result
+
 
 class Document(models.Model):
     class Status(models.TextChoices):
@@ -108,7 +120,7 @@ class Document(models.Model):
     name = models.CharField(max_length=1024)
     user = models.CharField(max_length=256)
     config = models.TextField(null=True)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection_id = models.CharField(max_length=24, null=True)
     status = models.CharField(max_length=16, choices=Status.choices)
     size = models.BigIntegerField()
     file = models.FileField(upload_to=upload_document_path, max_length=1024)
@@ -120,16 +132,27 @@ class Document(models.Model):
     sensitive_info = models.JSONField(default=list)
 
     class Meta:
-        unique_together = ('collection', 'name')
+        unique_together = ('collection_id', 'name')
 
-    def collection_id(self):
-        if self.collection:
-            return Cast(self.collection, IntegerField())
-        else:
+    async def get_collection(self):
+        """Get the associated collection object"""
+        try:
+            return await Collection.objects.aget(id=self.collection_id)
+        except Collection.DoesNotExist:
             return None
 
-    collection_id.short_description = 'Collection ID'
-    collection_id.admin_order_field = 'collection'
+    @property
+    async def collection(self):
+        """Property to maintain backwards compatibility"""
+        return await self.get_collection()
+
+    @collection.setter 
+    async def collection(self, collection):
+        """Setter to maintain backwards compatibility"""
+        if isinstance(collection, Collection):
+            self.collection_id = collection.id
+        elif isinstance(collection, str):
+            self.collection_id = collection
 
 
 class Bot(models.Model):
@@ -153,10 +176,37 @@ class Bot(models.Model):
     description = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices)
     config = models.TextField()
-    collections = models.ManyToManyField(Collection)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    async def collections(self, only_ids=False):
+        """Get all active collections related to this bot"""
+        from aperag.db import models as db_models
+        result = []
+        async for rel in db_models.BotCollectionRelation.objects.filter(bot_id=self.id, gmt_deleted__isnull=True).all():
+            if only_ids:
+                result.append(rel.collection_id)
+            else:
+                collection = await db_models.Collection.objects.aget(id=rel.collection_id)
+                result.append(collection)
+        return result
+
+
+class BotCollectionRelation(models.Model):
+    bot_id = models.CharField(max_length=24)
+    collection_id = models.CharField(max_length=24)
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bot_id", "collection_id"],
+                condition=models.Q(gmt_deleted__isnull=True),
+                name="unique_active_bot_collection"
+            )
+        ]
 
 
 class Config(models.Model):
@@ -199,14 +249,34 @@ class Chat(models.Model):
     peer_type = models.CharField(max_length=16, default=PeerType.SYSTEM, choices=PeerType.choices)
     peer_id = models.CharField(max_length=256, null=True)
     status = models.CharField(max_length=16, choices=Status.choices)
-    bot = models.ForeignKey(Bot, on_delete=models.CASCADE)
+    bot_id = models.CharField(max_length=24)
     title = models.TextField()
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        unique_together = ('bot', 'peer_type', 'peer_id')
+        unique_together = ('bot_id', 'peer_type', 'peer_id')
+
+    async def get_bot(self):
+        """Get the associated bot object"""
+        try:
+            return await Bot.objects.aget(id=self.bot_id)
+        except Bot.DoesNotExist:
+            return None
+
+    @property
+    async def bot(self):
+        """Property to maintain backwards compatibility"""
+        return await self.get_bot()
+
+    @bot.setter
+    async def bot(self, bot):
+        """Setter to maintain backwards compatibility"""
+        if isinstance(bot, Bot):
+            self.bot_id = bot.id
+        elif isinstance(bot, str):
+            self.bot_id = bot
 
 
 class MessageFeedback(models.Model):
@@ -217,8 +287,8 @@ class MessageFeedback(models.Model):
         FAILED = "FAILED"
 
     user = models.CharField(max_length=256)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, null=True, blank=True)
-    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
+    collection_id = models.CharField(max_length=24, null=True, blank=True)
+    chat_id = models.CharField(max_length=24)
     message_id = models.CharField(max_length=256)
     upvote = models.IntegerField(default=0)
     downvote = models.IntegerField(default=0)
@@ -233,6 +303,46 @@ class MessageFeedback(models.Model):
 
     class Meta:
         unique_together = ('chat_id', 'message_id')
+
+    async def get_collection(self):
+        """Get the associated collection object"""
+        try:
+            return await Collection.objects.aget(id=self.collection_id)
+        except Collection.DoesNotExist:
+            return None
+
+    @property
+    async def collection(self):
+        """Property to maintain backwards compatibility"""
+        return await self.get_collection()
+
+    @collection.setter
+    async def collection(self, collection):
+        """Setter to maintain backwards compatibility"""
+        if isinstance(collection, Collection):
+            self.collection_id = collection.id
+        elif isinstance(collection, str):
+            self.collection_id = collection
+
+    async def get_chat(self):
+        """Get the associated chat object"""
+        try:
+            return await Chat.objects.aget(id=self.chat_id)
+        except Chat.DoesNotExist:
+            return None
+
+    @property
+    async def chat(self):
+        """Property to maintain backwards compatibility"""
+        return await self.get_chat()
+
+    @chat.setter
+    async def chat(self, chat):
+        """Setter to maintain backwards compatibility"""
+        if isinstance(chat, Chat):
+            self.chat_id = chat.id
+        elif isinstance(chat, str):
+            self.chat_id = chat
 
 
 class Question(models.Model):
@@ -249,7 +359,7 @@ class Question(models.Model):
 
     id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
     user = models.CharField(max_length=256)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection_id = models.CharField(max_length=24)
     documents = models.ManyToManyField(Document, blank=True)
     question = models.TextField()
     answer = models.TextField(null=True, blank=True)
@@ -258,6 +368,26 @@ class Question(models.Model):
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
     relate_id = models.CharField(null=True, max_length=256)
+
+    async def get_collection(self):
+        """Get the associated collection object"""
+        try:
+            return await Collection.objects.aget(id=self.collection_id)
+        except Collection.DoesNotExist:
+            return None
+
+    @property
+    async def collection(self):
+        """Property to maintain backwards compatibility"""
+        return await self.get_collection()
+
+    @collection.setter
+    async def collection(self, collection):
+        """Setter to maintain backwards compatibility"""
+        if isinstance(collection, Collection):
+            self.collection_id = collection.id
+        elif isinstance(collection, str):
+            self.collection_id = collection
 
 
 class ApiKeyToken(models.Model):
@@ -288,7 +418,7 @@ class CollectionSyncHistory(models.Model):
 
     id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
     user = models.CharField(max_length=256)
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    collection_id = models.CharField(max_length=24)
     total_documents = models.PositiveIntegerField(default=0)
     new_documents = models.PositiveIntegerField(default=0)
     deleted_documents = models.PositiveIntegerField(default=0)
@@ -310,6 +440,13 @@ class CollectionSyncHistory(models.Model):
         self.refresh_from_db()
         self.execution_time = timezone.now() - self.start_time
         self.save()
+
+    async def collection(self):
+        """Get the associated collection object"""
+        try:
+            return await Collection.objects.aget(id=self.collection_id)
+        except Collection.DoesNotExist:
+            return None
 
     def view(self):
         return {

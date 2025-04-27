@@ -138,12 +138,12 @@ def build_card_data(chat_id, message_id, message, upvote=False, downvote=False):
 async def feishu_streaming_response(client, chat_id, bot, msg_id, msg):
     chat = await query_chat_by_peer(bot.user, Chat.PeerType.FEISHU, chat_id)
     if chat is None:
-        chat = Chat(user=bot.user, bot=bot, peer_type=Chat.PeerType.FEISHU, peer_id=chat_id)
+        chat = Chat(user=bot.user, bot_id=bot.id, peer_type=Chat.PeerType.FEISHU, peer_id=chat_id)
         await chat.asave()
 
     history = RedisChatMessageHistory(session_id=str(chat.id), redis_client=get_async_redis_client())
     response = ""
-    collection = await sync_to_async(bot.collections.first)()
+    collection = (await bot.collections())[0]
     card_id = client.reply_card_message(msg_id, build_card_data(chat_id, msg_id, response))
     last_ts = time.time()
     try:

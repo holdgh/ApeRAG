@@ -166,7 +166,7 @@ async def sync_immediately(request, collection_id):
     instance = db_models.CollectionSyncHistory(
         user=collection.user,
         start_time=timezone.now(),
-        collection=collection,
+        collection_id=collection_id,
         execution_time=datetime.timedelta(seconds=0),
         total_documents_to_sync=0,
         status=db_models.Collection.SyncStatus.RUNNING,
@@ -370,10 +370,6 @@ async def get_collection(request, collection_id: str) -> view_models.Collection:
     if instance is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
 
-    bots = await sync_to_async(instance.bot_set.exclude)(status=db_models.Bot.Status.DELETED)
-    bot_ids = []
-    async for bot in bots:
-        bot_ids.append(bot.id)
     return success(view_models.Collection(
         id=instance.id,
         title=instance.title,
@@ -400,11 +396,6 @@ async def update_collection(request, collection_id: str, collection: view_models
     if source.sync_enabled():
         await update_sync_documents_cron_job(instance.id)
 
-    bots = await sync_to_async(instance.bot_set.exclude)(status=db_models.Bot.Status.DELETED)
-    bot_ids = []
-    async for bot in bots:
-        bot_ids.append(bot.id)
-
     return success(view_models.Collection(
         id=instance.id,
         title=instance.title,
@@ -423,13 +414,12 @@ async def delete_collection(request, collection_id: str) -> view_models.Collecti
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
+    
+    collection_bots = await collection.bots(only_ids=True)
+    if len(collection_bots) > 0:
+        return fail(HTTPStatus.BAD_REQUEST, f"Collection has related to bots {','.join(collection_bots)}, can not be deleted")
+
     await delete_sync_documents_cron_job(collection.id)
-    bots = await sync_to_async(collection.bot_set.exclude)(status=db_models.Bot.Status.DELETED)
-    bot_ids = []
-    async for bot in bots:
-        bot_ids.append(bot.id)
-    if len(bot_ids) > 0:
-        return fail(HTTPStatus.BAD_REQUEST, f"Collection has related to bots {','.join(bot_ids)}, can not be deleted")
     collection.status = db_models.Collection.Status.DELETED
     collection.gmt_deleted = timezone.now()
     await collection.asave()
@@ -477,7 +467,7 @@ async def update_question(request, collection_id: str, question_in: view_models.
     if not question_in.id:
         question_instance = db_models.Question(
             user=collection.user,
-            collection=collection,
+            collection_id=collection.id,
             status=db_models.Question.Status.PENDING,
         )
         await question_instance.asave()
@@ -589,7 +579,7 @@ async def create_document(request, collection_id: str, file: List[UploadedFile] 
                 name=item.name,
                 status=db_models.Document.Status.PENDING,
                 size=item.size,
-                collection=collection,
+                collection_id=collection.id,
                 file=ContentFile(item.read(), item.name),
             )
             await document_instance.asave()
@@ -602,7 +592,8 @@ async def create_document(request, collection_id: str, file: List[UploadedFile] 
                 name=document_instance.name,
                 status=document_instance.status,
                 size=document_instance.size,
-                collection=document_instance.collection,
+                created=document_instance.gmt_created.isoformat(),
+                updated=document_instance.gmt_updated.isoformat(),
             ))
             add_index_for_local_document.delay(document_instance.id)
         except IntegrityError:
@@ -645,7 +636,7 @@ async def create_url_document(request, collection_id: str) -> List[view_models.D
                 user=user,
                 name=document_name,
                 status=db_models.Document.Status.PENDING,
-                collection=collection,
+                collection_id=collection.id,
                 size=0,
             )
             await document_instance.asave()
@@ -786,7 +777,7 @@ async def create_chat(request, bot_id: str) -> view_models.Chat:
     bot = await query_bot(user, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
-    instance = db_models.Chat(user=user, bot=bot, peer_type=db_models.Chat.PeerType.SYSTEM)
+    instance = db_models.Chat(user=user, bot_id=bot_id, peer_type=db_models.Chat.PeerType.SYSTEM, status=db_models.Chat.Status.ACTIVE)
     await instance.asave()
     return success(view_models.Chat(
         id=instance.id,
@@ -920,7 +911,7 @@ async def create_bot(request, bot_in: view_models.BotCreate) -> view_models.Bot:
     if not valid:
         return fail(HTTPStatus.BAD_REQUEST, msg)
     await bot.asave()
-    collections = []
+    collection_ids = []
     if bot_in.collection_ids is not None:
         for cid in bot_in.collection_ids:
             collection = await query_collection(user, cid)
@@ -928,8 +919,8 @@ async def create_bot(request, bot_in: view_models.BotCreate) -> view_models.Bot:
                 return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
             if collection.status == db_models.Collection.Status.INACTIVE:
                 return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
-            await sync_to_async(bot.collections.add)(collection)
-            collections.append(collection.view())
+            await db_models.BotCollectionRelation.objects.acreate(bot_id=bot.id, collection_id=cid)
+            collection_ids.append(cid)
     await bot.asave()
     return success(view_models.Bot(
         id=bot.id,
@@ -938,7 +929,7 @@ async def create_bot(request, bot_in: view_models.BotCreate) -> view_models.Bot:
         description=bot.description,
         config=bot.config,
         system=bot.user == settings.ADMIN_USER,
-        collections=collections,
+        collection_ids=collection_ids,
         created=bot.gmt_created,
         updated=bot.gmt_updated,
     ))
@@ -960,9 +951,7 @@ async def list_bots(request) -> view_models.BotList:
         elif model in ["gpt-4-vision-preview", "gpt-4-32k", "gpt-4-32k-0613"]:
             bot_config["model"] = "gpt-4-1106-preview"
         bot.config = json.dumps(bot_config)
-        collection_ids = []
-        async for collection in await sync_to_async(bot.collections.all)():
-            collection_ids.append(collection.id)
+        collection_ids = await bot.collections(only_ids=True)
         response.append(view_models.Bot(
             id=bot.id,
             title=bot.title,
@@ -982,9 +971,7 @@ async def get_bot(request, bot_id: str) -> view_models.Bot:
     bot = await query_bot(user, bot_id)
     if bot is None:
         return fail(HTTPStatus.NOT_FOUND, "Bot not found")
-    collection_ids = []
-    async for collection in await sync_to_async(bot.collections.all)():
-        collection_ids.append(collection.id)
+    collection_ids = await bot.collections(only_ids=True)
     return success(view_models.Bot(
         id=bot.id,
         title=bot.title,
@@ -1017,20 +1004,17 @@ async def update_bot(request, bot_id: str, bot_in: view_models.BotUpdate) -> vie
     bot.type = bot_in.type
     bot.description = bot_in.description
     if bot_in.collection_ids is not None:
-        collections = []
+        await db_models.BotCollectionRelation.objects.filter(bot_id=bot.id, gmt_deleted__isnull=True).aupdate(gmt_deleted=timezone.now())
         for cid in bot_in.collection_ids:
             collection = await query_collection(user, cid)
             if not collection:
                 return fail(HTTPStatus.NOT_FOUND, "Collection %s not found" % cid)
             if collection.status == db_models.Collection.Status.INACTIVE:
                 return fail(HTTPStatus.BAD_REQUEST, "Collection %s is inactive" % cid)
-            collections.append(collection)
-        await sync_to_async(bot.collections.set)(collections)
+            await db_models.BotCollectionRelation.objects.acreate(bot_id=bot.id, collection_id=cid)
     await bot.asave()
 
-    collection_ids = []
-    async for collection in await sync_to_async(bot.collections.all)():
-        collection_ids.append(collection.id)
+    collection_ids = await bot.collections(only_ids=True)
     return success(view_models.Bot(
         id=bot.id,
         title=bot.title,
@@ -1052,9 +1036,7 @@ async def delete_bot(request, bot_id: str) -> view_models.Bot:
     bot.status = db_models.Bot.Status.DELETED
     bot.gmt_deleted = timezone.now()
     await bot.asave()
-    collection_ids = []
-    async for collection in await sync_to_async(bot.collections.all)():
-        collection_ids.append(collection.id)
+    collection_ids = await bot.collections(only_ids=True)
     return success(view_models.Bot(
         id=bot.id,
         title=bot.title,
