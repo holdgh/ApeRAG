@@ -1,5 +1,3 @@
-declare module 'react-undraw-illustrations';
-
 import { Bot, Collection, Document } from '@/api';
 
 export * from './flow';
