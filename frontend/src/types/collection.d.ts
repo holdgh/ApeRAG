@@ -1,4 +1,5 @@
 import { Collection } from '@/api';
+import { Merge } from './tool';
 
 export type CollectionConfigSource =
   | 'system'

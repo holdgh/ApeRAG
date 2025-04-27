@@ -1,4 +1,5 @@
 import { Bot } from '@/api';
+import { Merge } from './tool';
 
 export type BotConfig = {
   model?: string;

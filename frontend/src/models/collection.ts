@@ -1,5 +1,5 @@
 import { api } from '@/services';
-import { ApeCollection, ApeDocument } from '@/types';
+import { ApeCollection } from '@/types';
 import { parseConfig, stringifyConfig } from '@/utils';
 import { useCallback, useState } from 'react';
 import { useModel } from 'umi';
@@ -12,9 +12,6 @@ export default () => {
 
   const [collections, setCollections] = useState<ApeCollection[]>();
   const [collectionsLoading, setCollectionsLoading] = useState<boolean>(false);
-
-  const [documents, setDocuments] = useState<ApeDocument[]>();
-  const [documentsLoading, setDocumentsLoading] = useState(false);
 
   // collection
   const getCollection = useCallback(async (collectionId: string) => {
@@ -73,39 +70,6 @@ export default () => {
     );
   }, []);
 
-  // collection documents
-  const getDocuments = useCallback(async (collectionId: string) => {
-    setLoading(true);
-    setDocumentsLoading(true);
-    const res = await api.collectionsCollectionIdDocumentsGet({ collectionId });
-
-    setLoading(false);
-    setDocuments(
-      res.data.items?.map((document) => ({
-        ...document,
-        config: parseConfig(document.config),
-      })),
-    );
-
-    setDocumentsLoading(false);
-  }, []);
-
-  // document
-  const deleteDocument = useCallback(
-    async (documentId: string): Promise<boolean | undefined> => {
-      if (!collection?.id) return;
-      setLoading(true);
-      const res = await api.collectionsCollectionIdDocumentsDocumentIdDelete({
-        collectionId: collection.id,
-        documentId,
-      });
-      getDocuments(collection.id);
-      setLoading(false);
-      return res.status === 200;
-    },
-    [collection],
-  );
-
   return {
     collection,
     collectionLoading,
@@ -119,12 +83,5 @@ export default () => {
     collectionsLoading,
     getCollections,
     setCollections,
-
-    documents,
-    documentsLoading,
-    getDocuments,
-    setDocuments,
-
-    deleteDocument,
   };
 };

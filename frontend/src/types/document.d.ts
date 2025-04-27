@@ -1,4 +1,5 @@
 import { Document } from '@/api';
+import { Merge } from './tool';
 
 export type DocumentConfig = {
   path?: string;
