@@ -32,13 +32,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from aperag.views.chat_completion import openai_chat_completions
 
 import aperag.views.main
 
 handler404 = aperag.views.main.default_page
 
 urlpatterns = [
-    path("api/", include("aperag.urls")),
+    path("", include("aperag.urls")),
     # path("admin/", admin.site.urls),
     path('', include('django_prometheus.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

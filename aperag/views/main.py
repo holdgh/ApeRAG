@@ -17,8 +17,11 @@ import json
 import logging
 import os
 from http import HTTPStatus
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
+import uuid
+from urllib.parse import parse_qsl
 
+from django.http import HttpRequest, StreamingHttpResponse
 import yaml
 from asgiref.sync import sync_to_async
 from celery import chain, group
@@ -31,6 +34,9 @@ from ninja import File, Router, Schema
 from ninja.files import UploadedFile
 
 import aperag.chat.message
+from aperag.chat.sse.base import ChatRequest, MessageProcessor, logger
+from aperag.chat.sse.frontend_consumer import FrontendFormatter
+from aperag.db.models import Chat
 import aperag.views.models
 from aperag.apps import QuotaType
 from aperag.chat.history.redis import RedisChatMessageHistory
@@ -42,6 +48,7 @@ from aperag.db.ops import (
     query_bots,
     query_bots_count,
     query_chat,
+    query_chat_by_peer,
     query_chats,
     query_collection,
     query_collections,
@@ -1147,3 +1154,92 @@ def dashboard(request):
     context = {'user_count': user_count, 'Collection_count': collection_count,
                'Document_count': document_count, 'Chat_count': chat_count}
     return render(request, 'aperag/dashboard.html', context)
+
+
+async def stream_frontend_sse_response(generator: AsyncGenerator[str, None], formatter, msg_id: str):
+    """Stream SSE response for frontend format"""
+    # Send start event
+    yield f"data: {json.dumps(formatter.format_stream_start(msg_id))}\n\n"
+
+    # Send content chunks
+    async for chunk in generator:
+        yield f"data: {json.dumps(formatter.format_stream_content(msg_id, chunk))}\n\n"
+
+    # Send end event with additional metadata
+    yield f"data: {json.dumps(formatter.format_stream_end(msg_id))}\n\n"
+
+
+@router.post("/chat/completions/frontend")
+async def frontend_chat_completions(request: HttpRequest):
+    try:
+        # Get user ID from request
+        user = get_user(request)
+        
+        # Parse request parameters
+        query_params = dict(parse_qsl(request.GET.urlencode()))
+        body = request.body.decode("utf-8")
+        
+        # Create chat request
+        chat_request = ChatRequest(
+            user=user,
+            bot_id=query_params.get("bot_id", ""),
+            chat_id=query_params.get("chat_id", ""),
+            msg_id=query_params.get("msg_id", "") or str(uuid.uuid4()),
+            stream=query_params.get("stream", "false").lower() == "true",
+            message=body
+        )
+        
+        # Get bot
+        bot = await query_bot(chat_request.user, chat_request.bot_id)
+        if not bot:
+            return StreamingHttpResponse(
+                json.dumps(FrontendFormatter.format_error("Bot not found")),
+                content_type="application/json"
+            )
+        
+        # Get or create chat
+        chat = await query_chat_by_peer(bot.user, Chat.PeerType.FEISHU, chat_request.chat_id)
+        if chat is None:
+            chat = Chat(
+                user=bot.user,
+                bot_id=bot.id,
+                peer_type=Chat.PeerType.FEISHU,
+                peer_id=chat_request.chat_id
+            )
+            await chat.asave()
+        
+        # Initialize message processor with history
+        history = RedisChatMessageHistory(
+            session_id=str(chat.id),
+            redis_client=get_async_redis_client()
+        )
+        processor = MessageProcessor(bot, history)
+        formatter = FrontendFormatter()
+        
+        # Process message and send response based on stream mode
+        if chat_request.stream:
+            return StreamingHttpResponse(
+                stream_frontend_sse_response(
+                    processor.process_message(chat_request.message, chat_request.msg_id),
+                    formatter,
+                    chat_request.msg_id
+                ),
+                content_type="text/event-stream"
+            )
+        else:
+            # Collect all content for non-streaming mode
+            full_content = ""
+            async for chunk in processor.process_message(chat_request.message, chat_request.msg_id):
+                full_content += chunk
+            
+            return StreamingHttpResponse(
+                json.dumps(formatter.format_complete_response(chat_request.msg_id, full_content)),
+                content_type="application/json"
+            )
+            
+    except Exception as e:
+        logger.exception(e)
+        return StreamingHttpResponse(
+            json.dumps(FrontendFormatter.format_error(str(e))),
+            content_type="application/json"
+        )

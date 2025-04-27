@@ -79,14 +79,15 @@ class CommonPipeline(Pipeline):
 
         if need_generate_answer:
             history = [{"role": "system", "content": self.prompt.format(query="")}]
-            messages = await self.history.messages
-            if self.memory and len(messages) > 0:
-                history.extend(self.predictor.get_latest_history(
-                    messages=messages,
-                    limit_length=max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0),
-                    limit_count=self.memory_limit_count,
-                    use_ai_memory=self.use_ai_memory))
-                self.memory_count = len(history)
+            if self.memory and self.history:
+                messages = await self.history.messages
+                if len(messages) > 0:
+                    history.extend(self.predictor.get_latest_history(
+                        messages=messages,
+                        limit_length=max(min(self.context_window - 500 - len(context), self.memory_limit_length), 0),
+                        limit_count=self.memory_limit_count,
+                        use_ai_memory=self.use_ai_memory))
+                    self.memory_count = len(history)
 
             if context:
                 prompt = self.file_prompt.format(query=message, context=context)
@@ -98,11 +99,12 @@ class CommonPipeline(Pipeline):
                 yield msg
                 response += msg
 
-            await self.add_human_message(message, message_id)
-            logger.info("[%s] add human message end", log_prefix)
+            if self.history:
+                await self.add_human_message(message, message_id)
+                logger.info("[%s] add human message end", log_prefix)
 
-            await self.add_ai_message(message, message_id, response, references=[], urls=[])
-            logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
+                await self.add_ai_message(message, message_id, response, references=[], urls=[])
+                logger.info("[%s] add ai message end and the pipeline is succeed", log_prefix)
 
             if self.use_related_question:
                 if need_related_question:
