@@ -18,31 +18,24 @@ import logging
 import os
 from http import HTTPStatus
 from typing import List, Optional
-import secrets
 
 import yaml
 from asgiref.sync import sync_to_async
 from celery import chain, group
 from celery.result import GroupResult
-from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django.shortcuts import render
 from django.utils import timezone
-from ninja import File, NinjaAPI, Router, Schema
+from ninja import File, Router, Schema
 from ninja.files import UploadedFile
 
 import aperag.chat.message
 import aperag.views.models
-from aperag.graph.lightrag_holder import get_lightrag_holder
-from config import settings
-from config.celery import app
 from aperag.apps import QuotaType
 from aperag.chat.history.redis import RedisChatMessageHistory
 from aperag.chat.utils import get_async_redis_client
 from aperag.db import models as db_models
-from aperag.views import models as view_models
-
 from aperag.db.ops import (
     build_pq,
     query_bot,
@@ -62,11 +55,10 @@ from aperag.db.ops import (
     query_sync_histories,
     query_sync_history,
     query_user_quota,
-    query_apikeys,
-    query_apikey,
     query_msp_list,
     query_msp,
 )
+from aperag.graph.lightrag_holder import reload_lightrag_holder, delete_lightrag_holder
 from aperag.llm.base import Predictor
 from aperag.llm.prompts import (
     DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
@@ -90,6 +82,7 @@ from aperag.tasks.index import (
 from aperag.tasks.scan import delete_sync_documents_cron_job, update_sync_documents_cron_job
 from aperag.tasks.sync_documents_task import get_sync_progress, sync_documents
 from aperag.utils.request import get_urls, get_user
+from aperag.views import models as view_models
 from aperag.views.utils import (
     fail,
     query_chat_messages,
@@ -98,6 +91,8 @@ from aperag.views.utils import (
     validate_source_connect_config,
     validate_url,
 )
+from config import settings
+from config.celery import app
 
 logger = logging.getLogger(__name__)
 
@@ -287,6 +282,7 @@ async def create_collection(request, collection: view_models.CollectionCreate) -
     if collection.config is not None:
         instance.config = collection.config
     await instance.asave()
+    await reload_lightrag_holder(instance)  # LightRAG init might be slow, so we reload it once we update the collection
 
     if instance.type == db_models.Collection.Type.DOCUMENT:
         document_user_quota = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
@@ -353,6 +349,7 @@ async def update_collection(request, collection_id: str, collection: view_models
     instance.description = collection.description
     instance.config = collection.config
     await instance.asave()
+    await reload_lightrag_holder(instance) # LightRAG init might be slow, so we reload it once we update the collection
     source = get_source(json.loads(collection.config))
     if source.sync_enabled():
         await update_sync_documents_cron_job(instance.id)
@@ -385,6 +382,7 @@ async def delete_collection(request, collection_id: str) -> view_models.Collecti
     collection.gmt_deleted = timezone.now()
     await collection.asave()
 
+    await delete_lightrag_holder(collection)
     delete_collection_task.delay(collection_id)
 
     return success(view_models.Collection(

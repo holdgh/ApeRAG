@@ -201,13 +201,15 @@ async def get_lightrag_holder(
 
 
 async def reload_lightrag_holder(collection: Collection):
+    delete_lightrag_holder(collection)
+    await get_lightrag_holder(collection)
+
+
+async def delete_lightrag_holder(collection: Collection):
     namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
     if not namespace_prefix or not isinstance(namespace_prefix, str):
-        raise ValueError("A valid namespace_prefix string must be provided.")
-
-    if namespace_prefix in _lightrag_instances:
-        logger.info(f"Removing existing LightRAG instance for namespace '{namespace_prefix}' for reload...")
-        _lightrag_instances.pop(namespace_prefix, None)
-
-    logger.info(f"Reloading LightRAG instance for namespace '{namespace_prefix}'...")
-    await get_lightrag_holder(collection)
+        return
+    async with _initialization_lock:
+        if namespace_prefix in _lightrag_instances:
+            logger.info(f"Removing existing LightRAG instance for namespace '{namespace_prefix}' for reload...")
+            del _lightrag_instances[namespace_prefix]
