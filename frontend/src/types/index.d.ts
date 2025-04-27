@@ -110,11 +110,11 @@ export type ApeCollection = Merge<Collection, { config?: CollectionConfig }>;
 /**
  * documents
  */
-export type DocumentConfig = {
+export type ApeDocumentConfig = {
   path?: string;
   labels?: {
     [key in string]: string;
   }[];
 };
 
-export type ApeDocument = Merge<Document, { config?: DocumentConfig }>;
+export type ApeDocument = Merge<Document, { config?: ApeDocumentConfig }>;

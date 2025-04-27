@@ -213,13 +213,16 @@ export default () => {
     [collectionId],
   );
 
-  const documents: ApeDocument[] | undefined = useMemo(
+  const documents = useMemo(
     () =>
       documentsRes?.data.items
-        ?.map((document) => ({
-          ...document,
-          config: parseConfig(document.config),
-        }))
+        ?.map((document) => {
+          const item: ApeDocument = {
+            ...document,
+            config: parseConfig(document.config),
+          };
+          return item;
+        })
         .filter((item) => {
           const titleMatch = searchParams?.name
             ? item.name?.includes(searchParams.name)
