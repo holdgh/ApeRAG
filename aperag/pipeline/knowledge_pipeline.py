@@ -57,10 +57,10 @@ class KnowledgePipeline(Pipeline):
         self.vectordb_ctx["collection"] = self.collection_name
         
         config = json.loads(self.collection.config)
-        self.embedding_backend = config.get("embedding_model_service_provider", "")
+        self.embedding_msp = config.get("embedding_model_service_provider", "")
         self.embedding_model_name = config.get("embedding_model_name", "")
 
-        logging.info("KnowledgePipeline embedding model: %s, %s", self.embedding_backend, self.embedding_model_name)
+        logging.info("KnowledgePipeline embedding model: %s, %s", self.embedding_msp, self.embedding_model_name)
 
         self.qa_collection_name = generate_qa_vector_db_collection_name(self.collection_id)
         self.qa_vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
