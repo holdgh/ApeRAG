@@ -96,8 +96,7 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
             merged_kwargs = {
                 "api_key": api_key,
                 "base_url": base_url,
-                "model": lightrag_model_name,
-                **kwargs,
+                "model": f"{dialect}/{lightrag_model_name}",
             }
 
             from aperag.llm.completion_service import CompletionService
