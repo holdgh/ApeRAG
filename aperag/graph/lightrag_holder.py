@@ -73,7 +73,6 @@ class LightRagHolder:
         return await self.rag.adelete_by_doc_id(doc_id)
 
 
-# ---------- Default llm_func & embed_impl ---------- #
 async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]:
     config = json.loads(collection.config)
     lightrag_backend = config.get("lightrag_model_service_provider", "")
@@ -83,30 +82,47 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
     msp_dict = await query_msp_dict(collection.user)
     if lightrag_backend in msp_dict:
         msp = msp_dict[lightrag_backend]
-        lightrag_model_service_url = msp.base_url
-        lightrag_model_service_api_key = msp.api_key
-        logging.info("gen_lightrag_llm_func %s %s", lightrag_model_service_url, lightrag_model_service_api_key)
+        base_url = msp.base_url
+        api_key = msp.api_key
+        logging.info("gen_lightrag_llm_func %s %s", base_url, api_key)
 
         async def lightrag_llm_func(
-            prompt: str,
-            system_prompt: Optional[str] = None,
-            history_messages: List = [],
-            **kwargs,
+                prompt: str,
+                system_prompt: Optional[str] = None,
+                history_messages: List = [],
+                **kwargs,
         ) -> str:
             merged_kwargs = {
-                "api_key": lightrag_model_service_api_key,
-                "base_url": lightrag_model_service_url,
+                "api_key": api_key,
+                "base_url": base_url,
                 "model": lightrag_model_name,
                 **kwargs,
             }
-            return await openai_complete_if_cache(
-                prompt=prompt,
-                system_prompt=system_prompt,
-                history_messages=history_messages,
-                **merged_kwargs,
-            )
+
+            from aperag.llm.completion_service import CompletionService
+            completion_service = CompletionService(**merged_kwargs)
+
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+
+            if history_messages:
+                messages.extend(history_messages)
+
+            # 使用 CompletionService 的公共 agenerate_stream 方法
+            full_response = ""
+            async for chunk in completion_service.agenerate_stream(
+                    history=messages,
+                    prompt=prompt,
+                    memory=True if messages else False
+            ):
+                if chunk:
+                    full_response += chunk
+
+            return full_response
+
         return lightrag_llm_func
-    
+
     return None
 
 # Module-level cache
