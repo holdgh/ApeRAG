@@ -11,15 +11,13 @@ from tenacity import retry, wait_exponential, stop_after_attempt
 class EmbeddingService(Embeddings):
     def __init__(
         self,
-        embedding_backend: str,
+        embedding_provider: str,
         embedding_model: str,
         embedding_service_url: str,
         embedding_service_api_key: str,
         embedding_max_chunks_in_batch: int,
     ):
-        if embedding_backend in ["siliconflow", "alibabacloud"]:
-            embedding_backend = "openai"
-        self.model = f"{embedding_backend}/{embedding_model}"
+        self.model = f"{embedding_provider}/{embedding_model}"
         self.api_base = embedding_service_url
         self.api_key = embedding_service_api_key
         self.max_chunks = embedding_max_chunks_in_batch

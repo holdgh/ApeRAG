@@ -20,7 +20,7 @@ from config.celery import app
 from config.vector_db import get_vector_db_connector
 from aperag.context.full_text import create_index, delete_index
 from aperag.db.models import Collection
-from aperag.embed.base_embedding import get_collection_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.source.base import get_source
 from aperag.tasks.sync_documents_task import sync_documents
 from aperag.utils.utils import (
@@ -38,7 +38,7 @@ def init_collection_task(collection_id, document_user_quota):
     vector_db_conn = get_vector_db_connector(
         collection=generate_vector_db_collection_name(collection_id=collection_id)
     )
-    _, vector_size = async_to_sync(get_collection_embedding_model)(collection)
+    _, vector_size = async_to_sync(get_collection_embedding_service)(collection)
     # pre-create collection in vector db
     vector_db_conn.connector.create_collection(vector_size=vector_size)
     

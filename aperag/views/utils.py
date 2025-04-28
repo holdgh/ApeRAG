@@ -94,7 +94,7 @@ def validate_source_connect_config(config: Dict) -> Tuple[bool, str]:
 
 def validate_bot_config(model, config: Dict, type, memory) -> Tuple[bool, str]:
     try:
-        Predictor.from_model(model, PredictorType.CUSTOM_LLM, **config)
+        Predictor.get_completion_service(model, PredictorType.CUSTOM_LLM, **config)
     except Exception as e:
         return False, str(e)
 

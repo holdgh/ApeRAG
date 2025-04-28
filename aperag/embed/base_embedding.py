@@ -31,8 +31,8 @@ def synchronized(func):
 _dimension_cache: dict[tuple[str, str], int] = {}
 
 
-def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_backend: str, embedding_model) -> int:
-    cache_key = (embedding_backend, embedding_model)
+def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_provider: str, embedding_model) -> int:
+    cache_key = (embedding_provider, embedding_model)
     if cache_key in _dimension_cache:
         return _dimension_cache[cache_key]
     vec = embedding_svc.embed_query("dimension_probe")
@@ -47,40 +47,41 @@ def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_backend:
 
 @synchronized
 def get_embedding_model(
-        embedding_backend: str,
+        embedding_provider: str,
         embedding_model: str,
         embedding_service_url: str,
         embedding_service_api_key: str,
         embedding_max_chunks_in_batch: int = EMBEDDING_MAX_CHUNKS_IN_BATCH,
         **kwargs) -> tuple[Embeddings | None, int]:
-    embedding_svc = EmbeddingService(embedding_backend, embedding_model,
+    embedding_svc = EmbeddingService(embedding_provider, embedding_model,
                                      embedding_service_url, embedding_service_api_key, embedding_max_chunks_in_batch)
-    embedding_dim = _get_embedding_dimension(embedding_svc, embedding_backend, embedding_model)
+    embedding_dim = _get_embedding_dimension(embedding_svc, embedding_provider, embedding_model)
     return embedding_svc, embedding_dim
 
 
-async def get_collection_embedding_model(collection) -> tuple[Embeddings | None, int]:
+async def get_collection_embedding_service(collection) -> tuple[Embeddings | None, int]:
     config = json.loads(collection.config)
-    embedding_backend = config.get("embedding_model_service_provider", "")
+    embedding_msp = config.get("embedding_model_service_provider", "")
     embedding_model_name = config.get("embedding_model_name", "")
-    logging.info("get_collection_embedding_model %s %s", embedding_backend, embedding_model_name)
+    logging.info("get_collection_embedding_model %s %s", embedding_msp, embedding_model_name)
 
     msp_dict = await query_msp_dict(collection.user)
-    if embedding_backend in msp_dict:
-        msp = msp_dict[embedding_backend]
+    if embedding_msp in msp_dict:
+        msp = msp_dict[embedding_msp]
+        embedding_dialect = msp.dialect
         embedding_service_url = msp.base_url
         embedding_service_api_key = msp.api_key
         logging.info("get_collection_embedding_model %s %s", embedding_service_url, embedding_service_api_key)
 
         return get_embedding_model(
-            embedding_backend=embedding_backend,
+            embedding_provider=embedding_dialect,
             embedding_model=embedding_model_name,
             embedding_service_url=embedding_service_url,
             embedding_service_api_key=embedding_service_api_key,
             embedding_max_chunks_in_batch=EMBEDDING_MAX_CHUNKS_IN_BATCH,
         )
     
-    logging.warning("get_collection_embedding_model cannot find model service provider %s", embedding_backend)
+    logging.warning("get_collection_embedding_model cannot find model service provider %s", embedding_msp)
     return None, 0
 
 

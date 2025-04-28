@@ -85,7 +85,7 @@ class Pipeline(ABC):
 
         kwargs = {"model": self.model}
         kwargs.update(self.llm_config)
-        self.predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
+        self.predictor = Predictor.get_completion_service(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
         if self.use_related_question:
             self.related_prompt_template = self.llm_config.get("related_prompt_template", RELATED_QUESTIONS_TEMPLATE_V2)
@@ -93,7 +93,7 @@ class Pipeline(ABC):
                                                           input_variables=["query", "context"])
             kwargs = {"model": self.model}
             kwargs.update(self.llm_config)
-            self.related_question_predictor = Predictor.from_model(self.model, PredictorType.CUSTOM_LLM, **kwargs)
+            self.related_question_predictor = Predictor.get_completion_service(self.model, PredictorType.CUSTOM_LLM, **kwargs)
 
     async def generate_related_question(self, related_question_prompt):
         tools = [

@@ -3,7 +3,7 @@ import pytest
 from aperag.embed.embedding_service import EmbeddingService
 
 
-BACKEND = "openai"
+PROVIDER = "openai"
 MODEL = "text-embedding-3-small"
 API_BASE = os.getenv("OPENAI_API_BASE")
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
@@ -29,7 +29,7 @@ BASE_TEXTS = [
 def build_service(batch_size: int) -> EmbeddingService:
     """Utility helper to build an EmbeddingService with a given batch size."""
     return EmbeddingService(
-        embedding_backend=BACKEND,
+        embedding_provider=PROVIDER,
         embedding_model=MODEL,
         embedding_service_url=API_BASE,
         embedding_service_api_key=OPENAI_KEY,
