@@ -104,7 +104,7 @@ class Predictor(ABC):
                 raise Exception("Unsupported predictor type: %s" % predictor_type)
 
     @staticmethod
-    def from_model(model_name, predictor_type="", **kwargs):
+    def get_completion_service(model_name, predictor_type="", **kwargs):
         predictor = Predictor.match_predictor(model_name, predictor_type, kwargs)
         return predictor(**kwargs)
 

@@ -31,7 +31,7 @@ from aperag.pipeline.base_pipeline import DOC_QA_REFERENCES, RELATED_QUESTIONS, 
     Message, Pipeline, DOCUMENT_URLS
 from aperag.pipeline.keyword_extractor import IKExtractor
 from aperag.query.query import DocumentWithScore, get_packed_answer
-from aperag.embed.base_embedding import get_collection_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
 from aperag.utils.utils import (
@@ -74,7 +74,7 @@ class KnowledgePipeline(Pipeline):
         self.prompt = PromptTemplate(template=self.prompt_template, input_variables=["query", "context"])
 
     async def ainit(self):
-        self.embedding_model, self.vector_size = await get_collection_embedding_model(self.collection)
+        self.embedding_model, self.vector_size = await get_collection_embedding_service(self.collection)
 
         self.context_manager = ContextManager(self.collection_name, self.embedding_model, settings.VECTOR_DB_TYPE,
                                               self.vectordb_ctx)

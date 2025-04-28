@@ -14,7 +14,7 @@ from aperag.db.models import Collection
 from aperag.db.ops import (
     query_msp_dict,
 )
-from aperag.embed.base_embedding import get_collection_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.utils.utils import generate_lightrag_namespace_prefix
 from config.settings import (
     LIGHT_RAG_LLM_API_KEY,
@@ -75,13 +75,14 @@ class LightRagHolder:
 
 async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]:
     config = json.loads(collection.config)
-    lightrag_backend = config.get("lightrag_model_service_provider", "")
+    lightrag_msp = config.get("lightrag_model_service_provider", "")
     lightrag_model_name = config.get("lightrag_model_name", "")
-    logging.info("gen_lightrag_llm_func %s %s", lightrag_backend, lightrag_model_name)
+    logging.info("gen_lightrag_llm_func %s %s", lightrag_msp, lightrag_model_name)
 
     msp_dict = await query_msp_dict(collection.user)
-    if lightrag_backend in msp_dict:
-        msp = msp_dict[lightrag_backend]
+    if lightrag_msp in msp_dict:
+        msp = msp_dict[lightrag_msp]
+        dialect = msp.dialect
         base_url = msp.base_url
         api_key = msp.api_key
         logging.info("gen_lightrag_llm_func %s %s", base_url, api_key)
@@ -172,7 +173,7 @@ async def gen_lightrag_embed_func(collection: Collection) -> Tuple[
     Callable[[list[str]], Awaitable[numpy.ndarray]],
     int
 ]:
-    embedding_svc, dim = await get_collection_embedding_model(collection)
+    embedding_svc, dim = await get_collection_embedding_service(collection)
     async def lightrag_embed_func(texts: list[str]) -> numpy.ndarray:
         embeddings = await embedding_svc.aembed_documents(texts)
         return numpy.array(embeddings)

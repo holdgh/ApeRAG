@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 class QuestionGenerator(ABC):
     def __init__(self, **kwargs):
         self.prompt_template = PromptTemplate(template=QUESTION_EXTRACTION_PROMPT_TEMPLATE_V2, input_variables=["context"])
-        self.predictor = Predictor.from_model(model_name="gpt-4-1106-preview", predictor_type=PredictorType.CUSTOM_LLM, **kwargs)
+        self.predictor = Predictor.get_completion_service(model_name="gpt-4-1106-preview", predictor_type=PredictorType.CUSTOM_LLM, **kwargs)
 
     def gen_questions(self, text):
         prompt = self.prompt_template.format(context=text)

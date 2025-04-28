@@ -48,7 +48,7 @@ class AlgoletQAGenerator(QAGenerator):
 class BaiChuanQAGenerator(QAGenerator):
     def __init__(self, **kwargs):
         self.prompt_template = PromptTemplate(template=CHINESE_QA_EXTRACTION_PROMPT_TEMPLATE, input_variables=["context"])
-        self.predictor = Predictor.from_model(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM, **kwargs)
+        self.predictor = Predictor.get_completion_service(model_name="baichuan-13b", predictor_type=PredictorType.CUSTOM_LLM, **kwargs)
         self.q_pattern = r"问题.*：(.*)"
         self.a_pattern = r"答.*?：(.+?)(?=问题|$)"
 

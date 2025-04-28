@@ -22,7 +22,7 @@ from ninja import Router
 from config import settings
 from aperag.context.context import ContextManager
 from aperag.db.ops import query_collection_without_user
-from aperag.embed.base_embedding import get_collection_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.db.ops import query_msp_dict
 from aperag.rank.reranker import rerank
 from aperag.source.utils import async_run
@@ -49,7 +49,7 @@ async def query_similar(request, collection_id, topk=3, score_threshold=0.5):
     query = request.body.decode('utf-8')
     log_prefix = "query_similar|collection_id: %s|query: %s" % (collection_id, query)
 
-    embedding_svc, vector_size = await get_collection_embedding_model(collection)
+    embedding_svc, vector_size = await get_collection_embedding_service(collection)
     collection_name = generate_vector_db_collection_name(collection_id)
     vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
     vectordb_ctx["collection"] = collection_name

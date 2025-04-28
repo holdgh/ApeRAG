@@ -59,7 +59,7 @@ def get_embedding_model(
     return embedding_svc, embedding_dim
 
 
-async def get_collection_embedding_model(collection) -> tuple[Embeddings | None, int]:
+async def get_collection_embedding_service(collection) -> tuple[Embeddings | None, int]:
     config = json.loads(collection.config)
     embedding_msp = config.get("embedding_model_service_provider", "")
     embedding_model_name = config.get("embedding_model_name", "")

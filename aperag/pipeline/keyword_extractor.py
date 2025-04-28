@@ -81,7 +81,7 @@ class LLMExtractor(KeywordExtractor):
 
     def __init__(self, ctx: Dict[str, Any]):
         super().__init__(ctx)
-        self.predictor = Predictor.from_model(ctx["model"], PredictorType.CUSTOM_LLM)
+        self.predictor = Predictor.get_completion_service(ctx["model"], PredictorType.CUSTOM_LLM)
 
     async def extract(self, text):
         keyword_template = PromptTemplate(template=KEYWORD_PROMPT_TEMPLATE, input_variables=["query"])

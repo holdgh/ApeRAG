@@ -23,7 +23,7 @@ class SensitiveFilter(ABC):
         self.sensitive_protect_llm = False
         if sensitive_filter_model != '':
             self.sensitive_protect_llm = True
-            self.predictor = Predictor.from_model(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs)
+            self.predictor = Predictor.get_completion_service(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs)
 
     def sensitive_filter_llm(self, context, types=["密码", "API-KEY", "special token"]):
         prompt = self.prompt_template.format(context=context, types=types)
@@ -92,7 +92,7 @@ class SensitiveFilterClassify(ABC):
         self.sensitive_protect_llm = False
         if sensitive_filter_model != '':
             self.sensitive_protect_llm = True
-            self.predictor = Predictor.from_model(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs)
+            self.predictor = Predictor.get_completion_service(self.sensitive_filter_model, PredictorType.CUSTOM_LLM, **kwargs)
     def sensitive_filter_llm(self, context, types=["密码", "API-KEY", "special token"]):
         prompt = self.prompt_template.format(context=context, types=types)
         response = ""

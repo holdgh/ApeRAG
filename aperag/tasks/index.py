@@ -33,7 +33,7 @@ from aperag.db.models import (
     MessageFeedback,
     Question,
 )
-from aperag.embed.base_embedding import get_collection_embedding_model
+from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.embed.local_path_embedding import LocalPathEmbedding
 from aperag.embed.qa_embedding import QAEmbedding
 from aperag.embed.question_embedding import QuestionEmbedding, QuestionEmbeddingWithoutDocument
@@ -208,7 +208,7 @@ def add_index_for_document(self, document_id):
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
 
-            embedding_model, vector_size = async_to_sync(get_collection_embedding_model)(collection)
+            embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
             loader = LocalPathEmbedding(input_files=[local_doc.path],
                                         input_file_metadata_list=[local_doc.metadata],
                                         embedding_model=embedding_model,
@@ -318,7 +318,7 @@ def update_index_for_document(self, document_id):
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
-        embedding_model, vector_size = async_to_sync(get_collection_embedding_model)(collection)
+        embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
         loader = LocalPathEmbedding(input_files=[local_doc.path],
                                     input_file_metadata_list=[local_doc.metadata],
                                     embedding_model=embedding_model,
@@ -396,7 +396,7 @@ def message_feedback(**kwargs):
 
     qa_collection_name = generate_qa_vector_db_collection_name(collection=feedback.collection.id)
     vector_store_adaptor = get_vector_db_connector(collection=qa_collection_name)
-    embedding_model, _ = async_to_sync(get_collection_embedding_model)(feedback.collection)
+    embedding_model, _ = async_to_sync(get_collection_embedding_service)(feedback.collection)
     ids = [i for i in str(feedback.relate_ids or "").split(',') if i]
     if ids:
         vector_store_adaptor.connector.delete(ids=ids)
@@ -413,7 +413,7 @@ def generate_questions(document_id):
     try:
         document = Document.objects.get(id=document_id)
         collection = async_to_sync(document.get_collection)()
-        embedding_model, _ = async_to_sync(get_collection_embedding_model)(collection)
+        embedding_model, _ = async_to_sync(get_collection_embedding_service)(collection)
 
         source = get_source(json.loads(collection.config))
         metadata = json.loads(document.metadata)
@@ -444,7 +444,7 @@ def generate_questions(document_id):
 def update_index_for_question(question_id):
     try:
         question = Question.objects.get(id=question_id)
-        embedding_model, _ = async_to_sync(get_collection_embedding_model)(question.collection)
+        embedding_model, _ = async_to_sync(get_collection_embedding_service)(question.collection)
 
         q_loaders = QuestionEmbeddingWithoutDocument(embedding_model=embedding_model,
                                 vector_store_adaptor=get_vector_db_connector(
