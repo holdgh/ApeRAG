@@ -252,6 +252,7 @@ SUPPORTED_MODEL_SERVICE_PROVIDERS = [
     {
         "name": "openai",
         "label": "OpenAI",
+        "dialect": "openai",
         "allow_custom_base_url": True,
         "base_url": "https://api.openai.com/v1",
         "embeddings": [
@@ -275,6 +276,7 @@ SUPPORTED_MODEL_SERVICE_PROVIDERS = [
     {
         "name": "alibabacloud",
         "label": "AlibabaCloud",
+        "dialect": "openai",
         "allow_custom_base_url": False,
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "embeddings": [
@@ -300,6 +302,7 @@ SUPPORTED_MODEL_SERVICE_PROVIDERS = [
     {
         "name": "deepseek",
         "label": "DeepSeek",
+        "dialect": "openai",
         "allow_custom_base_url": False,
         "base_url": "https://api.deepseek.com/v1",
         "models": [
@@ -310,6 +313,7 @@ SUPPORTED_MODEL_SERVICE_PROVIDERS = [
     {
         "name": "siliconflow",
         "label": "SiliconFlow",
+        "dialect": "openai",
         "allow_custom_base_url": False,
         "base_url": "https://api.siliconflow.cn/v1",
         "embeddings": [

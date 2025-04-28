@@ -1012,6 +1012,7 @@ async def list_model_service_providers(request) -> view_models.SupportedModelSer
     for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS:
         response.append(view_models.SupportedModelServiceProvider(
             name=supported_msp["name"],
+            dialect=supported_msp["dialect"],
             label=supported_msp["label"],
             allow_custom_base_url=supported_msp["allow_custom_base_url"],
             base_url=supported_msp["base_url"],
@@ -1030,6 +1031,7 @@ async def list_model_service_providers(request) -> view_models.ModelServiceProvi
             supported_msp = supported_msp_dict[msp.name]
             response.append(view_models.ModelServiceProvider(
                 name=msp.name,
+                dialect=msp.dialect,
                 label=supported_msp["label"],
                 allow_custom_base_url=supported_msp["allow_custom_base_url"],
                 base_url=msp.base_url,
@@ -1039,6 +1041,7 @@ async def list_model_service_providers(request) -> view_models.ModelServiceProvi
 
 class ModelServiceProviderIn(Schema):
     name: str
+    dialect: Optional[str] = None
     api_key: str
     base_url: Optional[str] = None
     extra: Optional[str] = None
@@ -1060,16 +1063,18 @@ async def update_model_service_provider(request, provider, mspIn : ModelServiceP
         msp = db_models.ModelServiceProvider(
             user=user,
             name=provider,
+            dialect=mspIn.dialect or msp_config.get("dialect"),
             api_key=mspIn.api_key,
             base_url=mspIn.base_url if msp_config.get("allow_custom_base_url", False) else msp_config.get("base_url"),
-            extra = mspIn.extra,
+            extra=mspIn.extra,
             status=db_models.ModelServiceProvider.Status.ACTIVE,
         )
     else:
         if msp.status == db_models.ModelServiceProvider.Status.DELETED:
             msp.status = db_models.ModelServiceProvider.Status.ACTIVE
             msp.gmt_deleted = None
-        
+
+        msp.dialect = mspIn.dialect or msp.dialect
         msp.api_key = mspIn.api_key
         if (msp_config.get("allow_custom_base_url", False) and mspIn.base_url is not None):
             msp.base_url = mspIn.base_url
