@@ -1,0 +1,82 @@
+#LLMConfig:
+#  type: object
+#  properties:
+#    prompt_template:
+#      type: string
+#      nullable: true
+#    trial:
+#      type: boolean
+#      nullable: true
+#    base_url:
+#      type: string
+#      nullable: true
+#    api_key:
+#      type: string
+#      nullable: true
+#    deployment_id:
+#      type: string
+#      nullable: true
+#    api_version:
+#      type: string
+#      nullable: true
+#    endpoint:
+#      type: string
+#      nullable: true
+#    token:
+#      type: string
+#      nullable: true
+#    secret_key:
+#      type: string
+#      nullable: true
+#    context_window:
+#      type: integer
+#      minimum: 0
+#      maximum: 5120000
+#    similarity_score_threshold:
+#      type: number
+#      format: float
+#    similarity_topk:
+#      type: integer
+#    temperature:
+#      type: number
+#      format: float
+#    enable_keyword_recall:
+#      type: boolean
+#      nullable: true
+#    related_prompt_template:
+#      type: string
+#      nullable: true
+#  required:
+#    - context_window
+#    - similarity_score_threshold
+#    - similarity_topk
+#    - temperature
+#
+#BotConfig:
+#  type: object
+#  properties:
+#    model:
+#      type: string
+#    chractor:
+#      type: string
+#      nullable: true
+#    memory:
+#      type: boolean
+#      nullable: true
+#    memory_length:
+#      type: integer
+#      nullable: true
+#    memory_count:
+#      type: integer
+#      nullable: true
+#    use_related_question:
+#      type: boolean
+#      nullable: true
+#    related_question_prompt:
+#      type: string
+#      nullable: true
+#    llm:
+#      $ref: '#/LLMConfig'
+#  required:
+#    - model
+#    - llm
