@@ -1,6 +1,7 @@
 import os
 import pytest
-from aperag.llm.openai import OpenAIPredictor
+
+from aperag.llm.completion_service import CompletionService
 
 
 MODEL = "gpt-4o-mini"
@@ -14,17 +15,17 @@ SKIP = pytest.mark.skipif(
 )
 
 
-def build_service() -> OpenAIPredictor:
+def build_service() -> CompletionService:
     kargs = {
         "model": MODEL,
         "base_url": API_BASE,
         "api_key": OPENAI_KEY,
     }
-    return OpenAIPredictor(**kargs)
+    return CompletionService(**kargs)
 
 
 @SKIP
-def test_completion():
+def test_openai_completion():
     llm = build_service()
     resp = llm.generate_stream(history="", prompt="just print 'foobar', nothing else")
     response = ""

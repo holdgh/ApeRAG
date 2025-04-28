@@ -445,21 +445,21 @@ export default ({ form, onSubmit, values, action }: Props) => {
           >
             <Row gutter={[16, 16]}>
               <Col span={12}>
-                <Form.Item name={['config', 'llm', 'endpoint']}>
+                <Form.Item name={['config', 'llm', 'base_url']}>
                   <Input
                     prefix={
                       <Typography.Text type="secondary">
-                        Endpoint
+                        BASE URL
                       </Typography.Text>
                     }
                   />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name={['config', 'llm', 'token']}>
+                <Form.Item name={['config', 'llm', 'api_key']}>
                   <Input
                     prefix={
-                      <Typography.Text type="secondary">Token</Typography.Text>
+                      <Typography.Text type="secondary">API KEY</Typography.Text>
                     }
                   />
                 </Form.Item>
