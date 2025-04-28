@@ -479,6 +479,7 @@ class ModelServiceProvider(models.Model):
     name = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=Status.choices)
+    dialect = models.CharField(max_length=32, default="openai", blank=False, null=False)
     base_url = models.CharField(max_length=256, blank=True, null=True)
     api_key = models.CharField(max_length=256)
     extra = models.TextField(null=True)
