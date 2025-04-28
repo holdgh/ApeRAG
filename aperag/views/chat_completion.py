@@ -30,13 +30,22 @@ async def stream_openai_sse_response(generator: AsyncGenerator[str, None], forma
 
 
 @router.post("/chat/completions")
-async def openai_chat_completions(request: HttpRequest, bot_id: str):
+async def openai_chat_completions(request: HttpRequest):
     try:
         # Get user ID from request
         user = get_user(request)
         
         # Parse request parameters
         body_data = json.loads(request.body.decode("utf-8"))
+        
+        # Get bot_id from query parameters
+        query_params = dict(request.GET.items())
+        bot_id = query_params.get('bot_id') or query_params.get('app_id')
+        if not bot_id:
+            return StreamingHttpResponse(
+                json.dumps(OpenAIFormatter.format_error("bot_id is required")),
+                content_type="application/json"
+            )
         
         # Create API request
         api_request = APIRequest(
