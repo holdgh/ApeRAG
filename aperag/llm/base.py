@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 
 class PredictorType(Enum):
-    KB_VLLM = "kb-vllm"
     CUSTOM_LLM = "custom-llm"
 
 
@@ -47,7 +46,7 @@ class Predictor(ABC):
     def __init__(self, **kwargs):
         self.max_tokens = kwargs.get("max_tokens", 4096)
         self.temperature = kwargs.get("temperature", 0.1)
-        self.trial = kwargs.get("trial", False)
+        self.trial = False
 
     @abstractmethod
     async def agenerate_stream(self, history, prompt, memory):
@@ -68,33 +67,22 @@ class Predictor(ABC):
 
     @staticmethod
     def match_predictor(model_name, predictor_type, kwargs):
+        from aperag.llm.completion_service import CompletionService
         match model_name:
             case "chatgpt-3.5":
                 kwargs["model"] = "gpt-3.5-turbo"
-                from aperag.llm.openai import OpenAIPredictor
-                return OpenAIPredictor
+                return CompletionService
             case "gpt-3.5-turbo-1106" | "gpt-3.5-turbo" | "gpt-3.5-turbo-16k" | "gpt-3.5-turbo-instruct":
-                from aperag.llm.openai import OpenAIPredictor
-                return OpenAIPredictor
+                return CompletionService
             case "chatgpt-4":
                 kwargs["model"] = "gpt-4"
-                from aperag.llm.openai import OpenAIPredictor
-                return OpenAIPredictor
+                return CompletionService
             case "deepseek-chat" | "gpt-4-1106-preview" | "gpt-4-vision-preview" | "gpt-4" | "gpt-4-32k" | "gpt-4-0613" | "gpt-4-32k-0613":
-                from aperag.llm.openai import OpenAIPredictor
-                return OpenAIPredictor
+                return CompletionService
             case "glm-4-plus" | "glm-4-air" | "glm-4-long" | "glm-4-flashx" | "glm-4-flash":
-                from aperag.llm.openai import OpenAIPredictor
-                return OpenAIPredictor
+                return CompletionService
             case "azure-openai":
-                from aperag.llm.azure import AzureOpenAIPredictor
-                return AzureOpenAIPredictor
-            case "baichuan-53b":
-                from aperag.llm.baichuan import BaiChuanPredictor
-                return BaiChuanPredictor
-            case "ernie-bot-turbo":
-                from aperag.llm.wenxin import BaiduQianFan
-                return BaiduQianFan
+                return CompletionService
             case "qwen-turbo" | "qwen-plus" | "qwen-max":
                 from aperag.llm.qianwen import QianWenPredictor
                 return QianWenPredictor
@@ -109,8 +97,6 @@ class Predictor(ABC):
             predictor_type = ctx.get("type", PredictorType.CUSTOM_LLM)
 
         match predictor_type:
-            case PredictorType.KB_VLLM:
-                return KubeBlocksLLMPredictor
             case PredictorType.CUSTOM_LLM:
                 from aperag.llm.custom import CustomLLMPredictor
                 return CustomLLMPredictor
@@ -151,41 +137,4 @@ class Predictor(ABC):
             latest_history = latest_history[:-1]
 
         return latest_history[::-1]
-
-
-class KubeBlocksLLMPredictor(Predictor):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.endpoint = kwargs.get("endpoint", "http://localhost:18000")
-        self.use_deafult_token = False
-
-    @staticmethod
-    def provide_default_token():
-        return False
-
-    def _generate_stream(self, history, prompt, memory=False):
-        input = {
-            "prompt": prompt,
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens,
-            "stream": True,
-        }
-        response = requests.post("%s/generate" % self.endpoint, json=input, stream=True)
-        output = prompt
-        for chunk in response.iter_lines():
-            if chunk:
-                data = json.loads(chunk.decode("utf-8"))
-                tokens = data["text"][0][len(output):]
-                yield tokens
-                output = data["text"][0]
-
-    async def agenerate_stream(self, history, prompt, memory=False):
-        for tokens in self._generate_stream(prompt):
-            yield tokens
-
-    def generate_stream(self, history, prompt, memory=False):
-        for tokens in self._generate_stream(prompt):
-            yield tokens
-
 

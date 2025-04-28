@@ -12,35 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import os
-
 import httpx
 import litellm
-import openai
 
 from aperag.llm.base import LLMConfigError, Predictor
 
 
-class OpenAIPredictor(Predictor):
+class CompletionService(Predictor):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.model = kwargs.get("model", "gpt-3.5-turbo")
-        self.base_url = kwargs.get("base_url", "https://api.openai.com/v1")
-        self.api_key = kwargs.get("api_key", "")
-
-        if not self.api_key:
-            raise LLMConfigError("Please specify the API_KEY")
-
-        self.api_key = self.api_key.strip()
-        self.base_url = self.base_url.strip()
-
+        self.kwargs = kwargs
 
     def validate_params(self):
         if not self.kwargs.get("model"):
             raise LLMConfigError("Please specify the MODEL")
-        if not self.kwargs.get("api_key"):
-            raise LLMConfigError("Please specify the API_KEY")
 
 
     @staticmethod
@@ -49,10 +34,7 @@ class OpenAIPredictor(Predictor):
 
     async def _agenerate_stream(self, history, prompt, memory=False):
         response = litellm.completion(
-            model=self.model,
-            api_key=self.api_key,
-            base_url=self.base_url,
-            temperature=self.temperature,
+            **self.kwargs,
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             stream=True,
             timeout=httpx.Timeout(None, connect=3),
@@ -67,12 +49,8 @@ class OpenAIPredictor(Predictor):
 
     def _generate_stream(self, history, prompt, memory=False):
         response = litellm.completion(
-            model=self.model,
-            api_key=self.api_key,
-            base_url=self.base_url,
-            temperature=self.temperature,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [
-                {"role": "user", "content": prompt}],
+            **self.kwargs,
+            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             stream=True,
             timeout=httpx.Timeout(None, connect=3),
         )
@@ -90,10 +68,7 @@ class OpenAIPredictor(Predictor):
 
     async def agenerate_by_tools(self, prompt,tools):
         response = litellm.completion(
-            model=self.model,
-            api_key=self.api_key,
-            base_url=self.base_url,
-            temperature=self.temperature,
+            **self.kwargs,
             messages=[{"role": "user", "content": prompt}],
             tools=tools,
             tool_choice="auto",
