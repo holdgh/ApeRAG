@@ -31,7 +31,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 django_asgi_app = get_asgi_application()
 
-from aperag.chat.sse.sse import ServerSentEventsConsumer  # noqa: E402
 from aperag.chat.websocket.routing import websocket_urlpatterns  # noqa: E402
 from channels.security.websocket import AllowedHostsOriginValidator
 from channels.auth import AuthMiddlewareStack
@@ -39,7 +38,6 @@ from channels.auth import AuthMiddlewareStack
 application = ProtocolTypeRouter(
     {
         "http": URLRouter([
-            path('events', ServerSentEventsConsumer.as_asgi()),
             re_path(r'', get_asgi_application()),
         ]),
         "websocket": AllowedHostsOriginValidator(

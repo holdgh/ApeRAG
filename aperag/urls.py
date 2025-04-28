@@ -30,6 +30,7 @@ from aperag.views.web import router as web_router
 from aperag.views.weixin import router as weixin_router
 from aperag.views.auth import router as auth_router
 from aperag.views.api_key import router as api_key_router
+from aperag.views.chat_completion import router as chat_completion_router
 
 api = NinjaAPI(renderer=MyJSONRenderer)
 api.add_exception_handler(ValidationError, validation_errors)
@@ -48,8 +49,12 @@ api.add_exception_handler(ValidationError, validation_errors)
 api.add_exception_handler(AuthenticationError, auth_errors)
 admin_api.add_router("/admin", admin_router, auth=AdminAuth())
 
+chat_completion_api = NinjaAPI(renderer=MyJSONRenderer, docs_url=None, urls_namespace="chat_completion")
+chat_completion_api.add_router("/", chat_completion_router, auth=auth_middleware)
+
 urlpatterns = [
     path("", admin_api.urls),
-    path("v1/", api.urls),
+    path("v1/", chat_completion_api.urls),
+    path("api/v1/", api.urls),
     path('aperag/dashboard/', main.dashboard, name='dashboard'),
 ]
