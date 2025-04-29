@@ -29,7 +29,8 @@ class RankerService:
             top_n=len(documents),
             api_key=self.api_key,
             api_base=self.api_base,
-            return_documents=False
+            return_documents=False,
+            max_retries=0,
         )
         indices = [item["index"] for item in resp["results"]]
         return [results[i] for i in indices]

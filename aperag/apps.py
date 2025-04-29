@@ -33,6 +33,9 @@ class AperagConfig(AppConfig):
         from django.conf import settings
         settings.AUTH_USER_MODEL = 'aperag.User'
 
+        from aperag.llm.litellm_track import register_llm_track
+        register_llm_track()
+
 
 def get_ip_config():
     from django.db import transaction

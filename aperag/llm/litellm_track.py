@@ -1,11 +1,13 @@
 import logging
 import litellm
 from datetime import datetime
+from litellm.integrations.custom_logger import CustomLogger
+
 
 logger = logging.getLogger(__name__)
 
 
-class MyCustomHandler:
+class MyCustomHandler(CustomLogger):
     def __init__(self):
         self.prefix = "LiteLLM"
 
@@ -17,30 +19,13 @@ class MyCustomHandler:
     def log_pre_api_call(self, model, messages, kwargs):
         pass
 
+    # async func won't trigger this callback, it's a bug. https://github.com/BerriAI/litellm/issues/8842
     def log_success_event(self, kwargs, response_obj, start_time, end_time):
-        try:
-            latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
-            cost = kwargs.get("response_cost", 0)
-
-            logger.info(f"{self.prefix} Status: Success")
-            logger.info(f"{self.prefix} Model: {kwargs.get('model')}")
-            logger.info(f"{self.prefix} Provider: {kwargs.get('custom_llm_provider', 'unknown')}")
-            logger.info(f"{self.prefix} Start Time: {self._format_time(start_time)}")
-            logger.info(f"{self.prefix} End Time: {self._format_time(end_time)}")
-            logger.info(f"{self.prefix} Latency: {latency:.2f} seconds")
-            logger.info(f"{self.prefix} Cost: ${cost:.6f}")
-        except Exception as e:
-            logger.error(f"{self.prefix} Error in log_success_event", exc_info=e)
+        pass
 
     def log_failure_event(self, kwargs, response_obj, start_time, end_time):
         try:
             error_str = str(response_obj) if response_obj else "Unknown error"
-
-            logger.error(f"{self.prefix} Status: Failed")
-            logger.error(f"{self.prefix} Model: {kwargs.get('model')}")
-            logger.error(f"{self.prefix} Provider: {kwargs.get('custom_llm_provider', 'unknown')}")
-            logger.error(f"{self.prefix} Start Time: {self._format_time(start_time)}")
-            logger.error(f"{self.prefix} End Time: {self._format_time(end_time)}")
             logger.error(f"{self.prefix} Error: {error_str}", exc_info=True)
         except Exception as e:
             logger.error(f"{self.prefix} Error in log_failure_event", exc_info=e)
@@ -52,7 +37,19 @@ class MyCustomHandler:
         self.log_failure_event(kwargs, response_obj, start_time, end_time)
 
     def log_post_api_call(self, kwargs, response_obj, start_time, end_time):
-        pass
+        try:
+            latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
+            cost = kwargs.get("response_cost", 0) or 0
+
+            logger.info(f"{self.prefix} Model: {kwargs.get('model')}")
+            logger.info(f"{self.prefix} Provider: {kwargs.get('custom_llm_provider', 'unknown')}")
+            logger.info(f"{self.prefix} base_url: {kwargs.get('api_base', 'unknown')}")
+            logger.info(f"{self.prefix} Start Time: {self._format_time(start_time)}")
+            logger.info(f"{self.prefix} End Time: {self._format_time(end_time)}")
+            logger.info(f"{self.prefix} Latency: {latency:.2f} seconds")
+            logger.info(f"{self.prefix} Cost: ${cost:.6f}")
+        except Exception as e:
+            logger.error(f"{self.prefix} Error in log_success_event", exc_info=e)
 
 
 def register_llm_track():

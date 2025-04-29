@@ -33,11 +33,12 @@ class CompletionService(Predictor):
         return False
 
     async def _agenerate_stream(self, history, prompt, memory=False):
-        response = litellm.completion(
+        response = await litellm.acompletion(
             **self.kwargs,
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             stream=True,
             timeout=httpx.Timeout(None, connect=3),
+            max_retries=0,
         )
         async for chunk in response:
             if not chunk.choices:
@@ -53,6 +54,7 @@ class CompletionService(Predictor):
             messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
             stream=True,
             timeout=httpx.Timeout(None, connect=3),
+            max_retries=0,
         )
         for chunk in response:
             if not chunk.choices:
@@ -67,11 +69,12 @@ class CompletionService(Predictor):
             yield tokens
 
     async def agenerate_by_tools(self, prompt,tools):
-        response = litellm.completion(
+        response = await litellm.acompletion(
             **self.kwargs,
             messages=[{"role": "user", "content": prompt}],
             tools=tools,
             tool_choice="auto",
+            max_retries=0,
         )
         tool_calls = response.choices[0].message.tool_calls
         return tool_calls, response.choices[0].message.content
