@@ -30,6 +30,8 @@ def pytest_configure(config):
     test collection begins. This is the right place to load environment
     variables needed for module-level decorators like skipif.
     """
+    config.option.log_cli = True
+    config.option.log_cli_level = "INFO"
     print("\npytest_configure: Loading test environment...")
     load_test_environment()
 
