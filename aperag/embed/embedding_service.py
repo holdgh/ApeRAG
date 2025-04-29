@@ -17,7 +17,8 @@ class EmbeddingService(Embeddings):
             embedding_service_api_key: str,
             embedding_max_chunks_in_batch: int,
     ):
-        self.model = f"{embedding_provider}/{embedding_model}"
+        self.embedding_provider = embedding_provider
+        self.model = f"{embedding_model}"
         self.api_base = embedding_service_url
         self.api_key = embedding_service_api_key
         self.max_chunks = embedding_max_chunks_in_batch
@@ -77,6 +78,7 @@ class EmbeddingService(Embeddings):
     )
     def _embed_batch(self, batch: Sequence[str]) -> List[List[float]]:
         response = litellm.embedding(
+            custom_llm_provider=self.embedding_provider,
             model=self.model,
             api_base=self.api_base,
             api_key=self.api_key,
