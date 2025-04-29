@@ -19,6 +19,7 @@ class MyCustomHandler(CustomLogger):
     def log_pre_api_call(self, model, messages, kwargs):
         pass
 
+    # async func won't trigger this callback, it's a bug. https://github.com/BerriAI/litellm/issues/8842
     def log_success_event(self, kwargs, response_obj, start_time, end_time):
         try:
             latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
