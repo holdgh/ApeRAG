@@ -1,11 +1,13 @@
 import logging
 import litellm
 from datetime import datetime
+from litellm.integrations.custom_logger import CustomLogger
+
 
 logger = logging.getLogger(__name__)
 
 
-class MyCustomHandler:
+class MyCustomHandler(CustomLogger):
     def __init__(self):
         self.prefix = "LiteLLM"
 
@@ -20,7 +22,7 @@ class MyCustomHandler:
     def log_success_event(self, kwargs, response_obj, start_time, end_time):
         try:
             latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
-            cost = kwargs.get("response_cost", 0)
+            cost = kwargs.get("response_cost", 0) or 0
 
             logger.info(f"{self.prefix} Status: Success")
             logger.info(f"{self.prefix} Model: {kwargs.get('model')}")
