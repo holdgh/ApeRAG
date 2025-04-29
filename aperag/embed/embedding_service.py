@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
+from typing import List, Sequence, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import litellm
@@ -10,12 +10,12 @@ from tenacity import retry, wait_exponential, stop_after_attempt
 
 class EmbeddingService(Embeddings):
     def __init__(
-        self,
-        embedding_provider: str,
-        embedding_model: str,
-        embedding_service_url: str,
-        embedding_service_api_key: str,
-        embedding_max_chunks_in_batch: int,
+            self,
+            embedding_provider: str,
+            embedding_model: str,
+            embedding_service_url: str,
+            embedding_service_api_key: str,
+            embedding_max_chunks_in_batch: int,
     ):
         self.model = f"{embedding_provider}/{embedding_model}"
         self.api_base = embedding_service_url
@@ -24,30 +24,51 @@ class EmbeddingService(Embeddings):
         self.max_workers = 8
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """
+        Embed multiple documents in parallel batches.
+
+        Args:
+            texts: List of text documents to embed
+
+        Returns:
+            List of embedding vectors in the same order as input texts
+        """
+        # Clean texts by replacing newlines with spaces
         clean_texts = [t.replace("\n", " ") for t in texts]
+        # Determine batch size (use max_chunks or process all at once if not set)
         chunk_size = self.max_chunks or len(clean_texts)
 
-        batches: List[Tuple[int, Sequence[str]]] = [
-            (start, clean_texts[start : start + chunk_size])
-            for start in range(0, len(clean_texts), chunk_size)
-        ]
+        # Store results with original indices to ensure correct ordering
+        results_dict: Dict[int, List[float]] = {}
 
-        results: List[List[float]] = [None] * len(clean_texts)
         with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
-            futures = {
-                pool.submit(self._embed_batch, batch): start
-                for start, batch in batches
-            }
+            futures = []
 
+            # Submit batches for processing with their starting indices
+            for start in range(0, len(clean_texts), chunk_size):
+                batch = clean_texts[start:start + chunk_size]
+                # Pass both the batch and starting index to track position
+                future = pool.submit(self._embed_batch_with_indices, batch, start)
+                futures.append(future)
+
+            # Process completed futures and store results by index
             for future in as_completed(futures):
-                start_idx = futures[future]
-                batch_embeddings = future.result()
-                results[start_idx : start_idx + len(batch_embeddings)] = batch_embeddings
+                # Get results with their original indices
+                batch_results = future.result()
+                for idx, embedding in batch_results:
+                    results_dict[idx] = embedding
 
+        # Reconstruct the result list in the original order
+        results = [results_dict[i] for i in range(len(clean_texts))]
         return results
 
     def embed_query(self, text: str) -> List[float]:
         return self.embed_documents([text])[0]
+
+    def _embed_batch_with_indices(self, batch: Sequence[str], start_idx: int) -> List[Tuple[int, List[float]]]:
+        embeddings = self._embed_batch(batch)
+        # Return each embedding with its corresponding index in the original list
+        return [(start_idx + i, embedding) for i, embedding in enumerate(embeddings)]
 
     @retry(
         wait=wait_exponential(multiplier=1, min=1, max=20),
