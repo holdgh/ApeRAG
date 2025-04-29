@@ -81,6 +81,9 @@ all = [
 lightrag-dev = [
     "nano-vectordb"
 ]
+evaluation = [
+    "ragas"
+]
 
 [project.scripts]
 test_local_path_embedding = "readers.test_local_path_embedding:start"
