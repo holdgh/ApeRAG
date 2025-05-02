@@ -1,13 +1,14 @@
-import { CollectionStatusEnum, AvailableModel, SupportedModelServiceProvider } from '@/api';
+import {
+  AvailableModel,
+  CollectionStatusEnum,
+  SupportedModelServiceProvider,
+} from '@/api';
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, RefreshButton } from '@/components';
-import {
-  MODEL_PROVIDER_ICON,
-  UI_COLLECTION_STATUS,
-} from '@/constants';
-import { ApeBot } from '@/types';
+import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
 import { api } from '@/services';
+import { ApeBot } from '@/types';
 import {
   Avatar,
   Badge,
@@ -43,7 +44,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
     useModel('collection');
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>();
   const [supportedModelServiceProviders, setSupportedModelServiceProviders] =
-      useState<SupportedModelServiceProvider[]>();
+    useState<SupportedModelServiceProvider[]>();
   const { models, promptTemplates, getPromptTemplates } = useModel('models');
   const { loading, setLoading } = useModel('global');
 
@@ -96,13 +97,11 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
   const getModels = async () => {
     setLoading(true);
-    const [
-      availableModelsRes,
-      supportedModelServiceProvidersRes,
-    ] = await Promise.all([
-      api.availableModelsGet(),
-      api.supportedModelServiceProvidersGet(),
-    ]);
+    const [availableModelsRes, supportedModelServiceProvidersRes] =
+      await Promise.all([
+        api.availableModelsGet(),
+        api.supportedModelServiceProvidersGet(),
+      ]);
     setLoading(false);
     setAvailableModels(availableModelsRes.data.items);
     setSupportedModelServiceProviders(
@@ -110,8 +109,10 @@ export default ({ form, onSubmit, values, action }: Props) => {
     );
   };
 
-  const currentModel = useMemo( () => {
-    return models?.find((m) => `${m.model_service_provider}:${m.value}` === botModel)
+  const currentModel = useMemo(() => {
+    return models?.find(
+      (m) => `${m.model_service_provider}:${m.value}` === botModel,
+    );
   }, [botModel, models]);
 
   const currentPromptTemplate = useMemo(() => {
@@ -176,7 +177,10 @@ export default ({ form, onSubmit, values, action }: Props) => {
   useEffect(() => {
     const config = values.config;
     if (_.isEmpty(config?.model)) {
-      form.setFieldValue(['config', 'model'], `${models?.[0]?.model_service_provider}:${models?.[0]?.value}`);
+      form.setFieldValue(
+        ['config', 'model'],
+        `${models?.[0]?.model_service_provider}:${models?.[0]?.value}`,
+      );
     }
   }, [models]);
 
@@ -189,10 +193,9 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
   useEffect(() => {
     if (botModel) {
-      const [model_service_provider, model_name] =
-      botModel.split(':');
-      console.log("model_service_provider", model_service_provider)
-      console.log("model_name", model_name)
+      const [model_service_provider, model_name] = botModel.split(':');
+      console.log('model_service_provider', model_service_provider);
+      console.log('model_name', model_name);
       form.setFieldValue(
         ['config', 'model_service_provider'],
         model_service_provider,
@@ -299,7 +302,6 @@ export default ({ form, onSubmit, values, action }: Props) => {
                 }}
               />
             </Form.Item>
-
           </Col>
           <Col
             {...{

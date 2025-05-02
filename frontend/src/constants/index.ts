@@ -62,11 +62,7 @@ export const MODEL_PROVIDER_ICON: {
   deepseek: DeepseekIcon,
   alibabacloud: AlibabaIcon,
   siliconflow: SiliconflowIcon,
-};
 
-export const MODEL_FAMILYS_ICON: {
-  [key in string]: string;
-} = {
   vicuna: VicunaIcon,
   chatglm: ChatglmIcon,
   chatgpt: ChatGPTIcon,
@@ -77,7 +73,6 @@ export const MODEL_FAMILYS_ICON: {
   falcon: FalconIcon,
   gorilla: GorillaIcon,
   qianwen: QianwenIcon,
-  deepseek: DeepseekIcon,
   'glm-4': Glm4Icon,
 };
 
