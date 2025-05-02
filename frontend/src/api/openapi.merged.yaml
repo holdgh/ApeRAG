@@ -1904,6 +1904,8 @@ components:
       properties:
         name:
           type: string
+        dialect:
+          type: string
         label:
           type: string
         allow_custom_base_url:
@@ -1923,6 +1925,8 @@ components:
       type: object
       properties:
         name:
+          type: string
+        dialect:
           type: string
         label:
           type: string

@@ -1,5 +1,5 @@
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
-import { MODEL_FAMILYS_ICON } from '@/constants';
+import { MODEL_PROVIDER_ICON } from '@/constants';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Avatar,
@@ -130,9 +130,11 @@ export default () => {
         <Row gutter={[24, 24]}>
           {_bots?.map((bot) => {
             const config = bot.config;
-            const model = models?.find((item) => item.value === config?.model);
-            const modelIcon = model?.family_name
-              ? MODEL_FAMILYS_ICON[model.family_name]
+            const model = models?.find(
+              (item) => item.value === config?.model_name,
+            );
+            const modelIcon = model?.model_service_provider
+              ? MODEL_PROVIDER_ICON[model.model_service_provider]
               : undefined;
             return (
               <Col key={bot.id} xs={24} sm={12} md={8} lg={6} xl={6} xxl={6}>
