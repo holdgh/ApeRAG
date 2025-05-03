@@ -1545,11 +1545,18 @@ components:
     feedback:
       type: object
       properties:
-        upvote:
-          type: integer
-        downvote:
-          type: integer
-        revised_answer:
+        type:
+          type: string
+          enum:
+            - good
+            - bad
+        tag:
+          type: string
+          enum:
+            - Recall
+            - Fake
+            - Other
+        message:
           type: string
     collectionSource:
       type: object
