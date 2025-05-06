@@ -1078,6 +1078,7 @@ async def list_model_service_providers(request) -> view_models.ModelServiceProvi
 
     return success(view_models.ModelServiceProviderList(items=response))
 
+
 class ModelServiceProviderIn(Schema):
     name: str
     dialect: Optional[str] = None
@@ -1090,7 +1091,6 @@ class ModelServiceProviderIn(Schema):
 async def update_model_service_provider(request, provider, mspIn: ModelServiceProviderIn):
     user = get_user(request)
 
-    # 使用新的V2数据结构
     supported_providers = [
         view_models.SupportedModelServiceProvider(**item)
         for item in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS
@@ -1100,7 +1100,6 @@ async def update_model_service_provider(request, provider, mspIn: ModelServicePr
     if provider not in supported_msp_names:
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
 
-    # 使用新的对象获取配置
     msp_config = next(item for item in supported_providers if item.name == provider)
     if not msp_config.allow_custom_base_url and mspIn.base_url is not None:
         return fail(HTTPStatus.BAD_REQUEST, f"model service provider {provider} does not support setting base_url")
@@ -1190,7 +1189,6 @@ async def list_available_models(request) -> view_models.AvailableModelList:
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             supported_msp = supported_msp_dict[msp.name]
-            # 现在completion替代了models字段
             if supported_msp.completion:
                 for model_spec in supported_msp.completion:
                     response.append(view_models.AvailableModel(
