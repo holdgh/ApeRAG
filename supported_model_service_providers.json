@@ -172,6 +172,14 @@
       {
         "model": "BAAI/bge-m3",
         "custom_llm_provider": "openai"
+      },
+      {
+        "model": "Pro/BAAI/bge-m3",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "netease-youdao/bce-embedding-base_v1",
+        "custom_llm_provider": "openai"
       }
     ],
     "completion": [
@@ -188,6 +196,19 @@
         "custom_llm_provider": "openai"
       }
     ],
-    "rerank": []
+    "rerank": [
+      {
+        "model": "BAAI/bge-reranker-v2-m3",
+        "custom_llm_provider": "jina_ai"
+      },
+      {
+        "model": "Pro/BAAI/bge-reranker-v2-m3",
+        "custom_llm_provider": "jina_ai"
+      },
+      {
+        "model": "netease-youdao/bce-reranker-base_v1",
+        "custom_llm_provider": "jina_ai"
+      }
+    ]
   }
 ]
