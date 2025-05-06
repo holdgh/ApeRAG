@@ -1,7 +1,5 @@
 import {
-  AvailableEmbedding,
   AvailableModel,
-  SupportedModelServiceProvider,
 } from '@/api';
 import { ApeMarkdown, CheckCard } from '@/components';
 import {
@@ -58,11 +56,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
   const { token } = theme.useToken();
   const { setLoading, loading } = useModel('global');
 
-  const [availableEmbeddings, setAvailableEmbeddings] =
-    useState<AvailableEmbedding[]>();
-  const [availableModels, setAvailableModels] = useState<AvailableModel[]>();
-  const [supportedModelServiceProviders, setSupportedModelServiceProviders] =
-    useState<SupportedModelServiceProvider[]>();
+  const [availableModels, setAvailableModels] = useState<any[]>();
 
   const source = Form.useWatch(['config', 'source'], form);
   const emailSource: CollectionEmailSource | undefined = Form.useWatch(
@@ -71,88 +65,70 @@ export default ({ onSubmit, action, values, form }: Props) => {
   );
   const sensitiveProtect = Form.useWatch(['config', 'sensitive_protect'], form);
   const embeddingModel = Form.useWatch(['config', 'embedding_model'], form);
-  const enableLightRAG = Form.useWatch(['config', 'enable_lightrag'], form);
+  const enableLightRAG = Form.useWatch(['config', 'enable_knowledge_graph'], form);
   const lightRAGModel = Form.useWatch(['config', 'lightrag_model'], form);
 
   const getEmbeddingsAndModels = async () => {
     setLoading(true);
-    const [
-      availableEmbeddingsRes,
-      availableModelsRes,
-      supportedModelServiceProvidersRes,
-    ] = await Promise.all([
-      api.availableEmbeddingsGet(),
-      api.availableModelsGet(),
-      api.supportedModelServiceProvidersGet(),
-    ]);
+    const availableModelsRes = await api.availableModelsGet();
     setLoading(false);
-    setAvailableEmbeddings(availableEmbeddingsRes.data.items);
     setAvailableModels(availableModelsRes.data.items);
-    setSupportedModelServiceProviders(
-      supportedModelServiceProvidersRes.data.items,
-    );
   };
 
   const embeddingModelOptions = useMemo(
     () =>
       _.map(
-        _.groupBy(availableEmbeddings, 'model_service_provider'),
-        (aebs, providerName) => {
-          const provider = supportedModelServiceProviders?.find(
-            (smp) => smp.name === providerName,
-          );
+        availableModels || [],
+        (provider) => {
           return {
             label: (
               <Space>
                 <Avatar
                   size={24}
                   shape="square"
-                  src={MODEL_PROVIDER_ICON[providerName]}
+                  src={MODEL_PROVIDER_ICON[provider.name]}
                 />
-                <span>{provider?.label || providerName}</span>
+                <span>{provider.label || provider.name}</span>
               </Space>
             ),
-            options: aebs.map((aeb) => {
+            options: provider.embedding.map((model: any) => {
               return {
-                label: aeb.embedding_name,
-                value: `${providerName}:${aeb.embedding_name}`,
+                label: model.model,
+                value: `${provider.name}:${model.model}`,
               };
             }),
           };
         },
       ),
-    [availableEmbeddings, supportedModelServiceProviders],
+    [availableModels],
   );
 
   const modelsOptions = useMemo(
     () =>
       _.map(
-        _.groupBy(availableModels, 'model_service_provider'),
-        (aebs, providerName) => {
-          const provider = supportedModelServiceProviders?.find(
-            (smp) => smp.name === providerName,
-          );
+        availableModels || [],
+        (provider) => {
           return {
             label: (
               <Space>
                 <Avatar
                   size={24}
                   shape="square"
-                  src={MODEL_PROVIDER_ICON[providerName]}
+                  src={MODEL_PROVIDER_ICON[provider.name]}
                 />
-                <span>{provider?.label || providerName}</span>
+                <span>{provider.label || provider.name}</span>
               </Space>
             ),
-            options: aebs.map((aeb) => {
+            options: provider.completion.map((model: any) => {
               return {
-                label: aeb.model_name,
-                value: `${providerName}:${aeb.model_name}`,
+                label: model.model,
+                value: `${provider.name}:${model.model}`,
               };
             }),
           };
         },
       ),
-    [availableModels, supportedModelServiceProviders],
+    [availableModels],
   );
 
   const onFinish = async () => {
@@ -323,9 +299,9 @@ export default ({ onSubmit, action, values, form }: Props) => {
             }}
           >
             <Form.Item
-              label={formatMessage({ id: 'collection.enable_lightrag' })}
+              label={formatMessage({ id: 'collection.enable_knowledge_graph' })}
               valuePropName="checked"
-              name={['config', 'enable_lightrag']}
+              name={['config', 'enable_knowledge_graph']}
             >
               <Switch />
             </Form.Item>
@@ -472,7 +448,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
         >
           <CheckCard
             options={Object.keys(COLLECTION_SOURCE).map((key) => {
-              const config = values.config;
+              const config = values?.config;
               return {
                 label: formatMessage({ id: `collection.source.${key}` }),
                 value: key,

@@ -137,34 +137,3 @@ supportedModelServiceProviderList:
     pageResult:
       $ref: './common.yaml#/pageResult'
 
-availableEmbedding:
-  type: object
-  properties:
-    model_service_provider:
-      type: string
-    embedding_name:
-      type: string
-
-availableEmbeddingList:
-  type: object
-  properties:
-    items:
-      type: array
-      items:
-        $ref: '#/availableEmbedding'
-
-availableModel:
-  type: object
-  properties:
-    model_service_provider:
-      type: string
-    model_name:
-      type: string
-
-availableModelList:
-  type: object
-  properties:
-    items:
-      type: array
-      items:
-        $ref: '#/availableModel'

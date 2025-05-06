@@ -1067,23 +1067,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/failResponse'
-  /available_embeddings:
-    get:
-      summary: Get available embeddings
-      description: Get available embeddings
-      responses:
-        '200':
-          description: Available embeddings
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/availableEmbeddingList'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
   /available_models:
     get:
       summary: Get available models
@@ -1094,7 +1077,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/availableModelList'
+                $ref: '#/components/schemas/supportedModelServiceProviderList'
         '401':
           description: Unauthorized
           content:
@@ -1973,34 +1956,6 @@ components:
           type: string
         extra:
           type: string
-    availableEmbedding:
-      type: object
-      properties:
-        model_service_provider:
-          type: string
-        embedding_name:
-          type: string
-    availableEmbeddingList:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/availableEmbedding'
-    availableModel:
-      type: object
-      properties:
-        model_service_provider:
-          type: string
-        model_name:
-          type: string
-    availableModelList:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/availableModel'
     config:
       type: object
       properties:

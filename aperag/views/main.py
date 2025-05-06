@@ -295,7 +295,7 @@ async def create_collection(request, collection: view_models.CollectionCreate) -
     if collection.config is not None:
         instance.config = collection.config
     await instance.asave()
-    if config.get("enable_lightrag", True):
+    if config.get("enable_knowledge_graph", True):
         await reload_lightrag_holder(instance)  # LightRAG init might be slow, so we reload it once we update the collection
 
     if instance.type == db_models.Collection.Type.DOCUMENT:
@@ -1149,33 +1149,8 @@ async def delete_model_service_provider(request, provider):
     return success({})
 
 
-@router.get("/available_embeddings")
-async def list_available_embeddings(request) -> view_models.AvailableEmbeddingList:
-    user = get_user(request)
-
-    supported_providers = [view_models.SupportedModelServiceProvider(**msp) for msp in
-                           settings.SUPPORTED_MODEL_SERVICE_PROVIDERS]
-    supported_msp_dict = {provider.name: provider for provider in supported_providers}
-
-    msp_list = await query_msp_list(user)
-    logger.info(msp_list)
-    response = []
-
-    for msp in msp_list:
-        if msp.name in supported_msp_dict:
-            supported_msp = supported_msp_dict[msp.name]
-            if supported_msp.embedding:
-                for embedding_spec in supported_msp.embedding:
-                    response.append(view_models.AvailableEmbedding(
-                        model_service_provider=msp.name,
-                        embedding_name=embedding_spec.model,
-                    ))
-
-    return success(view_models.AvailableEmbeddingList(items=response, ))
-
-
 @router.get("/available_models")
-async def list_available_models(request) -> view_models.AvailableModelList:
+async def list_available_models(request) -> view_models.SupportedModelServiceProviderList:
     user = get_user(request)
 
     supported_providers = [view_models.SupportedModelServiceProvider(**msp) for msp in
@@ -1184,19 +1159,13 @@ async def list_available_models(request) -> view_models.AvailableModelList:
 
     msp_list = await query_msp_list(user)
     logger.info(msp_list)
-    response = []
 
+    available_providers = []
     for msp in msp_list:
         if msp.name in supported_msp_dict:
-            supported_msp = supported_msp_dict[msp.name]
-            if supported_msp.completion:
-                for model_spec in supported_msp.completion:
-                    response.append(view_models.AvailableModel(
-                        model_service_provider=msp.name,
-                        model_name=model_spec.model,
-                    ))
+            available_providers.append(supported_msp_dict[msp.name])
 
-    return success(view_models.AvailableModelList(items=response, ))
+    return success(view_models.SupportedModelServiceProviderList(items=available_providers, pageResult=None))
 
 
 def default_page(request, exception):

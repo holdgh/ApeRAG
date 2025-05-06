@@ -35,7 +35,7 @@ export const collection = {
   'collection.delete': 'Delete collection',
   'collection.delete.confirm':
     'The collection "{name}" will be deleted, confirm the current operation.',
-  'collection.enable_lightrag': 'Enable Light RAG',
+  'collection.enable_knowledge_graph': 'Enable Graph RAG',
   'collection.embedding_model': 'Embedding Model',
   'collection.embedding_model_not_found':
     'Please set the API Key in Settings -> Model Provider',

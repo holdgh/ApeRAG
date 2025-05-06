@@ -64,7 +64,7 @@ export type CollectionConfig = {
 
   embedding_model_name?: string;
   embedding_model_service_provider?: string;
-  enable_lightrag?: boolean;
+  enable_knowledge_graph?: boolean;
 
   sensitive_protect?: boolean;
   sensitive_protect_method?: 'nostore' | 'replace';
