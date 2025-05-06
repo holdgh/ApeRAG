@@ -12,6 +12,8 @@
  * Do not edit the class manually.
  */
 
+
+
 /**
  * 
  * @export
@@ -44,7 +46,6 @@ export const FeedbackTypeEnum = {
 } as const;
 
 export type FeedbackTypeEnum = typeof FeedbackTypeEnum[keyof typeof FeedbackTypeEnum];
-
 export const FeedbackTagEnum = {
     Harmful: 'Harmful',
     Unsafe: 'Unsafe',

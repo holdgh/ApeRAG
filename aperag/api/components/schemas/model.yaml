@@ -43,6 +43,26 @@ modelList:
     pageResult:
       $ref: './common.yaml#/pageResult'
 
+modelSpec:
+  type: object
+  properties:
+    model:
+      type: string
+    custom_llm_provider:
+      type: string
+
+modelSpecList:
+  type: object
+  description: A list of modelSpec
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/modelSpec'
+    pageResult:
+      $ref: './common.yaml#/pageResult'
+
+
 modelServiceProviderUpdate:
   type: object
   properties:
@@ -94,6 +114,18 @@ supportedModelServiceProvider:
       type: boolean
     base_url:
       type: string
+    embedding:
+      type: array
+      items:
+        $ref: '#/modelSpec'
+    completion:
+      type: array
+      items:
+        $ref: '#/modelSpec'
+    rerank:
+      type: array
+      items:
+        $ref: '#/modelSpec'
 
 supportedModelServiceProviderList:
   type: object

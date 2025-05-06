@@ -15,6 +15,9 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
+import type { Feedback } from './feedback';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { Reference } from './reference';
 
 /**
@@ -67,28 +70,10 @@ export interface ChatMessage {
     'urls'?: Array<string>;
     /**
      * 
-     * @type {number}
+     * @type {Feedback}
      * @memberof ChatMessage
      */
-    'upvote'?: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof ChatMessage
-     */
-    'downvote'?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof ChatMessage
-     */
-    'revised_answer'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ChatMessage
-     */
-    'feed_back_status'?: ChatMessageFeedBackStatusEnum;
+    'feedback'?: Feedback;
 }
 
 export const ChatMessageTypeEnum = {
@@ -106,13 +91,5 @@ export const ChatMessageRoleEnum = {
 } as const;
 
 export type ChatMessageRoleEnum = typeof ChatMessageRoleEnum[keyof typeof ChatMessageRoleEnum];
-export const ChatMessageFeedBackStatusEnum = {
-    PENDING: 'PENDING',
-    RUNNING: 'RUNNING',
-    COMPLETE: 'COMPLETE',
-    FAILED: 'FAILED'
-} as const;
-
-export type ChatMessageFeedBackStatusEnum = typeof ChatMessageFeedBackStatusEnum[keyof typeof ChatMessageFeedBackStatusEnum];
 
 

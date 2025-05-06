@@ -23,6 +23,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+import json
 import os
 import warnings
 from pathlib import Path
@@ -247,87 +248,9 @@ LOGGING = {
     },
 }
 
-# MSP
-SUPPORTED_MODEL_SERVICE_PROVIDERS = [
-    {
-        "name": "openai",
-        "label": "OpenAI",
-        "dialect": "openai",
-        "allow_custom_base_url": True,
-        "base_url": "https://api.openai.com/v1",
-        "embeddings": [
-            "text-embedding-3-small",
-            "text-embedding-3-large",
-            "text-embedding-ada-002",
-        ],
-        "models": [
-            "gpt-3.5-turbo",
-            "gpt-4",
-            "gpt-4-turbo",
-            "gpt-4o-mini",
-            "gpt-4o",
-            "o1",
-            "o1-mini",
-            "o3",
-            "o3-mini",
-            "o4-mini",
-        ]
-    },
-    {
-        "name": "alibabacloud",
-        "label": "AlibabaCloud",
-        "dialect": "openai",
-        "allow_custom_base_url": False,
-        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "embeddings": [
-            "text-embedding-v1",
-            "text-embedding-v2",
-            "text-embedding-v3",
-        ],
-        "models": [
-            "deepseek-r1",
-            "deepseek-v3",
-            "qwen-max",
-            "qwen-long",
-            "qwen-plus",
-            "qwen-plus-latest",
-            "qwen-turbo",
-            "qwq-32b",
-            "qwq-plus",
-            "qwq-plus-latest",
-            "qwen-vl-max",
-            "qwen-vl-plus"
-        ]
-    },
-    {
-        "name": "deepseek",
-        "label": "DeepSeek",
-        "dialect": "openai",
-        "allow_custom_base_url": False,
-        "base_url": "https://api.deepseek.com/v1",
-        "models": [
-            "deepseek-r1",
-            "deepseek-v3"
-        ]
-    },
-    {
-        "name": "siliconflow",
-        "label": "SiliconFlow",
-        "dialect": "openai",
-        "allow_custom_base_url": False,
-        "base_url": "https://api.siliconflow.cn/v1",
-        "embeddings": [
-            "BAAI/bge-large-en-v1.5",
-            "BAAI/bge-large-zh-v1.5",
-            "BAAI/bge-m3",
-        ],
-        "models": [
-            "Qwen/QwQ-32B",
-            "deepseek-ai/Deepseek-R1",
-            "deepseek-ai/Deepseek-V3",
-        ]
-    },
-]
+json_path = os.path.join(BASE_DIR, 'supported_model_service_providers.json')
+with open(json_path, 'r', encoding='utf-8') as f:
+    SUPPORTED_MODEL_SERVICE_PROVIDERS = json.load(f)
 
 # LLM Model
 MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")

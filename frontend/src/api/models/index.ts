@@ -48,6 +48,7 @@ export * from './model-list';
 export * from './model-service-provider';
 export * from './model-service-provider-list';
 export * from './model-service-provider-update';
+export * from './model-spec';
 export * from './page-result';
 export * from './prompt-template';
 export * from './prompt-template-list';

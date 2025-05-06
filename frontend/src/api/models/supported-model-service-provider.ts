@@ -13,6 +13,9 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { ModelSpec } from './model-spec';
 
 /**
  * 
@@ -50,5 +53,23 @@ export interface SupportedModelServiceProvider {
      * @memberof SupportedModelServiceProvider
      */
     'base_url'?: string;
+    /**
+     * 
+     * @type {Array<ModelSpec>}
+     * @memberof SupportedModelServiceProvider
+     */
+    'embedding'?: Array<ModelSpec>;
+    /**
+     * 
+     * @type {Array<ModelSpec>}
+     * @memberof SupportedModelServiceProvider
+     */
+    'completion'?: Array<ModelSpec>;
+    /**
+     * 
+     * @type {Array<ModelSpec>}
+     * @memberof SupportedModelServiceProvider
+     */
+    'rerank'?: Array<ModelSpec>;
 }
 

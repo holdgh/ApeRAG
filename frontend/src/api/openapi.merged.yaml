@@ -1459,6 +1459,24 @@ components:
           type: string
         metadata:
           type: object
+    feedback:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - good
+            - bad
+        tag:
+          type: string
+          enum:
+            - Harmful
+            - Unsafe
+            - Fake
+            - Unhelpful
+            - Other
+        message:
+          type: string
     chatMessage:
       type: object
       properties:
@@ -1489,19 +1507,8 @@ components:
           type: array
           items:
             type: string
-        upvote:
-          type: number
-        downvote:
-          type: number
-        revised_answer:
-          type: string
-        feed_back_status:
-          type: string
-          enum:
-            - PENDING
-            - RUNNING
-            - COMPLETE
-            - FAILED
+        feedback:
+          $ref: '#/components/schemas/feedback'
     chatDetails:
       type: object
       properties:
@@ -1541,22 +1548,6 @@ components:
       type: object
       properties:
         title:
-          type: string
-    feedback:
-      type: object
-      properties:
-        type:
-          type: string
-          enum:
-            - good
-            - bad
-        tag:
-          type: string
-          enum:
-            - Recall
-            - Fake
-            - Other
-        message:
           type: string
     collectionSource:
       type: object
@@ -1906,6 +1897,13 @@ components:
             $ref: '#/components/schemas/model'
         pageResult:
           $ref: '#/components/schemas/pageResult'
+    modelSpec:
+      type: object
+      properties:
+        model:
+          type: string
+        custom_llm_provider:
+          type: string
     supportedModelServiceProvider:
       type: object
       properties:
@@ -1919,6 +1917,18 @@ components:
           type: boolean
         base_url:
           type: string
+        embedding:
+          type: array
+          items:
+            $ref: '#/components/schemas/modelSpec'
+        completion:
+          type: array
+          items:
+            $ref: '#/components/schemas/modelSpec'
+        rerank:
+          type: array
+          items:
+            $ref: '#/components/schemas/modelSpec'
     supportedModelServiceProviderList:
       type: object
       properties:
