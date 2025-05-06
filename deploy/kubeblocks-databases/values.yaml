@@ -16,7 +16,7 @@ postgresql:
     requests:
       cpu: "0.5"
       memory: "0.5Gi"
-  storage: "20Gi"
+  storage: "5Gi"
 
 redis:
   enabled: true
@@ -32,7 +32,7 @@ redis:
     requests:
       cpu: "0.5"
       memory: "0.5Gi"
-  storage: "20Gi"
+  storage: "5Gi"
 
 elasticsearch:
   enabled: true
@@ -46,11 +46,11 @@ elasticsearch:
   resources:
     limits:
       cpu: "1"
-      memory: "2Gi"
+      memory: "1Gi"
     requests:
       cpu: "1"
-      memory: "2Gi"
-  storage: "20Gi"
+      memory: "1Gi"
+  storage: "5Gi"
   # Elasticsearch example has specific 'configs'. For simplicity, we'll hardcode the single-node mode as in your example.
   # If more complex configs are needed, this part could be expanded.
 
@@ -67,4 +67,4 @@ qdrant:
     requests:
       cpu: "0.5"
       memory: "0.5Gi"
-  storage: "20Gi"
+  storage: "5Gi"
