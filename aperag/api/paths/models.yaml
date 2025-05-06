@@ -16,23 +16,6 @@ models:
             schema:
               $ref: '../components/schemas/common.yaml#/failResponse'
 
-availableEmbeddings:
-  get:
-    summary: Get available embeddings
-    description: Get available embeddings
-    responses:
-      '200':
-        description: Available embeddings
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/model.yaml#/availableEmbeddingList'
-      '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
 
 availableModels:
   get:
@@ -44,7 +27,7 @@ availableModels:
         content:
           application/json:
             schema:
-              $ref: '../components/schemas/model.yaml#/availableModelList'
+              $ref: '../components/schemas/model.yaml#/supportedModelServiceProviderList'
       '401':
         description: Unauthorized
         content:

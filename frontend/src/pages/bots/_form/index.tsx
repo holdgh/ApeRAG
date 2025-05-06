@@ -1,5 +1,4 @@
 import {
-  AvailableModel,
   CollectionStatusEnum,
   SupportedModelServiceProvider,
 } from '@/api';
@@ -42,9 +41,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const { formatMessage } = useIntl();
   const { collections, collectionsLoading, getCollections } =
     useModel('collection');
-  const [availableModels, setAvailableModels] = useState<AvailableModel[]>();
-  const [supportedModelServiceProviders, setSupportedModelServiceProviders] =
-    useState<SupportedModelServiceProvider[]>();
+  const [availableModels, setAvailableModels] = useState<any[]>();
   const { models, promptTemplates, getPromptTemplates } = useModel('models');
   const { loading, setLoading } = useModel('global');
 
@@ -58,32 +55,29 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const modelsOptions = useMemo(
     () =>
       _.map(
-        _.groupBy(availableModels, 'model_service_provider'),
-        (aebs, providerName) => {
-          const provider = supportedModelServiceProviders?.find(
-            (smp) => smp.name === providerName,
-          );
+        availableModels || [],
+        (provider) => {
           return {
             label: (
               <Space>
                 <Avatar
                   size={24}
                   shape="square"
-                  src={MODEL_PROVIDER_ICON[providerName]}
+                  src={MODEL_PROVIDER_ICON[provider.name]}
                 />
-                <span>{provider?.label || providerName}</span>
+                <span>{provider.label || provider.name}</span>
               </Space>
             ),
-            options: aebs.map((aeb) => {
+            options: provider.completion.map((model: any) => {
               return {
-                label: aeb.model_name,
-                value: `${providerName}:${aeb.model_name}`,
+                label: model.model,
+                value: `${provider.name}:${model.model}`,
               };
             }),
           };
         },
       ),
-    [availableModels, supportedModelServiceProviders],
+    [availableModels],
   );
 
   const botType = Form.useWatch(['type'], form);
@@ -97,16 +91,9 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
   const getModels = async () => {
     setLoading(true);
-    const [availableModelsRes, supportedModelServiceProvidersRes] =
-      await Promise.all([
-        api.availableModelsGet(),
-        api.supportedModelServiceProvidersGet(),
-      ]);
+    const availableModelsRes = await api.availableModelsGet();
     setLoading(false);
     setAvailableModels(availableModelsRes.data.items);
-    setSupportedModelServiceProviders(
-      supportedModelServiceProvidersRes.data.items,
-    );
   };
 
   const currentModel = useMemo(() => {

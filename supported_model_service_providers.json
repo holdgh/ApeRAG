@@ -1,0 +1,214 @@
+[
+  {
+    "name": "openai",
+    "label": "OpenAI",
+    "dialect": "openai",
+    "allow_custom_base_url": true,
+    "base_url": "https://api.openai.com/v1",
+    "embedding": [
+      {
+        "model": "text-embedding-3-small",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "text-embedding-3-large",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "text-embedding-ada-002",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "completion": [
+      {
+        "model": "gpt-3.5-turbo",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "gpt-4",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "gpt-4-turbo",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "gpt-4o-mini",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "gpt-4o",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "o1",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "o1-mini",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "o3",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "o3-mini",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "o4-mini",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "rerank": []
+  },
+  {
+    "name": "alibabacloud",
+    "label": "AlibabaCloud",
+    "dialect": "openai",
+    "allow_custom_base_url": false,
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "embedding": [
+      {
+        "model": "text-embedding-v1",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "text-embedding-v2",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "text-embedding-v3",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "completion": [
+      {
+        "model": "deepseek-r1",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "deepseek-v3",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-max",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-long",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-plus",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-plus-latest",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-turbo",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwq-32b",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwq-plus",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwq-plus-latest",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-vl-max",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-vl-plus",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "rerank": []
+  },
+  {
+    "name": "deepseek",
+    "label": "DeepSeek",
+    "dialect": "openai",
+    "allow_custom_base_url": false,
+    "base_url": "https://api.deepseek.com/v1",
+    "embedding": [],
+    "completion": [
+      {
+        "model": "deepseek-r1",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "deepseek-v3",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "rerank": []
+  },
+  {
+    "name": "siliconflow",
+    "label": "SiliconFlow",
+    "dialect": "openai",
+    "allow_custom_base_url": false,
+    "base_url": "https://api.siliconflow.cn/v1",
+    "embedding": [
+      {
+        "model": "BAAI/bge-large-en-v1.5",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "BAAI/bge-large-zh-v1.5",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "BAAI/bge-m3",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "Pro/BAAI/bge-m3",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "netease-youdao/bce-embedding-base_v1",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "completion": [
+      {
+        "model": "Qwen/QwQ-32B",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "deepseek-ai/Deepseek-R1",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "deepseek-ai/Deepseek-V3",
+        "custom_llm_provider": "openai"
+      }
+    ],
+    "rerank": [
+      {
+        "model": "BAAI/bge-reranker-v2-m3",
+        "custom_llm_provider": "jina_ai"
+      },
+      {
+        "model": "Pro/BAAI/bge-reranker-v2-m3",
+        "custom_llm_provider": "jina_ai"
+      },
+      {
+        "model": "netease-youdao/bce-reranker-base_v1",
+        "custom_llm_provider": "jina_ai"
+      }
+    ]
+  }
+]

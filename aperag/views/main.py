@@ -106,56 +106,38 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
+
 @router.get("/models")
 async def list_models(request) -> view_models.ModelList:
     models = []
     user = get_user(request)
-    supported_msp_dict = {supported_msp["name"]: supported_msp for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+
+    supported_msp_dict = {
+        provider_data["name"]: view_models.SupportedModelServiceProvider(**provider_data)
+        for provider_data in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS
+    }
+
     msp_list = await query_msp_list(user)
-    response = []
+
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             supported_msp = supported_msp_dict[msp.name]
-            for model in supported_msp.get("models", []):
-                models.append(view_models.Model(
-                    model_service_provider=msp.name,
-                    value=model,
-                    label=model,
-                    enabled=True,
-                    memory=True,
-                    # Fixme, should support both Chinese and English
-                    prompt_template=DEFAULT_CHINESE_PROMPT_TEMPLATE_V3, 
-                    context_window=7500,
-                    temperature=0.01,
-                    similarity_score_threshold=0.5,
-                    similarity_topk=3
-                ))
+            if supported_msp.completion:
+                for model_spec in supported_msp.completion:
+                    if model_spec.model:
+                        models.append(view_models.Model(
+                            model_service_provider=msp.name,
+                            value=model_spec.model,
+                            label=model_spec.model,
+                            enabled=True,
+                            memory=True,
+                            prompt_template=DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
+                            context_window=7500,
+                            temperature=0.01,
+                            similarity_score_threshold=0.5,
+                            similarity_topk=3
+                        ))
     return success(view_models.ModelList(items=models))
-
-    # models = []
-    # model_families = yaml.safe_load(settings.MODEL_FAMILIES)
-    # for model_family in model_families:
-    #     for model_server in model_family.get("models", []):
-    #         if model_server.get("enabled", "true").lower() == "false":
-    #             continue
-    #         models.append(view_models.Model(
-    #             value=model_server["name"],
-    #             label=model_server.get("label", model_server["name"]),
-    #             enabled=True,
-    #             memory=model_server.get("memory", "disabled").lower() == "enabled",
-    #             free_tier=model_server.get("free_tier", False),
-    #             endpoint=model_server.get("endpoint", ""),
-    #             default_token=Predictor.check_default_token(model_name=model_server["name"]),
-    #             prompt_template=DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES.get(model_server["name"],
-    #                                                                                 DEFAULT_CHINESE_PROMPT_TEMPLATE_V3),
-    #             context_window=model_server.get("context_window", 7500),
-    #             temperature=model_server.get("temperature", model_family.get("temperature", 0.01)),
-    #             similarity_score_threshold=model_server.get("similarity_score_threshold", 0.5),
-    #             similarity_topk=model_server.get("similarity_topk", 3),
-    #             family_name=model_family["name"],
-    #             family_label=model_family["label"],
-    #         ))
-
 
 
 @router.get("/prompt-templates")
@@ -313,7 +295,7 @@ async def create_collection(request, collection: view_models.CollectionCreate) -
     if collection.config is not None:
         instance.config = collection.config
     await instance.asave()
-    if config.get("enable_lightrag", True):
+    if config.get("enable_knowledge_graph", True):
         await reload_lightrag_holder(instance)  # LightRAG init might be slow, so we reload it once we update the collection
 
     if instance.type == db_models.Collection.Type.DOCUMENT:
@@ -1057,21 +1039,30 @@ async def list_model_service_providers(request) -> view_models.SupportedModelSer
     user = get_user(request)
     response = []
     for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS:
-        response.append(view_models.SupportedModelServiceProvider(
+        provider = view_models.SupportedModelServiceProvider(
             name=supported_msp["name"],
             dialect=supported_msp["dialect"],
             label=supported_msp["label"],
             allow_custom_base_url=supported_msp["allow_custom_base_url"],
             base_url=supported_msp["base_url"],
-        ))
-    return success(view_models.SupportedModelServiceProviderList( items=response,))
+            embedding=supported_msp["embedding"],
+            completion=supported_msp["completion"],
+            rerank=supported_msp["rerank"]
+        )
+        response.append(provider)
+    return success(view_models.SupportedModelServiceProviderList(items=response))
+
 
 @router.get("/model_service_providers")
 async def list_model_service_providers(request) -> view_models.ModelServiceProviderList:
     user = get_user(request)
-    supported_msp_dict = {supported_msp["name"]: supported_msp for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+
+    supported_msp_dict = {msp["name"]: view_models.SupportedModelServiceProvider(**msp)
+                          for msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+
     msp_list = await query_msp_list(user)
     logger.info(msp_list)
+
     response = []
     for msp in msp_list:
         if msp.name in supported_msp_dict:
@@ -1079,12 +1070,14 @@ async def list_model_service_providers(request) -> view_models.ModelServiceProvi
             response.append(view_models.ModelServiceProvider(
                 name=msp.name,
                 dialect=msp.dialect,
-                label=supported_msp["label"],
-                allow_custom_base_url=supported_msp["allow_custom_base_url"],
+                label=supported_msp.label,
+                allow_custom_base_url=supported_msp.allow_custom_base_url,
                 base_url=msp.base_url,
                 api_key=msp.api_key,
             ))
+
     return success(view_models.ModelServiceProviderList(items=response))
+
 
 class ModelServiceProviderIn(Schema):
     name: str
@@ -1093,16 +1086,22 @@ class ModelServiceProviderIn(Schema):
     base_url: Optional[str] = None
     extra: Optional[str] = None
 
+
 @router.put("/model_service_providers/{provider}")
-async def update_model_service_provider(request, provider, mspIn : ModelServiceProviderIn):
+async def update_model_service_provider(request, provider, mspIn: ModelServiceProviderIn):
     user = get_user(request)
 
-    supported_msp_names = {item["name"] for item in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+    supported_providers = [
+        view_models.SupportedModelServiceProvider(**item)
+        for item in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS
+    ]
+    supported_msp_names = {provider.name for provider in supported_providers if provider.name}
+
     if provider not in supported_msp_names:
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
 
-    msp_config = next(item for item in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS if item["name"] == provider)    
-    if not msp_config.get("allow_custom_base_url", False) and mspIn.base_url is not None:
+    msp_config = next(item for item in supported_providers if item.name == provider)
+    if not msp_config.allow_custom_base_url and mspIn.base_url is not None:
         return fail(HTTPStatus.BAD_REQUEST, f"model service provider {provider} does not support setting base_url")
 
     msp = await query_msp(user, provider, filterDeletion=False)
@@ -1110,9 +1109,9 @@ async def update_model_service_provider(request, provider, mspIn : ModelServiceP
         msp = db_models.ModelServiceProvider(
             user=user,
             name=provider,
-            dialect=mspIn.dialect or msp_config.get("dialect"),
+            dialect=mspIn.dialect or msp_config.dialect,
             api_key=mspIn.api_key,
-            base_url=mspIn.base_url if msp_config.get("allow_custom_base_url", False) else msp_config.get("base_url"),
+            base_url=mspIn.base_url if msp_config.allow_custom_base_url else msp_config.base_url,
             extra=mspIn.extra,
             status=db_models.ModelServiceProvider.Status.ACTIVE,
         )
@@ -1123,7 +1122,7 @@ async def update_model_service_provider(request, provider, mspIn : ModelServiceP
 
         msp.dialect = mspIn.dialect or msp.dialect
         msp.api_key = mspIn.api_key
-        if (msp_config.get("allow_custom_base_url", False) and mspIn.base_url is not None):
+        if (msp_config.allow_custom_base_url and mspIn.base_url is not None):
             msp.base_url = mspIn.base_url
         msp.extra = mspIn.extra
 
@@ -1142,7 +1141,7 @@ async def delete_model_service_provider(request, provider):
     msp = await query_msp(user, provider)
     if msp is None:
         return fail(HTTPStatus.NOT_FOUND, f"model service provider {provider} not found")
-    
+
     msp.status = db_models.ModelServiceProvider.Status.DELETED
     msp.gmt_deleted = timezone.now()
 
@@ -1150,41 +1149,23 @@ async def delete_model_service_provider(request, provider):
     return success({})
 
 
-@router.get("/available_embeddings")
-async def list_available_embeddings(request) -> view_models.AvailableEmbeddingList:
-    user = get_user(request)
-    supported_msp_dict = {supported_msp["name"]: supported_msp for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
-    msp_list = await query_msp_list(user)
-    logger.info(msp_list)
-    response = []
-    for msp in msp_list:
-        if msp.name in supported_msp_dict:
-            supported_msp = supported_msp_dict[msp.name]
-            for embedding in supported_msp.get("embeddings", []):
-                response.append(view_models.AvailableEmbedding(
-                    model_service_provider=msp.name,
-                    embedding_name=embedding,
-                ))
-    return success(view_models.AvailableEmbeddingList( items=response,))
-
-
-
 @router.get("/available_models")
-async def list_available_models(request) -> view_models.AvailableModelList:
+async def list_available_models(request) -> view_models.SupportedModelServiceProviderList:
     user = get_user(request)
-    supported_msp_dict = {supported_msp["name"]: supported_msp for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+
+    supported_providers = [view_models.SupportedModelServiceProvider(**msp) for msp in
+                           settings.SUPPORTED_MODEL_SERVICE_PROVIDERS]
+    supported_msp_dict = {provider.name: provider for provider in supported_providers}
+
     msp_list = await query_msp_list(user)
     logger.info(msp_list)
-    response = []
+
+    available_providers = []
     for msp in msp_list:
         if msp.name in supported_msp_dict:
-            supported_msp = supported_msp_dict[msp.name]
-            for model in supported_msp.get("models", []):
-                response.append(view_models.AvailableModel(
-                    model_service_provider=msp.name,
-                    model_name=model,
-                ))
-    return success(view_models.AvailableModelList( items=response,))
+            available_providers.append(supported_msp_dict[msp.name])
+
+    return success(view_models.SupportedModelServiceProviderList(items=available_providers, pageResult=None))
 
 
 def default_page(request, exception):

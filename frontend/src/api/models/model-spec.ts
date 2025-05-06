@@ -17,20 +17,20 @@
 /**
  * 
  * @export
- * @interface AvailableEmbedding
+ * @interface ModelSpec
  */
-export interface AvailableEmbedding {
+export interface ModelSpec {
     /**
      * 
      * @type {string}
-     * @memberof AvailableEmbedding
+     * @memberof ModelSpec
      */
-    'model_service_provider'?: string;
+    'model'?: string;
     /**
      * 
      * @type {string}
-     * @memberof AvailableEmbedding
+     * @memberof ModelSpec
      */
-    'embedding_name'?: string;
+    'custom_llm_provider'?: string;
 }
 
