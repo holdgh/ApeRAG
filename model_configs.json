@@ -78,7 +78,8 @@
         "custom_llm_provider": "openai",
         "max_tokens": 8191
       }
-    ]
+    ],
+    "rerank": []
   },
   {
     "name": "anthropic",
@@ -97,7 +98,9 @@
         "custom_llm_provider": "anthropic",
         "max_tokens": 128000
       }
-    ]
+    ],
+    "embedding": [],
+    "rerank": []
   },
   {
     "name": "gemini",
@@ -116,7 +119,9 @@
         "custom_llm_provider": "gemini",
         "max_tokens": 65536
       }
-    ]
+    ],
+    "embedding": [],
+    "rerank": []
   },
   {
     "name": "xai",
@@ -145,7 +150,9 @@
         "custom_llm_provider": "xai",
         "max_tokens": 131072
       }
-    ]
+    ],
+    "embedding": [],
+    "rerank": []
   },
   {
     "name": "deepseek",

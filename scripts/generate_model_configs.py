@@ -59,12 +59,9 @@ def create_openai_config(enable_whitelist=False, model_whitelist=None):
     embedding_models = generate_model_specs(provider_models, provider, "embedding", enable_whitelist, model_whitelist)
     rerank_models = generate_model_specs(provider_models, provider, "rerank", enable_whitelist, model_whitelist)
 
-    if completion_models:
-        config["completion"] = completion_models
-    if embedding_models:
-        config["embedding"] = embedding_models
-    if rerank_models:
-        config["rerank"] = rerank_models
+    config["completion"] = completion_models
+    config["embedding"] = embedding_models
+    config["rerank"] = rerank_models
     
     return config
 
@@ -85,12 +82,9 @@ def create_anthropic_config(enable_whitelist=False, model_whitelist=None):
     embedding_models = generate_model_specs(provider_models, provider, "embedding", enable_whitelist, model_whitelist)
     rerank_models = generate_model_specs(provider_models, provider, "rerank", enable_whitelist, model_whitelist)
 
-    if completion_models:
-        config["completion"] = completion_models
-    if embedding_models:
-        config["embedding"] = embedding_models
-    if rerank_models:
-        config["rerank"] = rerank_models
+    config["completion"] = completion_models
+    config["embedding"] = embedding_models
+    config["rerank"] = rerank_models
     
     return config
 
@@ -135,12 +129,9 @@ def create_gemini_config(enable_whitelist=False, model_whitelist=None):
     embedding_models = generate_model_specs(provider_models, provider, "embedding", enable_whitelist, model_whitelist)
     rerank_models = generate_model_specs(provider_models, provider, "rerank", enable_whitelist, model_whitelist)
 
-    if completion_models:
-        config["completion"] = completion_models
-    if embedding_models:
-        config["embedding"] = embedding_models
-    if rerank_models:
-        config["rerank"] = rerank_models
+    config["completion"] = completion_models
+    config["embedding"] = embedding_models
+    config["rerank"] = rerank_models
     
     return config
 
@@ -161,12 +152,9 @@ def create_xai_config(enable_whitelist=False, model_whitelist=None):
     embedding_models = generate_model_specs(provider_models, provider, "embedding", enable_whitelist, model_whitelist)
     rerank_models = generate_model_specs(provider_models, provider, "rerank", enable_whitelist, model_whitelist)
 
-    if completion_models:
-        config["completion"] = completion_models
-    if embedding_models:
-        config["embedding"] = embedding_models
-    if rerank_models:
-        config["rerank"] = rerank_models
+    config["completion"] = completion_models
+    config["embedding"] = embedding_models
+    config["rerank"] = rerank_models
     
     return config
 
@@ -269,7 +257,7 @@ def create_provider_config():
         "xai/grok-3-mini-beta",
         "xai/grok-3-mini-fast-latest",
     ]
-    
+
     enable_whitelist = True
     
     result = [
