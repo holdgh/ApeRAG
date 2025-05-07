@@ -48,8 +48,41 @@ modelSpec:
   properties:
     model:
       type: string
+      description: The name of the language model to use
     custom_llm_provider:
       type: string
+      description: Used for Non-OpenAI LLMs (e.g. 'bedrock' for amazon.titan-tg1-large)
+    temperature:
+      type: number
+      description: Controls randomness in the output. Values between 0 and 2. Lower values make output more focused and deterministic
+      minimum: 0
+      maximum: 2
+      optional: true
+      # Only for completion API
+    max_tokens:
+      type: integer
+      description: Maximum number of tokens to generate
+      minimum: 1
+      optional: true
+      # Only for completion API
+    max_completion_tokens:
+      type: integer
+      description: Upper bound for generated completion tokens, including visible and reasoning tokens
+      minimum: 1
+      optional: true
+      # Only for completion API
+    timeout:
+      type: number
+      description: Maximum execution time in seconds for the API request
+      minimum: 1
+      optional: true
+      # Common parameter for all APIs
+    top_n:
+      type: integer
+      description: Number of top results to return when reranking documents
+      minimum: 1
+      optional: true
+      # Only for rerank API
 
 modelSpecList:
   type: object

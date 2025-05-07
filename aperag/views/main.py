@@ -114,7 +114,7 @@ async def list_models(request) -> view_models.ModelList:
 
     supported_msp_dict = {
         provider_data["name"]: view_models.SupportedModelServiceProvider(**provider_data)
-        for provider_data in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS
+        for provider_data in settings.MODEL_CONFIGS
     }
 
     msp_list = await query_msp_list(user)
@@ -1038,7 +1038,7 @@ async def delete_bot(request, bot_id: str) -> view_models.Bot:
 async def list_model_service_providers(request) -> view_models.SupportedModelServiceProviderList:
     user = get_user(request)
     response = []
-    for supported_msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS:
+    for supported_msp in settings.MODEL_CONFIGS:
         provider = view_models.SupportedModelServiceProvider(
             name=supported_msp["name"],
             dialect=supported_msp["dialect"],
@@ -1058,7 +1058,7 @@ async def list_model_service_providers(request) -> view_models.ModelServiceProvi
     user = get_user(request)
 
     supported_msp_dict = {msp["name"]: view_models.SupportedModelServiceProvider(**msp)
-                          for msp in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+                          for msp in settings.MODEL_CONFIGS}
 
     msp_list = await query_msp_list(user)
     logger.info(msp_list)
@@ -1093,7 +1093,7 @@ async def update_model_service_provider(request, provider, mspIn: ModelServicePr
 
     supported_providers = [
         view_models.SupportedModelServiceProvider(**item)
-        for item in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS
+        for item in settings.MODEL_CONFIGS
     ]
     supported_msp_names = {provider.name for provider in supported_providers if provider.name}
 
@@ -1134,7 +1134,7 @@ async def update_model_service_provider(request, provider, mspIn: ModelServicePr
 async def delete_model_service_provider(request, provider):
     user = get_user(request)
 
-    supported_msp_names = {item["name"] for item in settings.SUPPORTED_MODEL_SERVICE_PROVIDERS}
+    supported_msp_names = {item["name"] for item in settings.MODEL_CONFIGS}
     if provider not in supported_msp_names:
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
 
@@ -1154,7 +1154,7 @@ async def list_available_models(request) -> view_models.SupportedModelServicePro
     user = get_user(request)
 
     supported_providers = [view_models.SupportedModelServiceProvider(**msp) for msp in
-                           settings.SUPPORTED_MODEL_SERVICE_PROVIDERS]
+                           settings.MODEL_CONFIGS]
     supported_msp_dict = {provider.name: provider for provider in supported_providers}
 
     msp_list = await query_msp_list(user)
@@ -1165,7 +1165,7 @@ async def list_available_models(request) -> view_models.SupportedModelServicePro
         if msp.name in supported_msp_dict:
             available_providers.append(supported_msp_dict[msp.name])
 
-    return success(view_models.SupportedModelServiceProviderList(items=available_providers, pageResult=None))
+    return success(view_models.SupportedModelServiceProviderList(items=available_providers, pageResult=None).model_dump(exclude_none=True))
 
 
 def default_page(request, exception):

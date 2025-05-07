@@ -175,6 +175,10 @@ generate-models: merge-openapi
 	@rm aperag/api/openapi.merged.yaml
 	@echo "Models generated successfully in aperag/models directory"
 
+.PHONY: generate_model_configs
+generate_model_configs:
+	python ./scripts/generate_model_configs.py
+
 .PHONY: dependencies
 dependencies: ## Install dependencies.
 ifeq (, $(shell which redocly))

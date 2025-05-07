@@ -51,15 +51,6 @@ class Predictor(ABC):
         pass
 
     @staticmethod
-    def get_model_context(model_name):
-        model_families = yaml.safe_load(settings.MODEL_FAMILIES)
-        for model_family in model_families:
-            for model_server in model_family.get("models", []):
-                if model_name == model_server["name"]:
-                    return model_server
-        return None
-
-    @staticmethod
     def match_predictor(model_service_provider, model_name, base_url, api_key, kwargs):
         match model_service_provider:
             case "openai" | "siliconflow" | "deepseek":
