@@ -179,6 +179,10 @@ generate-models: merge-openapi
 generate_model_configs:
 	python ./scripts/generate_model_configs.py
 
+.PHONY: generate-frontend-sdk
+generate-frontend-sdk:
+	cd ./frontend && yarn api:build
+
 .PHONY: dependencies
 dependencies: ## Install dependencies.
 ifeq (, $(shell which redocly))

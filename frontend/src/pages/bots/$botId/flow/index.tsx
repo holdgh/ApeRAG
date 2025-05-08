@@ -42,7 +42,7 @@ import {
 } from 'react-icons/bs';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
 import { ApeFlowNode } from './_flow_node';
-import { ApeFlowNodeDetail } from './_flow_node_detail';
+// import { ApeFlowNodeDetail } from './_flow_node_detail';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -170,9 +170,12 @@ export default () => {
 
   const nodeTypes: { [key in ApeNodeType]: any } = useMemo(
     () => ({
-      normal: ApeFlowNode,
-      start: ApeFlowNode,
-      end: ApeFlowNode,
+      global: ApeFlowNode,
+      vector_search: ApeFlowNode,
+      keyword_search: ApeFlowNode,
+      merge: ApeFlowNode,
+      rerank: ApeFlowNode,
+      llm: ApeFlowNode,
     }),
     [],
   );
@@ -350,7 +353,7 @@ export default () => {
             </Tooltip>
           </Space>
         </StyledFlowToolbar>
-        <ApeFlowNodeDetail />
+        {/* <ApeFlowNodeDetail /> */}
       </StyledReactFlow>
     </PageContainer>
   );

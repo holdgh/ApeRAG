@@ -1,16 +1,19 @@
 import { Edge, Node, Position } from '@xyflow/react';
 
 export type ApeLayoutDirection = 'TB' | 'LR';
-export type ApeNodeType = 'start' | 'end' | 'normal';
+export type ApeNodeType = 'global' | 'vector_search' | 'keyword_search' | 'merge' | 'rerank' | 'llm';
+
+export type ApeEdgeTypes = 'straight' | 'step' | 'smoothstep' | 'default' | 'simplebezier'
 
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
   targetPosition?: Position;
 };
 
+
 export type ApeNode = Node & {
   data?: {
-    label?: string;
+    vars?: {[key in string]: string | number}[]
   };
 };
 
