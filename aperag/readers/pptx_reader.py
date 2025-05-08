@@ -11,10 +11,7 @@ from typing import Dict, List, Optional
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.schema import Document
 
-# model_id_or_path = "nlpconnect/vit-gpt2-image-captioning"
-model_id_or_path = (
-    "/Users/alal/.cache/huggingface/hub/models--nlpconnect--vit-gpt2-image-captioning"
-)
+model_id_or_path = "nlpconnect/vit-gpt2-image-captioning"
 
 
 class PptxReader(BaseReader):
