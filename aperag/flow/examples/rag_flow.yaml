@@ -1,0 +1,113 @@
+name: "RAG Knowledge Base Flow"
+description: "A typical RAG flow with parallel retrieval and reranking"
+version: "1.0.0"
+
+# Execution configuration
+execution:
+  timeout: 300  # Overall timeout (seconds)
+  retry:
+    max_attempts: 3
+    delay: 5
+  error_handling:
+    strategy: "stop_on_error"  # or "continue_on_error"
+    notification:
+      email: ["admin@example.com"]
+
+# Global variable definitions
+global_variables:
+  - name: "query"
+    type: "string"
+    description: "User's question or query"
+
+# Node definitions
+nodes:
+  # Vector search node
+  - id: "vector_search-3f8e2c1a"
+    type: "vector_search"
+    name: "Vector Search"
+    data:
+      vars:
+        - name: "top_k"
+          value: 5
+        - name: "similarity_threshold"
+          value: 0.7
+        - name: "query"
+          source_type: "global"
+          global_var: "query"
+
+  # Keyword search node
+  - id: "keyword_search-7b2d4e9f"
+    type: "keyword_search"
+    name: "Keyword Search"
+    data:
+      vars:
+        - name: "query"
+          source_type: "global"
+          global_var: "query"
+
+  # Merge node
+  - id: "merge-1a9c5d8e"
+    type: "merge"
+    name: "Merge Results"
+    data:
+      vars:
+        - name: "merge_strategy"
+          value: "union"
+        - name: "deduplicate"
+          value: true
+        - name: "vector_search_docs"
+          source_type: "dynamic"
+          ref_node: "vector_search-3f8e2c1a"
+          ref_field: "vector_search_docs"
+        - name: "keyword_search_docs"
+          source_type: "dynamic"
+          ref_node: "keyword_search-7b2d4e9f"
+          ref_field: "keyword_search_docs"
+
+  # Rerank node
+  - id: "rerank-5c7e1b2a"
+    type: "rerank"
+    name: "Rerank Results"
+    data:
+      vars:
+        - name: "model"
+          value: "bge-reranker"
+        - name: "docs"
+          source_type: "dynamic"
+          ref_node: "merge-1a9c5d8e"
+          ref_field: "docs"
+
+  # LLM generation node
+  - id: "llm-8e4f2a7b"
+    type: "llm"
+    name: "LLM Generation"
+    data:
+      vars:
+        - name: "model"
+          value: "gpt-3.5-turbo"
+        - name: "temperature"
+          value: 0.7
+        - name: "max_tokens"
+          value: 1000
+        - name: "query"
+          source_type: "global"
+          global_var: "query"
+        - name: "docs"
+          source_type: "dynamic"
+          ref_node: "rerank-5c7e1b2a"
+          ref_field: "docs"
+
+# Edge definitions (connections between nodes)
+edges:
+  # Vector search to merge
+  - source: "vector_search-3f8e2c1a"
+    target: "merge-1a9c5d8e"
+  # Keyword search to merge
+  - source: "keyword_search-7b2d4e9f"
+    target: "merge-1a9c5d8e"
+  # Merge to rerank
+  - source: "merge-1a9c5d8e"
+    target: "rerank-5c7e1b2a"
+  # Rerank to LLM
+  - source: "rerank-5c7e1b2a"
+    target: "llm-8e4f2a7b"
