@@ -1,6 +1,4 @@
-import {
-  AvailableModel,
-} from '@/api';
+import { Collection } from '@/api';
 import { ApeMarkdown, CheckCard } from '@/components';
 import {
   COLLECTION_SOURCE,
@@ -10,11 +8,9 @@ import {
 import { api } from '@/services';
 import { UndrawEmpty } from 'react-undraw-illustrations';
 
-import {
-  ApeCollection,
-  CollectionConfigSource,
-  CollectionEmailSource,
-} from '@/types';
+import { CollectionConfigSource, CollectionEmailSource } from '@/types';
+import { getProviderByModelName } from '@/utils';
+import { useRequest } from 'ahooks';
 import {
   Alert,
   Avatar,
@@ -35,8 +31,8 @@ import {
   Typography,
 } from 'antd';
 import _ from 'lodash';
-import { useEffect, useMemo, useState } from 'react';
-import { FormattedMessage, useIntl, useModel } from 'umi';
+import { useEffect, useMemo } from 'react';
+import { FormattedMessage, useIntl } from 'umi';
 import DocumentCloudFormItems from './DocumentCloudFormItems';
 import DocumentEmailFormItems from './DocumentEmailFormItems';
 import DocumentFeishuFormItems from './DocumentFeishuFormItems';
@@ -46,118 +42,175 @@ import DocumentLocalFormItems from './DocumentLocalFormItems';
 
 type Props = {
   action: 'add' | 'edit';
-  values?: ApeCollection;
-  form: FormInstance<ApeCollection>;
-  onSubmit: (data: ApeCollection) => void;
+  values?: Collection;
+  form: FormInstance<Collection>;
+  onSubmit: (data: Collection) => void;
 };
 
+const configSourceKey = ['config', 'source'];
+const configSensitiveProtectKey = ['config', 'sensitive_protect'];
+
+const configEmbeddingModelKey = ['config', 'embedding', 'model'];
+const configEmbeddingModelServiceProviderKey = [
+  'config',
+  'embedding',
+  'model_service_provider',
+];
+const configEmbeddingCustomLlmProviderKey = [
+  'config',
+  'embedding',
+  'custom_llm_provider',
+];
+
+const configEnableKnowledgeGraphKey = ['config', 'enable_knowledge_graph'];
+
+const configCompletionModelKey = ['config', 'completion', 'model'];
+const configCompletionModelServiceProviderKey = [
+  'config',
+  'completion',
+  'model_service_provider',
+];
+const configCompletionCustomLlmProviderKey = [
+  'config',
+  'completion',
+  'custom_llm_provider',
+];
+
+const configEmailSourceKey = ['config', 'email_source'];
+
 export default ({ onSubmit, action, values, form }: Props) => {
+  const { data: availableModelsGetRes, loading } = useRequest(
+    api.availableModelsGet,
+  );
   const { formatMessage } = useIntl();
   const { token } = theme.useToken();
-  const { setLoading, loading } = useModel('global');
 
-  const [availableModels, setAvailableModels] = useState<any[]>();
-
-  const source = Form.useWatch(['config', 'source'], form);
-  const emailSource: CollectionEmailSource | undefined = Form.useWatch(
-    ['config', 'email_source'],
-    form,
-  );
-  const sensitiveProtect = Form.useWatch(['config', 'sensitive_protect'], form);
-  const embeddingModel = Form.useWatch(['config', 'embedding_model'], form);
-  const enableLightRAG = Form.useWatch(['config', 'enable_knowledge_graph'], form);
-  const lightRAGModel = Form.useWatch(['config', 'lightrag_model'], form);
-
-  const getEmbeddingsAndModels = async () => {
-    setLoading(true);
-    const availableModelsRes = await api.availableModelsGet();
-    setLoading(false);
-    setAvailableModels(availableModelsRes.data.items);
-  };
-
-  const embeddingModelOptions = useMemo(
-    () =>
-      _.map(
-        availableModels || [],
-        (provider) => {
-          return {
-            label: (
-              <Space>
-                <Avatar
-                  size={24}
-                  shape="square"
-                  src={MODEL_PROVIDER_ICON[provider.name]}
-                />
-                <span>{provider.label || provider.name}</span>
-              </Space>
-            ),
-            options: provider.embedding.map((model: any) => {
-              return {
-                label: model.model,
-                value: `${provider.name}:${model.model}`,
-              };
-            }),
-          };
-        },
-      ),
-    [availableModels],
+  const availableModels = useMemo(
+    () => availableModelsGetRes?.data.items || [],
+    [availableModelsGetRes],
   );
 
-  const modelsOptions = useMemo(
-    () =>
-      _.map(
-        availableModels || [],
-        (provider) => {
-          return {
-            label: (
-              <Space>
-                <Avatar
-                  size={24}
-                  shape="square"
-                  src={MODEL_PROVIDER_ICON[provider.name]}
-                />
-                <span>{provider.label || provider.name}</span>
-              </Space>
-            ),
-            options: provider.completion.map((model: any) => {
-              return {
-                label: model.model,
-                value: `${provider.name}:${model.model}`,
-              };
-            }),
-          };
-        },
-      ),
-    [availableModels],
-  );
-
+  // save collection
   const onFinish = async () => {
     const data = await form.validateFields();
     onSubmit(data);
   };
 
-  useEffect(() => {
-    if (embeddingModel) {
-      const [model_service_provider, embedding_name] =
-        embeddingModel.split(':');
-      form.setFieldValue(
-        ['config', 'embedding_model_service_provider'],
-        model_service_provider,
-      );
-      form.setFieldValue(['config', 'embedding_model_name'], embedding_name);
-    }
-  }, [embeddingModel]);
+  // form field watch
+  const source = Form.useWatch(configSourceKey, form);
+  const emailSource: CollectionEmailSource | undefined = Form.useWatch(
+    configEmailSourceKey,
+    form,
+  );
+  const sensitiveProtect = Form.useWatch(configSensitiveProtectKey, form);
+  const embeddingModel = Form.useWatch(configEmbeddingModelKey, form);
+  const embeddingModelServiceProvider = Form.useWatch(
+    configEmbeddingModelServiceProviderKey,
+    form,
+  );
+
+  const enableKnowledgeGraph = Form.useWatch(
+    configEnableKnowledgeGraphKey,
+    form,
+  );
+
+  const completionModel = Form.useWatch(configCompletionModelKey, form);
+  const completionModelServiceProvider = Form.useWatch(
+    configCompletionModelServiceProviderKey,
+    form,
+  );
+
+  // embedding model options
+  const embeddingModelOptions = useMemo(
+    () =>
+      _.map(availableModels, (provider) => {
+        return {
+          label: (
+            <Space>
+              <Avatar
+                size={24}
+                shape="square"
+                src={
+                  provider.name ? MODEL_PROVIDER_ICON[provider.name] : undefined
+                }
+              />
+              <span>{provider.label || provider.name}</span>
+            </Space>
+          ),
+          options: provider.embedding?.map((item) => {
+            return {
+              label: item.model,
+              value: item.model,
+            };
+          }),
+        };
+      }),
+    [availableModels],
+  );
+
+  // completion model options
+  const completionModelsOptions = useMemo(
+    () =>
+      _.map(availableModels, (provider) => {
+        return {
+          label: (
+            <Space>
+              <Avatar
+                size={24}
+                shape="square"
+                src={
+                  provider.name ? MODEL_PROVIDER_ICON[provider.name] : undefined
+                }
+              />
+              <span>{provider.label || provider.name}</span>
+            </Space>
+          ),
+          options: provider.completion?.map((item: any) => {
+            return {
+              label: item.model,
+              value: item.model,
+            };
+          }),
+        };
+      }),
+    [availableModels],
+  );
 
   useEffect(() => {
-    if (lightRAGModel) {
-      const [model_service_provider, model_name] = lightRAGModel.split(':');
-      form.setFieldValue(
-        ['config', 'lightrag_model_service_provider'],
-        model_service_provider,
+    if (embeddingModel) {
+      const { provider, model } = getProviderByModelName(
+        embeddingModel,
+        'embedding',
+        availableModels,
       );
-      form.setFieldValue(['config', 'lightrag_model_name'], model_name);
+      form.setFieldValue(
+        configEmbeddingModelServiceProviderKey,
+        provider?.name,
+      );
+      form.setFieldValue(
+        configEmbeddingCustomLlmProviderKey,
+        model?.custom_llm_provider,
+      );
     }
-  }, [lightRAGModel]);
+  }, [embeddingModel, availableModels]);
+
+  useEffect(() => {
+    if (completionModel) {
+      const { provider, model } = getProviderByModelName(
+        completionModel,
+        'completion',
+        availableModels,
+      );
+      form.setFieldValue(
+        configCompletionModelServiceProviderKey,
+        provider?.name,
+      );
+      form.setFieldValue(
+        configCompletionCustomLlmProviderKey,
+        model?.custom_llm_provider,
+      );
+    }
+  }, [completionModel, availableModels]);
 
   useEffect(() => {
     if (source === 'ftp') {
@@ -165,7 +218,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
     }
     if (source === 'email') {
       if (!emailSource) {
-        form.setFieldValue(['config', 'email_source'], 'gmail');
+        form.setFieldValue(configEmailSourceKey, 'gmail');
       } else {
         form.setFieldValue(
           ['config', 'pop_server'],
@@ -179,15 +232,10 @@ export default ({ onSubmit, action, values, form }: Props) => {
     }
   }, [source, emailSource]);
 
-  useEffect(() => {
-    getEmbeddingsAndModels();
-  }, []);
-
   return (
     <Form
       autoComplete="off"
       onFinish={onFinish}
-      // disabled={readonly}
       layout="vertical"
       form={form}
       initialValues={values}
@@ -224,7 +272,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
             }}
           >
             <Form.Item
-              name={['config', 'embedding_model']}
+              name={configEmbeddingModelKey}
               rules={[
                 {
                   required: true,
@@ -240,20 +288,17 @@ export default ({ onSubmit, action, values, form }: Props) => {
                 options={embeddingModelOptions}
                 disabled={action === 'edit'}
                 labelRender={({ label, value }) => {
-                  const [model_service_provider, model_name] = (
-                    value as string
-                  ).split(':');
                   return (
                     <Space style={{ alignItems: 'center' }}>
                       <Avatar
                         size={24}
                         shape="square"
-                        src={MODEL_PROVIDER_ICON[model_service_provider]}
+                        src={MODEL_PROVIDER_ICON[embeddingModelServiceProvider]}
                         style={{
                           transform: 'translateY(-1px)',
                         }}
                       />
-                      {label || model_name}
+                      {label || value}
                     </Space>
                   );
                 }}
@@ -278,14 +323,11 @@ export default ({ onSubmit, action, values, form }: Props) => {
               />
             </Form.Item>
 
-            <Form.Item
-              name={['config', 'embedding_model_service_provider']}
-              hidden
-            >
-              <Input type="hidden" />
+            <Form.Item name={configEmbeddingModelServiceProviderKey} hidden>
+              <Input hidden />
             </Form.Item>
-            <Form.Item name={['config', 'embedding_model_name']} hidden>
-              <Input type="hidden" />
+            <Form.Item name={configEmbeddingCustomLlmProviderKey} hidden>
+              <Input hidden />
             </Form.Item>
           </Col>
           <Col
@@ -301,20 +343,20 @@ export default ({ onSubmit, action, values, form }: Props) => {
             <Form.Item
               label={formatMessage({ id: 'collection.enable_knowledge_graph' })}
               valuePropName="checked"
-              name={['config', 'enable_knowledge_graph']}
+              name={configEnableKnowledgeGraphKey}
             >
               <Switch />
             </Form.Item>
           </Col>
         </Row>
 
-        {enableLightRAG ? (
+        {enableKnowledgeGraph ? (
           <>
             <Form.Item
               label={formatMessage({
                 id: 'collection.lightrag_model',
               })}
-              name={['config', 'lightrag_model']}
+              name={configCompletionModelKey}
               required
               rules={[
                 {
@@ -326,22 +368,21 @@ export default ({ onSubmit, action, values, form }: Props) => {
               ]}
             >
               <Select
-                options={modelsOptions}
+                options={completionModelsOptions}
                 labelRender={({ label, value }) => {
-                  const [model_service_provider, model_name] = (
-                    value as string
-                  ).split(':');
                   return (
                     <Space style={{ alignItems: 'center' }}>
                       <Avatar
                         size={24}
                         shape="square"
-                        src={MODEL_PROVIDER_ICON[model_service_provider]}
+                        src={
+                          MODEL_PROVIDER_ICON[completionModelServiceProvider]
+                        }
                         style={{
                           transform: 'translateY(-1px)',
                         }}
                       />
-                      {label || model_name}
+                      {label || value}
                     </Space>
                   );
                 }}
@@ -365,14 +406,11 @@ export default ({ onSubmit, action, values, form }: Props) => {
                 }
               />
             </Form.Item>
-            <Form.Item
-              name={['config', 'lightrag_model_service_provider']}
-              hidden
-            >
-              <Input type="hidden" />
+            <Form.Item name={configCompletionModelServiceProviderKey} hidden>
+              <Input hidden />
             </Form.Item>
-            <Form.Item name={['config', 'lightrag_model_name']} hidden>
-              <Input type="hidden" />
+            <Form.Item name={configCompletionCustomLlmProviderKey} hidden>
+              <Input hidden />
             </Form.Item>
           </>
         ) : null}
@@ -389,7 +427,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
             </>
           }
           valuePropName="checked"
-          name={['config', 'sensitive_protect']}
+          name={configSensitiveProtectKey}
         >
           <Switch />
         </Form.Item>
@@ -436,7 +474,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
         ) : null}
 
         <Form.Item
-          name={['config', 'source']}
+          name={configSourceKey}
           required
           label={formatMessage({ id: 'collection.source' })}
           rules={[
@@ -468,7 +506,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
             <Form.Item
               required
               label={formatMessage({ id: 'email.source' })}
-              name={['config', 'email_source']}
+              name={configEmailSourceKey}
             >
               <Segmented
                 size="small"

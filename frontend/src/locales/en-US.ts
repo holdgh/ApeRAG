@@ -203,9 +203,10 @@ export default {
   'system.management': 'Settings',
 
   feedback: '---------------',
-  'feedback.bad.title': 'What\'s wrong with this response?',
+  'feedback.bad.title': "What's wrong with this response?",
   'feedback.bad.description': 'Please select a reason for your feedback',
-  'feedback.message.placeholder': 'Please provide more details about your feedback',
+  'feedback.message.placeholder':
+    'Please provide more details about your feedback',
   'feedback.tag.harmful': 'Harmful / Unsafe Content',
   'feedback.tag.unsafe': 'Unsafe Content',
   'feedback.tag.fake': 'False or Misleading Information',

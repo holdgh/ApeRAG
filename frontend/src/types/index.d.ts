@@ -1,4 +1,4 @@
-import { Bot, Collection, Document } from '@/api';
+import { Bot, Document } from '@/api';
 
 export * from './flow';
 
@@ -59,54 +59,55 @@ export type CollectionEmailSource = 'gmail' | 'outlook' | 'qqmail' | 'others';
 //   start_time: string;
 //   execution_time: string;
 // };
-export type CollectionConfig = {
-  source?: CollectionConfigSource;
 
-  embedding_model_name?: string;
-  embedding_model_service_provider?: string;
-  enable_knowledge_graph?: boolean;
+// export type CollectionConfig = {
+//   source?: CollectionConfigSource;
 
-  sensitive_protect?: boolean;
-  sensitive_protect_method?: 'nostore' | 'replace';
+//   embedding_model_name?: string;
+//   embedding_model_service_provider?: string;
+//   enable_knowledge_graph?: boolean;
 
-  crontab?: {
-    enabled: boolean;
-    minute: string;
-    hour: string;
-    day_of_month: string;
-    month: string;
-    day_of_week: string;
-  };
+//   sensitive_protect?: boolean;
+//   sensitive_protect_method?: 'nostore' | 'replace';
 
-  // local and ftp
-  path?: string;
+//   crontab?: {
+//     enabled: boolean;
+//     minute: string;
+//     hour: string;
+//     day_of_month: string;
+//     month: string;
+//     day_of_week: string;
+//   };
 
-  // ftp
-  host?: string;
-  username?: string;
-  password?: string;
+//   // local and ftp
+//   path?: string;
 
-  // s3 | oss
-  region?: string;
-  access_key_id?: string;
-  secret_access_key?: string;
-  bucket?: string;
-  dir?: string;
+//   // ftp
+//   host?: string;
+//   username?: string;
+//   password?: string;
 
-  // email
-  email_source?: CollectionEmailSource;
-  pop_server?: string;
-  port?: string;
-  email_address?: string;
-  email_password?: string;
+//   // s3 | oss
+//   region?: string;
+//   access_key_id?: string;
+//   secret_access_key?: string;
+//   bucket?: string;
+//   dir?: string;
 
-  // feishu
-  app_id?: string;
-  app_secret?: string;
-  space_id?: string;
-};
+//   // email
+//   email_source?: CollectionEmailSource;
+//   pop_server?: string;
+//   port?: string;
+//   email_address?: string;
+//   email_password?: string;
 
-export type ApeCollection = Merge<Collection, { config?: CollectionConfig }>;
+//   // feishu
+//   app_id?: string;
+//   app_secret?: string;
+//   space_id?: string;
+// };
+
+// export type ApeCollection = Merge<Collection, { config?: CollectionConfig }>;
 
 /**
  * documents

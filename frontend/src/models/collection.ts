@@ -1,17 +1,16 @@
+import { Collection } from '@/api';
 import { DOCUMENT_DEFAULT_CONFIG } from '@/constants';
 import { api } from '@/services';
-import { ApeCollection } from '@/types';
-import { parseConfig, stringifyConfig } from '@/utils';
 import _ from 'lodash';
 import { useCallback, useState } from 'react';
 import { useModel } from 'umi';
 
 export default () => {
   const { setLoading } = useModel('global');
-  const [collection, setCollection] = useState<ApeCollection>();
+  const [collection, setCollection] = useState<Collection>();
   const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
 
-  const [collections, setCollections] = useState<ApeCollection[]>();
+  const [collections, setCollections] = useState<Collection[]>();
   const [collectionsLoading, setCollectionsLoading] = useState<boolean>(false);
 
   // collections
@@ -22,13 +21,7 @@ export default () => {
 
     setLoading(false);
     setCollectionsLoading(false);
-    setCollections(
-      res.data.items?.map((item) => ({
-        ...item,
-        // config: parseConfig(item.config),
-        config: item.config,
-      })),
-    );
+    setCollections(res.data.items);
   }, []);
 
   // collection
@@ -36,11 +29,7 @@ export default () => {
     setLoading(true);
     setCollectionLoading(true);
     const res = await api.collectionsCollectionIdGet({ collectionId });
-    setCollection({
-      ...res.data,
-      // config: parseConfig(res.data.config),
-      config: res.data.config,
-    });
+    setCollection(res.data);
     setLoading(false);
     setCollectionLoading(false);
   }, []);
@@ -56,7 +45,7 @@ export default () => {
   }, [collection]);
 
   const createCollection = useCallback(
-    async (values: ApeCollection): Promise<string | undefined> => {
+    async (values: Collection): Promise<string | undefined> => {
       const data = _.merge(
         {
           type: 'document',
@@ -75,7 +64,7 @@ export default () => {
   );
 
   const updateCollection = useCallback(
-    async (values: ApeCollection): Promise<boolean | undefined> => {
+    async (values: Collection): Promise<boolean | undefined> => {
       if (!collection?.id) return;
       const data = _.merge(collection, values);
       setLoading(true);
