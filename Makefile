@@ -175,6 +175,10 @@ generate-models: merge-openapi
 	@rm aperag/api/openapi.merged.yaml
 	@echo "Models generated successfully in aperag/models directory"
 
+.PHONY: generate-frontend-sdk
+generate-frontend-sdk:
+	cd ./frontend && yarn api:build
+
 .PHONY: dependencies
 dependencies: ## Install dependencies.
 ifeq (, $(shell which redocly))

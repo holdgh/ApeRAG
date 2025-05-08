@@ -1,4 +1,4 @@
-import { ApeEdge, ApeNode, LayoutDirection } from '@/types/flow';
+import { ApeEdge, ApeNode, ApeLayoutDirection, ApeEdgeTypes } from '@/types/flow';
 import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 import { stringify } from 'yaml';
@@ -7,62 +7,108 @@ const getEdgeId = (sourceId: string, targetId: string): string =>
   `${sourceId}|${targetId}`;
 const getNodeId = (): string => uuidV4();
 
-const startId = uuidV4();
-const midId = uuidV4();
-const endId = uuidV4();
+const globalId = uuidV4();
+const vectorSearchId = uuidV4();
+const keywordSearchId = uuidV4();
+const mergeId = uuidV4();
+const rerankId = uuidV4();
+const llmId = uuidV4();
+
+const nodes: ApeNode[] = [
+  {
+    id: globalId,
+    type: 'global',
+    data: {
+      vars: []
+    },
+    position: { x: 100, y: 300 },
+    deletable: false,
+  },
+  {
+    id: vectorSearchId,
+    data: {},
+    position: { x: 400, y: 200 },
+    type: 'vector_search',
+  },
+  {
+    id: keywordSearchId,
+    type: 'keyword_search',
+    data: {},
+    position: { x: 400, y: 400 },
+    deletable: false,
+  },
+  {
+    id: mergeId,
+    type: 'merge',
+    data: {},
+    position: { x: 700, y: 300 },
+    deletable: false,
+  },
+  {
+    id: rerankId,
+    type: 'rerank',
+    data: {},
+    position: { x: 1000, y: 300 },
+    deletable: false,
+  },
+  {
+    id: llmId,
+    type: 'llm',
+    data: {},
+    position: { x: 1300, y: 300 },
+    deletable: false,
+  },
+]
+
 const getInitialData = () => {
   return {
-    nodes: [
-      {
-        id: startId,
-        type: 'start',
-        data: { label: '开始' },
-        position: { x: 100, y: 300 },
-        deletable: false,
-      },
-      {
-        id: midId,
-        data: { label: 'LLM' },
-        position: { x: 500, y: 200 },
-        type: 'normal',
-      },
-      {
-        id: endId,
-        type: 'end',
-        data: { label: '结束' },
-        position: { x: 900, y: 400 },
-        deletable: false,
-      },
-    ],
+    nodes: nodes,
     edges: [
       {
-        id: getEdgeId(startId, midId),
-        source: startId,
-        target: midId,
+        id: getEdgeId(globalId, vectorSearchId),
+        source: globalId,
+        target: vectorSearchId,
         type: 'default',
       },
       {
-        id: getEdgeId(midId, endId),
-        source: midId,
-        target: endId,
+        id: getEdgeId(globalId, keywordSearchId),
+        source: globalId,
+        target: keywordSearchId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(vectorSearchId, mergeId),
+        source: vectorSearchId,
+        target: mergeId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(keywordSearchId, mergeId),
+        source: keywordSearchId,
+        target: mergeId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(mergeId, rerankId),
+        source: mergeId,
+        target: rerankId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(rerankId, llmId),
+        source: rerankId,
+        target: llmId,
         type: 'default',
       },
     ],
   };
 };
 
-type EdgeTypes =
-  | 'straight'
-  | 'step'
-  | 'smoothstep'
-  | 'default'
-  | 'simplebezier';
-
 export default () => {
   const [nodes, setNodes] = useState<ApeNode[]>([]);
   const [edges, setEdges] = useState<ApeEdge[]>([]);
-  const [edgeType, setEdgeType] = useState<EdgeTypes>('default');
-  const [layoutDirection, setLayoutDirection] = useState<LayoutDirection>('LR');
+  const [edgeType, setEdgeType] = useState<ApeEdgeTypes>('default');
+  const [layoutDirection, setLayoutDirection] = useState<ApeLayoutDirection>('LR');
 
   const saveFlow = useCallback(() => {
     console.log(
