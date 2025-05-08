@@ -67,6 +67,9 @@ class LightRagHolder:
     async def get_processed_docs(self) -> dict[str, Any]:
         return await self.rag.get_docs_by_status(DocStatus.PROCESSED)
 
+    async def aget_docs_by_ids(self, ids: str | list[str]) -> dict[str, Any]:
+        return await self.rag.aget_docs_by_ids(ids)
+
     async def aquery(self, query: str, param: QueryParam = QueryParam(), system_prompt: str | None = None) -> str | AsyncIterator[str]:
         return await self.rag.aquery(query, param, system_prompt)
 
