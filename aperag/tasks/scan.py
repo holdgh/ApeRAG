@@ -19,6 +19,7 @@ from celery import Task
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from aperag.db.models import Collection
+from aperag.schema.utils import parseCollectionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -37,18 +38,18 @@ class CustomScanTask(Task):
 async def update_sync_documents_cron_job(collection_id):
     collection = await Collection.objects.aget(id=collection_id)
     task = await get_schedule_task(collection_id)
-    config = json.loads(collection.config)
-    if "crontab" not in config or not config["crontab"] or not config["crontab"].get("enabled", False):
+    config = parseCollectionConfig(collection.config)
+    if config.crontab is None or config.crontab.enabled is None or config.crontab.enabled is False:
         if await task.acount():
             await task.aupdate(enabled=False)
             await task.adelete()
         return
 
     crontab, _ = await CrontabSchedule.objects.aupdate_or_create(
-        minute=config["crontab"]["minute"],
-        hour=config["crontab"]["hour"],
-        day_of_week=config["crontab"]["day_of_week"],
-        day_of_month=config["crontab"]["day_of_month"],
+        minute=config.crontab.minute,
+        hour=config.crontab.hour,
+        day_of_week=config.crontab.day_of_week,
+        day_of_month=config.crontab.day_of_week,
         # timezone="Etc/GMT-" + config["crontab"]["UTC"]
     )
     if await task.acount():

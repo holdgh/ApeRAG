@@ -63,8 +63,9 @@ paths:
   # models
   /models:
     $ref: './paths/models.yaml#/models'
+    deprecated: true
   /supported_model_service_providers:
-    $ref: './paths/models.yaml#/supportedModelServiceProviders'
+    $ref: './paths/models.yaml#/modelServiceProviders'
   /model_service_providers:
     $ref: './paths/models.yaml#/modelServiceProviders'
   /model_service_providers/{provider}:

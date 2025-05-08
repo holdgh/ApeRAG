@@ -18,15 +18,16 @@ from datetime import datetime
 from typing import Any, Dict, Iterator
 
 from aperag.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
 
 class LocalSource(Source):
 
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
-        self.path = ctx["path"]
+        self.path = ctx.path
         if not os.path.isdir(self.path):
             raise CustomSourceInitializationError("input is not a dir")
 

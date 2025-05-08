@@ -17,6 +17,7 @@ from typing import Any, Dict, Iterator
 
 from aperag.source.base import LocalDocument, RemoteDocument, Source
 from aperag.utils.spider.base_spider import WebCannotBeCrawledException, url_selector
+from aperag.views.models import CollectionConfig
 
 
 def download_web_text_to_temp_file(url, name):
@@ -34,7 +35,7 @@ def download_web_text_to_temp_file(url, name):
 
 
 class URLSource(Source):
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
 
     def sync_enabled(self):

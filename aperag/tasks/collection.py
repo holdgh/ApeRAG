@@ -15,6 +15,8 @@
 import json
 
 from asgiref.sync import async_to_sync
+
+from aperag.schema.utils import parseCollectionConfig
 from config import settings
 from config.celery import app
 from config.vector_db import get_vector_db_connector
@@ -52,8 +54,8 @@ def init_collection_task(collection_id, document_user_quota):
 
     collection.status = Collection.Status.ACTIVE
     collection.save()
-    
-    source = get_source(json.loads(collection.config))
+
+    source = get_source(parseCollectionConfig(collection.config))
     if source.sync_enabled():
         sync_documents.delay(collection_id=collection_id, document_user_quota=document_user_quota)
 

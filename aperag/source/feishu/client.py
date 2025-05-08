@@ -23,6 +23,7 @@ import requests
 from pydantic import BaseModel
 
 from aperag.source.base import CustomSourceInitializationError
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -47,17 +48,17 @@ class FeishuPermissionDenied(Exception):
 
 
 class FeishuClient(ABC):
-    def __init__(self, ctx: Dict[str, Any]):
-        self.app_id = ctx.get("app_id", None)
+    def __init__(self, ctx: CollectionConfig):
+        self.app_id = ctx.app_id
         if self.app_id is None:
             raise CustomSourceInitializationError("app_id is required")
 
-        self.app_secret = ctx.get("app_secret")
+        self.app_secret = ctx.app_secret
         if self.app_secret is None:
             raise CustomSourceInitializationError("app_secret is required")
 
         self.mutex = Lock()
-        self.space_id = ctx.get("space_id")
+        self.space_id = ctx.space_id
         self.tenant_access_token = ""
         self.expire_at = datetime.datetime.now()
 

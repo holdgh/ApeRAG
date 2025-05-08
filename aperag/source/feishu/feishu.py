@@ -23,18 +23,19 @@ import aperag.source.feishu.v2.parser as v2
 from aperag.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
 from aperag.source.feishu.client import FeishuClient
 from aperag.source.utils import gen_temporary_file
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
 
 class FeishuSource(Source):
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
         self.client = FeishuClient(ctx)
-        self.space_id = ctx.get("space_id", "")
-        self.root_node_id = ctx.get("node_id", "")
-        self.method = ctx.get("method", "block_api")
-        self.target_format = ctx.get("target_format", "md")
+        self.space_id = ctx.space_id
+        self.root_node_id = ""
+        self.method = "block_api"
+        self.target_format = "md"
         try:
             self.client.get_node(self.root_node_id, timeout=3)
         except Exception:

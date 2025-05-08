@@ -1,5 +1,6 @@
 model:
   type: object
+  deprecated: true
   properties:
     model_service_provider:
       type: string
@@ -34,64 +35,13 @@ model:
 
 modelList:
   type: object
+  deprecated: true
   description: A list of models
   properties:
     items:
       type: array
       items:
         $ref: '#/model'
-    pageResult:
-      $ref: './common.yaml#/pageResult'
-
-modelSpec:
-  type: object
-  properties:
-    model:
-      type: string
-      description: The name of the language model to use
-    custom_llm_provider:
-      type: string
-      description: Used for Non-OpenAI LLMs (e.g. 'bedrock' for amazon.titan-tg1-large)
-    temperature:
-      type: number
-      description: Controls randomness in the output. Values between 0 and 2. Lower values make output more focused and deterministic
-      minimum: 0
-      maximum: 2
-      optional: true
-      # Only for completion API
-    max_tokens:
-      type: integer
-      description: Maximum number of tokens to generate
-      minimum: 1
-      optional: true
-      # Only for completion API
-    max_completion_tokens:
-      type: integer
-      description: Upper bound for generated completion tokens, including visible and reasoning tokens
-      minimum: 1
-      optional: true
-      # Only for completion API
-    timeout:
-      type: number
-      description: Maximum execution time in seconds for the API request
-      minimum: 1
-      optional: true
-      # Common parameter for all APIs
-    top_n:
-      type: integer
-      description: Number of top results to return when reranking documents
-      minimum: 1
-      optional: true
-      # Only for rerank API
-
-modelSpecList:
-  type: object
-  description: A list of modelSpec
-  properties:
-    items:
-      type: array
-      items:
-        $ref: '#/modelSpec'
     pageResult:
       $ref: './common.yaml#/pageResult'
 
@@ -134,7 +84,92 @@ modelServiceProviderList:
     pageResult:
       $ref: './common.yaml#/pageResult'
 
-supportedModelServiceProvider:
+
+modelDefinition:
+  type: object
+  allOf:
+    - $ref: '#/modelSpec'
+    - $ref: '#/modelInfo'
+
+modelSpec:
+  type: object
+  properties:
+    model:
+      type: string
+      description: The name of the language model to use
+      example: "gpt-4o-mini"
+    model_service_provider:
+      type: string
+      description: Used for querying auth information (api_key/api_base/...) for a model service provider.
+      example: "openai"
+    custom_llm_provider:
+      type: string
+      description: Used for Non-OpenAI LLMs (e.g. 'bedrock' for amazon.titan-tg1-large)
+      example: "openai"
+    temperature:
+      type: number
+      description: Controls randomness in the output. Values between 0 and 2. Lower values make output more focused and deterministic
+      minimum: 0
+      maximum: 2
+      optional: true
+      example: 0.1
+      default: 0.1
+      # Only for completion API
+    max_tokens:
+      type: integer
+      description: Maximum number of tokens to generate
+      minimum: 1
+      optional: true
+      example: 4096
+      # Only for completion API
+    max_completion_tokens:
+      type: integer
+      description: Upper bound for generated completion tokens, including visible and reasoning tokens
+      minimum: 1
+      optional: true
+      example: 4096
+      # Only for completion API
+    timeout:
+      type: number
+      description: Maximum execution time in seconds for the API request
+      minimum: 1000
+      optional: true
+      example: 3000
+      # Common parameter for all APIs
+    top_n:
+      type: integer
+      description: Number of top results to return when reranking documents
+      minimum: 1
+      optional: true
+      # Only for rerank API
+
+
+modelInfo:
+  type: object
+  properties:
+    input_cost_per_token:
+      type: number
+      description: Input cost per token for single requests
+      example: 0.0000025
+      optional: true
+    output_cost_per_token:
+      type: number
+      description: Output cost per token for single requests
+      example: 0.000010
+      optional: true
+    input_cost_per_token_batches:
+      type: number
+      description: Input cost per token for batch requests
+      example: 0.00000125
+      optional: true
+    output_cost_per_token_batches:
+      type: number
+      description: Output cost per token for batch requests
+      example: 0.0000050
+      optional: true
+
+
+modelConfig:
   type: object
   properties:
     name:
@@ -150,23 +185,24 @@ supportedModelServiceProvider:
     embedding:
       type: array
       items:
-        $ref: '#/modelSpec'
+        $ref: '#/modelDefinition'
     completion:
       type: array
       items:
-        $ref: '#/modelSpec'
+        $ref: '#/modelDefinition'
     rerank:
       type: array
       items:
-        $ref: '#/modelSpec'
+        $ref: '#/modelDefinition'
 
-supportedModelServiceProviderList:
+
+modelConfigList:
   type: object
   properties:
     items:
       type: array
       items:
-        $ref: '#/supportedModelServiceProvider'
+        $ref: '#/modelConfig'
     pageResult:
       $ref: './common.yaml#/pageResult'
 

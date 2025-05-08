@@ -27,7 +27,7 @@ availableModels:
         content:
           application/json:
             schema:
-              $ref: '../components/schemas/model.yaml#/supportedModelServiceProviderList'
+              $ref: '../components/schemas/model.yaml#/modelConfigList'
       '401':
         description: Unauthorized
         content:
@@ -95,24 +95,6 @@ modelServiceProviders:
           application/json:
             schema:
               $ref: '../components/schemas/model.yaml#/modelServiceProviderList'
-      '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-
-supportedModelServiceProviders:
-  get:
-    summary: Get supported model service providers
-    description: Get supported model service providers
-    responses:
-      '200':
-        description: Supported model service providers
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/model.yaml#/supportedModelServiceProviderList'
       '401':
         description: Unauthorized
         content:

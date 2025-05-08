@@ -25,7 +25,8 @@ export default () => {
     setCollections(
       res.data.items?.map((item) => ({
         ...item,
-        config: parseConfig(item.config),
+        // config: parseConfig(item.config),
+        config: item.config,
       })),
     );
   }, []);
@@ -37,7 +38,8 @@ export default () => {
     const res = await api.collectionsCollectionIdGet({ collectionId });
     setCollection({
       ...res.data,
-      config: parseConfig(res.data.config),
+      // config: parseConfig(res.data.config),
+      config: res.data.config,
     });
     setLoading(false);
     setCollectionLoading(false);
@@ -64,7 +66,7 @@ export default () => {
       );
       setLoading(true);
       const res = await api.collectionsPost({
-        collectionCreate: { ...data, config: stringifyConfig(data.config) },
+        collectionCreate: { ...data, config: data.config },
       });
       setLoading(false);
       return res.data.id;
@@ -79,7 +81,7 @@ export default () => {
       setLoading(true);
       const res = await api.collectionsCollectionIdPut({
         collectionId: collection.id,
-        collectionUpdate: { ...data, config: stringifyConfig(data.config) },
+        collectionUpdate: { ...data, config: data.config },
       });
       setLoading(false);
       const updated = res.status === 200;

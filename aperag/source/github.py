@@ -22,18 +22,20 @@ from typing import Any, Dict, Iterator
 import git
 
 from aperag.source.base import LocalDocument, RemoteDocument, Source
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
 
 class GitHubSource(Source):
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
-        github_config = ctx["git"]
-        self.repo_url = github_config["repo"]
-        self.branch = github_config.get("branch", "main")
-        self.path = github_config.get("path", "/")
-        self.tmp_dir = './documents/' + ''.join(random.sample(uuid.uuid4().hex, 16))
+        # github_config =
+        # self.repo_url =
+        # self.branch =
+        # self.path =
+        # self.tmp_dir =
+        raise NotImplementedError
 
     def scan_documents(self) -> Iterator[RemoteDocument]:
         git.Repo.clone_from(self.repo_url, self.tmp_dir, branch=self.branch)

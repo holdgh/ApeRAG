@@ -16,11 +16,12 @@ from typing import Any, Dict, Iterator
 
 from aperag.source.base import LocalDocument, RemoteDocument, Source
 from aperag.source.utils import gen_temporary_file
+from aperag.views.models import CollectionConfig
 
 
 class UploadSource(Source):
 
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
 
     def scan_documents(self) -> Iterator[RemoteDocument]:

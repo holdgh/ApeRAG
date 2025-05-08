@@ -33,6 +33,7 @@ from aperag.pipeline.keyword_extractor import IKExtractor
 from aperag.query.query import DocumentWithScore, get_packed_answer
 from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.rank.reranker import rerank
+from aperag.schema.utils import parseCollectionConfig
 from aperag.source.utils import async_run
 from aperag.utils.utils import (
     generate_fulltext_index_name,
@@ -55,10 +56,10 @@ class KnowledgePipeline(Pipeline):
         self.collection_name = generate_vector_db_collection_name(self.collection_id)
         self.vectordb_ctx = json.loads(settings.VECTOR_DB_CONTEXT)
         self.vectordb_ctx["collection"] = self.collection_name
-        
-        config = json.loads(self.collection.config)
-        self.embedding_msp = config.get("embedding_model_service_provider", "")
-        self.embedding_model_name = config.get("embedding_model_name", "")
+
+        config = parseCollectionConfig(self.collection.config)
+        self.embedding_msp = config.embedding.model_service_provider
+        self.embedding_model_name = config.embedding.model
 
         logging.info("KnowledgePipeline embedding model: %s, %s", self.embedding_msp, self.embedding_model_name)
 
