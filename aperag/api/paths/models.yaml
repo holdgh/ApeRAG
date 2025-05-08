@@ -1,22 +1,3 @@
-models:
-  get:
-    summary: Get models
-    description: Get models
-    responses:
-      '200':
-        description: Models
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/model.yaml#/modelList'
-      '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
-
-
 availableModels:
   get:
     summary: Get available models

@@ -15,6 +15,9 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
+import type { CollectionConfig } from './collection-config';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { CollectionSource } from './collection-source';
 
 /**
@@ -31,10 +34,10 @@ export interface CollectionCreate {
     'title'?: string;
     /**
      * 
-     * @type {string}
+     * @type {CollectionConfig}
      * @memberof CollectionCreate
      */
-    'config'?: string;
+    'config'?: CollectionConfig;
     /**
      * 
      * @type {string}
