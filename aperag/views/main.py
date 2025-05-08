@@ -16,32 +16,31 @@ import datetime
 import json
 import logging
 import os
+import uuid
 from http import HTTPStatus
 from typing import AsyncGenerator, List, Optional
-import uuid
 from urllib.parse import parse_qsl
 
-from django.http import HttpRequest, StreamingHttpResponse
-import yaml
 from asgiref.sync import sync_to_async
 from celery import chain, group
 from celery.result import GroupResult
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.http import HttpRequest, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from ninja import File, Router, Schema
 from ninja.files import UploadedFile
 
 import aperag.chat.message
-from aperag.chat.sse.base import ChatRequest, MessageProcessor, logger
-from aperag.chat.sse.frontend_consumer import FrontendFormatter
-from aperag.db.models import Chat
 import aperag.views.models
 from aperag.apps import QuotaType
 from aperag.chat.history.redis import RedisChatMessageHistory
+from aperag.chat.sse.base import ChatRequest, MessageProcessor, logger
+from aperag.chat.sse.frontend_consumer import FrontendFormatter
 from aperag.chat.utils import get_async_redis_client
 from aperag.db import models as db_models
+from aperag.db.models import Chat
 from aperag.db.ops import (
     build_pq,
     query_bot,
@@ -67,10 +66,7 @@ from aperag.db.ops import (
     query_msp,
 )
 from aperag.graph.lightrag_holder import reload_lightrag_holder, delete_lightrag_holder
-from aperag.llm.base import Predictor
 from aperag.llm.prompts import (
-    DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
-    DEFAULT_MODEL_MEMOTY_PROMPT_TEMPLATES,
     MULTI_ROLE_EN_PROMPT_TEMPLATES,
     MULTI_ROLE_ZH_PROMPT_TEMPLATES,
 )
@@ -82,7 +78,6 @@ from aperag.tasks.crawl_web import crawl_domain
 from aperag.tasks.index import (
     add_index_for_local_document,
     generate_questions,
-    message_feedback,
     remove_index,
     update_collection_status,
     update_index_for_document,
@@ -106,39 +101,6 @@ from config.celery import app
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-@router.get("/models")
-async def list_models(request) -> view_models.ModelList:
-    models = []
-    user = get_user(request)
-
-    supported_msp_dict = {
-        provider_data["name"]: view_models.ModelConfig(**provider_data)
-        for provider_data in settings.MODEL_CONFIGS
-    }
-
-    msp_list = await query_msp_list(user)
-
-    for msp in msp_list:
-        if msp.name in supported_msp_dict:
-            supported_msp = supported_msp_dict[msp.name]
-            if supported_msp.completion:
-                for model_spec in supported_msp.completion:
-                    if model_spec.model:
-                        models.append(view_models.Model(
-                            model_service_provider=msp.name,
-                            value=model_spec.model,
-                            label=model_spec.model,
-                            enabled=True,
-                            memory=True,
-                            prompt_template=DEFAULT_CHINESE_PROMPT_TEMPLATE_V3,
-                            context_window=7500,
-                            temperature=0.01,
-                            similarity_score_threshold=0.5,
-                            similarity_topk=3
-                        ))
-    return success(view_models.ModelList(items=models))
 
 
 @router.get("/prompt-templates")
