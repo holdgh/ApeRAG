@@ -20,33 +20,36 @@ from typing import Any, Dict, Iterator
 import redis
 import requests
 
+from aperag.views.models import CollectionConfig
 from config import settings
 from aperag.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument
 from aperag.source.utils import gen_temporary_file
 
 
 class TencentClient(ABC):
-    def __init__(self, ctx: Dict[str, Any]):
-        self.client_id = ctx.get("client_id", None)
-        if self.client_id is None:
-            raise CustomSourceInitializationError("client_id is required")
+    def __init__(self, ctx: CollectionConfig):
+        raise NotImplementedError
 
-        self.client_secret = ctx.get("client_secret", None)
-        if self.client_secret is None:
-            raise CustomSourceInitializationError("client_secret is required")
-
-        self.folder_id = ctx.get("folder_id", None)
-
-        self.redirect_uri = ctx.get("redirect_uri", None)
-        if self.redirect_uri is None:
-            raise CustomSourceInitializationError("redirect_uri is required")
-
-        self.code = ctx.get("code", None)
-        if self.code is None:
-            raise CustomSourceInitializationError("code is required")
-
-        self.mutex = Lock()
-        self.redis_client = redis.from_url(settings.MEMORY_REDIS_URL)
+        # self.client_id = None
+        # if self.client_id is None:
+        #     raise CustomSourceInitializationError("client_id is required")
+        #
+        # self.client_secret = None
+        # if self.client_secret is None:
+        #     raise CustomSourceInitializationError("client_secret is required")
+        #
+        # self.folder_id = None
+        #
+        # self.redirect_uri =None
+        # if self.redirect_uri is None:
+        #     raise CustomSourceInitializationError("redirect_uri is required")
+        #
+        # self.code =None
+        # if self.code is None:
+        #     raise CustomSourceInitializationError("code is required")
+        #
+        # self.mutex = Lock()
+        # self.redis_client = redis.from_url(settings.MEMORY_REDIS_URL)
 
     def scan_documents(self, folder_id=None, source="download") -> Iterator[RemoteDocument]:
         """

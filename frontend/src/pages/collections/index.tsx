@@ -144,8 +144,8 @@ export default () => {
           {_collections?.map((collection) => {
             const config = collection.config;
             const embedding_model_service_provider =
-              config?.embedding_model_service_provider || '';
-            const embedding_model_name = config?.embedding_model_name;
+              config?.embedding?.model_service_provider || '';
+            const embedding_model_name = config?.embedding?.model;
             return (
               <Col
                 key={collection.id}

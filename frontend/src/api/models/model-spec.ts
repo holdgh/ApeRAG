@@ -21,16 +21,52 @@
  */
 export interface ModelSpec {
     /**
-     * 
+     * The name of the language model to use
      * @type {string}
      * @memberof ModelSpec
      */
     'model'?: string;
     /**
-     * 
+     * Used for querying auth information (api_key/api_base/...) for a model service provider.
+     * @type {string}
+     * @memberof ModelSpec
+     */
+    'model_service_provider'?: string;
+    /**
+     * Used for Non-OpenAI LLMs (e.g. \'bedrock\' for amazon.titan-tg1-large)
      * @type {string}
      * @memberof ModelSpec
      */
     'custom_llm_provider'?: string;
+    /**
+     * Controls randomness in the output. Values between 0 and 2. Lower values make output more focused and deterministic
+     * @type {number}
+     * @memberof ModelSpec
+     */
+    'temperature'?: number;
+    /**
+     * Maximum number of tokens to generate
+     * @type {number}
+     * @memberof ModelSpec
+     */
+    'max_tokens'?: number;
+    /**
+     * Upper bound for generated completion tokens, including visible and reasoning tokens
+     * @type {number}
+     * @memberof ModelSpec
+     */
+    'max_completion_tokens'?: number;
+    /**
+     * Maximum execution time in seconds for the API request
+     * @type {number}
+     * @memberof ModelSpec
+     */
+    'timeout'?: number;
+    /**
+     * Number of top results to return when reranking documents
+     * @type {number}
+     * @memberof ModelSpec
+     */
+    'top_n'?: number;
 }
 

@@ -28,12 +28,12 @@ import GmailIcon from '@/assets/collection_source/gmail.png';
 import OutlookIcon from '@/assets/collection_source/outlook.png';
 import QQGmailIcon from '@/assets/collection_source/qq.png';
 
-import { CollectionStatusEnum, DocumentStatusEnum } from '@/api';
-import type {
+import {
   CollectionConfig,
-  CollectionConfigSource,
-  CollectionEmailSource,
-} from '@/types';
+  CollectionStatusEnum,
+  DocumentStatusEnum,
+} from '@/api';
+import type { CollectionConfigSource, CollectionEmailSource } from '@/types';
 
 export * from './theme';
 

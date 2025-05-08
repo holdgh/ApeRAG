@@ -1,4 +1,9 @@
-import { ChatMessage, Feedback, FeedbackTagEnum, FeedbackTypeEnum } from '@/api';
+import {
+  ChatMessage,
+  Feedback,
+  FeedbackTagEnum,
+  FeedbackTypeEnum,
+} from '@/api';
 import { ApeMarkdown } from '@/components';
 import { TypingAnimate } from '@/components/typing-animate';
 import { DATETIME_FORMAT } from '@/constants';
@@ -18,13 +23,13 @@ import {
   CollapseProps,
   Drawer,
   GlobalToken,
+  Input,
   Modal,
   Radio,
   Space,
   theme,
   Tooltip,
   Typography,
-  Input,
 } from 'antd';
 import _ from 'lodash';
 import moment from 'moment';
@@ -123,7 +128,8 @@ export const ChatMessageItem = ({
   const isHovering = useHover(hoverRef);
   const { formatMessage } = useIntl();
   const [referencesVisible, setReferencesVisible] = useState<boolean>(false);
-  const [feedbackModalVisible, setFeedbackModalVisible] = useState<boolean>(false);
+  const [feedbackModalVisible, setFeedbackModalVisible] =
+    useState<boolean>(false);
   const [feedbackTag, setFeedbackTag] = useState<FeedbackTagEnum>();
   const [feedbackMessage, setFeedbackMessage] = useState<string>();
 
@@ -221,9 +227,10 @@ export const ChatMessageItem = ({
                   icon={
                     <LikeFilled
                       style={{
-                        color: item.feedback?.type === FeedbackTypeEnum.good
-                          ? token.colorSuccess
-                          : token.colorTextDisabled,
+                        color:
+                          item.feedback?.type === FeedbackTypeEnum.good
+                            ? token.colorSuccess
+                            : token.colorTextDisabled,
                       }}
                     />
                   }
@@ -234,9 +241,10 @@ export const ChatMessageItem = ({
                   icon={
                     <DislikeFilled
                       style={{
-                        color: item.feedback?.type === FeedbackTypeEnum.bad
-                          ? token.colorError
-                          : token.colorTextDisabled,
+                        color:
+                          item.feedback?.type === FeedbackTypeEnum.bad
+                            ? token.colorError
+                            : token.colorTextDisabled,
                       }}
                     />
                   }

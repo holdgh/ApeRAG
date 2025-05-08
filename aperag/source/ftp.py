@@ -20,19 +20,20 @@ from typing import Any, Dict, Iterator
 
 from aperag.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
 from aperag.source.utils import gen_temporary_file
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
 
 class FTPSource(Source):
 
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
-        self.path = ctx["path"]
-        self.host = ctx["host"]
-        self.port = ctx["port"]
-        self.user = ctx["username"]
-        self.password = ctx["password"]
+        self.path = ctx.path
+        self.host = ctx.host
+        self.port = ctx.port
+        self.user = ctx.username
+        self.password = ctx.password
         try:
             self.ftp = FTP()
             self.ftp.connect(str(self.host), self.port, timeout=3)

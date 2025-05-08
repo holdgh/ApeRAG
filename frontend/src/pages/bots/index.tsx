@@ -1,6 +1,9 @@
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { MODEL_PROVIDER_ICON } from '@/constants';
+import { api } from '@/services';
+import { getProviderByModelName } from '@/utils';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useRequest } from 'ahooks';
 import {
   Avatar,
   Button,
@@ -10,7 +13,6 @@ import {
   Input,
   Result,
   Row,
-  Select,
   Space,
   theme,
   Tooltip,
@@ -31,22 +33,13 @@ type BotSearchParams = {
 export default () => {
   const [searchParams, setSearchParams] = useState<BotSearchParams>();
   const { token } = theme.useToken();
-  const { models } = useModel('models');
   const { bots, botsLoading, getBots } = useModel('bot');
   const { formatMessage } = useIntl();
+  const { data: availableModelsGetRes } = useRequest(api.availableModelsGet);
 
-  const groupModels = useMemo(
-    () =>
-      Object.keys(_.groupBy(models, 'family_name')).map((familyName) => {
-        const children = models?.filter(
-          (item) => item.family_name === familyName,
-        );
-        return {
-          label: children?.[0]?.family_label || 'unknow',
-          options: children?.map((item) => item),
-        };
-      }),
-    [models],
+  const availableModels = useMemo(
+    () => availableModelsGetRes?.data.items || [],
+    [availableModelsGetRes],
   );
 
   const _bots = useMemo(
@@ -71,16 +64,6 @@ export default () => {
         description={formatMessage({ id: 'bot.description' })}
       >
         <Space>
-          <Select
-            style={{ width: 180 }}
-            placeholder={formatMessage({ id: 'model.name' })}
-            options={groupModels}
-            allowClear
-            onChange={(v) => {
-              setSearchParams({ ...searchParams, model: v });
-            }}
-            value={searchParams?.model}
-          />
           <Input
             placeholder={formatMessage({ id: 'action.search' })}
             prefix={
@@ -107,7 +90,7 @@ export default () => {
         </Space>
       </PageHeader>
     ),
-    [groupModels, searchParams, botsLoading],
+    [searchParams, botsLoading],
   );
 
   useEffect(() => {
@@ -130,11 +113,13 @@ export default () => {
         <Row gutter={[24, 24]}>
           {_bots?.map((bot) => {
             const config = bot.config;
-            const model = models?.find(
-              (item) => item.value === config?.model_name,
+            const { provider, model } = getProviderByModelName(
+              config?.model_name,
+              'completion',
+              availableModels,
             );
-            const modelIcon = model?.model_service_provider
-              ? MODEL_PROVIDER_ICON[model.model_service_provider]
+            const modelIcon = provider?.name
+              ? MODEL_PROVIDER_ICON[provider.name]
               : undefined;
             return (
               <Col key={bot.id} xs={24} sm={12} md={8} lg={6} xl={6} xxl={6}>
@@ -147,6 +132,7 @@ export default () => {
                         style={{ flex: 'none' }}
                         size={40}
                         src={modelIcon}
+                        shape="square"
                       />
                       <div style={{ flex: 'auto', maxWidth: '65%' }}>
                         <div>
@@ -156,7 +142,7 @@ export default () => {
                         </div>
                         <div>
                           <Typography.Text ellipsis type="secondary">
-                            {model?.label}
+                            {model?.model}
                           </Typography.Text>
                         </div>
                       </div>

@@ -21,20 +21,21 @@ import botocore
 
 from aperag.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
 from aperag.source.utils import find_duplicate_paths, gen_temporary_file
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
 
 class S3Source(Source):
 
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
-        self.access_key_id = ctx["access_key_id"]
-        self.access_key_secret = ctx["secret_access_key"]
-        self.bucket_objs = ctx.get("buckets", [])
-        self.bucket_name = ctx.get("bucket", "")
-        self.region = ctx.get("region")
-        self.dir = ctx.get("dir", "")
+        self.access_key_id = ctx.access_key_id
+        self.access_key_secret = ctx.secret_access_key
+        self.bucket_objs = []
+        self.bucket_name = ctx.bucket
+        self.region = ctx.region
+        self.dir = ctx.dir
         self.buckets = self._connect_buckets()
 
     def _connect_buckets(self):

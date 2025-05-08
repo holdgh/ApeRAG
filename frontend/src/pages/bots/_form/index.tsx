@@ -1,13 +1,11 @@
-import {
-  CollectionStatusEnum,
-  SupportedModelServiceProvider,
-} from '@/api';
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, RefreshButton } from '@/components';
 import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
 import { api } from '@/services';
 import { ApeBot } from '@/types';
+import { getProviderByModelName } from '@/utils';
+import { useRequest } from 'ahooks';
 import {
   Avatar,
   Badge,
@@ -27,7 +25,7 @@ import {
   Typography,
 } from 'antd';
 import _ from 'lodash';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { FormattedMessage, Link, useIntl, useModel } from 'umi';
 
 type Props = {
@@ -41,9 +39,15 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const { formatMessage } = useIntl();
   const { collections, collectionsLoading, getCollections } =
     useModel('collection');
-  const [availableModels, setAvailableModels] = useState<any[]>();
-  const { models, promptTemplates, getPromptTemplates } = useModel('models');
-  const { loading, setLoading } = useModel('global');
+  const { promptTemplates, getPromptTemplates } = useModel('models');
+  const { loading } = useModel('global');
+
+  const { data: availableModelsGetRes } = useRequest(api.availableModelsGet);
+
+  const availableModels = useMemo(
+    () => availableModelsGetRes?.data.items || [],
+    [availableModelsGetRes],
+  );
 
   const { token } = theme.useToken();
 
@@ -52,31 +56,30 @@ export default ({ form, onSubmit, values, action }: Props) => {
     onSubmit(data);
   };
 
-  const modelsOptions = useMemo(
+  const completionModelOptions = useMemo(
     () =>
-      _.map(
-        availableModels || [],
-        (provider) => {
-          return {
-            label: (
-              <Space>
-                <Avatar
-                  size={24}
-                  shape="square"
-                  src={MODEL_PROVIDER_ICON[provider.name]}
-                />
-                <span>{provider.label || provider.name}</span>
-              </Space>
-            ),
-            options: provider.completion.map((model: any) => {
-              return {
-                label: model.model,
-                value: `${provider.name}:${model.model}`,
-              };
-            }),
-          };
-        },
-      ),
+      _.map(availableModels, (provider) => {
+        return {
+          label: (
+            <Space>
+              <Avatar
+                size={24}
+                shape="square"
+                src={
+                  provider.name ? MODEL_PROVIDER_ICON[provider.name] : undefined
+                }
+              />
+              <span>{provider.label || provider.name}</span>
+            </Space>
+          ),
+          options: provider.completion?.map((model: any) => {
+            return {
+              label: model.model,
+              value: `${provider.name}:${model.model}`,
+            };
+          }),
+        };
+      }),
     [availableModels],
   );
 
@@ -89,18 +92,14 @@ export default ({ form, onSubmit, values, action }: Props) => {
     form,
   );
 
-  const getModels = async () => {
-    setLoading(true);
-    const availableModelsRes = await api.availableModelsGet();
-    setLoading(false);
-    setAvailableModels(availableModelsRes.data.items);
-  };
-
   const currentModel = useMemo(() => {
-    return models?.find(
-      (m) => `${m.model_service_provider}:${m.value}` === botModel,
+    const { model } = getProviderByModelName(
+      botModel,
+      'completion',
+      availableModels,
     );
-  }, [botModel, models]);
+    return model;
+  }, [botModel, availableModels]);
 
   const currentPromptTemplate = useMemo(() => {
     return promptTemplates?.find((m) => m.prompt === botChractor);
@@ -126,20 +125,12 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
     if (botModel !== config?.model) {
       memory = false;
-      contextWindow = _.isNumber(currentModel?.context_window)
-        ? currentModel?.context_window
-        : 3500;
+      contextWindow = 3500;
       temperature = _.isNumber(currentModel?.temperature)
         ? currentModel?.temperature
         : 0.3;
-      similarityTopk = _.isNumber(currentModel?.similarity_topk)
-        ? currentModel?.similarity_topk
-        : 3;
-      similarityScoreThreshold = _.isNumber(
-        currentModel?.similarity_score_threshold,
-      )
-        ? currentModel?.similarity_score_threshold
-        : 0.5;
+      similarityTopk = 3;
+      similarityScoreThreshold = 0.5;
     }
 
     if (botType === 'knowledge' && botModel !== config?.model) {
@@ -160,16 +151,6 @@ export default ({ form, onSubmit, values, action }: Props) => {
       similarityScoreThreshold,
     );
   }, [botType, currentModel, currentPromptTemplate, values]);
-
-  useEffect(() => {
-    const config = values.config;
-    if (_.isEmpty(config?.model)) {
-      form.setFieldValue(
-        ['config', 'model'],
-        `${models?.[0]?.model_service_provider}:${models?.[0]?.value}`,
-      );
-    }
-  }, [models]);
 
   useEffect(() => {
     const defaultCollection = collections?.find((c) => c.status === 'ACTIVE');
@@ -194,7 +175,6 @@ export default ({ form, onSubmit, values, action }: Props) => {
   useEffect(() => {
     getCollections();
     getPromptTemplates();
-    getModels();
   }, []);
 
   return (
@@ -268,7 +248,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
               ]}
             >
               <Select
-                options={modelsOptions}
+                options={completionModelOptions}
                 labelRender={({ label, value }) => {
                   const [model_service_provider, model_name] = (
                     value as string
@@ -344,11 +324,11 @@ export default ({ form, onSubmit, values, action }: Props) => {
                   }))}
                   optionRender={(option) => {
                     const config = option.data.config;
-                    const status = option.data.status as CollectionStatusEnum;
+                    const status = option.data.status;
                     const isActive = status === 'ACTIVE';
                     const embedding_model_service_provider =
-                      config?.embedding_model_service_provider || '';
-                    const embedding_model_name = config?.embedding_model_name;
+                      config?.embedding?.model_service_provider;
+                    const embedding_model_name = config?.embedding?.model;
                     return (
                       <Tooltip
                         placement="left"

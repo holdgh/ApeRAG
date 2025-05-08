@@ -17,8 +17,10 @@ import logging
 import os
 import time
 from typing import Tuple
+
+from aperag.schema.utils import parseCollectionConfig
 from config.celery import app
-from aperag.db.models import Document
+from aperag.db.models import Document, Collection
 from aperag.db.ops import query_collection, query_documents
 from aperag.readers.base_readers import DEFAULT_FILE_READER_CLS
 from aperag.tasks.index import add_index_for_document, remove_index, update_index_for_document
@@ -36,14 +38,12 @@ class filestat:
 def update_local_directory_index(user, collection_id):
     logger.debug(f"update_index_cron_job() : update collection{collection_id} start ")
 
-    collection = query_collection(user=user, collection_id=collection_id)
+    collection: Collection = query_collection(user=user, collection_id=collection_id)
     # scan the directory
-    config = json.loads(collection.config)
+    collectionConfig = parseCollectionConfig(collection.config)
     # docments_in_direct = dict[str:filestat]
     # documents_in_db = dict[str:int]
-    _, docments_in_direct = scan_local_direct(
-        config["path"]
-    )  # full_filename to file info
+    _, docments_in_direct = scan_local_direct(collectionConfig.path)  # full_filename to file info
     # scan the db
     documents = query_documents([collection.user], collection.id)
     documents_in_db = {}

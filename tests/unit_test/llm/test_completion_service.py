@@ -16,12 +16,12 @@ SKIP = pytest.mark.skipif(
 
 
 def build_service() -> CompletionService:
-    kargs = {
+    kwargs = {
         "model": MODEL,
         "base_url": API_BASE,
         "api_key": OPENAI_KEY,
     }
-    return CompletionService(**kargs)
+    return CompletionService(**kwargs)
 
 
 @SKIP

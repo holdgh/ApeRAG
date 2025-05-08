@@ -13,6 +13,7 @@ from aperag.embed.embedding_service import EmbeddingService
 from aperag.db.ops import (
     query_msp_dict,
 )
+from aperag.schema.utils import parseCollectionConfig
 
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 from config.settings import (
@@ -60,21 +61,21 @@ def get_embedding_model(
 
 
 async def get_collection_embedding_service(collection) -> tuple[Embeddings | None, int]:
-    config = json.loads(collection.config)
-    embedding_msp = config.get("embedding_model_service_provider", "")
-    embedding_model_name = config.get("embedding_model_name", "")
+    config = parseCollectionConfig(collection.config)
+    embedding_msp = config.embedding.model_service_provider
+    embedding_model_name = config.embedding.model
+    custom_llm_provider = config.embedding.custom_llm_provider
     logging.info("get_collection_embedding_model %s %s", embedding_msp, embedding_model_name)
 
     msp_dict = await query_msp_dict(collection.user)
     if embedding_msp in msp_dict:
         msp = msp_dict[embedding_msp]
-        embedding_dialect = msp.dialect
         embedding_service_url = msp.base_url
         embedding_service_api_key = msp.api_key
         logging.info("get_collection_embedding_model %s %s", embedding_service_url, embedding_service_api_key)
 
         return get_embedding_model(
-            embedding_provider=embedding_dialect,
+            embedding_provider=custom_llm_provider,
             embedding_model=embedding_model_name,
             embedding_service_url=embedding_service_url,
             embedding_service_api_key=embedding_service_api_key,

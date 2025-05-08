@@ -248,15 +248,11 @@ LOGGING = {
     },
 }
 
-json_path = os.path.join(BASE_DIR, 'supported_model_service_providers.json')
+json_path = os.path.join(BASE_DIR, 'model_configs.json')
 with open(json_path, 'r', encoding='utf-8') as f:
-    SUPPORTED_MODEL_SERVICE_PROVIDERS = json.load(f)
+    MODEL_CONFIGS = json.load(f)
 
-# LLM Model
-MODEL_SERVER = env.str("MODEL_SERVER", default="http://127.0.0.1:8000")
-MODEL_FAMILIES = env.str("MODEL_FAMILIES", default='[]')
-
-EMBEDDING_MAX_CHUNKS_IN_BATCH = env.int("EMBEDDING_MAX_CHUNKS_IN_BATCH", default=64)
+EMBEDDING_MAX_CHUNKS_IN_BATCH = env.int("EMBEDDING_MAX_CHUNKS_IN_BATCH", default=16)
 
 
 RERANK_BACKEND = env.str("RERANK_BACKEND", default="local")

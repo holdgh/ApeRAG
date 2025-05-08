@@ -80,7 +80,7 @@ import type { InvitationList } from '../models';
 // @ts-ignore
 import type { Login } from '../models';
 // @ts-ignore
-import type { ModelList } from '../models';
+import type { ModelConfigList } from '../models';
 // @ts-ignore
 import type { ModelServiceProviderList } from '../models';
 // @ts-ignore
@@ -95,8 +95,6 @@ import type { QuestionList } from '../models';
 import type { QuestionUpdate } from '../models';
 // @ts-ignore
 import type { Register } from '../models';
-// @ts-ignore
-import type { SupportedModelServiceProviderList } from '../models';
 // @ts-ignore
 import type { User } from '../models';
 // @ts-ignore
@@ -1908,36 +1906,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * Get models
-         * @summary Get models
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        modelsGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/models`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
          * Get prompt templates
          * @summary Get prompt templates
          * @param {*} [options] Override http request option.
@@ -2004,8 +1972,8 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * Get supported model service providers
-         * @summary Get supported model service providers
+         * Get model service providers
+         * @summary Get model service providers
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -2195,7 +2163,7 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async availableModelsGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SupportedModelServiceProviderList>> {
+        async availableModelsGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelConfigList>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.availableModelsGet(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.availableModelsGet']?.[localVarOperationServerIndex]?.url;
@@ -2751,18 +2719,6 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Get models
-         * @summary Get models
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async modelsGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelList>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.modelsGet(options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.modelsGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
          * Get prompt templates
          * @summary Get prompt templates
          * @param {*} [options] Override http request option.
@@ -2788,12 +2744,12 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Get supported model service providers
-         * @summary Get supported model service providers
+         * Get model service providers
+         * @summary Get model service providers
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async supportedModelServiceProvidersGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SupportedModelServiceProviderList>> {
+        async supportedModelServiceProvidersGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelServiceProviderList>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.supportedModelServiceProvidersGet(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.supportedModelServiceProvidersGet']?.[localVarOperationServerIndex]?.url;
@@ -2891,7 +2847,7 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        availableModelsGet(options?: RawAxiosRequestConfig): AxiosPromise<SupportedModelServiceProviderList> {
+        availableModelsGet(options?: RawAxiosRequestConfig): AxiosPromise<ModelConfigList> {
             return localVarFp.availableModelsGet(options).then((request) => request(axios, basePath));
         },
         /**
@@ -3291,15 +3247,6 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.modelServiceProvidersProviderPut(requestParameters.provider, requestParameters.modelServiceProviderUpdate, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get models
-         * @summary Get models
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        modelsGet(options?: RawAxiosRequestConfig): AxiosPromise<ModelList> {
-            return localVarFp.modelsGet(options).then((request) => request(axios, basePath));
-        },
-        /**
          * Get prompt templates
          * @summary Get prompt templates
          * @param {*} [options] Override http request option.
@@ -3319,12 +3266,12 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.registerPost(requestParameters.register, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get supported model service providers
-         * @summary Get supported model service providers
+         * Get model service providers
+         * @summary Get model service providers
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        supportedModelServiceProvidersGet(options?: RawAxiosRequestConfig): AxiosPromise<SupportedModelServiceProviderList> {
+        supportedModelServiceProvidersGet(options?: RawAxiosRequestConfig): AxiosPromise<ModelServiceProviderList> {
             return localVarFp.supportedModelServiceProvidersGet(options).then((request) => request(axios, basePath));
         },
         /**
@@ -3410,7 +3357,7 @@ export interface DefaultApiInterface {
      * @throws {RequiredError}
      * @memberof DefaultApiInterface
      */
-    availableModelsGet(options?: RawAxiosRequestConfig): AxiosPromise<SupportedModelServiceProviderList>;
+    availableModelsGet(options?: RawAxiosRequestConfig): AxiosPromise<ModelConfigList>;
 
     /**
      * Delete a chat
@@ -3809,15 +3756,6 @@ export interface DefaultApiInterface {
     modelServiceProvidersProviderPut(requestParameters: DefaultApiModelServiceProvidersProviderPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Get models
-     * @summary Get models
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    modelsGet(options?: RawAxiosRequestConfig): AxiosPromise<ModelList>;
-
-    /**
      * Get prompt templates
      * @summary Get prompt templates
      * @param {*} [options] Override http request option.
@@ -3837,13 +3775,13 @@ export interface DefaultApiInterface {
     registerPost(requestParameters: DefaultApiRegisterPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<User>;
 
     /**
-     * Get supported model service providers
-     * @summary Get supported model service providers
+     * Get model service providers
+     * @summary Get model service providers
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApiInterface
      */
-    supportedModelServiceProvidersGet(options?: RawAxiosRequestConfig): AxiosPromise<SupportedModelServiceProviderList>;
+    supportedModelServiceProvidersGet(options?: RawAxiosRequestConfig): AxiosPromise<ModelServiceProviderList>;
 
     /**
      * Get user info
@@ -5229,17 +5167,6 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     }
 
     /**
-     * Get models
-     * @summary Get models
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public modelsGet(options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).modelsGet(options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
      * Get prompt templates
      * @summary Get prompt templates
      * @param {*} [options] Override http request option.
@@ -5263,8 +5190,8 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     }
 
     /**
-     * Get supported model service providers
-     * @summary Get supported model service providers
+     * Get model service providers
+     * @summary Get model service providers
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi

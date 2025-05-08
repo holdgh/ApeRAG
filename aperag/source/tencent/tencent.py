@@ -16,10 +16,11 @@ from typing import Any, Dict, Iterator
 
 from aperag.source.base import LocalDocument, RemoteDocument, Source
 from aperag.source.tencent.client import TencentClient
+from aperag.views.models import CollectionConfig
 
 
 class TencentSource(Source):
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
         self.client = TencentClient(ctx)
 

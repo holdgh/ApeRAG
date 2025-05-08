@@ -40,6 +40,7 @@ from aperag.embed.question_embedding import QuestionEmbedding, QuestionEmbedding
 from aperag.graph import lightrag_holder
 from aperag.graph.lightrag_holder import LightRagHolder
 from aperag.readers.base_readers import DEFAULT_FILE_READER_CLS, SUPPORTED_COMPRESSED_EXTENSIONS
+from aperag.schema.utils import parseCollectionConfig
 from aperag.source.base import get_source
 from aperag.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from aperag.utils.tokenizer import get_default_tokenizer
@@ -198,12 +199,13 @@ def add_index_for_document(self, document_id):
     collection = async_to_sync(document.get_collection)()
     try:
         if document.file and Path(document.file.path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
-            if json.loads(collection.config)["source"] != "system":
+            config = parseCollectionConfig(collection.config)
+            if config.source != "system":
                 return
             uncompress_file(document)
             return
         else:
-            source = get_source(json.loads(collection.config))
+            source = get_source(parseCollectionConfig(collection.config))
             local_doc = source.prepare_document(name=document.name, metadata=metadata)
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
@@ -220,9 +222,9 @@ def add_index_for_document(self, document_id):
                                         chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
                                         tokenizer=get_default_tokenizer())
 
-            config = json.loads(collection.config)
-            sensitive_protect = config.get("sensitive_protect", False)
-            sensitive_protect_method = config.get("sensitive_protect_method", Document.ProtectAction.WARNING_NOT_STORED)
+            config = parseCollectionConfig(collection.config)
+            sensitive_protect = config.sensitive_protect or False
+            sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
             ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
                                                                 sensitive_protect_method=sensitive_protect_method)
             document.sensitive_info = sensitive_info
@@ -243,7 +245,7 @@ def add_index_for_document(self, document_id):
             }
             document.relate_ids = json.dumps(relate_ids)
 
-            enable_knowledge_graph = config.get("enable_knowledge_graph", True)
+            enable_knowledge_graph = config.enable_knowledge_graph or False
             if enable_knowledge_graph:
                 add_lightrag_index(content, document, local_doc)
 
@@ -314,7 +316,7 @@ def update_index_for_document(self, document_id):
     try:
         relate_ids = json.loads(document.relate_ids) if document.relate_ids.strip() else {}
         collection = async_to_sync(document.get_collection)()
-        source = get_source(json.loads(collection.config))
+        source = get_source(parseCollectionConfig(collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
@@ -331,9 +333,9 @@ def update_index_for_document(self, document_id):
                                     tokenizer=get_default_tokenizer())
         loader.connector.delete(ids=relate_ids.get("ctx", []))
 
-        config = json.loads(collection.config)
-        sensitive_protect = config.get("sensitive_protect", False)
-        sensitive_protect_method = config.get("sensitive_protect_method", Document.ProtectAction.WARNING_NOT_STORED)
+        config = parseCollectionConfig(collection.config)
+        sensitive_protect = config.sensitive_protect or False
+        sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
         ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
                                                             sensitive_protect_method=sensitive_protect_method)
         document.sensitive_info = sensitive_info
@@ -355,7 +357,7 @@ def update_index_for_document(self, document_id):
         document.relate_ids = json.dumps(relate_ids)
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
 
-        enable_knowledge_graph = config.get("enable_knowledge_graph", True)
+        enable_knowledge_graph = config.enable_knowledge_graph or False
         if enable_knowledge_graph:
             add_lightrag_index(content, document, local_doc)
 
@@ -415,7 +417,7 @@ def generate_questions(document_id):
         collection = async_to_sync(document.get_collection)()
         embedding_model, _ = async_to_sync(get_collection_embedding_service)(collection)
 
-        source = get_source(json.loads(collection.config))
+        source = get_source(parseCollectionConfig(collection.config))
         metadata = json.loads(document.metadata)
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
         q_loaders = QuestionEmbedding(input_files=[local_doc.path],

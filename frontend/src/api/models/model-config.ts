@@ -15,61 +15,61 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
-import type { ModelSpec } from './model-spec';
+import type { ModelDefinition } from './model-definition';
 
 /**
  * 
  * @export
- * @interface SupportedModelServiceProvider
+ * @interface ModelConfig
  */
-export interface SupportedModelServiceProvider {
+export interface ModelConfig {
     /**
      * 
      * @type {string}
-     * @memberof SupportedModelServiceProvider
+     * @memberof ModelConfig
      */
     'name'?: string;
     /**
      * 
      * @type {string}
-     * @memberof SupportedModelServiceProvider
+     * @memberof ModelConfig
      */
     'dialect'?: string;
     /**
      * 
      * @type {string}
-     * @memberof SupportedModelServiceProvider
+     * @memberof ModelConfig
      */
     'label'?: string;
     /**
      * 
      * @type {boolean}
-     * @memberof SupportedModelServiceProvider
+     * @memberof ModelConfig
      */
     'allow_custom_base_url'?: boolean;
     /**
      * 
      * @type {string}
-     * @memberof SupportedModelServiceProvider
+     * @memberof ModelConfig
      */
     'base_url'?: string;
     /**
      * 
-     * @type {Array<ModelSpec>}
-     * @memberof SupportedModelServiceProvider
+     * @type {Array<ModelDefinition>}
+     * @memberof ModelConfig
      */
-    'embedding'?: Array<ModelSpec>;
+    'embedding'?: Array<ModelDefinition>;
     /**
      * 
-     * @type {Array<ModelSpec>}
-     * @memberof SupportedModelServiceProvider
+     * @type {Array<ModelDefinition>}
+     * @memberof ModelConfig
      */
-    'completion'?: Array<ModelSpec>;
+    'completion'?: Array<ModelDefinition>;
     /**
      * 
-     * @type {Array<ModelSpec>}
-     * @memberof SupportedModelServiceProvider
+     * @type {Array<ModelDefinition>}
+     * @memberof ModelConfig
      */
-    'rerank'?: Array<ModelSpec>;
+    'rerank'?: Array<ModelDefinition>;
 }
 

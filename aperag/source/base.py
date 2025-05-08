@@ -18,6 +18,8 @@ from typing import Any, Dict, Iterator, Optional
 
 from pydantic import BaseModel
 
+from aperag.views.models import CollectionConfig
+
 
 class RemoteDocument(BaseModel):
     """
@@ -52,7 +54,7 @@ class CustomSourceInitializationError(Exception):
 
 
 class Source(ABC):
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         self.ctx = ctx
 
     @abstractmethod
@@ -74,37 +76,37 @@ class Source(ABC):
         raise NotImplementedError
 
 
-def get_source(ctx: Dict[str, Any]):
+def get_source(collectionConfig: CollectionConfig) -> Source:
     source = None
-    match ctx["source"]:
+    match collectionConfig.source:
         case "system":
             from aperag.source.upload import UploadSource
-            source = UploadSource(ctx)
+            source = UploadSource(collectionConfig)
         case "local":
             from aperag.source.local import LocalSource
-            source = LocalSource(ctx)
+            source = LocalSource(collectionConfig)
         case "s3":
             from aperag.source.s3 import S3Source
-            source = S3Source(ctx)
+            source = S3Source(collectionConfig)
         case "oss":
             from aperag.source.oss import OSSSource
-            source = OSSSource(ctx)
+            source = OSSSource(collectionConfig)
         case "feishu":
             from aperag.source.feishu.feishu import FeishuSource
-            source = FeishuSource(ctx)
+            source = FeishuSource(collectionConfig)
         case "ftp":
             from aperag.source.ftp import FTPSource
-            source = FTPSource(ctx)
+            source = FTPSource(collectionConfig)
         case "email":
             from aperag.source.Email import EmailSource
-            source = EmailSource(ctx)
+            source = EmailSource(collectionConfig)
         case "url":
             from aperag.source.url import URLSource
-            source = URLSource(ctx)
+            source = URLSource(collectionConfig)
         case "tencent":
             from aperag.source.tencent.tencent import TencentSource
-            source = TencentSource(ctx)
+            source = TencentSource(collectionConfig)
         case "git":
             from aperag.source.github import GitHubSource
-            source = GitHubSource(ctx)
+            source = GitHubSource(collectionConfig)
     return source

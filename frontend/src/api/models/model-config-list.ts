@@ -15,27 +15,27 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
-import type { PageResult } from './page-result';
+import type { ModelConfig } from './model-config';
 // May contain unused imports in some cases
 // @ts-ignore
-import type { SupportedModelServiceProvider } from './supported-model-service-provider';
+import type { PageResult } from './page-result';
 
 /**
  * 
  * @export
- * @interface SupportedModelServiceProviderList
+ * @interface ModelConfigList
  */
-export interface SupportedModelServiceProviderList {
+export interface ModelConfigList {
     /**
      * 
-     * @type {Array<SupportedModelServiceProvider>}
-     * @memberof SupportedModelServiceProviderList
+     * @type {Array<ModelConfig>}
+     * @memberof ModelConfigList
      */
-    'items'?: Array<SupportedModelServiceProvider>;
+    'items'?: Array<ModelConfig>;
     /**
      * 
      * @type {PageResult}
-     * @memberof SupportedModelServiceProviderList
+     * @memberof ModelConfigList
      */
     'pageResult'?: PageResult;
 }

@@ -25,6 +25,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
 from pydantic import BaseModel
 
+from aperag.schema.utils import parseCollectionConfig
 from config.celery import app
 from config.settings import MAX_DOCUMENT_COUNT
 from aperag.db.models import (
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 def sync_documents(self, **kwargs):
     collection_id = kwargs["collection_id"]
     collection = Collection.objects.exclude(status=Collection.Status.DELETED).get(id=collection_id)
-    source = get_source(json.loads(collection.config))
+    source = get_source(parseCollectionConfig(collection.config))
     if not source.sync_enabled():
         return -1
 
@@ -104,7 +105,7 @@ def sync_documents(self, **kwargs):
         collection_sync_history.save()
         return doc
 
-    source = get_source(json.loads(collection.config))
+    source = get_source(parseCollectionConfig(collection.config))
     for src_doc in source.scan_documents():
         if os.path.splitext(src_doc.name)[1].lower() not in DEFAULT_FILE_READER_CLS.keys():
             continue

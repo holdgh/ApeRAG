@@ -51,30 +51,19 @@ class Predictor(ABC):
         pass
 
     @staticmethod
-    def get_model_context(model_name):
-        model_families = yaml.safe_load(settings.MODEL_FAMILIES)
-        for model_family in model_families:
-            for model_server in model_family.get("models", []):
-                if model_name == model_server["name"]:
-                    return model_server
-        return None
-
-    @staticmethod
     def match_predictor(model_service_provider, model_name, base_url, api_key, kwargs):
-        match model_service_provider:
-            case "openai" | "siliconflow" | "deepseek":
-                kwargs["model"] = model_name
-                kwargs["base_url"] = base_url
-                kwargs["api_key"] = api_key
-                from aperag.llm.completion_service import CompletionService
-                return CompletionService
-            case "alibabacloud":
-                kwargs["model"] = model_name
-                kwargs["api_key"] = api_key
-                from aperag.llm.qianwen import QianWenPredictor
-                return QianWenPredictor
-        
-        raise Exception("Unsupported model service provider: %s", model_service_provider)
+        kwargs["model"] = model_name
+        kwargs["api_key"] = api_key
+
+        if model_service_provider == "alibabacloud":
+            from aperag.llm.qianwen import QianWenPredictor
+            return QianWenPredictor
+
+        if model_service_provider in {"openai", "siliconflow", "deepseek"}:
+            kwargs["base_url"] = base_url
+
+        from aperag.llm.completion_service import CompletionService
+        return CompletionService
 
     @staticmethod
     def get_completion_service(model_service_provider, model_name, base_url, api_key, **kwargs):

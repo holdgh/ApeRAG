@@ -15,28 +15,15 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
-import type { Model } from './model';
+import type { ModelInfo } from './model-info';
 // May contain unused imports in some cases
 // @ts-ignore
-import type { PageResult } from './page-result';
+import type { ModelSpec } from './model-spec';
 
 /**
- * A list of models
+ * @type ModelDefinition
  * @export
- * @interface ModelList
  */
-export interface ModelList {
-    /**
-     * 
-     * @type {Array<Model>}
-     * @memberof ModelList
-     */
-    'items'?: Array<Model>;
-    /**
-     * 
-     * @type {PageResult}
-     * @memberof ModelList
-     */
-    'pageResult'?: PageResult;
-}
+export type ModelDefinition = ModelInfo & ModelSpec;
+
 

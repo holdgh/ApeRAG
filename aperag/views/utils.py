@@ -34,6 +34,8 @@ from django.conf import settings
 from aperag.auth.authentication import GlobalAuth
 from aperag.utils import constant
 from aperag.views import models as view_models
+from aperag.views.models import CollectionConfig
+
 
 async def query_chat_messages(user: str, chat_id: str) -> list[view_models.ChatMessage]:
     pr = await query_chat_feedbacks(user, chat_id)
@@ -81,10 +83,10 @@ async def query_chat_messages(user: str, chat_id: str) -> list[view_models.ChatM
     return messages
 
 
-def validate_source_connect_config(config: Dict) -> Tuple[bool, str]:
-    if "source" not in config.keys():
+def validate_source_connect_config(config: CollectionConfig) -> Tuple[bool, str]:
+    if config.source is None:
         return False, ""
-    if config.get("source") not in AVAILABLE_SOURCE:
+    if config.source not in AVAILABLE_SOURCE:
         return False, ""
     try:
         get_source(config)

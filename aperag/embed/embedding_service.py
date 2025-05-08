@@ -83,6 +83,5 @@ class EmbeddingService(Embeddings):
             api_base=self.api_base,
             api_key=self.api_key,
             input=list(batch),
-            max_retries=0,
         )
         return [item["embedding"] for item in response["data"]]

@@ -25,6 +25,7 @@ from typing import Any, Dict, Iterator
 from bs4 import BeautifulSoup
 
 from aperag.source.base import CustomSourceInitializationError, LocalDocument, RemoteDocument, Source
+from aperag.views.models import CollectionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -128,14 +129,14 @@ def check_spam(title: str, body: str):
 class EmailSource(Source):
 
 
-    def __init__(self, ctx: Dict[str, Any]):
+    def __init__(self, ctx: CollectionConfig):
         super().__init__(ctx)
-        self.server = ctx["pop_server"]
-        self.port = ctx["port"]
-        self.email_address = ctx["email_address"]
-        self.email_password = ctx["email_password"]
+        self.server = ctx.pop_server
+        self.port = ctx.port
+        self.email_address = ctx.email_address
+        self.email_password = ctx.email_password
         self.protocol = ""
-        self.detect_spam = ctx.get("detect_spam", False)
+        self.detect_spam = False
         self.conn = self._connect_to_mail_server()
         self.email_num = 0
 
