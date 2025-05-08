@@ -388,7 +388,7 @@ requires-dist = [
     { name = "graspologic", specifier = ">=3.4.1,<4.0.0" },
     { name = "langchain", specifier = ">=0.3.23,<1.0.0" },
     { name = "langchain-huggingface", specifier = ">=0.1.2,<1.0.0" },
-    { name = "lightrag-hku", specifier = ">=1.3.2,<2.0.0" },
+    { name = "lightrag-hku", specifier = ">=1.3.6,<2.0.0" },
     { name = "litellm", specifier = ">=1.67.0.post1" },
     { name = "llama-index", specifier = ">=0.12.28,<1.0.0" },
     { name = "llama-index-embeddings-google", specifier = ">=0.3.1,<1.0.0" },
@@ -1044,6 +1044,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d3/7a/359f4d5df2353f26172b3cc39ea32daa39af8de522205f512f458923e677/colorlog-6.9.0.tar.gz", hash = "sha256:bfba54a1b93b94f54e1f4fe48395725a3d92fd2a4af702f6bd70946bdc0c6ac2", size = 16624 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/51/9b208e85196941db2f0654ad0357ca6388ab3ed67efdbfc799f35d1f83aa/colorlog-6.9.0-py3-none-any.whl", hash = "sha256:5906e71acd67cb07a71e779c47c4bcb45fb8c2993eebe9e5adcd6a6f1b283eff", size = 11424 },
+]
+
+[[package]]
+name = "configparser"
+version = "7.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8b/ac/ea19242153b5e8be412a726a70e82c7b5c1537c83f61b20995b2eda3dcd7/configparser-7.2.0.tar.gz", hash = "sha256:b629cc8ae916e3afbd36d1b3d093f34193d851e11998920fdcfc4552218b7b70", size = 51273 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/fe/f61e7129e9e689d9e40bbf8a36fb90f04eceb477f4617c02c6a18463e81f/configparser-7.2.0-py3-none-any.whl", hash = "sha256:fee5e1f3db4156dcd0ed95bc4edfa3580475537711f67a819c966b389d09ce62", size = 17232 },
 ]
 
 [[package]]
@@ -2844,11 +2853,25 @@ wheels = [
 
 [[package]]
 name = "lightrag-hku"
-version = "1.3.2"
+version = "1.3.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/29/1e/1474ca62695be82c3456a8987b09c9c9eee1eea2c92d8c425eeca3a19072/lightrag_hku-1.3.2.tar.gz", hash = "sha256:5a6d8804c60542ee7016c967a3b5c24e8e903f8074f293d213f64b82aaabb43a", size = 1043134 }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "configparser" },
+    { name = "future" },
+    { name = "pandas" },
+    { name = "pipmaster" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "pyuca" },
+    { name = "setuptools" },
+    { name = "tenacity" },
+    { name = "tiktoken" },
+    { name = "xlsxwriter" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/7e/54b10f7d6cfe8718278168af3c09af088cc696053606ce94beb1890c0644/lightrag_hku-1.3.6.tar.gz", hash = "sha256:322e77af2263205e356328272874129051e5b3da25659c3abf8997d86352cbfb", size = 1795240 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/a6/27f8a9ff7de1494d54eaaddad270e53b40e2a0d444e467b9c99c5b48bf19/lightrag_hku-1.3.2-py3-none-any.whl", hash = "sha256:d4239c1f53ad68bf895a138e9b167c895c67fc0d84e5a54877ece908841968c4", size = 1027682 },
+    { url = "https://files.pythonhosted.org/packages/aa/99/ba514db79f8d2bd9038a3f54f349199933c772d4e2794696787bb4760d35/lightrag_hku-1.3.6-py3-none-any.whl", hash = "sha256:eeab3b4cf21630e3897ae2e3d301f62b93bdea3d5903107507213e6cc8a349eb", size = 1800448 },
 ]
 
 [[package]]
@@ -5035,6 +5058,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f8/bf/abbd3cdfb8fbc7fb3d4d38d320f2441b1e7cbe29be4f23797b4a2b5d8aac/pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3", size = 320884 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/c4/34e93fe5f5429d7570ec1fa436f1986fb1f00c3e0f43a589fe2bbcd22c3f/pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00", size = 509225 },
+]
+
+[[package]]
+name = "pyuca"
+version = "1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/32/95beca7e3308581c6da4735c7102b0c0cbb30a6b863cc1a8e44e6d2f5c3c/pyuca-1.2.tar.gz", hash = "sha256:8a382fe74627f08c0d18908c0713ca4a20aad5385f077579e56208beea2893b2", size = 1398641 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/88/aeeee34d88f841aca712a8c18fbd62a33eaad8f2dbe535e87f3c829b02f9/pyuca-1.2-py2.py3-none-any.whl", hash = "sha256:abaa12e1bd2c7c68ca8396ff8383bc0654a739cef3ae68fd7af58bf29af0a91e", size = 1464896 },
 ]
 
 [[package]]
