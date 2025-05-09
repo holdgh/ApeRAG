@@ -42,6 +42,9 @@ def generate_model_specs(models, provider, mode, enable_whitelist=False, model_w
         except Exception as e:
             print(f"Error processing {model}: {str(e)}")
             continue
+    
+    # 按照模型名称排序
+    specs.sort(key=lambda x: x["model"])
     return specs
 
 
@@ -111,6 +114,11 @@ def create_deepseek_config():
         ],
         "rerank": []
     }
+    
+    # 对模型列表进行排序
+    config["completion"].sort(key=lambda x: x["model"])
+    config["embedding"].sort(key=lambda x: x["model"])
+    config["rerank"].sort(key=lambda x: x["model"])
     
     return config
 
@@ -255,6 +263,9 @@ def create_openrouter_config():
                     "custom_llm_provider": "openrouter",
                     "max_tokens": context_length,
                 })
+        
+        # 按照模型名称排序
+        free_models.sort(key=lambda x: x["model"])
         
         # 创建OpenRouter配置
         config = {
@@ -407,6 +418,11 @@ def create_alibabacloud_config():
         "rerank": []
     }
 
+    # 对模型列表进行排序
+    config["completion"].sort(key=lambda x: x["model"])
+    config["embedding"].sort(key=lambda x: x["model"])
+    config["rerank"].sort(key=lambda x: x["model"])
+
     return config
 
 
@@ -468,6 +484,12 @@ def create_siliconflow_config():
             }
         ]
     }
+    
+    # 对模型列表进行排序
+    config["completion"].sort(key=lambda x: x["model"])
+    config["embedding"].sort(key=lambda x: x["model"])
+    config["rerank"].sort(key=lambda x: x["model"])
+    
     return config
 
 
