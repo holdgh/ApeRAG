@@ -2,6 +2,8 @@ import litellm
 import json
 import os
 
+import requests
+
 
 def generate_model_specs(models, provider, mode, enable_whitelist=False, model_whitelist=None):
     specs = []
@@ -227,6 +229,50 @@ def generate_providers_whitelist(providers=None):
     generate_white_list(models_by_provider, providers)
 
 
+def create_openrouter_config():
+    try:
+        # 请求OpenRouter API获取模型信息
+        response = requests.get(
+            "https://openrouter.ai/api/v1/models",
+            headers={},
+            proxies={"http": "http://127.0.0.1:8118", "https": "http://127.0.0.1:8118"}
+        )
+        
+        if response.status_code != 200:
+            print(f"Error fetching OpenRouter models: {response.status_code}")
+            return None
+        
+        data = response.json()
+        
+        # 筛选以":free"结尾的模型
+        free_models = []
+        for model in data.get("data", []):
+            model_id = model.get("id", "")
+            context_length = model.get("context_length")
+            if model_id.endswith(":free"):
+                free_models.append({
+                    "model": model_id,
+                    "custom_llm_provider": "openrouter",
+                    "max_tokens": context_length,
+                })
+        
+        # 创建OpenRouter配置
+        config = {
+            "name": "openrouter",
+            "label": "OpenRouter",
+            "dialect": "openai",
+            "allow_custom_base_url": False,
+            "base_url": "https://openrouter.ai/api/v1",
+            "embedding": [],
+            "completion": free_models,
+            "rerank": []
+        }
+        
+        return config
+    except Exception as e:
+        print(f"Error creating OpenRouter config: {str(e)}")
+        return None
+
 
 def create_provider_config():
     openai_whitelist = [
@@ -269,6 +315,11 @@ def create_provider_config():
         create_alibabacloud_config(),
         create_siliconflow_config()
     ]
+    
+    # 添加OpenRouter配置
+    openrouter_config = create_openrouter_config()
+    if openrouter_config:
+        result.append(openrouter_config)
     
     return result
 

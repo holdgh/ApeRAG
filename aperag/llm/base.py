@@ -54,13 +54,11 @@ class Predictor(ABC):
     def match_predictor(model_service_provider, model_name, base_url, api_key, kwargs):
         kwargs["model"] = model_name
         kwargs["api_key"] = api_key
+        kwargs["base_url"] = base_url
 
         if model_service_provider == "alibabacloud":
             from aperag.llm.qianwen import QianWenPredictor
             return QianWenPredictor
-
-        if model_service_provider in {"openai", "siliconflow", "deepseek"}:
-            kwargs["base_url"] = base_url
 
         from aperag.llm.completion_service import CompletionService
         return CompletionService

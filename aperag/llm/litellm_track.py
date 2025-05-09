@@ -43,7 +43,7 @@ class MyCustomHandler(CustomLogger):
 
             logger.info(f"{self.prefix} Model: {kwargs.get('model')}")
             logger.info(f"{self.prefix} Provider: {kwargs.get('custom_llm_provider', 'unknown')}")
-            logger.info(f"{self.prefix} base_url: {kwargs.get('api_base', 'unknown')}")
+            logger.info(f"{self.prefix} base_url: {kwargs.get('base_url', 'unknown')}")
             logger.info(f"{self.prefix} Start Time: {self._format_time(start_time)}")
             logger.info(f"{self.prefix} End Time: {self._format_time(end_time)}")
             logger.info(f"{self.prefix} Latency: {latency:.2f} seconds")
