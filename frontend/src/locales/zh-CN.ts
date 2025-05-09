@@ -184,6 +184,12 @@ export default {
   'flow.edge.smoothstep': '折线',
   'flow.edge.bezier': 'Bezier曲线',
   'flow.node.add': '添加节点',
+  'flow.node.type.global': '开始',
+  'flow.node.type.vector_search': '向量检索',
+  'flow.node.type.keyword_search': '全文检索',
+  'flow.node.type.merge': '检索结果合并',
+  'flow.node.type.rerank': '重排序',
+  'flow.node.type.llm': 'LLM输出',
 
   chat: '---------------',
   'chat.all': '全部会话',

@@ -1,9 +1,10 @@
 import { Chat, ChatDetails } from '@/api';
 import { api } from '@/services';
-import { ApeBot } from '@/types';
+import { ApeBot, BotConfig } from '@/types';
 import { parseConfig } from '@/utils';
 import { useState } from 'react';
 import { useModel } from 'umi';
+import { parse } from 'yaml';
 
 export default () => {
   const { setLoading } = useModel('global');
@@ -43,9 +44,15 @@ export default () => {
 
     setLoading(false);
     setBotLoading(false);
+
+    const config: BotConfig = parseConfig(res.data.config);
+
+    if (config.flow) {
+      config.flow = parse(config.flow as unknown as string);
+    }
     setBot({
       ...res.data,
-      config: parseConfig(res.data.config),
+      config,
     });
   };
 

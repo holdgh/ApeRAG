@@ -1,11 +1,18 @@
 import { ApeNode, ApeNodeType } from '@/types/flow';
-import { HomeOutlined, WechatWorkOutlined } from '@ant-design/icons';
+import {
+  BranchesOutlined,
+  FunnelPlotOutlined,
+  HomeOutlined,
+  InteractionOutlined,
+  ReadOutlined,
+  WechatWorkOutlined,
+} from '@ant-design/icons';
 import { Handle, NodeResizeControl, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
 import { GlobalToken, Space, theme, Typography } from 'antd';
 import { useMemo, useRef } from 'react';
 import { BiFilter } from 'react-icons/bi';
-import { css, styled, useIntl } from 'umi';
+import { css, FormattedMessage, styled } from 'umi';
 
 type NodeTypeConfig = {
   [key in ApeNodeType]: {
@@ -23,14 +30,14 @@ export const StyledFlowNode = styled('div').withConfig({
   selected?: boolean;
   isHovering?: boolean;
 }>`
-  ${({ selected, token, color, isHovering = false }) => {
+  ${({ selected, token, color = token.colorPrimary, isHovering = false }) => {
     return css`
-      border-radius: 6px;
+      border-radius: 8px;
       color: ${token.colorText};
       border-color: ${selected ? color : token.colorBorder};
       border-left-color: ${color};
       border-width: 1px;
-      border-left-width: 5px;
+      border-left-width: 3px;
       border-style: solid;
       border-left-style: solid;
       background: ${token.colorBgContainer};
@@ -93,9 +100,9 @@ export const StyledFlowNode = styled('div').withConfig({
 
 export const ApeFlowNode = (node: ApeNode) => {
   const { token } = theme.useToken();
-  const { formatMessage } = useIntl();
+  // const { formatMessage } = useIntl();
   const { selected } = node;
-  const nodeType = (node.type || 'normal') as ApeNodeType;
+  const nodeType = node.type as ApeNodeType;
 
   const nodeRef = useRef(null);
   const isHovering = useHover(nodeRef);
@@ -104,23 +111,27 @@ export const ApeFlowNode = (node: ApeNode) => {
     () => ({
       global: {
         icon: <HomeOutlined />,
-        color: token.colorPrimary,
+        // color: token.colorPrimary,
       },
       keyword_search: {
-        icon: <WechatWorkOutlined />,
-        color: token.colorPrimary,
+        icon: <ReadOutlined />,
+        // color: token.colorPrimary,
       },
       vector_search: {
-        color: token.red,
+        icon: <InteractionOutlined />,
+        // color: token.red,
       },
       merge: {
-        color: token.red,
+        icon: <BranchesOutlined />,
+        // color: token.red,
       },
       rerank: {
-        color: token.red,
+        icon: <FunnelPlotOutlined />,
+        // color: token.red,
       },
       llm: {
-        color: token.red,
+        icon: <WechatWorkOutlined />,
+        // color: token.red,
       },
     }),
     [token],
@@ -134,11 +145,15 @@ export const ApeFlowNode = (node: ApeNode) => {
       color={nodeTypeConfig[nodeType]?.color}
       ref={nodeRef}
     >
-      <Handle type="target" position={node.targetPosition || Position.Left} />
+      {node.type !== 'global' && (
+        <Handle type="target" position={node.targetPosition || Position.Left} />
+      )}
 
       <Space>
         {nodeTypeConfig[nodeType]?.icon}
-        <Typography.Text>{nodeType}</Typography.Text>
+        <Typography.Text>
+          <FormattedMessage id={`flow.node.type.${nodeType}`} />
+        </Typography.Text>
       </Space>
 
       <Handle

@@ -186,6 +186,12 @@ export default {
   'flow.edge.smoothstep': 'Polyline',
   'flow.edge.bezier': 'Bezier',
   'flow.node.add': 'Add node',
+  'flow.node.type.global': 'Start',
+  'flow.node.type.vector_search': 'Vector search',
+  'flow.node.type.keyword_search': 'Keyword search',
+  'flow.node.type.merge': 'Merge',
+  'flow.node.type.rerank': 'Rerank',
+  'flow.node.type.llm': 'LLM',
 
   chat: '---------------',
   'chat.all': 'All chats',
