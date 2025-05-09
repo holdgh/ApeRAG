@@ -93,6 +93,36 @@ const getInitialData = (): ApeFlow => {
         type: 'default',
       },
       {
+        id: getEdgeId(globalId, vectorSearchId),
+        source: globalId,
+        target: vectorSearchId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(globalId, keywordSearchId),
+        source: globalId,
+        target: keywordSearchId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(vectorSearchId, mergeId),
+        source: vectorSearchId,
+        target: mergeId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(keywordSearchId, mergeId),
+        source: keywordSearchId,
+        target: mergeId,
+        type: 'default',
+      },
+      {
+        id: getEdgeId(mergeId, rerankId),
+        source: mergeId,
+        target: rerankId,
+        type: 'default',
+      },
+      {
         id: getEdgeId(mergeId, rerankId),
         source: mergeId,
         target: rerankId,
