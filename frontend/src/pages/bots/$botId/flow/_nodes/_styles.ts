@@ -1,7 +1,8 @@
-import { Avatar, GlobalToken } from 'antd';
+import { Avatar, GlobalToken, Typography } from 'antd';
 import alpha from 'color-alpha';
 import { css, styled } from 'umi';
-export const StyledFlowNode = styled('div').withConfig({
+
+export const StyledFlowNodeContainer = styled('div').withConfig({
   shouldForwardProp: (prop) =>
     !['token', 'color', 'selected', 'isHovering'].includes(prop),
 })<{
@@ -19,9 +20,8 @@ export const StyledFlowNode = styled('div').withConfig({
       border-style: solid;
       background: ${token.colorBgContainer};
       height: 100%;
-      min-width: 200px;
-      min-height: 40px;
-      padding: 12px;
+      min-width: 260px;
+      overflow: auto;
       transition:
         border-color 0.3s,
         box-shadow 0.3s;
@@ -85,6 +85,46 @@ export const StyledFlowNode = styled('div').withConfig({
   }}
 `;
 
+export const StyledFlowNode = styled('div').withConfig({})`
+  ${() => {
+    return css`
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    `;
+  }}
+`;
+
+export const StyledFlowNodeHeader = styled('div').withConfig({
+  shouldForwardProp: (prop) => !['token'].includes(prop),
+})<{
+  token: GlobalToken;
+}>`
+  ${() => {
+    return css`
+      flex: auto;
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+    `;
+  }}
+`;
+
+export const StyledFlowNodeBody = styled('div').withConfig({
+  shouldForwardProp: (prop) => !['token', 'collapsed'].includes(prop),
+})<{ token: GlobalToken; collapsed: boolean }>`
+  ${({ token, collapsed }) => {
+    return css`
+      margin: 12px;
+      padding: 12px;
+      background: ${token.colorBgContainerDisabled};
+      border-radius: 8px;
+      display: ${collapsed ? 'none' : 'block'};
+    `;
+  }}
+`;
+
 export const StyledFlowNodeAvatar = styled(Avatar).withConfig({
   shouldForwardProp: (prop) => !['color', 'token'].includes(prop),
 })<{
@@ -97,6 +137,18 @@ export const StyledFlowNodeAvatar = styled(Avatar).withConfig({
       > .anticon {
         font-size: 18px;
       }
+    `;
+  }}
+`;
+
+export const StyledFlowNodeLabel = styled(Typography.Text).withConfig({
+  shouldForwardProp: (prop) => !['token'].includes(prop),
+})<{
+  token: GlobalToken;
+}>`
+  ${({}) => {
+    return css`
+      font-size: 16px;
     `;
   }}
 `;

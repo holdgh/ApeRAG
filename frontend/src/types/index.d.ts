@@ -27,7 +27,8 @@ export type ApeNodeHandlePosition = {
 
 export type ApeNode = Node & {
   data?: {
-    vars?: { [key in string]: string | number }[];
+    collapsed?: boolean;
+    vars?: { [key in string]: string | number | boolean }[];
   };
 };
 
