@@ -33,46 +33,62 @@ class CompletionService(Predictor):
         return False
 
     async def _agenerate_stream(self, history, prompt, memory=False):
-        response = await litellm.acompletion(
-            **self.kwargs,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
-            stream=True,
-        )
-        async for chunk in response:
-            if not chunk.choices:
-                continue
-            choice = chunk.choices[0]
-            if choice.finish_reason == "stop":
-                return
-            yield choice.delta.content
+        try:
+            if "custom_llm_provider" not in self.kwargs:
+                self.kwargs["custom_llm_provider"] = "openai"
+            response = await litellm.acompletion(
+                **self.kwargs,
+                messages=history + [{"role": "user", "content": prompt}] if memory else [
+                    {"role": "user", "content": prompt}],
+                stream=True,
+            )
+            async for chunk in response:
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                if choice.finish_reason == "stop":
+                    return
+                yield choice.delta.content
+        except Exception as e:
+            raise e
 
     def _generate_stream(self, history, prompt, memory=False):
-        response = litellm.completion(
-            **self.kwargs,
-            messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
-            stream=True,
-        )
-        for chunk in response:
-            if not chunk.choices:
-                continue
-            choice = chunk.choices[0]
-            if choice.finish_reason == "stop":
-                return
-            yield choice.delta.content
+        try:
+            if "custom_llm_provider" not in self.kwargs:
+                self.kwargs["custom_llm_provider"] = "openai"
+            response = litellm.completion(
+                **self.kwargs,
+                messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
+                stream=True,
+            )
+            for chunk in response:
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                if choice.finish_reason == "stop":
+                    return
+                yield choice.delta.content
+        except Exception as e:
+            raise e
 
     async def agenerate_stream(self, history, prompt, memory=False):
         async for tokens in self._agenerate_stream(history, prompt, memory):
             yield tokens
 
     async def agenerate_by_tools(self, prompt,tools):
-        response = await litellm.acompletion(
-            **self.kwargs,
-            messages=[{"role": "user", "content": prompt}],
-            tools=tools,
-            tool_choice="auto",
-        )
-        tool_calls = response.choices[0].message.tool_calls
-        return tool_calls, response.choices[0].message.content
+        try:
+            if "custom_llm_provider" not in self.kwargs:
+                self.kwargs["custom_llm_provider"] = "openai"
+            response = await litellm.acompletion(
+                **self.kwargs,
+                messages=[{"role": "user", "content": prompt}],
+                tools=tools,
+                tool_choice="auto",
+            )
+            tool_calls = response.choices[0].message.tool_calls
+            return tool_calls, response.choices[0].message.content
+        except Exception as e:
+            raise e
 
     def generate_stream(self, history, prompt, memory=False):
         for tokens in self._generate_stream(history, prompt, memory):

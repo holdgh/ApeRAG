@@ -42,6 +42,9 @@ def generate_model_specs(models, provider, mode, enable_whitelist=False, model_w
         except Exception as e:
             print(f"Error processing {model}: {str(e)}")
             continue
+    
+    # 按照模型名称排序
+    specs.sort(key=lambda x: x["model"])
     return specs
 
 
@@ -111,6 +114,11 @@ def create_deepseek_config():
         ],
         "rerank": []
     }
+    
+    # 对模型列表进行排序
+    config["completion"].sort(key=lambda x: x["model"])
+    config["embedding"].sort(key=lambda x: x["model"])
+    config["rerank"].sort(key=lambda x: x["model"])
     
     return config
 
@@ -197,7 +205,7 @@ def generate_white_list(models_by_provider, provider_list=None):
         
         if "chat" in modes and modes["chat"]:
             whitelist_str += "\n    # chat models"
-            chat_models = modes["chat"]
+            chat_models = sorted(modes["chat"])  # 对聊天模型进行排序
             for i in range(0, len(chat_models), 4):
                 chunk = chat_models[i:i+4]
                 line = ", ".join([f'"{model}"' for model in chunk])
@@ -205,7 +213,7 @@ def generate_white_list(models_by_provider, provider_list=None):
         
         if "embedding" in modes and modes["embedding"]:
             whitelist_str += "\n    # embedding models"
-            embedding_models = modes["embedding"]
+            embedding_models = sorted(modes["embedding"])  # 对嵌入模型进行排序
             for i in range(0, len(embedding_models), 4):
                 chunk = embedding_models[i:i+4]
                 line = ", ".join([f'"{model}"' for model in chunk])
@@ -213,7 +221,7 @@ def generate_white_list(models_by_provider, provider_list=None):
                 
         if "rerank" in modes and modes["rerank"]:
             whitelist_str += "\n    # rerank models"
-            rerank_models = modes["rerank"]
+            rerank_models = sorted(modes["rerank"])  # 对重排模型进行排序
             for i in range(0, len(rerank_models), 4):
                 chunk = rerank_models[i:i+4]
                 line = ", ".join([f'"{model}"' for model in chunk])
@@ -256,6 +264,9 @@ def create_openrouter_config():
                     "max_tokens": context_length,
                 })
         
+        # 按照模型名称排序
+        free_models.sort(key=lambda x: x["model"])
+        
         # 创建OpenRouter配置
         config = {
             "name": "openrouter",
@@ -282,20 +293,26 @@ def create_provider_config():
         "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
         "o1", "o1-mini",
         "o3", "o3-mini",
-        "o4-mini"
+        "o4-mini",
         # embedding models
         "text-embedding-3-large", "text-embedding-3-small", "text-embedding-ada-002", "text-embedding-ada-002-v2",
     ]
+    # 对openai白名单进行排序
+    openai_whitelist.sort()
 
     anthropic_whitelist = [
         "claude-3-5-sonnet-latest",
         "claude-3-7-sonnet-latest",
     ]
+    # 对anthropic白名单进行排序
+    anthropic_whitelist.sort()
 
     gemini_whitelist = [
         "gemini/gemini-2.5-pro-preview-03-25",
         "gemini/gemini-2.5-flash-preview-04-17",
     ]
+    # 对gemini白名单进行排序
+    gemini_whitelist.sort()
 
     xai_whitelist = [
         "xai/grok-3-beta",
@@ -303,6 +320,8 @@ def create_provider_config():
         "xai/grok-3-mini-beta",
         "xai/grok-3-mini-fast-latest",
     ]
+    # 对xai白名单进行排序
+    xai_whitelist.sort()
 
     enable_whitelist = True
     
@@ -407,6 +426,11 @@ def create_alibabacloud_config():
         "rerank": []
     }
 
+    # 对模型列表进行排序
+    config["completion"].sort(key=lambda x: x["model"])
+    config["embedding"].sort(key=lambda x: x["model"])
+    config["rerank"].sort(key=lambda x: x["model"])
+
     return config
 
 
@@ -468,6 +492,12 @@ def create_siliconflow_config():
             }
         ]
     }
+    
+    # 对模型列表进行排序
+    config["completion"].sort(key=lambda x: x["model"])
+    config["embedding"].sort(key=lambda x: x["model"])
+    config["rerank"].sort(key=lambda x: x["model"])
+    
     return config
 
 
