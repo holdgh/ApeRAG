@@ -34,8 +34,6 @@ class CompletionService(Predictor):
 
     async def _agenerate_stream(self, history, prompt, memory=False):
         try:
-            if "custom_llm_provider" not in self.kwargs:
-                self.kwargs["custom_llm_provider"] = "openai"
             response = await litellm.acompletion(
                 **self.kwargs,
                 messages=history + [{"role": "user", "content": prompt}] if memory else [
@@ -54,8 +52,6 @@ class CompletionService(Predictor):
 
     def _generate_stream(self, history, prompt, memory=False):
         try:
-            if "custom_llm_provider" not in self.kwargs:
-                self.kwargs["custom_llm_provider"] = "openai"
             response = litellm.completion(
                 **self.kwargs,
                 messages=history + [{"role": "user", "content": prompt}] if memory else [{"role": "user", "content": prompt}],
@@ -77,8 +73,6 @@ class CompletionService(Predictor):
 
     async def agenerate_by_tools(self, prompt,tools):
         try:
-            if "custom_llm_provider" not in self.kwargs:
-                self.kwargs["custom_llm_provider"] = "openai"
             response = await litellm.acompletion(
                 **self.kwargs,
                 messages=[{"role": "user", "content": prompt}],

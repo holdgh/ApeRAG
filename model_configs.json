@@ -106,8 +106,8 @@
     "name": "gemini",
     "label": "Google Gemini",
     "dialect": "google",
-    "allow_custom_base_url": true,
-    "base_url": "https://generativelanguage.googleapis.com",
+    "allow_custom_base_url": false,
+    "base_url": "",
     "completion": [
       {
         "model": "gemini/gemini-2.5-flash-preview-04-17",
