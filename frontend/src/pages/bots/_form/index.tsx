@@ -161,7 +161,8 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
   useEffect(() => {
     if (botModel) {
-      const [model_service_provider, model_name] = botModel.split(':');
+      const [model_service_provider, ...modelNameParts] = botModel.split(':');
+      const model_name = modelNameParts.join(':');
       console.log('model_service_provider', model_service_provider);
       console.log('model_name', model_name);
       form.setFieldValue(
