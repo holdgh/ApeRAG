@@ -59,6 +59,7 @@ export default {
   'action.refresh': '刷新',
   'action.confirm': '确认',
   'action.rename': '重命名',
+  'action.add': '添加',
 
   tips: '--------------------------',
   'tips.delete.success': '删除成功',
@@ -190,6 +191,9 @@ export default {
   'flow.node.type.merge': '检索结果合并',
   'flow.node.type.rerank': '重排序',
   'flow.node.type.llm': 'LLM输出',
+  'flow.node.custom_label': '自定义标题',
+  'flow.variable.title': '变量名',
+  'flow.variable.type': '类型',
 
   chat: '---------------',
   'chat.all': '全部会话',

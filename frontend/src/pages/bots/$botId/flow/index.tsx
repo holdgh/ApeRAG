@@ -136,23 +136,7 @@ export default () => {
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [],
   );
-  const onNodeDrag: OnNodeDrag = useCallback((e, nd) => {
-    setNodes((nds) => {
-      return applyNodeChanges(
-        [
-          {
-            id: nd.id,
-            type: 'replace',
-            item: {
-              ...nd,
-              selected: false,
-            },
-          },
-        ],
-        nds,
-      );
-    });
-  }, []);
+  const onNodeDrag: OnNodeDrag = useCallback(() => {}, []);
   const onNodesDelete: OnNodesDelete = useCallback(
     (deleted) => {
       setEdges(

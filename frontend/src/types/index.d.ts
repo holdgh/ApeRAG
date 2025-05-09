@@ -25,10 +25,18 @@ export type ApeNodeHandlePosition = {
   targetPosition?: Position;
 };
 
+export type ApeNodeVars = {
+  name?: string;
+  type?: string;
+  description?: string;
+
+  value?: number | string | boolean;
+};
+
 export type ApeNode = Node & {
   data?: {
     collapsed?: boolean;
-    vars?: { [key in string]: string | number | boolean }[];
+    vars?: ApeNodeVars[];
   };
 };
 
