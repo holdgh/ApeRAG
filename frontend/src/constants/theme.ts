@@ -14,6 +14,7 @@ const DARK_TOKENS: Partial<AliasToken> = {
   colorBgLayout: '#0F1214',
   colorBgContainer: '#131719',
   colorBgElevated: '#131719', // dropdown背景
+  colorBgContainerDisabled: '#16191D', // input disabled
 
   controlItemBgActive: '#262A2D',
 
@@ -22,7 +23,7 @@ const DARK_TOKENS: Partial<AliasToken> = {
   colorTextSecondary: '#878B92',
   colorTextDescription: '#878B92',
 
-  colorBorder: '#1D2226', // input border
+  colorBorder: '#242B30', // input border
   colorBorderSecondary: '#1C2126', // card border
 };
 

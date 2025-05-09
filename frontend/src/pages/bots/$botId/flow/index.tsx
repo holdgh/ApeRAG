@@ -42,7 +42,7 @@ import {
 } from 'react-icons/bs';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
 import { ApeFlowNode } from './_flow_node';
-import { ApeFlowNodeDetail } from './_flow_node_detail';
+// import { ApeFlowNodeDetail } from './_flow_node_detail';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -66,15 +66,15 @@ export const StyledReactFlow = styled(ReactFlow).withConfig({
     return css`
       --xy-node-color: ${token.colorText}px;
       --xy-node-border-radius: 8px;
-      --xy-node-border: 1px solid ${token.colorBorder};
+      --xy-node-border: 2px solid ${token.colorBorder};
       --xy-node-background-color: ${token.colorBgContainer};
       --xy-node-boxshadow-hover: 0 0 15px ${token.colorBorder};
       --xy-node-boxshadow-selected: 0 0 15px ${token.colorBorder};
-      --xy-edge-stroke-width: 1;
+      --xy-edge-stroke-width: 2;
       --xy-edge-stroke: ${token.colorBorder};
       --xy-edge-stroke-selected: ${token.colorPrimary};
       --xy-connectionline-stroke: ${token.colorBorder};
-      --xy-connectionline-stroke-width: 1;
+      --xy-connectionline-stroke-width: 2;
       --xy-handle-border-color: ${token.colorBorder};
       --xy-handle-background-color: ${token.colorBgContainer};
       .react-flow__node {
@@ -122,8 +122,8 @@ const getLayoutedElements = (
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
   g.setGraph({
     rankdir: direction,
-    nodesep: 80,
-    ranksep: 120,
+    nodesep: 60,
+    ranksep: 100,
   });
   edges.forEach((edge) => g.setEdge(edge.source, edge.target));
   nodes.forEach((node) => {
@@ -170,9 +170,12 @@ export default () => {
 
   const nodeTypes: { [key in ApeNodeType]: any } = useMemo(
     () => ({
-      normal: ApeFlowNode,
-      start: ApeFlowNode,
-      end: ApeFlowNode,
+      global: ApeFlowNode,
+      vector_search: ApeFlowNode,
+      keyword_search: ApeFlowNode,
+      merge: ApeFlowNode,
+      rerank: ApeFlowNode,
+      llm: ApeFlowNode,
     }),
     [],
   );
@@ -350,7 +353,7 @@ export default () => {
             </Tooltip>
           </Space>
         </StyledFlowToolbar>
-        <ApeFlowNodeDetail />
+        {/* <ApeFlowNodeDetail /> */}
       </StyledReactFlow>
     </PageContainer>
   );
