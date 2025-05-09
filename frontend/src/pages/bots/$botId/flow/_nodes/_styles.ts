@@ -36,6 +36,7 @@ export const StyledFlowNodeContainer = styled('div').withConfig({
         right: 0px;
         border-radius: 8px;
         border: 2px solid ${selected ? color : 'transparent'};
+        transition: border-color 0.3s;
       }
       .react-flow__handle {
         width: 9px;
@@ -67,6 +68,9 @@ export const StyledFlowNodeContainer = styled('div').withConfig({
       &:hover {
         box-shadow: ${token.boxShadow};
         border-color: ${color};
+        &:before {
+          border-color: ${color};
+        }
         .react-flow__handle {
           border-color: ${color};
         }
@@ -92,6 +96,7 @@ export const StyledFlowNode = styled('div').withConfig({})`
       display: flex;
       flex-direction: column;
       position: relative;
+      cursor: default;
     `;
   }}
 `;
@@ -107,19 +112,17 @@ export const StyledFlowNodeHeader = styled('div').withConfig({
       display: flex;
       justify-content: space-between;
       padding: 12px;
+      cursor: move;
     `;
   }}
 `;
 
 export const StyledFlowNodeBody = styled('div').withConfig({
-  shouldForwardProp: (prop) => !['token', 'collapsed'].includes(prop),
-})<{ token: GlobalToken; collapsed: boolean }>`
-  ${({ token, collapsed }) => {
+  shouldForwardProp: (prop) => !['collapsed'].includes(prop),
+})<{ collapsed: boolean }>`
+  ${({ collapsed }) => {
     return css`
-      margin: 12px;
       padding: 12px;
-      background: ${token.colorBgContainerDisabled};
-      border-radius: 8px;
       display: ${collapsed ? 'none' : 'block'};
     `;
   }}
@@ -148,7 +151,12 @@ export const StyledFlowNodeLabel = styled(Typography.Text).withConfig({
 }>`
   ${({}) => {
     return css`
-      font-size: 16px;
+      font-weight: bold;
+      max-width: 120px;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     `;
   }}
 `;

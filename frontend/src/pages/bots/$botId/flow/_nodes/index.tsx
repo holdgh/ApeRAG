@@ -1,6 +1,7 @@
 import { ApeNode, ApeNodeType } from '@/types';
 import {
   CaretDownOutlined,
+  EditOutlined,
   FunnelPlotOutlined,
   HomeOutlined,
   InteractionOutlined,
@@ -10,8 +11,8 @@ import {
 } from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
-import { Button, Space, theme } from 'antd';
-import { useCallback, useMemo, useRef } from 'react';
+import { Button, Form, Input, Modal, Space, theme } from 'antd';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useIntl, useModel } from 'umi';
 import { ApeNodeGlobal } from './_node_global';
 import { ApeNodeKeywordSearch } from './_node_keyword_search';
@@ -33,81 +34,98 @@ type NodeConfig = {
     color: string;
     icon: React.ReactNode;
     content: React.ReactNode;
-    label: React.ReactNode;
+    label: string;
+    width?: number;
+    disableCollectionTarget?: boolean;
+    disableCollectionSource?: boolean;
   };
 };
 
 const ApeBasicNode = (node: ApeNode) => {
+  const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
+  const { nodes, setNodes } = useModel('bots.$botId.flow.model');
+
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-  const { nodes, setNodes } = useModel('bots.$botId.flow.model');
+
+  const [form] = Form.useForm<{ ariaLabel: string }>();
 
   const nodeRef = useRef(null);
   const isHovering = useHover(nodeRef);
 
   const selected = useMemo(() => node.selected, [node]);
   const collapsed = useMemo(() => Boolean(node.data.collapsed), [node]);
-
-  const NodeConfigs: NodeConfig = useMemo(
-    () => ({
+  const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
+  const configs = useMemo(
+    (): NodeConfig => ({
       global: {
         color: token.cyan,
         icon: <HomeOutlined />,
         content: <ApeNodeGlobal node={node} />,
-        label: formatMessage({ id: 'flow.node.type.global' }),
+        label:
+          originNode?.ariaLabel ||
+          formatMessage({ id: 'flow.node.type.global' }),
+        width: 320,
+        disableCollectionTarget: true,
       },
       vector_search: {
         color: token.orange,
         icon: <InteractionOutlined />,
         content: <ApeNodeVectorSearch node={node} />,
-        label: formatMessage({ id: 'flow.node.type.vector_search' }),
+        width: 320,
+        label:
+          originNode?.ariaLabel ||
+          formatMessage({ id: 'flow.node.type.vector_search' }),
       },
       keyword_search: {
         color: token.volcano,
         icon: <ReadOutlined />,
         content: <ApeNodeKeywordSearch node={node} />,
-        label: formatMessage({ id: 'flow.node.type.keyword_search' }),
+        label:
+          originNode?.ariaLabel ||
+          formatMessage({ id: 'flow.node.type.keyword_search' }),
       },
       merge: {
         color: token.purple,
         icon: <MergeOutlined />,
         content: <ApeNodeMerge node={node} />,
-        label: formatMessage({ id: 'flow.node.type.merge' }),
+        label:
+          originNode?.ariaLabel ||
+          formatMessage({ id: 'flow.node.type.merge' }),
       },
       rerank: {
         color: token.magenta,
         icon: <FunnelPlotOutlined />,
         content: <ApeNodeRerank node={node} />,
-        label: formatMessage({ id: 'flow.node.type.rerank' }),
+        label:
+          originNode?.ariaLabel ||
+          formatMessage({ id: 'flow.node.type.rerank' }),
       },
       llm: {
         color: token.blue,
         icon: <WechatWorkOutlined />,
         content: <ApeNodeLlm node={node} />,
-        label: formatMessage({ id: 'flow.node.type.llm' }),
+        label:
+          originNode?.ariaLabel || formatMessage({ id: 'flow.node.type.llm' }),
+        disableCollectionSource: true,
       },
     }),
     [node],
   );
 
-  const nodeConfig = useMemo(
-    () => NodeConfigs[node.type as ApeNodeType],
-    [node],
-  );
+  const config = useMemo(() => configs[node.type as ApeNodeType], [node]);
 
-  const toggleCollapsed = useCallback(() => {
-    const _node = nodes.find((n) => n.id === node.id);
-    if (!_node) return;
-
+  const onToggleCollapsed = useCallback(() => {
+    if (!originNode) return;
     setNodes((nds) => {
       const changes: NodeChange[] = [
         {
-          id: _node.id,
+          id: originNode.id,
           type: 'replace',
           item: {
-            ..._node,
+            ...originNode,
             data: {
-              ..._node.data,
+              ...originNode.data,
               collapsed: !collapsed,
             },
           },
@@ -115,58 +133,103 @@ const ApeBasicNode = (node: ApeNode) => {
       ];
       return applyNodeChanges(changes, nds);
     });
+  }, [originNode]);
+
+  const onEditNodeLable = useCallback(() => {
+    form.setFieldValue('ariaLabel', config.label);
+    setLabelModalVisible(true);
+  }, [node]);
+
+  const onEditNodeLableClose = useCallback(() => {
+    setLabelModalVisible(false);
+  }, [node]);
+
+  const onSaveNodeLable = useCallback(async () => {
+    if (!originNode) return;
+    const { ariaLabel } = await form.validateFields();
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        {
+          id: originNode.id,
+          type: 'replace',
+          item: {
+            ...originNode,
+            ariaLabel,
+          },
+        },
+      ];
+      return applyNodeChanges(changes, nds);
+    });
+    setLabelModalVisible(false);
   }, [node]);
 
   return (
-    <StyledFlowNodeContainer
-      token={token}
-      selected={selected}
-      isHovering={isHovering}
-      color={nodeConfig.color}
-      ref={nodeRef}
-    >
-      <Handle type="target" position={node.targetPosition || Position.Left} />
-      <StyledFlowNode className="drag-handle">
-        <StyledFlowNodeHeader token={token}>
-          <Space>
-            <StyledFlowNodeAvatar
-              token={token}
-              color={nodeConfig.color}
-              shape="square"
-              src={nodeConfig.icon}
-            />
-            <StyledFlowNodeLabel>{nodeConfig.label}</StyledFlowNodeLabel>
-          </Space>
-          <Button
-            type="text"
-            icon={
-              <CaretDownOutlined
-                style={{
-                  color: token.colorTextTertiary,
-                  fontSize: '0.8em',
-                  transform: `rotate(${collapsed ? -90 : 0}deg)`,
-                  transitionDuration: '0.3s',
-                }}
-              />
-            }
-            onClick={toggleCollapsed}
+    <>
+      <StyledFlowNodeContainer
+        token={token}
+        selected={selected}
+        isHovering={isHovering}
+        color={config.color}
+        ref={nodeRef}
+      >
+        {!config.disableCollectionTarget && (
+          <Handle
+            type="target"
+            position={node.targetPosition || Position.Left}
           />
-        </StyledFlowNodeHeader>
-        <StyledFlowNodeBody collapsed={collapsed} token={token}>
-          {nodeConfig.content}
-        </StyledFlowNodeBody>
-      </StyledFlowNode>
+        )}
+        <StyledFlowNode style={{ width: config.width }}>
+          <StyledFlowNodeHeader token={token} className="drag-handle">
+            <Space>
+              <StyledFlowNodeAvatar
+                token={token}
+                color={config.color}
+                shape="square"
+                src={config.icon}
+              />
+              <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
+              {isHovering && (
+                <Button
+                  type="text"
+                  onClick={onEditNodeLable}
+                  icon={<EditOutlined />}
+                />
+              )}
+            </Space>
+            <Space>
+              <Button
+                type="text"
+                onClick={onToggleCollapsed}
+                icon={
+                  <CaretDownOutlined
+                    style={{
+                      color: token.colorTextTertiary,
+                      fontSize: '0.8em',
+                      transform: `rotate(${collapsed ? -90 : 0}deg)`,
+                      transitionDuration: '0.3s',
+                    }}
+                  />
+                }
+              />
+            </Space>
+          </StyledFlowNodeHeader>
+          <StyledFlowNodeBody collapsed={collapsed}>
+            {config.content}
+          </StyledFlowNodeBody>
+        </StyledFlowNode>
 
-      <Handle
-        className="node-handler-end"
-        type="source"
-        position={node.sourcePosition || Position.Right}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      />
+        {!config.disableCollectionSource && (
+          <Handle
+            className="node-handler-end"
+            type="source"
+            position={node.sourcePosition || Position.Right}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          />
+        )}
 
-      {/* <NodeResizeControl
+        {/* <NodeResizeControl
         style={{
           border: 'none',
           background: 'none',
@@ -183,7 +246,22 @@ const ApeBasicNode = (node: ApeNode) => {
       >
         <BiFilter style={{ transform: 'rotate(-45deg)' }} />
       </NodeResizeControl> */}
-    </StyledFlowNodeContainer>
+      </StyledFlowNodeContainer>
+      <Modal
+        title={formatMessage({ id: 'flow.node.custom_label' })}
+        open={labelModalVisible}
+        onCancel={onEditNodeLableClose}
+        onOk={onSaveNodeLable}
+        width={380}
+      >
+        <br />
+        <Form form={form} autoComplete="off">
+          <Form.Item name="ariaLabel">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 };
 

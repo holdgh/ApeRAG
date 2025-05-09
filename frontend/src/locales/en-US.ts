@@ -60,6 +60,7 @@ export default {
   'action.refresh': 'Refresh',
   'action.confirm': 'Confirm',
   'action.rename': 'Rename',
+  'action.add': 'Add',
 
   tips: '--------------------------',
   'tips.delete.success': 'Delete successful',
@@ -192,6 +193,9 @@ export default {
   'flow.node.type.merge': 'Merge',
   'flow.node.type.rerank': 'Rerank',
   'flow.node.type.llm': 'LLM',
+  'flow.node.custom_label': 'Custom Lable',
+  'flow.variable.title': 'Variable',
+  'flow.variable.type': 'Type',
 
   chat: '---------------',
   'chat.all': 'All chats',
@@ -242,7 +246,8 @@ export default {
   'searchTest.details': 'Detail',
   'searchTest.delete': 'Delete',
   'searchTest.cancel': 'Cancel',
-  'searchTest.confirmDeleteHistory': 'Are you sure you want to delete this history record?',
+  'searchTest.confirmDeleteHistory':
+    'Are you sure you want to delete this history record?',
   'searchTest.deleteSuccess': 'Delete successful',
   'searchTest.deleteFailed': 'Delete failed',
   'searchTest.searchFailed': 'Search failed',
