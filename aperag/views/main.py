@@ -33,6 +33,8 @@ from ninja import File, Router, Schema
 from ninja.files import UploadedFile
 
 import aperag.chat.message
+from aperag.flow.base.models import Edge, InputBinding, InputSourceType, NodeInstance, FlowInstance
+from aperag.flow.engine import FlowEngine
 import aperag.views.models
 from aperag.apps import QuotaType
 from aperag.chat.history.redis import RedisChatMessageHistory
@@ -40,7 +42,7 @@ from aperag.chat.sse.base import ChatRequest, MessageProcessor, logger
 from aperag.chat.sse.frontend_consumer import FrontendFormatter
 from aperag.chat.utils import get_async_redis_client
 from aperag.db import models as db_models
-from aperag.db.models import Chat
+from aperag.db.models import Chat, SearchTestHistory
 from aperag.db.ops import (
     build_pq,
     query_bot,
@@ -1230,3 +1232,166 @@ async def frontend_chat_completions(request: HttpRequest):
             json.dumps(FrontendFormatter.format_error(str(e))),
             content_type="application/json"
         )
+
+@router.post("/collections/{collection_id}/searchTests")
+async def create_search_test(request, collection_id: str, data: view_models.SearchTestRequest) -> view_models.SearchTestResult:
+    """
+    Search test API, dynamically build flow according to search_type and execute.
+    """
+    user = get_user(request)
+    collection = await query_collection(user, collection_id)
+    if not collection:
+        return fail(404, "Collection not found")
+    # Build nodes and edges according to search_type
+    nodes = {}
+    edges = []
+    query = data.query
+    flow_id = str(uuid.uuid4())
+    if data.search_type == "vector":
+        # Only vector_search node
+        node_id = "vector_search"
+        nodes[node_id] = NodeInstance(
+            id=node_id,
+            type="vector_search",
+            vars=[
+                InputBinding(name="query", source_type=InputSourceType.STATIC, value=query),
+                InputBinding(name="top_k", source_type=InputSourceType.STATIC, value=(data.vector_search.topk if data.vector_search else 5)),
+                InputBinding(name="similarity_threshold", source_type=InputSourceType.STATIC, value=(data.vector_search.similarity if data.vector_search else 0.7)),
+            ]
+        )
+        output_node = node_id
+    elif data.search_type == "fulltext":
+        # Only keyword_search node
+        node_id = "keyword_search"
+        nodes[node_id] = NodeInstance(
+            id=node_id,
+            type="keyword_search",
+            vars=[
+                InputBinding(name="query", source_type=InputSourceType.STATIC, value=query),
+            ]
+        )
+        output_node = node_id
+    elif data.search_type == "hybrid":
+        # vector_search -> merge
+        nodes["vector_search"] = NodeInstance(
+            id="vector_search",
+            type="vector_search",
+            vars=[
+                InputBinding(name="query", source_type=InputSourceType.STATIC, value=query),
+                InputBinding(name="top_k", source_type=InputSourceType.STATIC, value=(data.vector_search.topk if data.vector_search else 5)),
+                InputBinding(name="similarity_threshold", source_type=InputSourceType.STATIC, value=(data.vector_search.similarity if data.vector_search else 0.7)),
+            ]
+        )
+        nodes["keyword_search"] = NodeInstance(
+            id="keyword_search",
+            type="keyword_search",
+            vars=[
+                InputBinding(name="query", source_type=InputSourceType.STATIC, value=query),
+            ]
+        )
+        nodes["merge"] = NodeInstance(
+            id="merge",
+            type="merge",
+            vars=[
+                InputBinding(name="merge_strategy", source_type=InputSourceType.STATIC, value="union"),
+                InputBinding(name="deduplicate", source_type=InputSourceType.STATIC, value=True),
+                InputBinding(name="vector_search_docs", source_type=InputSourceType.DYNAMIC, ref_node="vector_search", ref_field="vector_search_docs"),
+                InputBinding(name="keyword_search_docs", source_type=InputSourceType.DYNAMIC, ref_node="keyword_search", ref_field="keyword_search_docs"),
+            ]
+        )
+        edges = [
+            Edge(source="vector_search", target="merge"),
+            Edge(source="keyword_search", target="merge"),
+        ]
+        output_node = "merge"
+    else:
+        return fail(400, "Invalid search_type")
+
+    flow = FlowInstance(
+        id=flow_id,
+        name=f"search_test_{data.search_type}",
+        nodes=nodes,
+        edges=edges,
+    )
+    engine = FlowEngine()
+    initial_data = {
+        "query": query,
+        "collection": collection
+    }
+    result = await engine.execute_flow(flow, initial_data)
+    if not result:
+        return fail(400, "Failed to execute flow")
+
+    output_nodes = engine.find_output_nodes(flow)
+    if not output_nodes:
+        return fail(400, "No output node found")
+    # Extract docs from output node
+    output_node = output_nodes[0]
+    docs = []
+    if data.search_type == "vector":
+        docs = result.get(output_node, {}).get("vector_search_docs", [])
+    elif data.search_type == "fulltext":
+        docs = result.get(output_node, {}).get("keyword_search_docs", [])
+    elif data.search_type == "hybrid":
+        docs = result.get(output_node, {}).get("docs", [])
+    # Convert docs to SearchTestResult
+    items = []
+    for idx, doc in enumerate(docs):
+        items.append(view_models.SearchTestResultItem(
+            rank=idx+1,
+            score=doc.score,
+            content=doc.text,
+            source=doc.metadata.get("source", "")
+        ))
+    record = await SearchTestHistory.objects.acreate(
+        user=user,
+        query=data.query,
+        collection_id=collection_id,
+        search_type=data.search_type,
+        vector_search=data.vector_search.dict() if data.vector_search else None,
+        fulltext_search=data.fulltext_search.dict() if data.fulltext_search else None,
+        items=[item.dict() for item in items]
+    )
+    result = view_models.SearchTestResult(
+        id=record.id,
+        query=record.query,
+        search_type=record.search_type,
+        vector_search=record.vector_search,
+        fulltext_search=record.fulltext_search,
+        items=items,
+        created=record.gmt_created.isoformat(),
+    )
+    return success(result)
+
+
+@router.delete("/collections/{collection_id}/searchTests/{search_test_id}")
+async def delete_search_test(request, collection_id: str, search_test_id: str):
+    user = get_user(request)
+    await SearchTestHistory.objects.filter(user=user, id=search_test_id, collection_id=collection_id, gmt_deleted__isnull=True).aupdate(gmt_deleted=timezone.now())
+    return success({})
+
+@router.get("/collections/{collection_id}/searchTests")
+async def list_search_tests(request, collection_id: str) -> view_models.SearchTestResultList:
+    user = get_user(request)
+    qs = SearchTestHistory.objects.filter(user=user, collection_id=collection_id, gmt_deleted__isnull=True).order_by("-gmt_created")[:50]
+    resultList = []
+    async for record in qs:
+        items = []
+        for item in record.items:
+            items.append(view_models.SearchTestResultItem(
+                rank=item["rank"],
+                score=item["score"],
+                content=item["content"],
+                source=item["source"],
+            ))
+        result = view_models.SearchTestResult(
+            id=record.id,
+            query=record.query,
+            search_type=record.search_type,
+            vector_search=record.vector_search,
+            fulltext_search=record.fulltext_search,
+            items=items,
+            created=record.gmt_created.isoformat(),
+        )
+        resultList.append(result)
+    return success(view_models.SearchTestResultList(items=resultList))
