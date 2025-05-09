@@ -1,15 +1,7 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import {
-  ApeEdge,
-  ApeEdgeTypes,
-  ApeFlow,
-  ApeLayoutDirection,
-  ApeNode,
-  ApeNodeHandlePosition,
-} from '@/types';
+import { ApeLayoutDirection } from '@/types';
 import { stringifyConfig } from '@/utils';
-import Dagre from '@dagrejs/dagre';
 import {
   addEdge,
   applyEdgeChanges,
@@ -26,14 +18,13 @@ import {
   OnNodesDelete,
   OnSelectionChangeFunc,
   Panel,
-  Position,
   ReactFlow,
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button, Divider, GlobalToken, Space, theme, Tooltip } from 'antd';
 import alpha from 'color-alpha';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   BsArrowsExpand,
   BsArrowsExpandVertical,
@@ -44,7 +35,7 @@ import {
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
-import { v4 as uuidV4 } from 'uuid';
+
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
 
@@ -93,203 +84,23 @@ export const StyledReactFlow = styled(ReactFlow).withConfig({
   }}
 `;
 
-const getNodeHandlePositions = (
-  direction: ApeLayoutDirection | undefined = 'LR',
-): ApeNodeHandlePosition => {
-  const positions: ApeNodeHandlePosition = {};
-  switch (direction) {
-    case 'TB':
-      Object.assign(positions, {
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-      });
-      break;
-    case 'LR':
-      Object.assign(positions, {
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-      });
-      break;
-  }
-  return positions;
-};
-
-const getLayoutedElements = (
-  nodes: ApeNode[],
-  edges: ApeEdge[],
-  options: { direction: ApeLayoutDirection },
-): {
-  nodes: ApeNode[];
-  edges: ApeEdge[];
-} => {
-  const direction = options.direction;
-  const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  g.setGraph({
-    rankdir: direction,
-    nodesep: 60,
-    ranksep: 100,
-  });
-  edges.forEach((edge) => g.setEdge(edge.source, edge.target));
-  nodes.forEach((node) => {
-    g.setNode(node.id, {
-      ...node,
-      width: node.measured?.width ?? 0,
-      height: node.measured?.height ?? 0,
-    });
-  });
-  Dagre.layout(g);
-  return {
-    nodes: nodes.map((node) => {
-      const position = g.node(node.id);
-      // We are shifting the dagre node position (anchor=center center) to the top left
-      // so it matches the React Flow node anchor point (top left).
-      const x = position.x - (node.measured?.width ?? 0) / 2;
-      const y = position.y - (node.measured?.height ?? 0) / 2;
-      return {
-        ...node,
-        position: { x, y },
-        ...getNodeHandlePositions(direction),
-      };
-    }),
-    edges,
-  };
-};
-
-const getEdgeId = (sourceId: string, targetId: string): string =>
-  `${sourceId}|${targetId}`;
-
-const getInitialData = (): ApeFlow => {
-  const globalId = uuidV4();
-  const vectorSearchId = uuidV4();
-  const keywordSearchId = uuidV4();
-  const mergeId = uuidV4();
-  const rerankId = uuidV4();
-  const llmId = uuidV4();
-  return {
-    edgeType: 'default',
-    layoutDirection: 'LR',
-    nodes: [
-      {
-        id: globalId,
-        type: 'global',
-        data: {
-          vars: [],
-        },
-        position: { x: 100, y: 300 },
-        deletable: false,
-      },
-      {
-        id: vectorSearchId,
-        data: {},
-        position: { x: 400, y: 200 },
-        type: 'vector_search',
-      },
-      {
-        id: keywordSearchId,
-        type: 'keyword_search',
-        data: {},
-        position: { x: 400, y: 400 },
-      },
-      {
-        id: mergeId,
-        type: 'merge',
-        data: {},
-        position: { x: 700, y: 300 },
-      },
-      {
-        id: rerankId,
-        type: 'rerank',
-        data: {},
-        position: { x: 1000, y: 300 },
-      },
-      {
-        id: llmId,
-        type: 'llm',
-        data: {},
-        position: { x: 1300, y: 300 },
-      },
-    ],
-    edges: [
-      {
-        id: getEdgeId(globalId, vectorSearchId),
-        source: globalId,
-        target: vectorSearchId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(globalId, keywordSearchId),
-        source: globalId,
-        target: keywordSearchId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(vectorSearchId, mergeId),
-        source: vectorSearchId,
-        target: mergeId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(keywordSearchId, mergeId),
-        source: keywordSearchId,
-        target: mergeId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(globalId, vectorSearchId),
-        source: globalId,
-        target: vectorSearchId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(globalId, keywordSearchId),
-        source: globalId,
-        target: keywordSearchId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(vectorSearchId, mergeId),
-        source: vectorSearchId,
-        target: mergeId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(keywordSearchId, mergeId),
-        source: keywordSearchId,
-        target: mergeId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(mergeId, rerankId),
-        source: mergeId,
-        target: rerankId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(mergeId, rerankId),
-        source: mergeId,
-        target: rerankId,
-        type: 'default',
-      },
-      {
-        id: getEdgeId(rerankId, llmId),
-        source: rerankId,
-        target: llmId,
-        type: 'default',
-      },
-    ],
-  };
-};
-
 export default () => {
   const { themeName } = useModel('global');
   const { bot, getBot } = useModel('bot');
+  const {
+    nodes,
+    edges,
+    setEdges,
+    setNodes,
+    edgeType,
+    setEdgeType,
+    layoutDirection,
+    setLayoutDirection,
 
-  const [nodes, setNodes] = useState<ApeNode[]>([]);
-  const [edges, setEdges] = useState<ApeEdge[]>([]);
-
-  const [edgeType, setEdgeType] = useState<ApeEdgeTypes>('default');
-  const [layoutDirection, setLayoutDirection] =
-    useState<ApeLayoutDirection>('LR');
+    getEdgeId,
+    getLayoutedElements,
+    getInitialData,
+  } = useModel('bots.$botId.flow.model');
 
   const { fitView } = useReactFlow();
 
@@ -411,7 +222,7 @@ export default () => {
 
   // remove react flow attribution
   useEffect(() => {
-    setCenterView();
+    // setCenterView();
     Array.from(
       document.getElementsByClassName('react-flow__attribution'),
     ).forEach((item) => item.remove());
