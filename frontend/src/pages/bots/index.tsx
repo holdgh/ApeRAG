@@ -1,9 +1,7 @@
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { MODEL_PROVIDER_ICON } from '@/constants';
-import { api } from '@/services';
 import { getProviderByModelName } from '@/utils';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useRequest } from 'ahooks';
 import {
   Avatar,
   Button,
@@ -35,12 +33,7 @@ export default () => {
   const { token } = theme.useToken();
   const { bots, botsLoading, getBots } = useModel('bot');
   const { formatMessage } = useIntl();
-  const { data: availableModelsGetRes } = useRequest(api.availableModelsGet);
-
-  const availableModels = useMemo(
-    () => availableModelsGetRes?.data.items || [],
-    [availableModelsGetRes],
-  );
+  const { availableModels } = useModel('models');
 
   const _bots = useMemo(
     () =>

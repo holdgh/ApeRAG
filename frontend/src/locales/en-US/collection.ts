@@ -37,11 +37,9 @@ export const collection = {
     'The collection "{name}" will be deleted, confirm the current operation.',
   'collection.enable_knowledge_graph': 'Enable Graph RAG',
   'collection.embedding_model': 'Embedding Model',
-  'collection.embedding_model_not_found':
+  'collection.model_not_found':
     'Please set the API Key in Settings -> Model Provider',
   'collection.embedding_model.required': 'Embedding Model is required',
   'collection.lightrag_model': 'Light RAG Model',
-  'collection.lightrag_model_not_found':
-    'Please set the API Key in Settings -> Model Provider',
   'collection.lightrag_model.required': 'Light RAG Model is required',
 };

@@ -34,9 +34,8 @@ export const collection = {
   'collection.delete.confirm': '知识库 "{name}" 将会被删除，确定此操作吗？',
   'collection.enable_knowledge_graph': '启用Graph RAG',
   'collection.embedding_model': '嵌入模型',
-  'collection.embedding_model_not_found': '请在设置 -> 模型服务商中设置API Key',
+  'collection.model_not_found': '请在设置 -> 模型服务商中设置API Key',
   'collection.embedding_model.required': '请选择嵌入模型',
   'collection.lightrag_model': 'Light RAG模型',
-  'collection.lightrag_model_not_found': '请在设置 -> 模型服务商中设置API Key',
   'collection.lightrag_model.required': '请选择Light RAG模型',
 };

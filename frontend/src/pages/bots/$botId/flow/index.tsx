@@ -187,7 +187,7 @@ export default () => {
   // flow actions
   const setCenterView = useCallback(() => {
     setTimeout(() => {
-      fitView({ duration: 300, minZoom: 1, maxZoom: 1 });
+      fitView({ duration: 300, maxZoom: 1 });
     }, 10);
   }, []);
 
@@ -206,7 +206,7 @@ export default () => {
 
   // remove react flow attribution
   useEffect(() => {
-    // setCenterView();
+    setCenterView();
     Array.from(
       document.getElementsByClassName('react-flow__attribution'),
     ).forEach((item) => item.remove());

@@ -130,9 +130,13 @@ const getInitialData = (): ApeFlow => {
         id: keywordSearchId,
         type: 'keyword_search',
         data: {
-          name: 'query',
-          source_type: 'global',
-          global_var: 'query',
+          vars: [
+            {
+              name: 'query',
+              source_type: 'global',
+              global_var: 'query',
+            },
+          ],
         },
         position: { x: 400, y: 400 },
         dragHandle: '.drag-handle',

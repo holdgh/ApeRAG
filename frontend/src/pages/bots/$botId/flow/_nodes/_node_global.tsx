@@ -1,11 +1,14 @@
 import { ApeNode, ApeNodeVars } from '@/types';
-import Icon, {
+import {
+  CaretRightOutlined,
   DeleteOutlined,
+  PlusOutlined,
   QuestionCircleOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import {
   Button,
+  Collapse,
   Space,
   Table,
   TableProps,
@@ -14,8 +17,8 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
-import { TbVariable } from 'react-icons/tb';
 import { FormattedMessage, useIntl } from 'umi';
+import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -23,19 +26,15 @@ export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
 
   const columns: TableProps<ApeNodeVars>['columns'] = [
     {
-      title: (
-        <div style={{ fontSize: 12 }}>
-          {formatMessage({ id: 'flow.variable.title' })}
-        </div>
-      ),
+      title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'name',
       render: (value, record) => {
         return (
           <Space>
-            <Typography.Text style={{ fontSize: 12 }}>{value}</Typography.Text>
+            <Typography.Text>{value}</Typography.Text>
             {record.description && (
               <Tooltip title={record.description}>
-                <Typography.Text style={{ fontSize: 12 }} type="secondary">
+                <Typography.Text type="secondary">
                   <QuestionCircleOutlined />
                 </Typography.Text>
               </Tooltip>
@@ -45,20 +44,12 @@ export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
       },
     },
     {
-      title: (
-        <div style={{ fontSize: 12 }}>
-          {formatMessage({ id: 'flow.variable.type' })}
-        </div>
-      ),
+      title: formatMessage({ id: 'flow.variable.type' }),
       dataIndex: 'type',
       render: (value) => <Tag color={token.colorPrimary}>{value}</Tag>,
     },
     {
-      title: (
-        <div style={{ fontSize: 12 }}>
-          {formatMessage({ id: 'action.name' })}
-        </div>
-      ),
+      title: formatMessage({ id: 'action.name' }),
       width: 60,
       render: (value, record) => {
         return (
@@ -82,32 +73,41 @@ export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
   ];
 
   return (
-    <>
-      <Space
-        style={{
-          display: 'flex',
-          marginBottom: 8,
-          justifyContent: 'space-between',
-        }}
-      >
-        <Space>
-          <Icon viewBox="0 0 14 14" style={{ color: token.blue }}>
-            <TbVariable />
-          </Icon>
-          <Typography>全局变量</Typography>
-        </Space>
-        <Button disabled type="text" size="small" style={{ fontSize: 12 }}>
-          <FormattedMessage id="action.add" />
-        </Button>
-      </Space>
-      <Table
-        rowKey="name"
-        pagination={false}
-        size="small"
-        bordered
-        columns={columns}
-        dataSource={node.data.vars}
-      />
-    </>
+    <Collapse
+      bordered={false}
+      expandIcon={({ isActive }) => {
+        return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
+      }}
+      size="middle"
+      defaultActiveKey={['1']}
+      style={{ background: 'none' }}
+      items={[
+        {
+          key: '1',
+          label: formatMessage({ id: 'flow.variable.global' }),
+          style: getCollapsePanelStyle(token),
+          extra: (
+            <Tooltip title={<FormattedMessage id="action.add" />}>
+              <Button
+                disabled
+                type="link"
+                size="small"
+                icon={<PlusOutlined />}
+              />
+            </Tooltip>
+          ),
+          children: (
+            <Table
+              rowKey="name"
+              pagination={false}
+              size="small"
+              bordered
+              columns={columns}
+              dataSource={node.data.vars}
+            />
+          ),
+        },
+      ]}
+    />
   );
 };
