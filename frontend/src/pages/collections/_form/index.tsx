@@ -1,12 +1,7 @@
 import { Collection } from '@/api';
-import { ApeMarkdown, CheckCard } from '@/components';
-import {
-  COLLECTION_SOURCE,
-  COLLECTION_SOURCE_EMAIL,
-  MODEL_PROVIDER_ICON,
-} from '@/constants';
+import { ApeMarkdown, CheckCard, ModelSelect } from '@/components';
+import { COLLECTION_SOURCE, COLLECTION_SOURCE_EMAIL } from '@/constants';
 import { api } from '@/services';
-import { UndrawEmpty } from 'react-undraw-illustrations';
 
 import { CollectionConfigSource, CollectionEmailSource } from '@/types';
 import { getProviderByModelName } from '@/utils';
@@ -24,10 +19,8 @@ import {
   Radio,
   Row,
   Segmented,
-  Select,
   Space,
   Switch,
-  theme,
   Typography,
 } from 'antd';
 import _ from 'lodash';
@@ -83,8 +76,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
     api.availableModelsGet,
   );
   const { formatMessage } = useIntl();
-  const { token } = theme.useToken();
-
   const availableModels = useMemo(
     () => availableModelsGetRes?.data.items || [],
     [availableModelsGetRes],
@@ -104,10 +95,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
   );
   const sensitiveProtect = Form.useWatch(configSensitiveProtectKey, form);
   const embeddingModel = Form.useWatch(configEmbeddingModelKey, form);
-  const embeddingModelServiceProvider = Form.useWatch(
-    configEmbeddingModelServiceProviderKey,
-    form,
-  );
 
   const enableKnowledgeGraph = Form.useWatch(
     configEnableKnowledgeGraphKey,
@@ -115,66 +102,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
   );
 
   const completionModel = Form.useWatch(configCompletionModelKey, form);
-  const completionModelServiceProvider = Form.useWatch(
-    configCompletionModelServiceProviderKey,
-    form,
-  );
-
-  // embedding model options
-  const embeddingModelOptions = useMemo(
-    () =>
-      _.map(availableModels, (provider) => {
-        return {
-          label: (
-            <Space>
-              <Avatar
-                size={24}
-                shape="square"
-                src={
-                  provider.name ? MODEL_PROVIDER_ICON[provider.name] : undefined
-                }
-              />
-              <span>{provider.label || provider.name}</span>
-            </Space>
-          ),
-          options: provider.embedding?.map((item) => {
-            return {
-              label: item.model,
-              value: item.model,
-            };
-          }),
-        };
-      }),
-    [availableModels],
-  );
-
-  // completion model options
-  const completionModelsOptions = useMemo(
-    () =>
-      _.map(availableModels, (provider) => {
-        return {
-          label: (
-            <Space>
-              <Avatar
-                size={24}
-                shape="square"
-                src={
-                  provider.name ? MODEL_PROVIDER_ICON[provider.name] : undefined
-                }
-              />
-              <span>{provider.label || provider.name}</span>
-            </Space>
-          ),
-          options: provider.completion?.map((item: any) => {
-            return {
-              label: item.model,
-              value: item.model,
-            };
-          }),
-        };
-      }),
-    [availableModels],
-  );
 
   useEffect(() => {
     if (embeddingModel) {
@@ -284,43 +211,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
               className="form-item-wrap"
               label={formatMessage({ id: 'collection.embedding_model' })}
             >
-              <Select
-                options={embeddingModelOptions}
-                disabled={action === 'edit'}
-                labelRender={({ label, value }) => {
-                  return (
-                    <Space style={{ alignItems: 'center' }}>
-                      <Avatar
-                        size={24}
-                        shape="square"
-                        src={MODEL_PROVIDER_ICON[embeddingModelServiceProvider]}
-                        style={{
-                          transform: 'translateY(-1px)',
-                        }}
-                      />
-                      {label || value}
-                    </Space>
-                  );
-                }}
-                notFoundContent={
-                  <Space
-                    direction="vertical"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBlock: 24,
-                    }}
-                  >
-                    <UndrawEmpty
-                      primaryColor={token.colorPrimary}
-                      height="80px"
-                    />
-                    <Typography.Text type="secondary">
-                      <FormattedMessage id="collection.embedding_model_not_found" />
-                    </Typography.Text>
-                  </Space>
-                }
-              />
+              <ModelSelect model="embedding" disabled={action === 'edit'} />
             </Form.Item>
 
             <Form.Item name={configEmbeddingModelServiceProviderKey} hidden>
@@ -367,44 +258,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
                 },
               ]}
             >
-              <Select
-                options={completionModelsOptions}
-                labelRender={({ label, value }) => {
-                  return (
-                    <Space style={{ alignItems: 'center' }}>
-                      <Avatar
-                        size={24}
-                        shape="square"
-                        src={
-                          MODEL_PROVIDER_ICON[completionModelServiceProvider]
-                        }
-                        style={{
-                          transform: 'translateY(-1px)',
-                        }}
-                      />
-                      {label || value}
-                    </Space>
-                  );
-                }}
-                notFoundContent={
-                  <Space
-                    direction="vertical"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBlock: 24,
-                    }}
-                  >
-                    <UndrawEmpty
-                      primaryColor={token.colorPrimary}
-                      height="80px"
-                    />
-                    <Typography.Text type="secondary">
-                      <FormattedMessage id="collection.lightrag_model_not_found" />
-                    </Typography.Text>
-                  </Space>
-                }
-              />
+              <ModelSelect model="completion" />
             </Form.Item>
             <Form.Item name={configCompletionModelServiceProviderKey} hidden>
               <Input hidden />

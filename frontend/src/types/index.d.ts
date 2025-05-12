@@ -31,6 +31,12 @@ export type ApeNodeVars = {
   description?: string;
 
   value?: number | string | boolean;
+
+  global_var?: string;
+  source_type?: 'dynamic' | 'global';
+
+  ref_node?: string;
+  ref_field?: string;
 };
 
 export type ApeNode = Node & {

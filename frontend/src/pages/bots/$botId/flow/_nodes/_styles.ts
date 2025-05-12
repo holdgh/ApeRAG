@@ -118,11 +118,11 @@ export const StyledFlowNodeHeader = styled('div').withConfig({
 `;
 
 export const StyledFlowNodeBody = styled('div').withConfig({
-  shouldForwardProp: (prop) => !['collapsed'].includes(prop),
-})<{ collapsed: boolean }>`
+  shouldForwardProp: (prop) => !['collapsed', 'token'].includes(prop),
+})<{ collapsed: boolean; token: GlobalToken }>`
   ${({ collapsed }) => {
     return css`
-      padding: 12px;
+      margin: 12px;
       display: ${collapsed ? 'none' : 'block'};
     `;
   }}
@@ -160,3 +160,27 @@ export const StyledFlowNodeLabel = styled(Typography.Text).withConfig({
     `;
   }}
 `;
+
+export const StyledFlowNodeSection = styled('section').withConfig({
+  shouldForwardProp: (prop) => !['token'].includes(prop),
+})<{
+  token: GlobalToken;
+}>`
+  ${({ token }) => {
+    return css`
+      padding: 12px;
+      background: ${token.colorBgLayout};
+      border-radius: 8px;
+      margin-bottom: 12px;
+    `;
+  }}
+`;
+
+export const getCollapsePanelStyle = (
+  token: GlobalToken,
+): React.CSSProperties => ({
+  marginBottom: 12,
+  background: token.colorBgLayout, // token.colorFillAlter,
+  borderRadius: token.borderRadiusLG,
+  border: 'none',
+});

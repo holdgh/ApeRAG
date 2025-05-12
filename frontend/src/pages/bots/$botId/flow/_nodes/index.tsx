@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
-import { Button, Form, Input, Modal, Space, theme } from 'antd';
+import { Button, ConfigProvider, Form, Input, Modal, Space, theme } from 'antd';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useIntl, useModel } from 'umi';
 import { ApeNodeGlobal } from './_node_global';
@@ -28,6 +28,9 @@ import {
   StyledFlowNodeHeader,
   StyledFlowNodeLabel,
 } from './_styles';
+const { darkAlgorithm, defaultAlgorithm } = theme;
+
+import { CSS_PREFIX, THEME_TOKENS } from '@/constants';
 
 type NodeConfig = {
   [key in ApeNodeType]: {
@@ -44,9 +47,17 @@ type NodeConfig = {
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
   const { nodes, setNodes } = useModel('bots.$botId.flow.model');
-
+  const { themeName } = useModel('global');
+  const algorithm = useMemo(
+    () => (themeName.includes('dark') ? darkAlgorithm : defaultAlgorithm),
+    [themeName],
+  );
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
+  const tokens = useMemo(
+    () => ({ ...THEME_TOKENS[themeName], fontSize: 12 }),
+    [themeName],
+  );
 
   const [form] = Form.useForm<{ ariaLabel: string }>();
 
@@ -72,7 +83,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color: token.orange,
         icon: <InteractionOutlined />,
         content: <ApeNodeVectorSearch node={node} />,
-        width: 320,
+        width: 360,
         label:
           originNode?.ariaLabel ||
           formatMessage({ id: 'flow.node.type.vector_search' }),
@@ -81,6 +92,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color: token.volcano,
         icon: <ReadOutlined />,
         content: <ApeNodeKeywordSearch node={node} />,
+        width: 360,
         label:
           originNode?.ariaLabel ||
           formatMessage({ id: 'flow.node.type.keyword_search' }),
@@ -97,6 +109,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color: token.magenta,
         icon: <FunnelPlotOutlined />,
         content: <ApeNodeRerank node={node} />,
+        width: 260,
         label:
           originNode?.ariaLabel ||
           formatMessage({ id: 'flow.node.type.rerank' }),
@@ -105,6 +118,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color: token.blue,
         icon: <WechatWorkOutlined />,
         content: <ApeNodeLlm node={node} />,
+        width: 320,
         label:
           originNode?.ariaLabel || formatMessage({ id: 'flow.node.type.llm' }),
         disableCollectionSource: true,
@@ -178,6 +192,7 @@ const ApeBasicNode = (node: ApeNode) => {
             position={node.targetPosition || Position.Left}
           />
         )}
+
         <StyledFlowNode style={{ width: config.width }}>
           <StyledFlowNodeHeader token={token} className="drag-handle">
             <Space>
@@ -203,7 +218,6 @@ const ApeBasicNode = (node: ApeNode) => {
                 icon={
                   <CaretDownOutlined
                     style={{
-                      color: token.colorTextTertiary,
                       fontSize: '0.8em',
                       transform: `rotate(${collapsed ? -90 : 0}deg)`,
                       transitionDuration: '0.3s',
@@ -213,8 +227,16 @@ const ApeBasicNode = (node: ApeNode) => {
               />
             </Space>
           </StyledFlowNodeHeader>
-          <StyledFlowNodeBody collapsed={collapsed}>
-            {config.content}
+          <StyledFlowNodeBody token={token} collapsed={collapsed}>
+            <ConfigProvider
+              prefixCls={CSS_PREFIX}
+              theme={{
+                algorithm,
+                token: tokens,
+              }}
+            >
+              {config.content}
+            </ConfigProvider>
           </StyledFlowNodeBody>
         </StyledFlowNode>
 
@@ -247,6 +269,7 @@ const ApeBasicNode = (node: ApeNode) => {
         <BiFilter style={{ transform: 'rotate(-45deg)' }} />
       </NodeResizeControl> */}
       </StyledFlowNodeContainer>
+
       <Modal
         title={formatMessage({ id: 'flow.node.custom_label' })}
         open={labelModalVisible}

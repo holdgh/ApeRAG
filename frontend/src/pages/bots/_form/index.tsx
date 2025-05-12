@@ -1,11 +1,9 @@
 import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
-import { CheckCard, RefreshButton } from '@/components';
+import { CheckCard, ModelSelect, RefreshButton } from '@/components';
 import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
-import { api } from '@/services';
 import { ApeBot } from '@/types';
 import { getProviderByModelName } from '@/utils';
-import { useRequest } from 'ahooks';
 import {
   Avatar,
   Badge,
@@ -39,16 +37,9 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const { formatMessage } = useIntl();
   const { collections, collectionsLoading, getCollections } =
     useModel('collection');
-  const { promptTemplates, getPromptTemplates } = useModel('models');
+  const { availableModels, promptTemplates, getPromptTemplates } =
+    useModel('models');
   const { loading } = useModel('global');
-
-  const { data: availableModelsGetRes } = useRequest(api.availableModelsGet);
-
-  const availableModels = useMemo(
-    () => availableModelsGetRes?.data.items || [],
-    [availableModelsGetRes],
-  );
-
   const { token } = theme.useToken();
 
   const onFinish = async () => {
@@ -56,36 +47,9 @@ export default ({ form, onSubmit, values, action }: Props) => {
     onSubmit(data);
   };
 
-  const completionModelOptions = useMemo(
-    () =>
-      _.map(availableModels, (provider) => {
-        return {
-          label: (
-            <Space>
-              <Avatar
-                size={24}
-                shape="square"
-                src={
-                  provider.name ? MODEL_PROVIDER_ICON[provider.name] : undefined
-                }
-              />
-              <span>{provider.label || provider.name}</span>
-            </Space>
-          ),
-          options: provider.completion?.map((model: any) => {
-            return {
-              label: model.model,
-              value: `${provider.name}:${model.model}`,
-            };
-          }),
-        };
-      }),
-    [availableModels],
-  );
-
   const botType = Form.useWatch(['type'], form);
   const botChractor = Form.useWatch(['config', 'chractor'], form);
-  const botModel = Form.useWatch(['config', 'model'], form);
+  const botModelName = Form.useWatch(['config', 'model_name'], form);
   const botMemory = Form.useWatch(['config', 'memory'], form);
   const botUseRelatedQuestion = Form.useWatch(
     ['config', 'use_related_question'],
@@ -94,12 +58,12 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
   const currentModel = useMemo(() => {
     const { model } = getProviderByModelName(
-      botModel,
+      botModelName,
       'completion',
       availableModels,
     );
     return model;
-  }, [botModel, availableModels]);
+  }, [botModelName, availableModels]);
 
   const currentPromptTemplate = useMemo(() => {
     return promptTemplates?.find((m) => m.prompt === botChractor);
@@ -123,7 +87,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
       ? llm?.similarity_score_threshold
       : 0.5;
 
-    if (botModel !== config?.model) {
+    if (botModelName !== config?.model) {
       memory = false;
       contextWindow = 3500;
       temperature = _.isNumber(currentModel?.temperature)
@@ -133,7 +97,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
       similarityScoreThreshold = 0.5;
     }
 
-    if (botType === 'knowledge' && botModel !== config?.model) {
+    if (botType === 'knowledge' && botModelName !== config?.model) {
       template = currentModel?.prompt_template;
     }
     if (botType === 'common' && botChractor !== config?.charactor) {
@@ -160,18 +124,16 @@ export default ({ form, onSubmit, values, action }: Props) => {
   }, [collections]);
 
   useEffect(() => {
-    if (botModel) {
-      const [model_service_provider, ...modelNameParts] = botModel.split(':');
-      const model_name = modelNameParts.join(':');
-      console.log('model_service_provider', model_service_provider);
-      console.log('model_name', model_name);
-      form.setFieldValue(
-        ['config', 'model_service_provider'],
-        model_service_provider,
+    if (botModelName) {
+      const { provider } = getProviderByModelName(
+        botModelName,
+        'completion',
+        availableModels,
       );
-      form.setFieldValue(['config', 'model_name'], model_name);
+      form.setFieldValue(['config', 'model_service_provider'], provider?.name);
+      form.setFieldValue(['config', 'model_name'], botModelName);
     }
-  }, [botModel]);
+  }, [botModelName]);
 
   useEffect(() => {
     getCollections();
@@ -239,7 +201,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
             }}
           >
             <Form.Item
-              name={['config', 'model']}
+              name={['config', 'model_name']}
               label={<FormattedMessage id="model.name" />}
               rules={[
                 {
@@ -248,27 +210,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
                 },
               ]}
             >
-              <Select
-                options={completionModelOptions}
-                labelRender={({ label, value }) => {
-                  const [model_service_provider, model_name] = (
-                    value as string
-                  ).split(':');
-                  return (
-                    <Space style={{ alignItems: 'center' }}>
-                      <Avatar
-                        size={24}
-                        shape="square"
-                        src={MODEL_PROVIDER_ICON[model_service_provider]}
-                        style={{
-                          transform: 'translateY(-1px)',
-                        }}
-                      />
-                      {label || model_name}
-                    </Space>
-                  );
-                }}
-              />
+              <ModelSelect model="completion" />
             </Form.Item>
           </Col>
           <Col
@@ -345,9 +287,11 @@ export default ({ form, onSubmit, values, action }: Props) => {
                           <Avatar
                             shape="square"
                             src={
-                              MODEL_PROVIDER_ICON[
-                                embedding_model_service_provider
-                              ]
+                              embedding_model_service_provider
+                                ? MODEL_PROVIDER_ICON[
+                                    embedding_model_service_provider
+                                  ]
+                                : undefined
                             }
                           />
                           <div>
@@ -366,7 +310,11 @@ export default ({ form, onSubmit, values, action }: Props) => {
                                 {embedding_model_name}
                                 <Space>
                                   <Badge
-                                    status={UI_COLLECTION_STATUS[status]}
+                                    status={
+                                      status
+                                        ? UI_COLLECTION_STATUS[status]
+                                        : undefined
+                                    }
                                   />
                                   <FormattedMessage
                                     id={`collection.status.${status}`}
@@ -418,9 +366,6 @@ export default ({ form, onSubmit, values, action }: Props) => {
         </Row>
 
         <Form.Item name={['config', 'model_service_provider']} hidden>
-          <Input type="hidden" />
-        </Form.Item>
-        <Form.Item name={['config', 'model_name']} hidden>
           <Input type="hidden" />
         </Form.Item>
 

@@ -1,10 +1,26 @@
-import { ApeNode } from '@/types';
-import Icon, { MergeCellsOutlined } from '@ant-design/icons';
+import { ApeNode, ApeNodeVars } from '@/types';
+import {
+  CaretRightOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import { Button, Form, Slider, Space, theme, Typography } from 'antd';
+import {
+  Button,
+  Collapse,
+  Form,
+  Slider,
+  Space,
+  Table,
+  TableProps,
+  theme,
+  Tooltip,
+} from 'antd';
+import _ from 'lodash';
 import { useEffect, useMemo } from 'react';
-import { LuTextSearch } from 'react-icons/lu';
-import { FormattedMessage, useModel } from 'umi';
+import { FormattedMessage, useIntl, useModel } from 'umi';
+import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
   top_k: number;
@@ -14,9 +30,41 @@ type VarType = {
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { nodes, setNodes } = useModel('bots.$botId.flow.model');
+  const { formatMessage } = useIntl();
+
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
 
   const [form] = Form.useForm<VarType>();
+
+  const columns: TableProps<ApeNodeVars>['columns'] = [
+    {
+      title: formatMessage({ id: 'flow.variable.title' }),
+      dataIndex: 'name',
+    },
+    {
+      title: formatMessage({ id: 'flow.variable.source_type' }),
+      dataIndex: 'source_type',
+    },
+    {
+      title: formatMessage({ id: 'flow.variable.value' }),
+      dataIndex: 'global_var',
+    },
+    {
+      title: formatMessage({ id: 'action.name' }),
+      width: 60,
+      render: () => {
+        return (
+          <Space>
+            <Button type="text" size="small" icon={<SettingOutlined />} />
+            <Button type="text" size="small" icon={<DeleteOutlined />} />
+          </Space>
+        );
+      },
+    },
+  ];
+  const records = originNode?.data.vars?.filter(
+    (item) => !_.includes(['top_k', 'similarity_threshold'], item.name),
+  );
 
   const onValuesChange = (changedValues: VarType) => {
     if (!originNode) return;
@@ -52,6 +100,10 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     });
   };
 
+  const onAddParams: React.MouseEventHandler<HTMLElement> = (e) => {
+    e.stopPropagation();
+  };
+
   useEffect(() => {
     const vars = originNode?.data.vars;
     const top_k = Number(vars?.find((item) => item.name === 'top_k')?.value);
@@ -63,58 +115,81 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
 
   return (
     <>
-      <Space
-        style={{
-          display: 'flex',
-          marginBottom: 8,
-          justifyContent: 'space-between',
+      <Collapse
+        bordered={false}
+        expandIcon={({ isActive }) => {
+          return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
         }}
-      >
-        <Space>
-          <Icon viewBox="0 0 14 14" style={{ color: token.blue }}>
-            <LuTextSearch />
-          </Icon>
-          <Typography.Text>检索参数</Typography.Text>
-        </Space>
-      </Space>
-      <Form
-        size="small"
-        form={form}
-        layout="vertical"
-        onValuesChange={onValuesChange}
-      >
-        <Form.Item
-          required
-          style={{ marginBottom: 0 }}
-          label="top_k"
-          name="top_k"
-        >
-          <Slider style={{ margin: 0 }} min={1} max={10} step={1} />
-        </Form.Item>
-        <Form.Item
-          required
-          style={{ marginBottom: 0 }}
-          label="similarity_threshold"
-          name="similarity_threshold"
-        >
-          <Slider style={{ margin: 0 }} min={0.1} max={1} step={0.1} />
-        </Form.Item>
-      </Form>
-      <Space
-        style={{
-          display: 'flex',
-          marginBlock: 8,
-          justifyContent: 'space-between',
-        }}
-      >
-        <Space>
-          <MergeCellsOutlined style={{ color: token.blue }} />
-          <Typography.Text>输入参数</Typography.Text>
-        </Space>
-        <Button type="text" size="small" style={{ fontSize: 12 }}>
-          <FormattedMessage id="action.add" />
-        </Button>
-      </Space>
+        size="middle"
+        defaultActiveKey={['1', '2']}
+        style={{ background: 'none' }}
+        items={[
+          {
+            key: '1',
+            label: formatMessage({ id: 'flow.vector.params' }),
+            style: getCollapsePanelStyle(token),
+            children: (
+              <>
+                <Form
+                  size="small"
+                  form={form}
+                  layout="vertical"
+                  onValuesChange={onValuesChange}
+                  autoComplete="off"
+                >
+                  <Form.Item
+                    required
+                    style={{ marginBottom: 0 }}
+                    label={formatMessage({ id: 'flow.top_k' })}
+                    name="top_k"
+                  >
+                    <Slider style={{ margin: 0 }} min={1} max={10} step={1} />
+                  </Form.Item>
+                  <Form.Item
+                    required
+                    style={{ marginBottom: 0 }}
+                    label={formatMessage({ id: 'flow.similarity_threshold' })}
+                    name="similarity_threshold"
+                  >
+                    <Slider
+                      style={{ margin: 0 }}
+                      min={0.1}
+                      max={1}
+                      step={0.1}
+                    />
+                  </Form.Item>
+                </Form>
+              </>
+            ),
+          },
+          {
+            key: '2',
+            label: formatMessage({ id: 'flow.input.params' }),
+            style: getCollapsePanelStyle(token),
+            extra: (
+              <Tooltip title={<FormattedMessage id="action.add" />}>
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={onAddParams}
+                />
+              </Tooltip>
+            ),
+            children: (
+              <Table
+                rowKey="name"
+                bordered
+                size="small"
+                pagination={false}
+                columns={columns}
+                dataSource={records}
+                style={{ background: token.colorBgContainer }}
+              />
+            ),
+          },
+        ]}
+      />
     </>
   );
 };
