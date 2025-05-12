@@ -5,7 +5,6 @@ import {
   PlusOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import {
   Button,
   Collapse,
@@ -29,7 +28,7 @@ type VarType = {
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes, setNodes } = useModel('bots.$botId.flow.model');
+  const { nodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
@@ -85,19 +84,6 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     ) {
       varSimilarityThreshold.value = changedValues.similarity_threshold;
     }
-
-    setNodes((nds) => {
-      const changes: NodeChange[] = [
-        {
-          id: originNode.id,
-          type: 'replace',
-          item: {
-            ...originNode,
-          },
-        },
-      ];
-      return applyNodeChanges(changes, nds);
-    });
   };
 
   const onAddParams: React.MouseEventHandler<HTMLElement> = (e) => {
@@ -106,9 +92,9 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
 
   useEffect(() => {
     const vars = originNode?.data.vars;
-    const top_k = Number(vars?.find((item) => item.name === 'top_k')?.value);
+    const top_k = Number(vars?.find((item) => item.name === 'top_k')?.value || 5);
     const similarity_threshold = Number(
-      vars?.find((item) => item.name === 'similarity_threshold')?.value,
+      vars?.find((item) => item.name === 'similarity_threshold')?.value || 0.7,
     );
     form.setFieldsValue({ top_k, similarity_threshold });
   }, [originNode]);

@@ -6,7 +6,6 @@ import {
   PlusOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import {
   Button,
   Collapse,
@@ -32,7 +31,7 @@ type VarType = {
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes, setNodes } = useModel('bots.$botId.flow.model');
+  const { nodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
@@ -88,19 +87,6 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     if (varMaxTokens && changedValues.max_tokens !== undefined) {
       varMaxTokens.value = changedValues.max_tokens;
     }
-
-    setNodes((nds) => {
-      const changes: NodeChange[] = [
-        {
-          id: originNode.id,
-          type: 'replace',
-          item: {
-            ...originNode,
-          },
-        },
-      ];
-      return applyNodeChanges(changes, nds);
-    });
   };
 
   const onAddParams: React.MouseEventHandler<HTMLElement> = (e) => {
@@ -113,10 +99,10 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
       originNode?.data.vars?.find((item) => item.name === 'model')?.value,
     );
     const temperature = Number(
-      vars?.find((item) => item.name === 'temperature')?.value,
+      vars?.find((item) => item.name === 'temperature')?.value || 0.7,
     );
     const max_tokens = Number(
-      vars?.find((item) => item.name === 'max_tokens')?.value,
+      vars?.find((item) => item.name === 'max_tokens')?.value || 1000,
     );
     form.setFieldsValue({ model, temperature, max_tokens });
   }, [originNode]);
