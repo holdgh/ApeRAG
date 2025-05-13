@@ -78,11 +78,30 @@ redis-standalone-redis-0   3/3     Running   0          121m
 
 ## Connect
 
+port-forward:
 ```bash
-kubectl port-forward -n demo service/es-cluster-mdit-http 9200:9200
-kubectl port-forward -n demo service/qdrant-cluster-qdrant-qdrant 6333:6333
-kubectl port-forward -n demo service/pg-cluster-postgresql-postgresql 5432:5432
-kubectl port-forward -n demo service/redis-standalone-redis-redis 6379:6379
+echo "Starting Elasticsearch port-forward..."
+kubectl port-forward -n demo service/es-cluster-mdit-http 9200:9200 &
+ES_PID=$!
+echo "Elasticsearch port-forward process ID: $ES_PID"
+echo "Starting Qdrant port-forward..."
+kubectl port-forward -n demo service/qdrant-cluster-qdrant-qdrant 6333:6333 &
+QDRANT_PID=$!
+echo "Qdrant port-forward process ID: $QDRANT_PID"
+echo "Starting PostgreSQL port-forward..."
+kubectl port-forward -n demo service/pg-cluster-postgresql-postgresql 5432:5432 &
+PG_PID=$!
+echo "PostgreSQL port-forward process ID: $PG_PID"
+echo "Starting Redis port-forward..."
+kubectl port-forward -n demo service/redis-standalone-redis-redis 6379:6379 &
+REDIS_PID=$!
+echo "Redis port-forward process ID: $REDIS_PID"
+echo "All port-forwards have been started"
+echo "Press Ctrl+C to stop all port-forwards"
+# Capture Ctrl+C signal and clean up all processes
+trap "kill $ES_PID $QDRANT_PID $PG_PID $REDIS_PID; echo 'All port-forwards stopped'; exit" INT
+# Wait for any child process to finish
+wait
 ```
 
 ## Uninstallation
