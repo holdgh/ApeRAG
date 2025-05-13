@@ -89,10 +89,6 @@ export const StyledMessageContent = styled('div').withConfig({
       padding: 16px;
       border-radius: 8px;
       box-shadow: ${token.boxShadow};
-      .hljs {
-        border-radius: 4px;
-        font-size: 12px;
-      }
     `;
   }}
 `;

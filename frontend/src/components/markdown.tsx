@@ -19,6 +19,20 @@ const StyledMarkdown = styled('div').withConfig({
 }>`
   ${({ token }) => {
     return css`
+      pre {
+        background: #0d1117;
+        color: #c9d1d9;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      pre > code {
+        display: block;
+        overflow-x: auto;
+        padding: 1em;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      
       img {
         max-width: 100%;
       }
