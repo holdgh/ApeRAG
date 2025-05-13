@@ -61,8 +61,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
       (item) => item.name === 'merge_strategy',
     )?.value || 'union') as VarType['merge_strategy'];
     const deduplicate = Boolean(
-      originNode?.data.vars?.find((item) => item.name === 'deduplicate')
-        ?.value,
+      originNode?.data.vars?.find((item) => item.name === 'deduplicate')?.value,
     );
     form.setFieldsValue({ merge_strategy, deduplicate });
   }, [originNode]);
@@ -134,7 +133,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                 name="deduplicate"
                 style={{ marginBottom: 0 }}
                 label={formatMessage({ id: 'flow.merge.deduplicate' })}
-                valuePropName='checked'
+                valuePropName="checked"
                 tooltip={formatMessage({ id: 'flow.merge.deduplicate.tips' })}
               >
                 <Switch size="small" />
@@ -159,7 +158,11 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                 })}
               </ul>
             </Typography>
-          ) : <Typography.Text type="danger"><FormattedMessage id="flow.merge.empty" /></Typography.Text>,
+          ) : (
+            <Typography.Text type="danger">
+              <FormattedMessage id="flow.merge.empty" />
+            </Typography.Text>
+          ),
         },
       ]}
     />

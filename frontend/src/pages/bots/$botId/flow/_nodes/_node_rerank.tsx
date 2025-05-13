@@ -87,10 +87,10 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
           label: (
             <Space>
               {formatMessage({ id: 'flow.reranker.model' })}
-              <Tooltip
-                title={formatMessage({ id: 'model.rerank.tips' })}
-              >
-                <Typography.Text type="secondary"><QuestionCircleOutlined /></Typography.Text>
+              <Tooltip title={formatMessage({ id: 'model.rerank.tips' })}>
+                <Typography.Text type="secondary">
+                  <QuestionCircleOutlined />
+                </Typography.Text>
               </Tooltip>
             </Space>
           ),

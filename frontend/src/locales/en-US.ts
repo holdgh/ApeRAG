@@ -200,9 +200,11 @@ export default {
   'flow.variable.source_type': 'Source',
   'flow.variable.value': 'Value',
   'flow.similarity_threshold': 'Similarity threshold',
-  'flow.similarity_threshold.tips': 'We employs either a combination of weighted keyword similarity and weighted vector cosine similarity, or a combination of weighted keyword similarity and weighted reranking score during retrieval. This parameter sets the threshold for similarities between the user query and chunks. Any chunk with a similarity score below this threshold will be excluded from the results. By default, the threshold is set to 0.2. That means that only chunks with hybrid similarity score of 20 or higher will be retrieved.',
+  'flow.similarity_threshold.tips':
+    'We employs either a combination of weighted keyword similarity and weighted vector cosine similarity, or a combination of weighted keyword similarity and weighted reranking score during retrieval. This parameter sets the threshold for similarities between the user query and chunks. Any chunk with a similarity score below this threshold will be excluded from the results. By default, the threshold is set to 0.2. That means that only chunks with hybrid similarity score of 20 or higher will be retrieved.',
   'flow.top_k': 'Top-k',
-  'flow.top_k.tips': 'Top-k is used to control the sampling strategy, that is, to take the top k words from all the results according to the score ranking as the candidate set, and then randomly select one of them as the next output word.',
+  'flow.top_k.tips':
+    'Top-k is used to control the sampling strategy, that is, to take the top k words from all the results according to the score ranking as the candidate set, and then randomly select one of them as the next output word.',
   'flow.vector.params': 'Vector params',
   'flow.input.params': 'Input params',
   'flow.llm.params': 'LLM params',
@@ -210,12 +212,14 @@ export default {
   'flow.reranker.model': 'Reranker model',
   'flow.reranker.empty': 'Missing reranker object',
   'flow.temperature': 'Temperature',
-  'flow.temperature.tips': "This parameter controls the randomness of the model's predictions. A lower temperature results in more conservative responses, while a higher temperature yields more creative and diverse responses.",
+  'flow.temperature.tips':
+    "This parameter controls the randomness of the model's predictions. A lower temperature results in more conservative responses, while a higher temperature yields more creative and diverse responses.",
   'flow.max_tokens': 'Max tokens',
   'flow.merge.params': 'Merge params',
   'flow.merge.merge_strategy': 'Strategy',
   'flow.merge.deduplicate': 'Deduplicate',
-  'flow.merge.deduplicate.tips': 'Used to detect and eliminate data redundancy problems that may occur when training large language models',
+  'flow.merge.deduplicate.tips':
+    'Used to detect and eliminate data redundancy problems that may occur when training large language models',
   'flow.merge.step': 'Merge targets',
   'flow.merge.empty': 'Missing merge object',
 
