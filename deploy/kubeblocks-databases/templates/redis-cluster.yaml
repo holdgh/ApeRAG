@@ -17,6 +17,11 @@ spec:
       disableExporter: {{ .Values.redis.disableExporter }}
       {{- end }}
       replicas: {{ .Values.redis.replicas }}
+      systemAccounts:
+        - name: default
+          secretRef:
+            name: {{ .Values.redis.customSecretName }}
+            namespace: {{ .Values.redis.customSecretNamespace }}
       resources:
         {{- toYaml .Values.redis.resources | nindent 8 }}
       volumeClaimTemplates:

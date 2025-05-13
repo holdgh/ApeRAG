@@ -16,6 +16,11 @@ spec:
         # Specific label for Patroni scope
         apps.kubeblocks.postgres.patroni/scope: {{ .Values.postgresql.name }}-postgresql
       replicas: {{ .Values.postgresql.replicas }}
+      systemAccounts:
+        - name: postgres
+          secretRef:
+            name: {{ .Values.postgresql.customSecretName }}
+            namespace: {{ .Values.postgresql.customSecretNamespace }}
       resources:
         {{- toYaml .Values.postgresql.resources | nindent 8 }}
       volumeClaimTemplates:

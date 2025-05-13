@@ -24,11 +24,21 @@ helm repo update
 helm upgrade --install kb-addon-elasticsearch kubeblocks/elasticsearch --namespace kb-system --version 1.0.0-alpha.0
 helm upgrade --install kb-addon-qdrant kubeblocks/qdrant --namespace kb-system --version 1.0.0-alpha.0
 helm upgrade --install kb-addon-postgresql kubeblocks/postgresql --namespace kb-system --version 1.0.0-alpha.0
+
 helm upgrade --install kb-addon-redis kubeblocks/redis --namespace kb-system --version 1.0.0-alpha.0
 ```
 
 ```bash
-helm install kb-databases ./kubeblocks-databases -n demo --create-namespace
+kubectl create secret generic postgresql-secret \
+  --namespace=demo \
+  --from-literal=username=postgres \
+  --from-literal=password=postgres
+kubectl create secret generic redis-secret \
+  --namespace=demo \
+  --from-literal=username=default \
+  --from-literal=password=password
+helm install kb-databases ./kubeblocks-databases -n demo --create-namespace \
+--set redis.customSecretName=redis-secret,redis.customSecretNamespace=demo,postgresql.customSecretName=postgresql-secret,postgresql.customSecretNamespace=demo
 ```
 
 ## Verification
