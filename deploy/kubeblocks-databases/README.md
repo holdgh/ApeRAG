@@ -59,6 +59,15 @@ qdrant-cluster-qdrant-0    2/2     Running   0          117m
 redis-standalone-redis-0   3/3     Running   0          121m
 ```
 
+## Connect
+
+```bash
+kubectl port-forward -n demo service/es-cluster-mdit-http 9200:9200
+kubectl port-forward -n demo service/qdrant-cluster-qdrant-qdrant 6333:6333
+kubectl port-forward -n demo service/pg-cluster-postgresql-postgresql 5432:5432
+kubectl port-forward -n demo service/redis-standalone-redis-redis 6379:6379
+```
+
 ## Uninstallation
 
 To uninstall the deployed database clusters:
