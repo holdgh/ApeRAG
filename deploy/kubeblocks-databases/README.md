@@ -9,55 +9,10 @@ This Helm chart deploys and manages multiple database clusters (PostgreSQL, Redi
 *   [KubeBlocks](https://kubeblocks.io/docs/preview/user_docs/installation) installed in your Kubernetes cluster.
 *   `kubectl` configured to interact with your cluster.
 
-
-## Configuration
-
-The primary way to configure the deployments is through the `values.yaml` file.
-
-### Global Settings
-
-These settings apply to all database clusters deployed by this chart:
-
-```yaml
-global:
-  namespace: "demo"
-  terminationPolicy: "Delete" # Options: DoNotTerminate, Delete, WipeOut
+```bash
+kubectl create namespace kb-system
+kbcli kubeblocks install --version=1.0.0-beta.47 --namespace kb-system
 ```
-
-### Per-Database Settings
-
-Each database (PostgreSQL, Redis, Elasticsearch, Qdrant) has its own configuration block. Here's an example for PostgreSQL:
-
-```yaml
-postgresql:
-  enabled: true              # Set to true to deploy this database, false to skip
-  name: "pg-cluster"         # Name of the KubeBlocks Cluster resource
-  serviceVersion: "14.7.2"   # Database engine version
-  disableExporter: false     # true to disable metrics exporter, false to enable
-  replicas: 2                # Number of replicas for the main component
-  resources:                 # CPU and Memory requests/limits
-    limits:
-      cpu: "0.5"
-      memory: "0.5Gi"
-    requests:
-      cpu: "0.5"
-      memory: "0.5Gi"
-  storage: "20Gi"            # Storage size for the data volume (e.g., PVC)
-```
-
-Refer to `values.yaml` for the full set of configurable options for each database.
-
-**Key configurable parameters for each database:**
-
-*   `enabled`: (boolean) Deploy this database cluster.
-*   `name`: (string) Name for the KubeBlocks `Cluster` resource.
-*   `serviceVersion`: (string) Specific version of the database engine.
-*   `disableExporter`: (boolean) Enable/disable the metrics exporter. (Note: For Elasticsearch, this might be handled differently by its `componentDef`).
-*   `replicas`: (integer) Number of replicas for the primary database component.
-*   `resources`: (object) Standard Kubernetes resource requests and limits.
-*   `storage`: (string) Storage capacity for persistent volumes (e.g., "10Gi", "100Gi").
-*   `topology`: (string, for Redis) e.g., "standalone", "replication".
-*   `componentDef`: (string, for Elasticsearch) e.g., "elasticsearch-8".
 
 
 ## Installation
@@ -112,3 +67,53 @@ To uninstall the deployed database clusters:
 helm uninstall kb-databases -n demo
 ```
 This will remove all Kubernetes resources associated with this Helm release, including the KubeBlocks `Cluster` objects. Depending on the `terminationPolicy` and KubeBlocks behavior, PVCs might also be deleted.
+
+
+## Configuration
+
+The primary way to configure the deployments is through the `values.yaml` file.
+
+### Global Settings
+
+These settings apply to all database clusters deployed by this chart:
+
+```yaml
+global:
+  namespace: "demo"
+  terminationPolicy: "Delete" # Options: DoNotTerminate, Delete, WipeOut
+```
+
+### Per-Database Settings
+
+Each database (PostgreSQL, Redis, Elasticsearch, Qdrant) has its own configuration block. Here's an example for PostgreSQL:
+
+```yaml
+postgresql:
+  enabled: true              # Set to true to deploy this database, false to skip
+  name: "pg-cluster"         # Name of the KubeBlocks Cluster resource
+  serviceVersion: "14.7.2"   # Database engine version
+  disableExporter: false     # true to disable metrics exporter, false to enable
+  replicas: 2                # Number of replicas for the main component
+  resources:                 # CPU and Memory requests/limits
+    limits:
+      cpu: "0.5"
+      memory: "0.5Gi"
+    requests:
+      cpu: "0.5"
+      memory: "0.5Gi"
+  storage: "20Gi"            # Storage size for the data volume (e.g., PVC)
+```
+
+Refer to `values.yaml` for the full set of configurable options for each database.
+
+**Key configurable parameters for each database:**
+
+*   `enabled`: (boolean) Deploy this database cluster.
+*   `name`: (string) Name for the KubeBlocks `Cluster` resource.
+*   `serviceVersion`: (string) Specific version of the database engine.
+*   `disableExporter`: (boolean) Enable/disable the metrics exporter. (Note: For Elasticsearch, this might be handled differently by its `componentDef`).
+*   `replicas`: (integer) Number of replicas for the primary database component.
+*   `resources`: (object) Standard Kubernetes resource requests and limits.
+*   `storage`: (string) Storage capacity for persistent volumes (e.g., "10Gi", "100Gi").
+*   `topology`: (string, for Redis) e.g., "standalone", "replication".
+*   `componentDef`: (string, for Elasticsearch) e.g., "elasticsearch-8".
