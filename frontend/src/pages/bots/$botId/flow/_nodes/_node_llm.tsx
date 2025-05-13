@@ -145,12 +145,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                     name="temperature"
                     tooltip={formatMessage({ id: 'flow.temperature.tips' })}
                   >
-                    <Slider
-                      style={{ margin: 0 }}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                    />
+                    <Slider style={{ margin: 0 }} min={0} max={1} step={0.01} />
                   </Form.Item>
                   <Form.Item
                     required

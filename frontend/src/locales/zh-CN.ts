@@ -198,9 +198,11 @@ export default {
   'flow.variable.source_type': '来源',
   'flow.variable.value': '变量值',
   'flow.similarity_threshold': '相似度阈值',
-  'flow.similarity_threshold.tips': '我们使用混合相似度得分来评估两行文本之间的距离。它是加权关键词相似度和向量余弦相似度。如果查询和块之间的相似度小于此阈值，则该块将被过滤掉。默认设置为0.2，也就是说文本块的混合相似度得分至少20才会被召回。',
+  'flow.similarity_threshold.tips':
+    '我们使用混合相似度得分来评估两行文本之间的距离。它是加权关键词相似度和向量余弦相似度。如果查询和块之间的相似度小于此阈值，则该块将被过滤掉。默认设置为0.2，也就是说文本块的混合相似度得分至少20才会被召回。',
   'flow.top_k': 'Top-k',
-  'flow.top_k.tips': 'Top-k 是用来控制采样策略的，即从所有结果中按照打分排名，取前 k 个字作为候选集，然后从中随机选一个作为下一个输出的字。',
+  'flow.top_k.tips':
+    'Top-k 是用来控制采样策略的，即从所有结果中按照打分排名，取前 k 个字作为候选集，然后从中随机选一个作为下一个输出的字。',
   'flow.vector.params': '检索参数',
   'flow.input.params': '输入参数',
   'flow.llm.params': 'LLM参数',
@@ -208,12 +210,14 @@ export default {
   'flow.reranker.model': 'Reranker模型',
   'flow.reranker.empty': '缺少重排序对象',
   'flow.temperature': '温度',
-  'flow.temperature.tips': '该参数控制模型预测的随机性。 较低的温度使模型对其响应更有信心，而较高的温度则使其更具创造性和多样性。',
+  'flow.temperature.tips':
+    '该参数控制模型预测的随机性。 较低的温度使模型对其响应更有信心，而较高的温度则使其更具创造性和多样性。',
   'flow.max_tokens': '最大token数',
   'flow.merge.params': '合并参数',
   'flow.merge.merge_strategy': '策略',
   'flow.merge.deduplicate': '是否去重',
-  'flow.merge.deduplicate.tips': '用于检测并消除训练大型语言模型时可能出现的数据冗余问题',
+  'flow.merge.deduplicate.tips':
+    '用于检测并消除训练大型语言模型时可能出现的数据冗余问题',
   'flow.merge.step': '合并对象',
   'flow.merge.empty': '缺少合并对象',
 

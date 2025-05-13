@@ -1,20 +1,19 @@
+import AnthropicIcon from '@/assets/models/anthropic.webp';
 import AzureOpenAiIcon from '@/assets/models/azure-openai.png';
 import BaiChuanIcon from '@/assets/models/baichuan.jpeg';
 import ChatGPTIcon from '@/assets/models/chat-gpt.png';
 import ChatglmIcon from '@/assets/models/chatglm.png';
 import DeepseekIcon from '@/assets/models/deepseek.svg';
 import FalconIcon from '@/assets/models/falcon.png';
+import GeminiIcon from '@/assets/models/gemini.svg';
 import Glm4Icon from '@/assets/models/glm4.png';
 import GorillaIcon from '@/assets/models/gorilla.png';
 import GuanacoIcon from '@/assets/models/guanaco.png';
+import OpenrouterIcon from '@/assets/models/openrouter.jpeg';
 import QianwenIcon from '@/assets/models/qianwen.png';
 import VicunaIcon from '@/assets/models/vicuna.jpg';
 import WenxinYiyanIcon from '@/assets/models/wenxinyiyan.png';
 import XAiIcon from '@/assets/models/xai.svg';
-import GeminiIcon from '@/assets/models/gemini.svg';
-import AnthropicIcon from '@/assets/models/anthropic.webp';
-import OpenrouterIcon from '@/assets/models/openrouter.jpeg';
-
 
 import AlibabaIcon from '@/assets/models/alibabacloud.svg';
 import SiliconflowIcon from '@/assets/models/siliconflow.svg';

@@ -4,7 +4,8 @@ export const model = {
   'model.config': '模型配置',
   'model.prompt_template': '提示模版',
   'model.llm.tips': '大型语言对话模型',
-  'model.rerank.tips': '在拿到向量查询（ANN）的结果后使用 Reranker，能够更有效地确定文档和查询之间的语义相关性，更精细地对结果重排，最终提高搜索质量。',
+  'model.rerank.tips':
+    '在拿到向量查询（ANN）的结果后使用 Reranker，能够更有效地确定文档和查询之间的语义相关性，更精细地对结果重排，最终提高搜索质量。',
   'model.llm_params': 'LLM 参数',
   'model.llm_context_window': '上下文窗口',
   'model.llm_context_window_required': '上下文窗口为必填项',
