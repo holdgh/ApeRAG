@@ -4,7 +4,6 @@ import { api } from '@/services';
 import { useWebSocket } from 'ahooks';
 import { ReadyState } from 'ahooks/lib/useWebSocket';
 import { Result, theme } from 'antd';
-import 'highlight.js/styles/github-dark.css';
 import _ from 'lodash';
 import { useCallback, useEffect, useState } from 'react';
 import { animateScroll as scroll } from 'react-scroll';

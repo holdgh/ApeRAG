@@ -334,16 +334,7 @@ export default () => {
                   {item.rank}. {item.source}
                 </Typography.Text>
               ),
-              children: (
-                <div
-                  style={{
-                    borderTop: `1px solid ${token.colorBorderSecondary}`,
-                    paddingTop: 16,
-                  }}
-                >
-                  <ApeMarkdown>{item.content}</ApeMarkdown>
-                </div>
-              ),
+              children: <ApeMarkdown>{item.content}</ApeMarkdown>,
               extra: (
                 <Tooltip title={item.score}>
                   <Space align="center">

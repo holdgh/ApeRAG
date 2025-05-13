@@ -6,6 +6,7 @@ import remarkDirective from 'remark-directive';
 import remarkGfm from 'remark-gfm';
 import remarkGithubAdmonitionsToDirectives from 'remark-github-admonitions-to-directives';
 import { css, styled } from 'umi';
+import 'highlight.js/styles/github-dark.css';
 
 type MarkdownProps = {
   children?: string;
