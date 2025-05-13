@@ -4,6 +4,7 @@ export const collection = {
   'collection.sync': '文件同步',
   'collection.questions': '相关问题',
   'collection.settings': '设置',
+  'collection.search_test': '检索测试',
   'collection.add': '添加知识库',
   'collection.tips': '你可以在知识库里导入和管理你的数据源以增强LLM的上下文。',
   'collection.sensitive.protect': '敏感信息保护',

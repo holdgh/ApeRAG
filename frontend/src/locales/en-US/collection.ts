@@ -4,6 +4,7 @@ export const collection = {
   'collection.sync': 'Files synchronous',
   'collection.questions': 'Related questions',
   'collection.settings': 'Settings',
+  'collection.search_test': 'Search Test',
   'collection.add': 'Add Dataset',
   'collection.tips':
     'You can import and manage your data sources in dataset to enhance the context of LLM.',
