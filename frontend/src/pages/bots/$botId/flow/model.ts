@@ -113,7 +113,7 @@ const getInitialData = (): ApeFlow => {
             },
             {
               name: 'similarity_threshold',
-              value: 0.7,
+              value: 0.2,
             },
             {
               name: 'query',

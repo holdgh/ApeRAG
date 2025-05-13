@@ -134,6 +134,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                     required
                     label={formatMessage({ id: 'model.name' })}
                     name="model"
+                    tooltip={formatMessage({ id: 'model.llm.tips' })}
                   >
                     <ModelSelect model="completion" variant="filled" />
                   </Form.Item>
@@ -142,12 +143,13 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                     style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.temperature' })}
                     name="temperature"
+                    tooltip={formatMessage({ id: 'flow.temperature.tips' })}
                   >
                     <Slider
                       style={{ margin: 0 }}
-                      min={0.1}
+                      min={0}
                       max={1}
-                      step={0.1}
+                      step={0.01}
                     />
                   </Form.Item>
                   <Form.Item

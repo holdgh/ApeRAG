@@ -10,6 +10,11 @@ import GuanacoIcon from '@/assets/models/guanaco.png';
 import QianwenIcon from '@/assets/models/qianwen.png';
 import VicunaIcon from '@/assets/models/vicuna.jpg';
 import WenxinYiyanIcon from '@/assets/models/wenxinyiyan.png';
+import XAiIcon from '@/assets/models/xai.svg';
+import GeminiIcon from '@/assets/models/gemini.svg';
+import AnthropicIcon from '@/assets/models/anthropic.webp';
+import OpenrouterIcon from '@/assets/models/openrouter.jpeg';
+
 
 import AlibabaIcon from '@/assets/models/alibabacloud.svg';
 import SiliconflowIcon from '@/assets/models/siliconflow.svg';
@@ -58,10 +63,14 @@ export const DATETIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 export const MODEL_PROVIDER_ICON: {
   [key in string]: string;
 } = {
+  xai: XAiIcon,
+  gemini: GeminiIcon,
+  anthropic: AnthropicIcon,
   openai: ChatGPTIcon,
   deepseek: DeepseekIcon,
   alibabacloud: AlibabaIcon,
   siliconflow: SiliconflowIcon,
+  openrouter: OpenrouterIcon,
 
   vicuna: VicunaIcon,
   chatglm: ChatglmIcon,

@@ -3,6 +3,8 @@ export const model = {
   'model.required': 'Model is required',
   'model.config': 'Model Config',
   'model.prompt_template': 'Prompt Template',
+  'model.llm.tips': 'Large language chat model',
+  'model.rerank.tips': 'Using Reranker after getting the results of a vector query (ANN) can more effectively determine the semantic relevance between documents and queries, re-rank the results more finely, and ultimately improve search quality.',
   'model.llm_params': 'LLM Params',
   'model.llm_context_window': 'Context Window',
   'model.llm_context_window_required': 'Context Window is required',
