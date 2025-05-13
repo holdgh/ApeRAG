@@ -18,17 +18,18 @@ kbcli kubeblocks install --version=1.0.0-beta.47 --namespace kb-system
 ## Installation
 
 ```bash
+helm repo remove kubeblocks
 helm repo add kubeblocks https://apecloud.github.io/helm-charts
 helm repo update
 
 helm upgrade --install kb-addon-elasticsearch kubeblocks/elasticsearch --namespace kb-system --version 1.0.0-alpha.0
 helm upgrade --install kb-addon-qdrant kubeblocks/qdrant --namespace kb-system --version 1.0.0-alpha.0
 helm upgrade --install kb-addon-postgresql kubeblocks/postgresql --namespace kb-system --version 1.0.0-alpha.0
-
 helm upgrade --install kb-addon-redis kubeblocks/redis --namespace kb-system --version 1.0.0-alpha.0
 ```
 
 ```bash
+kubectl create namespace demo
 kubectl create secret generic postgresql-secret \
   --namespace=demo \
   --from-literal=username=postgres \
