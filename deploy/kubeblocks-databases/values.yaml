@@ -13,11 +13,11 @@ postgresql:
   replicas: 1
   resources:
     limits:
-      cpu: "0.5"
-      memory: "0.5Gi"
+      cpu: "1"
+      memory: "1Gi"
     requests:
-      cpu: "0.5"
-      memory: "0.5Gi"
+      cpu: "1"
+      memory: "1Gi"
   storage: "5Gi"
 
 redis:
@@ -31,11 +31,11 @@ redis:
   replicas: 1              # Standalone typically means 1 replica
   resources:
     limits:
-      cpu: "0.5"
-      memory: "0.5Gi"
+      cpu: "1"
+      memory: "1Gi"
     requests:
-      cpu: "0.5"
-      memory: "0.5Gi"
+      cpu: "1"
+      memory: "1Gi"
   storage: "5Gi"
 
 elasticsearch:
@@ -66,9 +66,9 @@ qdrant:
   replicas: 1
   resources:
     limits:
-      cpu: "0.5"
-      memory: "0.5Gi"
+      cpu: "1"
+      memory: "1Gi"
     requests:
-      cpu: "0.5"
-      memory: "0.5Gi"
+      cpu: "1"
+      memory: "1Gi"
   storage: "5Gi"
