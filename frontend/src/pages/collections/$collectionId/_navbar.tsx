@@ -33,12 +33,12 @@ export const NavbarCollection = () => {
         disabled: true,
       },
       {
-        label: <FormattedMessage id="collection.settings" />,
-        key: `/collections/${collectionId}/settings`,
+        label: <FormattedMessage id="collection.search_test" />,
+        key: `/collections/${collectionId}/search-test`,
       },
       {
-        label: 'Search Test',
-        key: `/collections/${collectionId}/search-test`,
+        label: <FormattedMessage id="collection.settings" />,
+        key: `/collections/${collectionId}/settings`,
       },
     ],
     [collectionId],
