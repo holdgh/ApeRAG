@@ -41,6 +41,13 @@ helm install kb-databases ./kubeblocks-databases -n demo --create-namespace \
 --set redis.customSecretName=redis-secret,redis.customSecretNamespace=demo,postgresql.customSecretName=postgresql-secret,postgresql.customSecretNamespace=demo
 ```
 
+generate template: 
+```bash
+helm template kb-databases ./kubeblocks-databases -n demo --create-namespace \
+--set redis.customSecretName=redis-secret,redis.customSecretNamespace=demo,postgresql.customSecretName=postgresql-secret,postgresql.customSecretNamespace=demo \
+> rendered.yaml
+```
+
 ## Verification
 
 After installation, you can check the status of the deployed KubeBlocks clusters:
