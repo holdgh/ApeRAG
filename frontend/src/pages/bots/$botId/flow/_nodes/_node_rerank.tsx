@@ -1,7 +1,7 @@
 import { ModelSelect } from '@/components';
 import { ApeNode, ApeNodeVars } from '@/types';
-import { CaretRightOutlined } from '@ant-design/icons';
-import { Collapse, Form, theme, Typography } from 'antd';
+import { CaretRightOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Collapse, Form, Space, theme, Tooltip, Typography } from 'antd';
 import _ from 'lodash';
 import { useEffect, useMemo } from 'react';
 import { FormattedMessage, useIntl, useModel } from 'umi';
@@ -84,7 +84,16 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
       items={[
         {
           key: '1',
-          label: formatMessage({ id: 'flow.reranker.model' }),
+          label: (
+            <Space>
+              {formatMessage({ id: 'flow.reranker.model' })}
+              <Tooltip
+                title={formatMessage({ id: 'model.rerank.tips' })}
+              >
+                <Typography.Text type="secondary"><QuestionCircleOutlined /></Typography.Text>
+              </Tooltip>
+            </Space>
+          ),
           style: getCollapsePanelStyle(token),
           children: (
             <Form

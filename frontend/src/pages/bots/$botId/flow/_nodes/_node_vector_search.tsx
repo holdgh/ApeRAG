@@ -94,7 +94,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     const vars = originNode?.data.vars;
     const top_k = Number(vars?.find((item) => item.name === 'top_k')?.value || 5);
     const similarity_threshold = Number(
-      vars?.find((item) => item.name === 'similarity_threshold')?.value || 0.7,
+      vars?.find((item) => item.name === 'similarity_threshold')?.value || 0.2,
     );
     form.setFieldsValue({ top_k, similarity_threshold });
   }, [originNode]);
@@ -128,6 +128,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                     style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.top_k' })}
                     name="top_k"
+                    tooltip={formatMessage({ id: 'flow.top_k.tips' })}
                   >
                     <Slider style={{ margin: 0 }} min={1} max={10} step={1} />
                   </Form.Item>
@@ -136,12 +137,13 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                     style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.similarity_threshold' })}
                     name="similarity_threshold"
+                    tooltip={formatMessage({ id: 'flow.similarity_threshold.tips' })}
                   >
                     <Slider
                       style={{ margin: 0 }}
-                      min={0.1}
+                      min={0}
                       max={1}
-                      step={0.1}
+                      step={0.01}
                     />
                   </Form.Item>
                 </Form>
