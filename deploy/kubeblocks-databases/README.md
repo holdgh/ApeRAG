@@ -9,20 +9,6 @@ This Helm chart deploys and manages multiple database clusters (PostgreSQL, Redi
 *   [KubeBlocks](https://kubeblocks.io/docs/preview/user_docs/installation) installed in your Kubernetes cluster.
 *   `kubectl` configured to interact with your cluster.
 
-## Chart Structure
-
-```
-kubeblocks-databases/
-├── Chart.yaml          # Information about the chart
-├── values.yaml         # Default configuration values
-├── README.md           # This file
-├── NOTES.txt           # Post-installation notes
-└── templates/          # Directory containing template files
-    ├── postgresql-cluster.yaml
-    ├── redis-cluster.yaml
-    ├── elasticsearch-cluster.yaml
-    └── qdrant-cluster.yaml
-```
 
 ## Configuration
 
@@ -76,93 +62,46 @@ Refer to `values.yaml` for the full set of configurable options for each databas
 
 ## Installation
 
-1.  **Navigate to the chart directory:**
-    If this chart is in a local directory named `kubeblocks-databases`:
-    ```bash
-    cd path/to/kubeblocks-databases
-    ```
+```bash
+helm repo add kubeblocks https://apecloud.github.io/helm-charts
+helm repo update
 
-2.  **Customize `values.yaml` (Optional):**
-    Modify `kubeblocks-databases/values.yaml` to suit your needs (e.g., change versions, resource allocations, enable/disable specific databases).
-    Alternatively, you can override values using the `--set` flag during installation or by providing a custom values file with `-f my-values.yaml`.
+helm upgrade --install kb-addon-elasticsearch kubeblocks/elasticsearch --namespace kb-system --version 1.0.0-alpha.0
+helm upgrade --install kb-addon-qdrant kubeblocks/qdrant --namespace kb-system --version 1.0.0-alpha.0
+helm upgrade --install kb-addon-postgresql kubeblocks/postgresql --namespace kb-system --version 1.0.0-alpha.0
+helm upgrade --install kb-addon-redis kubeblocks/redis --namespace kb-system --version 1.0.0-alpha.0
+```
 
-3.  **Install the chart:**
-    ```bash
-    helm install <release-name> ./kubeblocks-databases -n <namespace-from-values-yaml> --create-namespace
-    ```
-    Replace `<release-name>` with a name for your Helm release (e.g., `my-kb-dbs`).
-    Replace `<namespace-from-values-yaml>` with the namespace specified in `global.namespace` in your `values.yaml` (e.g., `demo`). The `--create-namespace` flag will create the namespace if it doesn't exist.
-
-    Example:
-    ```bash
-    helm install kb-databases ./kubeblocks-databases -n demo --create-namespace
-    ```
+```bash
+helm install kb-databases ./kubeblocks-databases -n demo --create-namespace
+```
 
 ## Verification
 
 After installation, you can check the status of the deployed KubeBlocks clusters:
 
 ```bash
-kubectl get clusters -n <namespace-from-values-yaml>
-kubectl get pods -n <namespace-from-values-yaml>
-```
-
-Example:
-```bash
 kubectl get clusters -n demo
 kubectl get pods -n demo
 ```
 
+
 You should see the `Cluster` resources for the enabled databases and their corresponding pods. The `NOTES.txt` output from Helm will also provide some of this information.
 
-## Usage Examples
-
-### Deploying only PostgreSQL and Redis
-
-Modify `values.yaml`:
-```yaml
-# ...
-postgresql:
-  enabled: true
-  # ... other pg settings
-redis:
-  enabled: true
-  topology: standalone # Or replication, as needed
-  # ... other redis settings
-elasticsearch:
-  enabled: false # Disable Elasticsearch
-  # ...
-qdrant:
-  enabled: false # Disable Qdrant
-  # ...
-```
-Then run `helm upgrade` or `helm install` as appropriate.
-
-### Changing PostgreSQL Resources
-
-Modify `values.yaml`:
-```yaml
-postgresql:
-  enabled: true
-  name: "pg-cluster"
-  # ...
-  resources:
-    limits:
-      cpu: "1"
-      memory: "2Gi"
-    requests:
-      cpu: "1"
-      memory: "2Gi"
-  storage: "50Gi"
-  # ...
-```
-Then apply the changes:
 ```bash
-helm upgrade <release-name> ./kubeblocks-databases -n <namespace-from-values-yaml>
-```
-Example:
-```bash
-helm upgrade kb-databases ./kubeblocks-databases -n demo
+kubectl get clusters -n demo
+NAME               CLUSTER-DEFINITION   TERMINATION-POLICY   STATUS     AGE
+es-cluster                              Delete               Running    121m
+pg-cluster         postgresql           Delete               Creating   121m
+qdrant-cluster     qdrant               Delete               Running    121m
+redis-standalone   redis                Delete               Running    121m
+
+kubectl get pods -n demo
+NAME                       READY   STATUS    RESTARTS   AGE
+es-cluster-mdit-0          3/3     Running   0          110m
+pg-cluster-postgresql-0    5/5     Running   0          121m
+qdrant-cluster-qdrant-0    2/2     Running   0          117m
+redis-standalone-redis-0   3/3     Running   0          121m
 ```
 
 ## Uninstallation
@@ -170,15 +109,6 @@ helm upgrade kb-databases ./kubeblocks-databases -n demo
 To uninstall the deployed database clusters:
 
 ```bash
-helm uninstall <release-name> -n <namespace-from-values-yaml>
-```
-Example:
-```bash
 helm uninstall kb-databases -n demo
 ```
 This will remove all Kubernetes resources associated with this Helm release, including the KubeBlocks `Cluster` objects. Depending on the `terminationPolicy` and KubeBlocks behavior, PVCs might also be deleted.
-
-## Notes
-
-*   Ensure the KubeBlocks operator and the required `ClusterDefinition` CRDs (e.g., for postgresql, redis, elasticsearch, qdrant) are installed and available in your Kubernetes cluster before deploying this chart.
-*   The `storageClassName` for PersistentVolumeClaims is currently set to `""` (empty string) in the templates, which typically means the default storage class in your Kubernetes cluster will be used. If you need to specify a particular storage class, you may need to modify the templates or add a configuration option to `values.yaml` for each database's `volumeClaimTemplates.spec`.
