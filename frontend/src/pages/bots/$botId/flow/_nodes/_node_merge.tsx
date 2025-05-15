@@ -1,10 +1,9 @@
 import { ApeNode, ApeNodeVar } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import { Collapse, Form, Select, Switch, theme, Typography } from 'antd';
-import _ from 'lodash';
+import { Collapse, Form, Input, Select, Switch, theme } from 'antd';
 import { useEffect, useMemo } from 'react';
-import { FormattedMessage, useIntl, useModel } from 'umi';
+import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
@@ -19,11 +18,70 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
   const [form] = Form.useForm<VarType>();
 
-  const sourceNodes = useMemo(() => {
+  const { refVectorSearchNode, refKeywordSearchNode } = useMemo(() => {
     const nid = originNode?.id;
     const connects = edges.filter((edg) => edg.target === nid);
-    return connects.map((edg) => nodes.find((nod) => nod.id === edg.source));
+    const sourceNodes = connects.map((edg) =>
+      nodes.find((nod) => nod.id === edg.source),
+    );
+    return {
+      refVectorSearchNode: sourceNodes?.find(
+        (nod) => nod?.type === 'vector_search',
+      ),
+      refKeywordSearchNode: sourceNodes?.find(
+        (nod) => nod?.type === 'keyword_search',
+      ),
+    };
   }, [edges, nodes]);
+
+  useEffect(() => {
+    if (!originNode?.id) return;
+    const vars = originNode?.data.vars;
+    const vectorSearchDocsItem = vars?.find(
+      (item) => item.name === 'vector_search_docs',
+    );
+    const keyworkSearchDocsItem = vars?.find(
+      (item) => item.name === 'keyword_search_docs',
+    );
+
+    const vectorSearchDocsValue: ApeNodeVar = {
+      name: `vector_search_docs`,
+      source_type: 'dynamic',
+      ref_node: refVectorSearchNode?.id || '',
+      ref_field: `vector_search_docs`,
+    };
+    const keyworkSearchDocsValue: ApeNodeVar = {
+      name: `keyword_search_docs`,
+      source_type: 'dynamic',
+      ref_node: refKeywordSearchNode?.id || '',
+      ref_field: `keyword_search_docs`,
+    };
+
+    if (vectorSearchDocsItem) {
+      Object.assign(vectorSearchDocsItem, vectorSearchDocsValue);
+    } else {
+      vars?.push(vectorSearchDocsValue);
+    }
+
+    if (keyworkSearchDocsItem) {
+      Object.assign(keyworkSearchDocsItem, keyworkSearchDocsValue);
+    } else {
+      vars?.push(keyworkSearchDocsValue);
+    }
+
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        {
+          id: originNode?.id,
+          type: 'replace',
+          item: {
+            ...originNode,
+          },
+        },
+      ];
+      return applyNodeChanges(changes, nds);
+    });
+  }, [refVectorSearchNode, refKeywordSearchNode]);
 
   const onValuesChange = (changedValues: VarType) => {
     if (!originNode) return;
@@ -66,37 +124,6 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     form.setFieldsValue({ merge_strategy, deduplicate });
   }, [originNode]);
 
-  useEffect(() => {
-    const vars = originNode?.data.vars;
-    sourceNodes.forEach((nd) => {
-      const item = vars?.find((v) => v.ref_node === nd?.id);
-      const value: ApeNodeVar = {
-        name: `${nd?.type}_docs`,
-        source_type: 'dynamic',
-        ref_node: nd?.id,
-        ref_field: `${nd?.type}_docs`,
-      };
-      if (item) {
-        Object.assign(item, value);
-      } else {
-        vars?.push(value);
-      }
-    });
-  }, [sourceNodes]);
-
-  useEffect(() => {
-    if (!originNode) return;
-    originNode.data.vars = _.filter(originNode?.data.vars, (item) => {
-      if (item.source_type !== 'dynamic') return true;
-      return Boolean(
-        edges.find(
-          (edg) =>
-            edg.source === item.ref_node && edg.target === originNode?.id,
-        ),
-      );
-    });
-  }, [edges, originNode]);
-
   return (
     <Collapse
       bordered={false}
@@ -109,7 +136,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
       items={[
         {
           key: '1',
-          label: formatMessage({ id: 'flow.merge.params' }),
+          label: formatMessage({ id: 'flow.input.params' }),
           style: getCollapsePanelStyle(token),
           children: (
             <Form
@@ -131,37 +158,52 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
               <Form.Item
                 required
                 name="deduplicate"
-                style={{ marginBottom: 0 }}
                 label={formatMessage({ id: 'flow.merge.deduplicate' })}
                 valuePropName="checked"
                 tooltip={formatMessage({ id: 'flow.merge.deduplicate.tips' })}
               >
                 <Switch size="small" />
               </Form.Item>
+              <Form.Item
+                required
+                label={formatMessage({ id: 'flow.vector_search.source' })}
+                tooltip={formatMessage({ id: 'flow.connection.required' })}
+              >
+                <Input
+                  variant="filled"
+                  disabled
+                  style={{ borderWidth: 0, color: token.colorText }}
+                  value={
+                    refVectorSearchNode
+                      ? refVectorSearchNode?.ariaLabel ||
+                        formatMessage({
+                          id: `flow.node.type.${refVectorSearchNode?.type}`,
+                        })
+                      : ''
+                  }
+                />
+              </Form.Item>
+              <Form.Item
+                required
+                style={{ marginBottom: 0 }}
+                label={formatMessage({ id: 'flow.keyword_search.source' })}
+                tooltip={formatMessage({ id: 'flow.connection.required' })}
+              >
+                <Input
+                  variant="filled"
+                  disabled
+                  style={{ borderWidth: 0, color: token.colorText }}
+                  value={
+                    refKeywordSearchNode
+                      ? refKeywordSearchNode?.ariaLabel ||
+                        formatMessage({
+                          id: `flow.node.type.${refKeywordSearchNode?.type}`,
+                        })
+                      : ''
+                  }
+                />
+              </Form.Item>
             </Form>
-          ),
-        },
-        {
-          key: '2',
-          label: formatMessage({ id: 'flow.merge.step' }),
-          style: getCollapsePanelStyle(token),
-          children: _.size(sourceNodes) ? (
-            <Typography>
-              <ul>
-                {sourceNodes.map((node) => {
-                  return (
-                    <li key={node?.id}>
-                      {node?.ariaLabel ||
-                        formatMessage({ id: `flow.node.type.${node?.type}` })}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Typography>
-          ) : (
-            <Typography.Text type="danger">
-              <FormattedMessage id="flow.merge.empty" />
-            </Typography.Text>
           ),
         },
       ]}

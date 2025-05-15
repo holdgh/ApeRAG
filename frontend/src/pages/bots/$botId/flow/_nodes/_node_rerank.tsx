@@ -1,10 +1,11 @@
 import { ModelSelect } from '@/components';
 import { ApeNode, ApeNodeVar } from '@/types';
-import { CaretRightOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { Collapse, Form, Space, theme, Tooltip, Typography } from 'antd';
+import { CaretRightOutlined } from '@ant-design/icons';
+import { applyNodeChanges, NodeChange } from '@xyflow/react';
+import { Collapse, Form, Input, Space, theme } from 'antd';
 import _ from 'lodash';
 import { useEffect, useMemo } from 'react';
-import { FormattedMessage, useIntl, useModel } from 'umi';
+import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
@@ -13,14 +14,17 @@ type VarType = {
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-  const { nodes, edges } = useModel('bots.$botId.flow.model');
+  const { nodes, edges, setNodes } = useModel('bots.$botId.flow.model');
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
   const [form] = Form.useForm<VarType>();
 
-  const sourceNodes = useMemo(() => {
+  const refDocNode = useMemo(() => {
     const nid = originNode?.id;
     const connects = edges.filter((edg) => edg.target === nid);
-    return connects.map((edg) => nodes.find((nod) => nod.id === edg.source));
+    const sourceNodes = connects.map((edg) =>
+      nodes.find((nod) => nod.id === edg.source),
+    );
+    return _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
   }, [edges, nodes]);
 
   const onValuesChange = (changedValues: VarType) => {
@@ -42,35 +46,35 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   }, [originNode]);
 
   useEffect(() => {
+    if (!originNode?.id) return;
     const vars = originNode?.data.vars;
-    sourceNodes.forEach((nd) => {
-      const item = vars?.find((v) => v.ref_node === nd?.id);
-      const value: ApeNodeVar = {
-        name: `docs`,
-        source_type: 'dynamic',
-        ref_node: nd?.id,
-        ref_field: `docs`,
-      };
-      if (item) {
-        Object.assign(item, value);
-      } else {
-        vars?.push(value);
-      }
-    });
-  }, [sourceNodes]);
+    const item = vars?.find((item) => item.name === 'docs');
+    const value: ApeNodeVar = {
+      name: `docs`,
+      source_type: 'dynamic',
+      ref_node: refDocNode?.id || '',
+      ref_field: `docs`,
+    };
 
-  useEffect(() => {
-    if (!originNode) return;
-    originNode.data.vars = _.filter(originNode?.data.vars, (item) => {
-      if (item.source_type !== 'dynamic') return true;
-      return Boolean(
-        edges.find(
-          (edg) =>
-            edg.source === item.ref_node && edg.target === originNode?.id,
-        ),
-      );
+    if (item) {
+      Object.assign(item, value);
+    } else {
+      vars?.push(value);
+    }
+
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        {
+          id: originNode?.id,
+          type: 'replace',
+          item: {
+            ...originNode,
+          },
+        },
+      ];
+      return applyNodeChanges(changes, nds);
     });
-  }, [edges, originNode]);
+  }, [refDocNode]);
 
   return (
     <Collapse
@@ -84,16 +88,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
       items={[
         {
           key: '1',
-          label: (
-            <Space>
-              {formatMessage({ id: 'flow.reranker.model' })}
-              <Tooltip title={formatMessage({ id: 'model.rerank.tips' })}>
-                <Typography.Text type="secondary">
-                  <QuestionCircleOutlined />
-                </Typography.Text>
-              </Tooltip>
-            </Space>
-          ),
+          label: <Space>{formatMessage({ id: 'flow.input.params' })}</Space>,
           style: getCollapsePanelStyle(token),
           children: (
             <Form
@@ -102,37 +97,39 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
               onValuesChange={onValuesChange}
               autoComplete="off"
             >
-              <Form.Item name="model" style={{ marginBottom: 0 }}>
+              <Form.Item
+                required
+                tooltip={formatMessage({ id: 'model.rerank.tips' })}
+                label={formatMessage({ id: 'flow.reranker.model' })}
+                name="model"
+              >
                 <ModelSelect
                   style={{ width: '100%' }}
                   model="rerank"
                   variant="filled"
                 />
               </Form.Item>
+              <Form.Item
+                required
+                style={{ marginBottom: 0 }}
+                label={formatMessage({ id: 'flow.input.source' })}
+                tooltip={formatMessage({ id: 'flow.connection.required' })}
+              >
+                <Input
+                  variant="filled"
+                  disabled
+                  style={{ borderWidth: 0, color: token.colorText }}
+                  value={
+                    refDocNode
+                      ? refDocNode?.ariaLabel ||
+                        formatMessage({
+                          id: `flow.node.type.${refDocNode?.type}`,
+                        })
+                      : ''
+                  }
+                />
+              </Form.Item>
             </Form>
-          ),
-        },
-        {
-          key: '2',
-          label: formatMessage({ id: 'flow.reranker.target' }),
-          style: getCollapsePanelStyle(token),
-          children: _.size(sourceNodes) ? (
-            <Typography>
-              <ul>
-                {sourceNodes.map((node) => {
-                  return (
-                    <li key={node?.id}>
-                      {node?.ariaLabel ||
-                        formatMessage({ id: `flow.node.type.${node?.type}` })}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Typography>
-          ) : (
-            <Typography.Text type="danger">
-              <FormattedMessage id="flow.reranker.empty" />
-            </Typography.Text>
           ),
         },
       ]}
