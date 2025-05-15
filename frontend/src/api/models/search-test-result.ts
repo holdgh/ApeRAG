@@ -30,6 +30,12 @@ import type { VectorSearchParams } from './vector-search-params';
  */
 export interface SearchTestResult {
     /**
+     * The id of the search test result
+     * @type {string}
+     * @memberof SearchTestResult
+     */
+    'id'?: string;
+    /**
      * 
      * @type {string}
      * @memberof SearchTestResult
