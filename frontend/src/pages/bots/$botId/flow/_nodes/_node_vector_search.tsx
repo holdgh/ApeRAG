@@ -1,34 +1,21 @@
 import { ApeNode, ApeNodeVar } from '@/types';
-import {
-  CaretRightOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
-import {
-  Button,
-  Collapse,
-  Form,
-  Slider,
-  Space,
-  Table,
-  TableProps,
-  theme,
-  Tooltip,
-} from 'antd';
+import { CaretRightOutlined } from '@ant-design/icons';
+import { Collapse, Form, Select, Slider, Table, TableProps, theme } from 'antd';
 import { useEffect, useMemo } from 'react';
-import { FormattedMessage, useIntl, useModel } from 'umi';
+import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
   top_k: number;
   similarity_threshold: number;
+  collection_ids: string[];
 };
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { nodes, getNodeOutputVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
+  const { collections } = useModel('collection');
 
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
 
@@ -36,28 +23,12 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
 
   const columns: TableProps<ApeNodeVar>['columns'] = [
     {
-      title: formatMessage({ id: 'flow.variable.title' }),
-      dataIndex: 'name',
-    },
-    {
       title: formatMessage({ id: 'flow.variable.source_type' }),
       dataIndex: 'source_type',
     },
     {
-      title: formatMessage({ id: 'flow.variable.value' }),
+      title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'global_var',
-    },
-    {
-      title: formatMessage({ id: 'action.name' }),
-      width: 60,
-      render: () => {
-        return (
-          <Space>
-            <Button type="text" size="small" icon={<SettingOutlined />} />
-            <Button type="text" size="small" icon={<DeleteOutlined />} />
-          </Space>
-        );
-      },
     },
   ];
 
@@ -68,6 +39,9 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     const varTopK = vars?.find((item) => item.name === 'top_k');
     const varSimilarityThreshold = vars?.find(
       (item) => item.name === 'similarity_threshold',
+    );
+    const varCollectionIds = vars?.find(
+      (item) => item.name === 'collection_ids',
     );
 
     if (varTopK && changedValues.top_k !== undefined) {
@@ -80,10 +54,10 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     ) {
       varSimilarityThreshold.value = changedValues.similarity_threshold;
     }
-  };
 
-  const onAddParams: React.MouseEventHandler<HTMLElement> = (e) => {
-    e.stopPropagation();
+    if (varCollectionIds && changedValues.collection_ids) {
+      varCollectionIds.value = changedValues.collection_ids;
+    }
   };
 
   useEffect(() => {
@@ -94,7 +68,9 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     const similarity_threshold = Number(
       vars?.find((item) => item.name === 'similarity_threshold')?.value || 0.2,
     );
-    form.setFieldsValue({ top_k, similarity_threshold });
+    const collection_ids =
+      vars?.find((item) => item.name === 'collection_ids')?.value || [];
+    form.setFieldsValue({ top_k, similarity_threshold, collection_ids });
   }, [originNode]);
 
   return (
@@ -110,17 +86,30 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
         items={[
           {
             key: '1',
-            label: formatMessage({ id: 'flow.vector.params' }),
+            label: formatMessage({ id: 'flow.search.params' }),
             style: getCollapsePanelStyle(token),
             children: (
               <>
                 <Form
-                  size="small"
                   form={form}
                   layout="vertical"
                   onValuesChange={onValuesChange}
                   autoComplete="off"
                 >
+                  <Form.Item
+                    required
+                    label={formatMessage({ id: 'collection.name' })}
+                    name="collection_ids"
+                  >
+                    <Select
+                      variant="filled"
+                      mode="multiple"
+                      options={collections?.map((collection) => ({
+                        label: collection.title,
+                        value: collection.id,
+                      }))}
+                    />
+                  </Form.Item>
                   <Form.Item
                     required
                     style={{ marginBottom: 0 }}
@@ -149,16 +138,6 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.input.params' }),
             style: getCollapsePanelStyle(token),
-            extra: (
-              <Tooltip title={<FormattedMessage id="action.add" />}>
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={onAddParams}
-                />
-              </Tooltip>
-            ),
             children: (
               <Table
                 rowKey="name"
