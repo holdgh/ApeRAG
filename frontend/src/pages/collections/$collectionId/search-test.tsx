@@ -352,6 +352,7 @@ export default () => {
                   <Typography.Text
                     style={{ maxWidth: 400, color: token.colorPrimary }}
                     ellipsis
+                    strong
                   >
                     {item.rank}. {item.source}
                   </Typography.Text>

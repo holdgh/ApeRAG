@@ -1,4 +1,4 @@
-import { ApeNode, ApeNodeVars } from '@/types';
+import { ApeNode, ApeNodeVar } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Select, Switch, theme, Typography } from 'antd';
@@ -70,7 +70,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     const vars = originNode?.data.vars;
     sourceNodes.forEach((nd) => {
       const item = vars?.find((v) => v.ref_node === nd?.id);
-      const value: ApeNodeVars = {
+      const value: ApeNodeVar = {
         name: `${nd?.type}_docs`,
         source_type: 'dynamic',
         ref_node: nd?.id,

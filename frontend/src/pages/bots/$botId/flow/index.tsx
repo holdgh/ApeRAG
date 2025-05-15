@@ -1,6 +1,6 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import { ApeLayoutDirection } from '@/types';
+import { ApeFlow, ApeLayoutDirection } from '@/types';
 import { stringifyConfig } from '@/utils';
 import {
   addEdge,
@@ -88,14 +88,23 @@ export default () => {
   const { themeName } = useModel('global');
   const { bot, getBot } = useModel('bot');
   const {
+    flowInfo,
+    setFlowInfo,
+
+    execution,
+    setExecution,
+
+    globalVariables,
+    setGlobalVariables,
+
     nodes,
-    edges,
     setEdges,
+
+    edges,
     setNodes,
-    edgeType,
-    setEdgeType,
-    layoutDirection,
-    setLayoutDirection,
+
+    flowStyle,
+    setFlowStyle,
 
     getEdgeId,
     getLayoutedElements,
@@ -109,13 +118,16 @@ export default () => {
 
   const saveFlow = async () => {
     if (!bot?.id) return;
-    const flow = stringify({
+    const flow: ApeFlow = {
+      ...flowInfo,
+      execution,
+      global_variables: globalVariables,
       nodes,
       edges,
-      edgeType,
-      layoutDirection,
-    });
-    const config = { ...bot.config, flow };
+      style: flowStyle,
+    };
+    console.log(stringify(flow));
+    const config = { ...bot.config, flow: stringify(flow) };
     const res = await api.botsBotIdPut({
       botId: bot.id,
       botUpdate: {
@@ -149,17 +161,17 @@ export default () => {
           );
           const createdEdges = incomers.flatMap(({ id: source }) =>
             outgoers.map(({ id: target }) => ({
-              id: getEdgeId(source, target),
+              id: getEdgeId(),
               source,
               target,
-              type: edgeType,
+              type: flowStyle.edgeType,
             })),
           );
           return [...remainingEdges, ...createdEdges];
         }, edges),
       );
     },
-    [nodes, edges, edgeType],
+    [nodes, edges, flowStyle],
   );
 
   // nodes events
@@ -174,14 +186,14 @@ export default () => {
         addEdge(
           {
             ...connection,
-            id: getEdgeId(connection.source, connection.target),
-            type: edgeType,
+            id: getEdgeId(),
+            type: flowStyle.edgeType,
           },
           eds,
         ),
       );
     },
-    [edgeType],
+    [flowStyle],
   );
 
   // flow actions
@@ -198,7 +210,7 @@ export default () => {
       });
       setNodes([...layouted.nodes]);
       setEdges([...layouted.edges]);
-      setLayoutDirection(d);
+      setFlowStyle((s) => ({ ...s, layoutDirection: d }));
       setCenterView();
     },
     [nodes, edges],
@@ -213,15 +225,25 @@ export default () => {
   }, []);
 
   useEffect(() => {
-    setEdges((eds) => eds.map((edge) => ({ ...edge, type: edgeType })));
-  }, [edgeType]);
+    setEdges((eds) =>
+      eds.map((edge) => ({ ...edge, type: flowStyle.edgeType })),
+    );
+  }, [flowStyle]);
 
   useEffect(() => {
-    const flow = bot?.config?.flow || getInitialData();
-    setNodes(flow.nodes);
-    setEdges(flow.edges);
-    setEdgeType(flow.edgeType);
-    setLayoutDirection(flow.layoutDirection);
+    const flowDefault = getInitialData();
+    const flow = bot?.config?.flow;
+
+    setFlowInfo({
+      name: flow?.name || flowDefault.name,
+      description: flow?.description || flowDefault.description,
+      version: flow?.version || flowDefault.version,
+    });
+    setExecution(flow?.execution || flowDefault.execution);
+    setGlobalVariables(flow?.global_variables || flowDefault.global_variables);
+    setNodes(flow?.nodes || flowDefault.nodes);
+    setEdges(flow?.edges || flowDefault.edges);
+    setFlowStyle(flow?.style || flowDefault.style);
   }, [bot]);
 
   return (
@@ -253,14 +275,18 @@ export default () => {
                 <Button
                   type="text"
                   icon={<BsDiagram3 />}
-                  onClick={() => setEdgeType('smoothstep')}
+                  onClick={() =>
+                    setFlowStyle((s) => ({ ...s, edgeType: 'smoothstep' }))
+                  }
                 />
               </Tooltip>
               <Tooltip title={formatMessage({ id: 'flow.edge.bezier' })}>
                 <Button
                   type="text"
                   icon={<BsBezier />}
-                  onClick={() => setEdgeType('default')}
+                  onClick={() =>
+                    setFlowStyle((s) => ({ ...s, edgeType: 'default' }))
+                  }
                 />
               </Tooltip>
             </Space>

@@ -1,4 +1,4 @@
-import { ApeNode, ApeNodeVars } from '@/types';
+import { ApeNode, ApeNodeVar } from '@/types';
 import {
   CaretRightOutlined,
   DeleteOutlined,
@@ -16,7 +16,6 @@ import {
   theme,
   Tooltip,
 } from 'antd';
-import _ from 'lodash';
 import { useEffect, useMemo } from 'react';
 import { FormattedMessage, useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
@@ -28,14 +27,14 @@ type VarType = {
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes } = useModel('bots.$botId.flow.model');
+  const { nodes, getNodeOutputVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
 
   const [form] = Form.useForm<VarType>();
 
-  const columns: TableProps<ApeNodeVars>['columns'] = [
+  const columns: TableProps<ApeNodeVar>['columns'] = [
     {
       title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'name',
@@ -61,9 +60,6 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
       },
     },
   ];
-  const records = originNode?.data.vars?.filter(
-    (item) => !_.includes(['top_k', 'similarity_threshold'], item.name),
-  );
 
   const onValuesChange = (changedValues: VarType) => {
     if (!originNode) return;
@@ -170,7 +166,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                 size="small"
                 pagination={false}
                 columns={columns}
-                dataSource={records}
+                dataSource={getNodeOutputVars(node)}
                 style={{ background: token.colorBgContainer }}
               />
             ),

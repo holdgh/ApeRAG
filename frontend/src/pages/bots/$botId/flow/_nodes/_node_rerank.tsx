@@ -1,5 +1,5 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeVars } from '@/types';
+import { ApeNode, ApeNodeVar } from '@/types';
 import { CaretRightOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { Collapse, Form, Space, theme, Tooltip, Typography } from 'antd';
 import _ from 'lodash';
@@ -45,7 +45,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     const vars = originNode?.data.vars;
     sourceNodes.forEach((nd) => {
       const item = vars?.find((v) => v.ref_node === nd?.id);
-      const value: ApeNodeVars = {
+      const value: ApeNodeVar = {
         name: `docs`,
         source_type: 'dynamic',
         ref_node: nd?.id,

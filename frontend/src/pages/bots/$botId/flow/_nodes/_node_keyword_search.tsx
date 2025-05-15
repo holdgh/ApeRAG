@@ -1,4 +1,4 @@
-import { ApeNode, ApeNodeVars } from '@/types';
+import { ApeNode, ApeNodeVar } from '@/types';
 import {
   CaretRightOutlined,
   DeleteOutlined,
@@ -14,18 +14,16 @@ import {
   theme,
   Tooltip,
 } from 'antd';
-import { useMemo } from 'react';
+
 import { FormattedMessage, useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes } = useModel('bots.$botId.flow.model');
+  const { getNodeOutputVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
-  const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
-
-  const columns: TableProps<ApeNodeVars>['columns'] = [
+  const columns: TableProps<ApeNodeVar>['columns'] = [
     {
       title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'name',
@@ -51,7 +49,6 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
       },
     },
   ];
-  const records = originNode?.data.vars || [];
 
   const onAddParams: React.MouseEventHandler<HTMLElement> = (e) => {
     e.stopPropagation();
@@ -89,7 +86,7 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                 size="small"
                 pagination={false}
                 columns={columns}
-                dataSource={records}
+                dataSource={getNodeOutputVars(node)}
                 style={{ background: token.colorBgContainer }}
               />
             ),
