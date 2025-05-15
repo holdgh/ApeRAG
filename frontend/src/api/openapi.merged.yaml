@@ -2052,6 +2052,9 @@ components:
     searchTestResult:
       type: object
       properties:
+        id:
+          type: string
+          description: The id of the search test result
         query:
           type: string
         search_type:

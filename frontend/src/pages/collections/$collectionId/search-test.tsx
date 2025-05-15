@@ -11,7 +11,7 @@ import {
   Drawer,
   Form,
   Input,
-  Popconfirm,
+  Modal,
   Progress,
   Result,
   Select,
@@ -35,7 +35,7 @@ export default () => {
   const [form] = Form.useForm<SearchTestRequest>();
   const { collectionId } = useParams();
   const { loading, setLoading } = useModel('global');
-
+  const [modal, contextHolder] = Modal.useModal();
   const searchType = Form.useWatch('search_type', form);
   const [records, setRecords] = useState<SearchTestResult[]>([]);
   const [historyModal, setHistoryModal] = useState<{
@@ -62,44 +62,48 @@ export default () => {
     });
     setLoading(false);
     if (!res.data) {
-      toast.error(formatMessage({ id: 'searchTest.searchFailed' }));
+      toast.error(formatMessage({ id: 'tips.search.failed' }));
       return;
     }
     setHistoryModal({ visible: true, record: res.data });
     fetchHistory();
   };
 
-  const handleDeleteHistory = async (searchTestId: string) => {
-    console.log('delete', searchTestId, collectionId);
-    if (!collectionId || !searchTestId) return;
-    try {
+  const onDeleteRecord = async (record: SearchTestResult) => {
+    if (!collectionId || !record.id) return;
+    const confirmed = await modal.confirm({
+      title: formatMessage({ id: 'action.confirm' }),
+      content: formatMessage({ id: 'searchTest.confirmDeleteHistory' }),
+      okButtonProps: {
+        danger: true,
+        loading,
+      },
+    });
+    if (confirmed) {
       await api.collectionsCollectionIdSearchTestsSearchTestIdDelete({
         collectionId,
-        searchTestId,
+        searchTestId: record.id,
       });
-      toast.success(formatMessage({ id: 'searchTest.deleteSuccess' }));
+      toast.success(formatMessage({ id: 'tips.delete.success' }));
       fetchHistory();
-    } catch (e: any) {
-      toast.error(
-        e?.message || formatMessage({ id: 'searchTest.deleteFailed' }),
-      );
     }
   };
 
   const columns: TableProps<SearchTestResult>['columns'] = [
     {
-      title: formatMessage({ id: 'searchTest.question' }),
+      title: formatMessage({ id: 'searchTest.history_question' }),
       dataIndex: 'query',
       render: (_value, record) => {
         return (
           <>
-            <Button
-              onClick={() => setHistoryModal({ visible: true, record })}
-              type="link"
-              style={{ padding: 0 }}
-            >
-              {record.query}
-            </Button>
+            <Tooltip title={_.truncate(record.query, { length: 200 })}>
+              <a
+                onClick={() => setHistoryModal({ visible: true, record })}
+                style={{ display: 'inline-block', marginBottom: 4 }}
+              >
+                {_.truncate(record.query, { length: 30 })}
+              </a>
+            </Tooltip>
             <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
               <Space split={<Divider type="vertical" />}>
                 <div>
@@ -147,7 +151,7 @@ export default () => {
       },
     },
     {
-      title: formatMessage({ id: 'searchTest.vectorSimilarity' }),
+      title: formatMessage({ id: 'searchTest.similarity' }),
       width: 130,
       render: (text, record) => {
         return (
@@ -183,17 +187,14 @@ export default () => {
       key: 'action',
       width: 80,
       align: 'center',
-      render: (_: any, record: any) => (
-        <Space size={8} wrap={false}>
-          <Popconfirm
-            title={formatMessage({ id: 'searchTest.confirmDeleteHistory' })}
-            onConfirm={() => handleDeleteHistory(record.id)}
-            okText={formatMessage({ id: 'action.delete' })}
-            cancelText={formatMessage({ id: 'searchTest.cancel' })}
-          >
-            <Button size="small" type="link" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
+      render: (_value, record) => (
+        <Button
+          size="small"
+          type="link"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => onDeleteRecord(record)}
+        />
       ),
     },
   ];
@@ -218,6 +219,7 @@ export default () => {
 
   return (
     <>
+      {contextHolder}
       <Card style={{ marginBottom: 24 }}>
         <Form form={form} onFinish={onSearch}>
           <Form.Item
@@ -315,48 +317,64 @@ export default () => {
           },
         }}
         width="60%"
-      >
-        {_.size(historyModal?.record?.items) ? (
-          <Collapse
-            bordered={false}
-            defaultActiveKey={['1', '2', '3']}
-            expandIcon={({ isActive }) => (
-              <CaretRightOutlined rotate={isActive ? 90 : 0} />
+        extra={
+          <Typography.Text type="secondary">
+            {formatMessage(
+              { id: 'searchTest.searchResults.detail' },
+              { count: _.size(historyModal?.record?.items) },
             )}
-            style={{ background: token.colorBgContainer }}
-            items={historyModal?.record?.items?.map((item) => ({
-              key: item.rank,
-              label: (
-                <Typography.Text
-                  style={{ maxWidth: 400, color: token.colorPrimary }}
-                  ellipsis
-                >
-                  {item.rank}. {item.source}
-                </Typography.Text>
-              ),
-              children: <ApeMarkdown>{item.content}</ApeMarkdown>,
-              extra: (
-                <Tooltip title={item.score}>
-                  <Space align="center">
-                    <Progress
-                      type="circle"
-                      percent={((item.score || 0) * 100) / 1}
-                      showInfo={false}
-                      size={20}
-                      strokeColor={{
-                        '0%': token.colorError,
-                        '25%': token.colorWarning,
-                        '50%': token.colorSuccess,
-                      }}
-                    />
-                    <Typography.Text type="secondary">
-                      {(item.score || 0).toFixed(2)}
-                    </Typography.Text>
-                  </Space>
-                </Tooltip>
-              ),
-            }))}
-          />
+          </Typography.Text>
+        }
+      >
+        <Typography.Title level={4} style={{ margin: 12 }}>
+          {formatMessage({ id: 'searchTest.question' }) +
+            ': ' +
+            historyModal?.record?.query}
+        </Typography.Title>
+
+        {_.size(historyModal?.record?.items) ? (
+          <>
+            <Collapse
+              // bordered={false}
+              defaultActiveKey={['1', '2', '3', '4', '5']}
+              expandIcon={({ isActive }) => (
+                <CaretRightOutlined rotate={isActive ? 90 : 0} />
+              )}
+              style={{
+                background: token.colorBgContainer,
+                borderRadius: 0,
+                borderLeftWidth: 0,
+                borderRightWidth: 0,
+              }}
+              items={historyModal?.record?.items?.map((item) => ({
+                key: item.rank,
+                label: (
+                  <Typography.Text
+                    style={{ maxWidth: 400, color: token.colorPrimary }}
+                    ellipsis
+                  >
+                    {item.rank}. {item.source}
+                  </Typography.Text>
+                ),
+                children: <ApeMarkdown>{item.content}</ApeMarkdown>,
+                extra: (
+                  <Tooltip title={`Score: ${item.score}`}>
+                    <Space align="center">
+                      <Progress
+                        type="dashboard"
+                        percent={((item.score || 0) * 100) / 1}
+                        showInfo={false}
+                        size={20}
+                      />
+                      <Typography.Text type="secondary">
+                        {(item.score || 0).toFixed(2)}
+                      </Typography.Text>
+                    </Space>
+                  </Tooltip>
+                ),
+              }))}
+            />
+          </>
         ) : (
           <Result
             style={{ paddingTop: 120 }}
