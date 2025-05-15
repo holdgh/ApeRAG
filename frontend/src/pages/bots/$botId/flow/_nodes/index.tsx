@@ -79,7 +79,7 @@ const ApeBasicNode = (node: ApeNode) => {
         content: <ApeNodeStart />,
         label:
           originNode?.ariaLabel ||
-          formatMessage({ id: 'flow.node.type.global' }),
+          formatMessage({ id: 'flow.node.type.start' }),
         width: 320,
         disableConnectionTarget: true,
       },
@@ -105,6 +105,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color: token.purple,
         icon: <MergeOutlined />,
         content: <ApeNodeMerge node={node} />,
+        width: 300,
         label:
           originNode?.ariaLabel ||
           formatMessage({ id: 'flow.node.type.merge' }),
@@ -113,7 +114,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color: token.magenta,
         icon: <FunnelPlotOutlined />,
         content: <ApeNodeRerank node={node} />,
-        width: 260,
+        width: 300,
         label:
           originNode?.ariaLabel ||
           formatMessage({ id: 'flow.node.type.rerank' }),
