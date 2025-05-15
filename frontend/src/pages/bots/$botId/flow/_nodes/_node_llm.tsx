@@ -1,5 +1,5 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeVars } from '@/types';
+import { ApeNode, ApeNodeVar } from '@/types';
 import {
   CaretRightOutlined,
   DeleteOutlined,
@@ -38,7 +38,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
 
   const [form] = Form.useForm<VarType>();
 
-  const columns: TableProps<ApeNodeVars>['columns'] = [
+  const columns: TableProps<ApeNodeVar>['columns'] = [
     {
       title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'name',

@@ -6,7 +6,7 @@ export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 // flow
 export type ApeLayoutDirection = 'TB' | 'LR';
 export type ApeNodeType =
-  | 'global'
+  | 'start'
   | 'vector_search'
   | 'keyword_search'
   | 'merge'
@@ -25,7 +25,7 @@ export type ApeNodeHandlePosition = {
   targetPosition?: Position;
 };
 
-export type ApeNodeVars = {
+export type ApeNodeVar = {
   name?: string;
   type?: string;
   description?: string;
@@ -42,21 +42,54 @@ export type ApeNodeVars = {
 export type ApeNode = Node & {
   data?: {
     collapsed?: boolean;
-    vars?: ApeNodeVars[];
+    vars?: ApeNodeVar[];
   };
 };
 
 export type ApeEdge = Edge;
 
-/**
- * bots
- */
-export type ApeFlow = {
-  nodes: ApeNode[];
-  edges: ApeEdge[];
+export type FlowGlobalVariable = {
+  name?: string;
+  type?: string | number | boolean;
+  description?: string;
+};
+
+export type FlowExecution = {
+  timeout?: number;
+  retry?: {
+    max_attempts?: number;
+    delay?: number;
+  };
+  error_handling?: {
+    strategy?: 'stop_on_error' | 'continue_on_error';
+    notification?: {
+      email?: string[];
+    };
+  };
+};
+
+export type ApeFlowInfo = {
+  name?: string;
+  description?: string;
+  version?: string;
+};
+
+export type ApeFlowStyle = {
   edgeType: ApeEdgeTypes;
   layoutDirection: ApeLayoutDirection;
 };
+
+export type ApeFlow = ApeFlowInfo & {
+  execution?: FlowExecution;
+  global_variables?: ApeNodeVar[];
+  nodes: ApeNode[];
+  edges: ApeEdge[];
+  style: ApeFlowStyle;
+};
+
+/**
+ * bots
+ */
 export type BotConfig = {
   flow?: ApeFlow;
   model?: string;

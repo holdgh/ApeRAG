@@ -1,13 +1,17 @@
 import {
   ApeEdge,
-  ApeEdgeTypes,
   ApeFlow,
+  ApeFlowInfo,
+  ApeFlowStyle,
   ApeLayoutDirection,
   ApeNode,
   ApeNodeHandlePosition,
+  ApeNodeVar,
+  FlowExecution,
 } from '@/types';
 import Dagre from '@dagrejs/dagre';
 import { Position } from '@xyflow/react';
+import _ from 'lodash';
 import { useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 
@@ -73,8 +77,7 @@ const getLayoutedElements = (
   };
 };
 
-const getEdgeId = (sourceId: string, targetId: string): string =>
-  `${sourceId}|${targetId}`;
+const getEdgeId = (): string => uuidV4();
 
 const getInitialData = (): ApeFlow => {
   const globalId = uuidV4();
@@ -83,23 +86,37 @@ const getInitialData = (): ApeFlow => {
   const mergeId = uuidV4();
   const rerankId = uuidV4();
   const llmId = uuidV4();
+
   return {
-    edgeType: 'default',
-    layoutDirection: 'LR',
+    name: 'RAG Knowledge Base Flow',
+    description: 'A typical RAG flow with parallel retrieval and reranking',
+    version: '1.0.0',
+    execution: {
+      timeout: 300,
+      retry: {
+        max_attempts: 3,
+        delay: 5,
+      },
+      error_handling: {
+        strategy: 'stop_on_error',
+        notification: {
+          email: ['admin@example.com'],
+        },
+      },
+    },
+    global_variables: [
+      {
+        name: 'query',
+        type: 'string',
+        description: "User's question or query",
+      },
+    ],
     nodes: [
       {
         id: globalId,
-        type: 'global',
-        data: {
-          vars: [
-            {
-              name: 'query',
-              type: 'string',
-              description: "User's question or query",
-            },
-          ],
-        },
-        position: { x: 40, y: 300 },
+        type: 'start',
+        data: {},
+        position: { x: 0, y: 289.75 },
         deletable: false,
         dragHandle: '.drag-handle',
       },
@@ -122,7 +139,8 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 400, y: 200 },
+        position: { x: 422, y: 0 },
+        deletable: false,
         type: 'vector_search',
         dragHandle: '.drag-handle',
       },
@@ -138,7 +156,8 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 400, y: 400 },
+        position: { x: 422, y: 482 },
+        deletable: false,
         dragHandle: '.drag-handle',
       },
       {
@@ -168,7 +187,8 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 700, y: 300 },
+        position: { x: 884, y: 191.25 },
+        deletable: false,
         dragHandle: '.drag-handle',
       },
       {
@@ -188,7 +208,8 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 1000, y: 300 },
+        position: { x: 1244, y: 257.75 },
+        deletable: false,
         dragHandle: '.drag-handle',
       },
       {
@@ -221,73 +242,110 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 1300, y: 300 },
+        position: { x: 1606, y: 124.75 },
+        deletable: false,
         dragHandle: '.drag-handle',
       },
     ],
     edges: [
       {
-        id: getEdgeId(globalId, vectorSearchId),
+        id: getEdgeId(),
         source: globalId,
         target: vectorSearchId,
         type: 'default',
+        deletable: false,
       },
       {
-        id: getEdgeId(globalId, keywordSearchId),
+        id: getEdgeId(),
         source: globalId,
         target: keywordSearchId,
         type: 'default',
+        deletable: false,
       },
       {
-        id: getEdgeId(vectorSearchId, mergeId),
+        id: getEdgeId(),
         source: vectorSearchId,
         target: mergeId,
         type: 'default',
+        deletable: false,
       },
       {
-        id: getEdgeId(keywordSearchId, mergeId),
+        id: getEdgeId(),
         source: keywordSearchId,
         target: mergeId,
         type: 'default',
+        deletable: false,
       },
       {
-        id: getEdgeId(mergeId, rerankId),
+        id: getEdgeId(),
         source: mergeId,
         target: rerankId,
         type: 'default',
+        deletable: false,
       },
       {
-        id: getEdgeId(rerankId, llmId),
+        id: getEdgeId(),
         source: rerankId,
         target: llmId,
         type: 'default',
+        deletable: false,
       },
     ],
+    style: {
+      edgeType: 'default',
+      layoutDirection: 'LR',
+    },
   };
 };
 
 export default () => {
+  const [flowInfo, setFlowInfo] = useState<ApeFlowInfo>();
+  const [globalVariables, setGlobalVariables] = useState<ApeNodeVar[]>();
+  const [execution, setExecution] = useState<FlowExecution>();
   const [nodes, setNodes] = useState<ApeNode[]>([]);
   const [edges, setEdges] = useState<ApeEdge[]>([]);
-  const [edgeType, setEdgeType] = useState<ApeEdgeTypes>('default');
-  const [layoutDirection, setLayoutDirection] =
-    useState<ApeLayoutDirection>('LR');
+
+  const [flowStyle, setFlowStyle] = useState<ApeFlowStyle>({
+    edgeType: 'default',
+    layoutDirection: 'LR',
+  });
+
+  const getNodeOutputVars = (node?: ApeNode): ApeNodeVar[] | undefined => {
+    if (!node) return globalVariables;
+    switch (node.type) {
+      case 'vector_search':
+        return node.data.vars?.filter(
+          (item) => !_.includes(['top_k', 'similarity_threshold'], item.name),
+        );
+      case 'keyword_search':
+        return node.data.vars;
+      default:
+        return node.data.vars;
+    }
+  };
 
   return {
+    flowInfo,
+    setFlowInfo,
+
+    execution,
+    setExecution,
+
+    globalVariables,
+    setGlobalVariables,
+
     nodes,
     setNodes,
 
     edges,
     setEdges,
 
-    edgeType,
-    setEdgeType,
-
-    layoutDirection,
-    setLayoutDirection,
+    flowStyle,
+    setFlowStyle,
 
     getLayoutedElements,
     getInitialData,
     getEdgeId,
+    getNodeOutputVars,
   };
 };

@@ -1,13 +1,6 @@
-import { ApeNode, ApeNodeVars } from '@/types';
+import { ApeNodeVar } from '@/types';
+import { CaretRightOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import {
-  CaretRightOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  QuestionCircleOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
-import {
-  Button,
   Collapse,
   Space,
   Table,
@@ -17,14 +10,15 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
-import { FormattedMessage, useIntl } from 'umi';
+import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
-export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
+export const ApeNodeStart = () => {
+  const { globalVariables } = useModel('bots.$botId.flow.model');
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
 
-  const columns: TableProps<ApeNodeVars>['columns'] = [
+  const columns: TableProps<ApeNodeVar>['columns'] = [
     {
       title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'name',
@@ -48,28 +42,6 @@ export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
       dataIndex: 'type',
       render: (value) => <Tag color={token.colorPrimary}>{value}</Tag>,
     },
-    {
-      title: formatMessage({ id: 'action.name' }),
-      width: 60,
-      render: (value, record) => {
-        return (
-          <Space>
-            <Button
-              disabled={record.name === 'query'}
-              type="text"
-              size="small"
-              icon={<SettingOutlined />}
-            />
-            <Button
-              disabled={record.name === 'query'}
-              type="text"
-              size="small"
-              icon={<DeleteOutlined />}
-            />
-          </Space>
-        );
-      },
-    },
   ];
 
   return (
@@ -86,16 +58,6 @@ export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
           key: '1',
           label: formatMessage({ id: 'flow.variable.global' }),
           style: getCollapsePanelStyle(token),
-          extra: (
-            <Tooltip title={<FormattedMessage id="action.add" />}>
-              <Button
-                disabled
-                type="link"
-                size="small"
-                icon={<PlusOutlined />}
-              />
-            </Tooltip>
-          ),
           children: (
             <Table
               rowKey="name"
@@ -103,7 +65,7 @@ export const ApeNodeGlobal = ({ node }: { node: ApeNode }) => {
               size="small"
               bordered
               columns={columns}
-              dataSource={node.data.vars}
+              dataSource={globalVariables}
             />
           ),
         },

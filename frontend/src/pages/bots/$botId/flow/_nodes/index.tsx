@@ -14,12 +14,13 @@ import { useHover } from 'ahooks';
 import { Button, ConfigProvider, Form, Input, Modal, Space, theme } from 'antd';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useIntl, useModel } from 'umi';
-import { ApeNodeGlobal } from './_node_global';
 import { ApeNodeKeywordSearch } from './_node_keyword_search';
 import { ApeNodeLlm } from './_node_llm';
 import { ApeNodeMerge } from './_node_merge';
 import { ApeNodeRerank } from './_node_rerank';
+import { ApeNodeStart } from './_node_start';
 import { ApeNodeVectorSearch } from './_node_vector_search';
+
 import {
   StyledFlowNode,
   StyledFlowNodeAvatar,
@@ -36,22 +37,25 @@ type NodeConfig = {
   [key in ApeNodeType]: {
     color: string;
     icon: React.ReactNode;
-    content: React.ReactNode;
     label: string;
+    content?: React.ReactNode;
     width?: number;
-    disableCollectionTarget?: boolean;
-    disableCollectionSource?: boolean;
+    disableConnectionTarget?: boolean;
+    disableConnectionSource?: boolean;
   };
 };
 
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
+
   const { nodes, setNodes } = useModel('bots.$botId.flow.model');
   const { themeName } = useModel('global');
+
   const algorithm = useMemo(
     () => (themeName.includes('dark') ? darkAlgorithm : defaultAlgorithm),
     [themeName],
   );
+
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
   const tokens = useMemo(
@@ -69,15 +73,15 @@ const ApeBasicNode = (node: ApeNode) => {
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
   const configs = useMemo(
     (): NodeConfig => ({
-      global: {
+      start: {
         color: token.cyan,
         icon: <HomeOutlined />,
-        content: <ApeNodeGlobal node={node} />,
+        content: <ApeNodeStart />,
         label:
           originNode?.ariaLabel ||
           formatMessage({ id: 'flow.node.type.global' }),
         width: 320,
-        disableCollectionTarget: true,
+        disableConnectionTarget: true,
       },
       vector_search: {
         color: token.orange,
@@ -121,13 +125,13 @@ const ApeBasicNode = (node: ApeNode) => {
         width: 320,
         label:
           originNode?.ariaLabel || formatMessage({ id: 'flow.node.type.llm' }),
-        disableCollectionSource: true,
+        disableConnectionSource: true,
       },
     }),
     [node],
   );
 
-  const config = useMemo(() => configs[node.type as ApeNodeType], [node]);
+  const config = useMemo(() => configs[node.type as ApeNodeType] || {}, [node]);
 
   const onToggleCollapsed = useCallback(() => {
     if (!originNode) return;
@@ -186,7 +190,7 @@ const ApeBasicNode = (node: ApeNode) => {
         color={config.color}
         ref={nodeRef}
       >
-        {!config.disableCollectionTarget && (
+        {!config.disableConnectionTarget && (
           <Handle
             type="target"
             position={node.targetPosition || Position.Left}
@@ -240,7 +244,7 @@ const ApeBasicNode = (node: ApeNode) => {
           </StyledFlowNodeBody>
         </StyledFlowNode>
 
-        {!config.disableCollectionSource && (
+        {!config.disableConnectionSource && (
           <Handle
             className="node-handler-end"
             type="source"
@@ -289,7 +293,7 @@ const ApeBasicNode = (node: ApeNode) => {
 };
 
 export const NodeTypes: { [key in ApeNodeType]: any } = {
-  global: ApeBasicNode,
+  start: ApeBasicNode,
   vector_search: ApeBasicNode,
   keyword_search: ApeBasicNode,
   merge: ApeBasicNode,
