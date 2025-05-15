@@ -1,26 +1,17 @@
 import { ModelSelect } from '@/components';
 import { ApeNode, ApeNodeVar } from '@/types';
+import { CaretRightOutlined } from '@ant-design/icons';
 import {
-  CaretRightOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
-import {
-  Button,
   Collapse,
   Form,
   InputNumber,
   Slider,
-  Space,
   Table,
   TableProps,
   theme,
-  Tooltip,
 } from 'antd';
-import _ from 'lodash';
 import { useEffect, useMemo } from 'react';
-import { FormattedMessage, useIntl, useModel } from 'umi';
+import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
@@ -31,7 +22,7 @@ type VarType = {
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes } = useModel('bots.$botId.flow.model');
+  const { nodes, getNodeOutputVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
@@ -40,33 +31,14 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
 
   const columns: TableProps<ApeNodeVar>['columns'] = [
     {
-      title: formatMessage({ id: 'flow.variable.title' }),
-      dataIndex: 'name',
-    },
-    {
       title: formatMessage({ id: 'flow.variable.source_type' }),
       dataIndex: 'source_type',
     },
     {
-      title: formatMessage({ id: 'flow.variable.value' }),
+      title: formatMessage({ id: 'flow.variable.title' }),
       dataIndex: 'global_var',
     },
-    {
-      title: formatMessage({ id: 'action.name' }),
-      width: 60,
-      render: () => {
-        return (
-          <Space>
-            <Button type="text" size="small" icon={<SettingOutlined />} />
-            <Button type="text" size="small" icon={<DeleteOutlined />} />
-          </Space>
-        );
-      },
-    },
   ];
-  const records = originNode?.data.vars?.filter(
-    (item) => !_.includes(['model', 'temperature', 'max_tokens'], item.name),
-  );
 
   const onValuesChange = (changedValues: VarType) => {
     if (!originNode) return;
@@ -87,10 +59,6 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     if (varMaxTokens && changedValues.max_tokens !== undefined) {
       varMaxTokens.value = changedValues.max_tokens;
     }
-  };
-
-  const onAddParams: React.MouseEventHandler<HTMLElement> = (e) => {
-    e.stopPropagation();
   };
 
   useEffect(() => {
@@ -169,16 +137,6 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.input.params' }),
             style: getCollapsePanelStyle(token),
-            extra: (
-              <Tooltip title={<FormattedMessage id="action.add" />}>
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={onAddParams}
-                />
-              </Tooltip>
-            ),
             children: (
               <Table
                 rowKey="name"
@@ -186,7 +144,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                 size="small"
                 pagination={false}
                 columns={columns}
-                dataSource={records}
+                dataSource={getNodeOutputVars(node)}
                 style={{ background: token.colorBgContainer }}
               />
             ),

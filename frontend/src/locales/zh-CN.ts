@@ -205,7 +205,7 @@ export default {
   'flow.top_k': 'Top-k',
   'flow.top_k.tips':
     'Top-k 是用来控制采样策略的，即从所有结果中按照打分排名，取前 k 个字作为候选集，然后从中随机选一个作为下一个输出的字。',
-  'flow.vector.params': '检索参数',
+  'flow.search.params': '检索参数',
   'flow.input.params': '输入参数',
   'flow.llm.params': 'LLM参数',
   'flow.reranker.target': 'Reranker对象',

@@ -12,7 +12,7 @@ import {
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
 import { Button, ConfigProvider, Form, Input, Modal, Space, theme } from 'antd';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl, useModel } from 'umi';
 import { ApeNodeKeywordSearch } from './_node_keyword_search';
 import { ApeNodeLlm } from './_node_llm';
@@ -47,7 +47,7 @@ type NodeConfig = {
 
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
-
+  const { getCollections } = useModel('collection');
   const { nodes, setNodes } = useModel('bots.$botId.flow.model');
   const { themeName } = useModel('global');
 
@@ -180,6 +180,10 @@ const ApeBasicNode = (node: ApeNode) => {
     });
     setLabelModalVisible(false);
   }, [node]);
+
+  useEffect(() => {
+    getCollections();
+  }, []);
 
   return (
     <>

@@ -133,14 +133,17 @@ const getInitialData = (): ApeFlow => {
               value: 0.2,
             },
             {
+              name: 'collection_ids',
+              value: [],
+            },
+            {
               name: 'query',
               source_type: 'global',
               global_var: 'query',
             },
           ],
         },
-        position: { x: 422, y: 0 },
-        deletable: false,
+        position: { x: 422, y: -30 },
         type: 'vector_search',
         dragHandle: '.drag-handle',
       },
@@ -150,14 +153,17 @@ const getInitialData = (): ApeFlow => {
         data: {
           vars: [
             {
+              name: 'collection_ids',
+              value: [],
+            },
+            {
               name: 'query',
               source_type: 'global',
               global_var: 'query',
             },
           ],
         },
-        position: { x: 422, y: 482 },
-        deletable: false,
+        position: { x: 422, y: 520 },
         dragHandle: '.drag-handle',
       },
       {
@@ -188,7 +194,6 @@ const getInitialData = (): ApeFlow => {
           ],
         },
         position: { x: 884, y: 191.25 },
-        deletable: false,
         dragHandle: '.drag-handle',
       },
       {
@@ -209,7 +214,6 @@ const getInitialData = (): ApeFlow => {
           ],
         },
         position: { x: 1244, y: 257.75 },
-        deletable: false,
         dragHandle: '.drag-handle',
       },
       {
@@ -219,7 +223,7 @@ const getInitialData = (): ApeFlow => {
           vars: [
             {
               name: 'model',
-              value: 'gpt-3.5-turbo',
+              value: '',
             },
             {
               name: 'temperature',
@@ -243,7 +247,6 @@ const getInitialData = (): ApeFlow => {
           ],
         },
         position: { x: 1606, y: 124.75 },
-        deletable: false,
         dragHandle: '.drag-handle',
       },
     ],
@@ -253,42 +256,36 @@ const getInitialData = (): ApeFlow => {
         source: globalId,
         target: vectorSearchId,
         type: 'default',
-        deletable: false,
       },
       {
         id: getEdgeId(),
         source: globalId,
         target: keywordSearchId,
         type: 'default',
-        deletable: false,
       },
       {
         id: getEdgeId(),
         source: vectorSearchId,
         target: mergeId,
         type: 'default',
-        deletable: false,
       },
       {
         id: getEdgeId(),
         source: keywordSearchId,
         target: mergeId,
         type: 'default',
-        deletable: false,
       },
       {
         id: getEdgeId(),
         source: mergeId,
         target: rerankId,
         type: 'default',
-        deletable: false,
       },
       {
         id: getEdgeId(),
         source: rerankId,
         target: llmId,
         type: 'default',
-        deletable: false,
       },
     ],
     style: {
@@ -315,10 +312,24 @@ export default () => {
     switch (node.type) {
       case 'vector_search':
         return node.data.vars?.filter(
-          (item) => !_.includes(['top_k', 'similarity_threshold'], item.name),
+          (item) =>
+            !_.includes(
+              ['top_k', 'similarity_threshold', 'collection_ids'],
+              item.name,
+            ),
         );
       case 'keyword_search':
-        return node.data.vars;
+        return node.data.vars?.filter(
+          (item) => !_.includes(['collection_ids'], item.name),
+        );
+      case 'llm':
+        return node.data.vars?.filter(
+          (item) =>
+            !_.includes(
+              ['model', 'temperature', 'max_tokens', 'docs'],
+              item.name,
+            ),
+        );
       default:
         return node.data.vars;
     }
