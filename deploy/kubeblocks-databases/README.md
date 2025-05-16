@@ -1,165 +1,167 @@
-# KubeBlocks Databases Helm Chart
+# KubeBlocks 数据库部署指南
 
-This Helm chart deploys and manages multiple database clusters (PostgreSQL, Redis, Elasticsearch, Qdrant) using [KubeBlocks](https://kubeblocks.io/).
+本项目提供了使用 KubeBlocks 在 Kubernetes 集群中快速部署和管理多种数据库的配置和工具。
 
-## Prerequisites
+## 项目概述
 
-*   Kubernetes cluster (version compatible with KubeBlocks)
-*   [Helm](https://helm.sh/docs/intro/install/) (version 3+) installed.
-*   [KubeBlocks](https://kubeblocks.io/docs/preview/user_docs/installation) installed in your Kubernetes cluster.
-*   `kubectl` configured to interact with your cluster.
+KubeBlocks 是一个云原生数据基础设施平台，帮助您在 Kubernetes 上轻松管理各类数据库。本项目包含了预配置的数据库部署模板，让您可以一键部署各种常用数据库。
+
+## 支持的数据库
+
+- **PostgreSQL** - 强大的开源关系型数据库
+- **Redis** - 高性能键值存储数据库
+- **Elasticsearch** - 分布式搜索和分析引擎
+- **Qdrant** - 向量搜索引擎
+- **MongoDB** - 文档型数据库
+- **Neo4j** - 图数据库
+
+## 目录结构
+
+```
+kubeblocks-databases/
+├── README.md                  # 使用指南
+├── pre-install.sh             # 预安装环境设置脚本
+├── install-all.sh             # 一键安装所有数据库脚本
+├── uninstall-all.sh           # 一键卸载所有数据库脚本
+├── postgresql/                # PostgreSQL 配置和脚本
+│   ├── install.sh            # 安装脚本
+│   ├── uninstall.sh          # 卸载脚本
+│   └── values.yaml           # 集群配置
+├── redis/                     # Redis 配置和脚本
+│   ├── install.sh            # 安装脚本
+│   ├── uninstall.sh          # 卸载脚本
+│   └── values.yaml           # 集群配置
+├── elasticsearch/             # Elasticsearch 配置和脚本
+│   ├── install.sh            # 安装脚本
+│   ├── uninstall.sh          # 卸载脚本
+│   └── values.yaml           # 集群配置
+├── qdrant/                    # Qdrant 配置和脚本
+│   ├── install.sh            # 安装脚本
+│   ├── uninstall.sh          # 卸载脚本
+│   └── values.yaml           # 集群配置
+├── mongodb/                   # MongoDB 配置和脚本
+│   ├── install.sh            # 安装脚本
+│   ├── uninstall.sh          # 卸载脚本
+│   └── values.yaml           # 集群配置
+└── neo4j/                     # Neo4j 配置和脚本
+    ├── install.sh            # 安装脚本
+    ├── uninstall.sh          # 卸载脚本
+    └── values.yaml           # 集群配置
+```
+
+## 安装前提条件
+
+- Kubernetes 集群 (v1.19+)
+- Helm 3.2.0+
+- 已安装 KubeBlocks Operator
+
+## 使用方法
+
+### 步骤1: 预安装设置（仅需执行一次）
+
+首次使用前，运行预安装设置脚本：
 
 ```bash
-kubectl create namespace kb-system
-kbcli kubeblocks install --version=1.0.0-beta.47 --namespace kb-system
+# 赋予执行权限
+chmod +x pre-install.sh
+
+# 执行预安装脚本
+./pre-install.sh
 ```
 
+该脚本将执行以下操作：
+- 添加KubeBlocks Helm仓库
+- 更新仓库信息
+- 创建必要的命名空间
 
-## Installation
+### 步骤2: 安装数据库
+
+#### 安装单个数据库
+
+每个数据库都可以独立安装和配置。进入对应数据库的目录，然后执行安装脚本：
 
 ```bash
-helm repo remove kubeblocks
-helm repo add kubeblocks https://apecloud.github.io/helm-charts
-helm repo update
+# 进入要安装的数据库目录，例如PostgreSQL
+cd postgresql
 
-helm upgrade --install kb-addon-elasticsearch kubeblocks/elasticsearch --namespace kb-system --version 1.0.0-alpha.0
-helm upgrade --install kb-addon-qdrant kubeblocks/qdrant --namespace kb-system --version 1.0.0-alpha.0
-helm upgrade --install kb-addon-postgresql kubeblocks/postgresql --namespace kb-system --version 1.0.0-alpha.0
-helm upgrade --install kb-addon-redis kubeblocks/redis --namespace kb-system --version 1.0.0-alpha.0
+# 赋予脚本执行权限（如果需要）
+chmod +x install.sh
+
+# 执行安装脚本
+./install.sh
 ```
+
+#### 安装所有数据库
+
+如果您需要安装所有支持的数据库，可以使用一键安装脚本：
 
 ```bash
-kubectl create namespace demo
-kubectl create secret generic postgresql-secret \
-  --namespace=demo \
-  --from-literal=username=postgres \
-  --from-literal=password=postgres
-kubectl create secret generic redis-secret \
-  --namespace=demo \
-  --from-literal=username=default \
-  --from-literal=password=password
-helm install kb-databases ./kubeblocks-databases -n demo --create-namespace \
---set redis.customSecretName=redis-secret,redis.customSecretNamespace=demo,postgresql.customSecretName=postgresql-secret,postgresql.customSecretNamespace=demo
+# 赋予执行权限
+chmod +x install-all.sh
+
+# 执行安装脚本
+./install-all.sh
 ```
 
-generate template: 
-```bash
-helm template kb-databases ./kubeblocks-databases -n demo --create-namespace \
---set redis.customSecretName=redis-secret,redis.customSecretNamespace=demo,postgresql.customSecretName=postgresql-secret,postgresql.customSecretNamespace=demo \
-> rendered.yaml
-```
+> 注意：您可以在脚本中注释掉不需要安装的数据库。
 
-## Verification
+### 自定义配置
 
-After installation, you can check the status of the deployed KubeBlocks clusters:
+每个数据库目录中的 `values.yaml` 文件包含了该数据库的配置选项。您可以在执行安装脚本前修改这些配置：
 
 ```bash
-kubectl get clusters -n demo
-kubectl get pods -n demo
+# 编辑配置文件
+vim values.yaml
+
+# 然后执行安装脚本
+./install.sh
 ```
 
+主要配置项包括：
 
-You should see the `Cluster` resources for the enabled databases and their corresponding pods. The `NOTES.txt` output from Helm will also provide some of this information.
+- **版本**: 指定数据库版本
+- **部署模式**: 如单机模式、复制模式等
+- **资源配置**: CPU、内存和存储容量
+- **高可用设置**: 副本数、故障恢复策略等
+- **命名空间**: 在values文件中可以指定部署的命名空间
+
+## 卸载方法
+
+### 卸载单个数据库
+
+要卸载特定数据库，进入对应数据库目录，然后执行卸载脚本：
 
 ```bash
-kubectl get clusters -n demo
-NAME               CLUSTER-DEFINITION   TERMINATION-POLICY   STATUS     AGE
-es-cluster                              Delete               Running    121m
-pg-cluster         postgresql           Delete               Creating   121m
-qdrant-cluster     qdrant               Delete               Running    121m
-redis-standalone   redis                Delete               Running    121m
+# 进入要卸载的数据库目录，例如PostgreSQL
+cd postgresql
 
-kubectl get pods -n demo
-NAME                       READY   STATUS    RESTARTS   AGE
-es-cluster-mdit-0          3/3     Running   0          110m
-pg-cluster-postgresql-0    5/5     Running   0          121m
-qdrant-cluster-qdrant-0    2/2     Running   0          117m
-redis-standalone-redis-0   3/3     Running   0          121m
+# 赋予脚本执行权限（如果需要）
+chmod +x uninstall.sh
+
+# 执行卸载脚本
+./uninstall.sh
 ```
 
-## Connect
+### 卸载所有数据库
 
-port-forward:
-```bash
-echo "Starting Elasticsearch port-forward..."
-kubectl port-forward -n demo service/es-cluster-mdit-http 9200:9200 &
-ES_PID=$!
-echo "Elasticsearch port-forward process ID: $ES_PID"
-echo "Starting Qdrant port-forward..."
-kubectl port-forward -n demo service/qdrant-cluster-qdrant-qdrant 6333:6333 &
-QDRANT_PID=$!
-echo "Qdrant port-forward process ID: $QDRANT_PID"
-echo "Starting PostgreSQL port-forward..."
-kubectl port-forward -n demo service/pg-cluster-postgresql-postgresql 5432:5432 &
-PG_PID=$!
-echo "PostgreSQL port-forward process ID: $PG_PID"
-echo "Starting Redis port-forward..."
-kubectl port-forward -n demo service/redis-standalone-redis-redis 6379:6379 &
-REDIS_PID=$!
-echo "Redis port-forward process ID: $REDIS_PID"
-echo "All port-forwards have been started"
-echo "Press Ctrl+C to stop all port-forwards"
-# Capture Ctrl+C signal and clean up all processes
-trap "kill $ES_PID $QDRANT_PID $PG_PID $REDIS_PID; echo 'All port-forwards stopped'; exit" INT
-# Wait for any child process to finish
-wait
-```
-
-## Uninstallation
-
-To uninstall the deployed database clusters:
+如果需要卸载所有数据库，可以使用一键卸载脚本：
 
 ```bash
-helm uninstall kb-databases -n demo
-```
-This will remove all Kubernetes resources associated with this Helm release, including the KubeBlocks `Cluster` objects. Depending on the `terminationPolicy` and KubeBlocks behavior, PVCs might also be deleted.
+# 赋予执行权限
+chmod +x uninstall-all.sh
 
-
-## Configuration
-
-The primary way to configure the deployments is through the `values.yaml` file.
-
-### Global Settings
-
-These settings apply to all database clusters deployed by this chart:
-
-```yaml
-global:
-  namespace: "demo"
-  terminationPolicy: "Delete" # Options: DoNotTerminate, Delete, WipeOut
+# 执行卸载脚本
+./uninstall-all.sh
 ```
 
-### Per-Database Settings
+## 参考链接
 
-Each database (PostgreSQL, Redis, Elasticsearch, Qdrant) has its own configuration block. Here's an example for PostgreSQL:
+- [KubeBlocks 官方文档](https://kubeblocks.io/docs/)
+- [KubeBlocks GitHub 仓库](https://github.com/apecloud/kubeblocks)
+- [Helm 文档](https://helm.sh/docs/)
 
-```yaml
-postgresql:
-  enabled: true              # Set to true to deploy this database, false to skip
-  name: "pg-cluster"         # Name of the KubeBlocks Cluster resource
-  serviceVersion: "14.7.2"   # Database engine version
-  disableExporter: false     # true to disable metrics exporter, false to enable
-  replicas: 2                # Number of replicas for the main component
-  resources:                 # CPU and Memory requests/limits
-    limits:
-      cpu: "0.5"
-      memory: "0.5Gi"
-    requests:
-      cpu: "0.5"
-      memory: "0.5Gi"
-  storage: "20Gi"            # Storage size for the data volume (e.g., PVC)
-```
+## 许可证
 
-Refer to `values.yaml` for the full set of configurable options for each database.
+Copyright © 2024
 
-**Key configurable parameters for each database:**
-
-*   `enabled`: (boolean) Deploy this database cluster.
-*   `name`: (string) Name for the KubeBlocks `Cluster` resource.
-*   `serviceVersion`: (string) Specific version of the database engine.
-*   `disableExporter`: (boolean) Enable/disable the metrics exporter. (Note: For Elasticsearch, this might be handled differently by its `componentDef`).
-*   `replicas`: (integer) Number of replicas for the primary database component.
-*   `resources`: (object) Standard Kubernetes resource requests and limits.
-*   `storage`: (string) Storage capacity for persistent volumes (e.g., "10Gi", "100Gi").
-*   `topology`: (string, for Redis) e.g., "standalone", "replication".
-*   `componentDef`: (string, for Elasticsearch) e.g., "elasticsearch-8".
+Licensed under the Apache License, Version 2.0
