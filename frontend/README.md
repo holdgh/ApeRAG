@@ -37,3 +37,7 @@ After merging into the main branch, CICD will be triggered to build the image, o
 ```
 make
 ```
+
+```
+docker run --name aperag-frontend -p 3000:3000 apecloud/aperag-frontend:latest
+```

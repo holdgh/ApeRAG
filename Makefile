@@ -25,7 +25,7 @@ setup-builder:
 # Build and push multi-platform image
 image: setup-builder
 	docker buildx build -t $(REGISTRY)/apecloud/aperag:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile .
-	cd web && docker buildx build -t $(REGISTRY)/apecloud/aperag-frontend:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile .
+	cd frontend && make PLATFORMS=${BUILDX_PLATFORM} REGISTRY=${REGISTRY} TAG=${VERSION}
 
 # Clean up builder instance
 clean-builder:

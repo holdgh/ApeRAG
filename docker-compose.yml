@@ -28,19 +28,19 @@ services:
 
   frontend:
     build:
-      context: ./web
+      context: ./frontend
       dockerfile: ./Dockerfile
     image: ${REGISTRY:-docker.io}/apecloud/aperag-frontend:${VERSION:-v0.1.2}
     container_name: aperag-frontend
     depends_on:
       - django
     env_file:
-      - web/.env
+      - frontend/deploy/env.local.template
     environment:
       - APERAG_CONSOLE_SERVICE_HOST=aperag-django
       - APERAG_CONSOLE_SERVICE_PORT=8000
     ports:
-      - "8001:80"
+      - "3000:3000"
 
   celeryworker:
     image: ${REGISTRY:-docker.io}/apecloud/aperag:${VERSION:-v0.1.2}
