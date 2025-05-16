@@ -5,12 +5,12 @@ command -v kubectl >/dev/null 2>&1 || { echo "Error: kubectl command not found";
 command -v helm >/dev/null 2>&1 || { echo "Error: helm command not found"; exit 1; }
 
 # Load configuration file
-source ./config.sh
+source ./00-config.sh
 
 # Add and update Helm repository
 echo "Adding and updating KubeBlocks Helm repository..."
-helm repo add kubeblocks 
-helm repo update $HELM_REPO
+helm repo add kubeblocks $HELM_REPO
+helm repo update
 
 # Create namespaces
 echo "Creating namespaces..."

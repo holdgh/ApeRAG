@@ -4,7 +4,7 @@
 # Install all database clusters
 
 # Load configuration file
-source ./config.sh
+source ./00-config.sh
 
 echo "Installing database clusters..."
 

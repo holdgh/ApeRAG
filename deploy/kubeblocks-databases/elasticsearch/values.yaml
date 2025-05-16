@@ -33,4 +33,4 @@ storage: 5
 
 extra:
   terminationPolicy: Delete
-  disableExporter: false
+  disableExporter: true

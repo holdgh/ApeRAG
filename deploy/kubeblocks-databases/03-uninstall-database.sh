@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load configuration file
-source ./config.sh
+source ./00-config.sh
 
 echo "Uninstalling database clusters..."
 
