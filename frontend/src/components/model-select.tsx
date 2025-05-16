@@ -37,7 +37,7 @@ export const ModelSelect = (props: SelectProps & ModelSelectProps) => {
             };
           }),
         };
-      }),
+      }).filter((item) => !_.isEmpty(item.options)),
     [availableModels, props.model],
   );
 
@@ -51,6 +51,7 @@ export const ModelSelect = (props: SelectProps & ModelSelectProps) => {
     <Select
       {...props}
       options={modelOptions}
+      suffixIcon={null}
       labelRender={({ label, value }) => {
         return (
           <Space style={{ alignItems: 'center' }}>

@@ -134,12 +134,12 @@ export const StyledFlowNodeAvatar = styled(Avatar).withConfig({
   token: GlobalToken;
   color?: string;
 }>`
-  ${({ token, color = token.colorPrimary }) => {
+  ${({ token, color }) => {
     return css`
-      background: linear-gradient(180deg, ${alpha(color, 0.75)}, ${color});
-      > .anticon {
-        font-size: 18px;
-      }
+      ${color
+        ? `background: linear-gradient(180deg, ${alpha(color, 0.75)}, ${color});`
+        : ''};
+      ${color ? '' : `color: ${token.colorTextDisabled};`};
     `;
   }}
 `;

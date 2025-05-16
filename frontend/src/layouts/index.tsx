@@ -69,6 +69,8 @@ export default () => {
   useTitle(APERAG_CONFIG.title || '');
   useFavicon(APERAG_CONFIG.favicon || '');
 
+  const tokens = THEME_TOKENS[themeName];
+
   // useEffect(() => {
   //   scroll.scrollToTop({ duration: 100 });
   // }, [location]);
@@ -90,6 +92,16 @@ export default () => {
             },
             algorithm,
             token: THEME_TOKENS[themeName],
+            components: {
+              Slider: {
+                trackBg: tokens.colorPrimary,
+                trackHoverBg: tokens.colorPrimary,
+                handleColor: tokens.colorPrimary,
+              },
+              Menu: {
+                itemSelectedColor: tokens.colorText,
+              },
+            },
           }}
         >
           <App>{getLayout()}</App>

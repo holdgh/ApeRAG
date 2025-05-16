@@ -87,6 +87,8 @@ export const StyledReactFlow = styled(ReactFlow).withConfig({
 export default () => {
   const { themeName } = useModel('global');
   const { bot, getBot } = useModel('bot');
+  const { getCollections } = useModel('collection');
+
   const {
     flowInfo,
     setFlowInfo,
@@ -215,6 +217,10 @@ export default () => {
     },
     [nodes, edges],
   );
+
+  useEffect(() => {
+    getCollections();
+  }, []);
 
   // remove react flow attribution
   useEffect(() => {

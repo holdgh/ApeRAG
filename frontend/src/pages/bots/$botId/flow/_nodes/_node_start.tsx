@@ -10,6 +10,7 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
+import { useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
@@ -18,31 +19,34 @@ export const ApeNodeStart = () => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
 
-  const columns: TableProps<ApeNodeVar>['columns'] = [
-    {
-      title: formatMessage({ id: 'flow.variable.title' }),
-      dataIndex: 'name',
-      render: (value, record) => {
-        return (
-          <Space>
-            <Typography.Text>{value}</Typography.Text>
-            {record.description && (
-              <Tooltip title={record.description}>
-                <Typography.Text type="secondary">
-                  <QuestionCircleOutlined />
-                </Typography.Text>
-              </Tooltip>
-            )}
-          </Space>
-        );
+  const columns: TableProps<ApeNodeVar>['columns'] = useMemo(
+    () => [
+      {
+        title: formatMessage({ id: 'flow.variable.title' }),
+        dataIndex: 'name',
+        render: (value, record) => {
+          return (
+            <Space>
+              <Typography.Text>{value}</Typography.Text>
+              {record.description && (
+                <Tooltip title={record.description}>
+                  <Typography.Text type="secondary">
+                    <QuestionCircleOutlined />
+                  </Typography.Text>
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
       },
-    },
-    {
-      title: formatMessage({ id: 'flow.variable.type' }),
-      dataIndex: 'type',
-      render: (value) => <Tag color={token.colorPrimary}>{value}</Tag>,
-    },
-  ];
+      {
+        title: formatMessage({ id: 'flow.variable.type' }),
+        dataIndex: 'type',
+        render: (value) => <Tag color={token.colorPrimary}>{value}</Tag>,
+      },
+    ],
+    [],
+  );
 
   return (
     <Collapse

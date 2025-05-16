@@ -1,7 +1,7 @@
-import { ApeNode, ApeNodeVar } from '@/types';
+import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Collapse, Form, Select, Slider, Table, TableProps, theme } from 'antd';
-import { useEffect, useMemo } from 'react';
+import { Collapse, Form, Select, Slider, Table, theme } from 'antd';
+import { useCallback, useEffect } from 'react';
 import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
@@ -13,55 +13,47 @@ type VarType = {
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes, getNodeOutputVars } = useModel('bots.$botId.flow.model');
+  const [form] = Form.useForm<VarType>();
+  const { getNodeOutputVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
   const { collections } = useModel('collection');
 
-  const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
+  /**
+   * on node form change
+   */
+  const onValuesChange = useCallback(
+    (changedValues: VarType) => {
+      if (!node) return;
+      const vars = node?.data.vars;
+      const varTopK = vars?.find((item) => item.name === 'top_k');
+      const varSimilarityThreshold = vars?.find(
+        (item) => item.name === 'similarity_threshold',
+      );
+      const varCollectionIds = vars?.find(
+        (item) => item.name === 'collection_ids',
+      );
+      if (varTopK && changedValues.top_k !== undefined) {
+        varTopK.value = changedValues.top_k;
+      }
+      if (
+        varSimilarityThreshold &&
+        changedValues.similarity_threshold !== undefined
+      ) {
+        varSimilarityThreshold.value = changedValues.similarity_threshold;
+      }
 
-  const [form] = Form.useForm<VarType>();
-
-  const columns: TableProps<ApeNodeVar>['columns'] = [
-    {
-      title: formatMessage({ id: 'flow.variable.source_type' }),
-      dataIndex: 'source_type',
+      if (varCollectionIds && changedValues.collection_ids) {
+        varCollectionIds.value = changedValues.collection_ids;
+      }
     },
-    {
-      title: formatMessage({ id: 'flow.variable.title' }),
-      dataIndex: 'global_var',
-    },
-  ];
+    [node],
+  );
 
-  const onValuesChange = (changedValues: VarType) => {
-    if (!originNode) return;
-
-    const vars = originNode?.data.vars;
-    const varTopK = vars?.find((item) => item.name === 'top_k');
-    const varSimilarityThreshold = vars?.find(
-      (item) => item.name === 'similarity_threshold',
-    );
-    const varCollectionIds = vars?.find(
-      (item) => item.name === 'collection_ids',
-    );
-
-    if (varTopK && changedValues.top_k !== undefined) {
-      varTopK.value = changedValues.top_k;
-    }
-
-    if (
-      varSimilarityThreshold &&
-      changedValues.similarity_threshold !== undefined
-    ) {
-      varSimilarityThreshold.value = changedValues.similarity_threshold;
-    }
-
-    if (varCollectionIds && changedValues.collection_ids) {
-      varCollectionIds.value = changedValues.collection_ids;
-    }
-  };
-
+  /**
+   * init node form data
+   */
   useEffect(() => {
-    const vars = originNode?.data.vars;
+    const vars = node?.data.vars;
     const top_k = Number(
       vars?.find((item) => item.name === 'top_k')?.value || 5,
     );
@@ -71,7 +63,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     const collection_ids =
       vars?.find((item) => item.name === 'collection_ids')?.value || [];
     form.setFieldsValue({ top_k, similarity_threshold, collection_ids });
-  }, [originNode]);
+  }, []);
 
   return (
     <>
@@ -104,6 +96,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                     <Select
                       variant="filled"
                       mode="multiple"
+                      suffixIcon={null}
                       options={collections?.map((collection) => ({
                         label: collection.title,
                         value: collection.id,
@@ -112,7 +105,6 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                   </Form.Item>
                   <Form.Item
                     required
-                    style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.top_k' })}
                     name="top_k"
                     tooltip={formatMessage({ id: 'flow.top_k.tips' })}
@@ -144,7 +136,16 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                 bordered
                 size="small"
                 pagination={false}
-                columns={columns}
+                columns={[
+                  {
+                    title: formatMessage({ id: 'flow.variable.source_type' }),
+                    dataIndex: 'source_type',
+                  },
+                  {
+                    title: formatMessage({ id: 'flow.variable.title' }),
+                    dataIndex: 'global_var',
+                  },
+                ]}
                 dataSource={getNodeOutputVars(node)}
                 style={{ background: token.colorBgContainer }}
               />

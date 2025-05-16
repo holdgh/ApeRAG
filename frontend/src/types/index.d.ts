@@ -40,6 +40,7 @@ export type ApeNodeVar = {
 };
 
 export type ApeNode = Node & {
+  collapsed?: boolean;
   data?: {
     collapsed?: boolean;
     vars?: ApeNodeVar[];
@@ -47,6 +48,19 @@ export type ApeNode = Node & {
 };
 
 export type ApeEdge = Edge;
+
+export type ApeNodeConfig = {
+  color?: string;
+  icon?: React.ReactNode;
+  label?: string;
+  content?: ({ node }: { node?: ApeNode }) => JSX.Element;
+  width?: number;
+  disableConnectionTarget?: boolean;
+  disableConnectionSource?: boolean;
+};
+export type ApeNodesConfig = {
+  [key in ApeNodeType]: ApeNodeConfig;
+};
 
 export type FlowGlobalVariable = {
   name?: string;

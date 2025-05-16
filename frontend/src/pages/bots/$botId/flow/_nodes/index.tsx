@@ -1,26 +1,10 @@
-import { ApeNode, ApeNodeType } from '@/types';
-import {
-  CaretDownOutlined,
-  EditOutlined,
-  FunnelPlotOutlined,
-  HomeOutlined,
-  InteractionOutlined,
-  MergeOutlined,
-  ReadOutlined,
-  WechatWorkOutlined,
-} from '@ant-design/icons';
+import { ApeNode, ApeNodeConfig, ApeNodeType } from '@/types';
+import { CaretDownOutlined, EditOutlined } from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
-import { Button, ConfigProvider, Form, Input, Modal, Space, theme } from 'antd';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Form, Input, Modal, Space, theme } from 'antd';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useIntl, useModel } from 'umi';
-import { ApeNodeKeywordSearch } from './_node_keyword_search';
-import { ApeNodeLlm } from './_node_llm';
-import { ApeNodeMerge } from './_node_merge';
-import { ApeNodeRerank } from './_node_rerank';
-import { ApeNodeStart } from './_node_start';
-import { ApeNodeVectorSearch } from './_node_vector_search';
-
 import {
   StyledFlowNode,
   StyledFlowNodeAvatar,
@@ -29,110 +13,28 @@ import {
   StyledFlowNodeHeader,
   StyledFlowNodeLabel,
 } from './_styles';
-const { darkAlgorithm, defaultAlgorithm } = theme;
-
-import { CSS_PREFIX, THEME_TOKENS } from '@/constants';
-
-type NodeConfig = {
-  [key in ApeNodeType]: {
-    color: string;
-    icon: React.ReactNode;
-    label: string;
-    content?: React.ReactNode;
-    width?: number;
-    disableConnectionTarget?: boolean;
-    disableConnectionSource?: boolean;
-  };
-};
 
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
-  const { getCollections } = useModel('collection');
-  const { nodes, setNodes } = useModel('bots.$botId.flow.model');
-  const { themeName } = useModel('global');
-
-  const algorithm = useMemo(
-    () => (themeName.includes('dark') ? darkAlgorithm : defaultAlgorithm),
-    [themeName],
-  );
-
+  const { nodes, setNodes, getNodeConfig } = useModel('bots.$botId.flow.model');
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-  const tokens = useMemo(
-    () => ({ ...THEME_TOKENS[themeName], fontSize: 12 }),
-    [themeName],
-  );
-
   const [form] = Form.useForm<{ ariaLabel: string }>();
 
   const nodeRef = useRef(null);
   const isHovering = useHover(nodeRef);
-
   const selected = useMemo(() => node.selected, [node]);
   const collapsed = useMemo(() => Boolean(node.data.collapsed), [node]);
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
-  const configs = useMemo(
-    (): NodeConfig => ({
-      start: {
-        color: token.cyan,
-        icon: <HomeOutlined />,
-        content: <ApeNodeStart />,
-        label:
-          originNode?.ariaLabel ||
-          formatMessage({ id: 'flow.node.type.start' }),
-        width: 320,
-        disableConnectionTarget: true,
-      },
-      vector_search: {
-        color: token.orange,
-        icon: <InteractionOutlined />,
-        content: <ApeNodeVectorSearch node={node} />,
-        width: 360,
-        label:
-          originNode?.ariaLabel ||
-          formatMessage({ id: 'flow.node.type.vector_search' }),
-      },
-      keyword_search: {
-        color: token.volcano,
-        icon: <ReadOutlined />,
-        content: <ApeNodeKeywordSearch node={node} />,
-        width: 360,
-        label:
-          originNode?.ariaLabel ||
-          formatMessage({ id: 'flow.node.type.keyword_search' }),
-      },
-      merge: {
-        color: token.purple,
-        icon: <MergeOutlined />,
-        content: <ApeNodeMerge node={node} />,
-        width: 300,
-        label:
-          originNode?.ariaLabel ||
-          formatMessage({ id: 'flow.node.type.merge' }),
-      },
-      rerank: {
-        color: token.magenta,
-        icon: <FunnelPlotOutlined />,
-        content: <ApeNodeRerank node={node} />,
-        width: 300,
-        label:
-          originNode?.ariaLabel ||
-          formatMessage({ id: 'flow.node.type.rerank' }),
-      },
-      llm: {
-        color: token.blue,
-        icon: <WechatWorkOutlined />,
-        content: <ApeNodeLlm node={node} />,
-        width: 320,
-        label:
-          originNode?.ariaLabel || formatMessage({ id: 'flow.node.type.llm' }),
-        disableConnectionSource: true,
-      },
-    }),
-    [node],
+  const config: ApeNodeConfig = useMemo(
+    () =>
+      getNodeConfig(
+        originNode?.type as ApeNodeType,
+        originNode?.ariaLabel ||
+          formatMessage({ id: `flow.node.type.${originNode?.type}` }),
+      ),
+    [originNode],
   );
-
-  const config = useMemo(() => configs[node.type as ApeNodeType] || {}, [node]);
 
   const onToggleCollapsed = useCallback(() => {
     if (!originNode) return;
@@ -181,10 +83,6 @@ const ApeBasicNode = (node: ApeNode) => {
     });
     setLabelModalVisible(false);
   }, [node]);
-
-  useEffect(() => {
-    getCollections();
-  }, []);
 
   return (
     <>
@@ -237,15 +135,8 @@ const ApeBasicNode = (node: ApeNode) => {
             </Space>
           </StyledFlowNodeHeader>
           <StyledFlowNodeBody token={token} collapsed={collapsed}>
-            <ConfigProvider
-              prefixCls={CSS_PREFIX}
-              theme={{
-                algorithm,
-                token: tokens,
-              }}
-            >
-              {config.content}
-            </ConfigProvider>
+            {config.content &&
+              React.createElement(config.content, { node: originNode })}
           </StyledFlowNodeBody>
         </StyledFlowNode>
 
@@ -259,24 +150,6 @@ const ApeBasicNode = (node: ApeNode) => {
             }}
           />
         )}
-
-        {/* <NodeResizeControl
-        style={{
-          border: 'none',
-          background: 'none',
-          width: 16,
-          height: 16,
-          marginTop: -10,
-          marginLeft: -8,
-          color: token.colorBorder,
-        }}
-        minWidth={200}
-        minHeight={48}
-        maxWidth={600}
-        maxHeight={300}
-      >
-        <BiFilter style={{ transform: 'rotate(-45deg)' }} />
-      </NodeResizeControl> */}
       </StyledFlowNodeContainer>
 
       <Modal
