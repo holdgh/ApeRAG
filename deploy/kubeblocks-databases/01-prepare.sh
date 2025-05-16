@@ -29,4 +29,4 @@ echo "Installing KubeBlocks database addons..."
 [ "$ENABLE_NEO4J" = true ] && echo "Installing Neo4j addon..." && helm upgrade --install kb-addon-neo4j kubeblocks/neo4j --namespace kb-system --version $ADDON_CLUSTER_CHART_VERSION
 
 echo "KubeBlocks database addons installation completed!"
-echo "Now you can run install-database.sh to install database clusters" 
+echo "Now you can run 02-install-database.sh to install database clusters"
