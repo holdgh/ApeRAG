@@ -1,104 +1,81 @@
-# KubeBlocks Database Deployment Guide
+# Using Kubernetes to Deploy and Manage Databases
 
-This project provides configurations and tools for quickly deploying and managing various databases in Kubernetes clusters using KubeBlocks.
+This document aims to help application developers quickly deploy and manage various database services in a Kubernetes (k8s) environment through KubeBlocks.
 
-## Project Overview
+## Introduction to KubeBlocks
 
-KubeBlocks is a cloud-native data infrastructure platform that helps you easily manage various databases on Kubernetes. This project contains pre-configured database deployment templates, allowing you to deploy various common databases with one click.
+[KubeBlocks](https://kubeblocks.io/) is an open-source project designed to simplify running and managing various databases and analytical workloads on Kubernetes. It provides a unified approach to deploying and operating databases, whether for daily development testing or production-level deployment. KubeBlocks supports advanced operational capabilities such as high availability, backup and recovery, horizontal and vertical scaling, and monitoring.
 
-## Supported Databases
-
-This project installs all of the following databases by default:
-
-- **PostgreSQL** - Powerful open-source relational database
-- **Redis** - High-performance key-value storage database
-- **Elasticsearch** - Distributed search and analytics engine
-- **Qdrant** - Vector search engine
-- **MongoDB** - Document database
-- **Neo4j** - Graph database
+With KubeBlocks, you can easily run a variety of data services including relational databases, NoSQL databases, vector databases, and streaming computation systems.
 
 ## Prerequisites
 
-- Kubernetes cluster (v1.19+)
-- Helm 3.2.0+
-- KubeBlocks Operator installed
+Ensure you have the following environment and tools:
 
-## Namespace Information
+* **Kubernetes cluster**:
+    * A running Kubernetes cluster is required.
+    * For local development and testing, consider using [Minikube](https://minikube.sigs.k8s.io/docs/start/). Minikube can quickly set up a single-node Kubernetes environment on your personal computer.
+    * Of course, you can also use any standard Kubernetes cluster, such as those provided by cloud service providers (AWS EKS, Google GKE, Azure AKS) or self-built clusters.
 
-This project uses the following fixed namespaces:
-- **kb-system** - For installing KubeBlocks addons
-- **rag** - For deploying database clusters
+* **`kubectl`**:
+    * The Kubernetes command-line tool for interacting with your cluster.
+    * Ensure `kubectl` is installed and configured to connect to your Kubernetes cluster.
+    * Installation guide: [Install and Set Up kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-## Usage
+* **`helm`**:
+    * The package manager for Kubernetes, used to simplify application deployment and management.
+    * Installation guide: [Installing Helm](https://helm.sh/docs/intro/install/)
 
-### Step 1: Pre-check and Install Addons
+## Quick Start
 
-Run the prepare script to add the repository and install all database addons:
+### Deployment Steps
 
-```bash
-# Execute prepare and addon installation
-./01-prepare.sh
-```
+1. **Configure Database Options**:
+   Open the `00-config.sh` file. Based on your requirements, set the `ENABLE_DATABASE_TYPE` variable to `true` for the databases you want to install. For example, to install PostgreSQL and Redis:
 
-This script will:
-- Add the KubeBlocks Helm repository
-- Create necessary namespaces
-- Install all database addons
+   ```bash
+   ENABLE_POSTGRESQL=true
+   ENABLE_REDIS=true
+   ENABLE_ELASTICSEARCH=false # Set to true or false as needed
+   ENABLE_QDRANT=false      # Set to true or false as needed
+   ENABLE_MONGODB=false     # Set to true or false as needed
+   ENABLE_NEO4J=false       # Set to true or false as needed
+   ```
+   You can also modify other general configurations in this file, such as `NAMESPACE` (default is `rag`).
 
-### Step 2: Install Database Clusters
+2. **Prepare Environment and Install KubeBlocks Addons**:
+   Execute the script to add the Helm repository and install KubeBlocks Addons for the selected databases.
 
-Install all database clusters:
+   ```bash
+   bash ./01-prepare.sh
+   ```
 
-```bash
-# Install database clusters
-./02-install-database.sh
-```
+3. **(Optional) Customize Database Configuration**:
+   Before executing the installation script, you can modify the `values.yaml` file in each database directory to adjust specific configurations for the database cluster, such as version, CPU, memory, storage space, etc. For example, to modify the storage size for PostgreSQL, edit the `postgresql/values.yaml` file.
 
-This script will install all supported database clusters.
+4. **Install Database Clusters**:
+   Execute the script to deploy the database clusters enabled in `00-config.sh`.
 
-## Uninstallation
+   ```bash
+   bash ./02-install-database.sh
+   ```
+   After the script completes, it will prompt you on how to check the status of installed clusters:
+   ```bash
+   kubectl get clusters -n <NAMESPACE> # Replace <NAMESPACE> with the namespace configured in 00-config.sh
+   ```
 
-To uninstall deployed databases, use the uninstallation script:
+### Uninstalling Databases
 
-```bash
-# Uninstall databases
-./03-uninstall-database.sh
-```
+1. **Uninstall Database Clusters**:
+   If you need to remove installed database clusters, execute the following script. This operation will uninstall the corresponding clusters based on the enabled settings in `00-config.sh`.
 
-This script will prompt you:
-- To confirm uninstallation (this will delete all data)
-- Whether to only uninstall database clusters, keeping KubeBlocks addons
+   ```bash
+   bash ./03-uninstall-database.sh
+   ```
 
-To completely remove all addons, run:
+2. **Clean Up KubeBlocks Addons**:
+   If you want to completely remove the KubeBlocks database Addons, execute the following script. This operation will uninstall the corresponding Addons based on the enabled settings in `00-config.sh`.
 
-```bash
-# Clean up all addons
-./04-cleanup.sh
-```
-
-## Custom Configuration
-
-The `values.yaml` file in each database directory contains detailed configuration options for that database:
-
-```bash
-# For example, edit PostgreSQL configuration
-vim postgresql/values.yaml
-```
-
-Main configuration items include:
-- Version
-- Deployment mode (e.g., standalone mode, replication mode, etc.)
-- Resource configuration (CPU, memory, storage)
-- High availability options
-
-## References
-
-- [KubeBlocks Official Documentation](https://kubeblocks.io/docs/)
-- [KubeBlocks GitHub Repository](https://github.com/apecloud/kubeblocks)
-- [Helm Documentation](https://helm.sh/docs/)
-
-## License
-
-Copyright © 2024
-
-Licensed under the Apache License, Version 2.0
+   ```bash
+   bash ./04-cleanup.sh
+   ```
