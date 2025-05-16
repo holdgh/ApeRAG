@@ -17,36 +17,6 @@ This project installs all of the following databases by default:
 - **MongoDB** - Document database
 - **Neo4j** - Graph database
 
-## Directory Structure
-
-```
-kubeblocks-databases/
-├── README.md                  # User guide
-├── pre-check.sh               # Pre-check and database addon installation script
-├── install-database.sh        # Database cluster installation script
-├── uninstall-database.sh      # Database uninstallation script
-├── postgresql/                # PostgreSQL configuration
-│   └── values.yaml           # Cluster configuration file
-├── redis/                     # Redis configuration
-│   └── values.yaml           # Cluster configuration file
-├── elasticsearch/             # Elasticsearch configuration and scripts
-│   ├── install.sh            # Installation script
-│   ├── uninstall.sh          # Uninstallation script
-│   └── values.yaml           # Cluster configuration
-├── qdrant/                    # Qdrant configuration and scripts
-│   ├── install.sh            # Installation script
-│   ├── uninstall.sh          # Uninstallation script
-│   └── values.yaml           # Cluster configuration
-├── mongodb/                   # MongoDB configuration and scripts
-│   ├── install.sh            # Installation script
-│   ├── uninstall.sh          # Uninstallation script
-│   └── values.yaml           # Cluster configuration
-└── neo4j/                     # Neo4j configuration and scripts
-    ├── install.sh            # Installation script
-    ├── uninstall.sh          # Uninstallation script
-    └── values.yaml           # Cluster configuration
-```
-
 ## Prerequisites
 
 - Kubernetes cluster (v1.19+)
@@ -67,7 +37,7 @@ Run the pre-check script to add the repository and install all database addons:
 
 ```bash
 # Execute pre-check and addon installation
-./pre-check.sh
+./01-pre-check.sh
 ```
 
 This script will:
@@ -81,7 +51,7 @@ Install all database clusters:
 
 ```bash
 # Install database clusters
-./install-database.sh
+./02-install-database.sh
 ```
 
 This script will install all supported database clusters.
@@ -92,12 +62,19 @@ To uninstall deployed databases, use the uninstallation script:
 
 ```bash
 # Uninstall databases
-./uninstall-database.sh
+./03-uninstall-database.sh
 ```
 
 This script will prompt you:
 - To confirm uninstallation (this will delete all data)
 - Whether to only uninstall database clusters, keeping KubeBlocks addons
+
+To completely remove all addons, run:
+
+```bash
+# Clean up all addons
+./04-cleanup.sh
+```
 
 ## Custom Configuration
 
