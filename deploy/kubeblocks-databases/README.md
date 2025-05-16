@@ -33,11 +33,11 @@ This project uses the following fixed namespaces:
 
 ### Step 1: Pre-check and Install Addons
 
-Run the pre-check script to add the repository and install all database addons:
+Run the prepare script to add the repository and install all database addons:
 
 ```bash
-# Execute pre-check and addon installation
-./01-pre-check.sh
+# Execute prepare and addon installation
+./01-prepare.sh
 ```
 
 This script will:
