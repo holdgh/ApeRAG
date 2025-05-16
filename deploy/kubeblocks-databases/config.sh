@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 数据库配置文件
-# 修改此文件可以控制安装/卸载哪些数据库
+# Database configuration file
+# Modify this file to control which databases to install/uninstall
 
-# 设置为true表示启用该数据库，false表示禁用
+# Set to true to enable the database, false to disable
 ENABLE_POSTGRESQL=true
 ENABLE_REDIS=true
 ENABLE_ELASTICSEARCH=true
@@ -11,9 +11,9 @@ ENABLE_QDRANT=true
 ENABLE_MONGODB=true
 ENABLE_NEO4J=true
 
-# 命名空间配置
+# Namespace configuration
 NAMESPACE="rag"
-# 插件版本
+# Addon version
 ADDON_CLUSTER_CHART_VERSION="1.0.0-alpha.0"
-# Helm仓库
-HELM_REPO="https://apecloud.github.io/helm-charts" 
+# Helm repository
+HELM_REPO="https://apecloud.github.io/helm-charts"

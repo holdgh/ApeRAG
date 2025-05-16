@@ -1,126 +1,126 @@
-# KubeBlocks 数据库部署指南
+# KubeBlocks Database Deployment Guide
 
-本项目提供了使用 KubeBlocks 在 Kubernetes 集群中快速部署和管理多种数据库的配置和工具。
+This project provides configurations and tools for quickly deploying and managing various databases in Kubernetes clusters using KubeBlocks.
 
-## 项目概述
+## Project Overview
 
-KubeBlocks 是一个云原生数据基础设施平台，帮助您在 Kubernetes 上轻松管理各类数据库。本项目包含了预配置的数据库部署模板，让您可以一键部署各种常用数据库。
+KubeBlocks is a cloud-native data infrastructure platform that helps you easily manage various databases on Kubernetes. This project contains pre-configured database deployment templates, allowing you to deploy various common databases with one click.
 
-## 支持的数据库
+## Supported Databases
 
-本项目默认安装以下所有数据库：
+This project installs all of the following databases by default:
 
-- **PostgreSQL** - 强大的开源关系型数据库
-- **Redis** - 高性能键值存储数据库
-- **Elasticsearch** - 分布式搜索和分析引擎
-- **Qdrant** - 向量搜索引擎
-- **MongoDB** - 文档型数据库
-- **Neo4j** - 图数据库
+- **PostgreSQL** - Powerful open-source relational database
+- **Redis** - High-performance key-value storage database
+- **Elasticsearch** - Distributed search and analytics engine
+- **Qdrant** - Vector search engine
+- **MongoDB** - Document database
+- **Neo4j** - Graph database
 
-## 目录结构
+## Directory Structure
 
 ```
 kubeblocks-databases/
-├── README.md                  # 使用指南
-├── pre-check.sh               # 预检查和安装数据库插件脚本
-├── install-database.sh        # 安装数据库集群脚本
-├── uninstall-database.sh      # 卸载数据库脚本
-├── postgresql/                # PostgreSQL 配置
-│   └── values.yaml           # 集群配置文件
-├── redis/                     # Redis 配置
-│   └── values.yaml           # 集群配置文件
-├── elasticsearch/             # Elasticsearch 配置和脚本
-│   ├── install.sh            # 安装脚本
-│   ├── uninstall.sh          # 卸载脚本
-│   └── values.yaml           # 集群配置
-├── qdrant/                    # Qdrant 配置和脚本
-│   ├── install.sh            # 安装脚本
-│   ├── uninstall.sh          # 卸载脚本
-│   └── values.yaml           # 集群配置
-├── mongodb/                   # MongoDB 配置和脚本
-│   ├── install.sh            # 安装脚本
-│   ├── uninstall.sh          # 卸载脚本
-│   └── values.yaml           # 集群配置
-└── neo4j/                     # Neo4j 配置和脚本
-    ├── install.sh            # 安装脚本
-    ├── uninstall.sh          # 卸载脚本
-    └── values.yaml           # 集群配置
+├── README.md                  # User guide
+├── pre-check.sh               # Pre-check and database addon installation script
+├── install-database.sh        # Database cluster installation script
+├── uninstall-database.sh      # Database uninstallation script
+├── postgresql/                # PostgreSQL configuration
+│   └── values.yaml           # Cluster configuration file
+├── redis/                     # Redis configuration
+│   └── values.yaml           # Cluster configuration file
+├── elasticsearch/             # Elasticsearch configuration and scripts
+│   ├── install.sh            # Installation script
+│   ├── uninstall.sh          # Uninstallation script
+│   └── values.yaml           # Cluster configuration
+├── qdrant/                    # Qdrant configuration and scripts
+│   ├── install.sh            # Installation script
+│   ├── uninstall.sh          # Uninstallation script
+│   └── values.yaml           # Cluster configuration
+├── mongodb/                   # MongoDB configuration and scripts
+│   ├── install.sh            # Installation script
+│   ├── uninstall.sh          # Uninstallation script
+│   └── values.yaml           # Cluster configuration
+└── neo4j/                     # Neo4j configuration and scripts
+    ├── install.sh            # Installation script
+    ├── uninstall.sh          # Uninstallation script
+    └── values.yaml           # Cluster configuration
 ```
 
-## 安装前提条件
+## Prerequisites
 
-- Kubernetes 集群 (v1.19+)
+- Kubernetes cluster (v1.19+)
 - Helm 3.2.0+
-- 已安装 KubeBlocks Operator
+- KubeBlocks Operator installed
 
-## 命名空间说明
+## Namespace Information
 
-本项目使用以下固定的命名空间：
-- **kb-system** - 用于安装KubeBlocks插件
-- **rag** - 用于部署数据库集群
+This project uses the following fixed namespaces:
+- **kb-system** - For installing KubeBlocks addons
+- **rag** - For deploying database clusters
 
-## 使用方法
+## Usage
 
-### 步骤1: 前置检查和安装插件
+### Step 1: Pre-check and Install Addons
 
-运行预检查脚本，添加仓库并安装所有数据库插件：
+Run the pre-check script to add the repository and install all database addons:
 
 ```bash
-# 执行预检查和插件安装
+# Execute pre-check and addon installation
 ./pre-check.sh
 ```
 
-此脚本将：
-- 添加 KubeBlocks Helm 仓库
-- 创建必要的命名空间
-- 安装所有数据库插件
+This script will:
+- Add the KubeBlocks Helm repository
+- Create necessary namespaces
+- Install all database addons
 
-### 步骤2: 安装数据库集群
+### Step 2: Install Database Clusters
 
-安装所有数据库集群：
+Install all database clusters:
 
 ```bash
-# 安装数据库集群
+# Install database clusters
 ./install-database.sh
 ```
 
-此脚本将安装所有支持的数据库集群。
+This script will install all supported database clusters.
 
-## 卸载方法
+## Uninstallation
 
-要卸载已部署的数据库，请使用卸载脚本：
+To uninstall deployed databases, use the uninstallation script:
 
 ```bash
-# 卸载数据库
+# Uninstall databases
 ./uninstall-database.sh
 ```
 
-此脚本将提示您：
-- 是否确认卸载（这将删除所有数据）
-- 是否仅卸载数据库集群，保留 KubeBlocks 插件
+This script will prompt you:
+- To confirm uninstallation (this will delete all data)
+- Whether to only uninstall database clusters, keeping KubeBlocks addons
 
-## 自定义配置
+## Custom Configuration
 
-每个数据库目录中的 `values.yaml` 文件包含了该数据库的详细配置选项：
+The `values.yaml` file in each database directory contains detailed configuration options for that database:
 
 ```bash
-# 例如，编辑 PostgreSQL 的配置
+# For example, edit PostgreSQL configuration
 vim postgresql/values.yaml
 ```
 
-主要配置项包括：
-- 版本
-- 部署模式（如单机模式、复制模式等）
-- 资源配置（CPU、内存、存储）
-- 高可用选项
+Main configuration items include:
+- Version
+- Deployment mode (e.g., standalone mode, replication mode, etc.)
+- Resource configuration (CPU, memory, storage)
+- High availability options
 
-## 参考链接
+## References
 
-- [KubeBlocks 官方文档](https://kubeblocks.io/docs/)
-- [KubeBlocks GitHub 仓库](https://github.com/apecloud/kubeblocks)
-- [Helm 文档](https://helm.sh/docs/)
+- [KubeBlocks Official Documentation](https://kubeblocks.io/docs/)
+- [KubeBlocks GitHub Repository](https://github.com/apecloud/kubeblocks)
+- [Helm Documentation](https://helm.sh/docs/)
 
-## 许可证
+## License
 
 Copyright © 2024
 

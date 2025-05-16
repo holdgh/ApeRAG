@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# KubeBlocks数据库安装脚本
-# 安装所有数据库集群
+# KubeBlocks database installation script
+# Install all database clusters
 
-# 加载配置文件
+# Load configuration file
 source ./config.sh
 
-echo "安装数据库集群..."
+echo "Installing database clusters..."
 
-# 根据配置安装数据库集群
-[ "$ENABLE_POSTGRESQL" = true ] && echo "安装PostgreSQL集群..." && helm upgrade --install pg-cluster kubeblocks/postgresql-cluster -f ./postgresql/values.yaml --namespace $NAMESPACE
-[ "$ENABLE_REDIS" = true ] && echo "安装Redis集群..." && helm upgrade --install redis-cluster kubeblocks/redis-cluster -f ./redis/values.yaml --namespace $NAMESPACE
-[ "$ENABLE_ELASTICSEARCH" = true ] && echo "安装Elasticsearch集群..." && helm upgrade --install es-cluster kubeblocks/elasticsearch-cluster -f ./elasticsearch/values.yaml --namespace $NAMESPACE
-[ "$ENABLE_QDRANT" = true ] && echo "安装Qdrant集群..." && helm upgrade --install qdrant-cluster kubeblocks/qdrant-cluster -f ./qdrant/values.yaml --namespace $NAMESPACE
-[ "$ENABLE_MONGODB" = true ] && echo "安装MongoDB集群..." && helm upgrade --install mongodb-cluster kubeblocks/mongodb-cluster -f ./mongodb/values.yaml --namespace $NAMESPACE
-[ "$ENABLE_NEO4J" = true ] && echo "安装Neo4j集群..." && helm upgrade --install neo4j-cluster kubeblocks/neo4j-cluster -f ./neo4j/values.yaml --namespace $NAMESPACE
+# Install database clusters based on configuration
+[ "$ENABLE_POSTGRESQL" = true ] && echo "Installing PostgreSQL cluster..." && helm upgrade --install pg-cluster kubeblocks/postgresql-cluster -f ./postgresql/values.yaml --namespace $NAMESPACE
+[ "$ENABLE_REDIS" = true ] && echo "Installing Redis cluster..." && helm upgrade --install redis-cluster kubeblocks/redis-cluster -f ./redis/values.yaml --namespace $NAMESPACE
+[ "$ENABLE_ELASTICSEARCH" = true ] && echo "Installing Elasticsearch cluster..." && helm upgrade --install es-cluster kubeblocks/elasticsearch-cluster -f ./elasticsearch/values.yaml --namespace $NAMESPACE
+[ "$ENABLE_QDRANT" = true ] && echo "Installing Qdrant cluster..." && helm upgrade --install qdrant-cluster kubeblocks/qdrant-cluster -f ./qdrant/values.yaml --namespace $NAMESPACE
+[ "$ENABLE_MONGODB" = true ] && echo "Installing MongoDB cluster..." && helm upgrade --install mongodb-cluster kubeblocks/mongodb-cluster -f ./mongodb/values.yaml --namespace $NAMESPACE
+[ "$ENABLE_NEO4J" = true ] && echo "Installing Neo4j cluster..." && helm upgrade --install neo4j-cluster kubeblocks/neo4j-cluster -f ./neo4j/values.yaml --namespace $NAMESPACE
 
-echo "数据库集群安装完成!"
-echo "使用以下命令查看安装的集群状态:"
+echo "Database clusters installation completed!"
+echo "Use the following command to check the status of installed clusters:"
 echo "kubectl get clusters -n $NAMESPACE" 

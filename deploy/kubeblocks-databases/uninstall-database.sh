@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# 加载配置文件
+# Load configuration file
 source ./config.sh
 
-echo "卸载数据库集群..."
+echo "Uninstalling database clusters..."
 
-# 根据配置卸载数据库集群
-[ "$ENABLE_POSTGRESQL" = true ] && echo "卸载PostgreSQL集群..." && helm uninstall pg-cluster --namespace $NAMESPACE 2>/dev/null || true
-[ "$ENABLE_REDIS" = true ] && echo "卸载Redis集群..." && helm uninstall redis-cluster --namespace $NAMESPACE 2>/dev/null || true
-[ "$ENABLE_ELASTICSEARCH" = true ] && echo "卸载Elasticsearch集群..." && helm uninstall es-cluster --namespace $NAMESPACE 2>/dev/null || true
-[ "$ENABLE_QDRANT" = true ] && echo "卸载Qdrant集群..." && helm uninstall qdrant-cluster --namespace $NAMESPACE 2>/dev/null || true
-[ "$ENABLE_MONGODB" = true ] && echo "卸载MongoDB集群..." && helm uninstall mongodb-cluster --namespace $NAMESPACE 2>/dev/null || true
-[ "$ENABLE_NEO4J" = true ] && echo "卸载Neo4j集群..." && helm uninstall neo4j-cluster --namespace $NAMESPACE 2>/dev/null || true
+# Uninstall database clusters based on configuration
+[ "$ENABLE_POSTGRESQL" = true ] && echo "Uninstalling PostgreSQL cluster..." && helm uninstall pg-cluster --namespace $NAMESPACE 2>/dev/null || true
+[ "$ENABLE_REDIS" = true ] && echo "Uninstalling Redis cluster..." && helm uninstall redis-cluster --namespace $NAMESPACE 2>/dev/null || true
+[ "$ENABLE_ELASTICSEARCH" = true ] && echo "Uninstalling Elasticsearch cluster..." && helm uninstall es-cluster --namespace $NAMESPACE 2>/dev/null || true
+[ "$ENABLE_QDRANT" = true ] && echo "Uninstalling Qdrant cluster..." && helm uninstall qdrant-cluster --namespace $NAMESPACE 2>/dev/null || true
+[ "$ENABLE_MONGODB" = true ] && echo "Uninstalling MongoDB cluster..." && helm uninstall mongodb-cluster --namespace $NAMESPACE 2>/dev/null || true
+[ "$ENABLE_NEO4J" = true ] && echo "Uninstalling Neo4j cluster..." && helm uninstall neo4j-cluster --namespace $NAMESPACE 2>/dev/null || true
 
-echo "数据库集群已卸载"
-echo "如需卸载数据库插件，请运行 cleanup.sh" 
+echo "Database clusters uninstalled"
+echo "To uninstall database addons, run cleanup.sh" 
