@@ -5,15 +5,34 @@ import {
   ApeFlowStyle,
   ApeLayoutDirection,
   ApeNode,
+  ApeNodeConfig,
   ApeNodeHandlePosition,
+  ApeNodesConfig,
+  ApeNodeType,
   ApeNodeVar,
   FlowExecution,
 } from '@/types';
+import {
+  FunnelPlotOutlined,
+  HomeOutlined,
+  InteractionOutlined,
+  MergeOutlined,
+  ReadOutlined,
+  WechatWorkOutlined,
+} from '@ant-design/icons';
 import Dagre from '@dagrejs/dagre';
 import { Position } from '@xyflow/react';
+import { theme } from 'antd';
 import _ from 'lodash';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
+
+import { ApeNodeKeywordSearch } from '../flow/_nodes/_node_keyword_search';
+import { ApeNodeLlm } from '../flow/_nodes/_node_llm';
+import { ApeNodeMerge } from '../flow/_nodes/_node_merge';
+import { ApeNodeRerank } from '../flow/_nodes/_node_rerank';
+import { ApeNodeStart } from '../flow/_nodes/_node_start';
+import { ApeNodeVectorSearch } from '../flow/_nodes/_node_vector_search';
 
 const getNodeHandlePositions = (
   direction: ApeLayoutDirection | undefined = 'LR',
@@ -116,7 +135,7 @@ const getInitialData = (): ApeFlow => {
         id: globalId,
         type: 'start',
         data: {},
-        position: { x: 0, y: 289.75 },
+        position: { x: 0, y: 332 },
         deletable: false,
         dragHandle: '.drag-handle',
       },
@@ -143,7 +162,7 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 422, y: -30 },
+        position: { x: 422, y: 439 },
         type: 'vector_search',
         dragHandle: '.drag-handle',
       },
@@ -163,7 +182,7 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 422, y: 520 },
+        position: { x: 422, y: 0 },
         dragHandle: '.drag-handle',
       },
       {
@@ -193,7 +212,7 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 884, y: 191.25 },
+        position: { x: 884, y: 212 },
         dragHandle: '.drag-handle',
       },
       {
@@ -213,7 +232,7 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 1244, y: 257.75 },
+        position: { x: 1286, y: 298 },
         dragHandle: '.drag-handle',
       },
       {
@@ -246,7 +265,7 @@ const getInitialData = (): ApeFlow => {
             },
           ],
         },
-        position: { x: 1606, y: 124.75 },
+        position: { x: 1688, y: 133.5 },
         dragHandle: '.drag-handle',
       },
     ],
@@ -301,6 +320,7 @@ export default () => {
   const [execution, setExecution] = useState<FlowExecution>();
   const [nodes, setNodes] = useState<ApeNode[]>([]);
   const [edges, setEdges] = useState<ApeEdge[]>([]);
+  const { token } = theme.useToken();
 
   const [flowStyle, setFlowStyle] = useState<ApeFlowStyle>({
     edgeType: 'default',
@@ -335,6 +355,57 @@ export default () => {
     }
   };
 
+  const getNodeConfig = (
+    nodeType?: ApeNodeType,
+    label?: string,
+  ): ApeNodeConfig => {
+    if (!nodeType) return {};
+    const configs: ApeNodesConfig = {
+      start: {
+        color: token.cyan,
+        icon: React.createElement(HomeOutlined),
+        content: ApeNodeStart,
+        width: 320,
+        disableConnectionTarget: true,
+      },
+      vector_search: {
+        color: token.orange,
+        icon: React.createElement(InteractionOutlined),
+        content: ApeNodeVectorSearch,
+        width: 360,
+      },
+      keyword_search: {
+        color: token.volcano,
+        icon: React.createElement(ReadOutlined),
+        content: ApeNodeKeywordSearch,
+        width: 360,
+      },
+      merge: {
+        color: token.purple,
+        icon: React.createElement(MergeOutlined),
+        content: ApeNodeMerge,
+        width: 300,
+      },
+      rerank: {
+        color: token.magenta,
+        icon: React.createElement(FunnelPlotOutlined),
+        content: ApeNodeRerank,
+        width: 300,
+      },
+      llm: {
+        color: token.blue,
+        icon: React.createElement(WechatWorkOutlined),
+        content: ApeNodeLlm,
+        width: 320,
+        disableConnectionSource: true,
+      },
+    };
+    return {
+      ...configs[nodeType],
+      label,
+    };
+  };
+
   return {
     flowInfo,
     setFlowInfo,
@@ -358,5 +429,6 @@ export default () => {
     getInitialData,
     getEdgeId,
     getNodeOutputVars,
+    getNodeConfig,
   };
 };

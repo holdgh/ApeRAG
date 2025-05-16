@@ -14,9 +14,9 @@ const DARK_TOKENS: Partial<AliasToken> = {
   colorBgLayout: '#0F1214',
   colorBgContainer: '#131719',
   colorBgElevated: '#131719', // dropdown背景
-  colorBgContainerDisabled: '#16191D', // input disabled
+  colorBgContainerDisabled: '#232526', // input disabled
 
-  controlItemBgActive: '#262A2D',
+  controlItemBgActive: '#1C2022',
 
   colorTextDisabled: '#55595E',
   colorTextPlaceholder: '#55595E',
@@ -32,7 +32,7 @@ const LIGHT_TOKENS: Partial<AliasToken> = {
   colorBgLayout: '#F7F7F9',
   colorBgContainer: '#FFF',
   colorBgElevated: '#FFF',
-  controlItemBgActive: '#E7EAEE',
+  controlItemBgActive: '#E8E8EA',
   colorBorder: '#CAD0D8', // input border
   colorBorderSecondary: '#E7EAEE', // card border
 };

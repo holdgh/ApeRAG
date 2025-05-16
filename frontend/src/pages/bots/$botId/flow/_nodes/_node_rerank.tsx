@@ -1,11 +1,12 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeVar } from '@/types';
+import { ApeNode, ApeNodeType, ApeNodeVar } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import { Collapse, Form, Input, Space, theme } from 'antd';
+import { Collapse, Form, Space, theme } from 'antd';
 import _ from 'lodash';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
+import { ConnectInfoInput } from './_connect-info-input';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
@@ -14,67 +15,83 @@ type VarType = {
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-  const { nodes, edges, setNodes } = useModel('bots.$botId.flow.model');
-  const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
+  const { nodes, edges, setNodes, getNodeConfig } = useModel(
+    'bots.$botId.flow.model',
+  );
   const [form] = Form.useForm<VarType>();
 
-  const refDocNode = useMemo(() => {
-    const nid = originNode?.id;
+  const { refNode, refNodeConfig } = useMemo(() => {
+    const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
       nodes.find((nod) => nod.id === edg.source),
     );
-    return _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
+    const _refNode =
+      _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
+    const _refNodeConfig = _refNode
+      ? getNodeConfig(
+          _refNode.type as ApeNodeType,
+          _refNode?.ariaLabel ||
+            formatMessage({ id: `flow.node.type.${_refNode?.type}` }),
+        )
+      : {};
+    return { refNode: _refNode, refNodeConfig: _refNodeConfig };
   }, [edges, nodes]);
 
-  const onValuesChange = (changedValues: VarType) => {
-    if (!originNode) return;
+  /**
+   * on node form change
+   */
+  const onValuesChange = useCallback(
+    (changedValues: VarType) => {
+      const vars = node?.data.vars;
+      const varModel = vars?.find((item) => item.name === 'model');
+      if (varModel && changedValues.model !== undefined) {
+        varModel.value = changedValues.model;
+      }
+    },
+    [node],
+  );
 
-    const vars = originNode?.data.vars;
-    const varModel = vars?.find((item) => item.name === 'model');
-
-    if (varModel && changedValues.model !== undefined) {
-      varModel.value = changedValues.model;
-    }
-  };
-
+  /**
+   * init node form data
+   */
   useEffect(() => {
     const model = String(
-      originNode?.data.vars?.find((item) => item.name === 'model')?.value,
+      node.data.vars?.find((item) => item.name === 'model')?.value,
     );
     form.setFieldsValue({ model });
-  }, [originNode]);
+  }, []);
 
+  /**
+   * node ref change
+   */
   useEffect(() => {
-    if (!originNode?.id) return;
-    const vars = originNode?.data.vars;
+    const vars = node?.data.vars;
     const item = vars?.find((item) => item.name === 'docs');
     const value: ApeNodeVar = {
       name: `docs`,
       source_type: 'dynamic',
-      ref_node: refDocNode?.id || '',
+      ref_node: refNode?.id || '',
       ref_field: `docs`,
     };
-
     if (item) {
       Object.assign(item, value);
     } else {
       vars?.push(value);
     }
-
     setNodes((nds) => {
       const changes: NodeChange[] = [
         {
-          id: originNode?.id,
+          id: node.id,
           type: 'replace',
           item: {
-            ...originNode,
+            ...node,
           },
         },
       ];
       return applyNodeChanges(changes, nds);
     });
-  }, [refDocNode]);
+  }, [refNode?.id]);
 
   return (
     <Collapse
@@ -113,20 +130,10 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
                 required
                 style={{ marginBottom: 0 }}
                 label={formatMessage({ id: 'flow.input.source' })}
-                tooltip={formatMessage({ id: 'flow.connection.required' })}
               >
-                <Input
-                  variant="filled"
-                  disabled
-                  style={{ borderWidth: 0, color: token.colorText }}
-                  value={
-                    refDocNode
-                      ? refDocNode?.ariaLabel ||
-                        formatMessage({
-                          id: `flow.node.type.${refDocNode?.type}`,
-                        })
-                      : ''
-                  }
+                <ConnectInfoInput
+                  refNode={refNode}
+                  refNodeConfig={refNodeConfig}
                 />
               </Form.Item>
             </Form>

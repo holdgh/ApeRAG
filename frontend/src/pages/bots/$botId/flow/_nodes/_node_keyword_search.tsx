@@ -1,8 +1,8 @@
-import { ApeNode, ApeNodeVar } from '@/types';
+import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Collapse, Form, Select, Table, TableProps, theme } from 'antd';
+import { Collapse, Form, Select, Table, theme } from 'antd';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
@@ -13,40 +13,36 @@ type VarType = {
 export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { collections } = useModel('collection');
-  const { getNodeOutputVars, nodes } = useModel('bots.$botId.flow.model');
+  const { getNodeOutputVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
-  const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
   const [form] = Form.useForm<VarType>();
 
-  const columns: TableProps<ApeNodeVar>['columns'] = [
-    {
-      title: formatMessage({ id: 'flow.variable.source_type' }),
-      dataIndex: 'source_type',
+  /**
+   * on node form change
+   */
+  const onValuesChange = useCallback(
+    (changedValues: VarType) => {
+      if (!node) return;
+      const vars = node?.data.vars;
+      const varCollectionIds = vars?.find(
+        (item) => item.name === 'collection_ids',
+      );
+      if (varCollectionIds && changedValues.collection_ids) {
+        varCollectionIds.value = changedValues.collection_ids;
+      }
     },
-    {
-      title: formatMessage({ id: 'flow.variable.title' }),
-      dataIndex: 'global_var',
-    },
-  ];
+    [node],
+  );
 
-  const onValuesChange = (changedValues: VarType) => {
-    if (!originNode) return;
-
-    const vars = originNode?.data.vars;
-    const varCollectionIds = vars?.find(
-      (item) => item.name === 'collection_ids',
-    );
-    if (varCollectionIds && changedValues.collection_ids) {
-      varCollectionIds.value = changedValues.collection_ids;
-    }
-  };
-
+  /**
+   * init node form data
+   */
   useEffect(() => {
-    const vars = originNode?.data.vars;
+    const vars = node?.data.vars;
     const collection_ids =
       vars?.find((item) => item.name === 'collection_ids')?.value || [];
     form.setFieldsValue({ collection_ids });
-  }, [originNode]);
+  }, []);
 
   return (
     <>
@@ -80,6 +76,7 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                     <Select
                       variant="filled"
                       mode="multiple"
+                      suffixIcon={null}
                       options={collections?.map((collection) => ({
                         label: collection.title,
                         value: collection.id,
@@ -100,7 +97,16 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                 bordered
                 size="small"
                 pagination={false}
-                columns={columns}
+                columns={[
+                  {
+                    title: formatMessage({ id: 'flow.variable.source_type' }),
+                    dataIndex: 'source_type',
+                  },
+                  {
+                    title: formatMessage({ id: 'flow.variable.title' }),
+                    dataIndex: 'global_var',
+                  },
+                ]}
                 dataSource={getNodeOutputVars(node)}
                 style={{ background: token.colorBgContainer }}
               />

@@ -9,7 +9,7 @@ import GeminiIcon from '@/assets/models/gemini.svg';
 import Glm4Icon from '@/assets/models/glm4.png';
 import GorillaIcon from '@/assets/models/gorilla.png';
 import GuanacoIcon from '@/assets/models/guanaco.png';
-import OpenrouterIcon from '@/assets/models/openrouter.jpeg';
+import OpenrouterIcon from '@/assets/models/openrouter.png';
 import QianwenIcon from '@/assets/models/qianwen.png';
 import VicunaIcon from '@/assets/models/vicuna.jpg';
 import WenxinYiyanIcon from '@/assets/models/wenxinyiyan.png';

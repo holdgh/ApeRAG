@@ -1,20 +1,12 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeVar } from '@/types';
+import { ApeNode, ApeNodeConfig, ApeNodeType, ApeNodeVar } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import {
-  Collapse,
-  Form,
-  Input,
-  InputNumber,
-  Slider,
-  Table,
-  TableProps,
-  theme,
-} from 'antd';
+import { Collapse, Form, InputNumber, Slider, Table, theme } from 'antd';
 import _ from 'lodash';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
+import { ConnectInfoInput } from './_connect-info-input';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
@@ -25,60 +17,64 @@ type VarType = {
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes, setNodes, edges, getNodeOutputVars } = useModel(
+  const [form] = Form.useForm<VarType>();
+  const { nodes, setNodes, edges, getNodeOutputVars, getNodeConfig } = useModel(
     'bots.$botId.flow.model',
   );
   const { formatMessage } = useIntl();
 
-  const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
-
-  const refDocNode = useMemo(() => {
-    const nid = originNode?.id;
+  const { refNode, refNodeConfig } = useMemo(() => {
+    const nid = node?.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
       nodes.find((nod) => nod.id === edg.source),
     );
-    return _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
+    const _refNode =
+      _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
+    const _refNodeConfig: ApeNodeConfig = _refNode
+      ? getNodeConfig(
+          _refNode.type as ApeNodeType,
+          _refNode?.ariaLabel ||
+            formatMessage({ id: `flow.node.type.${_refNode?.type}` }),
+        )
+      : {};
+    return { refNode: _refNode, refNodeConfig: _refNodeConfig };
   }, [edges, nodes]);
 
-  const [form] = Form.useForm<VarType>();
+  /**
+   * on node form change
+   */
+  const onValuesChange = useCallback(
+    (changedValues: VarType) => {
+      if (!node) return;
 
-  const columns: TableProps<ApeNodeVar>['columns'] = [
-    {
-      title: formatMessage({ id: 'flow.variable.source_type' }),
-      dataIndex: 'source_type',
+      const vars = node?.data.vars;
+      const varModel = vars?.find((item) => item.name === 'model');
+      const varTemperature = vars?.find((item) => item.name === 'temperature');
+      const varMaxTokens = vars?.find((item) => item.name === 'max_tokens');
+
+      if (varModel && changedValues.model !== undefined) {
+        varModel.value = changedValues.model;
+      }
+
+      if (varTemperature && changedValues.temperature !== undefined) {
+        varTemperature.value = changedValues.temperature;
+      }
+
+      if (varMaxTokens && changedValues.max_tokens !== undefined) {
+        varMaxTokens.value = changedValues.max_tokens;
+      }
     },
-    {
-      title: formatMessage({ id: 'flow.variable.title' }),
-      dataIndex: 'global_var',
-    },
-  ];
+    [node],
+  );
 
-  const onValuesChange = (changedValues: VarType) => {
-    if (!originNode) return;
-
-    const vars = originNode?.data.vars;
-    const varModel = vars?.find((item) => item.name === 'model');
-    const varTemperature = vars?.find((item) => item.name === 'temperature');
-    const varMaxTokens = vars?.find((item) => item.name === 'max_tokens');
-
-    if (varModel && changedValues.model !== undefined) {
-      varModel.value = changedValues.model;
-    }
-
-    if (varTemperature && changedValues.temperature !== undefined) {
-      varTemperature.value = changedValues.temperature;
-    }
-
-    if (varMaxTokens && changedValues.max_tokens !== undefined) {
-      varMaxTokens.value = changedValues.max_tokens;
-    }
-  };
-
+  /**
+   * init node form data
+   */
   useEffect(() => {
-    const vars = originNode?.data.vars;
+    const vars = node?.data.vars;
     const model = String(
-      originNode?.data.vars?.find((item) => item.name === 'model')?.value,
+      node?.data.vars?.find((item) => item.name === 'model')?.value,
     );
     const temperature = Number(
       vars?.find((item) => item.name === 'temperature')?.value || 0.7,
@@ -87,16 +83,18 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
       vars?.find((item) => item.name === 'max_tokens')?.value || 1000,
     );
     form.setFieldsValue({ model, temperature, max_tokens });
-  }, [originNode]);
+  }, []);
 
+  /**
+   * node ref change
+   */
   useEffect(() => {
-    if (!originNode?.id) return;
-    const vars = originNode?.data.vars;
+    const vars = node?.data.vars;
     const item = vars?.find((item) => item.name === 'docs');
     const value: ApeNodeVar = {
       name: `docs`,
       source_type: 'dynamic',
-      ref_node: refDocNode?.id || '',
+      ref_node: refNode?.id || '',
       ref_field: `docs`,
     };
 
@@ -105,20 +103,19 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     } else {
       vars?.push(value);
     }
-
     setNodes((nds) => {
       const changes: NodeChange[] = [
         {
-          id: originNode?.id,
+          id: node.id,
           type: 'replace',
           item: {
-            ...originNode,
+            ...node,
           },
         },
       ];
       return applyNodeChanges(changes, nds);
     });
-  }, [refDocNode]);
+  }, [refNode?.id]);
 
   return (
     <>
@@ -153,7 +150,6 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                   </Form.Item>
                   <Form.Item
                     required
-                    style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.temperature' })}
                     name="temperature"
                     tooltip={formatMessage({ id: 'flow.temperature.tips' })}
@@ -177,20 +173,10 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                     required
                     style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.input.source' })}
-                    tooltip={formatMessage({ id: 'flow.connection.required' })}
                   >
-                    <Input
-                      variant="filled"
-                      disabled
-                      style={{ borderWidth: 0, color: token.colorText }}
-                      value={
-                        refDocNode
-                          ? refDocNode?.ariaLabel ||
-                            formatMessage({
-                              id: `flow.node.type.${refDocNode?.type}`,
-                            })
-                          : ''
-                      }
+                    <ConnectInfoInput
+                      refNode={refNode}
+                      refNodeConfig={refNodeConfig}
                     />
                   </Form.Item>
                 </Form>
@@ -207,7 +193,16 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                 bordered
                 size="small"
                 pagination={false}
-                columns={columns}
+                columns={[
+                  {
+                    title: formatMessage({ id: 'flow.variable.source_type' }),
+                    dataIndex: 'source_type',
+                  },
+                  {
+                    title: formatMessage({ id: 'flow.variable.title' }),
+                    dataIndex: 'global_var',
+                  },
+                ]}
                 dataSource={getNodeOutputVars(node)}
                 style={{ background: token.colorBgContainer }}
               />
