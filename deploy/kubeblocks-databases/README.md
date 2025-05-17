@@ -97,6 +97,56 @@ kubectl describe pod <pod-name> -n rag
 
 ## Connect to Databases
 
+To connect to your databases, follow these steps to identify available accounts, retrieve credentials, and establish connections:
+
+### 1. List Available Database Clusters
+
+First, view the database clusters running in your namespace:
+
+```bash
+kubectl get cluster -n rag
+```
+
+### 2. Retrieve Authentication Credentials
+
+For PostgreSQL, retrieve the username and password from Kubernetes secrets:
+
+```bash
+# Get PostgreSQL username
+kubectl get secrets -n rag pg-cluster-postgresql-account-postgres -o jsonpath='{.data.username}' | base64 -d
+# Get PostgreSQL password
+kubectl get secrets -n rag pg-cluster-postgresql-account-postgres -o jsonpath='{.data.password}' | base64 -d
+```
+
+If you have trouble finding the correct secret name, list all secrets:
+
+```bash
+kubectl get secrets -n rag
+```
+
+### 3. Port Forward to Local Machine
+
+Use port forwarding to access PostgreSQL from your local machine:
+
+```bash
+# Forward PostgreSQL port (5432) to your local machine
+# You can see all the svc by: kubectl get svc -n rag
+kubectl port-forward -n rag svc/pg-cluster-postgresql-postgresql 5432:5432
+```
+
+### 4. Connect Using Database Client
+
+Now you can connect using your preferred PostgreSQL client with the retrieved credentials:
+
+```bash
+# Example: connecting with psql
+export PGUSER=$(kubectl get secrets -n rag pg-cluster-postgresql-account-postgres -o jsonpath='{.data.username}' | base64 -d)
+export PGPASSWORD=$(kubectl get secrets -n rag pg-cluster-postgresql-account-postgres -o jsonpath='{.data.password}' | base64 -d)
+psql -h localhost -p 5432 -U $PGUSER
+```
+
+Keep the port-forwarding terminal running while you're connecting to the database.
+
 
 ## Uninstalling
 
