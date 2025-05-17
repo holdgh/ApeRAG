@@ -4,7 +4,7 @@ Learn how to quickly deploy and manage various databases in a Kubernetes (K8s) e
 
 ## Introduction to KubeBlocks
 
-KubeBlocks is a production-ready, open-source toolkit that runs any database—SQL, NoSQL, vector, or document—on Kubernetes.  
+KubeBlocks is a production-ready, open-source toolkit that runs any database--SQL, NoSQL, vector, or document--on Kubernetes.  
 It scales smoothly from quick dev tests to full production clusters, making it a solid choice for RAG workloads like FastGPT that need several data stores working together.
 
 ## Prerequisites
@@ -13,14 +13,14 @@ Make sure the following tools are installed and configured:
 
 * **Kubernetes cluster**  
   * A running Kubernetes cluster is required.  
-  * For local development or demos you can use [Minikube](https://minikube.sigs.k8s.io/docs/start/) (needs ≥ 2 CPUs, ≥ 2 GB RAM, and Docker/VM-driver support).  
+  * For local development or demos you can use [Minikube](https://minikube.sigs.k8s.io/docs/start/) (needs ≥ 2 CPUs, ≥ 4 GB RAM, and Docker/VM-driver support).  
   * Any standard cloud or on-premises Kubernetes cluster (EKS, GKE, AKS, etc.) also works.
 
 * **kubectl**  
   * The Kubernetes command-line interface.  
   * Follow the official guide: [Install and Set Up kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl).
 
-* **Helm**  
+* **Helm** (v3.x+)
   * Kubernetes package manager used by the scripts below.  
   * Install it via the official instructions: [Installing Helm](https://helm.sh/docs/intro/install/).
 
@@ -53,47 +53,47 @@ Make sure the following tools are installed and configured:
 
 4. **Install the database clusters**
 
-```bash
-bash ./02-install-database.sh
-```
+   ```bash
+   bash ./02-install-database.sh
+   ```
 
-*What the script does*  
-`02-install-database.sh` **actually deploys the chosen databases to Kubernetes**.
+   *What the script does*  
+   `02-install-database.sh` **actually deploys the chosen databases to Kubernetes**.
 
-When the script completes, confirm that the clusters are up. It may take a few minutes for all the clusters to become ready, 
-especially if this is the first time running the script as Kubernetes needs to pull container images from registries. 
-You can monitor the progress using the following commands:
+   When the script completes, confirm that the clusters are up. It may take a few minutes for all the clusters to become ready, 
+   especially if this is the first time running the script as Kubernetes needs to pull container images from registries. 
+   You can monitor the progress using the following commands:
 
-```bash
-kubectl get clusters -n rag
-NAME              CLUSTER-DEFINITION   TERMINATION-POLICY   STATUS    AGE
-es-cluster                             Delete               Running   11m
-mongodb-cluster   mongodb              Delete               Running   11m
-pg-cluster        postgresql           Delete               Running   11m
-qdrant-cluster    qdrant               Delete               Running   11m
-redis-cluster     redis                Delete               Running   11m
-```
+   ```bash
+   kubectl get clusters -n rag
+   NAME              CLUSTER-DEFINITION   TERMINATION-POLICY   STATUS    AGE
+   es-cluster                             Delete               Running   11m
+   mongodb-cluster   mongodb              Delete               Running   11m
+   pg-cluster        postgresql           Delete               Running   11m
+   qdrant-cluster    qdrant               Delete               Running   11m
+   redis-cluster     redis                Delete               Running   11m
+   ```
 
-You can see all the Database `Pods` created by KubeBlocks. 
-Initially, you might see pods in `ContainerCreating` or `Pending` status - this is normal while images are being pulled and containers are starting up. 
-Wait until all pods show `Running` status:
+   You can see all the Database `Pods` created by KubeBlocks. 
+   Initially, you might see pods in `ContainerCreating` or `Pending` status - this is normal while images are being pulled and containers are starting up. 
+   Wait until all pods show `Running` status:
 
-```bash
-kubectl get po -n rag
-NAME                        READY   STATUS    RESTARTS   AGE
-es-cluster-mdit-0           2/2     Running   0          11m
-mongodb-cluster-mongodb-0   2/2     Running   0          11m
-pg-cluster-postgresql-0     4/4     Running   0          11m
-pg-cluster-postgresql-1     4/4     Running   0          11m
-qdrant-cluster-qdrant-0     2/2     Running   0          11m
-redis-cluster-redis-0       2/2     Running   0          11m
-```
+   ```bash
+   kubectl get po -n rag
+   NAME                        READY   STATUS    RESTARTS   AGE
+   es-cluster-mdit-0           2/2     Running   0          11m
+   mongodb-cluster-mongodb-0   2/2     Running   0          11m
+   pg-cluster-postgresql-0     4/4     Running   0          11m
+   pg-cluster-postgresql-1     4/4     Running   0          11m
+   qdrant-cluster-qdrant-0     2/2     Running   0          11m
+   redis-cluster-redis-0       2/2     Running   0          11m
+   ```
 
-You can also check the detailed status of a specific pod if it's taking longer than expected:
+   You can also check the detailed status of a specific pod if it's taking longer than expected:
 
-```bash
-kubectl describe pod <pod-name> -n rag
-```
+   ```bash
+   kubectl describe pod <pod-name> -n rag
+   ```
 
 ## Connect to Databases
 
@@ -130,7 +130,7 @@ Use port forwarding to access PostgreSQL from your local machine:
 
 ```bash
 # Forward PostgreSQL port (5432) to your local machine
-# You can see all the svc by: kubectl get svc -n rag
+# You can see all services with: kubectl get svc -n rag
 kubectl port-forward -n rag svc/pg-cluster-postgresql-postgresql 5432:5432
 ```
 
@@ -165,3 +165,6 @@ Keep the port-forwarding terminal running while you're connecting to the databas
    ```
 
    This removes the addons installed by `01-prepare.sh`.
+
+## Reference
+* [Kubeblocks Documentation](https://kubeblocks.io/docs/preview/user_docs/overview/introduction)
