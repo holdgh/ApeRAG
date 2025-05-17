@@ -24,9 +24,7 @@ Make sure the following tools are installed and configured:
   * Kubernetes package manager used by the scripts below.  
   * Install it via the official instructions: [Installing Helm](https://helm.sh/docs/intro/install/).
 
-## Quick Start
-
-### Deployment Steps
+## Installing
 
 1. **Configure the databases you want**  
     Edit `00-config.sh` file. Based on your requirements, set the variable to `true` for the databases you want to install. 
@@ -97,7 +95,10 @@ You can also check the detailed status of a specific pod if it's taking longer t
 kubectl describe pod <pod-name> -n rag
 ```
 
-### Uninstalling
+## Connect to Databases
+
+
+## Uninstalling
 
 1. **Remove the database clusters**
 
