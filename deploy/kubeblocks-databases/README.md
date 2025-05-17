@@ -62,9 +62,39 @@ bash ./02-install-database.sh
 *What the script does*  
 `02-install-database.sh` **actually deploys the chosen databases to Kubernetes**.
 
-When the script completes, confirm that the clusters are up:
+When the script completes, confirm that the clusters are up. It may take a few minutes for all the clusters to become ready, 
+especially if this is the first time running the script as Kubernetes needs to pull container images from registries. 
+You can monitor the progress using the following commands:
+
 ```bash
 kubectl get clusters -n rag
+NAME              CLUSTER-DEFINITION   TERMINATION-POLICY   STATUS    AGE
+es-cluster                             Delete               Running   11m
+mongodb-cluster   mongodb              Delete               Running   11m
+pg-cluster        postgresql           Delete               Running   11m
+qdrant-cluster    qdrant               Delete               Running   11m
+redis-cluster     redis                Delete               Running   11m
+```
+
+You can see all the Database `Pods` created by KubeBlocks. 
+Initially, you might see pods in `ContainerCreating` or `Pending` status - this is normal while images are being pulled and containers are starting up. 
+Wait until all pods show `Running` status:
+
+```bash
+kubectl get po -n rag
+NAME                        READY   STATUS    RESTARTS   AGE
+es-cluster-mdit-0           2/2     Running   0          11m
+mongodb-cluster-mongodb-0   2/2     Running   0          11m
+pg-cluster-postgresql-0     4/4     Running   0          11m
+pg-cluster-postgresql-1     4/4     Running   0          11m
+qdrant-cluster-qdrant-0     2/2     Running   0          11m
+redis-cluster-redis-0       2/2     Running   0          11m
+```
+
+You can also check the detailed status of a specific pod if it's taking longer than expected:
+
+```bash
+kubectl describe pod <pod-name> -n rag
 ```
 
 ### Uninstalling
