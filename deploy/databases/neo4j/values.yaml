@@ -22,7 +22,7 @@ cpu: 2
 # default: 2
 # minimum: 2
 # maximum: 1000
-memory: 2
+memory: 4
 
 # Storage(Gi)
 # description: Storage size, the unit is Gi.

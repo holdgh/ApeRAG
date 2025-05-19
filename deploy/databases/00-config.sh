@@ -9,8 +9,8 @@ HELM_REPO="https://apecloud.github.io/helm-charts"
 
 # Set to true to enable the database, false to disable
 ENABLE_POSTGRESQL=true
-ENABLE_REDIS=true
-ENABLE_ELASTICSEARCH=true
-ENABLE_QDRANT=true
-ENABLE_MONGODB=true
-ENABLE_NEO4J=false
+ENABLE_REDIS=false
+ENABLE_ELASTICSEARCH=false
+ENABLE_QDRANT=false
+ENABLE_MONGODB=false
+ENABLE_NEO4J=true
