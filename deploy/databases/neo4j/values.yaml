@@ -15,14 +15,14 @@ mode: singlealone
 # default: 2
 # minimum: 2
 # maximum: 64
-cpu: 1
+cpu: 2
 
 # Memory(Gi)
 # description: Memory, the unit is Gi.
 # default: 2
 # minimum: 2
 # maximum: 1000
-memory: 1
+memory: 2
 
 # Storage(Gi)
 # description: Storage size, the unit is Gi.
