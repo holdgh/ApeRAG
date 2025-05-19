@@ -1,3 +1,10 @@
+#!/bin/bash
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Load configuration file
+source "$SCRIPT_DIR/00-config.sh"
+
 # Check dependencies
 echo "Checking dependencies..."
 command -v kubectl >/dev/null 2>&1 || { echo "Error: kubectl command not found"; exit 1; }
@@ -17,35 +24,38 @@ if kubectl get namespace kb-system &>/dev/null &&
     exit 0
 fi
 
-echo "Ready to install KubeBlocks."
+# Function for installing KubeBlocks
+install_kubeblocks() {
+    echo "Ready to install KubeBlocks."
 
-# Set version variable
-VERSION=1.0.0-beta.48
+    # Install CSI Snapshotter CRDs
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
 
-# Install CSI Snapshotter CRDs
-kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotclasses.yaml
-kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshots.yaml
-kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/external-snapshotter/v8.2.0/client/config/crd/snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+    # Add and update Piraeus repository
+    helm repo add piraeus-charts https://piraeus.io/helm-charts/
+    helm repo update
 
-# Add and update Piraeus repository
-helm repo add piraeus-charts https://piraeus.io/helm-charts/
-helm repo update
+    # Install snapshot controller
+    helm install snapshot-controller piraeus-charts/snapshot-controller -n kb-system --create-namespace
 
-# Install snapshot controller
-helm install snapshot-controller piraeus-charts/snapshot-controller -n kb-system --create-namespace
+    # Install KubeBlocks CRDs
+    kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/v${KB_VERSION}/kubeblocks_crds.yaml
 
-# Install KubeBlocks CRDs
-kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/v${VERSION}/kubeblocks_crds.yaml
+    # Add and update KubeBlocks repository
+    helm repo add kubeblocks $HELM_REPO
+    helm repo update
 
-# Add and update KubeBlocks repository
-helm repo add kubeblocks https://apecloud.github.io/helm-charts
-helm repo update
+    # Install KubeBlocks
+    helm install kubeblocks kubeblocks/kubeblocks --namespace kb-system --create-namespace --version=${KB_VERSION}
 
-# Install KubeBlocks
-helm install kubeblocks kubeblocks/kubeblocks --namespace kb-system --create-namespace --version=${VERSION}
+    # Verify installation
+    echo "Waiting for KubeBlocks to be ready..."
+    kubectl wait --for=condition=ready pods -l app=snapshot-controller -n kb-system --timeout=120s
+    kubectl wait --for=condition=ready pods -l app.kubernetes.io/instance=kubeblocks -n kb-system --timeout=300s
+    echo "KubeBlocks installation complete!"
+}
 
-# Verify installation
-echo "Waiting for KubeBlocks to be ready..."
-kubectl wait --for=condition=ready pods -l app=snapshot-controller -n kb-system --timeout=120s
-kubectl wait --for=condition=ready pods -l app.kubernetes.io/instance=kubeblocks -n kb-system --timeout=300s
-echo "KubeBlocks installation complete!"
+# Call the function to install KubeBlocks
+install_kubeblocks

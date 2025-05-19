@@ -2,6 +2,8 @@
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Load configuration file
+source "$SCRIPT_DIR/00-config.sh"
 
 # Check dependencies
 echo "Checking dependencies..."
@@ -17,27 +19,14 @@ if [ $? -ne 0 ]; then
 fi
 echo "Kubernetes cluster is accessible."
 
-# Check if KubeBlocks is already installed
-echo "Checking if KubeBlocks is already installed in kb-system namespace..."
-if kubectl get namespace kb-system &>/dev/null; then
-    if kubectl get deployment -n kb-system &>/dev/null; then
-        echo "KubeBlocks is already installed in kb-system namespace."
-    else
-        echo "Error: kb-system namespace exists but KubeBlocks Pods not found."
-        exit 1
-    fi
-else
-    echo "Error: kb-system namespace not found."
-    exit 1
-fi
-
-# Load configuration file
-source "$SCRIPT_DIR/00-config.sh"
-
 # Add and update Helm repository
 echo "Adding and updating KubeBlocks Helm repository..."
 helm repo add kubeblocks $HELM_REPO
 helm repo update
+
+# Check if KubeBlocks is already installed, install it if it is not.
+source "$SCRIPT_DIR/install-kubeblocks.sh"
+
 
 # Create namespaces
 echo "Creating namespaces..."
