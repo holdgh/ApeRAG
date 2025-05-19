@@ -4,8 +4,32 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Check dependencies
+echo "Checking dependencies..."
 command -v kubectl >/dev/null 2>&1 || { echo "Error: kubectl command not found"; exit 1; }
 command -v helm >/dev/null 2>&1 || { echo "Error: helm command not found"; exit 1; }
+
+# Check if Kubernetes is available
+echo "Checking if Kubernetes is available..."
+kubectl cluster-info &>/dev/null
+if [ $? -ne 0 ]; then
+    echo "Error: Kubernetes cluster is not accessible. Please ensure you have proper access to a Kubernetes cluster."
+    exit 1
+fi
+echo "Kubernetes cluster is accessible."
+
+# Check if KubeBlocks is already installed
+echo "Checking if KubeBlocks is already installed in kb-system namespace..."
+if kubectl get namespace kb-system &>/dev/null; then
+    if kubectl get deployment -n kb-system &>/dev/null; then
+        echo "KubeBlocks is already installed in kb-system namespace."
+    else
+        echo "Error: kb-system namespace exists but KubeBlocks Pods not found."
+        exit 1
+    fi
+else
+    echo "Error: kb-system namespace not found."
+    exit 1
+fi
 
 # Load configuration file
 source "$SCRIPT_DIR/00-config.sh"
@@ -17,7 +41,6 @@ helm repo update
 
 # Create namespaces
 echo "Creating namespaces..."
-kubectl create namespace kb-system 2>/dev/null || true
 kubectl create namespace $NAMESPACE 2>/dev/null || true
 
 # Install database addons
