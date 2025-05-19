@@ -7,11 +7,6 @@ source "$SCRIPT_DIR/00-config.sh"
 
 check_dependencies
 
-# Add and update Helm repository
-print "Adding and updating KubeBlocks Helm repository..."
-helm repo add kubeblocks $HELM_REPO
-helm repo update
-
 # Check if KubeBlocks is already installed, install it if it is not.
 source "$SCRIPT_DIR/install-kubeblocks.sh"
 
@@ -22,6 +17,10 @@ kubectl create namespace $NAMESPACE 2>/dev/null || true
 # Install database addons
 print "Installing KubeBlocks database addons..."
 
+# Add and update Helm repository
+print "Adding and updating KubeBlocks Helm repository..."
+helm repo add kubeblocks $HELM_REPO
+helm repo update
 # Install database addons based on configuration
 [ "$ENABLE_POSTGRESQL" = true ] && print "Installing PostgreSQL addon..." && helm upgrade --install kb-addon-postgresql kubeblocks/postgresql --namespace kb-system --version $ADDON_CLUSTER_CHART_VERSION
 [ "$ENABLE_REDIS" = true ] && print "Installing Redis addon..." && helm upgrade --install kb-addon-redis kubeblocks/redis --namespace kb-system --version $ADDON_CLUSTER_CHART_VERSION

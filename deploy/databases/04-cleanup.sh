@@ -20,7 +20,7 @@ print "Database addons uninstallation completed!"
 
 source "$SCRIPT_DIR/uninstall-kubeblocks.sh"
 
-kubectl create namespace $NAMESPACE
-kubectl create namespace kb-system
+kubectl delete namespace $NAMESPACE
+kubectl delete namespace kb-system
 
 print "KubeBlocks uninstallation completed!"
