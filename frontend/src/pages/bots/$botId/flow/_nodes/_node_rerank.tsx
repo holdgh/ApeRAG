@@ -10,7 +10,7 @@ import { ConnectInfoInput } from './_connect-info-input';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
-  model: string;
+  model_name: string;
 };
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -18,6 +18,8 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { nodes, edges, setNodes, getNodeConfig } = useModel(
     'bots.$botId.flow.model',
   );
+  const { getProviderByModelName } = useModel('models');
+
   const [form] = Form.useForm<VarType>();
 
   const { refNode, refNodeConfig } = useMemo(() => {
@@ -44,9 +46,19 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const onValuesChange = useCallback(
     (changedValues: VarType) => {
       const vars = node?.data.vars;
-      const varModel = vars?.find((item) => item.name === 'model');
-      if (varModel && changedValues.model !== undefined) {
-        varModel.value = changedValues.model;
+      const varModelName = vars?.find((item) => item.name === 'model_name');
+      const varModelServiceProvider = vars?.find(
+        (item) => item.name === 'model_service_provider',
+      );
+      if (varModelName && changedValues.model_name !== undefined) {
+        varModelName.value = changedValues.model_name;
+        if (varModelServiceProvider) {
+          const { provider } = getProviderByModelName(
+            changedValues.model_name,
+            'rerank',
+          );
+          varModelServiceProvider.value = provider?.name;
+        }
       }
     },
     [node],
@@ -56,10 +68,10 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
    * init node form data
    */
   useEffect(() => {
-    const model = String(
-      node.data.vars?.find((item) => item.name === 'model')?.value,
+    const model_name = String(
+      node.data.vars?.find((item) => item.name === 'model_name')?.value,
     );
-    form.setFieldsValue({ model });
+    form.setFieldsValue({ model_name });
   }, []);
 
   /**
@@ -118,7 +130,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
                 required
                 tooltip={formatMessage({ id: 'model.rerank.tips' })}
                 label={formatMessage({ id: 'flow.reranker.model' })}
-                name="model"
+                name="model_name"
               >
                 <ModelSelect
                   style={{ width: '100%' }}

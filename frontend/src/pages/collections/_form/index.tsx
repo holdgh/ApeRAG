@@ -1,11 +1,8 @@
 import { Collection } from '@/api';
 import { ApeMarkdown, CheckCard, ModelSelect } from '@/components';
 import { COLLECTION_SOURCE, COLLECTION_SOURCE_EMAIL } from '@/constants';
-import { api } from '@/services';
 
 import { CollectionConfigSource, CollectionEmailSource } from '@/types';
-import { getProviderByModelName } from '@/utils';
-import { useRequest } from 'ahooks';
 import {
   Alert,
   Avatar,
@@ -24,8 +21,8 @@ import {
   Typography,
 } from 'antd';
 import _ from 'lodash';
-import { useEffect, useMemo } from 'react';
-import { FormattedMessage, useIntl } from 'umi';
+import { useEffect } from 'react';
+import { FormattedMessage, useIntl, useModel } from 'umi';
 import DocumentCloudFormItems from './DocumentCloudFormItems';
 import DocumentEmailFormItems from './DocumentEmailFormItems';
 import DocumentFeishuFormItems from './DocumentFeishuFormItems';
@@ -72,15 +69,9 @@ const configCompletionCustomLlmProviderKey = [
 const configEmailSourceKey = ['config', 'email_source'];
 
 export default ({ onSubmit, action, values, form }: Props) => {
-  const { data: availableModelsGetRes, loading } = useRequest(
-    api.availableModelsGet,
-  );
   const { formatMessage } = useIntl();
-  const availableModels = useMemo(
-    () => availableModelsGetRes?.data.items || [],
-    [availableModelsGetRes],
-  );
 
+  const { availableModels, getProviderByModelName } = useModel('models');
   // save collection
   const onFinish = async () => {
     const data = await form.validateFields();
@@ -108,7 +99,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
       const { provider, model } = getProviderByModelName(
         embeddingModel,
         'embedding',
-        availableModels,
       );
       form.setFieldValue(
         configEmbeddingModelServiceProviderKey,
@@ -126,7 +116,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
       const { provider, model } = getProviderByModelName(
         completionModel,
         'completion',
-        availableModels,
       );
       form.setFieldValue(
         configCompletionModelServiceProviderKey,
@@ -413,12 +402,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
         <br />
         <Divider />
         <div style={{ textAlign: 'right' }}>
-          <Button
-            loading={loading}
-            style={{ minWidth: 160 }}
-            type="primary"
-            htmlType="submit"
-          >
+          <Button style={{ minWidth: 160 }} type="primary" htmlType="submit">
             {formatMessage({ id: 'action.save' })}
           </Button>
         </div>

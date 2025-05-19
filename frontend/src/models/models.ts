@@ -1,4 +1,4 @@
-import { ModelConfig, PromptTemplate } from '@/api';
+import { ModelConfig, ModelDefinition, PromptTemplate } from '@/api';
 import { api } from '@/services';
 import { useEffect, useState } from 'react';
 import { useModel } from 'umi';
@@ -15,6 +15,23 @@ export default () => {
     const res = await api.availableModelsGet();
     setLoading(false);
     setAvailableModels(res.data.items || []);
+  };
+
+  const getProviderByModelName = (
+    name: string = '',
+    type: 'embedding' | 'completion' | 'rerank',
+  ): { provider?: ModelConfig; model?: ModelDefinition } => {
+    let provider;
+    let model;
+    availableModels.forEach((p) => {
+      p[type]?.forEach((m) => {
+        if (m.model === name) {
+          provider = p;
+          model = m;
+        }
+      });
+    });
+    return { provider, model };
   };
 
   // prompt templates
@@ -35,5 +52,6 @@ export default () => {
     setPromptTemplates,
 
     availableModels,
+    getProviderByModelName,
   };
 };

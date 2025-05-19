@@ -23,7 +23,6 @@ import {
 import Dagre from '@dagrejs/dagre';
 import { Position } from '@xyflow/react';
 import { theme } from 'antd';
-import _ from 'lodash';
 import React, { useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 
@@ -221,7 +220,11 @@ const getInitialData = (): ApeFlow => {
         data: {
           vars: [
             {
-              name: 'model',
+              name: 'model_name',
+              value: '',
+            },
+            {
+              name: 'model_service_provider',
               value: '',
             },
             {
@@ -241,7 +244,15 @@ const getInitialData = (): ApeFlow => {
         data: {
           vars: [
             {
-              name: 'model',
+              name: 'model_name',
+              value: '',
+            },
+            {
+              name: 'model_service_provider',
+              value: '',
+            },
+            {
+              name: 'prompt_template',
               value: '',
             },
             {
@@ -327,31 +338,21 @@ export default () => {
     layoutDirection: 'LR',
   });
 
-  const getNodeOutputVars = (node?: ApeNode): ApeNodeVar[] | undefined => {
+  const getNodeGlobalVars = (node?: ApeNode): ApeNodeVar[] | undefined => {
     if (!node) return globalVariables;
     switch (node.type) {
       case 'vector_search':
-        return node.data.vars?.filter(
-          (item) =>
-            !_.includes(
-              ['top_k', 'similarity_threshold', 'collection_ids'],
-              item.name,
-            ),
-        );
       case 'keyword_search':
-        return node.data.vars?.filter(
-          (item) => !_.includes(['collection_ids'], item.name),
-        );
       case 'llm':
-        return node.data.vars?.filter(
-          (item) =>
-            !_.includes(
-              ['model', 'temperature', 'max_tokens', 'docs'],
-              item.name,
-            ),
-        );
+        return [
+          {
+            name: 'query',
+            source_type: 'global',
+            global_var: 'query',
+          },
+        ];
       default:
-        return node.data.vars;
+        return [];
     }
   };
 
@@ -396,7 +397,7 @@ export default () => {
         color: token.blue,
         icon: React.createElement(WechatWorkOutlined),
         content: ApeNodeLlm,
-        width: 320,
+        width: 380,
         disableConnectionSource: true,
       },
     };
@@ -428,7 +429,7 @@ export default () => {
     getLayoutedElements,
     getInitialData,
     getEdgeId,
-    getNodeOutputVars,
+    getNodeGlobalVars,
     getNodeConfig,
   };
 };

@@ -1,4 +1,3 @@
-import { ModelConfig, ModelDefinition } from '@/api';
 import { ThemeType } from 'ahooks/lib/useTheme';
 
 /**
@@ -61,29 +60,3 @@ export const sensitiveStringReplace = (
   end: number = 10,
 ): string =>
   str.substring(0, start) + '*'.repeat(end - start) + str.substring(end);
-
-/**
- * Get provider by model name
- * @param name
- * @param type
- * @param availableModels
- * @returns { provider: ModelConfig, model: ModelDefinition }
- */
-export const getProviderByModelName = (
-  name: string = '',
-  type: 'embedding' | 'completion' | 'rerank',
-  availableModels: ModelConfig[],
-): { provider?: ModelConfig; model?: ModelDefinition } => {
-  let provider;
-  let model;
-
-  availableModels.forEach((p) => {
-    p[type]?.forEach((m) => {
-      if (m.model === name) {
-        provider = p;
-        model = m;
-      }
-    });
-  });
-  return { provider, model };
-};

@@ -3,7 +3,6 @@ import iconKnowledge from '@/assets/bots/knowledge.svg';
 import { CheckCard, ModelSelect, RefreshButton } from '@/components';
 import { MODEL_PROVIDER_ICON, UI_COLLECTION_STATUS } from '@/constants';
 import { ApeBot } from '@/types';
-import { getProviderByModelName } from '@/utils';
 import {
   Avatar,
   Badge,
@@ -37,8 +36,12 @@ export default ({ form, onSubmit, values, action }: Props) => {
   const { formatMessage } = useIntl();
   const { collections, collectionsLoading, getCollections } =
     useModel('collection');
-  const { availableModels, promptTemplates, getPromptTemplates } =
-    useModel('models');
+  const {
+    availableModels,
+    promptTemplates,
+    getPromptTemplates,
+    getProviderByModelName,
+  } = useModel('models');
   const { loading } = useModel('global');
   const { token } = theme.useToken();
 
@@ -57,11 +60,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
   );
 
   const currentModel = useMemo(() => {
-    const { model } = getProviderByModelName(
-      botModelName,
-      'completion',
-      availableModels,
-    );
+    const { model } = getProviderByModelName(botModelName, 'completion');
     return model;
   }, [botModelName, availableModels]);
 
@@ -125,11 +124,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
 
   useEffect(() => {
     if (botModelName) {
-      const { provider } = getProviderByModelName(
-        botModelName,
-        'completion',
-        availableModels,
-      );
+      const { provider } = getProviderByModelName(botModelName, 'completion');
       form.setFieldValue(['config', 'model_service_provider'], provider?.name);
       form.setFieldValue(['config', 'model_name'], botModelName);
     }

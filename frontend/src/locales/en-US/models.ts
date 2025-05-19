@@ -3,6 +3,21 @@ export const model = {
   'model.required': 'Model is required',
   'model.config': 'Model Config',
   'model.prompt_template': 'Prompt Template',
+  'model.prompt_template.default': `You are an expert at answering questions based on dialogue history and provided candidate answer. 
+
+Given the dialogue history and the candidate answer, you need to answer the question: {query}。
+
+Please think step by step, please make sure that the answer is accurate and concise.
+
+If the answer cannot be found in the dialogue history and candidate answer, \
+simply state that you do not know. Do not attempt to fabricate an answer.
+
+Don't repeat yourself.
+
+Candidate answer is below:
+----------------
+{context}
+--------------------`,
   'model.llm.tips': 'Large language chat model',
   'model.rerank.tips':
     'Using Reranker after getting the results of a vector query (ANN) can more effectively determine the semantic relevance between documents and queries, re-rank the results more finely, and ultimately improve search quality.',

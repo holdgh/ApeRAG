@@ -1,6 +1,5 @@
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { MODEL_PROVIDER_ICON } from '@/constants';
-import { getProviderByModelName } from '@/utils';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Avatar,
@@ -33,7 +32,7 @@ export default () => {
   const { token } = theme.useToken();
   const { bots, botsLoading, getBots } = useModel('bot');
   const { formatMessage } = useIntl();
-  const { availableModels } = useModel('models');
+  const { getProviderByModelName } = useModel('models');
 
   const _bots = useMemo(
     () =>
@@ -109,7 +108,6 @@ export default () => {
             const { provider, model } = getProviderByModelName(
               config?.model_name,
               'completion',
-              availableModels,
             );
             const modelIcon = provider?.name
               ? MODEL_PROVIDER_ICON[provider.name]
