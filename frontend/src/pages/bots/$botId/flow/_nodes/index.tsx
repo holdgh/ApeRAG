@@ -1,5 +1,9 @@
 import { ApeNode, ApeNodeConfig, ApeNodeType } from '@/types';
-import { CaretDownOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  CaretDownOutlined,
+  EditOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
 import { Button, Form, Input, Modal, Space, theme } from 'antd';
@@ -107,7 +111,7 @@ const ApeBasicNode = (node: ApeNode) => {
                 token={token}
                 color={config.color}
                 shape="square"
-                src={config.icon}
+                src={config.icon || <LoadingOutlined />}
               />
               <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
               {isHovering && (
@@ -136,6 +140,7 @@ const ApeBasicNode = (node: ApeNode) => {
           </StyledFlowNodeHeader>
           <StyledFlowNodeBody token={token} collapsed={collapsed}>
             {config.content &&
+              originNode &&
               React.createElement(config.content, { node: originNode })}
           </StyledFlowNodeBody>
         </StyledFlowNode>

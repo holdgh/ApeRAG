@@ -74,7 +74,6 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                   <Form.Item
                     required
                     label={formatMessage({ id: 'collection.name' })}
-                    name="collection_ids"
                     style={{ marginBottom: 0 }}
                   >
                     <Select

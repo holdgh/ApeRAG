@@ -63,9 +63,8 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   useEffect(() => {
     if (refNode && varDocs) {
       varDocs.ref_node = refNode.id || '';
-      // applyChanges();
     }
-  }, [refNode]);
+  }, [refNode, varDocs]);
 
   useEffect(() => {
     const vars = node.data.vars || [];
