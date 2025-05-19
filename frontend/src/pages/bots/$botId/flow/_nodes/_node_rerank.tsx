@@ -1,5 +1,5 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeType, ApeNodeVar } from '@/types';
+import { ApeNode, ApeNodeType } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Space, theme } from 'antd';
@@ -9,9 +9,6 @@ import { useIntl, useModel } from 'umi';
 import { ConnectInfoInput } from './_connect-info-input';
 import { getCollapsePanelStyle } from './_styles';
 
-type VarType = {
-  model_name: string;
-};
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
@@ -20,7 +17,30 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   );
   const { getProviderByModelName } = useModel('models');
 
-  const [form] = Form.useForm<VarType>();
+  const applyChanges = useCallback(() => {
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        { id: node.id, type: 'replace', item: node },
+      ];
+      return applyNodeChanges(changes, nds);
+    });
+  }, [node]);
+
+  const getVarByName = useCallback(
+    (name: string) => {
+      return node.data.vars?.find((item) => item.name === name);
+    },
+    [node],
+  );
+
+  const [varModelName, varModelServiceProvider, varDocs] = useMemo(
+    () => [
+      getVarByName('model_name'),
+      getVarByName('model_service_provider'),
+      getVarByName('docs'),
+    ],
+    [getVarByName],
+  );
 
   const { refNode, refNodeConfig } = useMemo(() => {
     const nid = node.id;
@@ -40,70 +60,32 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     return { refNode: _refNode, refNodeConfig: _refNodeConfig };
   }, [edges, nodes]);
 
-  /**
-   * on node form change
-   */
-  const onValuesChange = useCallback(
-    (changedValues: VarType) => {
-      const vars = node?.data.vars;
-      const varModelName = vars?.find((item) => item.name === 'model_name');
-      const varModelServiceProvider = vars?.find(
-        (item) => item.name === 'model_service_provider',
-      );
-      if (varModelName && changedValues.model_name !== undefined) {
-        varModelName.value = changedValues.model_name;
-        if (varModelServiceProvider) {
-          const { provider } = getProviderByModelName(
-            changedValues.model_name,
-            'rerank',
-          );
-          varModelServiceProvider.value = provider?.name;
-        }
-      }
-    },
-    [node],
-  );
-
-  /**
-   * init node form data
-   */
   useEffect(() => {
-    const model_name = String(
-      node.data.vars?.find((item) => item.name === 'model_name')?.value,
-    );
-    form.setFieldsValue({ model_name });
-  }, []);
-
-  /**
-   * node ref change
-   */
-  useEffect(() => {
-    const vars = node?.data.vars;
-    const item = vars?.find((item) => item.name === 'docs');
-    const value: ApeNodeVar = {
-      name: `docs`,
-      source_type: 'dynamic',
-      ref_node: refNode?.id || '',
-      ref_field: `docs`,
-    };
-    if (item) {
-      Object.assign(item, value);
-    } else {
-      vars?.push(value);
+    if (refNode && varDocs) {
+      varDocs.ref_node = refNode.id || '';
+      // applyChanges();
     }
-    setNodes((nds) => {
-      const changes: NodeChange[] = [
-        {
-          id: node.id,
-          type: 'replace',
-          item: {
-            ...node,
-          },
-        },
-      ];
-      return applyNodeChanges(changes, nds);
-    });
-  }, [refNode?.id]);
+  }, [refNode]);
+
+  useEffect(() => {
+    const vars = node.data.vars || [];
+    if (!varModelName) {
+      vars?.push({ name: 'model_name', value: '' });
+    }
+    if (!varModelServiceProvider) {
+      vars?.push({ name: 'model_service_provider', value: '' });
+    }
+    if (!varDocs) {
+      vars?.push({
+        name: 'docs',
+        source_type: 'dynamic',
+        ref_node: '',
+        ref_field: 'docs',
+      });
+    }
+    node.data.vars = vars;
+    applyChanges();
+  }, []);
 
   return (
     <Collapse
@@ -112,7 +94,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
         return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
       }}
       size="middle"
-      defaultActiveKey={['1', '2']}
+      defaultActiveKey={['1']}
       style={{ background: 'none' }}
       items={[
         {
@@ -120,22 +102,28 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
           label: <Space>{formatMessage({ id: 'flow.input.params' })}</Space>,
           style: getCollapsePanelStyle(token),
           children: (
-            <Form
-              form={form}
-              layout="vertical"
-              onValuesChange={onValuesChange}
-              autoComplete="off"
-            >
+            <Form layout="vertical" autoComplete="off">
               <Form.Item
                 required
                 tooltip={formatMessage({ id: 'model.rerank.tips' })}
                 label={formatMessage({ id: 'flow.reranker.model' })}
-                name="model_name"
               >
                 <ModelSelect
-                  style={{ width: '100%' }}
                   model="rerank"
                   variant="filled"
+                  value={varModelName?.value}
+                  onChange={(name) => {
+                    if (varModelName) {
+                      varModelName.value = name;
+                    }
+                    if (varModelServiceProvider) {
+                      varModelServiceProvider.value = getProviderByModelName(
+                        name,
+                        'rerank',
+                      ).provider?.name;
+                    }
+                    applyChanges();
+                  }}
                 />
               </Form.Item>
               <Form.Item

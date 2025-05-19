@@ -2,46 +2,55 @@ import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Collapse, Form, Select, Table, theme } from 'antd';
 
-import { useCallback, useEffect } from 'react';
+import { applyNodeChanges, NodeChange } from '@xyflow/react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
-
-type VarType = {
-  collection_ids: string[];
-};
 
 export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { collections } = useModel('collection');
-  const { getNodeGlobalVars } = useModel('bots.$botId.flow.model');
+  const { getNodeGlobalVars, setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
-  const [form] = Form.useForm<VarType>();
 
-  /**
-   * on node form change
-   */
-  const onValuesChange = useCallback(
-    (changedValues: VarType) => {
-      if (!node) return;
-      const vars = node?.data.vars;
-      const varCollectionIds = vars?.find(
-        (item) => item.name === 'collection_ids',
-      );
-      if (varCollectionIds && changedValues.collection_ids) {
-        varCollectionIds.value = changedValues.collection_ids;
-      }
+  const applyChanges = useCallback(() => {
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        { id: node.id, type: 'replace', item: node },
+      ];
+      return applyNodeChanges(changes, nds);
+    });
+  }, [node]);
+
+  const getVarByName = useCallback(
+    (name: string) => {
+      return node.data.vars?.find((item) => item.name === name);
     },
     [node],
   );
 
-  /**
-   * init node form data
-   */
+  const [varCollectionIds, varQuery] = useMemo(
+    () => [getVarByName('collection_ids'), getVarByName('query')],
+    [getVarByName],
+  );
+
   useEffect(() => {
-    const vars = node?.data.vars;
-    const collection_ids =
-      vars?.find((item) => item.name === 'collection_ids')?.value || [];
-    form.setFieldsValue({ collection_ids });
+    const vars = node.data.vars || [];
+    if (!varCollectionIds) {
+      vars?.push({
+        name: 'collection_ids',
+        value: [],
+      });
+    }
+    if (!varQuery) {
+      vars?.push({
+        name: 'query',
+        source_type: 'global',
+        global_var: 'query',
+      });
+    }
+    node.data.vars = vars;
+    applyChanges();
   }, []);
 
   return (
@@ -61,12 +70,7 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
             style: getCollapsePanelStyle(token),
             children: (
               <>
-                <Form
-                  form={form}
-                  layout="vertical"
-                  onValuesChange={onValuesChange}
-                  autoComplete="off"
-                >
+                <Form layout="vertical" autoComplete="off">
                   <Form.Item
                     required
                     label={formatMessage({ id: 'collection.name' })}
@@ -81,6 +85,14 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                         label: collection.title,
                         value: collection.id,
                       }))}
+                      value={varCollectionIds?.value}
+                      onChange={(value) => {
+                        if (varCollectionIds) {
+                          varCollectionIds.value = value;
+                        }
+                        applyChanges();
+                      }}
+                      placeholder={formatMessage({ id: 'collection.select' })}
                     />
                   </Form.Item>
                 </Form>

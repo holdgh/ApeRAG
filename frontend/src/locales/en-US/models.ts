@@ -5,7 +5,7 @@ export const model = {
   'model.prompt_template': 'Prompt Template',
   'model.prompt_template.default': `You are an expert at answering questions based on dialogue history and provided candidate answer. 
 
-Given the dialogue history and the candidate answer, you need to answer the question: {query}。
+Given the dialogue history and the candidate answer, you need to answer the question: {query}.
 
 Please think step by step, please make sure that the answer is accurate and concise.
 
