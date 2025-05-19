@@ -4,30 +4,30 @@ Learn how to quickly deploy and manage various databases in a Kubernetes (K8s) e
 
 ## Introduction to KubeBlocks
 
-KubeBlocks is a production-ready, open-source toolkit that runs any database--SQL, NoSQL, vector, or document--on Kubernetes.  
+KubeBlocks is a production-ready, open-source toolkit that runs any database--SQL, NoSQL, vector, or document--on Kubernetes.
 It scales smoothly from quick dev tests to full production clusters, making it a solid choice for RAG workloads like FastGPT that need several data stores working together.
 
 ## Prerequisites
 
 Make sure the following tools are installed and configured:
 
-* **Kubernetes cluster**  
-  * A running Kubernetes cluster is required.  
-  * For local development or demos you can use [Minikube](https://minikube.sigs.k8s.io/docs/start/) (needs ≥ 2 CPUs, ≥ 4 GB RAM, and Docker/VM-driver support).  
+* **Kubernetes cluster**
+  * A running Kubernetes cluster is required.
+  * For local development or demos you can use [Minikube](https://minikube.sigs.k8s.io/docs/start/) (needs ≥ 2 CPUs, ≥ 4 GB RAM, and Docker/VM-driver support).
   * Any standard cloud or on-premises Kubernetes cluster (EKS, GKE, AKS, etc.) also works.
 
-* **kubectl**  
-  * The Kubernetes command-line interface.  
+* **kubectl**
+  * The Kubernetes command-line interface.
   * Follow the official guide: [Install and Set Up kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl).
 
 * **Helm** (v3.x+)
-  * Kubernetes package manager used by the scripts below.  
+  * Kubernetes package manager used by the scripts below.
   * Install it via the official instructions: [Installing Helm](https://helm.sh/docs/intro/install/).
 
 ## Installing
 
-1. **Configure the databases you want**  
-    Edit `00-config.sh` file. Based on your requirements, set the variable to `true` for the databases you want to install. 
+1. **Configure the databases you want**
+    Edit `00-config.sh` file. Based on your requirements, set the variable to `true` for the databases you want to install.
     For example, to install PostgreSQL and Neo4j:
 
    ```bash
@@ -45,10 +45,10 @@ Make sure the following tools are installed and configured:
    bash ./01-prepare.sh
    ```
 
-   *What the script does*  
+   *What the script does*
    `01-prepare.sh` performs basic pre-checks (Helm, kubectl, cluster reachability), adds the KubeBlocks Helm repo, and installs any core CRDs or controllers that KubeBlocks itself needs. It also installs the addons for every database you enabled in `00-config.sh`, but **does not** create the actual database clusters yet.
 
-3. **(Optional) Modify database settings**  
+3. **(Optional) Modify database settings**
    Before deployment you can edit the `values.yaml` file inside each `<db>/` directory to change `version`, `replicas`, `CPU`, `memory`, `storage size`, etc.
 
 4. **Install the database clusters**
@@ -57,11 +57,11 @@ Make sure the following tools are installed and configured:
    bash ./02-install-database.sh
    ```
 
-   *What the script does*  
+   *What the script does*
    `02-install-database.sh` **actually deploys the chosen databases to Kubernetes**.
 
-   When the script completes, confirm that the clusters are up. It may take a few minutes for all the clusters to become ready, 
-   especially if this is the first time running the script as Kubernetes needs to pull container images from registries. 
+   When the script completes, confirm that the clusters are up. It may take a few minutes for all the clusters to become ready,
+   especially if this is the first time running the script as Kubernetes needs to pull container images from registries.
    You can monitor the progress using the following commands:
 
    ```bash
@@ -74,8 +74,8 @@ Make sure the following tools are installed and configured:
    redis-cluster     redis                Delete               Running   11m
    ```
 
-   You can see all the Database `Pods` created by KubeBlocks. 
-   Initially, you might see pods in `ContainerCreating` or `Pending` status - this is normal while images are being pulled and containers are starting up. 
+   You can see all the Database `Pods` created by KubeBlocks.
+   Initially, you might see pods in `ContainerCreating` or `Pending` status - this is normal while images are being pulled and containers are starting up.
    Wait until all pods show `Running` status:
 
    ```bash
