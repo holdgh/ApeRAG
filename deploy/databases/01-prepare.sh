@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # Check dependencies
 command -v kubectl >/dev/null 2>&1 || { echo "Error: kubectl command not found"; exit 1; }
 command -v helm >/dev/null 2>&1 || { echo "Error: helm command not found"; exit 1; }
 
 # Load configuration file
-source ./00-config.sh
+source "$SCRIPT_DIR/00-config.sh"
 
 # Add and update Helm repository
 echo "Adding and updating KubeBlocks Helm repository..."
