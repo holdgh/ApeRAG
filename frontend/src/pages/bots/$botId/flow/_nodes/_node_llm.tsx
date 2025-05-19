@@ -2,7 +2,7 @@ import { ModelSelect } from '@/components';
 import { ApeNode, ApeNodeConfig, ApeNodeType, ApeNodeVar } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import { Collapse, Form, InputNumber, Slider, Table, theme } from 'antd';
+import { Collapse, Form, Input, InputNumber, Slider, Table, theme } from 'antd';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
@@ -10,7 +10,8 @@ import { ConnectInfoInput } from './_connect-info-input';
 import { getCollapsePanelStyle } from './_styles';
 
 type VarType = {
-  model: string;
+  model_name: string;
+  prompt_template?: string;
   temperature: number;
   max_tokens: number;
 };
@@ -18,9 +19,10 @@ type VarType = {
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const [form] = Form.useForm<VarType>();
-  const { nodes, setNodes, edges, getNodeOutputVars, getNodeConfig } = useModel(
+  const { nodes, setNodes, edges, getNodeGlobalVars, getNodeConfig } = useModel(
     'bots.$botId.flow.model',
   );
+  const { getProviderByModelName } = useModel('models');
   const { formatMessage } = useIntl();
 
   const { refNode, refNodeConfig } = useMemo(() => {
@@ -49,18 +51,32 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
       if (!node) return;
 
       const vars = node?.data.vars;
-      const varModel = vars?.find((item) => item.name === 'model');
+      const varModelName = vars?.find((item) => item.name === 'model_name');
+      const varModelServiceProvider = vars?.find(
+        (item) => item.name === 'model_service_provider',
+      );
+      const varPromptTemplate = vars?.find(
+        (item) => item.name === 'prompt_template',
+      );
       const varTemperature = vars?.find((item) => item.name === 'temperature');
       const varMaxTokens = vars?.find((item) => item.name === 'max_tokens');
 
-      if (varModel && changedValues.model !== undefined) {
-        varModel.value = changedValues.model;
+      if (varModelName && changedValues.model_name !== undefined) {
+        varModelName.value = changedValues.model_name;
+        if (varModelServiceProvider) {
+          const { provider } = getProviderByModelName(
+            changedValues.model_name,
+            'completion',
+          );
+          varModelServiceProvider.value = provider?.name;
+        }
       }
-
+      if (varPromptTemplate && changedValues.prompt_template !== undefined) {
+        varPromptTemplate.value = changedValues.prompt_template;
+      }
       if (varTemperature && changedValues.temperature !== undefined) {
         varTemperature.value = changedValues.temperature;
       }
-
       if (varMaxTokens && changedValues.max_tokens !== undefined) {
         varMaxTokens.value = changedValues.max_tokens;
       }
@@ -73,16 +89,25 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
    */
   useEffect(() => {
     const vars = node?.data.vars;
-    const model = String(
-      node?.data.vars?.find((item) => item.name === 'model')?.value,
+    const model_name = String(
+      node?.data.vars?.find((item) => item.name === 'model_name')?.value,
     );
+    const prompt_template = String(
+      node?.data.vars?.find((item) => item.name === 'prompt_template')?.value,
+    );
+
     const temperature = Number(
       vars?.find((item) => item.name === 'temperature')?.value || 0.7,
     );
     const max_tokens = Number(
       vars?.find((item) => item.name === 'max_tokens')?.value || 1000,
     );
-    form.setFieldsValue({ model, temperature, max_tokens });
+    form.setFieldsValue({
+      model_name,
+      prompt_template,
+      temperature,
+      max_tokens,
+    });
   }, []);
 
   /**
@@ -125,7 +150,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
           return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
         }}
         size="middle"
-        defaultActiveKey={['1', '2']}
+        defaultActiveKey={['1']}
         style={{ background: 'none' }}
         items={[
           {
@@ -143,10 +168,17 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                   <Form.Item
                     required
                     label={formatMessage({ id: 'model.name' })}
-                    name="model"
+                    name="model_name"
                     tooltip={formatMessage({ id: 'model.llm.tips' })}
                   >
                     <ModelSelect model="completion" variant="filled" />
+                  </Form.Item>
+                  <Form.Item
+                    required
+                    label={formatMessage({ id: 'model.prompt_template' })}
+                    name="prompt_template"
+                  >
+                    <Input.TextArea variant="filled" />
                   </Form.Item>
                   <Form.Item
                     required
@@ -203,7 +235,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                     dataIndex: 'global_var',
                   },
                 ]}
-                dataSource={getNodeOutputVars(node)}
+                dataSource={getNodeGlobalVars(node)}
                 style={{ background: token.colorBgContainer }}
               />
             ),

@@ -1,5 +1,4 @@
 import { MODEL_PROVIDER_ICON } from '@/constants';
-import { getProviderByModelName } from '@/utils';
 import { Avatar, Select, SelectProps, Space, theme, Typography } from 'antd';
 import _ from 'lodash';
 import { useMemo } from 'react';
@@ -12,7 +11,7 @@ type ModelSelectProps = {
 
 export const ModelSelect = (props: SelectProps & ModelSelectProps) => {
   const { token } = theme.useToken();
-  const { availableModels } = useModel('models');
+  const { availableModels, getProviderByModelName } = useModel('models');
 
   const modelOptions = useMemo(
     () =>
@@ -41,11 +40,7 @@ export const ModelSelect = (props: SelectProps & ModelSelectProps) => {
     [availableModels, props.model],
   );
 
-  const { provider } = getProviderByModelName(
-    props.value,
-    props.model,
-    availableModels,
-  );
+  const { provider } = getProviderByModelName(props.value, props.model);
 
   return (
     <Select

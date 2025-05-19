@@ -53,7 +53,7 @@ export type ApeNodeConfig = {
   color?: string;
   icon?: React.ReactNode;
   label?: string;
-  content?: ({ node }: { node?: ApeNode }) => JSX.Element;
+  content?: ({ node }: { node: ApeNode }) => JSX.Element;
   width?: number;
   disableConnectionTarget?: boolean;
   disableConnectionSource?: boolean;

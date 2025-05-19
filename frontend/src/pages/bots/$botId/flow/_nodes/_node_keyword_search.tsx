@@ -13,7 +13,7 @@ type VarType = {
 export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { collections } = useModel('collection');
-  const { getNodeOutputVars } = useModel('bots.$botId.flow.model');
+  const { getNodeGlobalVars } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
   const [form] = Form.useForm<VarType>();
 
@@ -107,7 +107,7 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                     dataIndex: 'global_var',
                   },
                 ]}
-                dataSource={getNodeOutputVars(node)}
+                dataSource={getNodeGlobalVars(node)}
                 style={{ background: token.colorBgContainer }}
               />
             ),
