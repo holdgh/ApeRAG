@@ -140,27 +140,7 @@ const getInitialData = (): ApeFlow => {
       },
       {
         id: vectorSearchId,
-        data: {
-          vars: [
-            {
-              name: 'top_k',
-              value: 5,
-            },
-            {
-              name: 'similarity_threshold',
-              value: 0.2,
-            },
-            {
-              name: 'collection_ids',
-              value: [],
-            },
-            {
-              name: 'query',
-              source_type: 'global',
-              global_var: 'query',
-            },
-          ],
-        },
+        data: {},
         position: { x: 422, y: 439 },
         type: 'vector_search',
         dragHandle: '.drag-handle',
@@ -168,114 +148,28 @@ const getInitialData = (): ApeFlow => {
       {
         id: keywordSearchId,
         type: 'keyword_search',
-        data: {
-          vars: [
-            {
-              name: 'collection_ids',
-              value: [],
-            },
-            {
-              name: 'query',
-              source_type: 'global',
-              global_var: 'query',
-            },
-          ],
-        },
+        data: {},
         position: { x: 422, y: 0 },
         dragHandle: '.drag-handle',
       },
       {
         id: mergeId,
         type: 'merge',
-        data: {
-          vars: [
-            {
-              name: 'merge_strategy',
-              value: 'union',
-            },
-            {
-              name: 'deduplicate',
-              value: true,
-            },
-            {
-              name: 'vector_search_docs',
-              source_type: 'dynamic',
-              ref_node: vectorSearchId,
-              ref_field: 'vector_search_docs',
-            },
-            {
-              name: 'keyword_search_docs',
-              source_type: 'dynamic',
-              ref_node: keywordSearchId,
-              ref_field: 'keyword_search_docs',
-            },
-          ],
-        },
+        data: {},
         position: { x: 884, y: 212 },
         dragHandle: '.drag-handle',
       },
       {
         id: rerankId,
         type: 'rerank',
-        data: {
-          vars: [
-            {
-              name: 'model_name',
-              value: '',
-            },
-            {
-              name: 'model_service_provider',
-              value: '',
-            },
-            {
-              name: 'docs',
-              source_type: 'dynamic',
-              ref_node: mergeId,
-              ref_field: 'docs',
-            },
-          ],
-        },
+        data: {},
         position: { x: 1286, y: 298 },
         dragHandle: '.drag-handle',
       },
       {
         id: llmId,
         type: 'llm',
-        data: {
-          vars: [
-            {
-              name: 'model_name',
-              value: '',
-            },
-            {
-              name: 'model_service_provider',
-              value: '',
-            },
-            {
-              name: 'prompt_template',
-              value: '',
-            },
-            {
-              name: 'temperature',
-              value: 0.7,
-            },
-            {
-              name: 'max_tokens',
-              value: 1000,
-            },
-            {
-              name: 'query',
-              source_type: 'global',
-              global_var: 'query',
-            },
-            {
-              name: 'docs',
-              source_type: 'dynamic',
-              ref_node: rerankId,
-              ref_field: 'docs',
-            },
-          ],
-        },
+        data: {},
         position: { x: 1688, y: 133.5 },
         dragHandle: '.drag-handle',
       },
@@ -397,7 +291,7 @@ export default () => {
         color: token.blue,
         icon: React.createElement(WechatWorkOutlined),
         content: ApeNodeLlm,
-        width: 380,
+        width: 440,
         disableConnectionSource: true,
       },
     };

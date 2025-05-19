@@ -6,6 +6,7 @@ export const collection = {
   'collection.settings': '设置',
   'collection.search_test': '检索测试',
   'collection.add': '添加知识库',
+  'collection.select': '请选择知识库',
   'collection.tips': '你可以在知识库里导入和管理你的数据源以增强LLM的上下文。',
   'collection.sensitive.protect': '敏感信息保护',
   'collection.sensitive.protect.method': '保护策略',

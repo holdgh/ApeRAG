@@ -6,6 +6,7 @@ export const collection = {
   'collection.settings': 'Settings',
   'collection.search_test': 'Search Test',
   'collection.add': 'Add Dataset',
+  'collection.select': 'Select Dataset',
   'collection.tips':
     'You can import and manage your data sources in dataset to enhance the context of LLM.',
   'collection.sensitive.protect': 'Sensitive information protect',

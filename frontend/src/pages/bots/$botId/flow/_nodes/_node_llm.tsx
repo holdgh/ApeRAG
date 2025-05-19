@@ -1,39 +1,72 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeConfig, ApeNodeType, ApeNodeVar } from '@/types';
+import { ApeNode, ApeNodeType } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Input, InputNumber, Slider, Table, theme } from 'antd';
 import _ from 'lodash';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl, useModel } from 'umi';
 import { ConnectInfoInput } from './_connect-info-input';
 import { getCollapsePanelStyle } from './_styles';
 
-type VarType = {
-  model_name: string;
-  prompt_template?: string;
-  temperature: number;
-  max_tokens: number;
-};
-
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const [form] = Form.useForm<VarType>();
   const { nodes, setNodes, edges, getNodeGlobalVars, getNodeConfig } = useModel(
     'bots.$botId.flow.model',
   );
   const { getProviderByModelName } = useModel('models');
   const { formatMessage } = useIntl();
 
+  const applyChanges = () => {
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        { id: node.id, type: 'replace', item: node },
+      ];
+      return applyNodeChanges(changes, nds);
+    });
+  };
+
+  const getVarByName = useCallback(
+    (name: string) => {
+      return node.data.vars?.find((item) => item.name === name);
+    },
+    [node],
+  );
+
+  const [
+    varModelName,
+    varModelServiceProvider,
+    varPromptTemplate,
+    varTemperature,
+    varMaxTokens,
+    varQuery,
+    varDocs,
+  ] = useMemo(
+    () => [
+      getVarByName('model_name'),
+      getVarByName('model_service_provider'),
+      getVarByName('prompt_template'),
+      getVarByName('temperature'),
+      getVarByName('max_tokens'),
+      getVarByName('query'),
+      getVarByName('docs'),
+    ],
+    [getVarByName],
+  );
+
+  const [promptTemplate, setPromptemplate] = useState<string>(
+    varPromptTemplate?.value,
+  );
+
   const { refNode, refNodeConfig } = useMemo(() => {
-    const nid = node?.id;
+    const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
       nodes.find((nod) => nod.id === edg.source),
     );
     const _refNode =
       _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
-    const _refNodeConfig: ApeNodeConfig = _refNode
+    const _refNodeConfig = _refNode
       ? getNodeConfig(
           _refNode.type as ApeNodeType,
           _refNode?.ariaLabel ||
@@ -43,104 +76,51 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     return { refNode: _refNode, refNodeConfig: _refNodeConfig };
   }, [edges, nodes]);
 
-  /**
-   * on node form change
-   */
-  const onValuesChange = useCallback(
-    (changedValues: VarType) => {
-      if (!node) return;
-
-      const vars = node?.data.vars;
-      const varModelName = vars?.find((item) => item.name === 'model_name');
-      const varModelServiceProvider = vars?.find(
-        (item) => item.name === 'model_service_provider',
-      );
-      const varPromptTemplate = vars?.find(
-        (item) => item.name === 'prompt_template',
-      );
-      const varTemperature = vars?.find((item) => item.name === 'temperature');
-      const varMaxTokens = vars?.find((item) => item.name === 'max_tokens');
-
-      if (varModelName && changedValues.model_name !== undefined) {
-        varModelName.value = changedValues.model_name;
-        if (varModelServiceProvider) {
-          const { provider } = getProviderByModelName(
-            changedValues.model_name,
-            'completion',
-          );
-          varModelServiceProvider.value = provider?.name;
-        }
-      }
-      if (varPromptTemplate && changedValues.prompt_template !== undefined) {
-        varPromptTemplate.value = changedValues.prompt_template;
-      }
-      if (varTemperature && changedValues.temperature !== undefined) {
-        varTemperature.value = changedValues.temperature;
-      }
-      if (varMaxTokens && changedValues.max_tokens !== undefined) {
-        varMaxTokens.value = changedValues.max_tokens;
-      }
-    },
-    [node],
-  );
-
-  /**
-   * init node form data
-   */
   useEffect(() => {
-    const vars = node?.data.vars;
-    const model_name = String(
-      node?.data.vars?.find((item) => item.name === 'model_name')?.value,
-    );
-    const prompt_template = String(
-      node?.data.vars?.find((item) => item.name === 'prompt_template')?.value,
-    );
-
-    const temperature = Number(
-      vars?.find((item) => item.name === 'temperature')?.value || 0.7,
-    );
-    const max_tokens = Number(
-      vars?.find((item) => item.name === 'max_tokens')?.value || 1000,
-    );
-    form.setFieldsValue({
-      model_name,
-      prompt_template,
-      temperature,
-      max_tokens,
-    });
-  }, []);
-
-  /**
-   * node ref change
-   */
-  useEffect(() => {
-    const vars = node?.data.vars;
-    const item = vars?.find((item) => item.name === 'docs');
-    const value: ApeNodeVar = {
-      name: `docs`,
-      source_type: 'dynamic',
-      ref_node: refNode?.id || '',
-      ref_field: `docs`,
-    };
-
-    if (item) {
-      Object.assign(item, value);
-    } else {
-      vars?.push(value);
+    if (refNode && varDocs) {
+      varDocs.ref_node = refNode.id || '';
+      // applyChanges();
     }
-    setNodes((nds) => {
-      const changes: NodeChange[] = [
-        {
-          id: node.id,
-          type: 'replace',
-          item: {
-            ...node,
-          },
-        },
-      ];
-      return applyNodeChanges(changes, nds);
-    });
-  }, [refNode?.id]);
+  }, [refNode]);
+
+  useEffect(() => {
+    if (varPromptTemplate) {
+      varPromptTemplate.value = promptTemplate;
+      // applyChanges();
+    }
+  }, [promptTemplate]);
+
+  useEffect(() => {
+    const vars = node.data.vars || [];
+    if (!varModelName) {
+      vars?.push({ name: 'model_name', value: '' });
+    }
+    if (!varModelServiceProvider) {
+      vars?.push({ name: 'model_service_provider', value: '' });
+    }
+    if (!varPromptTemplate) {
+      vars?.push({ name: 'prompt_template', value: '' });
+    }
+    if (!varTemperature) {
+      vars?.push({ name: 'temperature', value: 0.7 });
+    }
+    if (!varMaxTokens) {
+      vars?.push({ name: 'max_tokens', value: 1000 });
+    }
+    if (!varQuery) {
+      vars?.push({ name: 'query', source_type: 'global', global_var: 'query' });
+    }
+    if (!varDocs) {
+      vars?.push({
+        name: 'docs',
+        source_type: 'dynamic',
+        ref_node: '',
+        ref_field: 'docs',
+      });
+    }
+    node.data.vars = vars;
+    applyChanges();
+  }, []);
 
   return (
     <>
@@ -159,39 +139,53 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
             style: getCollapsePanelStyle(token),
             children: (
               <>
-                <Form
-                  form={form}
-                  layout="vertical"
-                  onValuesChange={onValuesChange}
-                  autoComplete="off"
-                >
+                <Form layout="vertical" autoComplete="off">
                   <Form.Item
                     required
                     label={formatMessage({ id: 'model.name' })}
-                    name="model_name"
                     tooltip={formatMessage({ id: 'model.llm.tips' })}
                   >
-                    <ModelSelect model="completion" variant="filled" />
-                  </Form.Item>
-                  <Form.Item
-                    required
-                    label={formatMessage({ id: 'model.prompt_template' })}
-                    name="prompt_template"
-                  >
-                    <Input.TextArea variant="filled" />
+                    <ModelSelect
+                      model="completion"
+                      variant="filled"
+                      value={varModelName?.value}
+                      onChange={(name) => {
+                        if (varModelName) {
+                          varModelName.value = name;
+                        }
+                        if (varModelServiceProvider) {
+                          varModelServiceProvider.value =
+                            getProviderByModelName(
+                              name,
+                              'completion',
+                            ).provider?.name;
+                        }
+                        applyChanges();
+                      }}
+                    />
                   </Form.Item>
                   <Form.Item
                     required
                     label={formatMessage({ id: 'flow.temperature' })}
-                    name="temperature"
                     tooltip={formatMessage({ id: 'flow.temperature.tips' })}
                   >
-                    <Slider style={{ margin: 0 }} min={0} max={1} step={0.01} />
+                    <Slider
+                      style={{ margin: 0 }}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={varTemperature?.value}
+                      onChange={(value) => {
+                        if (varTemperature) {
+                          varTemperature.value = value;
+                        }
+                        applyChanges();
+                      }}
+                    />
                   </Form.Item>
                   <Form.Item
                     required
                     label={formatMessage({ id: 'flow.max_tokens' })}
-                    name="max_tokens"
                   >
                     <InputNumber
                       min={100}
@@ -199,6 +193,13 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                       step={10}
                       variant="filled"
                       style={{ width: '100%' }}
+                      value={varMaxTokens?.value}
+                      onChange={(value) => {
+                        if (varMaxTokens) {
+                          varMaxTokens.value = value;
+                        }
+                        applyChanges();
+                      }}
                     />
                   </Form.Item>
                   <Form.Item
@@ -217,6 +218,22 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
           },
           {
             key: '2',
+            label: formatMessage({ id: 'model.prompt_template' }),
+            style: getCollapsePanelStyle(token),
+            children: (
+              <Input.TextArea
+                variant="filled"
+                value={promptTemplate}
+                style={{ fontSize: 12 }}
+                autoSize
+                onChange={(e) => {
+                  setPromptemplate(e.currentTarget.value);
+                }}
+              />
+            ),
+          },
+          {
+            key: '3',
             label: formatMessage({ id: 'flow.input.params' }),
             style: getCollapsePanelStyle(token),
             children: (

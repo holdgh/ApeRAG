@@ -1,68 +1,66 @@
 import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
+import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Select, Slider, Table, theme } from 'antd';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { getCollapsePanelStyle } from './_styles';
 
-type VarType = {
-  top_k: number;
-  similarity_threshold: number;
-  collection_ids: string[];
-};
-
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const [form] = Form.useForm<VarType>();
-  const { getNodeGlobalVars } = useModel('bots.$botId.flow.model');
+  const { getNodeGlobalVars, setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
   const { collections } = useModel('collection');
 
-  /**
-   * on node form change
-   */
-  const onValuesChange = useCallback(
-    (changedValues: VarType) => {
-      if (!node) return;
-      const vars = node?.data.vars;
-      const varTopK = vars?.find((item) => item.name === 'top_k');
-      const varSimilarityThreshold = vars?.find(
-        (item) => item.name === 'similarity_threshold',
-      );
-      const varCollectionIds = vars?.find(
-        (item) => item.name === 'collection_ids',
-      );
-      if (varTopK && changedValues.top_k !== undefined) {
-        varTopK.value = changedValues.top_k;
-      }
-      if (
-        varSimilarityThreshold &&
-        changedValues.similarity_threshold !== undefined
-      ) {
-        varSimilarityThreshold.value = changedValues.similarity_threshold;
-      }
+  const applyChanges = useCallback(() => {
+    setNodes((nds) => {
+      const changes: NodeChange[] = [
+        { id: node.id, type: 'replace', item: node },
+      ];
+      return applyNodeChanges(changes, nds);
+    });
+  }, [node]);
 
-      if (varCollectionIds && changedValues.collection_ids) {
-        varCollectionIds.value = changedValues.collection_ids;
-      }
+  const getVarByName = useCallback(
+    (name: string) => {
+      return node.data.vars?.find((item) => item.name === name);
     },
     [node],
   );
 
-  /**
-   * init node form data
-   */
+  const [varTopK, varSimilarityThreshold, varCollectionIds, varQuery] = useMemo(
+    () => [
+      getVarByName('top_k'),
+      getVarByName('similarity_threshold'),
+      getVarByName('collection_ids'),
+      getVarByName('query'),
+    ],
+    [getVarByName],
+  );
+
   useEffect(() => {
-    const vars = node?.data.vars;
-    const top_k = Number(
-      vars?.find((item) => item.name === 'top_k')?.value || 5,
-    );
-    const similarity_threshold = Number(
-      vars?.find((item) => item.name === 'similarity_threshold')?.value || 0.2,
-    );
-    const collection_ids =
-      vars?.find((item) => item.name === 'collection_ids')?.value || [];
-    form.setFieldsValue({ top_k, similarity_threshold, collection_ids });
+    const vars = node.data.vars || [];
+    if (!varTopK) {
+      vars?.push({ name: 'top_k', value: 5 });
+    }
+    if (!varSimilarityThreshold) {
+      vars?.push({ name: 'similarity_threshold', value: 0.2 });
+    }
+    if (!varCollectionIds) {
+      vars?.push({
+        name: 'collection_ids',
+        value: [],
+      });
+    }
+    if (!varQuery) {
+      vars?.push({
+        name: 'query',
+        source_type: 'global',
+        global_var: 'query',
+      });
+    }
+    node.data.vars = vars;
+    applyChanges();
   }, []);
 
   return (
@@ -82,16 +80,10 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
             style: getCollapsePanelStyle(token),
             children: (
               <>
-                <Form
-                  form={form}
-                  layout="vertical"
-                  onValuesChange={onValuesChange}
-                  autoComplete="off"
-                >
+                <Form layout="vertical" autoComplete="off">
                   <Form.Item
                     required
                     label={formatMessage({ id: 'collection.name' })}
-                    name="collection_ids"
                   >
                     <Select
                       variant="filled"
@@ -101,26 +93,56 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                         label: collection.title,
                         value: collection.id,
                       }))}
+                      value={varCollectionIds?.value}
+                      onChange={(value) => {
+                        if (varCollectionIds) {
+                          varCollectionIds.value = value;
+                        }
+                        applyChanges();
+                      }}
+                      placeholder={formatMessage({ id: 'collection.select' })}
                     />
                   </Form.Item>
                   <Form.Item
                     required
                     label={formatMessage({ id: 'flow.top_k' })}
-                    name="top_k"
                     tooltip={formatMessage({ id: 'flow.top_k.tips' })}
                   >
-                    <Slider style={{ margin: 0 }} min={1} max={10} step={1} />
+                    <Slider
+                      value={varTopK?.value}
+                      style={{ margin: 0 }}
+                      min={1}
+                      max={10}
+                      step={1}
+                      onChange={(value) => {
+                        if (varTopK) {
+                          varTopK.value = value;
+                        }
+                        applyChanges();
+                      }}
+                    />
                   </Form.Item>
                   <Form.Item
                     required
                     style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.similarity_threshold' })}
-                    name="similarity_threshold"
                     tooltip={formatMessage({
                       id: 'flow.similarity_threshold.tips',
                     })}
                   >
-                    <Slider style={{ margin: 0 }} min={0} max={1} step={0.01} />
+                    <Slider
+                      value={varSimilarityThreshold?.value}
+                      style={{ margin: 0 }}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onChange={(value) => {
+                        if (varSimilarityThreshold) {
+                          varSimilarityThreshold.value = value;
+                        }
+                        applyChanges();
+                      }}
+                    />
                   </Form.Item>
                 </Form>
               </>
