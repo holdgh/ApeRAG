@@ -43,6 +43,7 @@ export type ApeNode = Node & {
   collapsed?: boolean;
   data?: {
     collapsed?: boolean;
+    running?: boolean;
     vars?: ApeNodeVar[];
   };
 };

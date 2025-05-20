@@ -29,6 +29,8 @@ const ApeBasicNode = (node: ApeNode) => {
   const isHovering = useHover(nodeRef);
   const selected = useMemo(() => node.selected, [node]);
   const collapsed = useMemo(() => Boolean(node.data.collapsed), [node]);
+  const running = useMemo(() => Boolean(node?.data.running), [node]);
+
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
   const config: ApeNodeConfig = useMemo(
     () =>
@@ -63,11 +65,11 @@ const ApeBasicNode = (node: ApeNode) => {
   const onEditNodeLable = useCallback(() => {
     form.setFieldValue('ariaLabel', config.label);
     setLabelModalVisible(true);
-  }, [node]);
+  }, []);
 
   const onEditNodeLableClose = useCallback(() => {
     setLabelModalVisible(false);
-  }, [node]);
+  }, []);
 
   const onSaveNodeLable = useCallback(async () => {
     if (!originNode) return;
@@ -86,7 +88,7 @@ const ApeBasicNode = (node: ApeNode) => {
       return applyNodeChanges(changes, nds);
     });
     setLabelModalVisible(false);
-  }, [node]);
+  }, [originNode]);
 
   return (
     <>
@@ -111,7 +113,7 @@ const ApeBasicNode = (node: ApeNode) => {
                 token={token}
                 color={config.color}
                 shape="square"
-                src={config.icon || <LoadingOutlined />}
+                src={running ? <LoadingOutlined /> : config.icon}
               />
               <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
               {isHovering && (
