@@ -126,6 +126,33 @@ paths:
       responses:
         '200':
           description: Bot updated successfully
+  /bots/{bot_id}/flow/debug:
+    post:
+      summary: Debug a flow
+      description: Debug a flow
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bot_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/debugFlowRequest'
+      responses:
+        '200':
+          description: Flow debugged successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
   /bots/{bot_id}/chats:
     get:
       summary: List chats
@@ -1445,6 +1472,15 @@ components:
           type: array
           items:
             type: string
+    debugFlowRequest:
+      type: object
+      properties:
+        flow:
+          type: string
+        query:
+          type: string
+      required:
+        - query
     chat:
       type: object
       properties:

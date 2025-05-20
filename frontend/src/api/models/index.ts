@@ -31,6 +31,7 @@ export * from './config';
 export * from './config-auth';
 export * from './config-auth-auth0';
 export * from './crontab-config';
+export * from './debug-flow-request';
 export * from './document';
 export * from './document-create';
 export * from './document-list';

@@ -1,5 +1,9 @@
 import { ApeNode, ApeNodeConfig, ApeNodeType } from '@/types';
-import { CaretDownOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  CaretDownOutlined,
+  EditOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
 import { Button, Form, Input, Modal, Space, theme } from 'antd';
@@ -16,16 +20,36 @@ import {
 
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
-  const { nodes, setNodes, getNodeConfig } = useModel('bots.$botId.flow.model');
+  const { nodes, setNodes, getNodeConfig, messages, debugStatus } = useModel(
+    'bots.$botId.flow.model',
+  );
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
   const [form] = Form.useForm<{ ariaLabel: string }>();
-
   const nodeRef = useRef(null);
   const isHovering = useHover(nodeRef);
   const selected = useMemo(() => node.selected, [node]);
   const collapsed = useMemo(() => Boolean(node.data.collapsed), [node]);
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
+
+  const nodeMessages = useMemo(
+    () => messages.filter((msg) => msg.node_id === node.id),
+    [messages],
+  );
+  const nodeRunning = useMemo(() => {
+    return (
+      debugStatus === 'running' &&
+      !nodeMessages?.find((msg) => msg.event_type === 'node_end')
+    );
+  }, [debugStatus, nodeMessages]);
+
+  // const nodeComplated = useMemo(() => {
+  //   return (
+  //     nodeMessages?.find((msg) => msg.event_type === 'node_start') &&
+  //     nodeMessages?.find((msg) => msg.event_type === 'node_end')
+  //   );
+  // }, [nodeMessages]);
+
   const config: ApeNodeConfig = useMemo(
     () =>
       getNodeConfig(
@@ -59,11 +83,11 @@ const ApeBasicNode = (node: ApeNode) => {
   const onEditNodeLable = useCallback(() => {
     form.setFieldValue('ariaLabel', config.label);
     setLabelModalVisible(true);
-  }, [node]);
+  }, []);
 
   const onEditNodeLableClose = useCallback(() => {
     setLabelModalVisible(false);
-  }, [node]);
+  }, []);
 
   const onSaveNodeLable = useCallback(async () => {
     if (!originNode) return;
@@ -82,14 +106,14 @@ const ApeBasicNode = (node: ApeNode) => {
       return applyNodeChanges(changes, nds);
     });
     setLabelModalVisible(false);
-  }, [node]);
+  }, [originNode]);
 
   return (
     <>
       <StyledFlowNodeContainer
         token={token}
-        selected={selected}
-        isHovering={isHovering}
+        selected={selected || nodeRunning}
+        isHovering={isHovering || nodeRunning}
         color={config.color}
         ref={nodeRef}
       >
@@ -107,7 +131,7 @@ const ApeBasicNode = (node: ApeNode) => {
                 token={token}
                 color={config.color}
                 shape="square"
-                src={config.icon}
+                src={nodeRunning ? <LoadingOutlined /> : config.icon}
               />
               <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
               {isHovering && (
@@ -136,6 +160,7 @@ const ApeBasicNode = (node: ApeNode) => {
           </StyledFlowNodeHeader>
           <StyledFlowNodeBody token={token} collapsed={collapsed}>
             {config.content &&
+              originNode &&
               React.createElement(config.content, { node: originNode })}
           </StyledFlowNodeBody>
         </StyledFlowNode>

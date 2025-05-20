@@ -1,7 +1,8 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import { ApeFlow, ApeLayoutDirection } from '@/types';
+import { ApeFlow, ApeFlowDebugInfo, ApeLayoutDirection } from '@/types';
 import { stringifyConfig } from '@/utils';
+
 import {
   addEdge,
   applyEdgeChanges,
@@ -22,9 +23,19 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Button, Divider, GlobalToken, Space, theme, Tooltip } from 'antd';
+import {
+  Button,
+  Divider,
+  Form,
+  GlobalToken,
+  Input,
+  Modal,
+  Space,
+  theme,
+  Tooltip,
+} from 'antd';
 import alpha from 'color-alpha';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   BsArrowsExpand,
   BsArrowsExpandVertical,
@@ -32,10 +43,13 @@ import {
   BsClockHistory,
   BsDiagram3,
   BsFullscreenExit,
+  BsPauseFill,
+  BsPlayFill,
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
 
+import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
 
@@ -86,7 +100,7 @@ export const StyledReactFlow = styled(ReactFlow).withConfig({
 
 export default () => {
   const { themeName } = useModel('global');
-  const { bot, getBot } = useModel('bot');
+  const { bot } = useModel('bot');
   const { getCollections } = useModel('collection');
 
   const {
@@ -111,12 +125,19 @@ export default () => {
     getEdgeId,
     getLayoutedElements,
     getInitialData,
+
+    setMessages,
+
+    debugStatus,
+    setDebugStatus,
   } = useModel('bots.$botId.flow.model');
 
   const { fitView } = useReactFlow();
 
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
+  const [debugForm] = Form.useForm<{ query: string }>();
+  const [debugVisible, setDebugVisible] = useState<boolean>(false);
 
   const saveFlow = async () => {
     if (!bot?.id) return;
@@ -138,8 +159,40 @@ export default () => {
       },
     });
     if (res.status === 200) {
-      getBot(bot.id);
       toast.success(formatMessage({ id: 'tips.update.success' }));
+    }
+  };
+
+  const debug = async () => {
+    if (!bot?.id) return;
+    const { query } = await debugForm.validateFields();
+    setDebugVisible(false);
+    setDebugStatus('running');
+    const response = await api.botsBotIdFlowDebugPost(
+      {
+        botId: bot.id,
+        debugFlowRequest: { query },
+      },
+      {
+        responseType: 'stream',
+        adapter: 'fetch',
+        timeout: 30 * 1000,
+      },
+    );
+    const stream = response.data as unknown as ReadableStream;
+    const reader = stream
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new EventSourceParserStream())
+      .getReader();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const msg: ApeFlowDebugInfo = JSON.parse(value.data);
+      console.log(msg);
+      if (msg.event_type === 'flow_end') {
+        setDebugStatus('completed');
+      }
+      setMessages((msgs) => [...msgs, msg]);
     }
   };
 
@@ -323,6 +376,22 @@ export default () => {
               <Button type="text" icon={<BsClockHistory />} />
             </Tooltip>
 
+            <Tooltip title={formatMessage({ id: 'action.debug' })}>
+              <Button
+                type={debugStatus === 'running' ? 'primary' : 'text'}
+                onClick={() => {
+                  if (debugStatus === 'running') {
+                    setDebugStatus('stopped');
+                  } else {
+                    setDebugVisible(true);
+                  }
+                }}
+                icon={
+                  debugStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />
+                }
+              />
+            </Tooltip>
+
             <Tooltip title={formatMessage({ id: 'action.save' })}>
               <Button type="primary" onClick={saveFlow}>
                 <FormattedMessage id="action.save" />
@@ -330,8 +399,33 @@ export default () => {
             </Tooltip>
           </Space>
         </StyledFlowToolbar>
-        {/* <ApeFlowNodeDetail /> */}
       </StyledReactFlow>
+      <Modal
+        title={formatMessage({ id: 'flow.variable.query' })}
+        open={debugVisible}
+        onCancel={() => setDebugVisible(false)}
+        onOk={debug}
+        width={380}
+        okText={formatMessage({ id: 'action.debug' })}
+      >
+        <br />
+        <Form layout="vertical" form={debugForm} autoComplete="off">
+          <Form.Item
+            required
+            name="query"
+            rules={[
+              {
+                required: true,
+                message: formatMessage({ id: 'flow.variable.query.required' }),
+              },
+            ]}
+          >
+            <Input.TextArea
+              placeholder={formatMessage({ id: 'flow.variable.query' })}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </PageContainer>
   );
 };

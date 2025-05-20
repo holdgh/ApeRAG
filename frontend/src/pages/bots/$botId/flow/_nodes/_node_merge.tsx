@@ -81,16 +81,14 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   useEffect(() => {
     if (refVectorSearchNode && varVectorSearchDocs) {
       varVectorSearchDocs.ref_node = refVectorSearchNode.id || '';
-      // applyChanges();
     }
-  }, [refVectorSearchNode]);
+  }, [refVectorSearchNode, varVectorSearchDocs]);
 
   useEffect(() => {
     if (refKeywordSearchNode && varKeywordSearchDocs) {
       varKeywordSearchDocs.ref_node = refKeywordSearchNode.id || '';
-      // applyChanges();
     }
-  }, [refKeywordSearchNode]);
+  }, [refKeywordSearchNode, varKeywordSearchDocs]);
 
   useEffect(() => {
     const vars = node.data.vars || [];

@@ -2,16 +2,17 @@ import { ModelSelect } from '@/components';
 import { ApeNode, ApeNodeType } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import { Collapse, Form, Input, InputNumber, Slider, Table, theme } from 'antd';
+import { Collapse, Form, Input, InputNumber, Slider, theme } from 'antd';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl, useModel } from 'umi';
 import { ConnectInfoInput } from './_connect-info-input';
+import { GlobalVars } from './_global-var';
 import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { nodes, setNodes, edges, getNodeGlobalVars, getNodeConfig } = useModel(
+  const { nodes, setNodes, edges, getNodeConfig } = useModel(
     'bots.$botId.flow.model',
   );
   const { getProviderByModelName } = useModel('models');
@@ -79,14 +80,12 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   useEffect(() => {
     if (refNode && varDocs) {
       varDocs.ref_node = refNode.id || '';
-      // applyChanges();
     }
-  }, [refNode]);
+  }, [refNode, varDocs]);
 
   useEffect(() => {
     if (varPromptTemplate) {
       varPromptTemplate.value = promptTemplate;
-      // applyChanges();
     }
   }, [promptTemplate]);
 
@@ -100,6 +99,12 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     }
     if (!varPromptTemplate) {
       vars?.push({ name: 'prompt_template', value: '' });
+      setPromptemplate(
+        formatMessage(
+          { id: 'model.prompt_template.default' },
+          { query: '{query}', context: '{context}' },
+        ),
+      );
     }
     if (!varTemperature) {
       vars?.push({ name: 'temperature', value: 0.7 });
@@ -236,26 +241,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
             key: '3',
             label: formatMessage({ id: 'flow.input.params' }),
             style: getCollapsePanelStyle(token),
-            children: (
-              <Table
-                rowKey="name"
-                bordered
-                size="small"
-                pagination={false}
-                columns={[
-                  {
-                    title: formatMessage({ id: 'flow.variable.source_type' }),
-                    dataIndex: 'source_type',
-                  },
-                  {
-                    title: formatMessage({ id: 'flow.variable.title' }),
-                    dataIndex: 'global_var',
-                  },
-                ]}
-                dataSource={getNodeGlobalVars(node)}
-                style={{ background: token.colorBgContainer }}
-              />
-            ),
+            children: <GlobalVars />,
           },
         ]}
       />

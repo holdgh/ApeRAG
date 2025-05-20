@@ -66,7 +66,6 @@ export const StyledFlowNodeContainer = styled('div').withConfig({
       }
 
       &:hover {
-        box-shadow: ${token.boxShadow};
         border-color: ${color};
         &:before {
           border-color: ${color};
@@ -137,9 +136,15 @@ export const StyledFlowNodeAvatar = styled(Avatar).withConfig({
   ${({ token, color }) => {
     return css`
       ${color
-        ? `background: linear-gradient(180deg, ${alpha(color, 0.75)}, ${color});`
-        : ''};
-      ${color ? '' : `color: ${token.colorTextDisabled};`};
+        ? `background: linear-gradient(180deg, ${alpha(
+            color,
+            0.75,
+          )}, ${color});`
+        : `color: ${token.colorTextDisabled};`};
+      font-size: 1.4em;
+      &.ape-avatar-sm {
+        font-size: 1em;
+      }
     `;
   }}
 `;
@@ -152,7 +157,7 @@ export const StyledFlowNodeLabel = styled(Typography.Text).withConfig({
   ${({}) => {
     return css`
       font-weight: bold;
-      max-width: 120px;
+      max-width: 200px;
       display: block;
       white-space: nowrap;
       overflow: hidden;

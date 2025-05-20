@@ -1,6 +1,7 @@
 import {
   ApeEdge,
   ApeFlow,
+  ApeFlowDebugInfo,
   ApeFlowInfo,
   ApeFlowStyle,
   ApeLayoutDirection,
@@ -23,7 +24,7 @@ import {
 import Dagre from '@dagrejs/dagre';
 import { Position } from '@xyflow/react';
 import { theme } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 
 import { ApeNodeKeywordSearch } from '../flow/_nodes/_node_keyword_search';
@@ -220,35 +221,24 @@ const getInitialData = (): ApeFlow => {
 };
 
 export default () => {
+  // flow data
   const [flowInfo, setFlowInfo] = useState<ApeFlowInfo>();
   const [globalVariables, setGlobalVariables] = useState<ApeNodeVar[]>();
   const [execution, setExecution] = useState<FlowExecution>();
   const [nodes, setNodes] = useState<ApeNode[]>([]);
   const [edges, setEdges] = useState<ApeEdge[]>([]);
-  const { token } = theme.useToken();
-
   const [flowStyle, setFlowStyle] = useState<ApeFlowStyle>({
     edgeType: 'default',
     layoutDirection: 'LR',
   });
 
-  const getNodeGlobalVars = (node?: ApeNode): ApeNodeVar[] | undefined => {
-    if (!node) return globalVariables;
-    switch (node.type) {
-      case 'vector_search':
-      case 'keyword_search':
-      case 'llm':
-        return [
-          {
-            name: 'query',
-            source_type: 'global',
-            global_var: 'query',
-          },
-        ];
-      default:
-        return [];
-    }
-  };
+  // debug state
+  const [debugStatus, setDebugStatus] = useState<
+    'running' | 'completed' | 'stopped'
+  >('stopped');
+  const [messages, setMessages] = useState<ApeFlowDebugInfo[]>([]);
+
+  const { token } = theme.useToken();
 
   const getNodeConfig = (
     nodeType?: ApeNodeType,
@@ -301,6 +291,12 @@ export default () => {
     };
   };
 
+  useEffect(() => {
+    if (debugStatus === 'stopped') {
+      setMessages([]);
+    }
+  }, [debugStatus]);
+
   return {
     flowInfo,
     setFlowInfo,
@@ -320,10 +316,15 @@ export default () => {
     flowStyle,
     setFlowStyle,
 
+    debugStatus,
+    setDebugStatus,
+
+    messages,
+    setMessages,
+
     getLayoutedElements,
     getInitialData,
     getEdgeId,
-    getNodeGlobalVars,
     getNodeConfig,
   };
 };

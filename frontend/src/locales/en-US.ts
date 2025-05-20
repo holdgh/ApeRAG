@@ -196,6 +196,8 @@ export default {
   'flow.node.type.rerank': 'Rerank',
   'flow.node.type.llm': 'LLM',
   'flow.node.custom_label': 'Custom lable',
+  'flow.variable.query': 'User questions',
+  'flow.variable.query.required': 'question is required',
   'flow.variable.global': 'Global variable',
   'flow.variable.title': 'Variable',
   'flow.variable.type': 'Type',
