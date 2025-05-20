@@ -60,6 +60,8 @@ import type { CollectionUpdate } from '../models';
 // @ts-ignore
 import type { Config } from '../models';
 // @ts-ignore
+import type { DebugFlowRequest } from '../models';
+// @ts-ignore
 import type { Document } from '../models';
 // @ts-ignore
 import type { DocumentCreate } from '../models';
@@ -597,6 +599,50 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Debug a flow
+         * @summary Debug a flow
+         * @param {string} botId 
+         * @param {DebugFlowRequest} debugFlowRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowDebugPost: async (botId: string, debugFlowRequest: DebugFlowRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'botId' is not null or undefined
+            assertParamExists('botsBotIdFlowDebugPost', 'botId', botId)
+            // verify required parameter 'debugFlowRequest' is not null or undefined
+            assertParamExists('botsBotIdFlowDebugPost', 'debugFlowRequest', debugFlowRequest)
+            const localVarPath = `/bots/{bot_id}/flow/debug`
+                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(debugFlowRequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -2401,6 +2447,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Debug a flow
+         * @summary Debug a flow
+         * @param {string} botId 
+         * @param {DebugFlowRequest} debugFlowRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async botsBotIdFlowDebugPost(botId: string, debugFlowRequest: DebugFlowRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdFlowDebugPost(botId, debugFlowRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdFlowDebugPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {string} botId 
@@ -3092,6 +3152,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.botsBotIdDelete(requestParameters.botId, options).then((request) => request(axios, basePath));
         },
         /**
+         * Debug a flow
+         * @summary Debug a flow
+         * @param {DefaultApiBotsBotIdFlowDebugPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowDebugPost(requestParameters: DefaultApiBotsBotIdFlowDebugPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.botsBotIdFlowDebugPost(requestParameters.botId, requestParameters.debugFlowRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {DefaultApiBotsBotIdGetRequest} requestParameters Request parameters.
@@ -3629,6 +3699,16 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     botsBotIdDelete(requestParameters: DefaultApiBotsBotIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Debug a flow
+     * @summary Debug a flow
+     * @param {DefaultApiBotsBotIdFlowDebugPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    botsBotIdFlowDebugPost(requestParameters: DefaultApiBotsBotIdFlowDebugPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
      * Get details of a specific bot
@@ -4259,6 +4339,27 @@ export interface DefaultApiBotsBotIdDeleteRequest {
      * @memberof DefaultApiBotsBotIdDelete
      */
     readonly botId: string
+}
+
+/**
+ * Request parameters for botsBotIdFlowDebugPost operation in DefaultApi.
+ * @export
+ * @interface DefaultApiBotsBotIdFlowDebugPostRequest
+ */
+export interface DefaultApiBotsBotIdFlowDebugPostRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiBotsBotIdFlowDebugPost
+     */
+    readonly botId: string
+
+    /**
+     * 
+     * @type {DebugFlowRequest}
+     * @memberof DefaultApiBotsBotIdFlowDebugPost
+     */
+    readonly debugFlowRequest: DebugFlowRequest
 }
 
 /**
@@ -5059,6 +5160,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public botsBotIdDelete(requestParameters: DefaultApiBotsBotIdDeleteRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).botsBotIdDelete(requestParameters.botId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Debug a flow
+     * @summary Debug a flow
+     * @param {DefaultApiBotsBotIdFlowDebugPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public botsBotIdFlowDebugPost(requestParameters: DefaultApiBotsBotIdFlowDebugPostRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).botsBotIdFlowDebugPost(requestParameters.botId, requestParameters.debugFlowRequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

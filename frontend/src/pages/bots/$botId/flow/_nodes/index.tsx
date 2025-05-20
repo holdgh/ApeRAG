@@ -20,18 +20,36 @@ import {
 
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
-  const { nodes, setNodes, getNodeConfig } = useModel('bots.$botId.flow.model');
+  const { nodes, setNodes, getNodeConfig, messages, debugStatus } = useModel(
+    'bots.$botId.flow.model',
+  );
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
   const [form] = Form.useForm<{ ariaLabel: string }>();
-
   const nodeRef = useRef(null);
   const isHovering = useHover(nodeRef);
   const selected = useMemo(() => node.selected, [node]);
   const collapsed = useMemo(() => Boolean(node.data.collapsed), [node]);
-  const running = useMemo(() => Boolean(node?.data.running), [node]);
-
   const originNode = useMemo(() => nodes.find((n) => n.id === node.id), [node]);
+
+  const nodeMessages = useMemo(
+    () => messages.filter((msg) => msg.node_id === node.id),
+    [messages],
+  );
+  const nodeRunning = useMemo(() => {
+    return (
+      debugStatus === 'running' &&
+      !nodeMessages?.find((msg) => msg.event_type === 'node_end')
+    );
+  }, [debugStatus, nodeMessages]);
+
+  // const nodeComplated = useMemo(() => {
+  //   return (
+  //     nodeMessages?.find((msg) => msg.event_type === 'node_start') &&
+  //     nodeMessages?.find((msg) => msg.event_type === 'node_end')
+  //   );
+  // }, [nodeMessages]);
+
   const config: ApeNodeConfig = useMemo(
     () =>
       getNodeConfig(
@@ -94,8 +112,8 @@ const ApeBasicNode = (node: ApeNode) => {
     <>
       <StyledFlowNodeContainer
         token={token}
-        selected={selected}
-        isHovering={isHovering}
+        selected={selected || nodeRunning}
+        isHovering={isHovering || nodeRunning}
         color={config.color}
         ref={nodeRef}
       >
@@ -113,7 +131,7 @@ const ApeBasicNode = (node: ApeNode) => {
                 token={token}
                 color={config.color}
                 shape="square"
-                src={running ? <LoadingOutlined /> : config.icon}
+                src={nodeRunning ? <LoadingOutlined /> : config.icon}
               />
               <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
               {isHovering && (

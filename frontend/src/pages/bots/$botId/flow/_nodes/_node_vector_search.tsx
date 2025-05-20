@@ -1,14 +1,15 @@
 import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
-import { Collapse, Form, Select, Slider, Table, theme } from 'antd';
+import { Collapse, Form, Select, Slider, theme } from 'antd';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
+import { GlobalVars } from './_global-var';
 import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
-  const { getNodeGlobalVars, setNodes } = useModel('bots.$botId.flow.model');
+  const { setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
   const { collections } = useModel('collection');
 
@@ -152,26 +153,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.input.params' }),
             style: getCollapsePanelStyle(token),
-            children: (
-              <Table
-                rowKey="name"
-                bordered
-                size="small"
-                pagination={false}
-                columns={[
-                  {
-                    title: formatMessage({ id: 'flow.variable.source_type' }),
-                    dataIndex: 'source_type',
-                  },
-                  {
-                    title: formatMessage({ id: 'flow.variable.title' }),
-                    dataIndex: 'global_var',
-                  },
-                ]}
-                dataSource={getNodeGlobalVars(node)}
-                style={{ background: token.colorBgContainer }}
-              />
-            ),
+            children: <GlobalVars />,
           },
         ]}
       />

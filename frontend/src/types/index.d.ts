@@ -43,7 +43,6 @@ export type ApeNode = Node & {
   collapsed?: boolean;
   data?: {
     collapsed?: boolean;
-    running?: boolean;
     vars?: ApeNodeVar[];
   };
 };
@@ -100,6 +99,24 @@ export type ApeFlow = ApeFlowInfo & {
   nodes: ApeNode[];
   edges: ApeEdge[];
   style: ApeFlowStyle;
+};
+
+export type ApeFlowDebugInfo = {
+  event_type:
+    | 'flow_start'
+    | 'node_start'
+    | 'node_end'
+    | 'flow_end'
+    | 'output_chunk';
+  node_id: string;
+  execution_id: string;
+  timestamp: string;
+  data: {
+    flow_id: string;
+    node_type?: string;
+    inputs?: any;
+    outputs?: any;
+  };
 };
 
 /**

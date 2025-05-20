@@ -194,6 +194,8 @@ export default {
   'flow.node.type.rerank': '重排序',
   'flow.node.type.llm': 'LLM输出',
   'flow.node.custom_label': '自定义标题',
+  'flow.variable.query': '用户问题',
+  'flow.variable.query.required': '请输入用户问题',
   'flow.variable.global': '全局变量',
   'flow.variable.title': '变量名',
   'flow.variable.type': '类型',
