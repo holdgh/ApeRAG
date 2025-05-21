@@ -38,6 +38,7 @@ export default {
   'text.title.required': 'Title is required',
   'text.description': 'Description',
   'text.trial': 'Free Trial',
+  'text.outputs': 'Outputs',
 
   action: '----------------------',
   'action.name': 'Actions',

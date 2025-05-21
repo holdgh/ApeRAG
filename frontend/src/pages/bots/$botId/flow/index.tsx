@@ -128,8 +128,8 @@ export default () => {
 
     setMessages,
 
-    debugStatus,
-    setDebugStatus,
+    flowStatus,
+    setFlowStatus,
   } = useModel('bots.$botId.flow.model');
 
   const { fitView } = useReactFlow();
@@ -167,7 +167,7 @@ export default () => {
     if (!bot?.id) return;
     const { query } = await debugForm.validateFields();
     setDebugVisible(false);
-    setDebugStatus('running');
+    setFlowStatus('running');
     const response = await api.botsBotIdFlowDebugPost(
       {
         botId: bot.id,
@@ -176,7 +176,7 @@ export default () => {
       {
         responseType: 'stream',
         adapter: 'fetch',
-        timeout: 30 * 1000,
+        timeout: 20 * 1000,
       },
     );
     const stream = response.data as unknown as ReadableStream;
@@ -190,7 +190,7 @@ export default () => {
       const msg: ApeFlowDebugInfo = JSON.parse(value.data);
       console.log(msg);
       if (msg.event_type === 'flow_end') {
-        setDebugStatus('completed');
+        setFlowStatus('completed');
       }
       setMessages((msgs) => [...msgs, msg]);
     }
@@ -378,16 +378,16 @@ export default () => {
 
             <Tooltip title={formatMessage({ id: 'action.debug' })}>
               <Button
-                type={debugStatus === 'running' ? 'primary' : 'text'}
+                type={flowStatus === 'running' ? 'primary' : 'text'}
                 onClick={() => {
-                  if (debugStatus === 'running') {
-                    setDebugStatus('stopped');
+                  if (flowStatus === 'running') {
+                    setFlowStatus('stopped');
                   } else {
                     setDebugVisible(true);
                   }
                 }}
                 icon={
-                  debugStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />
+                  flowStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />
                 }
               />
             </Tooltip>

@@ -35,7 +35,6 @@ request.interceptors.response.use(
   function (err: any) {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
     // Do something with response error
-    console.log(err, 123123123123123);
     if (err.status === 401) {
       history.replace(
         `/accounts/signin?redirectUri=${encodeURIComponent(

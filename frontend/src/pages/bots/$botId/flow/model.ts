@@ -3,6 +3,7 @@ import {
   ApeFlow,
   ApeFlowDebugInfo,
   ApeFlowInfo,
+  ApeFlowStatus,
   ApeFlowStyle,
   ApeLayoutDirection,
   ApeNode,
@@ -233,9 +234,7 @@ export default () => {
   });
 
   // debug state
-  const [debugStatus, setDebugStatus] = useState<
-    'running' | 'completed' | 'stopped'
-  >('stopped');
+  const [flowStatus, setFlowStatus] = useState<ApeFlowStatus>('stopped');
   const [messages, setMessages] = useState<ApeFlowDebugInfo[]>([]);
 
   const { token } = theme.useToken();
@@ -292,10 +291,10 @@ export default () => {
   };
 
   useEffect(() => {
-    if (debugStatus === 'stopped') {
+    if (flowStatus === 'stopped') {
       setMessages([]);
     }
-  }, [debugStatus]);
+  }, [flowStatus]);
 
   return {
     flowInfo,
@@ -316,8 +315,8 @@ export default () => {
     flowStyle,
     setFlowStyle,
 
-    debugStatus,
-    setDebugStatus,
+    flowStatus,
+    setFlowStatus,
 
     messages,
     setMessages,

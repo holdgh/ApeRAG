@@ -101,6 +101,21 @@ export type ApeFlow = ApeFlowInfo & {
   style: ApeFlowStyle;
 };
 
+export type ApeFlowNodeOutput = {
+  doc_id?: string;
+  rank_before?: number;
+  score?: number;
+  source?: string;
+  text?: string;
+  metadata?: {
+    chunk_num?: number;
+    content_ratio?: number;
+    name?: string;
+    object_path?: string;
+    source?: string;
+  };
+};
+
 export type ApeFlowDebugInfo = {
   event_type:
     | 'flow_start'
@@ -115,9 +130,16 @@ export type ApeFlowDebugInfo = {
     flow_id: string;
     node_type?: string;
     inputs?: any;
-    outputs?: any;
+    outputs?: {
+      docs: ApeFlowNodeOutput[];
+      keyword_search_docs: ApeFlowNodeOutput[];
+      vector_search_docs: ApeFlowNodeOutput[];
+    };
   };
 };
+
+export type ApeFlowStatus = 'running' | 'completed' | 'stopped';
+export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
 
 /**
  * bots
