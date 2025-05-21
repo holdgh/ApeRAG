@@ -119,78 +119,80 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   }, []);
 
   return (
-    <Collapse
-      bordered={false}
-      expandIcon={({ isActive }) => {
-        return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
-      }}
-      size="middle"
-      defaultActiveKey={['1', '2']}
-      style={{ background: 'none' }}
-      items={[
-        {
-          key: '1',
-          label: formatMessage({ id: 'flow.input.params' }),
-          style: getCollapsePanelStyle(token),
-          children: (
-            <Form layout="vertical" autoComplete="off">
-              <Form.Item
-                required
-                label={formatMessage({ id: 'flow.merge.merge_strategy' })}
-              >
-                <Select
-                  variant="filled"
-                  suffixIcon={null}
-                  options={[{ label: 'Union', value: 'union' }]}
-                  value={varMergeStrategy?.value}
-                  onChange={(name) => {
-                    if (varMergeStrategy) {
-                      varMergeStrategy.value = name;
-                    }
-                    applyChanges();
-                  }}
-                />
-              </Form.Item>
-              <Form.Item
-                required
-                label={formatMessage({ id: 'flow.merge.deduplicate' })}
-                valuePropName="checked"
-                tooltip={formatMessage({ id: 'flow.merge.deduplicate.tips' })}
-              >
-                <Switch
-                  size="small"
-                  checked={varDeduplicate?.value}
-                  onChange={(checked) => {
-                    if (varDeduplicate) {
-                      varDeduplicate.value = checked;
-                    }
-                    applyChanges();
-                  }}
-                />
-              </Form.Item>
-              <Form.Item
-                required
-                label={formatMessage({ id: 'flow.vector_search.source' })}
-              >
-                <ConnectInfoInput
-                  refNode={refVectorSearchNode}
-                  refNodeConfig={vectorSearchNodeConfig}
-                />
-              </Form.Item>
-              <Form.Item
-                required
-                style={{ marginBottom: 0 }}
-                label={formatMessage({ id: 'flow.keyword_search.source' })}
-              >
-                <ConnectInfoInput
-                  refNode={refKeywordSearchNode}
-                  refNodeConfig={keywordSearchNodeConfig}
-                />
-              </Form.Item>
-            </Form>
-          ),
-        },
-      ]}
-    />
+    <>
+      <Collapse
+        bordered={false}
+        expandIcon={({ isActive }) => {
+          return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
+        }}
+        size="middle"
+        defaultActiveKey={['1', '2']}
+        style={{ background: 'none' }}
+        items={[
+          {
+            key: '1',
+            label: formatMessage({ id: 'flow.input.params' }),
+            style: getCollapsePanelStyle(token),
+            children: (
+              <Form layout="vertical" autoComplete="off">
+                <Form.Item
+                  required
+                  label={formatMessage({ id: 'flow.merge.merge_strategy' })}
+                >
+                  <Select
+                    variant="filled"
+                    suffixIcon={null}
+                    options={[{ label: 'Union', value: 'union' }]}
+                    value={varMergeStrategy?.value}
+                    onChange={(name) => {
+                      if (varMergeStrategy) {
+                        varMergeStrategy.value = name;
+                      }
+                      applyChanges();
+                    }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  required
+                  label={formatMessage({ id: 'flow.merge.deduplicate' })}
+                  valuePropName="checked"
+                  tooltip={formatMessage({ id: 'flow.merge.deduplicate.tips' })}
+                >
+                  <Switch
+                    size="small"
+                    checked={varDeduplicate?.value}
+                    onChange={(checked) => {
+                      if (varDeduplicate) {
+                        varDeduplicate.value = checked;
+                      }
+                      applyChanges();
+                    }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  required
+                  label={formatMessage({ id: 'flow.vector_search.source' })}
+                >
+                  <ConnectInfoInput
+                    refNode={refVectorSearchNode}
+                    refNodeConfig={vectorSearchNodeConfig}
+                  />
+                </Form.Item>
+                <Form.Item
+                  required
+                  style={{ marginBottom: 0 }}
+                  label={formatMessage({ id: 'flow.keyword_search.source' })}
+                >
+                  <ConnectInfoInput
+                    refNode={refKeywordSearchNode}
+                    refNodeConfig={keywordSearchNodeConfig}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          },
+        ]}
+      />
+    </>
   );
 };

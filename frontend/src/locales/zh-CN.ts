@@ -37,6 +37,7 @@ export default {
   'text.title.required': '标题为必填项',
   'text.description': '描述',
   'text.trial': '免费试用',
+  'text.outputs': '输出',
 
   action: '----------------------',
   'action.name': '操作',

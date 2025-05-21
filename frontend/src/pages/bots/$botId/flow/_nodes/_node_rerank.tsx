@@ -87,58 +87,60 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   }, []);
 
   return (
-    <Collapse
-      bordered={false}
-      expandIcon={({ isActive }) => {
-        return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
-      }}
-      size="middle"
-      defaultActiveKey={['1']}
-      style={{ background: 'none' }}
-      items={[
-        {
-          key: '1',
-          label: <Space>{formatMessage({ id: 'flow.input.params' })}</Space>,
-          style: getCollapsePanelStyle(token),
-          children: (
-            <Form layout="vertical" autoComplete="off">
-              <Form.Item
-                required
-                tooltip={formatMessage({ id: 'model.rerank.tips' })}
-                label={formatMessage({ id: 'flow.reranker.model' })}
-              >
-                <ModelSelect
-                  model="rerank"
-                  variant="filled"
-                  value={varModelName?.value}
-                  onChange={(name) => {
-                    if (varModelName) {
-                      varModelName.value = name;
-                    }
-                    if (varModelServiceProvider) {
-                      varModelServiceProvider.value = getProviderByModelName(
-                        name,
-                        'rerank',
-                      ).provider?.name;
-                    }
-                    applyChanges();
-                  }}
-                />
-              </Form.Item>
-              <Form.Item
-                required
-                style={{ marginBottom: 0 }}
-                label={formatMessage({ id: 'flow.input.source' })}
-              >
-                <ConnectInfoInput
-                  refNode={refNode}
-                  refNodeConfig={refNodeConfig}
-                />
-              </Form.Item>
-            </Form>
-          ),
-        },
-      ]}
-    />
+    <>
+      <Collapse
+        bordered={false}
+        expandIcon={({ isActive }) => {
+          return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
+        }}
+        size="middle"
+        defaultActiveKey={['1']}
+        style={{ background: 'none' }}
+        items={[
+          {
+            key: '1',
+            label: <Space>{formatMessage({ id: 'flow.input.params' })}</Space>,
+            style: getCollapsePanelStyle(token),
+            children: (
+              <Form layout="vertical" autoComplete="off">
+                <Form.Item
+                  required
+                  tooltip={formatMessage({ id: 'model.rerank.tips' })}
+                  label={formatMessage({ id: 'flow.reranker.model' })}
+                >
+                  <ModelSelect
+                    model="rerank"
+                    variant="filled"
+                    value={varModelName?.value}
+                    onChange={(name) => {
+                      if (varModelName) {
+                        varModelName.value = name;
+                      }
+                      if (varModelServiceProvider) {
+                        varModelServiceProvider.value = getProviderByModelName(
+                          name,
+                          'rerank',
+                        ).provider?.name;
+                      }
+                      applyChanges();
+                    }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  required
+                  style={{ marginBottom: 0 }}
+                  label={formatMessage({ id: 'flow.input.source' })}
+                >
+                  <ConnectInfoInput
+                    refNode={refNode}
+                    refNodeConfig={refNodeConfig}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          },
+        ]}
+      />
+    </>
   );
 };

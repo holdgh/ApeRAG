@@ -1,4 +1,9 @@
-import { ApeNode, ApeNodeConfig, ApeNodeType } from '@/types';
+import {
+  ApeFlowNodeStatus,
+  ApeNode,
+  ApeNodeConfig,
+  ApeNodeType,
+} from '@/types';
 import {
   CaretDownOutlined,
   EditOutlined,
@@ -6,9 +11,12 @@ import {
 } from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
-import { Button, Form, Input, Modal, Space, theme } from 'antd';
+import { Badge, Button, Form, Input, Modal, Space, theme } from 'antd';
+import { RibbonProps } from 'antd/es/badge/Ribbon';
+import _ from 'lodash';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useIntl, useModel } from 'umi';
+import { NodeOutputs } from './_outputs';
 import {
   StyledFlowNode,
   StyledFlowNodeAvatar,
@@ -18,9 +26,61 @@ import {
   StyledFlowNodeLabel,
 } from './_styles';
 
+const nodeStatusMap: {
+  [key in ApeFlowNodeStatus]: {
+    color: RibbonProps['color'];
+    text: string;
+  };
+} = {
+  stopped: {
+    color: 'blue',
+    text: 'Stopped',
+  },
+  pending: {
+    color: 'pink',
+    text: 'Pending',
+  },
+  running: {
+    color: 'volcano',
+    text: 'Running',
+  },
+  complated: {
+    color: 'blue',
+    text: 'Complated',
+  },
+};
+
+const FlowNodeWrap = ({
+  status,
+  children,
+  outputs,
+}: {
+  status: ApeFlowNodeStatus;
+  children: React.ReactNode;
+  outputs: React.ReactNode;
+}) => {
+  if (status === 'stopped') {
+    return children;
+  }
+  return (
+    <Badge.Ribbon
+      text={
+        <Space>
+          {nodeStatusMap[status].text}
+          {outputs}
+        </Space>
+      }
+      color={nodeStatusMap[status].color}
+      style={{ top: 12, paddingBlock: 4, transitionDuration: '0.5s' }}
+    >
+      {children}
+    </Badge.Ribbon>
+  );
+};
+
 const ApeBasicNode = (node: ApeNode) => {
   const [labelModalVisible, setLabelModalVisible] = useState<boolean>(false);
-  const { nodes, setNodes, getNodeConfig, messages, debugStatus } = useModel(
+  const { nodes, setNodes, getNodeConfig, messages, flowStatus } = useModel(
     'bots.$botId.flow.model',
   );
   const { token } = theme.useToken();
@@ -36,19 +96,30 @@ const ApeBasicNode = (node: ApeNode) => {
     () => messages.filter((msg) => msg.node_id === node.id),
     [messages],
   );
-  const nodeRunning = useMemo(() => {
-    return (
-      debugStatus === 'running' &&
-      !nodeMessages?.find((msg) => msg.event_type === 'node_end')
-    );
-  }, [debugStatus, nodeMessages]);
 
-  // const nodeComplated = useMemo(() => {
-  //   return (
-  //     nodeMessages?.find((msg) => msg.event_type === 'node_start') &&
-  //     nodeMessages?.find((msg) => msg.event_type === 'node_end')
-  //   );
-  // }, [nodeMessages]);
+  const nodeStatus: ApeFlowNodeStatus = useMemo(() => {
+    const start = Boolean(
+      nodeMessages?.find((msg) => msg.event_type === 'node_start'),
+    );
+    const end = Boolean(
+      nodeMessages?.find((msg) => msg.event_type === 'node_end'),
+    );
+    if (flowStatus === 'stopped') {
+      return 'stopped';
+    }
+    if (!start) {
+      return 'pending';
+    }
+    if (!end) {
+      return 'running';
+    }
+    return 'complated';
+  }, [flowStatus, nodeMessages]);
+
+  const nodeLoading = useMemo(
+    () => _.includes(['pending', 'running'], nodeStatus),
+    [nodeStatus],
+  );
 
   const config: ApeNodeConfig = useMemo(
     () =>
@@ -110,73 +181,74 @@ const ApeBasicNode = (node: ApeNode) => {
 
   return (
     <>
-      <StyledFlowNodeContainer
-        token={token}
-        selected={selected || nodeRunning}
-        isHovering={isHovering || nodeRunning}
-        color={config.color}
-        ref={nodeRef}
-      >
-        {!config.disableConnectionTarget && (
-          <Handle
-            type="target"
-            position={node.targetPosition || Position.Left}
-          />
-        )}
+      <FlowNodeWrap status={nodeStatus} outputs={<NodeOutputs node={node} />}>
+        <StyledFlowNodeContainer
+          token={token}
+          selected={selected}
+          isHovering={isHovering}
+          color={config.color}
+          ref={nodeRef}
+        >
+          {!config.disableConnectionTarget && (
+            <Handle
+              type="target"
+              position={node.targetPosition || Position.Left}
+            />
+          )}
 
-        <StyledFlowNode style={{ width: config.width }}>
-          <StyledFlowNodeHeader token={token} className="drag-handle">
-            <Space>
-              <StyledFlowNodeAvatar
-                token={token}
-                color={config.color}
-                shape="square"
-                src={nodeRunning ? <LoadingOutlined /> : config.icon}
-              />
-              <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
-              {isHovering && (
+          <StyledFlowNode style={{ width: config.width }}>
+            <StyledFlowNodeHeader token={token} className="drag-handle">
+              <Space>
+                <StyledFlowNodeAvatar
+                  token={token}
+                  color={config.color}
+                  shape="square"
+                  src={nodeLoading ? <LoadingOutlined /> : config.icon}
+                />
+                <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
+                {isHovering && (
+                  <Button
+                    type="text"
+                    onClick={onEditNodeLable}
+                    icon={<EditOutlined />}
+                  />
+                )}
+              </Space>
+              <Space>
                 <Button
                   type="text"
-                  onClick={onEditNodeLable}
-                  icon={<EditOutlined />}
+                  onClick={onToggleCollapsed}
+                  icon={
+                    <CaretDownOutlined
+                      style={{
+                        fontSize: '0.8em',
+                        transform: `rotate(${collapsed ? -90 : 0}deg)`,
+                        transitionDuration: '0.3s',
+                      }}
+                    />
+                  }
                 />
-              )}
-            </Space>
-            <Space>
-              <Button
-                type="text"
-                onClick={onToggleCollapsed}
-                icon={
-                  <CaretDownOutlined
-                    style={{
-                      fontSize: '0.8em',
-                      transform: `rotate(${collapsed ? -90 : 0}deg)`,
-                      transitionDuration: '0.3s',
-                    }}
-                  />
-                }
-              />
-            </Space>
-          </StyledFlowNodeHeader>
-          <StyledFlowNodeBody token={token} collapsed={collapsed}>
-            {config.content &&
-              originNode &&
-              React.createElement(config.content, { node: originNode })}
-          </StyledFlowNodeBody>
-        </StyledFlowNode>
+              </Space>
+            </StyledFlowNodeHeader>
+            <StyledFlowNodeBody token={token} collapsed={collapsed}>
+              {config.content &&
+                originNode &&
+                React.createElement(config.content, { node: originNode })}
+            </StyledFlowNodeBody>
+          </StyledFlowNode>
 
-        {!config.disableConnectionSource && (
-          <Handle
-            className="node-handler-end"
-            type="source"
-            position={node.sourcePosition || Position.Right}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          />
-        )}
-      </StyledFlowNodeContainer>
-
+          {!config.disableConnectionSource && (
+            <Handle
+              className="node-handler-end"
+              type="source"
+              position={node.sourcePosition || Position.Right}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            />
+          )}
+        </StyledFlowNodeContainer>
+      </FlowNodeWrap>
       <Modal
         title={formatMessage({ id: 'flow.node.custom_label' })}
         open={labelModalVisible}

@@ -96,6 +96,7 @@ export const StyledFlowNode = styled('div').withConfig({})`
       flex-direction: column;
       position: relative;
       cursor: default;
+      overflow: visible;
     `;
   }}
 `;
@@ -166,20 +167,20 @@ export const StyledFlowNodeLabel = styled(Typography.Text).withConfig({
   }}
 `;
 
-export const StyledFlowNodeSection = styled('section').withConfig({
-  shouldForwardProp: (prop) => !['token'].includes(prop),
-})<{
-  token: GlobalToken;
-}>`
-  ${({ token }) => {
-    return css`
-      padding: 12px;
-      background: ${token.colorBgLayout};
-      border-radius: 8px;
-      margin-bottom: 12px;
-    `;
-  }}
-`;
+// export const StyledFlowNodeSection = styled('section').withConfig({
+//   shouldForwardProp: (prop) => !['token'].includes(prop),
+// })<{
+//   token: GlobalToken;
+// }>`
+//   ${({ token }) => {
+//     return css`
+//       padding: 12px;
+//       background: ${token.colorBgLayout};
+//       border-radius: 8px;
+//       margin-bottom: 12px;
+//     `;
+//   }}
+// `;
 
 export const getCollapsePanelStyle = (
   token: GlobalToken,
