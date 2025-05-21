@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime
 from typing import Optional, List, Dict, Callable, Awaitable, Tuple, AsyncIterator, Any
 
 import json
@@ -97,6 +98,7 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
                 history_messages: List = [],
                 **kwargs,
         ) -> str:
+            start_time = datetime.now()
             merged_kwargs = {
                 "api_key": api_key,
                 "base_url": base_url,
@@ -123,6 +125,11 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
                 if chunk:
                     full_response += chunk
 
+            end_time = datetime.now()
+            latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
+            logger.info(f"LLM Latency: {latency:.2f} seconds")
+            logger.info(f"LLM PROMPT: {prompt}")
+            logger.info(f"LLM RESPONSE: {full_response}")
             return full_response
 
         return lightrag_llm_func
