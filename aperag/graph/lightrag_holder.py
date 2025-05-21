@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import Optional, List, Dict, Callable, Awaitable, Tuple, AsyncIterator, Any
 
@@ -55,15 +56,15 @@ class LightRagHolder:
         self.llm_func = llm_func
         self.embed_impl = embed_impl
 
-    def insert(
-        self,
-        input: str | list[str],
-        split_by_character: str | None = None,
-        split_by_character_only: bool = False,
-        ids: str | list[str] | None = None,
-        file_paths: str | list[str] | None = None,
+    async def ainsert(
+            self,
+            input: str | list[str],
+            split_by_character: str | None = None,
+            split_by_character_only: bool = False,
+            ids: str | list[str] | None = None,
+            file_paths: str | list[str] | None = None,
     ) -> None:
-        return self.rag.insert(input, split_by_character, split_by_character_only, ids, file_paths)
+        return self.rag.ainsert(input, split_by_character, split_by_character_only, ids, file_paths)
 
     async def get_processed_docs(self) -> dict[str, Any]:
         return await self.rag.get_docs_by_status(DocStatus.PROCESSED)
@@ -157,7 +158,23 @@ async def _create_and_initialize_lightrag(
         llm_func: Async callable that produces LLM completions.
         embed_impl: Async callable that produces embeddings.
     """
-    logger.debug(f"Creating and initializing LightRAG object for namespace: '{namespace_prefix}'...")
+    logger.info(f"Creating and initializing LightRAG object for namespace: '{namespace_prefix}'...")
+
+    # POSTGRES_HOST = os.environ.get("POSTGRES_HOST")
+    # POSTGRES_PORT = os.environ.get("POSTGRES_PORT")
+    # POSTGRES_USER = os.environ.get("POSTGRES_USER")
+    # POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
+    # POSTGRES_DATABASE = os.environ.get("POSTGRES_DB")
+    # POSTGRES_WORKSPACE = namespace_prefix
+    # os.environ["POSTGRES_DATABASE"] = POSTGRES_DATABASE
+    # os.environ["POSTGRES_WORKSPACE"] = POSTGRES_WORKSPACE
+    #
+    # logger.info(f"LightRAG env: POSTGRES_HOST='{POSTGRES_HOST}'...")
+    # logger.info(f"LightRAG env: POSTGRES_PORT='{POSTGRES_PORT}'...")
+    # logger.info(f"LightRAG env: POSTGRES_USER='{POSTGRES_USER}'...")
+    # logger.info(f"LightRAG env: POSTGRES_PASSWORD='{POSTGRES_PASSWORD}'...")
+    # logger.info(f"LightRAG env: POSTGRES_DATABASE='{POSTGRES_DATABASE}'...")
+    # logger.info(f"LightRAG env: POSTGRES_WORKSPACE='{POSTGRES_WORKSPACE}'...")
 
     rag = LightRAG(
         namespace_prefix=namespace_prefix,
@@ -170,6 +187,14 @@ async def _create_and_initialize_lightrag(
         ),
         enable_llm_cache=ENABLE_LLM_CACHE,
         max_parallel_insert=MAX_PARALLEL_INSERT,
+        # kv_storage="PGKVStorage",
+        # vector_storage="PGVectorStorage",
+        # graph_storage="PGGraphStorage",
+        # doc_status_storage="PGDocStatusStorage",
+        addon_params={
+            "language": "Simplified Chinese",
+            # "language": "English",
+        },
     )
 
     await rag.initialize_storages()

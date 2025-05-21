@@ -358,14 +358,26 @@ def update_index_for_document(self, document_id):
 def add_lightrag_index(content, document, local_doc):
     logger.info(f"Begin indexing document for LightRAG (ID: {document.id})")
     collection = async_to_sync(document.get_collection)()
-    rag: LightRagHolder = async_to_sync(lightrag_holder.get_lightrag_holder)(collection=collection)
-    rag.insert(content, ids=document.id, file_paths=local_doc.path)
-    lightrag_docs = async_to_sync(rag.get_processed_docs)()
-    if not lightrag_docs or str(document.id) not in lightrag_docs:
-        error_msg = f"Error indexing document for LightRAG (ID: {document.id}). No processed document found."
-        logger.error(error_msg)
-        raise RuntimeError(error_msg)
-    logger.info(f"Successfully indexed document for LightRAG (ID: {document.id})")
+    
+    try:
+        rag = async_to_sync(lightrag_holder.get_lightrag_holder)(collection=collection)
+        
+        async_to_sync(rag.ainsert)(
+            input=content, 
+            ids=document.id, 
+            file_paths=local_doc.path
+        )
+        
+        lightrag_docs = async_to_sync(rag.get_processed_docs)()
+        if not lightrag_docs or str(document.id) not in lightrag_docs:
+            error_msg = f"Error indexing document for LightRAG (ID: {document.id}). No processed document found."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+            
+        logger.info(f"Successfully indexed document for LightRAG (ID: {document.id})")
+    except Exception as e:
+        logger.error(f"add qdrant points for document {local_doc.path if local_doc else document.name} error:{str(e)}")
+        raise e
 
 
 @app.task
