@@ -64,7 +64,7 @@ class LightRagHolder:
             ids: str | list[str] | None = None,
             file_paths: str | list[str] | None = None,
     ) -> None:
-        return self.rag.ainsert(input, split_by_character, split_by_character_only, ids, file_paths)
+        return await self.rag.ainsert(input, split_by_character, split_by_character_only, ids, file_paths)
 
     async def get_processed_docs(self) -> dict[str, Any]:
         return await self.rag.get_docs_by_status(DocStatus.PROCESSED)
