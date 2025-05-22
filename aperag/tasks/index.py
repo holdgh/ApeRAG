@@ -14,22 +14,17 @@
 import json
 import logging
 import os
-import tarfile
 import tempfile
 import uuid
-import zipfile
 from pathlib import Path
-from typing import IO
 
-import py7zr
-import rarfile
 from asgiref.sync import async_to_sync
 from celery import Task
-from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from aperag.context.full_text import insert_document, remove_document
 from aperag.db.models import Collection, Document, MessageFeedback, Question
+from aperag.docparser.doc_parser import DocParser, get_default_config
 from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.embed.local_path_embedding import LocalPathEmbedding
 from aperag.embed.qa_embedding import QAEmbedding
@@ -37,11 +32,11 @@ from aperag.embed.question_embedding import QuestionEmbedding, QuestionEmbedding
 from aperag.graph import lightrag_holder
 from aperag.graph.lightrag_holder import LightRagHolder
 from aperag.objectstore.base import get_object_store
-from aperag.readers.base_readers import DEFAULT_FILE_READER_CLS, SUPPORTED_COMPRESSED_EXTENSIONS
 from aperag.schema.utils import parseCollectionConfig
 from aperag.source.base import get_source
 from aperag.source.feishu.client import FeishuNoPermission, FeishuPermissionDenied
 from aperag.utils.tokenizer import get_default_tokenizer
+from aperag.utils.uncompress import SUPPORTED_COMPRESSED_EXTENSIONS, uncompress
 from aperag.utils.utils import (
     generate_fulltext_index_name,
     generate_qa_vector_db_collection_name,
@@ -61,14 +56,14 @@ class CustomLoadDocumentTask(Task):
         if document.status != Document.Status.WARNING:
             document.status = Document.Status.COMPLETE
         document.save()
-        logger.info(f"add qdrant points for document {document.name} success")
+        logger.info(f"index for document {document.name} success")
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         document_id = args[0]
         document = Document.objects.get(id=document_id)
         document.status = Document.Status.FAILED
         document.save()
-        logger.error(f"add qdrant points for document {document.name} error:{exc}")
+        logger.error(f"index for document {document.name} error:{exc}")
 
 
 class CustomDeleteDocumentTask(Task):
@@ -99,33 +94,10 @@ class SensitiveInformationFound(Exception):
     """
 
 
-def uncompress(fileobj: IO[bytes], suffix: str, dest: str):
-    if suffix == '.zip':
-        with zipfile.ZipFile(fileobj, 'r') as zf:
-            for name in zf.namelist():
-                try:
-                    name_utf8 = name.encode('cp437').decode('utf-8')
-                except Exception:
-                    name_utf8 = name
-                zf.extract(name, dest)
-                if name_utf8 != name:
-                    os.rename(os.path.join(dest, name), os.path.join(dest, name_utf8))
-    elif suffix in ['.rar', '.r00']:
-        with rarfile.RarFile(fileobj, 'r') as rf:
-            rf.extractall(dest)
-    elif suffix == '.7z':
-        with py7zr.SevenZipFile(fileobj, 'r') as z7:
-            z7.extractall(dest)
-    elif suffix in ['.tar', '.gz', '.xz', '.bz2', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.7z']:
-        with tarfile.open(fileobj=fileobj, mode='r:*') as tf:
-            tf.extractall(dest)
-    else:
-        raise ValueError(f"Unsupported file format {suffix}")
-
-
-def uncompress_file(document: Document):
+def uncompress_file(document: Document, supported_file_extensions: list[str]):
     MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
     obj_store = get_object_store()
+    supported_file_extensions = supported_file_extensions or []
 
     with tempfile.TemporaryDirectory(prefix=f"aperag_unzip_{document.id}_") as temp_dir_path_str:
         tmp_dir = Path(temp_dir_path_str)
@@ -141,9 +113,9 @@ def uncompress_file(document: Document):
         for root, dirs, file_names in os.walk(tmp_dir):
             for name in file_names:
                 path = Path(os.path.join(root, name))
-                if path.suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
+                if path.suffix.lower() in SUPPORTED_COMPRESSED_EXTENSIONS:
                     continue
-                if path.suffix not in DEFAULT_FILE_READER_CLS.keys():
+                if path.suffix.lower() not in supported_file_extensions:
                     continue
                 extracted_files.append(path)
                 total_size += path.stat().st_size
@@ -199,13 +171,16 @@ def add_index_for_document(self, document_id):
     source = None
     local_doc = None
     metadata = json.loads(document.metadata)
+    metadata["doc_id"] = document_id
     collection = async_to_sync(document.get_collection)()
+    supported_file_extensions = DocParser().supported_extensions()  # TODO: apply collection config
+    supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
     try:
         if document.object_path and Path(document.object_path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
             config = parseCollectionConfig(collection.config)
             if config.source != "system":
                 return
-            uncompress_file(document)
+            uncompress_file(document, supported_file_extensions)
             return
         else:
             source = get_source(parseCollectionConfig(collection.config))
@@ -214,8 +189,9 @@ def add_index_for_document(self, document_id):
                 document.size = os.path.getsize(local_doc.path)
 
             embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-            loader = LocalPathEmbedding(input_files=[local_doc.path],
-                                        input_file_metadata_list=[local_doc.metadata],
+            loader = LocalPathEmbedding(filepath=local_doc.path,
+                                        file_metadata=local_doc.metadata,
+                                        object_store_base_path=document.object_store_base_path(),
                                         embedding_model=embedding_model,
                                         vector_size=vector_size,
                                         vector_store_adaptor=get_vector_db_connector(
@@ -319,11 +295,13 @@ def update_index_for_document(self, document_id):
         collection = async_to_sync(document.get_collection)()
         source = get_source(parseCollectionConfig(collection.config))
         metadata = json.loads(document.metadata)
+        metadata["doc_id"] = document_id
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
         embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-        loader = LocalPathEmbedding(input_files=[local_doc.path],
-                                    input_file_metadata_list=[local_doc.metadata],
+        loader = LocalPathEmbedding(filepath=local_doc.path,
+                                    file_metadata=local_doc.metadata,
+                                    object_store_base_path=document.object_store_base_path(),
                                     embedding_model=embedding_model,
                                     vector_size=vector_size,
                                     vector_store_adaptor=get_vector_db_connector(
@@ -420,9 +398,10 @@ def generate_questions(document_id):
 
         source = get_source(parseCollectionConfig(collection.config))
         metadata = json.loads(document.metadata)
+        metadata["doc_id"] = document_id
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
-        q_loaders = QuestionEmbedding(input_files=[local_doc.path],
-                                input_file_metadata_list=[local_doc.metadata],
+        q_loaders = QuestionEmbedding(filepath=local_doc.path,
+                                file_metadata=local_doc.metadata,
                                 embedding_model=embedding_model,
                                 llm_model=None, #todo Fixme
                                 vector_store_adaptor=get_vector_db_connector(
