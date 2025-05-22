@@ -128,6 +128,8 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
 
             end_time = datetime.now()
             latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
+            logger.info(f"LLM Start Time: {start_time}")
+            logger.info(f"LLM End Time: {end_time}")
             logger.info(f"LLM Latency: {latency:.2f} seconds")
             logger.info(f"LLM PROMPT: {prompt}")
             logger.info(f"LLM RESPONSE: {full_response}")
