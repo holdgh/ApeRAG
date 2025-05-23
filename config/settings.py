@@ -322,7 +322,7 @@ LIGHT_RAG_LLM_MODEL = env.str("LIGHT_RAG_LLM_MODEL", default="gpt-4o-mini")
 # --- General Settings ---
 LIGHT_RAG_WORKING_DIR = env.str("LIGHT_RAG_WORKING_DIR", default="./documents")
 LIGHT_RAG_ENABLE_LLM_CACHE = env.bool("LIGHT_RAG_ENABLE_LLM_CACHE", default=False)
-LIGHT_RAG_MAX_PARALLEL_INSERT = env.int("LIGHT_RAG_MAX_PARALLEL_INSERT", default=4)
+LIGHT_RAG_MAX_PARALLEL_INSERT = env.int("LIGHT_RAG_MAX_PARALLEL_INSERT", default=2)
 
 REDIS_HOST = env.str("REDIS_HOST", default="localhost")
 REDIS_PORT = env.str("REDIS_PORT", default="6379")

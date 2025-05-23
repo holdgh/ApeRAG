@@ -35,6 +35,8 @@ LLM_MODEL = LIGHT_RAG_LLM_MODEL
 WORKING_DIR = LIGHT_RAG_WORKING_DIR
 ENABLE_LLM_CACHE = LIGHT_RAG_ENABLE_LLM_CACHE
 MAX_PARALLEL_INSERT = LIGHT_RAG_MAX_PARALLEL_INSERT
+LLM_MODEL_MAX_ASYNC = 20
+ENTITY_EXTRACT_MAX_GLEANING = 0
 # --- End Configuration Parameters ---
 
 logger = logging.getLogger(__name__)
@@ -189,6 +191,8 @@ async def _create_and_initialize_lightrag(
         ),
         enable_llm_cache=ENABLE_LLM_CACHE,
         max_parallel_insert=MAX_PARALLEL_INSERT,
+        llm_model_max_async=LLM_MODEL_MAX_ASYNC,
+        entity_extract_max_gleaning=ENTITY_EXTRACT_MAX_GLEANING,
         # kv_storage="PGKVStorage",
         # vector_storage="PGVectorStorage",
         # graph_storage="PGGraphStorage",
