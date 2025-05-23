@@ -308,8 +308,11 @@ def remove_index(self, document_id):
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.name}")
 
-        # Call dedicated LightRAG deletion task
-        remove_lightrag_index_task.delay(document_id, collection.id)
+        # Only call LightRAG deletion task if knowledge graph is enabled
+        config = parseCollectionConfig(collection.config)
+        enable_knowledge_graph = config.enable_knowledge_graph or False
+        if enable_knowledge_graph:
+            remove_lightrag_index_task.delay(document_id, collection.id)
 
     except Exception as e:
         raise e
@@ -412,34 +415,34 @@ def add_lightrag_index_task(self, content, document_id, file_path):
 
     async def _async_add_lightrag_index():
         from aperag.db.models import Document
-        
+
         document = await Document.objects.aget(id=document_id)
         collection = await document.get_collection()
-        
+
         # Avoid using cached instances in Celery tasks, create new ones each time
         embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
         llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
         namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
-        
+
         # Create new LightRAG instance directly without using cache
         rag_holder = await lightrag_holder.create_and_initialize_lightrag(
             namespace_prefix, llm_func, embed_func, embed_dim=dim
         )
-        
+
         await rag_holder.ainsert(
-            input=content, 
-            ids=document_id, 
+            input=content,
+            ids=document_id,
             file_paths=file_path
         )
-        
+
         lightrag_docs = await rag_holder.get_processed_docs()
         if not lightrag_docs or str(document_id) not in lightrag_docs:
             error_msg = f"Error indexing document for LightRAG (ID: {document_id}). No processed document found."
             logger.error(error_msg)
             raise RuntimeError(error_msg)
-            
+
         logger.info(f"Successfully completed LightRAG indexing for document (ID: {document_id})")
-    
+
     try:
         async_to_sync(_async_add_lightrag_index)()
         # Update graph index status to complete
@@ -553,21 +556,21 @@ def remove_lightrag_index_task(self, document_id, collection_id):
     
     async def _async_delete_lightrag():
         from aperag.db.models import Collection
-        
+
         collection = await Collection.objects.aget(id=collection_id)
-        
+
         # Avoid using cached instances in Celery tasks, create new ones each time
         embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
         llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
         namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
-        
+
         # Create new LightRAG instance directly without using cache
         rag_holder = await lightrag_holder.create_and_initialize_lightrag(
             namespace_prefix, llm_func, embed_func, embed_dim=dim
         )
         await rag_holder.adelete_by_doc_id(document_id)
         logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
-    
+
     try:
         async_to_sync(_async_delete_lightrag)()
     except Exception as e:
