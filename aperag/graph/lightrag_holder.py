@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+from datetime import datetime
 from typing import Optional, List, Dict, Callable, Awaitable, Tuple, AsyncIterator, Any
 
 import json
@@ -33,6 +35,8 @@ LLM_MODEL = LIGHT_RAG_LLM_MODEL
 WORKING_DIR = LIGHT_RAG_WORKING_DIR
 ENABLE_LLM_CACHE = LIGHT_RAG_ENABLE_LLM_CACHE
 MAX_PARALLEL_INSERT = LIGHT_RAG_MAX_PARALLEL_INSERT
+LLM_MODEL_MAX_ASYNC = 20
+ENTITY_EXTRACT_MAX_GLEANING = 0
 # --- End Configuration Parameters ---
 
 logger = logging.getLogger(__name__)
@@ -54,15 +58,15 @@ class LightRagHolder:
         self.llm_func = llm_func
         self.embed_impl = embed_impl
 
-    def insert(
-        self,
-        input: str | list[str],
-        split_by_character: str | None = None,
-        split_by_character_only: bool = False,
-        ids: str | list[str] | None = None,
-        file_paths: str | list[str] | None = None,
+    async def ainsert(
+            self,
+            input: str | list[str],
+            split_by_character: str | None = None,
+            split_by_character_only: bool = False,
+            ids: str | list[str] | None = None,
+            file_paths: str | list[str] | None = None,
     ) -> None:
-        return self.rag.insert(input, split_by_character, split_by_character_only, ids, file_paths)
+        return await self.rag.ainsert(input, split_by_character, split_by_character_only, ids, file_paths)
 
     async def get_processed_docs(self) -> dict[str, Any]:
         return await self.rag.get_docs_by_status(DocStatus.PROCESSED)
@@ -97,6 +101,7 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
                 history_messages: List = [],
                 **kwargs,
         ) -> str:
+            start_time = datetime.now()
             merged_kwargs = {
                 "api_key": api_key,
                 "base_url": base_url,
@@ -123,6 +128,13 @@ async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitab
                 if chunk:
                     full_response += chunk
 
+            end_time = datetime.now()
+            latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
+            logger.info(f"LLM Start Time: {start_time}")
+            logger.info(f"LLM End Time: {end_time}")
+            logger.info(f"LLM Latency: {latency:.2f} seconds")
+            logger.info(f"LLM PROMPT: {prompt}")
+            logger.info(f"LLM RESPONSE: {full_response}")
             return full_response
 
         return lightrag_llm_func
@@ -134,7 +146,7 @@ _lightrag_instances: Dict[str, LightRagHolder] = {}
 _initialization_lock = asyncio.Lock()
 
 
-async def _create_and_initialize_lightrag(
+async def create_and_initialize_lightrag(
     namespace_prefix: str,
     llm_func: Callable[..., Awaitable[str]],
     embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]],
@@ -150,7 +162,23 @@ async def _create_and_initialize_lightrag(
         llm_func: Async callable that produces LLM completions.
         embed_impl: Async callable that produces embeddings.
     """
-    logger.debug(f"Creating and initializing LightRAG object for namespace: '{namespace_prefix}'...")
+    logger.info(f"Creating and initializing LightRAG object for namespace: '{namespace_prefix}'...")
+
+    # POSTGRES_HOST = os.environ.get("POSTGRES_HOST")
+    # POSTGRES_PORT = os.environ.get("POSTGRES_PORT")
+    # POSTGRES_USER = os.environ.get("POSTGRES_USER")
+    # POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
+    # POSTGRES_DATABASE = os.environ.get("POSTGRES_DB")
+    # POSTGRES_WORKSPACE = namespace_prefix
+    # os.environ["POSTGRES_DATABASE"] = POSTGRES_DATABASE
+    # os.environ["POSTGRES_WORKSPACE"] = POSTGRES_WORKSPACE
+    #
+    # logger.info(f"LightRAG env: POSTGRES_HOST='{POSTGRES_HOST}'...")
+    # logger.info(f"LightRAG env: POSTGRES_PORT='{POSTGRES_PORT}'...")
+    # logger.info(f"LightRAG env: POSTGRES_USER='{POSTGRES_USER}'...")
+    # logger.info(f"LightRAG env: POSTGRES_PASSWORD='{POSTGRES_PASSWORD}'...")
+    # logger.info(f"LightRAG env: POSTGRES_DATABASE='{POSTGRES_DATABASE}'...")
+    # logger.info(f"LightRAG env: POSTGRES_WORKSPACE='{POSTGRES_WORKSPACE}'...")
 
     rag = LightRAG(
         namespace_prefix=namespace_prefix,
@@ -163,6 +191,17 @@ async def _create_and_initialize_lightrag(
         ),
         enable_llm_cache=ENABLE_LLM_CACHE,
         max_parallel_insert=MAX_PARALLEL_INSERT,
+        llm_model_max_async=LLM_MODEL_MAX_ASYNC,
+        entity_extract_max_gleaning=ENTITY_EXTRACT_MAX_GLEANING,
+        # kv_storage="PGKVStorage",
+        # vector_storage="PGVectorStorage",
+        # graph_storage="PGGraphStorage",
+        # doc_status_storage="PGDocStatusStorage",
+        auto_manage_storages_states=False,
+        addon_params={
+            "language": "Simplified Chinese",
+            # "language": "English",
+        },
     )
 
     await rag.initialize_storages()
@@ -202,7 +241,7 @@ async def get_lightrag_holder(
         try:
             embed_func, dim = await gen_lightrag_embed_func(collection=collection)
             llm_func = await gen_lightrag_llm_func(collection=collection)
-            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func, embed_dim=dim)
+            client = await create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func, embed_dim=dim)
             _lightrag_instances[namespace_prefix] = client
             logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized successfully.")
             return client

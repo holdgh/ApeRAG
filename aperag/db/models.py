@@ -80,6 +80,13 @@ class Document(models.Model):
         DELETED = "DELETED"
         WARNING = "WARNING"
 
+    class IndexStatus(models.TextChoices):
+        PENDING = "PENDING"
+        RUNNING = "RUNNING"
+        COMPLETE = "COMPLETE"
+        FAILED = "FAILED"
+        SKIPPED = "SKIPPED"  # When certain functionality is not enabled
+
     class ProtectAction(models.TextChoices):
         WARNING_NOT_STORED = "nostore"
         REPLACE_WORDS = "replace"
@@ -95,6 +102,12 @@ class Document(models.Model):
     config = models.TextField(null=True)
     collection_id = models.CharField(max_length=24, null=True)
     status = models.CharField(max_length=16, choices=Status.choices)
+    
+    # Independent index status fields for different index types
+    vector_index_status = models.CharField(max_length=16, choices=IndexStatus.choices, default=IndexStatus.PENDING)
+    fulltext_index_status = models.CharField(max_length=16, choices=IndexStatus.choices, default=IndexStatus.PENDING)
+    graph_index_status = models.CharField(max_length=16, choices=IndexStatus.choices, default=IndexStatus.PENDING)
+    
     size = models.BigIntegerField()
     object_path = models.CharField(max_length=1024, null=True)
     relate_ids = models.TextField()
@@ -112,6 +125,30 @@ class Document(models.Model):
         return "user-{0}/{1}/{2}".format(
             user, self.collection_id, self.id
         )
+
+    def get_overall_status(self):
+        """Calculate overall status based on individual index statuses"""
+        index_statuses = [self.vector_index_status, self.fulltext_index_status, self.graph_index_status]
+        
+        # If any index failed, overall status is failed
+        if any(status == self.IndexStatus.FAILED for status in index_statuses):
+            return self.Status.FAILED
+        # If any index is running, overall status is running
+        elif any(status == self.IndexStatus.RUNNING for status in index_statuses):
+            return self.Status.RUNNING
+        # If all indexes are complete or skipped, overall status is complete
+        elif all(status in [self.IndexStatus.COMPLETE, self.IndexStatus.SKIPPED] for status in index_statuses):
+            return self.Status.COMPLETE
+        # If there are sensitive information warnings, maintain warning status
+        elif self.status == self.Status.WARNING:
+            return self.Status.WARNING
+        # Otherwise, status is pending
+        else:
+            return self.Status.PENDING
+
+    def update_overall_status(self):
+        """Update overall status field"""
+        self.status = self.get_overall_status()
 
     async def get_collection(self):
         """Get the associated collection object"""

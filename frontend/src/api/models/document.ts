@@ -43,6 +43,24 @@ export interface Document {
      * @type {string}
      * @memberof Document
      */
+    'vector_index_status'?: DocumentVectorIndexStatusEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof Document
+     */
+    'fulltext_index_status'?: DocumentFulltextIndexStatusEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof Document
+     */
+    'graph_index_status'?: DocumentGraphIndexStatusEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof Document
+     */
     'config'?: string;
     /**
      * 
@@ -81,5 +99,32 @@ export const DocumentStatusEnum = {
 } as const;
 
 export type DocumentStatusEnum = typeof DocumentStatusEnum[keyof typeof DocumentStatusEnum];
+export const DocumentVectorIndexStatusEnum = {
+    PENDING: 'PENDING',
+    RUNNING: 'RUNNING',
+    COMPLETE: 'COMPLETE',
+    FAILED: 'FAILED',
+    SKIPPED: 'SKIPPED'
+} as const;
+
+export type DocumentVectorIndexStatusEnum = typeof DocumentVectorIndexStatusEnum[keyof typeof DocumentVectorIndexStatusEnum];
+export const DocumentFulltextIndexStatusEnum = {
+    PENDING: 'PENDING',
+    RUNNING: 'RUNNING',
+    COMPLETE: 'COMPLETE',
+    FAILED: 'FAILED',
+    SKIPPED: 'SKIPPED'
+} as const;
+
+export type DocumentFulltextIndexStatusEnum = typeof DocumentFulltextIndexStatusEnum[keyof typeof DocumentFulltextIndexStatusEnum];
+export const DocumentGraphIndexStatusEnum = {
+    PENDING: 'PENDING',
+    RUNNING: 'RUNNING',
+    COMPLETE: 'COMPLETE',
+    FAILED: 'FAILED',
+    SKIPPED: 'SKIPPED'
+} as const;
+
+export type DocumentGraphIndexStatusEnum = typeof DocumentGraphIndexStatusEnum[keyof typeof DocumentGraphIndexStatusEnum];
 
 

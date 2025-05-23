@@ -181,6 +181,12 @@ export default {
   'document.status.COMPLETE': '已完成',
   'document.status.DELETED': '已删除',
   'document.status.DELETING': '删除中',
+  'document.index.status': '索引状态',
+  'document.index.status.PENDING': '待处理',
+  'document.index.status.RUNNING': '运行中',
+  'document.index.status.COMPLETE': '已完成',
+  'document.index.status.FAILED': '失败',
+  'document.index.status.SKIPPED': '已跳过',
 
   flow: '---------------',
   'flow.name': '任务流',

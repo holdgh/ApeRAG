@@ -1,4 +1,6 @@
 import logging
+import time
+
 import litellm
 from datetime import datetime
 from litellm.integrations.custom_logger import CustomLogger
@@ -37,7 +39,16 @@ class MyCustomHandler(CustomLogger):
         self.log_failure_event(kwargs, response_obj, start_time, end_time)
 
     def log_post_api_call(self, kwargs, response_obj, start_time, end_time):
+        if kwargs["call_type"] in ["completion", "acompletion"]:
+            # self.log_post_api_call_for_completion(kwargs, response_obj, start_time, end_time)
+            pass
+        else:
+            # self.log_post_api_call_for_completion(kwargs, response_obj, start_time, end_time)
+            pass
+
+    def log_post_api_call_for_completion(self, kwargs, response_obj, start_time, end_time):
         try:
+            end_time = end_time or datetime.now()
             latency = (end_time - start_time).total_seconds() if start_time and end_time else 0.0
             cost = kwargs.get("response_cost", 0) or 0
 

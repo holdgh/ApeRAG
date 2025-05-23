@@ -36,6 +36,9 @@ import {
   CollectionConfig,
   CollectionStatusEnum,
   DocumentStatusEnum,
+  DocumentVectorIndexStatusEnum,
+  DocumentFulltextIndexStatusEnum,
+  DocumentGraphIndexStatusEnum,
 } from '@/api';
 import type { CollectionConfigSource, CollectionEmailSource } from '@/types';
 
@@ -191,6 +194,21 @@ export const UI_DOCUMENT_STATUS: {
   DELETED: 'default',
   DELETING: 'warning',
   WARNING: 'warning',
+};
+
+export const UI_INDEX_STATUS: {
+  [key in DocumentVectorIndexStatusEnum | DocumentFulltextIndexStatusEnum | DocumentGraphIndexStatusEnum]:
+    | 'success'
+    | 'processing'
+    | 'error'
+    | 'default'
+    | 'warning';
+} = {
+  PENDING: 'warning',
+  RUNNING: 'processing',
+  FAILED: 'error',
+  COMPLETE: 'success',
+  SKIPPED: 'default',
 };
 
 export const SUPPORTED_DOC_EXTENSIONS = [

@@ -47,9 +47,18 @@ run-redis:
 	@docker start aperag-redis-dev
 
 run-postgres:
-	@echo "Starting postgres"
-	@docker inspect aperag-postgres-dev > /dev/null 2>&1 || docker run -d --name aperag-postgres-dev -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres
+	@echo "Starting postgres with pgvector extension"
+	@docker inspect aperag-postgres-dev > /dev/null 2>&1 || \
+		docker run -d --name aperag-postgres-dev \
+		-p 5432:5432 \
+		-e POSTGRES_PASSWORD=postgres \
+		pgvector/pgvector:pg16
 	@docker start aperag-postgres-dev
+	@echo "Ensuring pgvector extension is enabled"
+	@sleep 3
+	@docker exec aperag-postgres-dev psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
+	@echo "Verifying pgvector installation"
+	@docker exec aperag-postgres-dev psql -U postgres -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';"
 
 run-qdrant:
 	@echo "Starting qdrant"
