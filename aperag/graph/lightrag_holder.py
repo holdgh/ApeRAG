@@ -19,14 +19,6 @@ from aperag.db.ops import (
 from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.schema.utils import parseCollectionConfig
 from aperag.utils.utils import generate_lightrag_namespace_prefix
-from config.settings import (
-    LIGHT_RAG_LLM_API_KEY,
-    LIGHT_RAG_LLM_BASE_URL,
-    LIGHT_RAG_LLM_MODEL,
-    LIGHT_RAG_WORKING_DIR,
-    LIGHT_RAG_ENABLE_LLM_CACHE,
-    LIGHT_RAG_MAX_PARALLEL_INSERT,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +26,12 @@ logger = logging.getLogger(__name__)
 # Configuration constants
 class LightRAGConfig:
     """Centralized configuration for LightRAG"""
-    # LLM Configuration
-    LLM_API_KEY = LIGHT_RAG_LLM_API_KEY
-    LLM_BASE_URL = LIGHT_RAG_LLM_BASE_URL
-    LLM_MODEL = LIGHT_RAG_LLM_MODEL
-    
     # Storage Configuration
-    WORKING_DIR = LIGHT_RAG_WORKING_DIR
-    ENABLE_LLM_CACHE = LIGHT_RAG_ENABLE_LLM_CACHE
+    WORKING_DIR = "./documents"
+    ENABLE_LLM_CACHE = False
     
     # Performance Configuration
-    MAX_PARALLEL_INSERT = LIGHT_RAG_MAX_PARALLEL_INSERT
+    MAX_PARALLEL_INSERT = 2
     LLM_MODEL_MAX_ASYNC = 20
     ENTITY_EXTRACT_MAX_GLEANING = 0
     EMBEDDING_MAX_TOKEN_SIZE = 8192
