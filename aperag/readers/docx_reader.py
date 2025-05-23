@@ -127,9 +127,9 @@ class MyDocxReader(BaseReader):
                 next_p = next(document, None)
                 self.package_tables(block, last_p, next_p)
 
-        # 处理最后一个chunks
+        # Process the last chunk
         if self.headers > 1 and self.current_level > 1:
-            title = self.contents_stacks.get_title(self.current_level - 1)  # 多个同级标题组成chunk 取其父标题
+            title = self.contents_stacks.get_title(self.current_level - 1)  # Multiple same-level titles form chunk, take parent title
         else:
             title = self.contents_stacks.get_title(self.current_level)
         self.docx_tups.append((title, self.contents_stacks.package_content(self.current_level)))  # the last chunk

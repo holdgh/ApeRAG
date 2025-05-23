@@ -15,6 +15,30 @@ document:
         - DELETING
         - DELETED
         - WARNING
+    vector_index_status:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - COMPLETE
+        - FAILED
+        - SKIPPED
+    fulltext_index_status:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - COMPLETE
+        - FAILED
+        - SKIPPED
+    graph_index_status:
+      type: string
+      enum:
+        - PENDING
+        - RUNNING
+        - COMPLETE
+        - FAILED
+        - SKIPPED
     config:
       type: string
     size:

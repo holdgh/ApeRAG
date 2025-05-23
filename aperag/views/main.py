@@ -538,6 +538,9 @@ async def create_document(request, collection_id: str, file: List[UploadedFile] 
                 id=document_instance.id,
                 name=document_instance.name,
                 status=document_instance.status,
+                vector_index_status=document_instance.vector_index_status,
+                fulltext_index_status=document_instance.fulltext_index_status,
+                graph_index_status=document_instance.graph_index_status,
                 size=document_instance.size,
                 created=document_instance.gmt_created.isoformat(),
                 updated=document_instance.gmt_updated.isoformat(),
@@ -616,6 +619,9 @@ async def list_documents(request, collection_id: str) -> view_models.DocumentLis
             id=document.id,
             name=document.name,
             status=document.status,
+            vector_index_status=document.vector_index_status,
+            fulltext_index_status=document.fulltext_index_status,
+            graph_index_status=document.graph_index_status,
             size=document.size,
             created=document.gmt_created,
             updated=document.gmt_updated,
@@ -655,8 +661,10 @@ async def update_document(
         id=instance.id,
         name=instance.name,
         status=instance.status,
+        vector_index_status=instance.vector_index_status,
+        fulltext_index_status=instance.fulltext_index_status,
+        graph_index_status=instance.graph_index_status,
         size=instance.size,
-        collection=instance.collection,
     ))
 
 
@@ -691,6 +699,9 @@ async def delete_document(request, collection_id: str, document_id: str) -> view
         id=document.id,
         name=document.name,
         status=document.status,
+        vector_index_status=document.vector_index_status,
+        fulltext_index_status=document.fulltext_index_status,
+        graph_index_status=document.graph_index_status,
         size=document.size,
     ))
 

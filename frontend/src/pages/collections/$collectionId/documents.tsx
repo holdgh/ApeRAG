@@ -5,6 +5,7 @@ import {
   SUPPORTED_DOC_EXTENSIONS,
   SUPPORTED_MEDIA_EXTENSIONS,
   UI_DOCUMENT_STATUS,
+  UI_INDEX_STATUS,
 } from '@/constants';
 import { getAuthorizationHeader } from '@/models/user';
 import { api } from '@/services';
@@ -30,6 +31,8 @@ import {
   Typography,
   Upload,
   UploadProps,
+  Tooltip,
+  Tag,
 } from 'antd';
 import byteSize from 'byte-size';
 import alpha from 'color-alpha';
@@ -80,6 +83,34 @@ export default () => {
     [collectionId],
   );
 
+  const renderIndexStatus = (
+    vectorStatus?: string,
+    fulltextStatus?: string,
+    graphStatus?: string,
+  ) => {
+    const indexTypes = [
+      { name: 'Vector', status: vectorStatus, key: 'vector' },
+      { name: 'Fulltext', status: fulltextStatus, key: 'fulltext' },
+      { name: 'Graph', status: graphStatus, key: 'graph' },
+    ];
+
+    return (
+      <Space direction="vertical" size="small">
+        {indexTypes.map(({ name, status, key }) => (
+          <Tag 
+            key={key}
+            color={
+              status ? UI_INDEX_STATUS[status as keyof typeof UI_INDEX_STATUS] : 'default'
+            }
+            style={{ minWidth: '70px', textAlign: 'center' }}
+          >
+            {name}: {formatMessage({ id: `document.index.status.${status}` })}
+          </Tag>
+        ))}
+      </Space>
+    );
+  };
+
   const columns: TableProps<ApeDocument>['columns'] = [
     {
       title: formatMessage({ id: 'document.name' }),
@@ -123,6 +154,18 @@ export default () => {
             }
             text={formatMessage({ id: `document.status.${value}` })}
           />
+        );
+      },
+    },
+    {
+      title: formatMessage({ id: 'document.index.status' }),
+      dataIndex: 'index_status',
+      width: 200,
+      render: (value, record) => {
+        return renderIndexStatus(
+          record.vector_index_status,
+          record.fulltext_index_status,
+          record.graph_index_status,
         );
       },
     },

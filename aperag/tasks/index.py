@@ -54,15 +54,19 @@ class CustomLoadDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
         document_id = args[0]
         document = Document.objects.get(id=document_id)
-        if document.status != Document.Status.WARNING:
-            document.status = Document.Status.COMPLETE
+        # Update overall status
+        document.update_overall_status()
         document.save()
         logger.info(f"index for document {document.name} success")
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         document_id = args[0]
         document = Document.objects.get(id=document_id)
-        document.status = Document.Status.FAILED
+        # Set all index statuses to failed
+        document.vector_index_status = Document.IndexStatus.FAILED
+        document.fulltext_index_status = Document.IndexStatus.FAILED
+        document.graph_index_status = Document.IndexStatus.FAILED
+        document.update_overall_status()
         document.save()
         logger.error(f"index for document {document.name} error:{exc}")
 
@@ -166,6 +170,10 @@ def add_index_for_document(self, document_id):
             document_id: the document in Django Module
     """
     document = Document.objects.get(id=document_id)
+    # Set all index statuses to running
+    document.vector_index_status = Document.IndexStatus.RUNNING
+    document.fulltext_index_status = Document.IndexStatus.RUNNING
+    document.graph_index_status = Document.IndexStatus.RUNNING
     document.status = Document.Status.RUNNING
     document.save()
 
@@ -189,45 +197,76 @@ def add_index_for_document(self, document_id):
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
 
-            embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-            loader = LocalPathEmbedding(filepath=local_doc.path,
-                                        file_metadata=local_doc.metadata,
-                                        object_store_base_path=document.object_store_base_path(),
-                                        embedding_model=embedding_model,
-                                        vector_size=vector_size,
-                                        vector_store_adaptor=get_vector_db_connector(
-                                            collection=generate_vector_db_collection_name(
-                                                collection_id=collection.id)),
-                                        chunk_size=settings.CHUNK_SIZE,
-                                        chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                        tokenizer=get_default_tokenizer())
-
             config = parseCollectionConfig(collection.config)
             sensitive_protect = config.sensitive_protect or False
             sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-            ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
-                                                                sensitive_protect_method=sensitive_protect_method)
-            document.sensitive_info = sensitive_info
-            if sensitive_protect and sensitive_info:
-                if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
-                    raise SensitiveInformationFound()
-                else:
-                    document.status = Document.Status.WARNING
-            logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
-
-            # only index the document that have points in the vector database
-            if ctx_ids:
-                index = generate_fulltext_index_name(collection.id)
-                insert_document(index, document.id, local_doc.name, content)
-
-            relate_ids = {
-                "ctx": ctx_ids,
-            }
-            document.relate_ids = json.dumps(relate_ids)
-
             enable_knowledge_graph = config.enable_knowledge_graph or False
-            if enable_knowledge_graph:
-                add_lightrag_index(content, document, local_doc)
+
+            # Process vector index
+            try:
+                embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
+                loader = LocalPathEmbedding(filepath=local_doc.path,
+                                            file_metadata=local_doc.metadata,
+                                            object_store_base_path=document.object_store_base_path(),
+                                            embedding_model=embedding_model,
+                                            vector_size=vector_size,
+                                            vector_store_adaptor=get_vector_db_connector(
+                                                collection=generate_vector_db_collection_name(
+                                                    collection_id=collection.id)),
+                                            chunk_size=settings.CHUNK_SIZE,
+                                            chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
+                                            tokenizer=get_default_tokenizer())
+
+                ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
+                                                                    sensitive_protect_method=sensitive_protect_method)
+                document.sensitive_info = sensitive_info
+
+                # Check for sensitive information
+                if sensitive_protect and sensitive_info:
+                    if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
+                        raise SensitiveInformationFound()
+                    else:
+                        document.status = Document.Status.WARNING
+
+                relate_ids = {
+                    "ctx": ctx_ids,
+                }
+                document.relate_ids = json.dumps(relate_ids)
+                document.vector_index_status = Document.IndexStatus.COMPLETE
+                logger.info(f"Vector index completed for document {local_doc.path}: {ctx_ids}")
+
+            except Exception as e:
+                document.vector_index_status = Document.IndexStatus.FAILED
+                logger.error(f"Vector index failed for document {local_doc.path}: {str(e)}")
+                raise e
+
+            # Process fulltext index
+            try:
+                if ctx_ids:  # Only create fulltext index when vector data exists
+                    index = generate_fulltext_index_name(collection.id)
+                    insert_document(index, document.id, local_doc.name, content)
+                    document.fulltext_index_status = Document.IndexStatus.COMPLETE
+                    logger.info(f"Fulltext index completed for document {local_doc.path}")
+                else:
+                    document.fulltext_index_status = Document.IndexStatus.SKIPPED
+                    logger.info(f"Fulltext index skipped for document {local_doc.path} (no content)")
+            except Exception as e:
+                document.fulltext_index_status = Document.IndexStatus.FAILED
+                logger.error(f"Fulltext index failed for document {local_doc.path}: {str(e)}")
+
+            # Process knowledge graph index
+            try:
+                if enable_knowledge_graph:
+                    # Start asynchronous LightRAG indexing task
+                    add_lightrag_index_task.delay(content, document.id, local_doc.path)
+                    document.graph_index_status = Document.IndexStatus.RUNNING
+                    logger.info(f"Graph index task scheduled for document {local_doc.path}")
+                else:
+                    document.graph_index_status = Document.IndexStatus.SKIPPED
+                    logger.info(f"Graph index skipped for document {local_doc.path} (not enabled)")
+            except Exception as e:
+                document.graph_index_status = Document.IndexStatus.FAILED
+                logger.error(f"Graph index failed for document {local_doc.path}: {str(e)}")
 
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
@@ -238,6 +277,8 @@ def add_index_for_document(self, document_id):
     except Exception as e:
         raise e
     finally:
+        # Update overall status
+        document.update_overall_status()
         document.save()
         if local_doc and source:
             source.cleanup_document(local_doc.path)
@@ -267,7 +308,7 @@ def remove_index(self, document_id):
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.name}")
 
-        # 调用专门的 LightRAG 删除任务
+        # Call dedicated LightRAG deletion task
         remove_lightrag_index_task.delay(document_id, collection.id)
 
     except Exception as e:
@@ -339,7 +380,7 @@ def update_index_for_document(self, document_id):
 
         enable_knowledge_graph = config.enable_knowledge_graph or False
         if enable_knowledge_graph:
-            add_lightrag_index(content, document, local_doc)
+            add_lightrag_index_task.delay(content, document.id, local_doc.path)
 
     except FeishuNoPermission:
         raise Exception("no permission to access document %s" % document.name)
@@ -356,32 +397,31 @@ def update_index_for_document(self, document_id):
     source.cleanup_document(local_doc.path)
 
 
-def add_lightrag_index(content, document, local_doc):
-    """调用专门的 LightRAG 索引任务"""
-    logger.info(f"Scheduling LightRAG indexing task for document (ID: {document.id})")
-    add_lightrag_index_task.delay(content, document.id, local_doc.path)
-
-
 @app.task(bind=True, track_started=True)
 def add_lightrag_index_task(self, content, document_id, file_path):
     """
-    专门用于 LightRAG 索引的 Celery 任务
-    在此任务中不使用缓存，每次都创建新的 LightRAG 实例以避免事件循环冲突
+    Dedicated Celery task for LightRAG indexing
+    Create new LightRAG instance each time to avoid event loop conflicts in this task
     """
     logger.info(f"Begin LightRAG indexing task for document (ID: {document_id})")
     
+    # Get document object and update status
+    document = Document.objects.get(id=document_id)
+    document.graph_index_status = Document.IndexStatus.RUNNING
+    document.save()
+
     async def _async_add_lightrag_index():
         from aperag.db.models import Document
         
         document = await Document.objects.aget(id=document_id)
         collection = await document.get_collection()
         
-        # 在 Celery 任务中避免使用缓存的实例，每次都创建新的
+        # Avoid using cached instances in Celery tasks, create new ones each time
         embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
         llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
         namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
         
-        # 直接创建新的 LightRAG 实例，不使用缓存
+        # Create new LightRAG instance directly without using cache
         rag_holder = await lightrag_holder.create_and_initialize_lightrag(
             namespace_prefix, llm_func, embed_func, embed_dim=dim
         )
@@ -402,8 +442,19 @@ def add_lightrag_index_task(self, content, document_id, file_path):
     
     try:
         async_to_sync(_async_add_lightrag_index)()
+        # Update graph index status to complete
+        document.refresh_from_db()
+        document.graph_index_status = Document.IndexStatus.COMPLETE
+        document.update_overall_status()
+        document.save()
+        logger.info(f"Graph index completed for document (ID: {document_id})")
     except Exception as e:
         logger.error(f"LightRAG indexing failed for document (ID: {document_id}): {str(e)}")
+        # Update graph index status to failed
+        document.refresh_from_db()
+        document.graph_index_status = Document.IndexStatus.FAILED
+        document.update_overall_status()
+        document.save()
         raise self.retry(exc=e, countdown=60, max_retries=2)
 
 
@@ -495,8 +546,8 @@ def update_collection_status(status, collection_id):
 @app.task(bind=True, track_started=True)
 def remove_lightrag_index_task(self, document_id, collection_id):
     """
-    专门用于 LightRAG 删除的 Celery 任务
-    在此任务中不使用缓存，每次都创建新的 LightRAG 实例以避免事件循环冲突
+    Dedicated Celery task for LightRAG deletion
+    Create new LightRAG instance each time to avoid event loop conflicts in this task
     """
     logger.info(f"Begin LightRAG deletion task for document (ID: {document_id})")
     
@@ -505,12 +556,12 @@ def remove_lightrag_index_task(self, document_id, collection_id):
         
         collection = await Collection.objects.aget(id=collection_id)
         
-        # 在 Celery 任务中避免使用缓存的实例，每次都创建新的
+        # Avoid using cached instances in Celery tasks, create new ones each time
         embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
         llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
         namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
         
-        # 直接创建新的 LightRAG 实例，不使用缓存
+        # Create new LightRAG instance directly without using cache
         rag_holder = await lightrag_holder.create_and_initialize_lightrag(
             namespace_prefix, llm_func, embed_func, embed_dim=dim
         )

@@ -183,6 +183,12 @@ export default {
   'document.status.COMPLETE': 'Completed',
   'document.status.DELETED': 'Deleted',
   'document.status.DELETING': 'Deleting',
+  'document.index.status': 'Index Status',
+  'document.index.status.PENDING': 'Pending',
+  'document.index.status.RUNNING': 'Running',
+  'document.index.status.COMPLETE': 'Completed',
+  'document.index.status.FAILED': 'Failed',
+  'document.index.status.SKIPPED': 'Skipped',
 
   flow: '---------------',
   'flow.name': 'Workflow',
