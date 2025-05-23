@@ -104,75 +104,26 @@ class SensitiveInformationFound(Exception):
     """
 
 
-# Helper functions for document processing
-def get_document_processing_context(document: Document) -> Dict[str, Any]:
-    """Get common context needed for document processing"""
-    metadata = json.loads(document.metadata)
-    metadata["doc_id"] = document.id
-    collection = async_to_sync(document.get_collection)()
-    config = parseCollectionConfig(collection.config)
-    
-    return {
-        'document': document,
-        'metadata': metadata,
-        'collection': collection,
-        'config': config,
-        'source': get_source(config) if config.source != "system" else None,
-        'embedding_model': None,  # Will be populated later
-        'vector_size': None,      # Will be populated later
-    }
-
-
-def prepare_document_source(context: Dict[str, Any]) -> Optional[Any]:
-    """Prepare document source and return local document"""
-    if not context['source']:
-        return None
-    
-    local_doc = context['source'].prepare_document(
-        name=context['document'].name, 
-        metadata=context['metadata']
-    )
-    
-    # Update document size if needed
-    if context['document'].size == 0:
-        context['document'].size = os.path.getsize(local_doc.path)
-    
-    return local_doc
-
-
-def setup_embedding_context(context: Dict[str, Any]) -> None:
-    """Setup embedding model and vector size in context"""
-    embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(context['collection'])
-    context['embedding_model'] = embedding_model
-    context['vector_size'] = vector_size
-
-
-def create_local_path_embedding(context: Dict[str, Any], local_doc: Any) -> LocalPathEmbedding:
-    """Create LocalPathEmbedding instance"""
+# Utility functions: Extract repeated code without changing main flow
+def create_local_path_embedding_loader(local_doc, document, collection, embedding_model, vector_size):
+    """Create LocalPathEmbedding instance - extracted from repeated code"""
     return LocalPathEmbedding(
         filepath=local_doc.path,
         file_metadata=local_doc.metadata,
-        object_store_base_path=context['document'].object_store_base_path(),
-        embedding_model=context['embedding_model'],
-        vector_size=context['vector_size'],
+        object_store_base_path=document.object_store_base_path(),
+        embedding_model=embedding_model,
+        vector_size=vector_size,
         vector_store_adaptor=get_vector_db_connector(
-            collection=generate_vector_db_collection_name(
-                collection_id=context['collection'].id)),
+            collection=generate_vector_db_collection_name(collection_id=collection.id)),
         chunk_size=settings.CHUNK_SIZE,
         chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
         tokenizer=get_default_tokenizer()
     )
 
 
-def check_sensitive_information(context: Dict[str, Any], sensitive_info: list) -> None:
-    """Check and handle sensitive information"""
-    config = context['config']
-    document = context['document']
-    sensitive_protect = config.sensitive_protect or False
-    sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-    
+def check_and_handle_sensitive_info(document, sensitive_info, sensitive_protect, sensitive_protect_method):
+    """Check and handle sensitive information - extracted from repeated code"""
     document.sensitive_info = sensitive_info
-    
     if sensitive_protect and sensitive_info:
         if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
             raise SensitiveInformationFound()
@@ -180,97 +131,15 @@ def check_sensitive_information(context: Dict[str, Any], sensitive_info: list) -
             document.status = Document.Status.WARNING
 
 
-def process_vector_index(context: Dict[str, Any], local_doc: Any) -> Tuple[list, str]:
-    """Process vector index and return ctx_ids and content"""
-    document = context['document']
-    config = context['config']
-    
-    try:
-        doc_path = local_doc.path if local_doc else "unknown"
-        logger.info(f"Starting vector index processing for document {doc_path}")
-        
-        loader = create_local_path_embedding(context, local_doc)
-        
-        sensitive_protect = config.sensitive_protect or False
-        sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-        
-        ctx_ids, content, sensitive_info = loader.load_data(
-            sensitive_protect=sensitive_protect,
-            sensitive_protect_method=sensitive_protect_method
-        )
-        
-        check_sensitive_information(context, sensitive_info)
-        
-        relate_ids = {"ctx": ctx_ids}
-        document.relate_ids = json.dumps(relate_ids)
-        document.vector_index_status = Document.IndexStatus.COMPLETE
-        logger.info(f"Vector index completed for document {doc_path}: {len(ctx_ids)} chunks created")
-        
-        return ctx_ids, content
-        
-    except Exception as e:
-        document.vector_index_status = Document.IndexStatus.FAILED
-        doc_path = local_doc.path if local_doc else "unknown"
-        logger.error(f"Vector index failed for document {doc_path}: {str(e)}")
-        raise e
-
-
-def process_fulltext_index(context: Dict[str, Any], local_doc: Any, ctx_ids: list, content: str) -> None:
-    """Process fulltext index"""
-    document = context['document']
-    collection = context['collection']
-    
-    try:
-        if ctx_ids:  # Only create fulltext index when vector data exists
-            index = generate_fulltext_index_name(collection.id)
-            doc_name = local_doc.name if local_doc else document.name
-            insert_document(index, document.id, doc_name, content)
-            document.fulltext_index_status = Document.IndexStatus.COMPLETE
-            doc_path = local_doc.path if local_doc else "unknown"
-            logger.info(f"Fulltext index completed for document {doc_path}")
-        else:
-            document.fulltext_index_status = Document.IndexStatus.SKIPPED
-            doc_path = local_doc.path if local_doc else "unknown"
-            logger.info(f"Fulltext index skipped for document {doc_path} (no content)")
-    except Exception as e:
-        document.fulltext_index_status = Document.IndexStatus.FAILED
-        doc_path = local_doc.path if local_doc else "unknown"
-        logger.error(f"Fulltext index failed for document {doc_path}: {str(e)}")
-
-
-def process_graph_index(context: Dict[str, Any], local_doc: Any, content: str) -> None:
-    """Process knowledge graph index"""
-    document = context['document']
-    config = context['config']
-    enable_knowledge_graph = config.enable_knowledge_graph or False
-    
-    try:
-        if enable_knowledge_graph:
-            # Start asynchronous LightRAG indexing task
-            doc_path = local_doc.path if local_doc else "unknown"
-            add_lightrag_index_task.delay(content, document.id, doc_path)
-            document.graph_index_status = Document.IndexStatus.RUNNING
-            logger.info(f"Graph index task scheduled for document {doc_path}")
-        else:
-            document.graph_index_status = Document.IndexStatus.SKIPPED
-            doc_path = local_doc.path if local_doc else "unknown"
-            logger.info(f"Graph index skipped for document {doc_path} (not enabled)")
-    except Exception as e:
-        document.graph_index_status = Document.IndexStatus.FAILED
-        doc_path = local_doc.path if local_doc else "unknown"
-        logger.error(f"Graph index failed for document {doc_path}: {str(e)}")
-
-
-def handle_document_exceptions(e: Exception, document_name: str) -> Exception:
-    """Handle common document processing exceptions"""
-    if isinstance(e, FeishuNoPermission):
-        return Exception(f"no permission to access document {document_name}")
-    elif isinstance(e, FeishuPermissionDenied):
-        return Exception(f"permission denied to access document {document_name}")
-    elif isinstance(e, SensitiveInformationFound):
-        return Exception(f"sensitive information found in document {document_name}")
-    else:
-        return e
+def get_collection_config_settings(collection):
+    """Extract collection configuration settings - extracted from repeated code"""
+    config = parseCollectionConfig(collection.config)
+    return (
+        config,
+        config.sensitive_protect or False,
+        config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED,
+        config.enable_knowledge_graph or False
+    )
 
 
 def uncompress_file(document: Document, supported_file_extensions: list[str]):
@@ -333,14 +202,20 @@ def add_index_for_local_document(self, document_id):
         for info in e.args:
             if isinstance(info, str) and "sensitive information" in info:
                 raise e
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_SENSITIVE, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_SENSITIVE)
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
 def add_index_for_document(self, document_id):
     """
-        Celery task to do an embedding for a given Document and save the results in vector database.
-        Args:
-            document_id: the document in Django Module
+    Main task function for creating document indexes
+    
+    Handles the creation of vector index, fulltext index and knowledge graph index
+    
+    Args:
+        document_id: ID of the Django Document model
+        
+    Raises:
+        Exception: Various document processing exceptions (permissions, sensitive info, etc.)
     """
     document = Document.objects.get(id=document_id)
     # Set all index statuses to running
@@ -370,36 +245,20 @@ def add_index_for_document(self, document_id):
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
 
-            config = parseCollectionConfig(collection.config)
-            sensitive_protect = config.sensitive_protect or False
-            sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-            enable_knowledge_graph = config.enable_knowledge_graph or False
+            config, sensitive_protect, sensitive_protect_method, enable_knowledge_graph = get_collection_config_settings(collection)
 
             # Process vector index
             try:
                 embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-                loader = LocalPathEmbedding(filepath=local_doc.path,
-                                            file_metadata=local_doc.metadata,
-                                            object_store_base_path=document.object_store_base_path(),
-                                            embedding_model=embedding_model,
-                                            vector_size=vector_size,
-                                            vector_store_adaptor=get_vector_db_connector(
-                                                collection=generate_vector_db_collection_name(
-                                                    collection_id=collection.id)),
-                                            chunk_size=settings.CHUNK_SIZE,
-                                            chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                            tokenizer=get_default_tokenizer())
+                loader = create_local_path_embedding_loader(
+                    local_doc, document, collection, embedding_model, vector_size
+                )
 
                 ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
                                                                     sensitive_protect_method=sensitive_protect_method)
-                document.sensitive_info = sensitive_info
-
-                # Check for sensitive information
-                if sensitive_protect and sensitive_info:
-                    if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
-                        raise SensitiveInformationFound()
-                    else:
-                        document.status = Document.Status.WARNING
+                
+                # Check for sensitive information using extracted function
+                check_and_handle_sensitive_info(document, sensitive_info, sensitive_protect, sensitive_protect_method)
 
                 relate_ids = {
                     "ctx": ctx_ids,
@@ -460,9 +319,13 @@ def add_index_for_document(self, document_id):
 @app.task(base=CustomDeleteDocumentTask, bind=True, track_started=True)
 def remove_index(self, document_id):
     """
-    remove the doc embedding index from vector store db
-    :param self:
-    :param document_id:
+    Remove the document embedding index from vector store database
+    
+    Args:
+        document_id: ID of the Django Document model
+        
+    Raises:
+        Exception: Various database operation exceptions
     """
     document = Document.objects.get(id=document_id)
     try:
@@ -500,11 +363,22 @@ def update_index_for_local_document(self, document_id):
         for info in e.args:
             if isinstance(info, str) and "sensitive information" in info:
                 raise e
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_SENSITIVE, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_SENSITIVE)
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
 def update_index_for_document(self, document_id):
+    """
+    Task function for updating document indexes
+    
+    Deletes old index data and creates new indexes
+    
+    Args:
+        document_id: ID of the Django Document model
+        
+    Raises:
+        Exception: Various document processing exceptions (permissions, sensitive info, etc.)
+    """
     document = Document.objects.get(id=document_id)
     document.status = Document.Status.RUNNING
     document.save()
@@ -518,30 +392,22 @@ def update_index_for_document(self, document_id):
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
         embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-        loader = LocalPathEmbedding(filepath=local_doc.path,
-                                    file_metadata=local_doc.metadata,
-                                    object_store_base_path=document.object_store_base_path(),
-                                    embedding_model=embedding_model,
-                                    vector_size=vector_size,
-                                    vector_store_adaptor=get_vector_db_connector(
-                                        collection=generate_vector_db_collection_name(
-                                            collection_id=collection.id)),
-                                    chunk_size=settings.CHUNK_SIZE,
-                                    chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                    tokenizer=get_default_tokenizer())
+        loader = create_local_path_embedding_loader(
+            local_doc, document, collection, embedding_model, vector_size
+        )
         loader.connector.delete(ids=relate_ids.get("ctx", []))
 
-        config = parseCollectionConfig(collection.config)
-        sensitive_protect = config.sensitive_protect or False
-        sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
+        config, sensitive_protect, sensitive_protect_method, enable_knowledge_graph = get_collection_config_settings(collection)
         ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
                                                             sensitive_protect_method=sensitive_protect_method)
-        document.sensitive_info = sensitive_info
+        
+        # Check for sensitive information using extracted function
         if sensitive_protect and sensitive_info != []:
             if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
                 raise SensitiveInformationFound()
             else:
                 document.status = Document.Status.WARNING
+        document.sensitive_info = sensitive_info
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
@@ -555,7 +421,6 @@ def update_index_for_document(self, document_id):
         document.relate_ids = json.dumps(relate_ids)
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
 
-        enable_knowledge_graph = config.enable_knowledge_graph or False
         if enable_knowledge_graph:
             add_lightrag_index_task.delay(content, document.id, local_doc.path)
 
@@ -632,7 +497,7 @@ def add_lightrag_index_task(self, content, document_id, file_path):
         document.graph_index_status = Document.IndexStatus.FAILED
         document.update_overall_status()
         document.save()
-        raise self.retry(exc=e, countdown=60, max_retries=2)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_LIGHTRAG, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_LIGHTRAG)
 
 
 @app.task
@@ -749,4 +614,4 @@ def remove_lightrag_index_task(self, document_id, collection_id):
         async_to_sync(_async_delete_lightrag)()
     except Exception as e:
         logger.error(f"LightRAG deletion failed for document (ID: {document_id}): {str(e)}")
-        raise self.retry(exc=e, countdown=60, max_retries=2)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_LIGHTRAG, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_LIGHTRAG)
