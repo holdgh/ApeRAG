@@ -309,20 +309,11 @@ MAX_DOCUMENT_COUNT = env.int("MAX_DOCUMENT_COUNT", default=1000)
 MAX_CONVERSATION_COUNT = env.int("MAX_CONVERSATION_COUNT", default=100)
 
 CHAT_CONSUMER_IMPLEMENTATION = env.str("CHAT_CONSUMER_IMPLEMENTATION", default="document-qa")
-RETRIEVE_MODE = env.str("RETRIEVE_MODE", default="classic")
+RETRIEVE_MODE = "classic" # todo delete me
 
 # Chunking Settings
 CHUNK_SIZE = env.int("CHUNK_SIZE", default=400)
 CHUNK_OVERLAP_SIZE = env.int("CHUNK_OVERLAP_SIZE", default=20)
-
-# --- LLM Settings ---
-LIGHT_RAG_LLM_API_KEY = env.str("LIGHT_RAG_LLM_API_KEY", default="")
-LIGHT_RAG_LLM_BASE_URL = env.str("LIGHT_RAG_LLM_BASE_URL", default="")
-LIGHT_RAG_LLM_MODEL = env.str("LIGHT_RAG_LLM_MODEL", default="gpt-4o-mini")
-# --- General Settings ---
-LIGHT_RAG_WORKING_DIR = env.str("LIGHT_RAG_WORKING_DIR", default="./documents")
-LIGHT_RAG_ENABLE_LLM_CACHE = env.bool("LIGHT_RAG_ENABLE_LLM_CACHE", default=False)
-LIGHT_RAG_MAX_PARALLEL_INSERT = env.int("LIGHT_RAG_MAX_PARALLEL_INSERT", default=2)
 
 REDIS_HOST = env.str("REDIS_HOST", default="localhost")
 REDIS_PORT = env.str("REDIS_PORT", default="6379")

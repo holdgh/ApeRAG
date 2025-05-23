@@ -17,6 +17,7 @@ import os
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Tuple, Dict, Any, Optional
 
 from asgiref.sync import async_to_sync
 from celery import Task
@@ -48,6 +49,14 @@ from config.celery import app
 from config.vector_db import get_vector_db_connector
 
 logger = logging.getLogger(__name__)
+
+# Configuration constants
+class IndexTaskConfig:
+    MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
+    RETRY_COUNTDOWN_SENSITIVE = 5
+    RETRY_MAX_RETRIES_SENSITIVE = 1
+    RETRY_COUNTDOWN_LIGHTRAG = 60
+    RETRY_MAX_RETRIES_LIGHTRAG = 2
 
 
 class CustomLoadDocumentTask(Task):
@@ -88,10 +97,6 @@ class CustomDeleteDocumentTask(Task):
         document.save()
         logger.error(f"remove_index(): index delete from vector db failed:{exc}")
 
-    # def after_return(self, status, retval, task_id, args, kwargs, einfo):
-    #     print(retval)
-    #     return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
-
 
 class SensitiveInformationFound(Exception):
     """
@@ -99,8 +104,45 @@ class SensitiveInformationFound(Exception):
     """
 
 
+# Utility functions: Extract repeated code without changing main flow
+def create_local_path_embedding_loader(local_doc, document, collection, embedding_model, vector_size):
+    """Create LocalPathEmbedding instance - extracted from repeated code"""
+    return LocalPathEmbedding(
+        filepath=local_doc.path,
+        file_metadata=local_doc.metadata,
+        object_store_base_path=document.object_store_base_path(),
+        embedding_model=embedding_model,
+        vector_size=vector_size,
+        vector_store_adaptor=get_vector_db_connector(
+            collection=generate_vector_db_collection_name(collection_id=collection.id)),
+        chunk_size=settings.CHUNK_SIZE,
+        chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
+        tokenizer=get_default_tokenizer()
+    )
+
+
+def check_and_handle_sensitive_info(document, sensitive_info, sensitive_protect, sensitive_protect_method):
+    """Check and handle sensitive information - extracted from repeated code"""
+    document.sensitive_info = sensitive_info
+    if sensitive_protect and sensitive_info:
+        if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
+            raise SensitiveInformationFound()
+        else:
+            document.status = Document.Status.WARNING
+
+
+def get_collection_config_settings(collection):
+    """Extract collection configuration settings - extracted from repeated code"""
+    config = parseCollectionConfig(collection.config)
+    return (
+        config,
+        config.sensitive_protect or False,
+        config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED,
+        config.enable_knowledge_graph or False
+    )
+
+
 def uncompress_file(document: Document, supported_file_extensions: list[str]):
-    MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
     obj_store = get_object_store()
     supported_file_extensions = supported_file_extensions or []
 
@@ -125,7 +167,7 @@ def uncompress_file(document: Document, supported_file_extensions: list[str]):
                 extracted_files.append(path)
                 total_size += path.stat().st_size
 
-                if total_size > MAX_EXTRACTED_SIZE:
+                if total_size > IndexTaskConfig.MAX_EXTRACTED_SIZE:
                     raise Exception("Extracted size exceeded limit")
 
         for extracted_file_path in extracted_files:
@@ -160,14 +202,20 @@ def add_index_for_local_document(self, document_id):
         for info in e.args:
             if isinstance(info, str) and "sensitive information" in info:
                 raise e
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_SENSITIVE, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_SENSITIVE)
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
 def add_index_for_document(self, document_id):
     """
-        Celery task to do an embedding for a given Document and save the results in vector database.
-        Args:
-            document_id: the document in Django Module
+    Main task function for creating document indexes
+    
+    Handles the creation of vector index, fulltext index and knowledge graph index
+    
+    Args:
+        document_id: ID of the Django Document model
+        
+    Raises:
+        Exception: Various document processing exceptions (permissions, sensitive info, etc.)
     """
     document = Document.objects.get(id=document_id)
     # Set all index statuses to running
@@ -197,36 +245,20 @@ def add_index_for_document(self, document_id):
             if document.size == 0:
                 document.size = os.path.getsize(local_doc.path)
 
-            config = parseCollectionConfig(collection.config)
-            sensitive_protect = config.sensitive_protect or False
-            sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-            enable_knowledge_graph = config.enable_knowledge_graph or False
+            config, sensitive_protect, sensitive_protect_method, enable_knowledge_graph = get_collection_config_settings(collection)
 
             # Process vector index
             try:
                 embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-                loader = LocalPathEmbedding(filepath=local_doc.path,
-                                            file_metadata=local_doc.metadata,
-                                            object_store_base_path=document.object_store_base_path(),
-                                            embedding_model=embedding_model,
-                                            vector_size=vector_size,
-                                            vector_store_adaptor=get_vector_db_connector(
-                                                collection=generate_vector_db_collection_name(
-                                                    collection_id=collection.id)),
-                                            chunk_size=settings.CHUNK_SIZE,
-                                            chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                            tokenizer=get_default_tokenizer())
+                loader = create_local_path_embedding_loader(
+                    local_doc, document, collection, embedding_model, vector_size
+                )
 
                 ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
                                                                     sensitive_protect_method=sensitive_protect_method)
-                document.sensitive_info = sensitive_info
-
-                # Check for sensitive information
-                if sensitive_protect and sensitive_info:
-                    if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
-                        raise SensitiveInformationFound()
-                    else:
-                        document.status = Document.Status.WARNING
+                
+                # Check for sensitive information using extracted function
+                check_and_handle_sensitive_info(document, sensitive_info, sensitive_protect, sensitive_protect_method)
 
                 relate_ids = {
                     "ctx": ctx_ids,
@@ -287,9 +319,13 @@ def add_index_for_document(self, document_id):
 @app.task(base=CustomDeleteDocumentTask, bind=True, track_started=True)
 def remove_index(self, document_id):
     """
-    remove the doc embedding index from vector store db
-    :param self:
-    :param document_id:
+    Remove the document embedding index from vector store database
+    
+    Args:
+        document_id: ID of the Django Document model
+        
+    Raises:
+        Exception: Various database operation exceptions
     """
     document = Document.objects.get(id=document_id)
     try:
@@ -308,8 +344,12 @@ def remove_index(self, document_id):
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.name}")
 
-        # Call dedicated LightRAG deletion task
-        remove_lightrag_index_task.delay(document_id, collection.id)
+        # Only call LightRAG deletion task if knowledge graph is enabled
+        if collection.config:
+            config = parseCollectionConfig(collection.config)
+            enable_knowledge_graph = config.enable_knowledge_graph or False
+            if enable_knowledge_graph:
+                remove_lightrag_index_task.delay(document_id, collection.id)
 
     except Exception as e:
         raise e
@@ -323,11 +363,22 @@ def update_index_for_local_document(self, document_id):
         for info in e.args:
             if isinstance(info, str) and "sensitive information" in info:
                 raise e
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_SENSITIVE, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_SENSITIVE)
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
 def update_index_for_document(self, document_id):
+    """
+    Task function for updating document indexes
+    
+    Deletes old index data and creates new indexes
+    
+    Args:
+        document_id: ID of the Django Document model
+        
+    Raises:
+        Exception: Various document processing exceptions (permissions, sensitive info, etc.)
+    """
     document = Document.objects.get(id=document_id)
     document.status = Document.Status.RUNNING
     document.save()
@@ -341,30 +392,22 @@ def update_index_for_document(self, document_id):
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
         embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-        loader = LocalPathEmbedding(filepath=local_doc.path,
-                                    file_metadata=local_doc.metadata,
-                                    object_store_base_path=document.object_store_base_path(),
-                                    embedding_model=embedding_model,
-                                    vector_size=vector_size,
-                                    vector_store_adaptor=get_vector_db_connector(
-                                        collection=generate_vector_db_collection_name(
-                                            collection_id=collection.id)),
-                                    chunk_size=settings.CHUNK_SIZE,
-                                    chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                    tokenizer=get_default_tokenizer())
+        loader = create_local_path_embedding_loader(
+            local_doc, document, collection, embedding_model, vector_size
+        )
         loader.connector.delete(ids=relate_ids.get("ctx", []))
 
-        config = parseCollectionConfig(collection.config)
-        sensitive_protect = config.sensitive_protect or False
-        sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
+        config, sensitive_protect, sensitive_protect_method, enable_knowledge_graph = get_collection_config_settings(collection)
         ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
                                                             sensitive_protect_method=sensitive_protect_method)
-        document.sensitive_info = sensitive_info
+        
+        # Check for sensitive information using extracted function
         if sensitive_protect and sensitive_info != []:
             if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
                 raise SensitiveInformationFound()
             else:
                 document.status = Document.Status.WARNING
+        document.sensitive_info = sensitive_info
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
@@ -378,7 +421,6 @@ def update_index_for_document(self, document_id):
         document.relate_ids = json.dumps(relate_ids)
         logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
 
-        enable_knowledge_graph = config.enable_knowledge_graph or False
         if enable_knowledge_graph:
             add_lightrag_index_task.delay(content, document.id, local_doc.path)
 
@@ -412,34 +454,34 @@ def add_lightrag_index_task(self, content, document_id, file_path):
 
     async def _async_add_lightrag_index():
         from aperag.db.models import Document
-        
+
         document = await Document.objects.aget(id=document_id)
         collection = await document.get_collection()
-        
+
         # Avoid using cached instances in Celery tasks, create new ones each time
         embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
         llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
         namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
-        
+
         # Create new LightRAG instance directly without using cache
         rag_holder = await lightrag_holder.create_and_initialize_lightrag(
             namespace_prefix, llm_func, embed_func, embed_dim=dim
         )
-        
+
         await rag_holder.ainsert(
-            input=content, 
-            ids=document_id, 
+            input=content,
+            ids=document_id,
             file_paths=file_path
         )
-        
+
         lightrag_docs = await rag_holder.get_processed_docs()
         if not lightrag_docs or str(document_id) not in lightrag_docs:
             error_msg = f"Error indexing document for LightRAG (ID: {document_id}). No processed document found."
             logger.error(error_msg)
             raise RuntimeError(error_msg)
-            
+
         logger.info(f"Successfully completed LightRAG indexing for document (ID: {document_id})")
-    
+
     try:
         async_to_sync(_async_add_lightrag_index)()
         # Update graph index status to complete
@@ -455,7 +497,7 @@ def add_lightrag_index_task(self, content, document_id, file_path):
         document.graph_index_status = Document.IndexStatus.FAILED
         document.update_overall_status()
         document.save()
-        raise self.retry(exc=e, countdown=60, max_retries=2)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_LIGHTRAG, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_LIGHTRAG)
 
 
 @app.task
@@ -553,23 +595,23 @@ def remove_lightrag_index_task(self, document_id, collection_id):
     
     async def _async_delete_lightrag():
         from aperag.db.models import Collection
-        
+
         collection = await Collection.objects.aget(id=collection_id)
-        
+
         # Avoid using cached instances in Celery tasks, create new ones each time
         embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
         llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
         namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
-        
+
         # Create new LightRAG instance directly without using cache
         rag_holder = await lightrag_holder.create_and_initialize_lightrag(
             namespace_prefix, llm_func, embed_func, embed_dim=dim
         )
         await rag_holder.adelete_by_doc_id(document_id)
         logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
-    
+
     try:
         async_to_sync(_async_delete_lightrag)()
     except Exception as e:
         logger.error(f"LightRAG deletion failed for document (ID: {document_id}): {str(e)}")
-        raise self.retry(exc=e, countdown=60, max_retries=2)
+        raise self.retry(exc=e, countdown=IndexTaskConfig.RETRY_COUNTDOWN_LIGHTRAG, max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_LIGHTRAG)
