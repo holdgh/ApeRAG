@@ -197,6 +197,7 @@ async def _create_and_initialize_lightrag(
         # vector_storage="PGVectorStorage",
         # graph_storage="PGGraphStorage",
         # doc_status_storage="PGDocStatusStorage",
+        auto_manage_storages_states=False,
         addon_params={
             "language": "Simplified Chinese",
             # "language": "English",
