@@ -146,7 +146,7 @@ _lightrag_instances: Dict[str, LightRagHolder] = {}
 _initialization_lock = asyncio.Lock()
 
 
-async def _create_and_initialize_lightrag(
+async def create_and_initialize_lightrag(
     namespace_prefix: str,
     llm_func: Callable[..., Awaitable[str]],
     embed_impl: Callable[[List[str]], Awaitable[numpy.ndarray]],
@@ -241,7 +241,7 @@ async def get_lightrag_holder(
         try:
             embed_func, dim = await gen_lightrag_embed_func(collection=collection)
             llm_func = await gen_lightrag_llm_func(collection=collection)
-            client = await _create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func, embed_dim=dim)
+            client = await create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func, embed_dim=dim)
             _lightrag_instances[namespace_prefix] = client
             logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized successfully.")
             return client

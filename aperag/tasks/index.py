@@ -41,6 +41,7 @@ from aperag.utils.utils import (
     generate_fulltext_index_name,
     generate_qa_vector_db_collection_name,
     generate_vector_db_collection_name,
+    generate_lightrag_namespace_prefix,
 )
 from config import settings
 from config.celery import app
@@ -266,8 +267,8 @@ def remove_index(self, document_id):
         vector_db.connector.delete(ids=ctx_relate_ids)
         logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.name}")
 
-        rag: LightRagHolder = async_to_sync(lightrag_holder.get_lightrag_holder)(collection=collection)
-        async_to_sync(rag.adelete_by_doc_id)(document_id)
+        # 调用专门的 LightRAG 删除任务
+        remove_lightrag_index_task.delay(document_id, collection.id)
 
     except Exception as e:
         raise e
@@ -356,28 +357,54 @@ def update_index_for_document(self, document_id):
 
 
 def add_lightrag_index(content, document, local_doc):
-    logger.info(f"Begin indexing document for LightRAG (ID: {document.id})")
-    collection = async_to_sync(document.get_collection)()
+    """调用专门的 LightRAG 索引任务"""
+    logger.info(f"Scheduling LightRAG indexing task for document (ID: {document.id})")
+    add_lightrag_index_task.delay(content, document.id, local_doc.path)
+
+
+@app.task(bind=True, track_started=True)
+def add_lightrag_index_task(self, content, document_id, file_path):
+    """
+    专门用于 LightRAG 索引的 Celery 任务
+    在此任务中不使用缓存，每次都创建新的 LightRAG 实例以避免事件循环冲突
+    """
+    logger.info(f"Begin LightRAG indexing task for document (ID: {document_id})")
     
-    try:
-        rag = async_to_sync(lightrag_holder.get_lightrag_holder)(collection=collection)
+    async def _async_add_lightrag_index():
+        from aperag.db.models import Document
         
-        async_to_sync(rag.ainsert)(
-            input=content, 
-            ids=document.id, 
-            file_paths=local_doc.path
+        document = await Document.objects.aget(id=document_id)
+        collection = await document.get_collection()
+        
+        # 在 Celery 任务中避免使用缓存的实例，每次都创建新的
+        embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
+        llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
+        namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
+        
+        # 直接创建新的 LightRAG 实例，不使用缓存
+        rag_holder = await lightrag_holder.create_and_initialize_lightrag(
+            namespace_prefix, llm_func, embed_func, embed_dim=dim
         )
         
-        lightrag_docs = async_to_sync(rag.get_processed_docs)()
-        if not lightrag_docs or str(document.id) not in lightrag_docs:
-            error_msg = f"Error indexing document for LightRAG (ID: {document.id}). No processed document found."
+        await rag_holder.ainsert(
+            input=content, 
+            ids=document_id, 
+            file_paths=file_path
+        )
+        
+        lightrag_docs = await rag_holder.get_processed_docs()
+        if not lightrag_docs or str(document_id) not in lightrag_docs:
+            error_msg = f"Error indexing document for LightRAG (ID: {document_id}). No processed document found."
             logger.error(error_msg)
             raise RuntimeError(error_msg)
             
-        logger.info(f"Successfully indexed document for LightRAG (ID: {document.id})")
+        logger.info(f"Successfully completed LightRAG indexing for document (ID: {document_id})")
+    
+    try:
+        async_to_sync(_async_add_lightrag_index)()
     except Exception as e:
-        logger.error(f"add qdrant points for document {local_doc.path if local_doc else document.name} error:{str(e)}")
-        raise e
+        logger.error(f"LightRAG indexing failed for document (ID: {document_id}): {str(e)}")
+        raise self.retry(exc=e, countdown=60, max_retries=2)
 
 
 @app.task
@@ -463,3 +490,35 @@ def update_collection_status(status, collection_id):
         id=collection_id,
         status=Collection.Status.QUESTION_PENDING
     ).update(status=Collection.Status.ACTIVE)
+
+
+@app.task(bind=True, track_started=True)
+def remove_lightrag_index_task(self, document_id, collection_id):
+    """
+    专门用于 LightRAG 删除的 Celery 任务
+    在此任务中不使用缓存，每次都创建新的 LightRAG 实例以避免事件循环冲突
+    """
+    logger.info(f"Begin LightRAG deletion task for document (ID: {document_id})")
+    
+    async def _async_delete_lightrag():
+        from aperag.db.models import Collection
+        
+        collection = await Collection.objects.aget(id=collection_id)
+        
+        # 在 Celery 任务中避免使用缓存的实例，每次都创建新的
+        embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
+        llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
+        namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
+        
+        # 直接创建新的 LightRAG 实例，不使用缓存
+        rag_holder = await lightrag_holder.create_and_initialize_lightrag(
+            namespace_prefix, llm_func, embed_func, embed_dim=dim
+        )
+        await rag_holder.adelete_by_doc_id(document_id)
+        logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
+    
+    try:
+        async_to_sync(_async_delete_lightrag)()
+    except Exception as e:
+        logger.error(f"LightRAG deletion failed for document (ID: {document_id}): {str(e)}")
+        raise self.retry(exc=e, countdown=60, max_retries=2)
