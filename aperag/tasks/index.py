@@ -17,6 +17,7 @@ import os
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Tuple, Dict, Any, Optional
 
 from asgiref.sync import async_to_sync
 from celery import Task
@@ -49,6 +50,14 @@ from config.vector_db import get_vector_db_connector
 
 logger = logging.getLogger(__name__)
 
+# Configuration constants
+class IndexTaskConfig:
+    MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
+    RETRY_COUNTDOWN_SENSITIVE = 5
+    RETRY_MAX_RETRIES_SENSITIVE = 1
+    RETRY_COUNTDOWN_LIGHTRAG = 60
+    RETRY_MAX_RETRIES_LIGHTRAG = 2
+
 
 class CustomLoadDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
@@ -57,7 +66,7 @@ class CustomLoadDocumentTask(Task):
         # Update overall status
         document.update_overall_status()
         document.save()
-        logger.info(f"index for document {document.name} success")
+        logger.info(f"Index task completed successfully for document {document.name} (ID: {document_id})")
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         document_id = args[0]
@@ -68,14 +77,14 @@ class CustomLoadDocumentTask(Task):
         document.graph_index_status = Document.IndexStatus.FAILED
         document.update_overall_status()
         document.save()
-        logger.error(f"index for document {document.name} error:{exc}")
+        logger.error(f"Index task failed for document {document.name} (ID: {document_id}), error: {exc}")
 
 
 class CustomDeleteDocumentTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
         document_id = args[0]
         document = Document.objects.get(id=document_id)
-        logger.info(f"remove qdrant points for document {document.name} success")
+        logger.info(f"Remove index task completed successfully for document {document.name} (ID: {document_id})")
         document.status = Document.Status.DELETED
         document.gmt_deleted = timezone.now()
         document.name = document.name + "-" + str(uuid.uuid4())
@@ -86,11 +95,7 @@ class CustomDeleteDocumentTask(Task):
         document = Document.objects.get(id=document_id)
         document.status = Document.Status.FAILED
         document.save()
-        logger.error(f"remove_index(): index delete from vector db failed:{exc}")
-
-    # def after_return(self, status, retval, task_id, args, kwargs, einfo):
-    #     print(retval)
-    #     return super(CustomLoadDocumentTask, self).after_return(status, retval, task_id, args, kwargs, einfo)
+        logger.error(f"Remove index task failed for document {document.name} (ID: {document_id}), error: {exc}")
 
 
 class SensitiveInformationFound(Exception):
@@ -99,8 +104,167 @@ class SensitiveInformationFound(Exception):
     """
 
 
+# Helper functions for document processing
+def get_document_processing_context(document: Document) -> Dict[str, Any]:
+    """Get common context needed for document processing"""
+    metadata = json.loads(document.metadata)
+    metadata["doc_id"] = document.id
+    collection = async_to_sync(document.get_collection)()
+    config = parseCollectionConfig(collection.config)
+    
+    return {
+        'document': document,
+        'metadata': metadata,
+        'collection': collection,
+        'config': config,
+        'source': get_source(config) if config.source != "system" else None,
+        'embedding_model': None,  # Will be populated later
+        'vector_size': None,      # Will be populated later
+    }
+
+
+def prepare_document_source(context: Dict[str, Any]) -> Optional[Any]:
+    """Prepare document source and return local document"""
+    if not context['source']:
+        return None
+    
+    local_doc = context['source'].prepare_document(
+        name=context['document'].name, 
+        metadata=context['metadata']
+    )
+    
+    # Update document size if needed
+    if context['document'].size == 0:
+        context['document'].size = os.path.getsize(local_doc.path)
+    
+    return local_doc
+
+
+def setup_embedding_context(context: Dict[str, Any]) -> None:
+    """Setup embedding model and vector size in context"""
+    embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(context['collection'])
+    context['embedding_model'] = embedding_model
+    context['vector_size'] = vector_size
+
+
+def create_local_path_embedding(context: Dict[str, Any], local_doc: Any) -> LocalPathEmbedding:
+    """Create LocalPathEmbedding instance"""
+    return LocalPathEmbedding(
+        filepath=local_doc.path,
+        file_metadata=local_doc.metadata,
+        object_store_base_path=context['document'].object_store_base_path(),
+        embedding_model=context['embedding_model'],
+        vector_size=context['vector_size'],
+        vector_store_adaptor=get_vector_db_connector(
+            collection=generate_vector_db_collection_name(
+                collection_id=context['collection'].id)),
+        chunk_size=settings.CHUNK_SIZE,
+        chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
+        tokenizer=get_default_tokenizer()
+    )
+
+
+def check_sensitive_information(context: Dict[str, Any], sensitive_info: list) -> None:
+    """Check and handle sensitive information"""
+    config = context['config']
+    document = context['document']
+    sensitive_protect = config.sensitive_protect or False
+    sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
+    
+    document.sensitive_info = sensitive_info
+    
+    if sensitive_protect and sensitive_info:
+        if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
+            raise SensitiveInformationFound()
+        else:
+            document.status = Document.Status.WARNING
+
+
+def process_vector_index(context: Dict[str, Any], local_doc: Any) -> Tuple[list, str]:
+    """Process vector index and return ctx_ids and content"""
+    document = context['document']
+    config = context['config']
+    
+    try:
+        logger.info(f"Starting vector index processing for document {local_doc.path}")
+        
+        loader = create_local_path_embedding(context, local_doc)
+        
+        sensitive_protect = config.sensitive_protect or False
+        sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
+        
+        ctx_ids, content, sensitive_info = loader.load_data(
+            sensitive_protect=sensitive_protect,
+            sensitive_protect_method=sensitive_protect_method
+        )
+        
+        check_sensitive_information(context, sensitive_info)
+        
+        relate_ids = {"ctx": ctx_ids}
+        document.relate_ids = json.dumps(relate_ids)
+        document.vector_index_status = Document.IndexStatus.COMPLETE
+        logger.info(f"Vector index completed for document {local_doc.path}: {len(ctx_ids)} chunks created")
+        
+        return ctx_ids, content
+        
+    except Exception as e:
+        document.vector_index_status = Document.IndexStatus.FAILED
+        logger.error(f"Vector index failed for document {local_doc.path}: {str(e)}")
+        raise e
+
+
+def process_fulltext_index(context: Dict[str, Any], local_doc: Any, ctx_ids: list, content: str) -> None:
+    """Process fulltext index"""
+    document = context['document']
+    collection = context['collection']
+    
+    try:
+        if ctx_ids:  # Only create fulltext index when vector data exists
+            index = generate_fulltext_index_name(collection.id)
+            insert_document(index, document.id, local_doc.name, content)
+            document.fulltext_index_status = Document.IndexStatus.COMPLETE
+            logger.info(f"Fulltext index completed for document {local_doc.path}")
+        else:
+            document.fulltext_index_status = Document.IndexStatus.SKIPPED
+            logger.info(f"Fulltext index skipped for document {local_doc.path} (no content)")
+    except Exception as e:
+        document.fulltext_index_status = Document.IndexStatus.FAILED
+        logger.error(f"Fulltext index failed for document {local_doc.path}: {str(e)}")
+
+
+def process_graph_index(context: Dict[str, Any], local_doc: Any, content: str) -> None:
+    """Process knowledge graph index"""
+    document = context['document']
+    config = context['config']
+    enable_knowledge_graph = config.enable_knowledge_graph or False
+    
+    try:
+        if enable_knowledge_graph:
+            # Start asynchronous LightRAG indexing task
+            add_lightrag_index_task.delay(content, document.id, local_doc.path)
+            document.graph_index_status = Document.IndexStatus.RUNNING
+            logger.info(f"Graph index task scheduled for document {local_doc.path}")
+        else:
+            document.graph_index_status = Document.IndexStatus.SKIPPED
+            logger.info(f"Graph index skipped for document {local_doc.path} (not enabled)")
+    except Exception as e:
+        document.graph_index_status = Document.IndexStatus.FAILED
+        logger.error(f"Graph index failed for document {local_doc.path}: {str(e)}")
+
+
+def handle_document_exceptions(e: Exception, document_name: str) -> Exception:
+    """Handle common document processing exceptions"""
+    if isinstance(e, FeishuNoPermission):
+        return Exception(f"no permission to access document {document_name}")
+    elif isinstance(e, FeishuPermissionDenied):
+        return Exception(f"permission denied to access document {document_name}")
+    elif isinstance(e, SensitiveInformationFound):
+        return Exception(f"sensitive information found in document {document_name}")
+    else:
+        return e
+
+
 def uncompress_file(document: Document, supported_file_extensions: list[str]):
-    MAX_EXTRACTED_SIZE = 5000 * 1024 * 1024  # 5 GB
     obj_store = get_object_store()
     supported_file_extensions = supported_file_extensions or []
 
@@ -125,7 +289,7 @@ def uncompress_file(document: Document, supported_file_extensions: list[str]):
                 extracted_files.append(path)
                 total_size += path.stat().st_size
 
-                if total_size > MAX_EXTRACTED_SIZE:
+                if total_size > IndexTaskConfig.MAX_EXTRACTED_SIZE:
                     raise Exception("Extracted size exceeded limit")
 
         for extracted_file_path in extracted_files:
@@ -160,16 +324,24 @@ def add_index_for_local_document(self, document_id):
         for info in e.args:
             if isinstance(info, str) and "sensitive information" in info:
                 raise e
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        raise self.retry(
+            exc=e, 
+            countdown=IndexTaskConfig.RETRY_COUNTDOWN_SENSITIVE, 
+            max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_SENSITIVE
+        )
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
 def add_index_for_document(self, document_id):
     """
-        Celery task to do an embedding for a given Document and save the results in vector database.
-        Args:
-            document_id: the document in Django Module
+    Celery task to do an embedding for a given Document and save the results in vector database.
+    Args:
+        document_id: the document in Django Module
     """
-    document = Document.objects.get(id=document_id)
+    logger.info(f"Starting index creation for document ID: {document_id}")
+    
+    context = get_document_processing_context(Document.objects.get(id=document_id))
+    document = context['document']
+    
     # Set all index statuses to running
     document.vector_index_status = Document.IndexStatus.RUNNING
     document.fulltext_index_status = Document.IndexStatus.RUNNING
@@ -179,101 +351,32 @@ def add_index_for_document(self, document_id):
 
     source = None
     local_doc = None
-    metadata = json.loads(document.metadata)
-    metadata["doc_id"] = document_id
-    collection = async_to_sync(document.get_collection)()
-    supported_file_extensions = DocParser().supported_extensions()  # TODO: apply collection config
-    supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
+    
     try:
+        supported_file_extensions = DocParser().supported_extensions()  # TODO: apply collection config
+        supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
+        
         if document.object_path and Path(document.object_path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
-            config = parseCollectionConfig(collection.config)
-            if config.source != "system":
+            if context['config'].source != "system":
                 return
             uncompress_file(document, supported_file_extensions)
             return
         else:
-            source = get_source(parseCollectionConfig(collection.config))
-            local_doc = source.prepare_document(name=document.name, metadata=metadata)
-            if document.size == 0:
-                document.size = os.path.getsize(local_doc.path)
-
-            config = parseCollectionConfig(collection.config)
-            sensitive_protect = config.sensitive_protect or False
-            sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-            enable_knowledge_graph = config.enable_knowledge_graph or False
+            source = context['source']
+            local_doc = prepare_document_source(context)
+            setup_embedding_context(context)
 
             # Process vector index
-            try:
-                embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-                loader = LocalPathEmbedding(filepath=local_doc.path,
-                                            file_metadata=local_doc.metadata,
-                                            object_store_base_path=document.object_store_base_path(),
-                                            embedding_model=embedding_model,
-                                            vector_size=vector_size,
-                                            vector_store_adaptor=get_vector_db_connector(
-                                                collection=generate_vector_db_collection_name(
-                                                    collection_id=collection.id)),
-                                            chunk_size=settings.CHUNK_SIZE,
-                                            chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                            tokenizer=get_default_tokenizer())
-
-                ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
-                                                                    sensitive_protect_method=sensitive_protect_method)
-                document.sensitive_info = sensitive_info
-
-                # Check for sensitive information
-                if sensitive_protect and sensitive_info:
-                    if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
-                        raise SensitiveInformationFound()
-                    else:
-                        document.status = Document.Status.WARNING
-
-                relate_ids = {
-                    "ctx": ctx_ids,
-                }
-                document.relate_ids = json.dumps(relate_ids)
-                document.vector_index_status = Document.IndexStatus.COMPLETE
-                logger.info(f"Vector index completed for document {local_doc.path}: {ctx_ids}")
-
-            except Exception as e:
-                document.vector_index_status = Document.IndexStatus.FAILED
-                logger.error(f"Vector index failed for document {local_doc.path}: {str(e)}")
-                raise e
+            ctx_ids, content = process_vector_index(context, local_doc)
 
             # Process fulltext index
-            try:
-                if ctx_ids:  # Only create fulltext index when vector data exists
-                    index = generate_fulltext_index_name(collection.id)
-                    insert_document(index, document.id, local_doc.name, content)
-                    document.fulltext_index_status = Document.IndexStatus.COMPLETE
-                    logger.info(f"Fulltext index completed for document {local_doc.path}")
-                else:
-                    document.fulltext_index_status = Document.IndexStatus.SKIPPED
-                    logger.info(f"Fulltext index skipped for document {local_doc.path} (no content)")
-            except Exception as e:
-                document.fulltext_index_status = Document.IndexStatus.FAILED
-                logger.error(f"Fulltext index failed for document {local_doc.path}: {str(e)}")
+            process_fulltext_index(context, local_doc, ctx_ids, content)
 
             # Process knowledge graph index
-            try:
-                if enable_knowledge_graph:
-                    # Start asynchronous LightRAG indexing task
-                    add_lightrag_index_task.delay(content, document.id, local_doc.path)
-                    document.graph_index_status = Document.IndexStatus.RUNNING
-                    logger.info(f"Graph index task scheduled for document {local_doc.path}")
-                else:
-                    document.graph_index_status = Document.IndexStatus.SKIPPED
-                    logger.info(f"Graph index skipped for document {local_doc.path} (not enabled)")
-            except Exception as e:
-                document.graph_index_status = Document.IndexStatus.FAILED
-                logger.error(f"Graph index failed for document {local_doc.path}: {str(e)}")
+            process_graph_index(context, local_doc, content)
 
-    except FeishuNoPermission:
-        raise Exception("no permission to access document %s" % document.name)
-    except FeishuPermissionDenied:
-        raise Exception("permission denied to access document %s" % document.name)
-    except SensitiveInformationFound:
-        raise Exception("sensitive information found in document %s" % document.name)
+    except (FeishuNoPermission, FeishuPermissionDenied, SensitiveInformationFound) as e:
+        raise handle_document_exceptions(e, document.name)
     except Exception as e:
         raise e
     finally:
@@ -291,6 +394,8 @@ def remove_index(self, document_id):
     :param self:
     :param document_id:
     """
+    logger.info(f"Starting index removal for document ID: {document_id}")
+    
     document = Document.objects.get(id=document_id)
     try:
         collection = async_to_sync(document.get_collection)()
@@ -306,7 +411,7 @@ def remove_index(self, document_id):
         )
         ctx_relate_ids = relate_ids.get("ctx", [])
         vector_db.connector.delete(ids=ctx_relate_ids)
-        logger.info(f"remove ctx qdrant points: {ctx_relate_ids} for document {document.name}")
+        logger.info(f"Removed {len(ctx_relate_ids)} vector points for document {document.name}")
 
         # Only call LightRAG deletion task if knowledge graph is enabled
         config = parseCollectionConfig(collection.config)
@@ -326,78 +431,65 @@ def update_index_for_local_document(self, document_id):
         for info in e.args:
             if isinstance(info, str) and "sensitive information" in info:
                 raise e
-        raise self.retry(exc=e, countdown=5, max_retries=1)
+        raise self.retry(
+            exc=e, 
+            countdown=IndexTaskConfig.RETRY_COUNTDOWN_SENSITIVE, 
+            max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_SENSITIVE
+        )
 
 
 @app.task(base=CustomLoadDocumentTask, bind=True, track_started=True)
 def update_index_for_document(self, document_id):
-    document = Document.objects.get(id=document_id)
+    logger.info(f"Starting index update for document ID: {document_id}")
+    
+    context = get_document_processing_context(Document.objects.get(id=document_id))
+    document = context['document']
+    
     document.status = Document.Status.RUNNING
     document.save()
 
     try:
         relate_ids = json.loads(document.relate_ids) if document.relate_ids.strip() else {}
-        collection = async_to_sync(document.get_collection)()
-        source = get_source(parseCollectionConfig(collection.config))
-        metadata = json.loads(document.metadata)
-        metadata["doc_id"] = document_id
-        local_doc = source.prepare_document(name=document.name, metadata=metadata)
+        
+        local_doc = prepare_document_source(context)
+        setup_embedding_context(context)
 
-        embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-        loader = LocalPathEmbedding(filepath=local_doc.path,
-                                    file_metadata=local_doc.metadata,
-                                    object_store_base_path=document.object_store_base_path(),
-                                    embedding_model=embedding_model,
-                                    vector_size=vector_size,
-                                    vector_store_adaptor=get_vector_db_connector(
-                                        collection=generate_vector_db_collection_name(
-                                            collection_id=collection.id)),
-                                    chunk_size=settings.CHUNK_SIZE,
-                                    chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-                                    tokenizer=get_default_tokenizer())
+        loader = create_local_path_embedding(context, local_doc)
         loader.connector.delete(ids=relate_ids.get("ctx", []))
 
-        config = parseCollectionConfig(collection.config)
+        config = context['config']
         sensitive_protect = config.sensitive_protect or False
         sensitive_protect_method = config.sensitive_protect_method or Document.ProtectAction.WARNING_NOT_STORED
-        ctx_ids, content, sensitive_info = loader.load_data(sensitive_protect=sensitive_protect,
-                                                            sensitive_protect_method=sensitive_protect_method)
-        document.sensitive_info = sensitive_info
-        if sensitive_protect and sensitive_info != []:
-            if sensitive_protect_method == Document.ProtectAction.WARNING_NOT_STORED:
-                raise SensitiveInformationFound()
-            else:
-                document.status = Document.Status.WARNING
-        logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
+        ctx_ids, content, sensitive_info = loader.load_data(
+            sensitive_protect=sensitive_protect,
+            sensitive_protect_method=sensitive_protect_method
+        )
+        
+        check_sensitive_information(context, sensitive_info)
+        
+        logger.info(f"Updated vector points: {len(ctx_ids)} chunks for document {local_doc.path}")
 
         # only index the document that have points in the vector database
         if ctx_ids:
-            index = generate_fulltext_index_name(collection.id)
+            index = generate_fulltext_index_name(context['collection'].id)
             insert_document(index, document.id, local_doc.name, content)
 
-        relate_ids = {
-            "ctx": ctx_ids,
-        }
+        relate_ids = {"ctx": ctx_ids}
         document.relate_ids = json.dumps(relate_ids)
-        logger.info(f"update qdrant points: {document.relate_ids} for document {local_doc.path}")
 
         enable_knowledge_graph = config.enable_knowledge_graph or False
         if enable_knowledge_graph:
             add_lightrag_index_task.delay(content, document.id, local_doc.path)
 
-    except FeishuNoPermission:
-        raise Exception("no permission to access document %s" % document.name)
-    except FeishuPermissionDenied:
-        raise Exception("permission denied to access document %s" % document.name)
-    except SensitiveInformationFound:
-        raise Exception("sensitive information found in document %s" % document.name)
+    except (FeishuNoPermission, FeishuPermissionDenied, SensitiveInformationFound) as e:
+        raise handle_document_exceptions(e, document.name)
     except Exception as e:
-        logger.error(e)
-        raise Exception("an error occur %s" % e)
+        logger.error(f"Update index error for document {document.name}: {e}")
+        raise Exception(f"an error occur {e}")
     finally:
         document.save()
 
-    source.cleanup_document(local_doc.path)
+    context['source'].cleanup_document(local_doc.path)
 
 
 @app.task(bind=True, track_started=True)
@@ -458,7 +550,11 @@ def add_lightrag_index_task(self, content, document_id, file_path):
         document.graph_index_status = Document.IndexStatus.FAILED
         document.update_overall_status()
         document.save()
-        raise self.retry(exc=e, countdown=60, max_retries=2)
+        raise self.retry(
+            exc=e, 
+            countdown=IndexTaskConfig.RETRY_COUNTDOWN_LIGHTRAG, 
+            max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_LIGHTRAG
+        )
 
 
 @app.task
@@ -575,4 +671,8 @@ def remove_lightrag_index_task(self, document_id, collection_id):
         async_to_sync(_async_delete_lightrag)()
     except Exception as e:
         logger.error(f"LightRAG deletion failed for document (ID: {document_id}): {str(e)}")
-        raise self.retry(exc=e, countdown=60, max_retries=2)
+        raise self.retry(
+            exc=e, 
+            countdown=IndexTaskConfig.RETRY_COUNTDOWN_LIGHTRAG, 
+            max_retries=IndexTaskConfig.RETRY_MAX_RETRIES_LIGHTRAG
+        )
