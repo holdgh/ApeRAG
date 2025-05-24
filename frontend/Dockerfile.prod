@@ -1,0 +1,32 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json yarn.lock ./
+
+# Install dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN yarn build
+
+# Runtime stage
+FROM nginx:mainline-alpine3.18-slim
+
+# Copy built files from builder
+COPY --from=builder /app/dist /html/web
+
+# Copy nginx startup script
+COPY ./deploy/startup.sh /docker-entrypoint.d/
+
+# Make startup script executable
+RUN chmod +x /docker-entrypoint.d/startup.sh
+
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"] 

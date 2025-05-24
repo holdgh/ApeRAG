@@ -69,3 +69,7 @@ app.aperag.io/component: django
 {{- define "celeryworker.labels" -}}
 app.aperag.io/component: celery-worker
 {{- end }}
+
+{{- define "frontend.labels" -}}
+app.aperag.io/component: frontend
+{{- end }}
