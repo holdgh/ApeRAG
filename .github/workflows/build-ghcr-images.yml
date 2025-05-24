@@ -31,6 +31,12 @@ on:
         default: ''
         type: string
 
+# Global permissions for the workflow
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 env:
   REGISTRY_GHCR: ghcr.io
 
@@ -42,6 +48,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -96,8 +103,12 @@ jobs:
           push: ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-amd64
-          cache-to: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-amd64,mode=max
+          cache-from: |
+            type=gha,scope=aperag-amd64
+            ${{ (github.event_name != 'pull_request') && 'type=registry,ref=ghcr.io/apecloud/aperag:cache-amd64' || '' }}
+          cache-to: |
+            type=gha,scope=aperag-amd64,mode=max
+            ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) && 'type=registry,ref=ghcr.io/apecloud/aperag:cache-amd64,mode=max' || '' }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -108,6 +119,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -162,8 +174,12 @@ jobs:
           push: ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-arm64
-          cache-to: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-arm64,mode=max
+          cache-from: |
+            type=gha,scope=aperag-arm64
+            ${{ (github.event_name != 'pull_request') && 'type=registry,ref=ghcr.io/apecloud/aperag:cache-arm64' || '' }}
+          cache-to: |
+            type=gha,scope=aperag-arm64,mode=max
+            ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) && 'type=registry,ref=ghcr.io/apecloud/aperag:cache-arm64,mode=max' || '' }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -175,6 +191,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -207,10 +224,16 @@ jobs:
             
             if docker manifest inspect $tag-amd64 > /dev/null 2>&1; then
               amd64_exists=true
+              echo "✅ AMD64 image found: $tag-amd64"
+            else
+              echo "❌ AMD64 image not found: $tag-amd64"
             fi
             
             if docker manifest inspect $tag-arm64 > /dev/null 2>&1; then
               arm64_exists=true
+              echo "✅ ARM64 image found: $tag-arm64"
+            else
+              echo "❌ ARM64 image not found: $tag-arm64"
             fi
             
             # Create manifest with available architectures
@@ -223,11 +246,13 @@ jobs:
             fi
             
             if [ -n "$manifest_args" ]; then
+              echo "Creating manifest with images:$manifest_args"
               docker manifest create $tag $manifest_args
               docker manifest push $tag
               echo "✅ Created and pushed manifest for $tag"
             else
               echo "❌ No architecture images found for $tag"
+              exit 1
             fi
           done
 
@@ -236,6 +261,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -291,8 +317,12 @@ jobs:
           push: ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag-frontend:cache
-          cache-to: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag-frontend:cache,mode=max
+          cache-from: |
+            type=gha,scope=aperag-frontend
+            ${{ (github.event_name != 'pull_request') && 'type=registry,ref=ghcr.io/apecloud/aperag-frontend:cache' || '' }}
+          cache-to: |
+            type=gha,scope=aperag-frontend,mode=max
+            ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) && 'type=registry,ref=ghcr.io/apecloud/aperag-frontend:cache,mode=max' || '' }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
