@@ -1,17 +1,84 @@
+# Git and version control
 .git
 .gitignore
 .dockerignore
 
+# Documentation and examples
 docs/
 examples/
 tests/
 *.md
+README*
+
+# Python cache and temporary files
 *.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.coverage
+.tox/
+.cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
+# Frontend
 frontend/node_modules
-resources/
-documents
+frontend/dist
+frontend/.umi
+frontend/.env*
+frontend/yarn-error.log
+frontend/npm-debug.log*
 
-.env
+# Development and build artifacts
+resources/
+documents/
+.venv/
+venv/
+env/
+.env*
 .docker-env
 ApeRAG-FrontEnd
+*.egg-info/
+build/
+dist/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Object storage cache
+.objects/
+
+# Deployment files
+deploy/
+docker-compose*.yml
+Dockerfile*
+Makefile*
+
+# Scripts (keep only entrypoint)
+scripts/
+!scripts/entrypoint.sh

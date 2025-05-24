@@ -6,14 +6,18 @@ WORKDIR /app
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+# Install dependencies with cache optimization
+RUN yarn install --frozen-lockfile --network-timeout 300000 && \
+    yarn cache clean
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN yarn build
+# Build the application and clean up
+RUN yarn build && \
+    rm -rf node_modules && \
+    yarn install --production --frozen-lockfile && \
+    yarn cache clean
 
 # Runtime stage
 FROM nginx:mainline-alpine3.18-slim
