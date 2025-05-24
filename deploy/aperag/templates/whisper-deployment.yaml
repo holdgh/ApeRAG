@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: openai-whisper-asr
-          image: {{ .Values.image.whisper.registry | default "docker.io" }}/{{ .Values.image.whisper.repository }}:{{ .Values.image.whisper.tag }}
+          image: "{{ .Values.image.whisper.repository }}:{{ .Values.image.whisper.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 9000

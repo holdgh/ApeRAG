@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: paddleocr-hubserving
-          image: {{ .Values.image.paddleocr.registry | default "docker.io" }}/{{ .Values.image.paddleocr.repository }}:{{ .Values.image.paddleocr.tag }}
+          image: "{{ .Values.image.paddleocr.repository }}:{{ .Values.image.paddleocr.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8866

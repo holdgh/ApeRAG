@@ -30,8 +30,8 @@ spec:
     spec:
       containers:
         - name: aperag-frontend
-          image: {{ .Values.frontend.image.registry | default .Values.image.registry | default "ghcr.io" }}/{{ .Values.frontend.image.repository | default "apecloud/aperag-frontend" }}:{{ .Values.frontend.image.tag | default .Values.image.tag | default .Chart.AppVersion }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy | default .Values.image.pullPolicy }}
           ports:
             - containerPort: 3000
               protocol: TCP

@@ -32,7 +32,7 @@ spec:
           envFrom:
             - secretRef:
                 name: aperag-env
-          image: {{ .Values.image.registry | default "ghcr.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-celerybeat
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
