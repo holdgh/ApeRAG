@@ -4,11 +4,11 @@
 
 
 image:
-  registry: registry.cn-hangzhou.aliyuncs.com
+  registry: ghcr.io
   repository: apecloud/aperag
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "v0.1.2"
+  tag: "latest"
 
   paddleocr:
     registry: docker.io
@@ -370,7 +370,7 @@ paddleocr:
 frontend:
   replicaCount: 1
   image:
-    registry: docker.io
+    registry: ghcr.io
     repository: apecloud/aperag-frontend
     tag: "latest"
   resources: {}

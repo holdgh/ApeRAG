@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: aperag-frontend
-          image: {{ .Values.frontend.image.registry | default .Values.image.registry | default "docker.io" }}/{{ .Values.frontend.image.repository | default "apecloud/aperag-frontend" }}:{{ .Values.frontend.image.tag | default .Values.image.tag | default .Chart.AppVersion }}
+          image: {{ .Values.frontend.image.registry | default .Values.image.registry | default "ghcr.io" }}/{{ .Values.frontend.image.repository | default "apecloud/aperag-frontend" }}:{{ .Values.frontend.image.tag | default .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 3000
@@ -73,31 +73,4 @@ spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
-      {{- end }}
-
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: aperag-console
-  labels:
-    app: aperag-console
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: aperag-console
-  template:
-    metadata:
-      labels:
-        app: aperag-console
-    spec:
-      containers:
-      - image: {{ .Values.image.console.registry | default "docker.io" }}/{{ .Values.image.console.repository }}:{{ .Values.image.console.tag | default .Chart.Version }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        name: aperag-console
-        ports:
-        - containerPort: 80
-          protocol: TCP
-
+      {{- end }} 
