@@ -42,9 +42,6 @@ spec:
                   fieldPath: status.hostIP
             - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
               value: python
-          envFrom:
-            - secretRef:
-                name: aperag-env
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -57,6 +54,9 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: data
+            - name: env-config
+              mountPath: /app/config
+              readOnly: true
       restartPolicy: Always
       {{- with .Values.django.affinity }}
       affinity:
@@ -67,3 +67,6 @@ spec:
         - name: data
           hostPath:
             path: {{ .Values.django.dataPath }}
+        - name: env-config
+          secret:
+            secretName: aperag-env

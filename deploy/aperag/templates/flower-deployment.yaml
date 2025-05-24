@@ -29,9 +29,6 @@ spec:
             - -c
             - |
               /app/scripts/entrypoint.sh /app/scripts/start-celery-flower.sh
-          envFrom:
-            - secretRef:
-                name: aperag-env
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-flower
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -39,5 +36,13 @@ spec:
             - containerPort: 5555
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: env-config
+              mountPath: /app/config
+              readOnly: true
       restartPolicy: Always
+      volumes:
+        - name: env-config
+          secret:
+            secretName: aperag-env
 status: {}

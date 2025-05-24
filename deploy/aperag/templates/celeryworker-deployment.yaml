@@ -40,9 +40,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
-          envFrom:
-            - secretRef:
-                name: aperag-env
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -53,6 +50,9 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: data
+            - name: env-config
+              mountPath: /app/config
+              readOnly: true
       restartPolicy: Always
       {{- with index .Values "celery-worker" "affinity" }}
       affinity:
@@ -63,3 +63,6 @@ spec:
         - name: data
           hostPath:
             path: {{ .Values.django.dataPath }}
+        - name: env-config
+          secret:
+            secretName: aperag-env
