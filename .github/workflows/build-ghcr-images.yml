@@ -96,8 +96,8 @@ jobs:
           push: ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=backend-amd64
-          cache-to: type=gha,mode=max,scope=backend-amd64
+          cache-from: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-amd64
+          cache-to: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-amd64,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -162,8 +162,8 @@ jobs:
           push: ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=backend-arm64
-          cache-to: type=gha,mode=max,scope=backend-arm64
+          cache-from: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-arm64
+          cache-to: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag:cache-arm64,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -291,8 +291,8 @@ jobs:
           push: ${{ (github.event_name != 'pull_request') && (inputs.push_images != false) }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          cache-from: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag-frontend:cache
+          cache-to: type=registry,ref=${{ env.REGISTRY_GHCR }}/apecloud/aperag-frontend:cache,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
