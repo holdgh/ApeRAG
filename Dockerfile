@@ -10,7 +10,7 @@ COPY pyproject.toml uv.lock* ./
 RUN apt update && \
     apt install --no-install-recommends -y build-essential git curl && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    /root/.local/bin/uv venv --python 3.11 && \
+    /root/.local/bin/uv venv .venv --python 3.11 && \
     /root/.local/bin/uv sync && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -33,9 +33,11 @@ RUN apt update && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
 
-# Copy only necessary files from builder
-COPY --from=builder /app/.venv/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /app/.venv/bin /usr/local/bin
+# Copy the entire virtual environment
+COPY --from=builder /app/.venv /opt/venv
+
+# Make sure we use the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
 COPY . /app
