@@ -8,12 +8,6 @@ image:
   tag: "latest"
   pullPolicy: IfNotPresent
 
-  paddleocr:
-    repository: "docker.io/gswyhq/paddleocr"  # Full image name including registry
-    tag: "hubserving"
-  whisper:
-    repository: "docker.io/onerahmet/openai-whisper-asr-webservice"  # Full image name including registry
-    tag: "latest-gpu"
   embedding:
     repository: "docker.io/michaelf34/infinity"  # Full image name including registry
     tag: "latest"
@@ -149,8 +143,6 @@ django:
   azureOpenAIAPIVersion: ""
   embeddingModel: "bge"
   embeddingDevice: "cpu"
-  whisperHost: http://openai-whisper-asr-service:9000
-  paddleocrHost: http://paddleocr-hubserving-service:8866
   embeddingBackend: "xinference"
   embeddingServiceUrl: http://xinference-xinference:9997
   embeddingServiceModel: "bge-large-zh-v1.5"
@@ -316,40 +308,6 @@ flower:
   user: admin
   password: admin
   resources: { }
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
-
-whisper:
-  enabled: false
-  replicaCount: 1
-  resources:
-    limits:
-      nvidia.com/gpu: "1"
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
-
-paddleocr:
-  enabled: false
-  replicaCount: 1
-  resources:
-    limits:
-      nvidia.com/gpu: "1"
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
