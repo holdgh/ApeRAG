@@ -11,7 +11,7 @@ all: docker-build
 ## build assets
 .PHONY: build-assets
 build-assets:
-	yarn build
+	BASE_PATH=/web/ yarn build
 
 # buildx setup
 .PHONY: docker-buildx-setup
