@@ -173,4 +173,4 @@ exclude = [
 ]
 
 [tool.setuptools]
-packages = ["aperag"]
+packages = ["aperag", "config"]

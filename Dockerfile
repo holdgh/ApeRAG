@@ -49,4 +49,7 @@ COPY . /app
 
 WORKDIR /app
 
+# Install the application in development mode so Python can find all modules
+RUN . /opt/venv/bin/activate && pip install -e .
+
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
