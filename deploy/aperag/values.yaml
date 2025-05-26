@@ -4,31 +4,12 @@
 
 
 image:
-  registry: registry.cn-hangzhou.aliyuncs.com
-  repository: apecloud/aperag
+  repository: "docker.io/apecloud/aperag"  # Full image name including registry
+  tag: "test12"
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "v0.1.2"
-  console:
-    registry: docker.io
-    repository: apecloud/aperag-console
-    tag: "latest"
-  website:
-    registry: docker.io
-    repository: apecloud/aperag-website
-    tag: "latest"
 
-  paddleocr:
-    registry: docker.io
-    repository: gswyhq/paddleocr
-    tag: "hubserving"
-  whisper:
-    registry: docker.io
-    repository: onerahmet/openai-whisper-asr-webservice
-    tag: "latest-gpu"
   embedding:
-    registry: docker.io
-    repository: michaelf34/infinity
+    repository: "docker.io/michaelf34/infinity"  # Full image name including registry
     tag: "latest"
 
 imagePullSecrets: []
@@ -107,17 +88,52 @@ django:
     # requests:
     #   cpu: 100m
     #   memory: 128Mi
-  authType: none
-  esHost: http://elasticsearch-mdit-http:9200
+  authType: cookie
+  esHost: http://es-cluster-mdit-http:9200
   redisSecret: redis-redis-account-default
-  redisHost: redis-redis-redis
+  redisHost: redis-cluster-redis-redis
   redisPort: 6379
+  redisUsername: default
+  redisPassword: 7zJ683ZaB3
   metaDBSecret: postgresql-conn-credential
-  metaDBDatabase: aperag
+  metaDBDatabase: postgres
+  metaDBHost: pg-cluster-postgresql-postgresql
+  metaDBPort: 5432
+  metaDBUsername: postgres
+  metaDBPassword: y25a9b2HD4
   adminUser: ""
   adminToken: ""
   vectorDBType: qdrant
-  vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+  vectorDBContext: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+  objectStoreType: local
+  objectStoreLocalRootDir: /data/objects
+  # S3 object store settings (when objectStoreType is s3)
+  objectStoreS3Endpoint: ""
+  objectStoreS3Region: ""
+  objectStoreS3AccessKey: ""
+  objectStoreS3SecretKey: ""
+  objectStoreS3Bucket: aperag
+  objectStoreS3PrefixPath: ""
+  objectStoreS3UsePathStyle: "True"
+  # Chunking settings
+  chunkSize: 400
+  chunkOverlapSize: 20
+  embeddingMaxChunksInBatch: 16
+  # Email settings
+  emailHost: smtp.gmail.com
+  emailPort: 587
+  emailUseTls: "True"
+  emailHostUser: ""
+  emailHostPassword: ""
+  defaultFromEmail: noreply@aperag.com
+  siteUrl: http://localhost:8000
+  # Registration
+  registerMode: unlimited
+  # Chat
+  chatConsumerImplementation: document-qa
+  # Rerank settings
+  rerankServiceModel: "jina-reranker-v2-base-multilingual"
+  rerankServiceTokenApiKey: ""
   openaiAPIKey: ""
   openaiProxy: ""
   openaiAPIBase: ""
@@ -127,14 +143,12 @@ django:
   azureOpenAIAPIVersion: ""
   embeddingModel: "bge"
   embeddingDevice: "cpu"
-  whisperHost: http://openai-whisper-asr-service:9000
-  paddleocrHost: http://paddleocr-hubserving-service:8866
-  embeddingBackend: "local"
+  embeddingBackend: "xinference"
   embeddingServiceUrl: http://xinference-xinference:9997
   embeddingServiceModel: "bge-large-zh-v1.5"
   embeddingServiceModelUid: ""
-  rerankBackend: "local"
-  rerankServiceUrl: http://xinference-xinference:9997
+  rerankBackend: "jina_ai"
+  rerankServiceUrl: https://api.jina.ai/v1/rerank
   rerankServiceModelUid: ""
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
@@ -305,29 +319,14 @@ flower:
     #   cpu: 100m
     #   memory: 128Mi
 
-whisper:
-  enabled: false
+# Frontend configuration
+frontend:
   replicaCount: 1
-  resources:
-    limits:
-      nvidia.com/gpu: "1"
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
-
-paddleocr:
-  enabled: false
-  replicaCount: 1
-  resources:
-    limits:
-      nvidia.com/gpu: "1"
+  image:
+    repository: "aperag-frontend"  # Full image name including registry
+    tag: "test2"
+    pullPolicy: IfNotPresent
+  resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -336,5 +335,13 @@ paddleocr:
     #   cpu: 100m
     #   memory: 128Mi
     # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
+    #   cpu: 50m
+    #   memory: 64Mi
+  affinity: {}
+  # Frontend configuration values for settings.js
+  title: "ApeRAG"
+  favicon: ""
+  logoDark: ""
+  logoLight: ""
+  github: "https://github.com/apecloud/ApeRAG"
+  publicIps: []

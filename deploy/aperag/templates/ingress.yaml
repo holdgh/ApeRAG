@@ -2,12 +2,16 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: aperag-ingress
+  labels:
+    {{- include "aperag.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
   {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
   rules:
   - http:
       paths:
@@ -22,16 +26,16 @@ spec:
         path: "/web"
         backend:
           service:
-            name: aperag-console
+            name: aperag-frontend
             port:
-              number: 8002
+              number: 3000
       - pathType: Prefix
         path: "/"
         backend:
           service:
-            name: aperag-website
+            name: aperag-frontend
             port:
-              number: 8001
+              number: 3000
     {{- if .Values.django.domainName }}
     host: {{ .Values.django.domainName }}
     {{- end }}

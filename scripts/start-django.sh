@@ -5,7 +5,7 @@ set -o pipefail
 set -o nounset
 
 
-python manage.py migrate
+python3 manage.py migrate
 
 if [ -f "static/web/index.html" ]; then
   cp static/web/index.html aperag/templates/404.html

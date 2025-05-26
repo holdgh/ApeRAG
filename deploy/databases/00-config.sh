@@ -5,7 +5,7 @@ DATABASE_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pw
 source "$DATABASE_SCRIPT_DIR/scripts/common.sh"
 
 # Namespace configuration
-NAMESPACE="rag"
+NAMESPACE="default"
 # version
 KB_VERSION="1.0.0-beta.48"
 ADDON_CLUSTER_CHART_VERSION="1.0.0-alpha.0"
@@ -16,6 +16,6 @@ HELM_REPO="https://apecloud.github.io/helm-charts"
 ENABLE_POSTGRESQL=true
 ENABLE_REDIS=true
 ENABLE_QDRANT=true
-ENABLE_NEO4J=true
-ENABLE_ELASTICSEARCH=false
+ENABLE_NEO4J=false
+ENABLE_ELASTICSEARCH=true
 ENABLE_MONGODB=false

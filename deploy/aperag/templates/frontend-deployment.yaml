@@ -1,52 +1,76 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aperag-website
+  annotations:
+    kompose.cmd: kompose convert -f compose.yml -c -o deploy/aperag
+    kompose.version: 1.26.0 (40646f47)
   labels:
-    app: aperag-website
+    {{- include "aperag.labels" . | nindent 4 }}
+  name: frontend
 spec:
-  replicas: 1
+  replicas: {{ .Values.frontend.replicaCount | default 1 }}
   selector:
     matchLabels:
-      app: aperag-website
+      {{- include "aperag.selectorLabels" . | nindent 6 }}
+      {{- include "frontend.labels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
-        app: aperag-website
+        {{- include "aperag.selectorLabels" . | nindent 8 }}
+        {{- include "frontend.labels" . | nindent 8 }}
     spec:
       containers:
-      - image: {{ .Values.image.website.registry | default "docker.io" }}/{{ .Values.image.website.repository }}:{{ .Values.image.website.tag }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        name: aperag-website
-        ports:
-        - containerPort: 80
-          protocol: TCP
+        - name: aperag-frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy | default .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: APERAG_CONSOLE_SERVICE_HOST
+              value: aperag
+            - name: APERAG_CONSOLE_SERVICE_PORT
+              value: "8000"
+          {{- with .Values.frontend.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: settings
+              mountPath: /html/web/settings.js
+              subPath: settings.js
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /web/
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /web/
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: settings
+          configMap:
+            name: aperag-frontend-config
+      restartPolicy: Always
+      {{- with .Values.frontend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: docker-hub-secret
-
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: aperag-console
-  labels:
-    app: aperag-console
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: aperag-console
-  template:
-    metadata:
-      labels:
-        app: aperag-console
-    spec:
-      containers:
-      - image: {{ .Values.image.console.registry | default "docker.io" }}/{{ .Values.image.console.repository }}:{{ .Values.image.console.tag | default .Chart.Version }}
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        name: aperag-console
-        ports:
-        - containerPort: 80
-          protocol: TCP
-
+        {{- toYaml . | nindent 8 }}
+      {{- end }} 

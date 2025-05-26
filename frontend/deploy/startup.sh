@@ -65,18 +65,33 @@ http {
         server_name  localhost;
         autoindex on;
         client_max_body_size 2G;
+        
+        # API proxy
         location /api/ {
             proxy_set_header X-Real-IP \$remote_addr;
             proxy_http_version 1.1;
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://$API_HOST:$API_PORT;
-        }                                                                                                                                                                                                                                       
-        location / {                                                                                                                
-            root   /html;                                                                                                         
-            index  index.html index.htm;     
-            try_files \$uri \$uri/ /web/index.html;                                                                                                     
-        }                                                                                                                               
+        }
+        
+        # Handle /web/ path - serve static files from /html/web
+        location /web/ {
+            root   /html;
+            index  index.html index.htm;
+            try_files \$uri \$uri/ /web/index.html;
+        }
+        
+        # Handle root path - redirect to /web/
+        location = / {
+            return 301 /web/;
+        }
+        
+        # Handle other root paths - serve from /html directory with fallback to /web/
+        location / {
+            root   /html;
+            try_files \$uri \$uri/ /web/index.html;
+        }
     }
 }
 EOF

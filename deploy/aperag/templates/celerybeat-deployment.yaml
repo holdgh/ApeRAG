@@ -29,49 +29,18 @@ spec:
             - -c
             - |
               /app/scripts/entrypoint.sh /app/scripts/start-celery-beat.sh
-          env:
-            - name: REDIS_HOST
-              value: {{ .Values.django.redisHost | quote }}
-            - name: REDIS_PORT
-              value: {{ .Values.django.redisPort | quote }}
-            - name: REDIS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: username
-            - name: REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.redisSecret }}
-                  key: password
-            - name: DJANGO_LOG_LEVEL
-              value: {{ .Values.django.logLevel | quote }}
-            - name: POSTGRES_DB
-              value: "{{ .Values.django.metaDBDatabase }}"
-            - name: POSTGRES_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.metaDBSecret }}
-                  key: host
-            - name: POSTGRES_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.metaDBSecret }}
-                  key: port
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.metaDBSecret }}
-                  key: username
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.django.metaDBSecret }}
-                  key: password
-          image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-celerybeat
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: env-config
+              mountPath: /app/env-config
+              readOnly: true
       restartPolicy: Always
+      volumes:
+        - name: env-config
+          secret:
+            secretName: aperag-env
 status: {}
