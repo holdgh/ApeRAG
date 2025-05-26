@@ -3,13 +3,6 @@
 .gitignore
 .dockerignore
 
-# Documentation and examples
-docs/
-examples/
-tests/
-*.md
-README*
-
 # Python cache and temporary files
 *.pyc
 __pycache__/
@@ -29,22 +22,13 @@ aperag.egg-info/
 # Frontend development files (keep dist and deploy for production builds)
 frontend/node_modules
 frontend/.umi
-frontend/.env*
 frontend/yarn-error.log
 frontend/npm-debug.log*
 
 # Development virtual environments (but keep requirements)
 .venv/
-venv/
-env/
-
-# Environment files (will be provided via ConfigMap/Secret in K8s)
-.env
-.env.*
-.docker-env
 
 # Development and build artifacts
-ApeRAG-FrontEnd
 *.egg-info/
 build/
 dist/
@@ -65,33 +49,9 @@ dist/
 ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
-logs/
-
 # Database files
 *.db
 *.sqlite3
 
 # Object storage cache (runtime data)
 .objects/
-
-# Deployment files (handled separately)
-docker-compose*.yml
-Dockerfile*
-Makefile*
-
-# GitHub workflows and templates (not needed in container)
-.github/
-
-# Keep these important directories and files:
-# ✅ scripts/ (all scripts needed for container operation)
-# ✅ tests/ (for e2e and unit testing)
-# ✅ docs/ (documentation)
-# ✅ envs/ (environment templates)
-# ✅ evaluation/ (evaluation scripts)
-# ✅ resources/ and documents/ (if they contain runtime assets)
-# ✅ config/ (Django configuration)
-# ✅ aperag/ (main application code)
-# ✅ static/ (static files)
-# ✅ manage.py, pyproject.toml, uv.lock (Python project files)
