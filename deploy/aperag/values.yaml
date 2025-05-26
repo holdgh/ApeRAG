@@ -5,7 +5,7 @@
 
 image:
   repository: "docker.io/apecloud/aperag"  # Full image name including registry
-  tag: "test8"
+  tag: "test9"
   pullPolicy: IfNotPresent
 
   embedding:

@@ -49,7 +49,7 @@ COPY . /app
 
 WORKDIR /app
 
-# Install the application in development mode so Python can find all modules
-RUN . /opt/venv/bin/activate && pip install -e .
+# Install only the package structure without dependencies (dependencies already installed by uv)
+RUN . /opt/venv/bin/activate && pip install --no-deps -e .
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
