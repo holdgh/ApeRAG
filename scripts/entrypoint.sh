@@ -7,7 +7,7 @@ set -o nounset
 # Load environment variables from file using the most robust method
 # This uses the widely recommended "set -a; source file; set +a" approach
 load_env_from_file() {
-    local env_file="${1:-${ENV_CONFIG_FILE:-/app/config/.env}}"
+    local env_file="${1:-${ENV_CONFIG_FILE:-/app/env-config/.env}}"
     
     if [ ! -f "$env_file" ]; then
         echo "Info: Environment file $env_file not found, skipping"

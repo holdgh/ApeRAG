@@ -38,7 +38,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
-              mountPath: /app/config
+              mountPath: /app/env-config
               readOnly: true
       restartPolicy: Always
       volumes:
