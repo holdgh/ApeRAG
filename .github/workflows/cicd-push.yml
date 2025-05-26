@@ -70,13 +70,9 @@ jobs:
           python-version: "3.11"
           github-token: ${{ env.GITHUB_TOKEN }}
 
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
       - name: make lint
         run: |
+          pip install ruff
           make lint
 
       - name: make test
