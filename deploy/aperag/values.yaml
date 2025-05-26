@@ -5,7 +5,7 @@
 
 image:
   repository: "docker.io/apecloud/aperag"  # Full image name including registry
-  tag: "test12"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
   embedding:
@@ -212,8 +212,8 @@ flower:
 frontend:
   replicaCount: 1
   image:
-    repository: "aperag-frontend"  # Full image name including registry
-    tag: "test2"
+    repository: "docker.io/apecloud/aperag-frontend"  # Full image name including registry
+    tag: "latest"
     pullPolicy: IfNotPresent
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
