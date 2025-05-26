@@ -11,10 +11,10 @@ RUN apt update && \
     apt install --no-install-recommends -y build-essential git curl && \
     curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Create virtual environment and install dependencies
+# Create virtual environment and install dependencies using uv sync
 RUN /root/.local/bin/uv venv /opt/venv --python 3.11 && \
     . /opt/venv/bin/activate && \
-    /root/.local/bin/uv sync
+    /root/.local/bin/uv sync --active
 
 # Clean up
 RUN apt clean && \
