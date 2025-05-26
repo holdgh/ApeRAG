@@ -11,7 +11,7 @@ RUN apt update && \
     apt install --no-install-recommends -y build-essential git curl && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     /root/.local/bin/uv venv /opt/venv --python 3.11 && \
-    /root/.local/bin/uv sync && \
+    . /opt/venv/bin/activate && /root/.local/bin/uv sync && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
