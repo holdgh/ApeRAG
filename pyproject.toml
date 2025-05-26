@@ -62,6 +62,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "markitdown[all]>=0.1.1",
     "markdown-it-py[linkify]>=3.0.0",
+    "nano-vectordb>=0.0.4.3",
 ]
 name = "aperag"
 version = "0.1.0"
