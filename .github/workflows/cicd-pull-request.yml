@@ -23,7 +23,7 @@ jobs:
           all_but_latest: true
           access_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           repository: ${{ github.event.pull_request.head.repo.full_name }}
@@ -42,13 +42,27 @@ jobs:
     needs: trigger-mode
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          python-version: "3.11"
+          github-token: ${{ env.GITHUB_TOKEN }}
+
       - name: make lint
         run: |
+          pip install ruff
           make lint
 
       - name: make test
         run: |
+          pip install pytest
           make test
 
   check-image:
@@ -61,7 +75,18 @@ jobs:
       BUILDX_PLATFORMS: "linux/amd64"
       DOCKERFILE_PATH: "./Dockerfile"
       PYTHON_VERSION: "3.11"
-      POETRY_VERSION: "1.6.1"
+    secrets: inherit
+
+  check-frontend-image:
+    name: check frontend image
+    needs: trigger-mode
+    if: contains(needs.trigger-mode.outputs.trigger-mode, '[frontend]')
+    uses: apecloud/apecloud-cd/.github/workflows/release-image-check.yml@v0.1.49
+    with:
+      IMG: "apecloud/aperag-frontend"
+      BUILDX_PLATFORMS: "linux/amd64"
+      DOCKERFILE_PATH: "./frontend/Dockerfile.prod"
+      PYTHON_VERSION: "3.11"
     secrets: inherit
 
   check-helm:
@@ -78,7 +103,7 @@ jobs:
 
   pr-check:
     name: make test
-    needs: [ trigger-mode, make-test, check-image, check-helm ]
+    needs: [ trigger-mode, make-test, check-image, check-frontend-image, check-helm ]
     if: ${{ github.event.review.state == 'approved' && always() }}
     runs-on: ubuntu-latest
     steps:
@@ -93,6 +118,13 @@ jobs:
       - name: release image check
         run: |
           if [[ "${{ needs.check-image.result }}" == "failure" || "${{ needs.check-image.result }}" == "cancelled" ]]; then
+              echo "release image fail"
+              exit 1
+          fi
+
+      - name: release frontend image check
+        run: |
+          if [[ "${{ needs.check-frontend-image.result }}" == "failure" || "${{ needs.check-frontend-image.result }}" == "cancelled" ]]; then
               echo "release image fail"
               exit 1
           fi
