@@ -5,7 +5,7 @@ DATABASE_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pw
 source "$DATABASE_SCRIPT_DIR/scripts/common.sh"
 
 # Namespace configuration
-NAMESPACE="rag"
+NAMESPACE="default"
 # version
 KB_VERSION="1.0.0-beta.48"
 ADDON_CLUSTER_CHART_VERSION="1.0.0-alpha.0"

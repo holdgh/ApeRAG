@@ -5,7 +5,7 @@
 
 image:
   repository: "docker.io/apecloud/aperag"  # Full image name including registry
-  tag: "test1"
+  tag: "test2"
   pullPolicy: IfNotPresent
 
   embedding:
@@ -89,22 +89,22 @@ django:
     #   cpu: 100m
     #   memory: 128Mi
   authType: none
-  esHost: http://elasticsearch-mdit-http:9200
+  esHost: http://es-cluster-mdit-http:9200
   redisSecret: redis-redis-account-default
-  redisHost: redis-redis-redis
+  redisHost: redis-cluster-redis-redis
   redisPort: 6379
   redisUsername: default
-  redisPassword: password
+  redisPassword: 7zJ683ZaB3
   metaDBSecret: postgresql-conn-credential
-  metaDBDatabase: aperag
-  metaDBHost: aperag-postgres
+  metaDBDatabase: postgres
+  metaDBHost: pg-cluster-postgresql-postgresql
   metaDBPort: 5432
   metaDBUsername: postgres
-  metaDBPassword: postgres
+  metaDBPassword: y25a9b2HD4
   adminUser: ""
   adminToken: ""
   vectorDBType: qdrant
-  vectorDBContext: '{"url":"http://qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+  vectorDBContext: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   objectStoreType: local
   objectStoreLocalRootDir: /data/objects
   # S3 object store settings (when objectStoreType is s3)
@@ -323,8 +323,8 @@ flower:
 frontend:
   replicaCount: 1
   image:
-    repository: "docker.io/apecloud/aperag"  # Full image name including registry
-    tag: "test1"
+    repository: "aperag-frontend"  # Full image name including registry
+    tag: "test2"
     pullPolicy: IfNotPresent
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious

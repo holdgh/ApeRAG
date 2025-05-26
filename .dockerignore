@@ -24,23 +24,26 @@ __pycache__/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+aperag.egg-info/
 
-# Frontend
+# Frontend development files (keep dist and deploy for production builds)
 frontend/node_modules
-frontend/dist
 frontend/.umi
 frontend/.env*
 frontend/yarn-error.log
 frontend/npm-debug.log*
 
-# Development and build artifacts
-resources/
-documents/
+# Development virtual environments (but keep requirements)
 .venv/
 venv/
 env/
-.env*
+
+# Environment files (will be provided via ConfigMap/Secret in K8s)
+.env
+.env.*
 .docker-env
+
+# Development and build artifacts
 ApeRAG-FrontEnd
 *.egg-info/
 build/
@@ -66,19 +69,29 @@ Thumbs.db
 *.log
 logs/
 
-# Database
+# Database files
 *.db
 *.sqlite3
 
-# Object storage cache
+# Object storage cache (runtime data)
 .objects/
 
-# Deployment files
-deploy/
+# Deployment files (handled separately)
 docker-compose*.yml
 Dockerfile*
 Makefile*
 
-# Scripts (keep only entrypoint)
-scripts/
-!scripts/entrypoint.sh
+# GitHub workflows and templates (not needed in container)
+.github/
+
+# Keep these important directories and files:
+# ✅ scripts/ (all scripts needed for container operation)
+# ✅ tests/ (for e2e and unit testing)
+# ✅ docs/ (documentation)
+# ✅ envs/ (environment templates)
+# ✅ evaluation/ (evaluation scripts)
+# ✅ resources/ and documents/ (if they contain runtime assets)
+# ✅ config/ (Django configuration)
+# ✅ aperag/ (main application code)
+# ✅ static/ (static files)
+# ✅ manage.py, pyproject.toml, uv.lock (Python project files)
