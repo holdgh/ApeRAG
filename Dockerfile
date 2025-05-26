@@ -9,10 +9,15 @@ COPY pyproject.toml uv.lock* ./
 # Install system dependencies and uv in one layer
 RUN apt update && \
     apt install --no-install-recommends -y build-essential git curl && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    /root/.local/bin/uv venv /opt/venv --python 3.11 && \
-    . /opt/venv/bin/activate && /root/.local/bin/uv sync && \
-    apt clean && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment and install dependencies
+RUN /root/.local/bin/uv venv /opt/venv --python 3.11 && \
+    . /opt/venv/bin/activate && \
+    /root/.local/bin/uv sync
+
+# Clean up
+RUN apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Final stage
