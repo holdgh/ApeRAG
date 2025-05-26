@@ -25,9 +25,6 @@ frontend/.umi
 frontend/yarn-error.log
 frontend/npm-debug.log*
 
-# Development virtual environments (but keep requirements)
-.venv/
-
 # Development and build artifacts
 *.egg-info/
 build/
