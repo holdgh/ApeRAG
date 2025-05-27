@@ -1,6 +1,6 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import { ApeFlow, ApeFlowDebugInfo, ApeLayoutDirection } from '@/types';
+import { ApeFlow, ApeFlowDebugInfo } from '@/types';
 
 import {
   addEdge,
@@ -51,6 +51,7 @@ import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
+import { WorkflowStyle } from '@/api';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -253,7 +254,7 @@ export default () => {
   }, []);
 
   const setLayout = useCallback(
-    (d: ApeLayoutDirection) => {
+    (d: WorkflowStyle['layoutDirection']) => {
       const layouted = getLayoutedElements(nodes, edges, {
         direction: d,
       });

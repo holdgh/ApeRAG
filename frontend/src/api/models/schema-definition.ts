@@ -13,9 +13,6 @@
  */
 
 
-// May contain unused imports in some cases
-// @ts-ignore
-import type { SchemaProperty } from './schema-property';
 
 /**
  * JSON Schema definition
@@ -33,10 +30,10 @@ export interface SchemaDefinition {
     'type'?: SchemaDefinitionTypeEnum | null;
     /**
      * 
-     * @type {{ [key: string]: SchemaProperty; }}
+     * @type {object}
      * @memberof SchemaDefinition
      */
-    'properties'?: { [key: string]: SchemaProperty; };
+    'properties'?: object;
     /**
      * 
      * @type {Array<string>}

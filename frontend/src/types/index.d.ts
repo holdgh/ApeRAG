@@ -1,10 +1,9 @@
-import { Bot, Document, NodeDataOutput, NodeDataInput } from "@/api";
-import { Edge, Node, Position } from "@xyflow/react";
+import { Bot, Document, Node, WorkflowDefinition } from "@/api";
+import { Edge, Position } from "@xyflow/react";
 
 export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 
 // flow
-export type ApeLayoutDirection = "TB" | "LR";
 export type ApeNodeType =
   | "start"
   | "vector_search"
@@ -13,38 +12,12 @@ export type ApeNodeType =
   | "rerank"
   | "llm";
 
-export type ApeEdgeTypes =
-  | "straight"
-  | "step"
-  | "smoothstep"
-  | "default"
-  | "simplebezier";
-
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
   targetPosition?: Position;
 };
 
-export type ApeNode = Node & {
-  position?: {
-    x?: number;
-    y?: number;
-  };
-  dragHandle: string;
-  measured: {
-    width?: number;
-    height?: number;
-  };
-  selected?: boolean;
-  deletable?: boolean;
-  data?: {
-    collapsed?: boolean;
-
-    input?: NodeDataInput;
-    output?: NodeDataOutput;
-  };
-};
-
+export type ApeNode = Node;
 export type ApeEdge = Edge;
 
 export type ApeNodeConfig = {
@@ -61,25 +34,8 @@ export type ApeNodesConfig = {
   [key in ApeNodeType]: ApeNodeConfig;
 };
 
-export type ApeFlowStyle = {
-  edgeType: ApeEdgeTypes;
-  layoutDirection: ApeLayoutDirection;
-};
 
-export type ApeFlow = ApeFlowInfo & {
-  name?: string;
-  title?: string;
-  description?: string;
-  version?: string;
-
-  execution?: ExecutionConfig;
-  schema?: { [key: string]: SchemaDefinition };
-
-  nodes: ApeNode[];
-  edges: ApeEdge[];
-
-  style: ApeFlowStyle;
-};
+export type ApeFlow = WorkflowDefinition;
 
 // to delete
 export type ApeFlowNodeOutput = {

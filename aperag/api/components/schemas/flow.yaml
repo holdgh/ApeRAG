@@ -48,6 +48,22 @@ components:
           description: List of edges connecting nodes in the workflow
           items:
             $ref: '#/components/schemas/Edge'
+        style:
+          type: object
+          description: Workflow style
+          additionalProperties:
+            $ref: '#/components/schemas/WorkflowStyle'
+
+    WorkflowStyle:
+      type: object
+      description: Workflow style
+      properties:
+        edgeType:
+          type: string
+          enum: [straight, step, smoothstep, default, simplebezier]
+        layoutDirection:
+          type: string
+          enum: [TB, LR]
 
     ExecutionConfig:
       type: object

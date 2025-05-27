@@ -33,7 +33,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
-      nodes.find((nod) => nod.id === edg.source && nod.data.output?.schema.properties?.docs),
+      nodes.find((nod) => nod.id === edg.source && nod.data.output?.schema?.properties?.docs),
     );
     const _refNode =
       _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;

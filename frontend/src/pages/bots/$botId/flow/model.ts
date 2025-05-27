@@ -3,8 +3,6 @@ import {
   ApeFlow,
   ApeFlowDebugInfo,
   ApeFlowStatus,
-  ApeFlowStyle,
-  ApeLayoutDirection,
   ApeNode,
   ApeNodeConfig,
   ApeNodeHandlePosition,
@@ -39,9 +37,10 @@ import {
   getNodeStartInitData,
   getNodeVectorSearchInitData,
 } from "./node_definition";
+import { WorkflowStyle } from "@/api";
 
 const getNodeHandlePositions = (
-  direction: ApeLayoutDirection | undefined = "LR"
+  direction: WorkflowStyle['layoutDirection'] | undefined = "LR"
 ): ApeNodeHandlePosition => {
   const positions: ApeNodeHandlePosition = {};
   switch (direction) {
@@ -64,7 +63,7 @@ const getNodeHandlePositions = (
 const getLayoutedElements = (
   nodes: ApeNode[],
   edges: ApeEdge[],
-  options: { direction: ApeLayoutDirection }
+  options: { direction: WorkflowStyle['layoutDirection'] }
 ): {
   nodes: ApeNode[];
   edges: ApeEdge[];
@@ -249,7 +248,7 @@ export default () => {
   // flow data
   const [nodes, setNodes] = useState<ApeNode[]>([]);
   const [edges, setEdges] = useState<ApeEdge[]>([]);
-  const [flowStyle, setFlowStyle] = useState<ApeFlowStyle>({
+  const [flowStyle, setFlowStyle] = useState<WorkflowStyle>({
     edgeType: "default",
     layoutDirection: "LR",
   });

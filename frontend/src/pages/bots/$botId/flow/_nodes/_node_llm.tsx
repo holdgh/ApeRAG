@@ -35,7 +35,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     const sourceNodes = connects.map((edg) =>
       nodes.find(
         (nod) =>
-          nod.id === edg.source && nod.data.output?.schema.properties?.docs,
+          nod.id === edg.source && nod.data.output?.schema?.properties?.docs,
       ),
     );
     const _refNode =

@@ -21,6 +21,24 @@
  */
 export interface Edge {
     /**
+     * Unique identifier for the edge, only useful for frontend to identify the edge
+     * @type {string}
+     * @memberof Edge
+     */
+    'id'?: string;
+    /**
+     * Whether the edge is deletable, only useful for frontend to delete the edge
+     * @type {boolean}
+     * @memberof Edge
+     */
+    'deletable'?: boolean;
+    /**
+     * Type of the edge
+     * @type {string}
+     * @memberof Edge
+     */
+    'type'?: string;
+    /**
      * ID of the source node
      * @type {string}
      * @memberof Edge

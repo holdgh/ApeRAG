@@ -40,12 +40,42 @@ export interface Node {
      * @type {string}
      * @memberof Node
      */
-    'title': string;
+    'title'?: string;
     /**
      * 
      * @type {NodeData}
      * @memberof Node
      */
     'data': NodeData;
+    /**
+     * Position of the node in the frontend
+     * @type {object}
+     * @memberof Node
+     */
+    'position'?: object;
+    /**
+     * Drag handle of the node, only useful for frontend to drag the node
+     * @type {string}
+     * @memberof Node
+     */
+    'dragHandle'?: string;
+    /**
+     * Measured position of the node, only useful for frontend to measure the node
+     * @type {object}
+     * @memberof Node
+     */
+    'measured'?: object;
+    /**
+     * Whether the node is selected, only useful for frontend to select the node
+     * @type {boolean}
+     * @memberof Node
+     */
+    'selected'?: boolean;
+    /**
+     * Whether the node is deletable, only useful for frontend to delete the node
+     * @type {boolean}
+     * @memberof Node
+     */
+    'deletable'?: boolean;
 }
 

@@ -38,5 +38,11 @@ export interface NodeData {
      * @memberof NodeData
      */
     'output': NodeDataOutput;
+    /**
+     * Whether the node is collapsed, only useful for frontend to collapse the node
+     * @type {boolean}
+     * @memberof NodeData
+     */
+    'collapsed'?: boolean;
 }
 

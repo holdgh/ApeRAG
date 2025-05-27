@@ -1,6 +1,7 @@
 import { SchemaProperty } from "@/api";
 import { ApeNode } from "@/types";
 import { Table, TableProps, Tag, theme } from "antd";
+import _ from "lodash";
 import { useMemo } from "react";
 import { useIntl } from 'umi';
 
@@ -14,7 +15,7 @@ export const OutputParams = ({ node }: { node: ApeNode }) => {
     const outputs = useMemo(() => {
     const schema = node.data.output?.schema;
     if (schema?.type === 'object' && schema?.properties) {
-      return Object.keys(schema.properties).map((key) => {
+      return Object.keys(schema?.properties).map((key) => {
         const result: OutPut = {
           ..._.get(schema.properties, key),
           name: key,

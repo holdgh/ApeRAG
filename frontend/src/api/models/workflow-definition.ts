@@ -25,6 +25,9 @@ import type { Node } from './node';
 // May contain unused imports in some cases
 // @ts-ignore
 import type { SchemaDefinition } from './schema-definition';
+// May contain unused imports in some cases
+// @ts-ignore
+import type { WorkflowStyle } from './workflow-style';
 
 /**
  * 
@@ -80,5 +83,11 @@ export interface WorkflowDefinition {
      * @memberof WorkflowDefinition
      */
     'edges': Array<Edge>;
+    /**
+     * Workflow style
+     * @type {{ [key: string]: WorkflowStyle; }}
+     * @memberof WorkflowDefinition
+     */
+    'style'?: { [key: string]: WorkflowStyle; };
 }
 
