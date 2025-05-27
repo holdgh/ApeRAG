@@ -16,6 +16,9 @@
 // May contain unused imports in some cases
 // @ts-ignore
 import type { NodeData } from './node-data';
+// May contain unused imports in some cases
+// @ts-ignore
+import type { NodeMeasured } from './node-measured';
 
 /**
  * 
@@ -60,11 +63,11 @@ export interface Node {
      */
     'dragHandle'?: string;
     /**
-     * Measured position of the node, only useful for frontend to measure the node
-     * @type {object}
+     * 
+     * @type {NodeMeasured}
      * @memberof Node
      */
-    'measured'?: object;
+    'measured'?: NodeMeasured;
     /**
      * Whether the node is selected, only useful for frontend to select the node
      * @type {boolean}
