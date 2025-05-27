@@ -60,6 +60,7 @@ export * from './node';
 export * from './node-data';
 export * from './node-data-input';
 export * from './node-data-output';
+export * from './node-measured';
 export * from './page-result';
 export * from './prompt-template';
 export * from './prompt-template-list';

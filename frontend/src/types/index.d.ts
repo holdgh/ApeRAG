@@ -1,5 +1,5 @@
-import { Bot, Document, Node, WorkflowDefinition } from "@/api";
-import { Edge, Position } from "@xyflow/react";
+import { Bot, Document, Node, Edge, WorkflowDefinition } from "@/api";
+import { Position } from "@xyflow/react";
 
 export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 
@@ -34,8 +34,6 @@ export type ApeNodesConfig = {
   [key in ApeNodeType]: ApeNodeConfig;
 };
 
-
-export type ApeFlow = WorkflowDefinition;
 
 // to delete
 export type ApeFlowNodeOutput = {
@@ -82,7 +80,7 @@ export type ApeFlowNodeStatus = "pending" | "running" | "complated" | "stopped";
  * bots
  */
 export type BotConfig = {
-  flow?: ApeFlow;
+  flow?: WorkflowDefinition;
   model?: string;
   model_service_provider?: string;
   model_name?: string;

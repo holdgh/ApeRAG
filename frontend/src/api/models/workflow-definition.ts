@@ -84,10 +84,10 @@ export interface WorkflowDefinition {
      */
     'edges': Array<Edge>;
     /**
-     * Workflow style
-     * @type {{ [key: string]: WorkflowStyle; }}
+     * 
+     * @type {WorkflowStyle}
      * @memberof WorkflowDefinition
      */
-    'style'?: { [key: string]: WorkflowStyle; };
+    'style'?: WorkflowStyle;
 }
 

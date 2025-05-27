@@ -1,6 +1,5 @@
 import {
   ApeEdge,
-  ApeFlow,
   ApeFlowDebugInfo,
   ApeFlowStatus,
   ApeNode,
@@ -37,10 +36,10 @@ import {
   getNodeStartInitData,
   getNodeVectorSearchInitData,
 } from "./node_definition";
-import { WorkflowStyle } from "@/api";
+import { WorkflowDefinition, WorkflowStyle } from "@/api";
 
 const getNodeHandlePositions = (
-  direction: WorkflowStyle['layoutDirection'] | undefined = "LR"
+  direction: WorkflowStyle["layoutDirection"] | undefined = "LR"
 ): ApeNodeHandlePosition => {
   const positions: ApeNodeHandlePosition = {};
   switch (direction) {
@@ -63,7 +62,7 @@ const getNodeHandlePositions = (
 const getLayoutedElements = (
   nodes: ApeNode[],
   edges: ApeEdge[],
-  options: { direction: WorkflowStyle['layoutDirection'] }
+  options: { direction: WorkflowStyle["layoutDirection"] }
 ): {
   nodes: ApeNode[];
   edges: ApeEdge[];
@@ -103,7 +102,7 @@ const getLayoutedElements = (
 
 const getEdgeId = (): string => uniqid();
 
-const getInitialData = (): ApeFlow => {
+const getInitialData = (): WorkflowDefinition => {
   const startId = uniqid();
   const vectorSearchId = uniqid();
   const keywordSearchId = uniqid();

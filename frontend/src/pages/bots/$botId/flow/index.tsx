@@ -1,6 +1,6 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import { ApeFlow, ApeFlowDebugInfo } from '@/types';
+import { ApeFlowDebugInfo } from '@/types';
 
 import {
   addEdge,
@@ -48,10 +48,10 @@ import {
 import { toast } from 'react-toastify';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
 
+import { WorkflowDefinition, WorkflowStyle } from '@/api';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
-import { WorkflowStyle } from '@/api';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -133,14 +133,20 @@ export default () => {
     if (!bot?.id) return;
     const flowDefault = getInitialData();
     const { data } = await api.botsBotIdFlowGet({ botId: bot.id });
-    setNodes((data?.nodes as any) || flowDefault.nodes);
-    setEdges((data?.edges as any) || flowDefault.edges);
-    setFlowStyle((data?.style as any) || flowDefault.style);
+    setNodes(data?.nodes || [] || flowDefault.nodes);
+    setEdges(data?.edges || [] || flowDefault.edges);
+    setFlowStyle(
+      data?.style ||
+        flowDefault.style || {
+          edgeType: 'default',
+          layoutDirection: 'LR',
+        },
+    );
   };
 
   const saveFlow = async () => {
     if (!bot?.id) return;
-    const flow: ApeFlow = {
+    const flow: WorkflowDefinition = {
       ...getInitialData(),
       nodes,
       edges,

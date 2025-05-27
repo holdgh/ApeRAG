@@ -172,6 +172,11 @@ components:
         measured:
           type: object
           description: Measured position of the node, only useful for frontend to measure the node
+          properties:
+            width: 
+              type: number
+            height: 
+              type: number
         selected:
           type: boolean
           description: Whether the node is selected, only useful for frontend to select the node
