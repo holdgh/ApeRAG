@@ -1,22 +1,25 @@
 import { ModelSelect } from '@/components';
-import { ApeNode, ApeNodeType } from '@/types';
+import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Space, theme } from 'antd';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
-import { ConnectInfoInput } from './_connect-info-input';
+import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
+import { OutputParams } from './_outputs_params';
 
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-  const { nodes, edges, setNodes, getNodeConfig } = useModel(
-    'bots.$botId.flow.model',
-  );
+  const { nodes, edges, setNodes } = useModel('bots.$botId.flow.model');
   const { getProviderByModelName } = useModel('models');
 
+  const values = useMemo(
+    () => node.data.input?.values || [],
+    [node],
+  );
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -26,65 +29,26 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     });
   }, [node]);
 
-  const getVarByName = useCallback(
-    (name: string) => {
-      return node.data.vars?.find((item) => item.name === name);
-    },
-    [node],
-  );
-
-  const [varModelName, varModelServiceProvider, varDocs] = useMemo(
-    () => [
-      getVarByName('model_name'),
-      getVarByName('model_service_provider'),
-      getVarByName('docs'),
-    ],
-    [getVarByName],
-  );
-
-  const { refNode, refNodeConfig } = useMemo(() => {
+  const { refNode } = useMemo(() => {
     const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
-      nodes.find((nod) => nod.id === edg.source),
+      nodes.find((nod) => nod.id === edg.source && nod.data.output?.schema?.properties?.docs),
     );
     const _refNode =
       _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
-    const _refNodeConfig = _refNode
-      ? getNodeConfig(
-          _refNode.type as ApeNodeType,
-          _refNode?.ariaLabel ||
-            formatMessage({ id: `flow.node.type.${_refNode?.type}` }),
-        )
-      : {};
-    return { refNode: _refNode, refNodeConfig: _refNodeConfig };
+
+    return { refNode: _refNode };
   }, [edges, nodes]);
 
   useEffect(() => {
-    if (refNode && varDocs) {
-      varDocs.ref_node = refNode.id || '';
-    }
-  }, [refNode, varDocs]);
-
-  useEffect(() => {
-    const vars = node.data.vars || [];
-    if (!varModelName) {
-      vars?.push({ name: 'model_name', value: '' });
-    }
-    if (!varModelServiceProvider) {
-      vars?.push({ name: 'model_service_provider', value: '' });
-    }
-    if (!varDocs) {
-      vars?.push({
-        name: 'docs',
-        source_type: 'dynamic',
-        ref_node: '',
-        ref_field: 'docs',
-      });
-    }
-    node.data.vars = vars;
+    _.set(
+      values,
+      'docs',
+      refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : '',
+    );
     applyChanges();
-  }, []);
+  }, [refNode]);
 
   return (
     <>
@@ -111,33 +75,45 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
                   <ModelSelect
                     model="rerank"
                     variant="filled"
-                    value={varModelName?.value}
+                    value={_.get(values, 'model')}
                     onChange={(name) => {
-                      if (varModelName) {
-                        varModelName.value = name;
-                      }
-                      if (varModelServiceProvider) {
-                        varModelServiceProvider.value = getProviderByModelName(
-                          name,
-                          'rerank',
-                        ).provider?.name;
-                      }
+                      _.set(values, 'model', name);
+                      _.set(
+                        values,
+                        'model_service_provider',
+                        getProviderByModelName(name, 'rerank').provider?.name,
+                      );
                       applyChanges();
                     }}
                   />
                 </Form.Item>
+
                 <Form.Item
                   required
                   style={{ marginBottom: 0 }}
                   label={formatMessage({ id: 'flow.input.source' })}
                 >
-                  <ConnectInfoInput
-                    refNode={refNode}
-                    refNodeConfig={refNodeConfig}
+                  <NodeInput
+                    disabled
+                    variant="filled"
+                    placeholder={formatMessage({
+                      id: 'flow.connection.required',
+                    })}
+                    value={_.get(values, 'docs')}
+                    onChange={(e) => {
+                      _.set(values, 'docs', e.currentTarget.value);
+                      applyChanges();
+                    }}
                   />
                 </Form.Item>
               </Form>
             ),
+          },
+          {
+            key: '2',
+            label: formatMessage({ id: 'flow.output.params' }),
+            style: getCollapsePanelStyle(token),
+            children: <OutputParams node={node} />,
           },
         ]}
       />

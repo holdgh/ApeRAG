@@ -38,6 +38,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
     useModel('collection');
   const {
     availableModels,
+    getAvailableModels,
     promptTemplates,
     getPromptTemplates,
     getProviderByModelName,
@@ -131,6 +132,7 @@ export default ({ form, onSubmit, values, action }: Props) => {
   }, [botModelName]);
 
   useEffect(() => {
+    getAvailableModels()
     getCollections();
     getPromptTemplates();
   }, []);

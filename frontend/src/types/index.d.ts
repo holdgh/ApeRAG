@@ -1,52 +1,23 @@
-import { Bot, Document } from '@/api';
-import { Edge, Node, Position } from '@xyflow/react';
+import { Bot, Document, Node, WorkflowDefinition } from "@/api";
+import { Edge, Position } from "@xyflow/react";
 
 export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 
 // flow
-export type ApeLayoutDirection = 'TB' | 'LR';
 export type ApeNodeType =
-  | 'start'
-  | 'vector_search'
-  | 'keyword_search'
-  | 'merge'
-  | 'rerank'
-  | 'llm';
-
-export type ApeEdgeTypes =
-  | 'straight'
-  | 'step'
-  | 'smoothstep'
-  | 'default'
-  | 'simplebezier';
+  | "start"
+  | "vector_search"
+  | "keyword_search"
+  | "merge"
+  | "rerank"
+  | "llm";
 
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
   targetPosition?: Position;
 };
 
-export type ApeNodeVar = {
-  name?: string;
-  type?: string;
-  description?: string;
-
-  value?: any;
-
-  global_var?: string;
-  source_type?: 'dynamic' | 'global';
-
-  ref_node?: string;
-  ref_field?: string;
-};
-
-export type ApeNode = Node & {
-  collapsed?: boolean;
-  data?: {
-    collapsed?: boolean;
-    vars?: ApeNodeVar[];
-  };
-};
-
+export type ApeNode = Node;
 export type ApeEdge = Edge;
 
 export type ApeNodeConfig = {
@@ -58,49 +29,15 @@ export type ApeNodeConfig = {
   disableConnectionTarget?: boolean;
   disableConnectionSource?: boolean;
 };
+
 export type ApeNodesConfig = {
   [key in ApeNodeType]: ApeNodeConfig;
 };
 
-export type FlowGlobalVariable = {
-  name?: string;
-  type?: string | number | boolean;
-  description?: string;
-};
 
-export type FlowExecution = {
-  timeout?: number;
-  retry?: {
-    max_attempts?: number;
-    delay?: number;
-  };
-  error_handling?: {
-    strategy?: 'stop_on_error' | 'continue_on_error';
-    notification?: {
-      email?: string[];
-    };
-  };
-};
+export type ApeFlow = WorkflowDefinition;
 
-export type ApeFlowInfo = {
-  name?: string;
-  description?: string;
-  version?: string;
-};
-
-export type ApeFlowStyle = {
-  edgeType: ApeEdgeTypes;
-  layoutDirection: ApeLayoutDirection;
-};
-
-export type ApeFlow = ApeFlowInfo & {
-  execution?: FlowExecution;
-  global_variables?: ApeNodeVar[];
-  nodes: ApeNode[];
-  edges: ApeEdge[];
-  style: ApeFlowStyle;
-};
-
+// to delete
 export type ApeFlowNodeOutput = {
   doc_id?: string;
   rank_before?: number;
@@ -118,11 +55,11 @@ export type ApeFlowNodeOutput = {
 
 export type ApeFlowDebugInfo = {
   event_type:
-    | 'flow_start'
-    | 'node_start'
-    | 'node_end'
-    | 'flow_end'
-    | 'output_chunk';
+    | "flow_start"
+    | "node_start"
+    | "node_end"
+    | "flow_end"
+    | "output_chunk";
   node_id: string;
   execution_id: string;
   timestamp: string;
@@ -138,8 +75,8 @@ export type ApeFlowDebugInfo = {
   };
 };
 
-export type ApeFlowStatus = 'running' | 'completed' | 'stopped';
-export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
+export type ApeFlowStatus = "running" | "completed" | "stopped";
+export type ApeFlowNodeStatus = "pending" | "running" | "complated" | "stopped";
 
 /**
  * bots
@@ -171,17 +108,17 @@ export type ApeBot = Merge<Bot, { config?: BotConfig }>;
  * collection
  */
 export type CollectionConfigSource =
-  | 'system'
-  | 'local'
-  | 's3'
-  | 'oss'
-  | 'ftp'
-  | 'url'
-  | 'git'
-  | 'email'
-  | 'feishu';
+  | "system"
+  | "local"
+  | "s3"
+  | "oss"
+  | "ftp"
+  | "url"
+  | "git"
+  | "email"
+  | "feishu";
 
-export type CollectionEmailSource = 'gmail' | 'outlook' | 'qqmail' | 'others';
+export type CollectionEmailSource = "gmail" | "outlook" | "qqmail" | "others";
 
 /**
  * documents

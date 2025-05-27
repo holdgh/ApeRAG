@@ -216,8 +216,8 @@ export default {
   'flow.top_k': 'Top-k',
   'flow.top_k.tips':
     'Top-k is used to control the sampling strategy, that is, to take the top k words from all the results according to the score ranking as the candidate set, and then randomly select one of them as the next output word.',
-  'flow.search.params': 'Search params',
   'flow.input.params': 'Input params',
+  'flow.output.params': 'Output params',
   'flow.input.source': 'Input source',
   'flow.vector_search.source': 'Vector search source',
   'flow.keyword_search.source': 'Keyword search source',

@@ -12,6 +12,7 @@
         "apiPackage": "apis",
         "modelPackage": "models",
         "modelNamePrefix": "",
+        "skipValidateSpec": true,
         "additionalProperties": {
           "enumPropertyNaming": "original",
           "supportsES6": true,

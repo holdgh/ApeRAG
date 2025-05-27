@@ -2,18 +2,13 @@ import {
   ApeEdge,
   ApeFlow,
   ApeFlowDebugInfo,
-  ApeFlowInfo,
   ApeFlowStatus,
-  ApeFlowStyle,
-  ApeLayoutDirection,
   ApeNode,
   ApeNodeConfig,
   ApeNodeHandlePosition,
   ApeNodesConfig,
   ApeNodeType,
-  ApeNodeVar,
-  FlowExecution,
-} from '@/types';
+} from "@/types";
 import {
   FunnelPlotOutlined,
   HomeOutlined,
@@ -21,32 +16,41 @@ import {
   MergeOutlined,
   ReadOutlined,
   WechatWorkOutlined,
-} from '@ant-design/icons';
-import Dagre from '@dagrejs/dagre';
-import { Position } from '@xyflow/react';
-import { theme } from 'antd';
-import React, { useEffect, useState } from 'react';
-import { v4 as uuidV4 } from 'uuid';
+} from "@ant-design/icons";
+import Dagre from "@dagrejs/dagre";
+import { Position } from "@xyflow/react";
+import { theme } from "antd";
+import React, { useEffect, useState } from "react";
+import uniqid from "uniqid";
 
-import { ApeNodeKeywordSearch } from '../flow/_nodes/_node_keyword_search';
-import { ApeNodeLlm } from '../flow/_nodes/_node_llm';
-import { ApeNodeMerge } from '../flow/_nodes/_node_merge';
-import { ApeNodeRerank } from '../flow/_nodes/_node_rerank';
-import { ApeNodeStart } from '../flow/_nodes/_node_start';
-import { ApeNodeVectorSearch } from '../flow/_nodes/_node_vector_search';
+import { ApeNodeKeywordSearch } from "../flow/_nodes/_node_keyword_search";
+import { ApeNodeLlm } from "../flow/_nodes/_node_llm";
+import { ApeNodeMerge } from "../flow/_nodes/_node_merge";
+import { ApeNodeRerank } from "../flow/_nodes/_node_rerank";
+import { ApeNodeStart } from "../flow/_nodes/_node_start";
+import { ApeNodeVectorSearch } from "../flow/_nodes/_node_vector_search";
+import {
+  getNodeKeywordSearchInitData,
+  getNodeLlmInitData,
+  getNodeMergeNodeInitData,
+  getNodeRerankInitData,
+  getNodeStartInitData,
+  getNodeVectorSearchInitData,
+} from "./node_definition";
+import { WorkflowStyle } from "@/api";
 
 const getNodeHandlePositions = (
-  direction: ApeLayoutDirection | undefined = 'LR',
+  direction: WorkflowStyle['layoutDirection'] | undefined = "LR"
 ): ApeNodeHandlePosition => {
   const positions: ApeNodeHandlePosition = {};
   switch (direction) {
-    case 'TB':
+    case "TB":
       Object.assign(positions, {
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
       });
       break;
-    case 'LR':
+    case "LR":
       Object.assign(positions, {
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -59,7 +63,7 @@ const getNodeHandlePositions = (
 const getLayoutedElements = (
   nodes: ApeNode[],
   edges: ApeEdge[],
-  options: { direction: ApeLayoutDirection },
+  options: { direction: WorkflowStyle['layoutDirection'] }
 ): {
   nodes: ApeNode[];
   edges: ApeEdge[];
@@ -97,20 +101,21 @@ const getLayoutedElements = (
   };
 };
 
-const getEdgeId = (): string => uuidV4();
+const getEdgeId = (): string => uniqid();
 
 const getInitialData = (): ApeFlow => {
-  const globalId = uuidV4();
-  const vectorSearchId = uuidV4();
-  const keywordSearchId = uuidV4();
-  const mergeId = uuidV4();
-  const rerankId = uuidV4();
-  const llmId = uuidV4();
+  const startId = uniqid();
+  const vectorSearchId = uniqid();
+  const keywordSearchId = uniqid();
+  const mergeId = uniqid();
+  const rerankId = uniqid();
+  const llmId = uniqid();
 
   return {
-    name: 'RAG Knowledge Base Flow',
-    description: 'A typical RAG flow with parallel retrieval and reranking',
-    version: '1.0.0',
+    name: "rag_flow",
+    title: "RAG Knowledge Base Flow",
+    description: "A typical RAG flow with parallel retrieval and reranking",
+    version: "1.0.0",
     execution: {
       timeout: 300,
       retry: {
@@ -118,130 +123,145 @@ const getInitialData = (): ApeFlow => {
         delay: 5,
       },
       error_handling: {
-        strategy: 'stop_on_error',
+        strategy: "stop_on_error",
         notification: {
-          email: ['admin@example.com'],
+          email: ["admin@example.com"],
         },
       },
     },
-    global_variables: [
-      {
-        name: 'query',
-        type: 'string',
-        description: "User's question or query",
+    schema: {
+      document_with_score: {
+        type: "object",
+        properties: {
+          doc_id: {
+            type: "string",
+          },
+          text: {
+            type: "string",
+          },
+          score: {
+            type: "number",
+          },
+          metadata: {
+            type: "object",
+          },
+        },
       },
-    ],
+    },
     nodes: [
       {
-        id: globalId,
-        type: 'start',
-        data: {},
+        id: startId,
+        type: "start",
+        data: getNodeStartInitData(),
         position: { x: 0, y: 332 },
         deletable: false,
-        dragHandle: '.drag-handle',
+        dragHandle: ".drag-handle",
       },
       {
         id: vectorSearchId,
-        data: {},
-        position: { x: 422, y: 439 },
-        type: 'vector_search',
-        dragHandle: '.drag-handle',
+        data: getNodeVectorSearchInitData(startId),
+        position: { x: 422, y: -100 },
+        type: "vector_search",
+        dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: keywordSearchId,
-        type: 'keyword_search',
-        data: {},
-        position: { x: 422, y: 0 },
-        dragHandle: '.drag-handle',
+        type: "keyword_search",
+        data: getNodeKeywordSearchInitData(startId),
+        position: { x: 422, y: 460 },
+        dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: mergeId,
-        type: 'merge',
-        data: {},
+        type: "merge",
+        data: getNodeMergeNodeInitData(vectorSearchId, keywordSearchId),
         position: { x: 884, y: 212 },
-        dragHandle: '.drag-handle',
+        dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: rerankId,
-        type: 'rerank',
-        data: {},
+        type: "rerank",
+        data: getNodeRerankInitData(mergeId),
         position: { x: 1286, y: 298 },
-        dragHandle: '.drag-handle',
+        dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: llmId,
-        type: 'llm',
-        data: {},
+        type: "llm",
+        data: getNodeLlmInitData(startId, rerankId),
         position: { x: 1688, y: 133.5 },
-        dragHandle: '.drag-handle',
+        dragHandle: ".drag-handle",
+        deletable: false,
       },
     ],
     edges: [
       {
         id: getEdgeId(),
-        source: globalId,
+        source: startId,
         target: vectorSearchId,
-        type: 'default',
+        type: "default",
       },
       {
         id: getEdgeId(),
-        source: globalId,
+        source: startId,
         target: keywordSearchId,
-        type: 'default',
+        type: "default",
       },
       {
         id: getEdgeId(),
         source: vectorSearchId,
         target: mergeId,
-        type: 'default',
+        type: "default",
       },
       {
         id: getEdgeId(),
         source: keywordSearchId,
         target: mergeId,
-        type: 'default',
+        type: "default",
       },
       {
         id: getEdgeId(),
         source: mergeId,
         target: rerankId,
-        type: 'default',
+        type: "default",
+        deletable: false,
       },
       {
         id: getEdgeId(),
         source: rerankId,
         target: llmId,
-        type: 'default',
+        type: "default",
       },
     ],
     style: {
-      edgeType: 'default',
-      layoutDirection: 'LR',
+      edgeType: "default",
+      layoutDirection: "LR",
     },
   };
 };
 
 export default () => {
   // flow data
-  const [flowInfo, setFlowInfo] = useState<ApeFlowInfo>();
-  const [globalVariables, setGlobalVariables] = useState<ApeNodeVar[]>();
-  const [execution, setExecution] = useState<FlowExecution>();
   const [nodes, setNodes] = useState<ApeNode[]>([]);
   const [edges, setEdges] = useState<ApeEdge[]>([]);
-  const [flowStyle, setFlowStyle] = useState<ApeFlowStyle>({
-    edgeType: 'default',
-    layoutDirection: 'LR',
+  const [flowStyle, setFlowStyle] = useState<WorkflowStyle>({
+    edgeType: "default",
+    layoutDirection: "LR",
   });
 
   // debug state
-  const [flowStatus, setFlowStatus] = useState<ApeFlowStatus>('stopped');
+  const [flowStatus, setFlowStatus] = useState<ApeFlowStatus>("stopped");
   const [messages, setMessages] = useState<ApeFlowDebugInfo[]>([]);
 
   const { token } = theme.useToken();
 
   const getNodeConfig = (
     nodeType?: ApeNodeType,
-    label?: string,
+    label?: string
   ): ApeNodeConfig => {
     if (!nodeType) return {};
     const configs: ApeNodesConfig = {
@@ -268,7 +288,7 @@ export default () => {
         color: token.purple,
         icon: React.createElement(MergeOutlined),
         content: ApeNodeMerge,
-        width: 300,
+        width: 330,
       },
       rerank: {
         color: token.magenta,
@@ -291,21 +311,12 @@ export default () => {
   };
 
   useEffect(() => {
-    if (flowStatus === 'stopped') {
+    if (flowStatus === "stopped") {
       setMessages([]);
     }
   }, [flowStatus]);
 
   return {
-    flowInfo,
-    setFlowInfo,
-
-    execution,
-    setExecution,
-
-    globalVariables,
-    setGlobalVariables,
-
     nodes,
     setNodes,
 

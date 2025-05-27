@@ -42,16 +42,13 @@ export default () => {
     setPromptTemplates(res.data.items);
   };
 
-  useEffect(() => {
-    if (user) getAvailableModels();
-  }, [user]);
-
   return {
     promptTemplates,
     getPromptTemplates,
     setPromptTemplates,
 
     availableModels,
+    getAvailableModels,
     getProviderByModelName,
   };
 };

@@ -47,9 +47,7 @@ export default () => {
 
     const config: BotConfig = parseConfig(res.data.config);
 
-    if (config.flow) {
-      config.flow = parse(config.flow as unknown as string);
-    }
+
     setBot({
       ...res.data,
       config,

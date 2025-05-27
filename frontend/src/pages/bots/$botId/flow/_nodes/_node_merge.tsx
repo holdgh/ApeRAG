@@ -1,19 +1,23 @@
-import { ApeNode, ApeNodeType } from '@/types';
+import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Select, Switch, theme } from 'antd';
+import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
-import { ConnectInfoInput } from './_connect-info-input';
+import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
+import { OutputParams } from './_outputs_params';
 
 export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
-  const { nodes, setNodes, edges, getNodeConfig } = useModel(
-    'bots.$botId.flow.model',
-  );
+  const { nodes, setNodes, edges } = useModel('bots.$botId.flow.model');
 
+  const values = useMemo(
+    () => node.data.input?.values || [],
+    [node],
+  );
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -23,34 +27,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     });
   }, [node]);
 
-  const getVarByName = useCallback(
-    (name: string) => {
-      return node.data.vars?.find((item) => item.name === name);
-    },
-    [node],
-  );
-
-  const [
-    varMergeStrategy,
-    varDeduplicate,
-    varVectorSearchDocs,
-    varKeywordSearchDocs,
-  ] = useMemo(
-    () => [
-      getVarByName('merge_strategy'),
-      getVarByName('deduplicate'),
-      getVarByName('vector_search_docs'),
-      getVarByName('keyword_search_docs'),
-    ],
-    [getVarByName],
-  );
-
-  const {
-    refVectorSearchNode,
-    refKeywordSearchNode,
-    vectorSearchNodeConfig,
-    keywordSearchNodeConfig,
-  } = useMemo(() => {
+  const { refVectorSearchNode, refKeywordSearchNode } = useMemo(() => {
     const nid = node?.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
@@ -65,58 +42,30 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     return {
       refVectorSearchNode: _refVectorSearchNode,
       refKeywordSearchNode: _refKeywordSearchNode,
-      vectorSearchNodeConfig: getNodeConfig(
-        _refVectorSearchNode?.type as ApeNodeType,
-        _refVectorSearchNode?.ariaLabel ||
-          formatMessage({ id: `flow.node.type.vector_search` }),
-      ),
-      keywordSearchNodeConfig: getNodeConfig(
-        _refKeywordSearchNode?.type as ApeNodeType,
-        _refKeywordSearchNode?.ariaLabel ||
-          formatMessage({ id: `flow.node.type.keyword_search` }),
-      ),
     };
   }, [edges, nodes]);
 
   useEffect(() => {
-    if (refVectorSearchNode && varVectorSearchDocs) {
-      varVectorSearchDocs.ref_node = refVectorSearchNode.id || '';
-    }
-  }, [refVectorSearchNode, varVectorSearchDocs]);
-
-  useEffect(() => {
-    if (refKeywordSearchNode && varKeywordSearchDocs) {
-      varKeywordSearchDocs.ref_node = refKeywordSearchNode.id || '';
-    }
-  }, [refKeywordSearchNode, varKeywordSearchDocs]);
-
-  useEffect(() => {
-    const vars = node.data.vars || [];
-    if (!varMergeStrategy) {
-      vars?.push({ name: 'merge_strategy', value: 'union' });
-    }
-    if (!varDeduplicate) {
-      vars?.push({ name: 'deduplicate', value: true });
-    }
-    if (!varVectorSearchDocs) {
-      vars?.push({
-        name: 'vector_search_docs',
-        source_type: 'dynamic',
-        ref_node: '',
-        ref_field: 'vector_search_docs',
-      });
-    }
-    if (!varKeywordSearchDocs) {
-      vars?.push({
-        name: 'keyword_search_docs',
-        source_type: 'dynamic',
-        ref_node: '',
-        ref_field: 'keyword_search_docs',
-      });
-    }
-    node.data.vars = vars;
+    _.set(
+      values,
+      'vector_search_docs',
+      refVectorSearchNode?.id
+        ? `{{ nodes.${refVectorSearchNode.id}.output.docs }}`
+        : '',
+    );
     applyChanges();
-  }, []);
+  }, [refVectorSearchNode]);
+
+  useEffect(() => {
+    _.set(
+      values,
+      'keyword_search_docs',
+      refKeywordSearchNode?.id
+        ? `{{ nodes.${refKeywordSearchNode.id}.output.docs }}`
+        : '',
+    );
+    applyChanges();
+  }, [refKeywordSearchNode]);
 
   return (
     <>
@@ -126,7 +75,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
           return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
         }}
         size="middle"
-        defaultActiveKey={['1', '2']}
+        defaultActiveKey={['1']}
         style={{ background: 'none' }}
         items={[
           {
@@ -143,11 +92,9 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                     variant="filled"
                     suffixIcon={null}
                     options={[{ label: 'Union', value: 'union' }]}
-                    value={varMergeStrategy?.value}
+                    value={_.get(values, 'merge_strategy')}
                     onChange={(name) => {
-                      if (varMergeStrategy) {
-                        varMergeStrategy.value = name;
-                      }
+                      _.set(values, 'merge_strategy', name);
                       applyChanges();
                     }}
                   />
@@ -160,11 +107,9 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                 >
                   <Switch
                     size="small"
-                    checked={varDeduplicate?.value}
+                    checked={_.get(values, 'deduplicate')}
                     onChange={(checked) => {
-                      if (varDeduplicate) {
-                        varDeduplicate.value = checked;
-                      }
+                      _.set(values, 'deduplicate', checked);
                       applyChanges();
                     }}
                   />
@@ -173,9 +118,21 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                   required
                   label={formatMessage({ id: 'flow.vector_search.source' })}
                 >
-                  <ConnectInfoInput
-                    refNode={refVectorSearchNode}
-                    refNodeConfig={vectorSearchNodeConfig}
+                  <NodeInput
+                    disabled
+                    variant="filled"
+                    placeholder={formatMessage({
+                      id: 'flow.connection.required',
+                    })}
+                    value={_.get(values, 'vector_search_docs')}
+                    onChange={(e) => {
+                      _.set(
+                        values,
+                        'vector_search_docs',
+                        e.currentTarget.value,
+                      );
+                      applyChanges();
+                    }}
                   />
                 </Form.Item>
                 <Form.Item
@@ -183,13 +140,31 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                   style={{ marginBottom: 0 }}
                   label={formatMessage({ id: 'flow.keyword_search.source' })}
                 >
-                  <ConnectInfoInput
-                    refNode={refKeywordSearchNode}
-                    refNodeConfig={keywordSearchNodeConfig}
+                  <NodeInput
+                    disabled
+                    variant="filled"
+                    placeholder={formatMessage({
+                      id: 'flow.connection.required',
+                    })}
+                    value={_.get(values, 'keyword_search_docs')}
+                    onChange={(e) => {
+                      _.set(
+                        values,
+                        'keyword_search_docs',
+                        e.currentTarget.value,
+                      );
+                      applyChanges();
+                    }}
                   />
                 </Form.Item>
               </Form>
             ),
+          },
+          {
+            key: '2',
+            label: formatMessage({ id: 'flow.output.params' }),
+            style: getCollapsePanelStyle(token),
+            children: <OutputParams node={node} />,
           },
         ]}
       />

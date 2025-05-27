@@ -43,6 +43,12 @@ export interface Collection {
      * @type {string}
      * @memberof Collection
      */
+    'type'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Collection
+     */
     'description'?: string;
     /**
      * 

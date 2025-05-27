@@ -57,18 +57,6 @@ export interface CollectionConfig {
      */
     'completion'?: ModelSpec;
     /**
-     * 
-     * @type {boolean}
-     * @memberof CollectionConfig
-     */
-    'sensitive_protect'?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof CollectionConfig
-     */
-    'sensitive_protect_method'?: CollectionConfigSensitiveProtectMethodEnum;
-    /**
      * Path for local and ftp sources
      * @type {string}
      * @memberof CollectionConfig
@@ -188,12 +176,4 @@ export interface CollectionConfig {
      */
     'space_id'?: string;
 }
-
-export const CollectionConfigSensitiveProtectMethodEnum = {
-    nostore: 'nostore',
-    replace: 'replace'
-} as const;
-
-export type CollectionConfigSensitiveProtectMethodEnum = typeof CollectionConfigSensitiveProtectMethodEnum[keyof typeof CollectionConfigSensitiveProtectMethodEnum];
-
 

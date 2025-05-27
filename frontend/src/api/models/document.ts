@@ -80,12 +80,6 @@ export interface Document {
      * @memberof Document
      */
     'updated'?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof Document
-     */
-    'sensitive_info'?: Array<string>;
 }
 
 export const DocumentStatusEnum = {

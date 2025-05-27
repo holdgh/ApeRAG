@@ -1,7 +1,6 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import { ApeFlow, ApeFlowDebugInfo, ApeLayoutDirection } from '@/types';
-import { stringifyConfig } from '@/utils';
+import { ApeFlow, ApeFlowDebugInfo } from '@/types';
 
 import {
   addEdge,
@@ -52,6 +51,7 @@ import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
+import { WorkflowStyle } from '@/api';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -104,15 +104,6 @@ export default () => {
   const { getCollections } = useModel('collection');
 
   const {
-    flowInfo,
-    setFlowInfo,
-
-    execution,
-    setExecution,
-
-    globalVariables,
-    setGlobalVariables,
-
     nodes,
     setEdges,
 
@@ -133,31 +124,35 @@ export default () => {
   } = useModel('bots.$botId.flow.model');
 
   const { fitView } = useReactFlow();
-
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
   const [debugForm] = Form.useForm<{ query: string }>();
   const [debugVisible, setDebugVisible] = useState<boolean>(false);
 
+  const getFlow = async () => {
+    if (!bot?.id) return;
+    const flowDefault = getInitialData();
+    const { data } = await api.botsBotIdFlowGet({ botId: bot.id });
+    setNodes((data?.nodes as any) || flowDefault.nodes);
+    setEdges((data?.edges as any) || flowDefault.edges);
+    setFlowStyle((data?.style as any) || flowDefault.style);
+  };
+
   const saveFlow = async () => {
     if (!bot?.id) return;
     const flow: ApeFlow = {
-      ...flowInfo,
-      execution,
-      global_variables: globalVariables,
+      ...getInitialData(),
       nodes,
       edges,
       style: flowStyle,
     };
     console.log(stringify(flow));
-    const config = { ...bot.config, flow: stringify(flow) };
-    const res = await api.botsBotIdPut({
+
+    const res = await api.botsBotIdFlowPut({
       botId: bot.id,
-      botUpdate: {
-        ...bot,
-        config: stringifyConfig(config),
-      },
+      workflowDefinition: flow,
     });
+
     if (res.status === 200) {
       toast.success(formatMessage({ id: 'tips.update.success' }));
     }
@@ -259,7 +254,7 @@ export default () => {
   }, []);
 
   const setLayout = useCallback(
-    (d: ApeLayoutDirection) => {
+    (d: WorkflowStyle['layoutDirection']) => {
       const layouted = getLayoutedElements(nodes, edges, {
         direction: d,
       });
@@ -290,19 +285,7 @@ export default () => {
   }, [flowStyle]);
 
   useEffect(() => {
-    const flowDefault = getInitialData();
-    const flow = bot?.config?.flow;
-
-    setFlowInfo({
-      name: flow?.name || flowDefault.name,
-      description: flow?.description || flowDefault.description,
-      version: flow?.version || flowDefault.version,
-    });
-    setExecution(flow?.execution || flowDefault.execution);
-    setGlobalVariables(flow?.global_variables || flowDefault.global_variables);
-    setNodes(flow?.nodes || flowDefault.nodes);
-    setEdges(flow?.edges || flowDefault.edges);
-    setFlowStyle(flow?.style || flowDefault.style);
+    getFlow();
   }, [bot]);
 
   return (

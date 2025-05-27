@@ -107,6 +107,8 @@ import type { SearchTestResultList } from '../models';
 import type { User } from '../models';
 // @ts-ignore
 import type { UserList } from '../models';
+// @ts-ignore
+import type { WorkflowDefinition } from '../models';
 /**
  * DefaultApi - axios parameter creator
  * @export
@@ -650,6 +652,80 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Get flow
+         * @summary Get flow
+         * @param {string} botId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowGet: async (botId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'botId' is not null or undefined
+            assertParamExists('botsBotIdFlowGet', 'botId', botId)
+            const localVarPath = `/bots/{bot_id}/flow`
+                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update flow
+         * @summary Update flow
+         * @param {string} botId 
+         * @param {WorkflowDefinition} workflowDefinition 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowPut: async (botId: string, workflowDefinition: WorkflowDefinition, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'botId' is not null or undefined
+            assertParamExists('botsBotIdFlowPut', 'botId', botId)
+            // verify required parameter 'workflowDefinition' is not null or undefined
+            assertParamExists('botsBotIdFlowPut', 'workflowDefinition', workflowDefinition)
+            const localVarPath = `/bots/{bot_id}/flow`
+                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(workflowDefinition, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {string} botId 
@@ -725,198 +801,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(botUpdate, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Get a web chat
-         * @summary Get a web chat
-         * @param {string} botId 
-         * @param {string} chatId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsChatIdGet: async (botId: string, chatId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'botId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdGet', 'botId', botId)
-            // verify required parameter 'chatId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdGet', 'chatId', chatId)
-            const localVarPath = `/bots/{bot_id}/web-chats/{chat_id}`
-                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)))
-                .replace(`{${"chat_id"}}`, encodeURIComponent(String(chatId)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Feedback a message
-         * @summary Feedback a message
-         * @param {string} botId 
-         * @param {string} chatId 
-         * @param {string} messageId 
-         * @param {Feedback} feedback 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsChatIdMessagesMessageIdPost: async (botId: string, chatId: string, messageId: string, feedback: Feedback, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'botId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdMessagesMessageIdPost', 'botId', botId)
-            // verify required parameter 'chatId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdMessagesMessageIdPost', 'chatId', chatId)
-            // verify required parameter 'messageId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdMessagesMessageIdPost', 'messageId', messageId)
-            // verify required parameter 'feedback' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdMessagesMessageIdPost', 'feedback', feedback)
-            const localVarPath = `/bots/{bot_id}/web-chats/{chat_id}/messages/{message_id}`
-                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)))
-                .replace(`{${"chat_id"}}`, encodeURIComponent(String(chatId)))
-                .replace(`{${"message_id"}}`, encodeURIComponent(String(messageId)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(feedback, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Update a web chat
-         * @summary Update a web chat
-         * @param {string} botId 
-         * @param {string} chatId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsChatIdPut: async (botId: string, chatId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'botId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdPut', 'botId', botId)
-            // verify required parameter 'chatId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsChatIdPut', 'chatId', chatId)
-            const localVarPath = `/bots/{bot_id}/web-chats/{chat_id}`
-                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)))
-                .replace(`{${"chat_id"}}`, encodeURIComponent(String(chatId)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Get all web chats
-         * @summary Get all web chats
-         * @param {string} botId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsGet: async (botId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'botId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsGet', 'botId', botId)
-            const localVarPath = `/bots/{bot_id}/web-chats`
-                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Create a new web chat
-         * @summary Create a new web chat
-         * @param {string} botId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsPost: async (botId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'botId' is not null or undefined
-            assertParamExists('botsBotIdWebChatsPost', 'botId', botId)
-            const localVarPath = `/bots/{bot_id}/web-chats`
-                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -2461,6 +2345,33 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Get flow
+         * @summary Get flow
+         * @param {string} botId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async botsBotIdFlowGet(botId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WorkflowDefinition>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdFlowGet(botId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdFlowGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update flow
+         * @summary Update flow
+         * @param {string} botId 
+         * @param {WorkflowDefinition} workflowDefinition 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async botsBotIdFlowPut(botId: string, workflowDefinition: WorkflowDefinition, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdFlowPut(botId, workflowDefinition, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdFlowPut']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {string} botId 
@@ -2485,76 +2396,6 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdPut(botId, botUpdate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdPut']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Get a web chat
-         * @summary Get a web chat
-         * @param {string} botId 
-         * @param {string} chatId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async botsBotIdWebChatsChatIdGet(botId: string, chatId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ChatDetails>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdWebChatsChatIdGet(botId, chatId, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdWebChatsChatIdGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Feedback a message
-         * @summary Feedback a message
-         * @param {string} botId 
-         * @param {string} chatId 
-         * @param {string} messageId 
-         * @param {Feedback} feedback 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async botsBotIdWebChatsChatIdMessagesMessageIdPost(botId: string, chatId: string, messageId: string, feedback: Feedback, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdWebChatsChatIdMessagesMessageIdPost(botId, chatId, messageId, feedback, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdWebChatsChatIdMessagesMessageIdPost']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Update a web chat
-         * @summary Update a web chat
-         * @param {string} botId 
-         * @param {string} chatId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async botsBotIdWebChatsChatIdPut(botId: string, chatId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdWebChatsChatIdPut(botId, chatId, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdWebChatsChatIdPut']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Get all web chats
-         * @summary Get all web chats
-         * @param {string} botId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async botsBotIdWebChatsGet(botId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ChatList>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdWebChatsGet(botId, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdWebChatsGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Create a new web chat
-         * @summary Create a new web chat
-         * @param {string} botId 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async botsBotIdWebChatsPost(botId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdWebChatsPost(botId, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdWebChatsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -3162,6 +3003,26 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.botsBotIdFlowDebugPost(requestParameters.botId, requestParameters.debugFlowRequest, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get flow
+         * @summary Get flow
+         * @param {DefaultApiBotsBotIdFlowGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowGet(requestParameters: DefaultApiBotsBotIdFlowGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WorkflowDefinition> {
+            return localVarFp.botsBotIdFlowGet(requestParameters.botId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update flow
+         * @summary Update flow
+         * @param {DefaultApiBotsBotIdFlowPutRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowPut(requestParameters: DefaultApiBotsBotIdFlowPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.botsBotIdFlowPut(requestParameters.botId, requestParameters.workflowDefinition, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {DefaultApiBotsBotIdGetRequest} requestParameters Request parameters.
@@ -3180,56 +3041,6 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          */
         botsBotIdPut(requestParameters: DefaultApiBotsBotIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.botsBotIdPut(requestParameters.botId, requestParameters.botUpdate, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Get a web chat
-         * @summary Get a web chat
-         * @param {DefaultApiBotsBotIdWebChatsChatIdGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsChatIdGet(requestParameters: DefaultApiBotsBotIdWebChatsChatIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ChatDetails> {
-            return localVarFp.botsBotIdWebChatsChatIdGet(requestParameters.botId, requestParameters.chatId, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Feedback a message
-         * @summary Feedback a message
-         * @param {DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsChatIdMessagesMessageIdPost(requestParameters: DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.botsBotIdWebChatsChatIdMessagesMessageIdPost(requestParameters.botId, requestParameters.chatId, requestParameters.messageId, requestParameters.feedback, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Update a web chat
-         * @summary Update a web chat
-         * @param {DefaultApiBotsBotIdWebChatsChatIdPutRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsChatIdPut(requestParameters: DefaultApiBotsBotIdWebChatsChatIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.botsBotIdWebChatsChatIdPut(requestParameters.botId, requestParameters.chatId, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Get all web chats
-         * @summary Get all web chats
-         * @param {DefaultApiBotsBotIdWebChatsGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsGet(requestParameters: DefaultApiBotsBotIdWebChatsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ChatList> {
-            return localVarFp.botsBotIdWebChatsGet(requestParameters.botId, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Create a new web chat
-         * @summary Create a new web chat
-         * @param {DefaultApiBotsBotIdWebChatsPostRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        botsBotIdWebChatsPost(requestParameters: DefaultApiBotsBotIdWebChatsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.botsBotIdWebChatsPost(requestParameters.botId, options).then((request) => request(axios, basePath));
         },
         /**
          * Get a list of bots
@@ -3711,6 +3522,26 @@ export interface DefaultApiInterface {
     botsBotIdFlowDebugPost(requestParameters: DefaultApiBotsBotIdFlowDebugPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
+     * Get flow
+     * @summary Get flow
+     * @param {DefaultApiBotsBotIdFlowGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    botsBotIdFlowGet(requestParameters: DefaultApiBotsBotIdFlowGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WorkflowDefinition>;
+
+    /**
+     * Update flow
+     * @summary Update flow
+     * @param {DefaultApiBotsBotIdFlowPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    botsBotIdFlowPut(requestParameters: DefaultApiBotsBotIdFlowPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
      * Get details of a specific bot
      * @summary Get bot details
      * @param {DefaultApiBotsBotIdGetRequest} requestParameters Request parameters.
@@ -3729,56 +3560,6 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     botsBotIdPut(requestParameters: DefaultApiBotsBotIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Get a web chat
-     * @summary Get a web chat
-     * @param {DefaultApiBotsBotIdWebChatsChatIdGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    botsBotIdWebChatsChatIdGet(requestParameters: DefaultApiBotsBotIdWebChatsChatIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ChatDetails>;
-
-    /**
-     * Feedback a message
-     * @summary Feedback a message
-     * @param {DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    botsBotIdWebChatsChatIdMessagesMessageIdPost(requestParameters: DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Update a web chat
-     * @summary Update a web chat
-     * @param {DefaultApiBotsBotIdWebChatsChatIdPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    botsBotIdWebChatsChatIdPut(requestParameters: DefaultApiBotsBotIdWebChatsChatIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Get all web chats
-     * @summary Get all web chats
-     * @param {DefaultApiBotsBotIdWebChatsGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    botsBotIdWebChatsGet(requestParameters: DefaultApiBotsBotIdWebChatsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ChatList>;
-
-    /**
-     * Create a new web chat
-     * @summary Create a new web chat
-     * @param {DefaultApiBotsBotIdWebChatsPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    botsBotIdWebChatsPost(requestParameters: DefaultApiBotsBotIdWebChatsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
      * Get a list of bots
@@ -4363,6 +4144,41 @@ export interface DefaultApiBotsBotIdFlowDebugPostRequest {
 }
 
 /**
+ * Request parameters for botsBotIdFlowGet operation in DefaultApi.
+ * @export
+ * @interface DefaultApiBotsBotIdFlowGetRequest
+ */
+export interface DefaultApiBotsBotIdFlowGetRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiBotsBotIdFlowGet
+     */
+    readonly botId: string
+}
+
+/**
+ * Request parameters for botsBotIdFlowPut operation in DefaultApi.
+ * @export
+ * @interface DefaultApiBotsBotIdFlowPutRequest
+ */
+export interface DefaultApiBotsBotIdFlowPutRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiBotsBotIdFlowPut
+     */
+    readonly botId: string
+
+    /**
+     * 
+     * @type {WorkflowDefinition}
+     * @memberof DefaultApiBotsBotIdFlowPut
+     */
+    readonly workflowDefinition: WorkflowDefinition
+}
+
+/**
  * Request parameters for botsBotIdGet operation in DefaultApi.
  * @export
  * @interface DefaultApiBotsBotIdGetRequest
@@ -4395,111 +4211,6 @@ export interface DefaultApiBotsBotIdPutRequest {
      * @memberof DefaultApiBotsBotIdPut
      */
     readonly botUpdate: BotUpdate
-}
-
-/**
- * Request parameters for botsBotIdWebChatsChatIdGet operation in DefaultApi.
- * @export
- * @interface DefaultApiBotsBotIdWebChatsChatIdGetRequest
- */
-export interface DefaultApiBotsBotIdWebChatsChatIdGetRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdGet
-     */
-    readonly botId: string
-
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdGet
-     */
-    readonly chatId: string
-}
-
-/**
- * Request parameters for botsBotIdWebChatsChatIdMessagesMessageIdPost operation in DefaultApi.
- * @export
- * @interface DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest
- */
-export interface DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPost
-     */
-    readonly botId: string
-
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPost
-     */
-    readonly chatId: string
-
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPost
-     */
-    readonly messageId: string
-
-    /**
-     * 
-     * @type {Feedback}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPost
-     */
-    readonly feedback: Feedback
-}
-
-/**
- * Request parameters for botsBotIdWebChatsChatIdPut operation in DefaultApi.
- * @export
- * @interface DefaultApiBotsBotIdWebChatsChatIdPutRequest
- */
-export interface DefaultApiBotsBotIdWebChatsChatIdPutRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdPut
-     */
-    readonly botId: string
-
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsChatIdPut
-     */
-    readonly chatId: string
-}
-
-/**
- * Request parameters for botsBotIdWebChatsGet operation in DefaultApi.
- * @export
- * @interface DefaultApiBotsBotIdWebChatsGetRequest
- */
-export interface DefaultApiBotsBotIdWebChatsGetRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsGet
-     */
-    readonly botId: string
-}
-
-/**
- * Request parameters for botsBotIdWebChatsPost operation in DefaultApi.
- * @export
- * @interface DefaultApiBotsBotIdWebChatsPostRequest
- */
-export interface DefaultApiBotsBotIdWebChatsPostRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof DefaultApiBotsBotIdWebChatsPost
-     */
-    readonly botId: string
 }
 
 /**
@@ -5175,6 +4886,30 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     }
 
     /**
+     * Get flow
+     * @summary Get flow
+     * @param {DefaultApiBotsBotIdFlowGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public botsBotIdFlowGet(requestParameters: DefaultApiBotsBotIdFlowGetRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).botsBotIdFlowGet(requestParameters.botId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update flow
+     * @summary Update flow
+     * @param {DefaultApiBotsBotIdFlowPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public botsBotIdFlowPut(requestParameters: DefaultApiBotsBotIdFlowPutRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).botsBotIdFlowPut(requestParameters.botId, requestParameters.workflowDefinition, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Get details of a specific bot
      * @summary Get bot details
      * @param {DefaultApiBotsBotIdGetRequest} requestParameters Request parameters.
@@ -5196,66 +4931,6 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public botsBotIdPut(requestParameters: DefaultApiBotsBotIdPutRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).botsBotIdPut(requestParameters.botId, requestParameters.botUpdate, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Get a web chat
-     * @summary Get a web chat
-     * @param {DefaultApiBotsBotIdWebChatsChatIdGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public botsBotIdWebChatsChatIdGet(requestParameters: DefaultApiBotsBotIdWebChatsChatIdGetRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).botsBotIdWebChatsChatIdGet(requestParameters.botId, requestParameters.chatId, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Feedback a message
-     * @summary Feedback a message
-     * @param {DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public botsBotIdWebChatsChatIdMessagesMessageIdPost(requestParameters: DefaultApiBotsBotIdWebChatsChatIdMessagesMessageIdPostRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).botsBotIdWebChatsChatIdMessagesMessageIdPost(requestParameters.botId, requestParameters.chatId, requestParameters.messageId, requestParameters.feedback, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Update a web chat
-     * @summary Update a web chat
-     * @param {DefaultApiBotsBotIdWebChatsChatIdPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public botsBotIdWebChatsChatIdPut(requestParameters: DefaultApiBotsBotIdWebChatsChatIdPutRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).botsBotIdWebChatsChatIdPut(requestParameters.botId, requestParameters.chatId, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Get all web chats
-     * @summary Get all web chats
-     * @param {DefaultApiBotsBotIdWebChatsGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public botsBotIdWebChatsGet(requestParameters: DefaultApiBotsBotIdWebChatsGetRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).botsBotIdWebChatsGet(requestParameters.botId, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Create a new web chat
-     * @summary Create a new web chat
-     * @param {DefaultApiBotsBotIdWebChatsPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public botsBotIdWebChatsPost(requestParameters: DefaultApiBotsBotIdWebChatsPostRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).botsBotIdWebChatsPost(requestParameters.botId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
