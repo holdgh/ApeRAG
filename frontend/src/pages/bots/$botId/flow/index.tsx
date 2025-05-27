@@ -104,15 +104,6 @@ export default () => {
   const { getCollections } = useModel('collection');
 
   const {
-    flowInfo,
-    setFlowInfo,
-
-    execution,
-    setExecution,
-
-    globalVariables,
-    setGlobalVariables,
-
     nodes,
     setEdges,
 
@@ -133,31 +124,36 @@ export default () => {
   } = useModel('bots.$botId.flow.model');
 
   const { fitView } = useReactFlow();
-
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
   const [debugForm] = Form.useForm<{ query: string }>();
   const [debugVisible, setDebugVisible] = useState<boolean>(false);
 
+  const getFlow = async () => {
+    if(!bot?.id) return;
+    const flowDefault = getInitialData();
+    const flow = bot?.config?.flow;
+    setNodes(flow?.nodes || flowDefault.nodes);
+    setEdges(flow?.edges || flowDefault.edges);
+    setFlowStyle(flow?.style || flowDefault.style);
+    // const res = api.botsBotIdFlowGet({ botId: bot.id })
+  }
+
   const saveFlow = async () => {
     if (!bot?.id) return;
     const flow: ApeFlow = {
-      ...flowInfo,
-      execution,
-      global_variables: globalVariables,
+      ...getInitialData(),
       nodes,
       edges,
       style: flowStyle,
     };
     console.log(stringify(flow));
-    const config = { ...bot.config, flow: stringify(flow) };
-    const res = await api.botsBotIdPut({
+
+    const res = await api.botsBotIdFlowPut({
       botId: bot.id,
-      botUpdate: {
-        ...bot,
-        config: stringifyConfig(config),
-      },
-    });
+      workflowDefinition: flow,
+    })
+
     if (res.status === 200) {
       toast.success(formatMessage({ id: 'tips.update.success' }));
     }
@@ -290,19 +286,7 @@ export default () => {
   }, [flowStyle]);
 
   useEffect(() => {
-    const flowDefault = getInitialData();
-    const flow = bot?.config?.flow;
-
-    setFlowInfo({
-      name: flow?.name || flowDefault.name,
-      description: flow?.description || flowDefault.description,
-      version: flow?.version || flowDefault.version,
-    });
-    setExecution(flow?.execution || flowDefault.execution);
-    setGlobalVariables(flow?.global_variables || flowDefault.global_variables);
-    setNodes(flow?.nodes || flowDefault.nodes);
-    setEdges(flow?.edges || flowDefault.edges);
-    setFlowStyle(flow?.style || flowDefault.style);
+    getFlow();
   }, [bot]);
 
   return (

@@ -214,8 +214,8 @@ export default {
   'flow.top_k': 'Top-k',
   'flow.top_k.tips':
     'Top-k 是用来控制采样策略的，即从所有结果中按照打分排名，取前 k 个字作为候选集，然后从中随机选一个作为下一个输出的字。',
-  'flow.search.params': '检索参数',
   'flow.input.params': '输入参数',
+  'flow.output.params': '输出参数',
   'flow.input.source': '输入来源',
   'flow.vector_search.source': '向量检索来源',
   'flow.keyword_search.source': '全文检索来源',

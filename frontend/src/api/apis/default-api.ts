@@ -107,6 +107,8 @@ import type { SearchTestResultList } from '../models';
 import type { User } from '../models';
 // @ts-ignore
 import type { UserList } from '../models';
+// @ts-ignore
+import type { WorkflowDefinition } from '../models';
 /**
  * DefaultApi - axios parameter creator
  * @export
@@ -643,6 +645,80 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(debugFlowRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get flow
+         * @summary Get flow
+         * @param {string} botId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowGet: async (botId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'botId' is not null or undefined
+            assertParamExists('botsBotIdFlowGet', 'botId', botId)
+            const localVarPath = `/bots/{bot_id}/flow`
+                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update flow
+         * @summary Update flow
+         * @param {string} botId 
+         * @param {WorkflowDefinition} workflowDefinition 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowPut: async (botId: string, workflowDefinition: WorkflowDefinition, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'botId' is not null or undefined
+            assertParamExists('botsBotIdFlowPut', 'botId', botId)
+            // verify required parameter 'workflowDefinition' is not null or undefined
+            assertParamExists('botsBotIdFlowPut', 'workflowDefinition', workflowDefinition)
+            const localVarPath = `/bots/{bot_id}/flow`
+                .replace(`{${"bot_id"}}`, encodeURIComponent(String(botId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(workflowDefinition, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -2461,6 +2537,33 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Get flow
+         * @summary Get flow
+         * @param {string} botId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async botsBotIdFlowGet(botId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WorkflowDefinition>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdFlowGet(botId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdFlowGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update flow
+         * @summary Update flow
+         * @param {string} botId 
+         * @param {WorkflowDefinition} workflowDefinition 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async botsBotIdFlowPut(botId: string, workflowDefinition: WorkflowDefinition, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.botsBotIdFlowPut(botId, workflowDefinition, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.botsBotIdFlowPut']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {string} botId 
@@ -3162,6 +3265,26 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.botsBotIdFlowDebugPost(requestParameters.botId, requestParameters.debugFlowRequest, options).then((request) => request(axios, basePath));
         },
         /**
+         * Get flow
+         * @summary Get flow
+         * @param {DefaultApiBotsBotIdFlowGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowGet(requestParameters: DefaultApiBotsBotIdFlowGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WorkflowDefinition> {
+            return localVarFp.botsBotIdFlowGet(requestParameters.botId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update flow
+         * @summary Update flow
+         * @param {DefaultApiBotsBotIdFlowPutRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        botsBotIdFlowPut(requestParameters: DefaultApiBotsBotIdFlowPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.botsBotIdFlowPut(requestParameters.botId, requestParameters.workflowDefinition, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get details of a specific bot
          * @summary Get bot details
          * @param {DefaultApiBotsBotIdGetRequest} requestParameters Request parameters.
@@ -3709,6 +3832,26 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     botsBotIdFlowDebugPost(requestParameters: DefaultApiBotsBotIdFlowDebugPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Get flow
+     * @summary Get flow
+     * @param {DefaultApiBotsBotIdFlowGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    botsBotIdFlowGet(requestParameters: DefaultApiBotsBotIdFlowGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WorkflowDefinition>;
+
+    /**
+     * Update flow
+     * @summary Update flow
+     * @param {DefaultApiBotsBotIdFlowPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    botsBotIdFlowPut(requestParameters: DefaultApiBotsBotIdFlowPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
      * Get details of a specific bot
@@ -4360,6 +4503,41 @@ export interface DefaultApiBotsBotIdFlowDebugPostRequest {
      * @memberof DefaultApiBotsBotIdFlowDebugPost
      */
     readonly debugFlowRequest: DebugFlowRequest
+}
+
+/**
+ * Request parameters for botsBotIdFlowGet operation in DefaultApi.
+ * @export
+ * @interface DefaultApiBotsBotIdFlowGetRequest
+ */
+export interface DefaultApiBotsBotIdFlowGetRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiBotsBotIdFlowGet
+     */
+    readonly botId: string
+}
+
+/**
+ * Request parameters for botsBotIdFlowPut operation in DefaultApi.
+ * @export
+ * @interface DefaultApiBotsBotIdFlowPutRequest
+ */
+export interface DefaultApiBotsBotIdFlowPutRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiBotsBotIdFlowPut
+     */
+    readonly botId: string
+
+    /**
+     * 
+     * @type {WorkflowDefinition}
+     * @memberof DefaultApiBotsBotIdFlowPut
+     */
+    readonly workflowDefinition: WorkflowDefinition
 }
 
 /**
@@ -5172,6 +5350,30 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public botsBotIdFlowDebugPost(requestParameters: DefaultApiBotsBotIdFlowDebugPostRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).botsBotIdFlowDebugPost(requestParameters.botId, requestParameters.debugFlowRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get flow
+     * @summary Get flow
+     * @param {DefaultApiBotsBotIdFlowGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public botsBotIdFlowGet(requestParameters: DefaultApiBotsBotIdFlowGetRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).botsBotIdFlowGet(requestParameters.botId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update flow
+     * @summary Update flow
+     * @param {DefaultApiBotsBotIdFlowPutRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public botsBotIdFlowPut(requestParameters: DefaultApiBotsBotIdFlowPutRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).botsBotIdFlowPut(requestParameters.botId, requestParameters.workflowDefinition, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

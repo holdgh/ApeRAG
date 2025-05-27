@@ -2,9 +2,10 @@ import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { Collapse, Form, Select, Slider, theme } from 'antd';
-import { useCallback, useEffect, useMemo } from 'react';
+import _ from 'lodash';
+import { useCallback, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
-import { GlobalVars } from './_global-var';
+import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
@@ -12,6 +13,8 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
   const { collections } = useModel('collection');
+
+  const values = useMemo(() => node.data.input.values || [], [node]);
 
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
@@ -22,48 +25,6 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
     });
   }, [node]);
 
-  const getVarByName = useCallback(
-    (name: string) => {
-      return node.data.vars?.find((item) => item.name === name);
-    },
-    [node],
-  );
-
-  const [varTopK, varSimilarityThreshold, varCollectionIds, varQuery] = useMemo(
-    () => [
-      getVarByName('top_k'),
-      getVarByName('similarity_threshold'),
-      getVarByName('collection_ids'),
-      getVarByName('query'),
-    ],
-    [getVarByName],
-  );
-
-  useEffect(() => {
-    const vars = node.data.vars || [];
-    if (!varTopK) {
-      vars?.push({ name: 'top_k', value: 5 });
-    }
-    if (!varSimilarityThreshold) {
-      vars?.push({ name: 'similarity_threshold', value: 0.2 });
-    }
-    if (!varCollectionIds) {
-      vars?.push({
-        name: 'collection_ids',
-        value: [],
-      });
-    }
-    if (!varQuery) {
-      vars?.push({
-        name: 'query',
-        source_type: 'global',
-        global_var: 'query',
-      });
-    }
-    node.data.vars = vars;
-    applyChanges();
-  }, []);
-
   return (
     <>
       <Collapse
@@ -72,12 +33,12 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
           return <CaretRightOutlined rotate={isActive ? 90 : 0} />;
         }}
         size="middle"
-        defaultActiveKey={['1', '2']}
+        defaultActiveKey={['1']}
         style={{ background: 'none' }}
         items={[
           {
             key: '1',
-            label: formatMessage({ id: 'flow.search.params' }),
+            label: formatMessage({ id: 'flow.input.params' }),
             style: getCollapsePanelStyle(token),
             children: (
               <>
@@ -94,11 +55,9 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                         label: collection.title,
                         value: collection.id,
                       }))}
-                      value={varCollectionIds?.value}
+                      value={_.get(values, 'collection_ids')}
                       onChange={(value) => {
-                        if (varCollectionIds) {
-                          varCollectionIds.value = value;
-                        }
+                        _.set(values, 'collection_ids', value);
                         applyChanges();
                       }}
                       placeholder={formatMessage({ id: 'collection.select' })}
@@ -110,39 +69,44 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                     tooltip={formatMessage({ id: 'flow.top_k.tips' })}
                   >
                     <Slider
-                      value={varTopK?.value}
+                      value={_.get(values, 'top_k')}
                       style={{ margin: 0 }}
                       min={1}
                       max={10}
                       step={1}
                       onChange={(value) => {
-                        if (varTopK) {
-                          varTopK.value = value;
-                        }
+                        _.set(values, 'top_k', value);
                         applyChanges();
                       }}
                     />
                   </Form.Item>
                   <Form.Item
                     required
-                    style={{ marginBottom: 0 }}
                     label={formatMessage({ id: 'flow.similarity_threshold' })}
                     tooltip={formatMessage({
                       id: 'flow.similarity_threshold.tips',
                     })}
                   >
                     <Slider
-                      value={varSimilarityThreshold?.value}
+                      value={_.get(values, 'similarity_threshold')}
                       style={{ margin: 0 }}
                       min={0}
                       max={1}
                       step={0.01}
                       onChange={(value) => {
-                        if (varSimilarityThreshold) {
-                          varSimilarityThreshold.value = value;
-                        }
+                        _.set(values, 'similarity_threshold', value);
                         applyChanges();
                       }}
+                    />
+                  </Form.Item>
+                  <Form.Item required style={{ marginBottom: 0 }} label={formatMessage({ id: 'flow.variable.global' })}>
+                    <NodeInput
+                      value={_.get(values, 'query')}
+                      onChange={(e) => {
+                        _.set(values, 'query', e.currentTarget.value);
+                        applyChanges();
+                      }}
+                      variant="filled"
                     />
                   </Form.Item>
                 </Form>
@@ -151,9 +115,9 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
           },
           {
             key: '2',
-            label: formatMessage({ id: 'flow.input.params' }),
+            label: formatMessage({ id: 'flow.output.params' }),
             style: getCollapsePanelStyle(token),
-            children: <GlobalVars />,
+            children: <></>,
           },
         ]}
       />

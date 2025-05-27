@@ -11,7 +11,16 @@ import {
 } from '@ant-design/icons';
 import { applyNodeChanges, Handle, NodeChange, Position } from '@xyflow/react';
 import { useHover } from 'ahooks';
-import { Badge, Button, Form, Input, Modal, Space, theme } from 'antd';
+import {
+  Badge,
+  Button,
+  Form,
+  Input,
+  Modal,
+  Space,
+  theme,
+  Typography,
+} from 'antd';
 import { RibbonProps } from 'antd/es/badge/Ribbon';
 import _ from 'lodash';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -203,9 +212,19 @@ const ApeBasicNode = (node: ApeNode) => {
                   token={token}
                   color={config.color}
                   shape="square"
+                  size="large"
                   src={nodeLoading ? <LoadingOutlined /> : config.icon}
                 />
-                <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
+                <div>
+                  <div>
+                    <StyledFlowNodeLabel>{config.label}</StyledFlowNodeLabel>
+                  </div>
+                  <Typography.Text copyable type="secondary">
+                    {node.id}
+                  </Typography.Text>
+                </div>
+              </Space>
+              <Space>
                 {isHovering && (
                   <Button
                     type="text"
@@ -213,8 +232,6 @@ const ApeBasicNode = (node: ApeNode) => {
                     icon={<EditOutlined />}
                   />
                 )}
-              </Space>
-              <Space>
                 <Button
                   type="text"
                   onClick={onToggleCollapsed}
