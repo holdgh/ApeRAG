@@ -101,6 +101,7 @@ export const StyledReactFlow = styled(ReactFlow).withConfig({
 export default () => {
   const { themeName } = useModel('global');
   const { bot } = useModel('bot');
+  const { getAvailableModels } = useModel('models');
   const { getCollections } = useModel('collection');
 
   const {
@@ -133,8 +134,8 @@ export default () => {
     if (!bot?.id) return;
     const flowDefault = getInitialData();
     const { data } = await api.botsBotIdFlowGet({ botId: bot.id });
-    setNodes(data?.nodes || [] || flowDefault.nodes);
-    setEdges(data?.edges || [] || flowDefault.edges);
+    setNodes(data?.nodes || flowDefault.nodes);
+    setEdges(data?.edges || flowDefault.edges);
     setFlowStyle(
       data?.style ||
         flowDefault.style || {
@@ -291,6 +292,7 @@ export default () => {
   }, [flowStyle]);
 
   useEffect(() => {
+    getAvailableModels();
     getFlow();
   }, [bot]);
 
