@@ -5,7 +5,7 @@
 
 image:
   repository: "docker.io/apecloud/aperag"  # Full image name including registry
-  tag: "test12"
+  tag: "latest"
   pullPolicy: IfNotPresent
 
   embedding:
@@ -101,8 +101,6 @@ django:
   metaDBPort: 5432
   metaDBUsername: postgres
   metaDBPassword: y25a9b2HD4
-  adminUser: ""
-  adminToken: ""
   vectorDBType: qdrant
   vectorDBContext: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
   objectStoreType: local
@@ -119,16 +117,6 @@ django:
   chunkSize: 400
   chunkOverlapSize: 20
   embeddingMaxChunksInBatch: 16
-  # Email settings
-  emailHost: smtp.gmail.com
-  emailPort: 587
-  emailUseTls: "True"
-  emailHostUser: ""
-  emailHostPassword: ""
-  defaultFromEmail: noreply@aperag.com
-  siteUrl: http://localhost:8000
-  # Registration
-  registerMode: unlimited
   # Chat
   chatConsumerImplementation: document-qa
   # Rerank settings
@@ -136,7 +124,6 @@ django:
   rerankServiceTokenApiKey: ""
   rerankBackend: "jina_ai"
   rerankServiceUrl: https://api.jina.ai/v1/rerank
-  rerankServiceModelUid: ""
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:
@@ -212,8 +199,8 @@ flower:
 frontend:
   replicaCount: 1
   image:
-    repository: "aperag-frontend"  # Full image name including registry
-    tag: "test2"
+    repository: "docker.io/apecloud/aperag-frontend"  # Full image name including registry
+    tag: "latest"
     pullPolicy: IfNotPresent
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
