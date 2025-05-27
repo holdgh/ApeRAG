@@ -1,7 +1,6 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
 import { ApeFlow, ApeFlowDebugInfo, ApeLayoutDirection } from '@/types';
-import { stringifyConfig } from '@/utils';
 
 import {
   addEdge,
@@ -130,14 +129,13 @@ export default () => {
   const [debugVisible, setDebugVisible] = useState<boolean>(false);
 
   const getFlow = async () => {
-    if(!bot?.id) return;
+    if (!bot?.id) return;
     const flowDefault = getInitialData();
-    const flow = bot?.config?.flow;
-    setNodes(flow?.nodes || flowDefault.nodes);
-    setEdges(flow?.edges || flowDefault.edges);
-    setFlowStyle(flow?.style || flowDefault.style);
-    // const res = api.botsBotIdFlowGet({ botId: bot.id })
-  }
+    const { data } = await api.botsBotIdFlowGet({ botId: bot.id });
+    setNodes((data?.nodes as any) || flowDefault.nodes);
+    setEdges((data?.edges as any) || flowDefault.edges);
+    setFlowStyle((data?.style as any) || flowDefault.style);
+  };
 
   const saveFlow = async () => {
     if (!bot?.id) return;
@@ -152,7 +150,7 @@ export default () => {
     const res = await api.botsBotIdFlowPut({
       botId: bot.id,
       workflowDefinition: flow,
-    })
+    });
 
     if (res.status === 200) {
       toast.success(formatMessage({ id: 'tips.update.success' }));

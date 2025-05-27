@@ -8,6 +8,7 @@ import { useCallback, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
+import { OutputParams } from './_outputs_params';
 
 export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -15,8 +16,10 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
-  const values = useMemo(() => node.data.input.values || [], [node]);
-
+  const values = useMemo(
+    () => node.data.input?.values || [],
+    [node],
+  );
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -99,7 +102,7 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.output.params' }),
             style: getCollapsePanelStyle(token),
-            children: <></>,
+            children: <OutputParams node={node} />,
           },
         ]}
       />

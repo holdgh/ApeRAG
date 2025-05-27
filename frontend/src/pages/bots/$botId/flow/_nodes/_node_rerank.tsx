@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
+import { OutputParams } from './_outputs_params';
 
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -16,10 +17,9 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { getProviderByModelName } = useModel('models');
 
   const values = useMemo(
-    () => node.data.input.values || [],
-    [node.data.input.values],
+    () => node.data.input?.values || [],
+    [node],
   );
-
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -33,7 +33,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
-      nodes.find((nod) => nod.id === edg.source),
+      nodes.find((nod) => nod.id === edg.source && nod.data.output?.schema.properties?.docs),
     );
     const _refNode =
       _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
@@ -113,7 +113,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.output.params' }),
             style: getCollapsePanelStyle(token),
-            children: <></>,
+            children: <OutputParams node={node} />,
           },
         ]}
       />

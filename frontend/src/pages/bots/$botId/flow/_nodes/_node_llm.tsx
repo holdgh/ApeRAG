@@ -7,6 +7,7 @@ import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput, NodeInputTextArea } from './_node-input';
+import { OutputParams } from './_outputs_params';
 import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
@@ -16,10 +17,9 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { formatMessage } = useIntl();
 
   const values = useMemo(
-    () => node.data.input.values || [],
-    [node.data.input.values],
+    () => node.data.input?.values || [],
+    [node],
   );
-
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -33,7 +33,10 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
-      nodes.find((nod) => nod.id === edg.source),
+      nodes.find(
+        (nod) =>
+          nod.id === edg.source && nod.data.output?.schema.properties?.docs,
+      ),
     );
     const _refNode =
       _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;
@@ -177,7 +180,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.output.params' }),
             style: getCollapsePanelStyle(token),
-            children: <></>,
+            children: <OutputParams node={node} />,
           },
         ]}
       />

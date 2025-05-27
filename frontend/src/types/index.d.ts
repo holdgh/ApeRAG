@@ -1,24 +1,24 @@
-import { Bot, Document, NodeDataOutput, NodeDataInput } from '@/api';
-import { Edge, Node, Position } from '@xyflow/react';
+import { Bot, Document, NodeDataOutput, NodeDataInput } from "@/api";
+import { Edge, Node, Position } from "@xyflow/react";
 
 export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 
 // flow
-export type ApeLayoutDirection = 'TB' | 'LR';
+export type ApeLayoutDirection = "TB" | "LR";
 export type ApeNodeType =
-  | 'start'
-  | 'vector_search'
-  | 'keyword_search'
-  | 'merge'
-  | 'rerank'
-  | 'llm';
+  | "start"
+  | "vector_search"
+  | "keyword_search"
+  | "merge"
+  | "rerank"
+  | "llm";
 
 export type ApeEdgeTypes =
-  | 'straight'
-  | 'step'
-  | 'smoothstep'
-  | 'default'
-  | 'simplebezier';
+  | "straight"
+  | "step"
+  | "smoothstep"
+  | "default"
+  | "simplebezier";
 
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
@@ -26,11 +26,22 @@ export type ApeNodeHandlePosition = {
 };
 
 export type ApeNode = Node & {
-  collapsed?: boolean;
+  position?: {
+    x?: number;
+    y?: number;
+  };
+  dragHandle: string;
+  measured: {
+    width?: number;
+    height?: number;
+  };
+  selected?: boolean;
+  deletable?: boolean;
   data?: {
     collapsed?: boolean;
-    input: NodeDataInput;
-    output: NodeDataOutput;
+
+    input?: NodeDataInput;
+    output?: NodeDataOutput;
   };
 };
 
@@ -60,9 +71,9 @@ export type ApeFlow = ApeFlowInfo & {
   title?: string;
   description?: string;
   version?: string;
-  
+
   execution?: ExecutionConfig;
-  schema?: { [key: string]: SchemaDefinition; };
+  schema?: { [key: string]: SchemaDefinition };
 
   nodes: ApeNode[];
   edges: ApeEdge[];
@@ -88,11 +99,11 @@ export type ApeFlowNodeOutput = {
 
 export type ApeFlowDebugInfo = {
   event_type:
-    | 'flow_start'
-    | 'node_start'
-    | 'node_end'
-    | 'flow_end'
-    | 'output_chunk';
+    | "flow_start"
+    | "node_start"
+    | "node_end"
+    | "flow_end"
+    | "output_chunk";
   node_id: string;
   execution_id: string;
   timestamp: string;
@@ -108,8 +119,8 @@ export type ApeFlowDebugInfo = {
   };
 };
 
-export type ApeFlowStatus = 'running' | 'completed' | 'stopped';
-export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
+export type ApeFlowStatus = "running" | "completed" | "stopped";
+export type ApeFlowNodeStatus = "pending" | "running" | "complated" | "stopped";
 
 /**
  * bots
@@ -141,17 +152,17 @@ export type ApeBot = Merge<Bot, { config?: BotConfig }>;
  * collection
  */
 export type CollectionConfigSource =
-  | 'system'
-  | 'local'
-  | 's3'
-  | 'oss'
-  | 'ftp'
-  | 'url'
-  | 'git'
-  | 'email'
-  | 'feishu';
+  | "system"
+  | "local"
+  | "s3"
+  | "oss"
+  | "ftp"
+  | "url"
+  | "git"
+  | "email"
+  | "feishu";
 
-export type CollectionEmailSource = 'gmail' | 'outlook' | 'qqmail' | 'others';
+export type CollectionEmailSource = "gmail" | "outlook" | "qqmail" | "others";
 
 /**
  * documents

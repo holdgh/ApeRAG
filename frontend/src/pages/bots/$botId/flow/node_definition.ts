@@ -191,8 +191,8 @@ export const getNodeMergeNodeInitData = (
             $ref: "#/schema/document_with_score",
           },
         },
-        required: ["docs"],
       },
+      required: ["docs"],
     },
   },
 });
@@ -239,8 +239,8 @@ export const getNodeRerankInitData = (mergeId: string): NodeData => ({
             $ref: "#/schema/document_with_score",
           },
         },
-        required: ["docs"],
       },
+      required: ["docs"],
     },
   },
 });

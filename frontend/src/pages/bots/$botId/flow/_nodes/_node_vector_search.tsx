@@ -7,6 +7,7 @@ import { useCallback, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
+import { OutputParams } from './_outputs_params';
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -14,8 +15,10 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { formatMessage } = useIntl();
   const { collections } = useModel('collection');
 
-  const values = useMemo(() => node.data.input.values || [], [node]);
-
+  const values = useMemo(
+    () => node.data.input?.values || [],
+    [node],
+  );
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -117,7 +120,7 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.output.params' }),
             style: getCollapsePanelStyle(token),
-            children: <></>,
+            children: <OutputParams node={node} />,
           },
         ]}
       />

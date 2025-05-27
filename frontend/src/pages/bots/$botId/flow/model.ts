@@ -164,6 +164,7 @@ const getInitialData = (): ApeFlow => {
         position: { x: 422, y: -100 },
         type: "vector_search",
         dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: keywordSearchId,
@@ -171,6 +172,7 @@ const getInitialData = (): ApeFlow => {
         data: getNodeKeywordSearchInitData(startId),
         position: { x: 422, y: 460 },
         dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: mergeId,
@@ -178,6 +180,7 @@ const getInitialData = (): ApeFlow => {
         data: getNodeMergeNodeInitData(vectorSearchId, keywordSearchId),
         position: { x: 884, y: 212 },
         dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: rerankId,
@@ -185,6 +188,7 @@ const getInitialData = (): ApeFlow => {
         data: getNodeRerankInitData(mergeId),
         position: { x: 1286, y: 298 },
         dragHandle: ".drag-handle",
+        deletable: false,
       },
       {
         id: llmId,
@@ -192,6 +196,7 @@ const getInitialData = (): ApeFlow => {
         data: getNodeLlmInitData(startId, rerankId),
         position: { x: 1688, y: 133.5 },
         dragHandle: ".drag-handle",
+        deletable: false,
       },
     ],
     edges: [
@@ -224,6 +229,7 @@ const getInitialData = (): ApeFlow => {
         source: mergeId,
         target: rerankId,
         type: "default",
+        deletable: false,
       },
       {
         id: getEdgeId(),

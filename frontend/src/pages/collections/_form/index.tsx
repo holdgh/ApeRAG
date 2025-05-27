@@ -71,7 +71,7 @@ const configEmailSourceKey = ['config', 'email_source'];
 export default ({ onSubmit, action, values, form }: Props) => {
   const { formatMessage } = useIntl();
 
-  const { availableModels, getProviderByModelName } = useModel('models');
+  const { availableModels, getAvailableModels, getProviderByModelName } = useModel('models');
   // save collection
   const onFinish = async () => {
     const data = await form.validateFields();
@@ -147,6 +147,10 @@ export default ({ onSubmit, action, values, form }: Props) => {
       }
     }
   }, [source, emailSource]);
+
+  useEffect(() => {
+    getAvailableModels()
+  }, [])
 
   return (
     <Form

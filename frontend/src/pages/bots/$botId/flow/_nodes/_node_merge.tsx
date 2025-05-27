@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
+import { OutputParams } from './_outputs_params';
 
 export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -14,10 +15,9 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   const { nodes, setNodes, edges } = useModel('bots.$botId.flow.model');
 
   const values = useMemo(
-    () => node.data.input.values || [],
-    [node.data.input.values],
+    () => node.data.input?.values || [],
+    [node],
   );
-
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -164,7 +164,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
             key: '2',
             label: formatMessage({ id: 'flow.output.params' }),
             style: getCollapsePanelStyle(token),
-            children: <></>,
+            children: <OutputParams node={node} />,
           },
         ]}
       />
