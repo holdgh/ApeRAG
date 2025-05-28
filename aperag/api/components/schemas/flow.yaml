@@ -127,6 +127,9 @@ components:
           type: string
           description: Unique identifier for the node
           example: vector_search_3f8e2c1a
+        ariaLabel:
+          type: string
+          description: label for the node
         type:
           type: string
           enum: [start, vector_search, keyword_search, merge, rerank, llm]

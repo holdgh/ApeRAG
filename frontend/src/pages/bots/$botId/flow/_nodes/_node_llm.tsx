@@ -9,6 +9,7 @@ import { useIntl, useModel } from 'umi';
 import { NodeInput, NodeInputTextArea } from './_node-input';
 import { OutputParams } from './_outputs_params';
 import { getCollapsePanelStyle } from './_styles';
+import { useDebounce } from 'ahooks';
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -41,6 +42,8 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     return { refNode: _refNode };
   }, [edges, nodes]);
 
+  const debouncedRefNode = useDebounce(refNode, { wait: 300 });
+
   useEffect(() => {
     _.set(
       values,
@@ -48,7 +51,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
       refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : '',
     );
     applyChanges();
-  }, [refNode]);
+  }, [debouncedRefNode]);
 
   return (
     <>

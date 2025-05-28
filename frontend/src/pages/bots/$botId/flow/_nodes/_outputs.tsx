@@ -1,4 +1,3 @@
-import { NodeTypeEnum } from '@/api';
 import { ApeMarkdown } from '@/components';
 import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
@@ -28,24 +27,17 @@ export const NodeOutputs = ({ node }: OutputProps) => {
   const { token } = theme.useToken();
   const [outputsVisible, setOutputsVisible] = useState<boolean>(false);
   const outputs = useMemo(() => {
-    let outputKey:
-      | 'docs'
-      | 'keyword_search_docs'
-      | 'vector_search_docs'
-      | undefined;
-    switch (node.type as NodeTypeEnum) {
+    let outputKey: 'docs' | undefined;
+    switch (node.type) {
       case 'keyword_search':
-        outputKey = 'keyword_search_docs';
-        break;
       case 'vector_search':
-        outputKey = 'vector_search_docs';
-        break;
       case 'merge':
       case 'rerank':
       case 'llm':
         outputKey = 'docs';
         break;
     }
+
     if (outputKey) {
       const data = messages.find(
         (msg) => msg.node_id === node.id && msg.event_type === 'node_end',

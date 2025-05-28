@@ -9,6 +9,7 @@ import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
 import { OutputParams } from './_outputs_params';
+import { useDebounce } from 'ahooks';
 
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -41,6 +42,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     return { refNode: _refNode };
   }, [edges, nodes]);
 
+  const debouncedRefNode = useDebounce(refNode, { wait: 300 });
   useEffect(() => {
     _.set(
       values,
@@ -48,7 +50,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
       refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : '',
     );
     applyChanges();
-  }, [refNode]);
+  }, [debouncedRefNode]);
 
   return (
     <>
