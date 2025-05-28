@@ -37,6 +37,7 @@ export * from './document-create';
 export * from './document-list';
 export * from './document-update';
 export * from './edge';
+export * from './edge-type';
 export * from './execution-config';
 export * from './execution-config-error-handling';
 export * from './execution-config-error-handling-notification';

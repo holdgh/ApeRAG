@@ -13,6 +13,9 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { EdgeType } from './edge-type';
 
 /**
  * Workflow style
@@ -22,10 +25,10 @@
 export interface WorkflowStyle {
     /**
      * 
-     * @type {string}
+     * @type {EdgeType}
      * @memberof WorkflowStyle
      */
-    'edgeType'?: WorkflowStyleEdgeTypeEnum;
+    'edgeType'?: EdgeType;
     /**
      * 
      * @type {string}
@@ -34,15 +37,6 @@ export interface WorkflowStyle {
     'layoutDirection'?: WorkflowStyleLayoutDirectionEnum;
 }
 
-export const WorkflowStyleEdgeTypeEnum = {
-    straight: 'straight',
-    step: 'step',
-    smoothstep: 'smoothstep',
-    default: 'default',
-    simplebezier: 'simplebezier'
-} as const;
-
-export type WorkflowStyleEdgeTypeEnum = typeof WorkflowStyleEdgeTypeEnum[keyof typeof WorkflowStyleEdgeTypeEnum];
 export const WorkflowStyleLayoutDirectionEnum = {
     TB: 'TB',
     LR: 'LR'

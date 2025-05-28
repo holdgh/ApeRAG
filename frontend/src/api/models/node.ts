@@ -36,6 +36,12 @@ export interface Node {
      */
     'id': string;
     /**
+     * label for the node
+     * @type {string}
+     * @memberof Node
+     */
+    'ariaLabel'?: string;
+    /**
      * Type of node
      * @type {string}
      * @memberof Node

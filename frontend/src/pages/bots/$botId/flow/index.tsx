@@ -219,10 +219,10 @@ export default () => {
               source,
               target,
               type: flowStyle.edgeType,
-            })),
+            })) as ApeEdge[],
           );
           return [...remainingEdges, ...createdEdges];
-        }, edges),
+        }, edges) as ApeEdge[],
       );
     },
     [nodes, edges, flowStyle],
@@ -230,7 +230,7 @@ export default () => {
 
   // nodes events
   const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds) as ApeEdge[]),
     [],
   );
 
@@ -283,8 +283,9 @@ export default () => {
   }, []);
 
   useEffect(() => {
-    setEdges((eds) =>
-      eds.map((edge) => ({ ...edge, type: flowStyle.edgeType })),
+    setEdges(
+      (eds) =>
+        eds.map((edge) => ({ ...edge, type: flowStyle.edgeType })) as ApeEdge[],
     );
   }, [flowStyle]);
 

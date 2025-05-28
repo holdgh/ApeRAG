@@ -1,4 +1,4 @@
-import { Bot, Document, WorkflowDefinition, NodeData, NodeTypeEnum } from "@/api";
+import { Bot, Document, WorkflowDefinition, NodeData, NodeTypeEnum, EdgeType } from "@/api";
 
 import {
   Position,
@@ -18,7 +18,9 @@ export type ApeNode = Merge<
     type: NodeTypeEnum;
   }
 >;
-export type ApeEdge = ReactFlowEdge;
+export type ApeEdge = Merge<ReactFlowEdge, {
+  type: EdgeType
+}>;
 
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;

@@ -133,7 +133,7 @@ const ApeBasicNode = (node: ApeNode) => {
   const config: ApeNodeConfig = useMemo(
     () =>
       getNodeConfig(
-        originNode?.type as NodeTypeEnum,
+        originNode?.type,
         originNode?.ariaLabel ||
           formatMessage({ id: `flow.node.type.${originNode?.type}` }),
       ),
@@ -163,7 +163,7 @@ const ApeBasicNode = (node: ApeNode) => {
   const onEditNodeLable = useCallback(() => {
     form.setFieldValue('ariaLabel', config.label);
     setLabelModalVisible(true);
-  }, []);
+  }, [config]);
 
   const onEditNodeLableClose = useCallback(() => {
     setLabelModalVisible(false);

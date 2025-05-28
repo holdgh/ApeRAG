@@ -56,11 +56,14 @@ components:
       description: Workflow style
       properties:
         edgeType:
-          type: string
-          enum: [straight, step, smoothstep, default, simplebezier]
+          $ref: '#/components/schemas/EdgeType'
         layoutDirection:
           type: string
           enum: [TB, LR]
+
+    EdgeType:
+      type: string
+      enum: [straight, step, smoothstep, default, simplebezier]
 
     ExecutionConfig:
       type: object
@@ -127,6 +130,9 @@ components:
           type: string
           description: Unique identifier for the node
           example: vector_search_3f8e2c1a
+        ariaLabel:
+          type: string
+          description: label for the node
         type:
           type: string
           enum: [start, vector_search, keyword_search, merge, rerank, llm]
@@ -209,6 +215,7 @@ components:
           type: string
           description: Type of the edge
           example: edge
+          $ref: '#/components/schemas/EdgeType'
         source:
           type: string
           description: ID of the source node

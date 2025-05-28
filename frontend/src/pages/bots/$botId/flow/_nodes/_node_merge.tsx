@@ -8,6 +8,7 @@ import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
 import { getCollapsePanelStyle } from './_styles';
 import { OutputParams } from './_outputs_params';
+import { useDebounce } from 'ahooks';
 
 export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -45,6 +46,9 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     };
   }, [edges, nodes]);
 
+  const debouncedRefVectorSearchNode = useDebounce(refVectorSearchNode, { wait: 300 });
+  const debouncedRefKeywordSearchNode = useDebounce(refKeywordSearchNode, { wait: 300 });
+
   useEffect(() => {
     _.set(
       values,
@@ -54,7 +58,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
         : '',
     );
     applyChanges();
-  }, [refVectorSearchNode]);
+  }, [debouncedRefVectorSearchNode]);
 
   useEffect(() => {
     _.set(
@@ -65,7 +69,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
         : '',
     );
     applyChanges();
-  }, [refKeywordSearchNode]);
+  }, [debouncedRefKeywordSearchNode]);
 
   return (
     <>
