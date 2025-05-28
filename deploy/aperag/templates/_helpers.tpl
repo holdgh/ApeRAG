@@ -201,5 +201,5 @@ app.aperag.io/component: frontend
   {{- $user := include "database.redisUser" $ctx -}}
   {{- $password := include "database.redisPassword" $ctx -}}
 
-  {{- printf "redis://%s:%s@%s:%s" $user $password $host $port -}} # Assuming no specific database number
+  {{- printf "redis://%s:%s@%s:%s/1" $user $password $host $port -}} # Assuming database 0
 {{- end }}
