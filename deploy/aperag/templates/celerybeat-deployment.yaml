@@ -8,7 +8,7 @@ metadata:
     {{- include "aperag.labels" . | nindent 4 }}
   name: celerybeat
 spec:
-  replicas: {{ index .Values "celery-beat" "replicaCount" }}
+  replicas: {{ .Values.celerybeat.replicaCount }}
   selector:
     matchLabels:
       {{- include "aperag.selectorLabels" . | nindent 6 }}
@@ -34,23 +34,78 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: POSTGRES_HOST
-              value: {{ include "database.postgresHost" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_HOST | quote }}
             - name: POSTGRES_PORT
-              value: {{ include "database.postgresPort" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_PORT | quote }}
             - name: POSTGRES_DB
-              value: {{ include "database.postgresDB" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_DB | quote }}
             - name: POSTGRES_USER
-              value: {{ include "database.postgresUser" . | quote }}
+              {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+                  key: username
+              {{- else }}
+              value: {{ .Values.postgres.POSTGRES_USER | default "postgres" | quote }}
+              {{- end }}
             - name: POSTGRES_PASSWORD
-              value: {{ include "database.postgresPassword" . | quote }}
+              {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+                  key: password
+              {{- else }}
+              value: {{ .Values.postgres.POSTGRES_PASSWORD | default "postgres" | quote }}
+              {{- end }}
             - name: DATABASE_URL
               value: {{ include "database.databaseUrl" . | quote }}
             - name: CELERY_BROKER_URL
               value: {{ include "database.celeryBrokerUrl" . | quote }}
             - name: MEMORY_REDIS_URL
               value: {{ include "database.memoryRedisUrl" . | quote }}
+            - name: REDIS_HOST
+              value: {{ .Values.redis.REDIS_HOST | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.redis.REDIS_PORT | quote }}
+            - name: REDIS_USER
+              {{- if .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+                  key: username
+              {{- else }}
+              value: {{ .Values.redis.REDIS_USER | default "default" | quote }}
+              {{- end }}
+            - name: REDIS_PASSWORD
+              {{- if .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+                  key: password
+              {{- else }}
+              value: {{ .Values.redis.REDIS_PASSWORD | default "redis" | quote }}
+              {{- end }}
+            - name: ES_HOST
+              value: {{ include "database.esHost" . | quote }}
+            {{- if .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+            - name: ES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+                  key: username
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+                  key: password
+            {{- else if .Values.elasticsearch.ES_USER }}
+            - name: ES_USER
+              value: {{ .Values.elasticsearch.ES_USER | quote }}
+            - name: ES_PASSWORD
+              value: {{ .Values.elasticsearch.ES_PASSWORD | quote }}
+            {{- end }}
           resources:
-            {{- toYaml .Values.celery-beat.resources | nindent 12 }}
+            {{- toYaml .Values.celerybeat.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
               mountPath: /app/env-config

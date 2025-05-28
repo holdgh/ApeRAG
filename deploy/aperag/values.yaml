@@ -60,7 +60,26 @@ redis:
   # Password for Redis connection.
   # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
   # ⚠️ Recommend to use REDIS_CREDENTIALS_SECRET_NAME
-  REDIS_PASSWORD: ""
+  REDIS_PASSWORD: "redis"
+
+elasticsearch:
+  # Hostname for the Elasticsearch HTTP service.
+  # Default: "es-cluster-mdit-http" (Kubeblocks Elasticsearch SVC name)
+  ES_HOST: "es-cluster-mdit-http"
+  # Port for the Elasticsearch HTTP service. Default: "9200"
+  ES_PORT: "9200"
+  # Protocol for Elasticsearch connection. Default: "http" or "https"
+  ES_PROTOCOL: "http"
+  # The name of the Secret containing Elasticsearch credentials (e.g., "username" and "password" keys).
+  # Example: "es-cluster-mdit-account-default"
+  ES_CREDENTIALS_SECRET_NAME: "" # Fill this if you have an ES secret
+  # User for Elasticsearch connection (if authentication is enabled).
+  # ⚠️ Recommend to use ES_CREDENTIALS_SECRET_NAME
+  ES_USER: ""
+  # Password for Elasticsearch connection (if authentication is enabled).
+  # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
+  # ⚠️ Recommend to use ES_CREDENTIALS_SECRET_NAME
+  ES_PASSWORD: ""
 
 
 django:
@@ -110,8 +129,6 @@ django:
     # Vector DB
     VECTOR_DB_TYPE: qdrant
     VECTOR_DB_CONTEXT: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
-    # Elasticsearch
-    ES_HOST: http://es-cluster-mdit-http:9200
     # Object Store
     OBJECT_STORE_TYPE: local
     OBJECT_STORE_LOCAL_ROOT_DIR: /data/objects
@@ -171,7 +188,7 @@ celery-worker:
               app.aperag.io/component: celery-worker
           topologyKey: kubernetes.io/hostname
 
-celery-beat:
+celerybeat:
   replicaCount: 1
   resources: { }
     # We usually recommend not to specify default resources and to leave this as a conscious

@@ -74,132 +74,52 @@ app.aperag.io/component: celery-worker
 app.aperag.io/component: frontend
 {{- end }}
 
-# POSTGRES_HOST
-{{- define "database.postgresHost" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_HOST -}} # Returns value from values.yaml
-{{- end }}
-
-# POSTGRES_PORT
-{{- define "database.postgresPort" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_PORT -}} # Returns value from values.yaml
-{{- end }}
-
-# POSTGRES_DB
-{{- define "database.postgresDB" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_DB -}} # Returns value from values.yaml
-{{- end }}
-
-# POSTGRES_USER
-{{- define "database.postgresUser" -}}
-  {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }} # Use unified secret name
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "username") }} # Check 'username' key in the unified secret
-    {{- $credSecret.data.username | b64dec }}
-  {{- else }}
-    {{- $ctx.Values.postgres.POSTGRES_USER -}} # Returns value from values.yaml (could be the default "postgres")
-  {{- end }}
-{{- end }}
-
-# POSTGRES_PASSWORD
-{{- define "database.postgresPassword" -}}
-  {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }} # Use unified secret name
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "password") }} # Check 'password' key in the unified secret
-    {{- $credSecret.data.password | b64dec }}
-  {{- else if $ctx.Values.postgres.POSTGRES_PASSWORD }}
-    {{- $ctx.Values.postgres.POSTGRES_PASSWORD }}
-  {{- else }}
-    {{- required "POSTGRES_PASSWORD not found. Please set .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME or provide .Values.postgres.POSTGRES_PASSWORD directly in values.yaml (not recommended for production)." nil }}
-  {{- end }}
-{{- end }}
-
-# DATABASE_URL Helper (Unchanged, builds URL from other helpers)
+# DATABASE_URL Helper - builds complete PostgreSQL URL
 {{- define "database.databaseUrl" -}}
   {{- $ctx := . -}}
-  {{- $host := include "database.postgresHost" $ctx -}}
-  {{- $port := include "database.postgresPort" $ctx -}}
-  {{- $db := include "database.postgresDB" $ctx -}}
-  {{- $user := include "database.postgresUser" $ctx -}}
-  {{- $password := include "database.postgresPassword" $ctx -}}
+  {{- $host := $ctx.Values.postgres.POSTGRES_HOST -}}
+  {{- $port := $ctx.Values.postgres.POSTGRES_PORT -}}
+  {{- $db := $ctx.Values.postgres.POSTGRES_DB -}}
+  {{- $user := $ctx.Values.postgres.POSTGRES_USER | default "postgres" -}}
+  {{- $password := $ctx.Values.postgres.POSTGRES_PASSWORD | default "postgres" -}}
 
   {{- printf "postgresql://%s:%s@%s:%s/%s" $user $password $host $port $db -}}
 {{- end }}
 
-
-
-# REDIS_HOST
-{{- define "database.redisHost" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.redis.REDIS_HOST -}} # Returns value from values.yaml
-{{- end }}
-
-# REDIS_PORT
-{{- define "database.redisPort" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.redis.REDIS_PORT -}} # Returns value from values.yaml
-{{- end }}
-
-# REDIS_USER
-{{- define "database.redisUser" -}}
-  {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "username") }} # Assuming Redis secret has 'username' key
-    {{- $credSecret.data.username | b64dec }}
-  {{- else }}
-    {{- $ctx.Values.redis.REDIS_USER -}} # Returns value from values.yaml (could be the default "default")
-  {{- end }}
-{{- end }}
-
-# REDIS_PASSWORD
-{{- define "database.redisPassword" -}}
-  {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "password") }} # Assuming Redis secret has 'password' key
-    {{- $credSecret.data.password | b64dec }}
-  {{- else if $ctx.Values.redis.REDIS_PASSWORD }}
-    {{- $ctx.Values.redis.REDIS_PASSWORD }}
-  {{- else }}
-    {{- required "REDIS_PASSWORD not found. Please set .Values.redis.REDIS_CREDENTIALS_SECRET_NAME or provide .Values.redis.REDIS_PASSWORD directly in values.yaml (not recommended for production)." nil }}
-  {{- end }}
-{{- end }}
-
-# CELERY_BROKER_URL Helper (builds URL from Redis helpers)
+# CELERY_BROKER_URL Helper - builds Redis URL for Celery
 {{- define "database.celeryBrokerUrl" -}}
   {{- $ctx := . -}}
-  {{- $host := include "database.redisHost" $ctx -}}
-  {{- $port := include "database.redisPort" $ctx -}}
-  {{- $user := include "database.redisUser" $ctx -}}
-  {{- $password := include "database.redisPassword" $ctx -}}
+  {{- $host := $ctx.Values.redis.REDIS_HOST -}}
+  {{- $port := $ctx.Values.redis.REDIS_PORT -}}
+  {{- $user := $ctx.Values.redis.REDIS_USER | default "default" -}}
+  {{- $password := $ctx.Values.redis.REDIS_PASSWORD | default "redis" -}}
 
-  {{- printf "redis://%s:%s@%s:%s/0" $user $password $host $port -}} # Assuming database 0
+  {{- printf "redis://%s:%s@%s:%s/0" $user $password $host $port -}}
 {{- end }}
 
-# MEMORY_REDIS_URL Helper (builds URL from Redis helpers, typically without DB number for generic cache)
+# MEMORY_REDIS_URL Helper - builds Redis URL for memory cache
 {{- define "database.memoryRedisUrl" -}}
   {{- $ctx := . -}}
-  {{- $host := include "database.redisHost" $ctx -}}
-  {{- $port := include "database.redisPort" $ctx -}}
-  {{- $user := include "database.redisUser" $ctx -}}
-  {{- $password := include "database.redisPassword" $ctx -}}
+  {{- $host := $ctx.Values.redis.REDIS_HOST -}}
+  {{- $port := $ctx.Values.redis.REDIS_PORT -}}
+  {{- $user := $ctx.Values.redis.REDIS_USER | default "default" -}}
+  {{- $password := $ctx.Values.redis.REDIS_PASSWORD | default "redis" -}}
 
-  {{- printf "redis://%s:%s@%s:%s" $user $password $host $port -}} # Assuming no specific database number
+  {{- printf "redis://%s:%s@%s:%s/1" $user $password $host $port -}}
+{{- end }}
+
+# ES_HOST - builds complete Elasticsearch URL with authentication
+{{- define "database.esHost" -}}
+  {{- $ctx := . -}}
+  {{- $protocol := $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}}
+  {{- $host := $ctx.Values.elasticsearch.ES_HOST -}}
+  {{- $port := $ctx.Values.elasticsearch.ES_PORT -}}
+  {{- $user := $ctx.Values.elasticsearch.ES_USER -}}
+  {{- $password := $ctx.Values.elasticsearch.ES_PASSWORD -}}
+
+  {{- if $user }}
+    {{- printf "%s://%s:%s@%s:%s" $protocol $user $password $host $port -}}
+  {{- else }}
+    {{- printf "%s://%s:%s" $protocol $host $port -}}
+  {{- end }}
 {{- end }}
