@@ -60,7 +60,7 @@ redis:
   # Password for Redis connection.
   # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
   # ⚠️ Recommend to use REDIS_CREDENTIALS_SECRET_NAME
-  REDIS_PASSWORD: ""
+  REDIS_PASSWORD: "redis"
 
 elasticsearch:
   # Hostname for the Elasticsearch HTTP service.
@@ -188,7 +188,7 @@ celery-worker:
               app.aperag.io/component: celery-worker
           topologyKey: kubernetes.io/hostname
 
-celery-beat:
+celerybeat:
   replicaCount: 1
   resources: { }
     # We usually recommend not to specify default resources and to leave this as a conscious

@@ -77,50 +77,43 @@ app.aperag.io/component: frontend
 # POSTGRES_HOST
 {{- define "database.postgresHost" -}}
   {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_HOST -}} # Returns value from values.yaml
+  {{- $ctx.Values.postgres.POSTGRES_HOST -}}
 {{- end }}
 
 # POSTGRES_PORT
 {{- define "database.postgresPort" -}}
   {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_PORT -}} # Returns value from values.yaml
+  {{- $ctx.Values.postgres.POSTGRES_PORT -}}
 {{- end }}
 
 # POSTGRES_DB
 {{- define "database.postgresDB" -}}
   {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_DB -}} # Returns value from values.yaml
+  {{- $ctx.Values.postgres.POSTGRES_DB -}}
 {{- end }}
 
 # POSTGRES_USER
 {{- define "database.postgresUser" -}}
   {{- $ctx := . -}}
   {{- $credSecret := dict }}
-  {{- if $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }} # Use unified secret name
+  {{- if $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
     {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
   {{- end }}
 
-  {{- if and $credSecret (hasKey $credSecret.data "username") }} # Check 'username' key in the unified secret
+  {{- if and $credSecret (hasKey $credSecret.data "username") }}
     {{- $credSecret.data.username | b64dec }}
   {{- else }}
-    {{- $ctx.Values.postgres.POSTGRES_USER -}} # Returns value from values.yaml (could be the default "postgres")
+    {{- $ctx.Values.postgres.POSTGRES_USER -}}
   {{- end }}
 {{- end }}
 
 # POSTGRES_PASSWORD
 {{- define "database.postgresPassword" -}}
   {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }} # Use unified secret name
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "password") }} # Check 'password' key in the unified secret
-    {{- $credSecret.data.password | b64dec }}
-  {{- else if $ctx.Values.postgres.POSTGRES_PASSWORD }}
+  {{- if $ctx.Values.postgres.POSTGRES_PASSWORD }}
     {{- $ctx.Values.postgres.POSTGRES_PASSWORD }}
   {{- else }}
-    {{- required "POSTGRES_PASSWORD not found. Please set .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME or provide .Values.postgres.POSTGRES_PASSWORD directly in values.yaml (not recommended for production)." nil }}
+    {{- "postgres" }}
   {{- end }}
 {{- end }}
 
@@ -141,13 +134,13 @@ app.aperag.io/component: frontend
 # REDIS_HOST
 {{- define "database.redisHost" -}}
   {{- $ctx := . -}}
-  {{- $ctx.Values.redis.REDIS_HOST -}} # Returns value from values.yaml
+  {{- $ctx.Values.redis.REDIS_HOST -}}
 {{- end }}
 
 # REDIS_PORT
 {{- define "database.redisPort" -}}
   {{- $ctx := . -}}
-  {{- $ctx.Values.redis.REDIS_PORT -}} # Returns value from values.yaml
+  {{- $ctx.Values.redis.REDIS_PORT -}}
 {{- end }}
 
 # REDIS_USER
@@ -158,10 +151,10 @@ app.aperag.io/component: frontend
     {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
   {{- end }}
 
-  {{- if and $credSecret (hasKey $credSecret.data "username") }} # Assuming Redis secret has 'username' key
+  {{- if and $credSecret (hasKey $credSecret.data "username") }}
     {{- $credSecret.data.username | b64dec }}
   {{- else }}
-    {{- $ctx.Values.redis.REDIS_USER -}} # Returns value from values.yaml (could be the default "default")
+    {{- $ctx.Values.redis.REDIS_USER -}}
   {{- end }}
 {{- end }}
 
@@ -173,7 +166,7 @@ app.aperag.io/component: frontend
     {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
   {{- end }}
 
-  {{- if and $credSecret (hasKey $credSecret.data "password") }} # Assuming Redis secret has 'password' key
+  {{- if and $credSecret (hasKey $credSecret.data "password") }}
     {{- $credSecret.data.password | b64dec }}
   {{- else if $ctx.Values.redis.REDIS_PASSWORD }}
     {{- $ctx.Values.redis.REDIS_PASSWORD }}
@@ -190,7 +183,7 @@ app.aperag.io/component: frontend
   {{- $user := include "database.redisUser" $ctx -}}
   {{- $password := include "database.redisPassword" $ctx -}}
 
-  {{- printf "redis://%s:%s@%s:%s/0" $user $password $host $port -}} # Assuming database 0
+  {{- printf "redis://%s:%s@%s:%s/0" $user $password $host $port -}}
 {{- end }}
 
 # MEMORY_REDIS_URL Helper (builds URL from Redis helpers, typically without DB number for generic cache)
@@ -201,14 +194,14 @@ app.aperag.io/component: frontend
   {{- $user := include "database.redisUser" $ctx -}}
   {{- $password := include "database.redisPassword" $ctx -}}
 
-  {{- printf "redis://%s:%s@%s:%s/1" $user $password $host $port -}} # Assuming database 0
+  {{- printf "redis://%s:%s@%s:%s/1" $user $password $host $port -}}
 {{- end }}
 
 
 # ES_HOST
 {{- define "database.esHost" -}}
   {{- $ctx := . -}}
-  {{- $protocol := $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}} # Default to http if not set
+  {{- $protocol := $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}}
   {{- $host := $ctx.Values.elasticsearch.ES_HOST -}}
   {{- $port := $ctx.Values.elasticsearch.ES_PORT -}}
 
@@ -242,10 +235,10 @@ app.aperag.io/component: frontend
     {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
   {{- end }}
 
-  {{- if and $credSecret (hasKey $credSecret.data "username") }} # Assuming ES secret has 'username' key
+  {{- if and $credSecret (hasKey $credSecret.data "username") }}
     {{- $credSecret.data.username | b64dec }}
   {{- else }}
-    {{- $ctx.Values.elasticsearch.ES_USER -}} # Returns value from values.yaml (could be empty)
+    {{- $ctx.Values.elasticsearch.ES_USER -}}
   {{- end }}
 {{- end }}
 
@@ -257,9 +250,9 @@ app.aperag.io/component: frontend
     {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
   {{- end }}
 
-  {{- if and $credSecret (hasKey $credSecret.data "password") }} # Assuming ES secret has 'password' key
+  {{- if and $credSecret (hasKey $credSecret.data "password") }}
     {{- $credSecret.data.password | b64dec }}
   {{- else }}
-    {{- $ctx.Values.elasticsearch.ES_PASSWORD -}} # Returns value from values.yaml (could be empty or sensitive)
+    {{- $ctx.Values.elasticsearch.ES_PASSWORD -}}
   {{- end }}
 {{- end }}

@@ -47,9 +47,23 @@ spec:
             - name: POSTGRES_DB
               value: {{ include "database.postgresDB" . | quote }}
             - name: POSTGRES_USER
+              {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+                  key: username
+              {{- else }}
               value: {{ include "database.postgresUser" . | quote }}
+              {{- end }}
             - name: POSTGRES_PASSWORD
+              {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+                  key: password
+              {{- else }}
               value: {{ include "database.postgresPassword" . | quote }}
+              {{- end }}
             - name: DATABASE_URL
               value: {{ include "database.databaseUrl" . | quote }}
             - name: CELERY_BROKER_URL

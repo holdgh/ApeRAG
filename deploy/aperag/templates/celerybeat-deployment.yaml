@@ -8,7 +8,7 @@ metadata:
     {{- include "aperag.labels" . | nindent 4 }}
   name: celerybeat
 spec:
-  replicas: {{ index .Values "celery-beat" "replicaCount" }}
+  replicas: {{ .Values.celerybeat.replicaCount }}
   selector:
     matchLabels:
       {{- include "aperag.selectorLabels" . | nindent 6 }}
@@ -40,9 +40,23 @@ spec:
             - name: POSTGRES_DB
               value: {{ include "database.postgresDB" . | quote }}
             - name: POSTGRES_USER
+              {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+                  key: username
+              {{- else }}
               value: {{ include "database.postgresUser" . | quote }}
+              {{- end }}
             - name: POSTGRES_PASSWORD
+              {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
+                  key: password
+              {{- else }}
               value: {{ include "database.postgresPassword" . | quote }}
+              {{- end }}
             - name: DATABASE_URL
               value: {{ include "database.databaseUrl" . | quote }}
             - name: CELERY_BROKER_URL
@@ -52,7 +66,7 @@ spec:
             - name: ES_HOST
               value: {{ include "database.esHost" . | quote }}
           resources:
-            {{- toYaml .Values.celery-beat.resources | nindent 12 }}
+            {{- toYaml .Values.celerybeat.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
               mountPath: /app/env-config
