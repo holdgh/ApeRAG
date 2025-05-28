@@ -146,32 +146,20 @@ app.aperag.io/component: frontend
 # REDIS_USER
 {{- define "database.redisUser" -}}
   {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "username") }}
-    {{- $credSecret.data.username | b64dec }}
+  {{- if $ctx.Values.redis.REDIS_USER }}
+    {{- $ctx.Values.redis.REDIS_USER }}
   {{- else }}
-    {{- $ctx.Values.redis.REDIS_USER -}}
+    {{- "default" }}
   {{- end }}
 {{- end }}
 
 # REDIS_PASSWORD
 {{- define "database.redisPassword" -}}
   {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "password") }}
-    {{- $credSecret.data.password | b64dec }}
-  {{- else if $ctx.Values.redis.REDIS_PASSWORD }}
+  {{- if $ctx.Values.redis.REDIS_PASSWORD }}
     {{- $ctx.Values.redis.REDIS_PASSWORD }}
   {{- else }}
-    {{- required "REDIS_PASSWORD not found. Please set .Values.redis.REDIS_CREDENTIALS_SECRET_NAME or provide .Values.redis.REDIS_PASSWORD directly in values.yaml (not recommended for production)." nil }}
+    {{- "redis" }}
   {{- end }}
 {{- end }}
 
@@ -230,29 +218,11 @@ app.aperag.io/component: frontend
 # ES_USER
 {{- define "database.esUser" -}}
   {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "username") }}
-    {{- $credSecret.data.username | b64dec }}
-  {{- else }}
-    {{- $ctx.Values.elasticsearch.ES_USER -}}
-  {{- end }}
+  {{- $ctx.Values.elasticsearch.ES_USER -}}
 {{- end }}
 
 # ES_PASSWORD
 {{- define "database.esPassword" -}}
   {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "password") }}
-    {{- $credSecret.data.password | b64dec }}
-  {{- else }}
-    {{- $ctx.Values.elasticsearch.ES_PASSWORD -}}
-  {{- end }}
+  {{- $ctx.Values.elasticsearch.ES_PASSWORD -}}
 {{- end }}

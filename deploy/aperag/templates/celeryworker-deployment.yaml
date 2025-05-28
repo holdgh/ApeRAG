@@ -70,8 +70,47 @@ spec:
               value: {{ include "database.celeryBrokerUrl" . | quote }}
             - name: MEMORY_REDIS_URL
               value: {{ include "database.memoryRedisUrl" . | quote }}
+            - name: REDIS_HOST
+              value: {{ include "database.redisHost" . | quote }}
+            - name: REDIS_PORT
+              value: {{ include "database.redisPort" . | quote }}
+            - name: REDIS_USER
+              {{- if .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+                  key: username
+              {{- else }}
+              value: {{ include "database.redisUser" . | quote }}
+              {{- end }}
+            - name: REDIS_PASSWORD
+              {{- if .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
+                  key: password
+              {{- else }}
+              value: {{ include "database.redisPassword" . | quote }}
+              {{- end }}
             - name: ES_HOST
               value: {{ include "database.esHost" . | quote }}
+            {{- if .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+            - name: ES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+                  key: username
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+                  key: password
+            {{- else if .Values.elasticsearch.ES_USER }}
+            - name: ES_USER
+              value: {{ include "database.esUser" . | quote }}
+            - name: ES_PASSWORD
+              value: {{ include "database.esPassword" . | quote }}
+            {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-celeryworker
           imagePullPolicy: {{ .Values.image.pullPolicy }}
