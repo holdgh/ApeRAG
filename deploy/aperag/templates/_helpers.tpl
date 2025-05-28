@@ -203,3 +203,63 @@ app.aperag.io/component: frontend
 
   {{- printf "redis://%s:%s@%s:%s/1" $user $password $host $port -}} # Assuming database 0
 {{- end }}
+
+
+# ES_HOST
+{{- define "database.esHost" -}}
+  {{- $ctx := . -}}
+  {{- $protocol := $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}} # Default to http if not set
+  {{- $host := $ctx.Values.elasticsearch.ES_HOST -}}
+  {{- $port := $ctx.Values.elasticsearch.ES_PORT -}}
+
+  {{- $user := include "database.esUser" $ctx -}}
+  {{- $password := include "database.esPassword" $ctx -}}
+
+  {{- if $user }}
+    {{- printf "%s://%s:%s@%s:%s" $protocol $user $password $host $port -}}
+  {{- else }}
+    {{- printf "%s://%s:%s" $protocol $host $port -}}
+  {{- end }}
+{{- end }}
+
+# ES_PROTOCOL (if you want to control it separately)
+{{- define "database.esProtocol" -}}
+  {{- $ctx := . -}}
+  {{- $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}}
+{{- end }}
+
+# ES_PORT (if you want to control it separately)
+{{- define "database.esPort" -}}
+  {{- $ctx := . -}}
+  {{- $ctx.Values.elasticsearch.ES_PORT | default "9200" -}}
+{{- end }}
+
+# ES_USER
+{{- define "database.esUser" -}}
+  {{- $ctx := . -}}
+  {{- $credSecret := dict }}
+  {{- if $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+  {{- end }}
+
+  {{- if and $credSecret (hasKey $credSecret.data "username") }} # Assuming ES secret has 'username' key
+    {{- $credSecret.data.username | b64dec }}
+  {{- else }}
+    {{- $ctx.Values.elasticsearch.ES_USER -}} # Returns value from values.yaml (could be empty)
+  {{- end }}
+{{- end }}
+
+# ES_PASSWORD
+{{- define "database.esPassword" -}}
+  {{- $ctx := . -}}
+  {{- $credSecret := dict }}
+  {{- if $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
+  {{- end }}
+
+  {{- if and $credSecret (hasKey $credSecret.data "password") }} # Assuming ES secret has 'password' key
+    {{- $credSecret.data.password | b64dec }}
+  {{- else }}
+    {{- $ctx.Values.elasticsearch.ES_PASSWORD -}} # Returns value from values.yaml (could be empty or sensitive)
+  {{- end }}
+{{- end }}
