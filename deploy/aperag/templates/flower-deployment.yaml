@@ -34,8 +34,25 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 5555
+          env:
+            - name: POSTGRES_HOST
+              value: {{ include "database.postgresHost" . | quote }}
+            - name: POSTGRES_PORT
+              value: {{ include "database.postgresPort" . | quote }}
+            - name: POSTGRES_DB
+              value: {{ include "database.postgresDB" . | quote }}
+            - name: POSTGRES_USER
+              value: {{ include "database.postgresUser" . | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ include "database.postgresPassword" . | quote }}
+            - name: DATABASE_URL
+              value: {{ include "database.databaseUrl" . | quote }}
+            - name: CELERY_BROKER_URL
+              value: {{ include "database.celeryBrokerUrl" . | quote }}
+            - name: MEMORY_REDIS_URL
+              value: {{ include "database.memoryRedisUrl" . | quote }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.flower.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
               mountPath: /app/env-config

@@ -8,11 +8,6 @@ image:
   tag: "latest"
   pullPolicy: IfNotPresent
 
-  embedding:
-    repository: "docker.io/michaelf34/infinity"  # Full image name including registry
-    tag: "latest"
-
-imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
@@ -27,21 +22,51 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
 service:
   type: ClusterIP
 
-resources: {}
+ingress:
+  className: ""
+  annotations: {}
+
+postgres:
+  POSTGRES_HOST: "pg-cluster-postgresql-postgresql"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "postgres"
+  # The name of the Secret containing PostgreSQL username and password (e.g., "username" and "password" keys).
+  # Example: "pg-cluster-postgresql-account-postgres" (references your Kubeblocks credential Secret)
+  POSTGRES_CREDENTIALS_SECRET_NAME: "pg-cluster-postgresql-account-postgres"
+  # Username and Password Priority:
+  # 1. If POSTGRES_CREDENTIALS_SECRET_NAME is set, attempts to fetch 'username' and 'password' from that Secret.
+  # 2. If POSTGRES_CREDENTIALS_SECRET_NAME is empty, uses the direct values of POSTGRES_USER and POSTGRES_PASSWORD.
+  # 3. If direct values are also empty, defaults to "postgres" for user or forces a failure for password.
+  # ⚠️ Recommend to use POSTGRES_CREDENTIALS_SECRET_NAME
+  POSTGRES_USER: "postgres" # Default PostgreSQL user
+  # Password (Sensitive information, strongly recommended NOT to set directly in values.yaml):
+  # Only use this if you are NOT using POSTGRES_CREDENTIALS_SECRET_NAME and accept the security implications.
+  # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
+  # ⚠️ Recommend to use POSTGRES_CREDENTIALS_SECRET_NAME
+  POSTGRES_PASSWORD: ""
+
+redis:
+  REDIS_HOST: "redis-cluster-redis-redis"
+  REDIS_PORT: "6379"
+  # The name of the Secret containing Redis credentials (e.g., "password" key).
+  # Example: "redis-cluster-redis-account-default"
+  REDIS_CREDENTIALS_SECRET_NAME: "redis-cluster-redis-account-default" # Or your actual Redis secret name
+  # User for Redis connection. Default: "default"
+  # ⚠️ Recommend to use REDIS_CREDENTIALS_SECRET_NAME
+  REDIS_USER: "default"
+  # Password for Redis connection.
+  # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
+  # ⚠️ Recommend to use REDIS_CREDENTIALS_SECRET_NAME
+  REDIS_PASSWORD: ""
+
+
+django:
+  dataPath: /data/aperag
+  replicaCount: 1
+  resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -52,78 +77,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-
-ingress:
-  className: ""
-  annotations: {}
-
-django:
-  logLevel: INFO
-  dataPath: /data/aperag
-  replicaCount: 1
-  feishu:
-    appID: ""
-    appSecret: ""
-    encryptKey: ""
-  quota:
-    maxBotCount: 10
-    maxCollectionCount: 50
-    maxDocumentCount: 1000
-    maxConversationCount: 100
-  resources:
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
-  authType: cookie
-  esHost: http://es-cluster-mdit-http:9200
-  redisSecret: redis-redis-account-default
-  redisHost: redis-cluster-redis-redis
-  redisPort: 6379
-  redisUsername: default
-  redisPassword: 7zJ683ZaB3
-  metaDBSecret: postgresql-conn-credential
-  metaDBDatabase: postgres
-  metaDBHost: pg-cluster-postgresql-postgresql
-  metaDBPort: 5432
-  metaDBUsername: postgres
-  metaDBPassword: y25a9b2HD4
-  vectorDBType: qdrant
-  vectorDBContext: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
-  objectStoreType: local
-  objectStoreLocalRootDir: /data/objects
-  # S3 object store settings (when objectStoreType is s3)
-  objectStoreS3Endpoint: ""
-  objectStoreS3Region: ""
-  objectStoreS3AccessKey: ""
-  objectStoreS3SecretKey: ""
-  objectStoreS3Bucket: aperag
-  objectStoreS3PrefixPath: ""
-  objectStoreS3UsePathStyle: "True"
-  # Chunking settings
-  chunkSize: 400
-  chunkOverlapSize: 20
-  embeddingMaxChunksInBatch: 16
-  # Chat
-  chatConsumerImplementation: document-qa
-  # Rerank settings
-  rerankServiceModel: "jina-reranker-v2-base-multilingual"
-  rerankServiceTokenApiKey: ""
-  rerankBackend: "jina_ai"
-  rerankServiceUrl: https://api.jina.ai/v1/rerank
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:
@@ -140,6 +93,59 @@ django:
               matchLabels:
                 app.aperag.io/component: django
             topologyKey: kubernetes.io/hostname
+  env:
+    # Auth
+    AUTH_TYPE: cookie
+    AUTH0_DOMAIN: ""
+    AUTH0_CLIENT_ID: ""
+    AUTHING_DOMAIN: ""
+    AUTHING_APP_ID: ""
+    LOGTO_DOMAIN: ""
+    LOGTO_APP_ID: ""
+    # Logging
+    DJANGO_LOG_LEVEL: INFO
+    # Celery
+    CELERY_FLOWER_USER: admin
+    CELERY_FLOWER_PASSWORD: admin
+    # Vector DB
+    VECTOR_DB_TYPE: qdrant
+    VECTOR_DB_CONTEXT: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+    # Elasticsearch
+    ES_HOST: http://es-cluster-mdit-http:9200
+    # Object Store
+    OBJECT_STORE_TYPE: local
+    OBJECT_STORE_LOCAL_ROOT_DIR: /data/objects
+    OBJECT_STORE_S3_ENDPOINT: ""
+    OBJECT_STORE_S3_REGION: ""
+    OBJECT_STORE_S3_ACCESS_KEY: ""
+    OBJECT_STORE_S3_SECRET_KEY: ""
+    OBJECT_STORE_S3_BUCKET: aperag
+    OBJECT_STORE_S3_PREFIX_PATH: ""
+    OBJECT_STORE_S3_USE_PATH_STYLE: "True"
+    # doc-ray
+    DOCRAY_HOST: ""
+    DEBUG: "False"
+    FEISHU_APP_ID: ""
+    FEISHU_APP_SECRET: ""
+    FEISHU_ENCRYPT_KEY: ""
+    MAX_BOT_COUNT: 10
+    MAX_COLLECTION_COUNT: 50
+    MAX_DOCUMENT_COUNT: 1000
+    MAX_CONVERSATION_COUNT: 100
+    EMBEDDING_MAX_CHUNKS_IN_BATCH: 16
+    # RERANK
+    RERANK_BACKEND: jina_ai
+    RERANK_SERVICE_URL: https://api.jina.ai/v1/rerank
+    RERANK_SERVICE_MODEL: jina-reranker-v2-base-multilingual
+    RERANK_SERVICE_TOKEN_API_KEY: ""
+    # Chunking
+    CHUNK_SIZE: 400
+    CHUNK_OVERLAP_SIZE: 20
+    CHAT_CONSUMER_IMPLEMENTATION: document-qa
+    TIKTOKEN_CACHE_DIR: /root/.cache/tiktoken
+    DEFAULT_ENCODING_MODEL: cl100k_base
+    TOKENIZERS_PARALLELISM: "false"
+
 
 celery-worker:
   replicaCount: 1
