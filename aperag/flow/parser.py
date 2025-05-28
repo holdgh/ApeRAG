@@ -1,5 +1,6 @@
 from typing import Any, Dict
 
+import jsonref
 import yaml
 
 from aperag.flow.base.models import Edge, FlowInstance, NodeInstance
@@ -11,12 +12,16 @@ class FlowParser:
     """Parser for flow configuration in YAML format"""
 
     @staticmethod
-    def parse_yaml(yaml_content: str) -> FlowInstance:
+    def parse(data: str | dict[str, Any]) -> FlowInstance:
         """Parse YAML content into a FlowInstance"""
         try:
-            data = yaml.safe_load(yaml_content)
+            if isinstance(data, str):
+                data = yaml.safe_load(data)
         except yaml.YAMLError as e:
             raise ValidationError(f"Invalid YAML format: {str(e)}")
+
+        # Dereference $ref in flow configuration
+        data = jsonref.replace_refs(data)
 
         # Parse nodes
         nodes = {}
@@ -47,12 +52,14 @@ class FlowParser:
     def _parse_node(node_data: Dict[str, Any]) -> NodeInstance:
         """Parse a node definition"""
         data = node_data.get("data", {})
+        input_schema = data.get("input", {}).get("schema", {})
+        output_schema = data.get("output", {}).get("schema", {})
         node = NodeInstance(
             id=node_data["id"],
             type=node_data["type"],
-            input_schema=data.get("input", {}).get("schema", {}),
+            input_schema=input_schema,
             input_values=data.get("input", {}).get("values", {}),
-            output_schema=data.get("output", {}).get("schema", {}),
+            output_schema=output_schema,
         )
         if "title" in node_data:
             node.title = node_data["title"]
@@ -69,7 +76,7 @@ class FlowParser:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 yaml_content = f.read()
-            return FlowParser.parse_yaml(yaml_content)
+            return FlowParser.parse(yaml_content)
         except FileNotFoundError:
             raise ValidationError(f"Flow configuration file not found: {file_path}")
         except Exception as e:

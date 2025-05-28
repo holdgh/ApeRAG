@@ -10,7 +10,6 @@ from aperag.db.ops import query_msp_dict
 from aperag.flow.base.models import BaseNodeRunner, NodeInstance, register_node_runner
 from aperag.llm.base import Predictor
 from aperag.pipeline.base_pipeline import DOC_QA_REFERENCES
-from aperag.query.query import DocumentWithScore
 from aperag.utils.utils import now_unix_milliseconds
 
 MAX_CONTEXT_LENGTH = 100000
@@ -66,12 +65,12 @@ class LLMNodeRunner(BaseNodeRunner):
         message_id: str = inputs["message_id"]
         query: str = inputs["query"]
         temperature: float = inputs.get("temperature", 0.2)
-        max_tokens: int = inputs.get("max_tokens", 1000)
+        max_tokens: int = inputs.get("max_tokens", 32768)
         model_service_provider = inputs.get("model_service_provider")
         model_name = inputs.get("model_name")
         custom_llm_provider = inputs.get("custom_llm_provider")
         prompt_template = inputs.get("prompt_template", "{context}\n{query}")
-        docs: List[DocumentWithScore] = inputs.get("docs", [])
+        docs: List = inputs.get("docs", [])
 
         history: BaseChatMessageHistory = inputs.get("history")
         msp_dict = await query_msp_dict(user)
@@ -85,15 +84,20 @@ class LLMNodeRunner(BaseNodeRunner):
         references = []
         if docs:
             for doc in docs:
-                if len(context) + len(doc.text) > MAX_CONTEXT_LENGTH:
+                if len(context) + len(doc["text"]) > MAX_CONTEXT_LENGTH:
                     break
-                context += doc.text
-                references.append({"text": doc.text, "metadata": doc.metadata, "score": doc.score})
+                context += doc["text"]
+                references.append({"text": doc["text"], "metadata": doc.get("metadata", {}), "score": doc["score"]})
         prompt = prompt_template.format(query=query, context=context)
+        output_max_tokens = max_tokens - len(prompt)
+        if output_max_tokens < 0:
+            raise Exception(
+                "max_tokens %d is too small to hold the prompt which size is %d" % (max_tokens, len(prompt))
+            )
         llm_kwargs = {
             "custom_llm_provider": custom_llm_provider,
             "temperature": temperature,
-            "max_tokens": max_tokens - len(prompt),
+            "max_tokens": output_max_tokens,
         }
         predictor = Predictor.get_completion_service(
             model_service_provider, model_name, base_url, api_key, **llm_kwargs
@@ -102,9 +106,10 @@ class LLMNodeRunner(BaseNodeRunner):
         async def async_generator():
             response = ""
             async for chunk in predictor.agenerate_stream([], prompt, False):
+                if not chunk:
+                    continue
                 yield chunk
-                if chunk:
-                    response += chunk
+                response += chunk
             if references:
                 yield DOC_QA_REFERENCES + json.dumps(references)
             if history:
