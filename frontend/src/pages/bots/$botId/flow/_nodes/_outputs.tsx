@@ -1,5 +1,6 @@
+import { NodeTypeEnum } from '@/api';
 import { ApeMarkdown } from '@/components';
-import { ApeNode, ApeNodeType } from '@/types';
+import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import {
   Badge,
@@ -32,7 +33,7 @@ export const NodeOutputs = ({ node }: OutputProps) => {
       | 'keyword_search_docs'
       | 'vector_search_docs'
       | undefined;
-    switch (node.type as ApeNodeType) {
+    switch (node.type as NodeTypeEnum) {
       case 'keyword_search':
         outputKey = 'keyword_search_docs';
         break;

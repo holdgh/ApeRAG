@@ -16,16 +16,14 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { getProviderByModelName } = useModel('models');
   const { formatMessage } = useIntl();
 
-  const values = useMemo(
-    () => node.data.input?.values || [],
-    [node],
-  );
+  const schema = useMemo(() => node.data.input.schema, [node])
+  const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
         { id: node.id, type: 'replace', item: node },
       ];
-      return applyNodeChanges(changes, nds);
+      return applyNodeChanges(changes, nds) as ApeNode[];
     });
   }, [node]);
 
@@ -99,8 +97,8 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                   >
                     <Slider
                       style={{ margin: 0 }}
-                      min={0}
-                      max={1}
+                      min={_.get(schema, 'properties.temperature.minimum')}
+                      max={_.get(schema, 'properties.temperature.maximum')}
                       step={0.01}
                       value={_.get(values, 'temperature')}
                       onChange={(value) => {
@@ -114,8 +112,8 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                     label={formatMessage({ id: 'flow.max_tokens' })}
                   >
                     <InputNumber
-                      min={100}
-                      max={2000}
+                      min={_.get(schema, 'properties.max_tokens.minimum')}
+                      max={_.get(schema, 'properties.max_tokens.maximum')}
                       step={10}
                       variant="filled"
                       style={{ width: '100%' }}

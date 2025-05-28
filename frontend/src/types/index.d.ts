@@ -1,24 +1,29 @@
-import { Bot, Document, Node, Edge, WorkflowDefinition } from "@/api";
-import { Position } from "@xyflow/react";
+import { Bot, Document, WorkflowDefinition, NodeData, NodeTypeEnum } from "@/api";
+
+import {
+  Position,
+  Node as ReactFlowNode,
+  Edge as ReactFlowEdge,
+} from "@xyflow/react";
 
 export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 
-// flow
-export type ApeNodeType =
-  | "start"
-  | "vector_search"
-  | "keyword_search"
-  | "merge"
-  | "rerank"
-  | "llm";
+export type ApeNode = Merge<
+  ReactFlowNode,
+  {
+    data: NodeData & {
+      [key in string]: unknown;
+    };
+    id: string;
+    type: NodeTypeEnum;
+  }
+>;
+export type ApeEdge = ReactFlowEdge;
 
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
   targetPosition?: Position;
 };
-
-export type ApeNode = Node;
-export type ApeEdge = Edge;
 
 export type ApeNodeConfig = {
   color?: string;
@@ -31,9 +36,8 @@ export type ApeNodeConfig = {
 };
 
 export type ApeNodesConfig = {
-  [key in ApeNodeType]: ApeNodeConfig;
+  [key in NodeTypeEnum]: ApeNodeConfig;
 };
-
 
 // to delete
 export type ApeFlowNodeOutput = {

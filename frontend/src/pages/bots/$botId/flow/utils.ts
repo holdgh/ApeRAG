@@ -1,4 +1,70 @@
-import { NodeData } from "@/api";
+import { NodeData, WorkflowDefinition, WorkflowStyle } from "@/api";
+import uniqid from "uniqid";
+import Dagre from "@dagrejs/dagre";
+import { Position } from "@xyflow/react";
+import { ApeEdge, ApeNode, ApeNodeHandlePosition } from "@/types";
+
+const getNodeHandlePositions = (
+  direction: WorkflowStyle["layoutDirection"] | undefined = "LR"
+): ApeNodeHandlePosition => {
+  const positions: ApeNodeHandlePosition = {};
+  switch (direction) {
+    case "TB":
+      Object.assign(positions, {
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+      });
+      break;
+    case "LR":
+      Object.assign(positions, {
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
+      });
+      break;
+  }
+  return positions;
+};
+
+export const getLayoutedElements = (
+  nodes: ApeNode[],
+  edges: ApeEdge[],
+  options: { direction: WorkflowStyle["layoutDirection"] }
+): {
+  nodes: ApeNode[];
+  edges: ApeEdge[];
+} => {
+  const direction = options.direction;
+  const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: direction,
+    nodesep: 60,
+    ranksep: 100,
+  });
+  edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+  nodes.forEach((node) => {
+    g.setNode(node.id, {
+      ...node,
+      width: node.measured?.width ?? 0,
+      height: node.measured?.height ?? 0,
+    });
+  });
+  Dagre.layout(g);
+  return {
+    nodes: nodes.map((node) => {
+      const position = g.node(node.id);
+      // We are shifting the dagre node position (anchor=center center) to the top left
+      // so it matches the React Flow node anchor point (top left).
+      const x = position.x - (node.measured?.width ?? 0) / 2;
+      const y = position.y - (node.measured?.height ?? 0) / 2;
+      return {
+        ...node,
+        position: { x, y },
+        ...getNodeHandlePositions(direction),
+      };
+    }),
+    edges,
+  };
+};
 
 export const getNodeStartInitData = (): NodeData => ({
   input: {
@@ -112,7 +178,7 @@ export const getNodeKeywordSearchInitData = (startId: string): NodeData => ({
     },
     values: {
       query: `{{ nodes.${startId}.output.query }}`,
-      top_k: 5,
+      top_k: 3,
     },
   },
   output: {
@@ -333,3 +399,145 @@ export const getNodeLlmInitData = (
     },
   },
 });
+
+export const getEdgeId = (): string => uniqid();
+export const getInitialData = (): WorkflowDefinition => {
+  const startId = uniqid();
+  const vectorSearchId = uniqid();
+  const keywordSearchId = uniqid();
+  const mergeId = uniqid();
+  const rerankId = uniqid();
+  const llmId = uniqid();
+
+  return {
+    name: "rag_flow",
+    title: "RAG Knowledge Base Flow",
+    description: "A typical RAG flow with parallel retrieval and reranking",
+    version: "1.0.0",
+    execution: {
+      timeout: 300,
+      retry: {
+        max_attempts: 3,
+        delay: 5,
+      },
+      error_handling: {
+        strategy: "stop_on_error",
+        notification: {
+          email: ["admin@example.com"],
+        },
+      },
+    },
+    schema: {
+      document_with_score: {
+        type: "object",
+        properties: {
+          doc_id: {
+            type: "string",
+          },
+          text: {
+            type: "string",
+          },
+          score: {
+            type: "number",
+          },
+          metadata: {
+            type: "object",
+          },
+        },
+      },
+    },
+    nodes: [
+      {
+        id: startId,
+        type: "start",
+        data: getNodeStartInitData(),
+        position: { x: 0, y: 332 },
+        deletable: false,
+        dragHandle: ".drag-handle",
+      },
+      {
+        id: vectorSearchId,
+        data: getNodeVectorSearchInitData(startId),
+        position: { x: 422, y: -100 },
+        type: "vector_search",
+        dragHandle: ".drag-handle",
+        deletable: false,
+      },
+      {
+        id: keywordSearchId,
+        type: "keyword_search",
+        data: getNodeKeywordSearchInitData(startId),
+        position: { x: 422, y: 460 },
+        dragHandle: ".drag-handle",
+        deletable: false,
+      },
+      {
+        id: mergeId,
+        type: "merge",
+        data: getNodeMergeNodeInitData(vectorSearchId, keywordSearchId),
+        position: { x: 884, y: 212 },
+        dragHandle: ".drag-handle",
+        deletable: false,
+      },
+      {
+        id: rerankId,
+        type: "rerank",
+        data: getNodeRerankInitData(mergeId),
+        position: { x: 1286, y: 298 },
+        dragHandle: ".drag-handle",
+        deletable: false,
+      },
+      {
+        id: llmId,
+        type: "llm",
+        data: getNodeLlmInitData(startId, rerankId),
+        position: { x: 1688, y: 133.5 },
+        dragHandle: ".drag-handle",
+        deletable: false,
+      },
+    ],
+    edges: [
+      {
+        id: getEdgeId(),
+        source: startId,
+        target: vectorSearchId,
+        type: "default",
+      },
+      {
+        id: getEdgeId(),
+        source: startId,
+        target: keywordSearchId,
+        type: "default",
+      },
+      {
+        id: getEdgeId(),
+        source: vectorSearchId,
+        target: mergeId,
+        type: "default",
+      },
+      {
+        id: getEdgeId(),
+        source: keywordSearchId,
+        target: mergeId,
+        type: "default",
+      },
+      {
+        id: getEdgeId(),
+        source: mergeId,
+        target: rerankId,
+        type: "default",
+        deletable: false,
+      },
+      {
+        id: getEdgeId(),
+        source: rerankId,
+        target: llmId,
+        type: "default",
+      },
+    ],
+    style: {
+      edgeType: "default",
+      layoutDirection: "LR",
+    },
+  };
+};

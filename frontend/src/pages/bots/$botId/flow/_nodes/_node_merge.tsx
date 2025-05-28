@@ -23,7 +23,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
       const changes: NodeChange[] = [
         { id: node.id, type: 'replace', item: node },
       ];
-      return applyNodeChanges(changes, nds);
+      return applyNodeChanges(changes, nds) as ApeNode[];
     });
   }, [node]);
 

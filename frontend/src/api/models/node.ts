@@ -19,6 +19,9 @@ import type { NodeData } from './node-data';
 // May contain unused imports in some cases
 // @ts-ignore
 import type { NodeMeasured } from './node-measured';
+// May contain unused imports in some cases
+// @ts-ignore
+import type { NodePosition } from './node-position';
 
 /**
  * 
@@ -37,7 +40,7 @@ export interface Node {
      * @type {string}
      * @memberof Node
      */
-    'type': string;
+    'type': NodeTypeEnum;
     /**
      * Human-readable title of the node
      * @type {string}
@@ -51,11 +54,11 @@ export interface Node {
      */
     'data': NodeData;
     /**
-     * Position of the node in the frontend
-     * @type {object}
+     * 
+     * @type {NodePosition}
      * @memberof Node
      */
-    'position'?: object;
+    'position'?: NodePosition;
     /**
      * Drag handle of the node, only useful for frontend to drag the node
      * @type {string}
@@ -81,4 +84,16 @@ export interface Node {
      */
     'deletable'?: boolean;
 }
+
+export const NodeTypeEnum = {
+    start: 'start',
+    vector_search: 'vector_search',
+    keyword_search: 'keyword_search',
+    merge: 'merge',
+    rerank: 'rerank',
+    llm: 'llm'
+} as const;
+
+export type NodeTypeEnum = typeof NodeTypeEnum[keyof typeof NodeTypeEnum];
+
 
