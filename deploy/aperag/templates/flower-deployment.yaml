@@ -35,7 +35,7 @@ spec:
           ports:
             - containerPort: 5555
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.flower.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
               mountPath: /app/env-config

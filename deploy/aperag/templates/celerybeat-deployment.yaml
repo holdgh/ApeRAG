@@ -33,7 +33,7 @@ spec:
           name: aperag-celerybeat
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.celery-beat.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
               mountPath: /app/env-config

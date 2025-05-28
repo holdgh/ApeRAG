@@ -8,11 +8,6 @@ image:
   tag: "latest"
   pullPolicy: IfNotPresent
 
-  embedding:
-    repository: "docker.io/michaelf34/infinity"  # Full image name including registry
-    tag: "latest"
-
-imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
@@ -27,21 +22,17 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
 service:
   type: ClusterIP
 
-resources: {}
+ingress:
+  className: ""
+  annotations: {}
+
+django:
+  dataPath: /data/aperag
+  replicaCount: 1
+  resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -52,78 +43,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-
-ingress:
-  className: ""
-  annotations: {}
-
-django:
-  logLevel: INFO
-  dataPath: /data/aperag
-  replicaCount: 1
-  feishu:
-    appID: ""
-    appSecret: ""
-    encryptKey: ""
-  quota:
-    maxBotCount: 10
-    maxCollectionCount: 50
-    maxDocumentCount: 1000
-    maxConversationCount: 100
-  resources:
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
-  authType: cookie
-  esHost: http://es-cluster-mdit-http:9200
-  redisSecret: redis-redis-account-default
-  redisHost: redis-cluster-redis-redis
-  redisPort: 6379
-  redisUsername: default
-  redisPassword: 7zJ683ZaB3
-  metaDBSecret: postgresql-conn-credential
-  metaDBDatabase: postgres
-  metaDBHost: pg-cluster-postgresql-postgresql
-  metaDBPort: 5432
-  metaDBUsername: postgres
-  metaDBPassword: y25a9b2HD4
-  vectorDBType: qdrant
-  vectorDBContext: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
-  objectStoreType: local
-  objectStoreLocalRootDir: /data/objects
-  # S3 object store settings (when objectStoreType is s3)
-  objectStoreS3Endpoint: ""
-  objectStoreS3Region: ""
-  objectStoreS3AccessKey: ""
-  objectStoreS3SecretKey: ""
-  objectStoreS3Bucket: aperag
-  objectStoreS3PrefixPath: ""
-  objectStoreS3UsePathStyle: "True"
-  # Chunking settings
-  chunkSize: 400
-  chunkOverlapSize: 20
-  embeddingMaxChunksInBatch: 16
-  # Chat
-  chatConsumerImplementation: document-qa
-  # Rerank settings
-  rerankServiceModel: "jina-reranker-v2-base-multilingual"
-  rerankServiceTokenApiKey: ""
-  rerankBackend: "jina_ai"
-  rerankServiceUrl: https://api.jina.ai/v1/rerank
   # django must be co-located with celery-worker in order to handle uploaded documents
   affinity:
     podAffinity:
@@ -140,6 +59,54 @@ django:
               matchLabels:
                 app.aperag.io/component: django
             topologyKey: kubernetes.io/hostname
+  env:
+    logLevel: INFO
+    feishu:
+      appID: ""
+      appSecret: ""
+      encryptKey: ""
+    quota:
+      maxBotCount: 10
+      maxCollectionCount: 50
+      maxDocumentCount: 1000
+      maxConversationCount: 100
+    authType: cookie
+    esHost: http://es-cluster-mdit-http:9200
+    redisSecret: redis-redis-account-default
+    redisHost: redis-cluster-redis-redis
+    redisPort: 6379
+    redisUsername: default
+    redisPassword: 7zJ683ZaB3
+    metaDBSecret: postgresql-conn-credential
+    metaDBDatabase: postgres
+    metaDBHost: pg-cluster-postgresql-postgresql
+    metaDBPort: 5432
+    metaDBUsername: postgres
+    metaDBPassword: y25a9b2HD4
+    vectorDBType: qdrant
+    vectorDBContext: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
+    objectStoreType: local
+    objectStoreLocalRootDir: /data/objects
+    # S3 object store settings (when objectStoreType is s3)
+    objectStoreS3Endpoint: ""
+    objectStoreS3Region: ""
+    objectStoreS3AccessKey: ""
+    objectStoreS3SecretKey: ""
+    objectStoreS3Bucket: aperag
+    objectStoreS3PrefixPath: ""
+    objectStoreS3UsePathStyle: "True"
+    # Chunking settings
+    chunkSize: 400
+    chunkOverlapSize: 20
+    embeddingMaxChunksInBatch: 16
+    # Chat
+    chatConsumerImplementation: document-qa
+    # Rerank settings
+    rerankServiceModel: "jina-reranker-v2-base-multilingual"
+    rerankServiceTokenApiKey: ""
+    rerankBackend: "jina_ai"
+    rerankServiceUrl: https://api.jina.ai/v1/rerank
+
 
 celery-worker:
   replicaCount: 1
