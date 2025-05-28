@@ -1497,6 +1497,13 @@ components:
           example: vector_search_3f8e2c1a
         type:
           type: string
+          enum:
+            - start
+            - vector_search
+            - keyword_search
+            - merge
+            - rerank
+            - llm
           description: Type of node
           example: vector_search
         title:
@@ -1534,6 +1541,11 @@ components:
         position:
           type: object
           description: Position of the node in the frontend
+          properties:
+            x:
+              type: number
+            'y':
+              type: number
         dragHandle:
           type: string
           description: Drag handle of the node, only useful for frontend to drag the node

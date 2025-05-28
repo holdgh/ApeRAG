@@ -6,8 +6,8 @@ import _ from 'lodash';
 import { useCallback, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
-import { getCollapsePanelStyle } from './_styles';
 import { OutputParams } from './_outputs_params';
+import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -15,16 +15,14 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
   const { formatMessage } = useIntl();
   const { collections } = useModel('collection');
 
-  const values = useMemo(
-    () => node.data.input?.values || [],
-    [node],
-  );
+  const schema = useMemo(() => node.data.input.schema, [node]);
+  const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
         { id: node.id, type: 'replace', item: node },
       ];
-      return applyNodeChanges(changes, nds);
+      return applyNodeChanges(changes, nds) as ApeNode[];
     });
   }, [node]);
 
@@ -74,8 +72,8 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                     <Slider
                       value={_.get(values, 'top_k')}
                       style={{ margin: 0 }}
-                      min={1}
-                      max={10}
+                      min={_.get(schema, 'properties.top_k.minimum')}
+                      max={_.get(schema, 'properties.top_k.maximum')}
                       step={1}
                       onChange={(value) => {
                         _.set(values, 'top_k', value);
@@ -93,8 +91,14 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                     <Slider
                       value={_.get(values, 'similarity_threshold')}
                       style={{ margin: 0 }}
-                      min={0}
-                      max={1}
+                      min={_.get(
+                        schema,
+                        'properties.similarity_threshold.minimum',
+                      )}
+                      max={_.get(
+                        schema,
+                        'properties.similarity_threshold.maximum',
+                      )}
                       step={0.01}
                       onChange={(value) => {
                         _.set(values, 'similarity_threshold', value);
@@ -102,7 +106,11 @@ export const ApeNodeVectorSearch = ({ node }: { node: ApeNode }) => {
                       }}
                     />
                   </Form.Item>
-                  <Form.Item required style={{ marginBottom: 0 }} label={formatMessage({ id: 'flow.variable.global' })}>
+                  <Form.Item
+                    required
+                    style={{ marginBottom: 0 }}
+                    label={formatMessage({ id: 'flow.variable.global' })}
+                  >
                     <NodeInput
                       value={_.get(values, 'query')}
                       onChange={(e) => {

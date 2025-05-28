@@ -1,6 +1,6 @@
 import { PageContainer } from '@/components';
 import { api } from '@/services';
-import { ApeFlowDebugInfo } from '@/types';
+import { ApeEdge, ApeFlowDebugInfo, ApeNode } from '@/types';
 
 import {
   addEdge,
@@ -52,6 +52,7 @@ import { WorkflowDefinition, WorkflowStyle } from '@/api';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
+import { getEdgeId, getInitialData, getLayoutedElements } from './utils';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -114,10 +115,6 @@ export default () => {
     flowStyle,
     setFlowStyle,
 
-    getEdgeId,
-    getLayoutedElements,
-    getInitialData,
-
     setMessages,
 
     flowStatus,
@@ -134,8 +131,8 @@ export default () => {
     if (!bot?.id) return;
     const flowDefault = getInitialData();
     const { data } = await api.botsBotIdFlowGet({ botId: bot.id });
-    setNodes(data?.nodes || flowDefault.nodes);
-    setEdges(data?.edges || flowDefault.edges);
+    setNodes((data?.nodes || flowDefault.nodes) as ApeNode[]);
+    setEdges((data?.edges || flowDefault.edges) as ApeEdge[]);
     setFlowStyle(
       data?.style ||
         flowDefault.style || {
@@ -202,7 +199,7 @@ export default () => {
 
   // nodes events
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds) as ApeNode[]),
     [],
   );
   const onNodeDrag: OnNodeDrag = useCallback(() => {}, []);

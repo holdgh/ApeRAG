@@ -7,8 +7,8 @@ import _ from 'lodash';
 import { useCallback, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
-import { getCollapsePanelStyle } from './_styles';
 import { OutputParams } from './_outputs_params';
+import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -16,16 +16,18 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
-  const values = useMemo(
-    () => node.data.input?.values || [],
-    [node],
-  );
+  const schema = useMemo(() => node.data.input.schema, [node])
+  const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
-        { id: node.id, type: 'replace', item: node },
+        {
+          id: node.id,
+          type: 'replace',
+          item: node,
+        },
       ];
-      return applyNodeChanges(changes, nds);
+      return applyNodeChanges(changes, nds) as ApeNode[];
     });
   }, [node]);
 
@@ -75,8 +77,8 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                     <Slider
                       value={_.get(values, 'top_k')}
                       style={{ margin: 0 }}
-                      min={1}
-                      max={10}
+                      min={_.get(schema, 'properties.top_k.minimum')}
+                      max={_.get(schema, 'properties.top_k.maximum')}
                       step={1}
                       onChange={(value) => {
                         _.set(values, 'top_k', value);
@@ -84,7 +86,11 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
                       }}
                     />
                   </Form.Item>
-                  <Form.Item required style={{ marginBottom: 0 }} label={formatMessage({ id: 'flow.variable.global' })}>
+                  <Form.Item
+                    required
+                    style={{ marginBottom: 0 }}
+                    label={formatMessage({ id: 'flow.variable.global' })}
+                  >
                     <NodeInput
                       value={_.get(values, 'query')}
                       onChange={(e) => {

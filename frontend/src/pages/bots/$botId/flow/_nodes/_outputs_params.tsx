@@ -1,18 +1,17 @@
-import { SchemaProperty } from "@/api";
-import { ApeNode } from "@/types";
-import { Table, TableProps, Tag, theme } from "antd";
-import _ from "lodash";
-import { useMemo } from "react";
+import { SchemaDefinition } from '@/api';
+import { ApeNode } from '@/types';
+import { Table, TableProps, Tag, theme } from 'antd';
+import _ from 'lodash';
+import { useMemo } from 'react';
 import { useIntl } from 'umi';
 
-type OutPut = SchemaProperty & { name: string };
+type OutPut = SchemaDefinition & { name: string };
 
 export const OutputParams = ({ node }: { node: ApeNode }) => {
-   const { token } = theme.useToken();
-    const { formatMessage } = useIntl();
+  const { token } = theme.useToken();
+  const { formatMessage } = useIntl();
 
-  
-    const outputs = useMemo(() => {
+  const outputs = useMemo(() => {
     const schema = node.data.output?.schema;
     if (schema?.type === 'object' && schema?.properties) {
       return Object.keys(schema?.properties).map((key) => {
@@ -40,13 +39,15 @@ export const OutputParams = ({ node }: { node: ApeNode }) => {
     ],
     [],
   );
-  
-  return <Table
-        rowKey="name"
-        pagination={false}
-        size="small"
-        bordered
-        columns={columns}
-        dataSource={outputs}
-      />
-}
+
+  return (
+    <Table
+      rowKey="name"
+      pagination={false}
+      size="small"
+      bordered
+      columns={columns}
+      dataSource={outputs}
+    />
+  );
+};

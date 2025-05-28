@@ -2,7 +2,6 @@ import {
   ApeFlowNodeStatus,
   ApeNode,
   ApeNodeConfig,
-  ApeNodeType,
 } from '@/types';
 import {
   CaretDownOutlined,
@@ -34,6 +33,7 @@ import {
   StyledFlowNodeHeader,
   StyledFlowNodeLabel,
 } from './_styles';
+import { NodeTypeEnum } from '@/api';
 
 const nodeStatusMap: {
   [key in ApeFlowNodeStatus]: {
@@ -133,7 +133,7 @@ const ApeBasicNode = (node: ApeNode) => {
   const config: ApeNodeConfig = useMemo(
     () =>
       getNodeConfig(
-        originNode?.type as ApeNodeType,
+        originNode?.type as NodeTypeEnum,
         originNode?.ariaLabel ||
           formatMessage({ id: `flow.node.type.${originNode?.type}` }),
       ),
@@ -156,7 +156,7 @@ const ApeBasicNode = (node: ApeNode) => {
           },
         },
       ];
-      return applyNodeChanges(changes, nds);
+      return applyNodeChanges(changes, nds) as ApeNode[];
     });
   }, [originNode]);
 
@@ -183,7 +183,7 @@ const ApeBasicNode = (node: ApeNode) => {
           },
         },
       ];
-      return applyNodeChanges(changes, nds);
+      return applyNodeChanges(changes, nds) as ApeNode[];
     });
     setLabelModalVisible(false);
   }, [originNode]);
@@ -284,7 +284,7 @@ const ApeBasicNode = (node: ApeNode) => {
   );
 };
 
-export const NodeTypes: { [key in ApeNodeType]: any } = {
+export const NodeTypes: { [key in NodeTypeEnum]: any } = {
   start: ApeBasicNode,
   vector_search: ApeBasicNode,
   keyword_search: ApeBasicNode,
