@@ -74,155 +74,52 @@ app.aperag.io/component: celery-worker
 app.aperag.io/component: frontend
 {{- end }}
 
-# POSTGRES_HOST
-{{- define "database.postgresHost" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_HOST -}}
-{{- end }}
-
-# POSTGRES_PORT
-{{- define "database.postgresPort" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_PORT -}}
-{{- end }}
-
-# POSTGRES_DB
-{{- define "database.postgresDB" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.postgres.POSTGRES_DB -}}
-{{- end }}
-
-# POSTGRES_USER
-{{- define "database.postgresUser" -}}
-  {{- $ctx := . -}}
-  {{- $credSecret := dict }}
-  {{- if $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
-    {{- $credSecret = lookup "v1" "Secret" $ctx.Release.Namespace $ctx.Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
-  {{- end }}
-
-  {{- if and $credSecret (hasKey $credSecret.data "username") }}
-    {{- $credSecret.data.username | b64dec }}
-  {{- else }}
-    {{- $ctx.Values.postgres.POSTGRES_USER -}}
-  {{- end }}
-{{- end }}
-
-# POSTGRES_PASSWORD
-{{- define "database.postgresPassword" -}}
-  {{- $ctx := . -}}
-  {{- if $ctx.Values.postgres.POSTGRES_PASSWORD }}
-    {{- $ctx.Values.postgres.POSTGRES_PASSWORD }}
-  {{- else }}
-    {{- "postgres" }}
-  {{- end }}
-{{- end }}
-
-# DATABASE_URL Helper (Unchanged, builds URL from other helpers)
+# DATABASE_URL Helper - builds complete PostgreSQL URL
 {{- define "database.databaseUrl" -}}
   {{- $ctx := . -}}
-  {{- $host := include "database.postgresHost" $ctx -}}
-  {{- $port := include "database.postgresPort" $ctx -}}
-  {{- $db := include "database.postgresDB" $ctx -}}
-  {{- $user := include "database.postgresUser" $ctx -}}
-  {{- $password := include "database.postgresPassword" $ctx -}}
+  {{- $host := $ctx.Values.postgres.POSTGRES_HOST -}}
+  {{- $port := $ctx.Values.postgres.POSTGRES_PORT -}}
+  {{- $db := $ctx.Values.postgres.POSTGRES_DB -}}
+  {{- $user := $ctx.Values.postgres.POSTGRES_USER | default "postgres" -}}
+  {{- $password := $ctx.Values.postgres.POSTGRES_PASSWORD | default "postgres" -}}
 
   {{- printf "postgresql://%s:%s@%s:%s/%s" $user $password $host $port $db -}}
 {{- end }}
 
-
-
-# REDIS_HOST
-{{- define "database.redisHost" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.redis.REDIS_HOST -}}
-{{- end }}
-
-# REDIS_PORT
-{{- define "database.redisPort" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.redis.REDIS_PORT -}}
-{{- end }}
-
-# REDIS_USER
-{{- define "database.redisUser" -}}
-  {{- $ctx := . -}}
-  {{- if $ctx.Values.redis.REDIS_USER }}
-    {{- $ctx.Values.redis.REDIS_USER }}
-  {{- else }}
-    {{- "default" }}
-  {{- end }}
-{{- end }}
-
-# REDIS_PASSWORD
-{{- define "database.redisPassword" -}}
-  {{- $ctx := . -}}
-  {{- if $ctx.Values.redis.REDIS_PASSWORD }}
-    {{- $ctx.Values.redis.REDIS_PASSWORD }}
-  {{- else }}
-    {{- "redis" }}
-  {{- end }}
-{{- end }}
-
-# CELERY_BROKER_URL Helper (builds URL from Redis helpers)
+# CELERY_BROKER_URL Helper - builds Redis URL for Celery
 {{- define "database.celeryBrokerUrl" -}}
   {{- $ctx := . -}}
-  {{- $host := include "database.redisHost" $ctx -}}
-  {{- $port := include "database.redisPort" $ctx -}}
-  {{- $user := include "database.redisUser" $ctx -}}
-  {{- $password := include "database.redisPassword" $ctx -}}
+  {{- $host := $ctx.Values.redis.REDIS_HOST -}}
+  {{- $port := $ctx.Values.redis.REDIS_PORT -}}
+  {{- $user := $ctx.Values.redis.REDIS_USER | default "default" -}}
+  {{- $password := $ctx.Values.redis.REDIS_PASSWORD | default "redis" -}}
 
   {{- printf "redis://%s:%s@%s:%s/0" $user $password $host $port -}}
 {{- end }}
 
-# MEMORY_REDIS_URL Helper (builds URL from Redis helpers, typically without DB number for generic cache)
+# MEMORY_REDIS_URL Helper - builds Redis URL for memory cache
 {{- define "database.memoryRedisUrl" -}}
   {{- $ctx := . -}}
-  {{- $host := include "database.redisHost" $ctx -}}
-  {{- $port := include "database.redisPort" $ctx -}}
-  {{- $user := include "database.redisUser" $ctx -}}
-  {{- $password := include "database.redisPassword" $ctx -}}
+  {{- $host := $ctx.Values.redis.REDIS_HOST -}}
+  {{- $port := $ctx.Values.redis.REDIS_PORT -}}
+  {{- $user := $ctx.Values.redis.REDIS_USER | default "default" -}}
+  {{- $password := $ctx.Values.redis.REDIS_PASSWORD | default "redis" -}}
 
   {{- printf "redis://%s:%s@%s:%s/1" $user $password $host $port -}}
 {{- end }}
 
-
-# ES_HOST
+# ES_HOST - builds complete Elasticsearch URL with authentication
 {{- define "database.esHost" -}}
   {{- $ctx := . -}}
   {{- $protocol := $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}}
   {{- $host := $ctx.Values.elasticsearch.ES_HOST -}}
   {{- $port := $ctx.Values.elasticsearch.ES_PORT -}}
-
-  {{- $user := include "database.esUser" $ctx -}}
-  {{- $password := include "database.esPassword" $ctx -}}
+  {{- $user := $ctx.Values.elasticsearch.ES_USER -}}
+  {{- $password := $ctx.Values.elasticsearch.ES_PASSWORD -}}
 
   {{- if $user }}
     {{- printf "%s://%s:%s@%s:%s" $protocol $user $password $host $port -}}
   {{- else }}
     {{- printf "%s://%s:%s" $protocol $host $port -}}
   {{- end }}
-{{- end }}
-
-# ES_PROTOCOL (if you want to control it separately)
-{{- define "database.esProtocol" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.elasticsearch.ES_PROTOCOL | default "http" -}}
-{{- end }}
-
-# ES_PORT (if you want to control it separately)
-{{- define "database.esPort" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.elasticsearch.ES_PORT | default "9200" -}}
-{{- end }}
-
-# ES_USER
-{{- define "database.esUser" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.elasticsearch.ES_USER -}}
-{{- end }}
-
-# ES_PASSWORD
-{{- define "database.esPassword" -}}
-  {{- $ctx := . -}}
-  {{- $ctx.Values.elasticsearch.ES_PASSWORD -}}
 {{- end }}

@@ -40,12 +40,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.hostIP
+            - name: EMBEDDING_DEVICE
+              value: {{ index .Values "celery-worker" "embeddingDevice" | quote }}
             - name: POSTGRES_HOST
-              value: {{ include "database.postgresHost" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_HOST | quote }}
             - name: POSTGRES_PORT
-              value: {{ include "database.postgresPort" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_PORT | quote }}
             - name: POSTGRES_DB
-              value: {{ include "database.postgresDB" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_DB | quote }}
             - name: POSTGRES_USER
               {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
               valueFrom:
@@ -53,7 +55,7 @@ spec:
                   name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
                   key: username
               {{- else }}
-              value: {{ include "database.postgresUser" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_USER | default "postgres" | quote }}
               {{- end }}
             - name: POSTGRES_PASSWORD
               {{- if .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
@@ -62,7 +64,7 @@ spec:
                   name: {{ .Values.postgres.POSTGRES_CREDENTIALS_SECRET_NAME }}
                   key: password
               {{- else }}
-              value: {{ include "database.postgresPassword" . | quote }}
+              value: {{ .Values.postgres.POSTGRES_PASSWORD | default "postgres" | quote }}
               {{- end }}
             - name: DATABASE_URL
               value: {{ include "database.databaseUrl" . | quote }}
@@ -71,9 +73,9 @@ spec:
             - name: MEMORY_REDIS_URL
               value: {{ include "database.memoryRedisUrl" . | quote }}
             - name: REDIS_HOST
-              value: {{ include "database.redisHost" . | quote }}
+              value: {{ .Values.redis.REDIS_HOST | quote }}
             - name: REDIS_PORT
-              value: {{ include "database.redisPort" . | quote }}
+              value: {{ .Values.redis.REDIS_PORT | quote }}
             - name: REDIS_USER
               {{- if .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
               valueFrom:
@@ -81,7 +83,7 @@ spec:
                   name: {{ .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
                   key: username
               {{- else }}
-              value: {{ include "database.redisUser" . | quote }}
+              value: {{ .Values.redis.REDIS_USER | default "default" | quote }}
               {{- end }}
             - name: REDIS_PASSWORD
               {{- if .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
@@ -90,7 +92,7 @@ spec:
                   name: {{ .Values.redis.REDIS_CREDENTIALS_SECRET_NAME }}
                   key: password
               {{- else }}
-              value: {{ include "database.redisPassword" . | quote }}
+              value: {{ .Values.redis.REDIS_PASSWORD | default "redis" | quote }}
               {{- end }}
             - name: ES_HOST
               value: {{ include "database.esHost" . | quote }}
@@ -107,9 +109,9 @@ spec:
                   key: password
             {{- else if .Values.elasticsearch.ES_USER }}
             - name: ES_USER
-              value: {{ include "database.esUser" . | quote }}
+              value: {{ .Values.elasticsearch.ES_USER | quote }}
             - name: ES_PASSWORD
-              value: {{ include "database.esPassword" . | quote }}
+              value: {{ .Values.elasticsearch.ES_PASSWORD | quote }}
             {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-celeryworker
