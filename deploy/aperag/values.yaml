@@ -48,6 +48,21 @@ postgres:
   # ⚠️ Recommend to use POSTGRES_CREDENTIALS_SECRET_NAME
   POSTGRES_PASSWORD: ""
 
+redis:
+  REDIS_HOST: "redis-cluster-redis-redis"
+  REDIS_PORT: "6379"
+  # The name of the Secret containing Redis credentials (e.g., "password" key).
+  # Example: "redis-cluster-redis-account-default"
+  REDIS_CREDENTIALS_SECRET_NAME: "redis-cluster-redis-account-default" # Or your actual Redis secret name
+  # User for Redis connection. Default: "default"
+  # ⚠️ Recommend to use REDIS_CREDENTIALS_SECRET_NAME
+  REDIS_USER: "default"
+  # Password for Redis connection.
+  # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
+  # ⚠️ Recommend to use REDIS_CREDENTIALS_SECRET_NAME
+  REDIS_PASSWORD: ""
+
+
 django:
   dataPath: /data/aperag
   replicaCount: 1
@@ -90,7 +105,6 @@ django:
     # Logging
     DJANGO_LOG_LEVEL: INFO
     # Celery
-    CELERY_BROKER_URL: redis://default:7zJ683ZaB3@redis-cluster-redis-redis:6379/0
     CELERY_FLOWER_USER: admin
     CELERY_FLOWER_PASSWORD: admin
     # Vector DB
@@ -98,8 +112,6 @@ django:
     VECTOR_DB_CONTEXT: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'
     # Elasticsearch
     ES_HOST: http://es-cluster-mdit-http:9200
-    # Redis
-    MEMORY_REDIS_URL: redis://default:7zJ683ZaB3@redis-cluster-redis-redis:6379
     # Object Store
     OBJECT_STORE_TYPE: local
     OBJECT_STORE_LOCAL_ROOT_DIR: /data/objects

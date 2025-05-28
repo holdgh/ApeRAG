@@ -54,6 +54,10 @@ spec:
               value: {{ include "database.postgresPassword" . | quote }}
             - name: DATABASE_URL
               value: {{ include "database.databaseUrl" . | quote }}
+            - name: CELERY_BROKER_URL
+              value: {{ include "database.celeryBrokerUrl" . | quote }}
+            - name: MEMORY_REDIS_URL
+              value: {{ include "database.memoryRedisUrl" . | quote }}
 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-django
