@@ -29,6 +29,25 @@ ingress:
   className: ""
   annotations: {}
 
+postgres:
+  POSTGRES_HOST: "pg-cluster-postgresql-postgresql"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "postgres"
+  # The name of the Secret containing PostgreSQL username and password (e.g., "username" and "password" keys).
+  # Example: "pg-cluster-postgresql-account-postgres" (references your Kubeblocks credential Secret)
+  POSTGRES_CREDENTIALS_SECRET_NAME: "pg-cluster-postgresql-account-postgres"
+  # Username and Password Priority:
+  # 1. If POSTGRES_CREDENTIALS_SECRET_NAME is set, attempts to fetch 'username' and 'password' from that Secret.
+  # 2. If POSTGRES_CREDENTIALS_SECRET_NAME is empty, uses the direct values of POSTGRES_USER and POSTGRES_PASSWORD.
+  # 3. If direct values are also empty, defaults to "postgres" for user or forces a failure for password.
+  # ⚠️ Recommend to use POSTGRES_CREDENTIALS_SECRET_NAME
+  POSTGRES_USER: "postgres" # Default PostgreSQL user
+  # Password (Sensitive information, strongly recommended NOT to set directly in values.yaml):
+  # Only use this if you are NOT using POSTGRES_CREDENTIALS_SECRET_NAME and accept the security implications.
+  # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
+  # ⚠️ Recommend to use POSTGRES_CREDENTIALS_SECRET_NAME
+  POSTGRES_PASSWORD: ""
+
 django:
   dataPath: /data/aperag
   replicaCount: 1
@@ -60,12 +79,6 @@ django:
                 app.aperag.io/component: django
             topologyKey: kubernetes.io/hostname
   env:
-    # MetaDB
-    POSTGRES_HOST: pg-cluster-postgresql-postgresql
-    POSTGRES_PORT: 5432
-    POSTGRES_DB: aperag
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: y25a9b2HD4
     # Auth
     AUTH_TYPE: cookie
     AUTH0_DOMAIN: ""
@@ -80,8 +93,6 @@ django:
     CELERY_BROKER_URL: redis://default:7zJ683ZaB3@redis-cluster-redis-redis:6379/0
     CELERY_FLOWER_USER: admin
     CELERY_FLOWER_PASSWORD: admin
-    # MetaDB (duplicate for DATABASE_URL)
-    DATABASE_URL: "postgres://postgres:y25a9b2HD4@pg-cluster-postgresql-postgresql:5432/postgres"
     # Vector DB
     VECTOR_DB_TYPE: qdrant
     VECTOR_DB_CONTEXT: '{"url":"http://qdrant-cluster-qdrant-qdrant", "port":6333, "distance":"Cosine", "timeout": 1000}'

@@ -42,6 +42,19 @@ spec:
                   fieldPath: status.hostIP
             - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
               value: python
+            - name: POSTGRES_HOST
+              value: {{ include "database.postgresHost" . | quote }}
+            - name: POSTGRES_PORT
+              value: {{ include "database.postgresPort" . | quote }}
+            - name: POSTGRES_DB
+              value: {{ include "database.postgresDB" . | quote }}
+            - name: POSTGRES_USER
+              value: {{ include "database.postgresUser" . | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ include "database.postgresPassword" . | quote }}
+            - name: DATABASE_URL
+              value: {{ include "database.databaseUrl" . | quote }}
+
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           name: aperag-django
           imagePullPolicy: {{ .Values.image.pullPolicy }}
