@@ -1567,14 +1567,6 @@ components:
           type: boolean
           description: Whether the node is deletable, only useful for frontend to delete the node
           example: true
-    EdgeType:
-      type: string
-      enum:
-        - straight
-        - step
-        - smoothstep
-        - default
-        - simplebezier
     Edge:
       type: object
       required:
@@ -1593,7 +1585,6 @@ components:
           type: string
           description: Type of the edge
           example: edge
-          $ref: '#/components/schemas/EdgeType'
         source:
           type: string
           description: ID of the source node
@@ -1607,7 +1598,13 @@ components:
       description: Workflow style
       properties:
         edgeType:
-          $ref: '#/components/schemas/EdgeType'
+          type: string
+          enum:
+            - straight
+            - step
+            - smoothstep
+            - default
+            - simplebezier
         layoutDirection:
           type: string
           enum:

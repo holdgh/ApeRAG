@@ -56,14 +56,11 @@ components:
       description: Workflow style
       properties:
         edgeType:
-          $ref: '#/components/schemas/EdgeType'
+          type: string
+          enum: [straight, step, smoothstep, default, simplebezier]
         layoutDirection:
           type: string
           enum: [TB, LR]
-
-    EdgeType:
-      type: string
-      enum: [straight, step, smoothstep, default, simplebezier]
 
     ExecutionConfig:
       type: object
@@ -215,7 +212,6 @@ components:
           type: string
           description: Type of the edge
           example: edge
-          $ref: '#/components/schemas/EdgeType'
         source:
           type: string
           description: ID of the source node

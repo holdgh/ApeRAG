@@ -27,11 +27,7 @@ export const NodeOutputs = ({ node }: OutputProps) => {
   const { token } = theme.useToken();
   const [outputsVisible, setOutputsVisible] = useState<boolean>(false);
   const outputs = useMemo(() => {
-    let outputKey:
-      | 'docs'
-      | 'keyword_search_docs'
-      | 'vector_search_docs'
-      | undefined;
+    let outputKey: 'docs' | undefined;
     switch (node.type) {
       case 'keyword_search':
       case 'vector_search':
@@ -41,10 +37,6 @@ export const NodeOutputs = ({ node }: OutputProps) => {
         outputKey = 'docs';
         break;
     }
-
-    const outputParams =  Object.keys(node.data.output.schema.properties || {});
-
-    console.log(outputParams)
 
     if (outputKey) {
       const data = messages.find(

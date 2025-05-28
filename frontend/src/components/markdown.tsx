@@ -81,8 +81,8 @@ const StyledCopyButton = styled('div').withConfig({
   ${({ token }) => {
     return css`
       position: absolute;
-      right: 1em;
-      top: 1em;
+      right: 0.5em;
+      top: 0.5em;
       width: 32px;
       height: 32px;
       border-radius: 4px;

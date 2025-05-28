@@ -1,4 +1,4 @@
-import { Bot, Document, WorkflowDefinition, NodeData, NodeTypeEnum, EdgeType } from "@/api";
+import { Bot, Document, WorkflowDefinition, NodeData, NodeTypeEnum, WorkflowStyleEdgeTypeEnum } from "@/api";
 
 import {
   Position,
@@ -19,7 +19,7 @@ export type ApeNode = Merge<
   }
 >;
 export type ApeEdge = Merge<ReactFlowEdge, {
-  type: EdgeType
+  type: WorkflowStyleEdgeTypeEnum
 }>;
 
 export type ApeNodeHandlePosition = {
@@ -58,16 +58,16 @@ export type ApeFlowNodeOutput = {
 };
 
 export type ApeFlowDebugInfo = {
-  event_type:
+  event_type?:
     | "flow_start"
     | "node_start"
     | "node_end"
     | "flow_end"
     | "output_chunk";
-  node_id: string;
-  execution_id: string;
-  timestamp: string;
-  data: {
+  node_id?: string;
+  execution_id?: string;
+  timestamp?: string;
+  data?: {
     flow_id: string;
     node_type?: string;
     inputs?: any;

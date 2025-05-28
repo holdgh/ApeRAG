@@ -175,7 +175,7 @@ export default () => {
       {
         responseType: 'stream',
         adapter: 'fetch',
-        timeout: 20 * 1000,
+        timeout: 600 * 1000,
       },
     );
     const stream = response.data as unknown as ReadableStream;
@@ -185,13 +185,20 @@ export default () => {
       .getReader();
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
-      const msg: ApeFlowDebugInfo = JSON.parse(value.data);
-      console.log(msg);
-      if (msg.event_type === 'flow_end') {
-        setFlowStatus('completed');
+      if (done) {
+        console.log('reader done');
+        break;
+      };
+      try {
+        const msg: ApeFlowDebugInfo = JSON.parse(value.data);
+        console.log(msg);
+        if (msg.event_type === 'flow_end') {
+          setFlowStatus('completed');
+        }
+        setMessages((msgs) => [...msgs, msg]);
+      } catch (err) {
+        console.log('msg parse error', err);
       }
-      setMessages((msgs) => [...msgs, msg]);
     }
   };
 
@@ -213,13 +220,14 @@ export default () => {
           const remainingEdges = acc.filter(
             (edge) => !connectedEdges.includes(edge),
           );
-          const createdEdges = incomers.flatMap(({ id: source }) =>
-            outgoers.map(({ id: target }) => ({
-              id: getEdgeId(),
-              source,
-              target,
-              type: flowStyle.edgeType,
-            })) as ApeEdge[],
+          const createdEdges = incomers.flatMap(
+            ({ id: source }) =>
+              outgoers.map(({ id: target }) => ({
+                id: getEdgeId(),
+                source,
+                target,
+                type: flowStyle.edgeType,
+              })) as ApeEdge[],
           );
           return [...remainingEdges, ...createdEdges];
         }, edges) as ApeEdge[],

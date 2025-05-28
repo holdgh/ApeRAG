@@ -13,9 +13,6 @@
  */
 
 
-// May contain unused imports in some cases
-// @ts-ignore
-import type { EdgeType } from './edge-type';
 
 /**
  * 
@@ -36,11 +33,11 @@ export interface Edge {
      */
     'deletable'?: boolean;
     /**
-     * 
-     * @type {EdgeType}
+     * Type of the edge
+     * @type {string}
      * @memberof Edge
      */
-    'type'?: EdgeType;
+    'type'?: string;
     /**
      * ID of the source node
      * @type {string}
@@ -54,6 +51,4 @@ export interface Edge {
      */
     'target': string;
 }
-
-
 
