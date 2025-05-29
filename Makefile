@@ -106,7 +106,7 @@ dev: install-uv
 	@command -v datamodel-codegen >/dev/null || uv tool install datamodel-code-generator
 
 # Code quality checks
-.PHONY: format lint static-check test
+.PHONY: format lint static-check test unit-test e2e-test
 format:
 	uvx ruff check --fix ./aperag ./tests
 	uvx ruff format ./aperag ./tests
@@ -120,6 +120,12 @@ static-check:
 
 test:
 	uv run pytest tests/ -v
+
+unit-test:
+	uv run pytest tests/unit_test/ -v
+
+e2e-test:
+	uv run pytest tests/e2e_test/ -v
 
 # Code generation
 .PHONY: merge-openapi generate-models generate-frontend-sdk generate_model_configs
