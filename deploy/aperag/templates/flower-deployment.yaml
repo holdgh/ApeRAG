@@ -104,6 +104,10 @@ spec:
             - name: ES_PASSWORD
               value: {{ .Values.elasticsearch.ES_PASSWORD | quote }}
             {{- end }}
+            - name: CELERY_FLOWER_USER
+              values: {{ .Values.django.env.CELERY_FLOWER_USER | quote }}
+            - name: CELERY_FLOWER_PASSWORD
+              values: {{ .Values.django.env.CELERY_FLOWER_PASSWORD | quote }}
           resources:
             {{- toYaml .Values.flower.resources | nindent 12 }}
           volumeMounts:
