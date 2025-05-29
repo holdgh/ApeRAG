@@ -2,14 +2,14 @@ import { ModelSelect } from '@/components';
 import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
+import { useDebounce } from 'ahooks';
 import { Collapse, Form, Space, theme } from 'antd';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
-import { getCollapsePanelStyle } from './_styles';
 import { OutputParams } from './_outputs_params';
-import { useDebounce } from 'ahooks';
+import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -17,10 +17,7 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
   const { nodes, edges, setNodes } = useModel('bots.$botId.flow.model');
   const { getProviderByModelName } = useModel('models');
 
-  const values = useMemo(
-    () => node.data.input?.values || [],
-    [node],
-  );
+  const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -34,7 +31,10 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
     const nid = node.id;
     const connects = edges.filter((edg) => edg.target === nid);
     const sourceNodes = connects.map((edg) =>
-      nodes.find((nod) => nod.id === edg.source && nod.data.output?.schema?.properties?.docs),
+      nodes.find(
+        (nod) =>
+          nod.id === edg.source && nod.data.output?.schema?.properties?.docs,
+      ),
     );
     const _refNode =
       _.size(sourceNodes) === 1 ? _.first(sourceNodes) : undefined;

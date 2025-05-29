@@ -2,6 +2,7 @@ import { ModelSelect } from '@/components';
 import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
+import { useDebounce } from 'ahooks';
 import { Collapse, Form, InputNumber, Slider, theme } from 'antd';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -9,7 +10,6 @@ import { useIntl, useModel } from 'umi';
 import { NodeInput, NodeInputTextArea } from './_node-input';
 import { OutputParams } from './_outputs_params';
 import { getCollapsePanelStyle } from './_styles';
-import { useDebounce } from 'ahooks';
 
 export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
@@ -17,7 +17,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
   const { getProviderByModelName } = useModel('models');
   const { formatMessage } = useIntl();
 
-  const schema = useMemo(() => node.data.input.schema, [node])
+  const schema = useMemo(() => node.data.input.schema, [node]);
   const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {

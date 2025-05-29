@@ -1,11 +1,10 @@
 import { ModelConfig, ModelDefinition, PromptTemplate } from '@/api';
 import { api } from '@/services';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useModel } from 'umi';
 
 export default () => {
   const { setLoading } = useModel('global');
-  const { user } = useModel('user');
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>();
   const [availableModels, setAvailableModels] = useState<ModelConfig[]>([]);
 

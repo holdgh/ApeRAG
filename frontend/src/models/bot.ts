@@ -4,7 +4,6 @@ import { ApeBot, BotConfig } from '@/types';
 import { parseConfig } from '@/utils';
 import { useState } from 'react';
 import { useModel } from 'umi';
-import { parse } from 'yaml';
 
 export default () => {
   const { setLoading } = useModel('global');
@@ -46,7 +45,6 @@ export default () => {
     setBotLoading(false);
 
     const config: BotConfig = parseConfig(res.data.config);
-
 
     setBot({
       ...res.data,

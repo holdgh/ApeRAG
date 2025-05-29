@@ -16,7 +16,7 @@ export const ApeNodeKeywordSearch = ({ node }: { node: ApeNode }) => {
   const { setNodes } = useModel('bots.$botId.flow.model');
   const { formatMessage } = useIntl();
 
-  const schema = useMemo(() => node.data.input.schema, [node])
+  const schema = useMemo(() => node.data.input.schema, [node]);
   const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
