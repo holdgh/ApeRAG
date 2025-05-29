@@ -298,6 +298,13 @@ export default () => {
     getFlow();
   }, [bot]);
 
+  useEffect(() => {
+    return () => {
+      setNodes([]);
+      setEdges([]);
+    };
+  }, []);
+
   return (
     <PageContainer padding={false} width="auto" height="fixed">
       <StyledReactFlow
