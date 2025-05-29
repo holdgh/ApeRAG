@@ -161,23 +161,17 @@ version:
 .PHONY: add-license
 add-license: install-addlicense
 	./downloads/addlicense -c "ApeCloud, Inc." -y 2025 -l apache \
-		-ignore "**/{__pycache__,migrations,templates,static}/**" \
-		-ignore "**/.{git,pytest_cache,mypy_cache,ruff_cache,next,nuxt}/**" \
-		-ignore "**/{node_modules,dist,build,coverage,.nyc_output}/**" \
-		-ignore "**/{*.egg-info,target,out,.gradle}/**" \
-		-ignore "aperag/{readers,vectorstore}/**" \
-		**/*.py **/*.ts
+		-ignore "aperag/readers/**" \
+		-ignore "aperag/vectorstore/**" \
+		aperag/**/*.py
 
 .PHONY: check-license
 check-license: install-addlicense
 	./downloads/addlicense -check \
 		-c "ApeCloud, Inc." -y 2025 -l apache \
-		-ignore "**/{__pycache__,migrations,templates,static}/**" \
-		-ignore "**/.{git,pytest_cache,mypy_cache,ruff_cache,next,nuxt}/**" \
-		-ignore "**/{node_modules,dist,build,coverage,.nyc_output}/**" \
-		-ignore "**/{*.egg-info,target,out,.gradle}/**" \
-		-ignore "aperag/{readers,vectorstore}/**" \
-		**/*.py **/*.ts
+		-ignore "aperag/readers/**" \
+		-ignore "aperag/vectorstore/**" \
+		aperag/**/*.py
 
 .PHONY: install-addlicense
 install-addlicense:
