@@ -32,6 +32,9 @@ import GmailIcon from '@/assets/collection_source/gmail.png';
 import OutlookIcon from '@/assets/collection_source/outlook.png';
 import QQGmailIcon from '@/assets/collection_source/qq.png';
 
+import iconCommon from '@/assets/bots/common.svg';
+import iconKnowledge from '@/assets/bots/knowledge.svg';
+
 import {
   CollectionConfig,
   CollectionStatusEnum,
@@ -39,6 +42,7 @@ import {
   DocumentVectorIndexStatusEnum,
   DocumentFulltextIndexStatusEnum,
   DocumentGraphIndexStatusEnum,
+  BotTypeEnum,
 } from '@/api';
 import type { CollectionConfigSource, CollectionEmailSource } from '@/types';
 
@@ -85,6 +89,11 @@ export const MODEL_PROVIDER_ICON: {
   gorilla: GorillaIcon,
   qianwen: QianwenIcon,
   'glm-4': Glm4Icon,
+};
+
+export const BOT_TYPE_ICON: { [key in BotTypeEnum]: React.ReactNode } = {
+  knowledge: iconKnowledge,
+  common: iconCommon,
 };
 
 export const COLLECTION_SOURCE: {

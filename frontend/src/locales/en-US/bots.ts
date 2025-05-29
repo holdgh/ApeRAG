@@ -1,7 +1,6 @@
 export const bot = {
   'bot.name': 'Applications',
   'bot.name_short': 'Apps',
-  'bot.settings': 'Settings',
   'bot.description':
     'ApeRAG is a new chatbot based on local datasets and utilizes multiple large language models.',
   'bot.add': 'Add Application',
