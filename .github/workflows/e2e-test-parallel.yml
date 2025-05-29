@@ -1,9 +1,19 @@
 name: Build and Deploy with KinD (Parallel)
 on: [pull_request]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/aperag
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/aperag-frontend
+
 jobs:
   build-backend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend-image: ${{ steps.meta.outputs.tags }}
     steps:
     - uses: actions/checkout@v4
 
@@ -31,40 +41,38 @@ jobs:
         echo "Disk usage after cleanup:"
         df -h
 
-    - name: Build backend image
-      run: |
-        # Clean up any existing build artifacts
-        docker builder prune -af
-        
-        # Build backend image with optimization
-        make build-aperag-local VERSION=dev-latest
-        
-        # Clean up intermediate layers after build
-        docker image prune -f
-        
-        # Verify image exists
-        docker images | grep apecloud/aperag
-
-    - name: Save backend image
-      run: |
-        # Save the correct image name
-        docker save apecloud/aperag:dev-latest | gzip > aperag-backend.tar.gz
-        
-        # Verify the tar file was created and has reasonable size
-        ls -lh aperag-backend.tar.gz
-        if [ ! -s aperag-backend.tar.gz ]; then
-          echo "Error: aperag-backend.tar.gz is empty!"
-          exit 1
-        fi
-
-    - name: Upload backend image
-      uses: actions/upload-artifact@v4
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
       with:
-        name: aperag-backend-image
-        path: aperag-backend.tar.gz
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for backend
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+        tags: |
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
   build-frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      frontend-image: ${{ steps.meta.outputs.tags }}
     steps:
     - uses: actions/checkout@v4
 
@@ -92,41 +100,37 @@ jobs:
         echo "Disk usage after cleanup:"
         df -h
 
-    - name: Build frontend image
-      run: |
-        # Clean up any existing build artifacts
-        docker builder prune -af
-        
-        # Build frontend image with optimization
-        make build-aperag-frontend-local VERSION=dev-latest
-        
-        # Clean up intermediate layers after build
-        docker image prune -f
-        
-        # Verify image exists
-        docker images | grep apecloud/aperag-frontend
-
-    - name: Save frontend image
-      run: |
-        # Save the correct image name
-        docker save apecloud/aperag-frontend:dev-latest | gzip > aperag-frontend.tar.gz
-        
-        # Verify the tar file was created and has reasonable size
-        ls -lh aperag-frontend.tar.gz
-        if [ ! -s aperag-frontend.tar.gz ]; then
-          echo "Error: aperag-frontend.tar.gz is empty!"
-          exit 1
-        fi
-
-    - name: Upload frontend image
-      uses: actions/upload-artifact@v4
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
       with:
-        name: aperag-frontend-image
-        path: aperag-frontend.tar.gz
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for frontend
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+        tags: |
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile.prod
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
 
   test:
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
+    permissions:
+      contents: read
+      packages: read
     steps:
     - uses: actions/checkout@v4
 
@@ -154,36 +158,12 @@ jobs:
         echo "Disk usage after cleanup:"
         df -h
 
-    - name: Download backend image
-      uses: actions/download-artifact@v4
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
       with:
-        name: aperag-backend-image
-
-    - name: Download frontend image
-      uses: actions/download-artifact@v4
-      with:
-        name: aperag-frontend-image
-
-    - name: Verify downloaded files
-      run: |
-        echo "Checking downloaded files:"
-        ls -lh *.tar.gz
-        
-        # Verify files are not empty
-        if [ ! -s aperag-backend.tar.gz ]; then
-          echo "Error: aperag-backend.tar.gz is empty or missing!"
-          exit 1
-        fi
-        
-        if [ ! -s aperag-frontend.tar.gz ]; then
-          echo "Error: aperag-frontend.tar.gz is empty or missing!"
-          exit 1
-        fi
-
-    - name: Load docker images
-      run: |
-        docker load < aperag-backend.tar.gz
-        docker load < aperag-frontend.tar.gz
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create KinD config
       run: |
@@ -230,23 +210,38 @@ jobs:
         ./deploy/databases/02-install-database.sh
         kubectl get pods -o wide
 
-    - name: Load images to KinD
+    - name: Pull and load images to KinD
       run: |
-        echo "Disk usage before loading images:"
-        df -h
+        echo "Pulling images from GHCR..."
+        BACKEND_IMAGE=$(echo "${{ needs.build-backend.outputs.backend-image }}" | head -n1)
+        FRONTEND_IMAGE=$(echo "${{ needs.build-frontend.outputs.frontend-image }}" | head -n1)
         
-        make load-images-to-kind VERSION=dev-latest KIND_CLUSTER_NAME=test-cluster
-
-        echo "Disk usage after loading images:"
-        df -h
+        echo "Backend image: $BACKEND_IMAGE"
+        echo "Frontend image: $FRONTEND_IMAGE"
+        
+        docker pull $BACKEND_IMAGE
+        docker pull $FRONTEND_IMAGE
+        
+        echo "Loading images to KinD cluster..."
+        kind load docker-image $BACKEND_IMAGE --name test-cluster
+        kind load docker-image $FRONTEND_IMAGE --name test-cluster
 
     - name: Install ApeRAG application
       run: |
+        BACKEND_IMAGE=$(echo "${{ needs.build-backend.outputs.backend-image }}" | head -n1)
+        FRONTEND_IMAGE=$(echo "${{ needs.build-frontend.outputs.frontend-image }}" | head -n1)
+        
+        # Extract repository and tag from full image names
+        BACKEND_REPO=$(echo $BACKEND_IMAGE | cut -d: -f1)
+        BACKEND_TAG=$(echo $BACKEND_IMAGE | cut -d: -f2)
+        FRONTEND_REPO=$(echo $FRONTEND_IMAGE | cut -d: -f1)
+        FRONTEND_TAG=$(echo $FRONTEND_IMAGE | cut -d: -f2)
+        
         helm install aperag ./deploy/aperag \
-          --set image.repository=apecloud/aperag \
-          --set image.tag=dev-latest \
-          --set frontend.image.repository=apecloud/aperag-frontend \
-          --set frontend.image.tag=dev-latest \
+          --set image.repository=$BACKEND_REPO \
+          --set image.tag=$BACKEND_TAG \
+          --set frontend.image.repository=$FRONTEND_REPO \
+          --set frontend.image.tag=$FRONTEND_TAG \
           --wait --timeout=10m
 
     - name: Wait for ApeRAG pods to be ready
