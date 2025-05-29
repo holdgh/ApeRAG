@@ -256,6 +256,17 @@ run-minio:
 		quay.io/minio/minio server /data --console-address ":9001"
 	@docker start aperag-minio-dev
 
+.PHONY: load-images-to-minikube
+load-images-to-minikube:
+	@echo "Start To Load Image To Minikube"
+	docker save $(APERAG_IMAGE):$(VERSION) -o aperag.tar
+	minikube image load aperag.tar
+	rm aperag.tar
+	docker save $(APERAG_FRONTEND_IMG):$(VERSION) -o aperag-frontend.tar
+	minikube image load aperag-frontend.tar
+	rm aperag-frontend.tar
+	@echo "Already Load Image To Minikube"
+
 # Compatibility aliases
 .PHONY: image celery flower
 image: build
