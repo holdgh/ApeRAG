@@ -43,17 +43,10 @@ ApeRAG is a powerful RAG system that deeply analyzes documents and multimedia co
 
 # Development Guide
 
-* install uv
+* install `uv` and python dependencies
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-* install dependencies
-
-```bash
-uv venv -p 3.11
-uv sync --all-groups --all-extras
+make install
 ```
 
 * prepare configs
