@@ -1,5 +1,5 @@
 name: Build and Deploy with KinD
-on: pull_request
+on: [push, pull_request]
 
 jobs:
   test:
@@ -7,30 +7,35 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Create KinD config
+      run: |
+        cat > kind-config.yaml <<EOF
+        kind: Cluster
+        apiVersion: kind.x-k8s.io/v1alpha4
+        nodes:
+        - role: control-plane
+          kubeadmConfigPatches:
+          - |
+            kind: InitConfiguration
+            nodeRegistration:
+              kubeletExtraArgs:
+                node-labels: "ingress-ready=true"
+          extraPortMappings:
+          - containerPort: 8000
+            hostPort: 8000
+            protocol: TCP
+          - containerPort: 3000
+            hostPort: 3000
+            protocol: TCP
+        - role: worker
+        - role: worker
+        EOF
+
     - name: Create KinD cluster
       uses: helm/kind-action@v1.8.0
       with:
         cluster_name: test-cluster
-        config: |
-          kind: Cluster
-          apiVersion: kind.x-k8s.io/v1alpha4
-          nodes:
-          - role: control-plane
-            kubeadmConfigPatches:
-            - |
-              kind: InitConfiguration
-              nodeRegistration:
-                kubeletExtraArgs:
-                  node-labels: "ingress-ready=true"
-            extraPortMappings:
-            - containerPort: 8000
-              hostPort: 8000
-              protocol: TCP
-            - containerPort: 3000
-              hostPort: 3000
-              protocol: TCP
-          - role: worker
-          - role: worker
+        config: kind-config.yaml
 
     - name: Install Helm
       uses: azure/setup-helm@v3
