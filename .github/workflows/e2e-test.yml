@@ -51,6 +51,7 @@ jobs:
       run: |
         chmod +x ./deploy/databases/02-install-database.sh
         ./deploy/databases/02-install-database.sh
+        kubectl get pods -o wide
 
     - name: Build local images
       run: |
@@ -64,20 +65,60 @@ jobs:
       run: |
         helm install aperag ./deploy/aperag \
           --set image.tag=dev-latest \
-          --set frontend.image.tag=dev-latest
+          --set frontend.image.tag=dev-latest \
+          --wait --timeout=10m
 
-    - name: Wait for deployment
+    - name: Wait for all pods to be ready
       run: |
-        kubectl wait --for=condition=available --timeout=300s deployment --all
-        kubectl get pods
+        echo "Waiting for all pods to be ready..."
+        kubectl wait --for=condition=ready pod --all --timeout=600s
+        echo "Checking deployment status..."
+        kubectl get pods -o wide
         kubectl get svc
+        
 
     - name: Port forward services
       run: |
+        echo "Starting port forwarding..."
         kubectl port-forward svc/aperag 8000:8000 &
         kubectl port-forward svc/aperag-frontend 3000:3000 &
-        sleep 10
+        sleep 15
+        echo "Verifying services are accessible..."
+        curl -f http://localhost:8000/health || echo "Backend health check failed"
+        curl -f http://localhost:3000 || echo "Frontend check failed"
 
     - name: Run E2E tests
       run: |
         make e2e-test
+
+    # 失败时的调试步骤
+    - name: Debug information on failure
+      if: failure()
+      run: |
+        echo "=== Cluster Information ==="
+        kubectl cluster-info
+        echo "=== All Pods ==="
+        kubectl get pods --all-namespaces -o wide
+        echo "=== All Services ==="
+        kubectl get svc --all-namespaces
+        echo "=== Events ==="
+        kubectl get events --sort-by=.metadata.creationTimestamp
+        echo "=== Pod Descriptions ==="
+        kubectl describe pods
+        echo "=== Pod Logs ==="
+        for pod in $(kubectl get pods -o jsonpath='{.items[*].metadata.name}'); do
+          echo "--- Logs for $pod ---"
+          kubectl logs $pod --tail=100 || true
+        done
+        echo "=== Helm Status ==="
+        helm list --all-namespaces
+        helm status aperag || true
+
+    # 启用 SSH 访问进行调试
+    - name: Setup tmate session for debugging
+      if: failure()
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+      timeout-minutes: 30
