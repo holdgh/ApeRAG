@@ -189,7 +189,7 @@ const ApeBasicNode = (node: ApeNode) => {
       <FlowNodeWrap status={nodeStatus} outputs={<NodeOutputs node={node} />}>
         <StyledFlowNodeContainer
           token={token}
-          selected={selected}
+          selected={selected || nodeStatus === 'running'}
           isHovering={isHovering}
           color={config.color}
           ref={nodeRef}

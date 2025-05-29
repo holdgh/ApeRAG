@@ -221,6 +221,7 @@ export default {
   'flow.input.source': '输入来源',
   'flow.vector_search.source': '向量检索来源',
   'flow.keyword_search.source': '全文检索来源',
+  'flow.graph_search.source': '图检索来源',
   'flow.llm.params': 'LLM参数',
   'flow.reranker.model': 'Reranker模型',
   'flow.temperature': '温度',

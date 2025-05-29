@@ -66,10 +66,10 @@ export const StyledFlowNodeContainer = styled('div').withConfig({
       }
 
       &:hover {
-        border-color: ${color};
-        &:before {
-          border-color: ${color};
-        }
+        // border-color: ${color};
+        // &:before {
+        //   border-color: ${color};
+        // }
         .react-flow__handle {
           border-color: ${color};
         }

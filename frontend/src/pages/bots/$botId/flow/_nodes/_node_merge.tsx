@@ -25,28 +25,33 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     });
   }, [node]);
 
-  const { refVectorSearchNode, refKeywordSearchNode } = useMemo(() => {
-    const nid = node?.id;
-    const connects = edges.filter((edg) => edg.target === nid);
-    const sourceNodes = connects.map((edg) =>
-      nodes.find((nod) => nod.id === edg.source),
-    );
-    const _refVectorSearchNode = sourceNodes?.find(
-      (nod) => nod?.type === 'vector_search',
-    );
-    const _refKeywordSearchNode = sourceNodes?.find(
-      (nod) => nod?.type === 'keyword_search',
-    );
-    return {
-      refVectorSearchNode: _refVectorSearchNode,
-      refKeywordSearchNode: _refKeywordSearchNode,
-    };
-  }, [edges, nodes]);
+  const { refVectorSearchNode, refKeywordSearchNode, refGraphSearchNode } =
+    useMemo(() => {
+      const nid = node?.id;
+      const connects = edges.filter((edg) => edg.target === nid);
+      const sourceNodes = connects.map((edg) =>
+        nodes.find((nod) => nod.id === edg.source),
+      );
+      return {
+        refVectorSearchNode: sourceNodes?.find(
+          (nod) => nod?.type === 'vector_search',
+        ),
+        refKeywordSearchNode: sourceNodes?.find(
+          (nod) => nod?.type === 'keyword_search',
+        ),
+        refGraphSearchNode: sourceNodes?.find(
+          (nod) => nod?.type === 'graph_search',
+        ),
+      };
+    }, [edges, nodes]);
 
   const debouncedRefVectorSearchNode = useDebounce(refVectorSearchNode, {
     wait: 300,
   });
   const debouncedRefKeywordSearchNode = useDebounce(refKeywordSearchNode, {
+    wait: 300,
+  });
+  const debouncedRefGraphSearchNode = useDebounce(refGraphSearchNode, {
     wait: 300,
   });
 
@@ -71,6 +76,17 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     );
     applyChanges();
   }, [debouncedRefKeywordSearchNode]);
+
+  useEffect(() => {
+    _.set(
+      values,
+      'graph_search_docs',
+      refGraphSearchNode?.id
+        ? `{{ nodes.${refGraphSearchNode.id}.output.docs }}`
+        : [],
+    );
+    applyChanges();
+  }, [debouncedRefGraphSearchNode]);
 
   return (
     <>
@@ -142,7 +158,6 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                 </Form.Item>
                 <Form.Item
                   required
-                  style={{ marginBottom: 0 }}
                   label={formatMessage({ id: 'flow.keyword_search.source' })}
                 >
                   <NodeInput
@@ -158,6 +173,24 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
                         'keyword_search_docs',
                         e.currentTarget.value,
                       );
+                      applyChanges();
+                    }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  required
+                  style={{ marginBottom: 0 }}
+                  label={formatMessage({ id: 'flow.graph_search.source' })}
+                >
+                  <NodeInput
+                    disabled
+                    variant="filled"
+                    placeholder={formatMessage({
+                      id: 'flow.connection.required',
+                    })}
+                    value={_.get(values, 'graph_search_docs')}
+                    onChange={(e) => {
+                      _.set(values, 'graph_search_docs', e.currentTarget.value);
                       applyChanges();
                     }}
                   />
