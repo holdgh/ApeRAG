@@ -44,6 +44,7 @@ export * from './execution-config-retry';
 export * from './fail-response';
 export * from './feedback';
 export * from './fulltext-search-params';
+export * from './graph-search-params';
 export * from './invitation';
 export * from './invitation-create';
 export * from './invitation-list';

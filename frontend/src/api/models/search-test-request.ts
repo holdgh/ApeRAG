@@ -18,6 +18,9 @@
 import type { FulltextSearchParams } from './fulltext-search-params';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { GraphSearchParams } from './graph-search-params';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { VectorSearchParams } from './vector-search-params';
 
 /**
@@ -33,12 +36,6 @@ export interface SearchTestRequest {
      */
     'query'?: string;
     /**
-     * Search type
-     * @type {string}
-     * @memberof SearchTestRequest
-     */
-    'search_type'?: SearchTestRequestSearchTypeEnum;
-    /**
      * 
      * @type {VectorSearchParams}
      * @memberof SearchTestRequest
@@ -50,14 +47,11 @@ export interface SearchTestRequest {
      * @memberof SearchTestRequest
      */
     'fulltext_search'?: FulltextSearchParams;
+    /**
+     * 
+     * @type {GraphSearchParams}
+     * @memberof SearchTestRequest
+     */
+    'graph_search'?: GraphSearchParams;
 }
-
-export const SearchTestRequestSearchTypeEnum = {
-    vector: 'vector',
-    fulltext: 'fulltext',
-    hybrid: 'hybrid'
-} as const;
-
-export type SearchTestRequestSearchTypeEnum = typeof SearchTestRequestSearchTypeEnum[keyof typeof SearchTestRequestSearchTypeEnum];
-
 

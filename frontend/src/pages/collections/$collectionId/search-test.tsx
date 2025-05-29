@@ -258,7 +258,9 @@ export default () => {
           </Form.Item>
           <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Checkbox.Group
-              onChange={(checkedValue) => setSearchType(checkedValue)}
+              onChange={(checkedValue) => {
+                setSearchType(checkedValue);
+              }}
               value={searchType}
               options={[
                 {

@@ -1658,8 +1658,6 @@ components:
     debugFlowRequest:
       type: object
       properties:
-        flow:
-          type: string
         query:
           type: string
       required:
@@ -2282,6 +2280,13 @@ components:
         source:
           type: string
           description: Source document or metadata
+        recall_type:
+          type: string
+          description: Recall type
+          enum:
+            - vector_search
+            - graph_search
+            - keyword_search
     searchTestResult:
       type: object
       properties:
@@ -2312,23 +2317,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/searchTestResult'
+    graphSearchParams:
+      type: object
+      properties:
+        topk:
+          type: integer
+          description: Top K results
     searchTestRequest:
       type: object
       properties:
         query:
           type: string
           description: The user input question
-        search_type:
-          type: string
-          enum:
-            - vector
-            - fulltext
-            - hybrid
-          description: Search type
         vector_search:
           $ref: '#/components/schemas/vectorSearchParams'
         fulltext_search:
           $ref: '#/components/schemas/fulltextSearchParams'
+        graph_search:
+          $ref: '#/components/schemas/graphSearchParams'
     apiKey:
       type: object
       properties:
