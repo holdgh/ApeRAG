@@ -41,10 +41,21 @@ jobs:
         
         # Clean up intermediate layers after build
         docker image prune -f
+        
+        # Verify image exists
+        docker images | grep apecloud/aperag
 
     - name: Save backend image
       run: |
-        docker save aperag:dev-latest | gzip > aperag-backend.tar.gz
+        # Save the correct image name
+        docker save apecloud/aperag:dev-latest | gzip > aperag-backend.tar.gz
+        
+        # Verify the tar file was created and has reasonable size
+        ls -lh aperag-backend.tar.gz
+        if [ ! -s aperag-backend.tar.gz ]; then
+          echo "Error: aperag-backend.tar.gz is empty!"
+          exit 1
+        fi
 
     - name: Upload backend image
       uses: actions/upload-artifact@v4
@@ -91,10 +102,21 @@ jobs:
         
         # Clean up intermediate layers after build
         docker image prune -f
+        
+        # Verify image exists
+        docker images | grep apecloud/aperag-frontend
 
     - name: Save frontend image
       run: |
-        docker save aperag-frontend:dev-latest | gzip > aperag-frontend.tar.gz
+        # Save the correct image name
+        docker save apecloud/aperag-frontend:dev-latest | gzip > aperag-frontend.tar.gz
+        
+        # Verify the tar file was created and has reasonable size
+        ls -lh aperag-frontend.tar.gz
+        if [ ! -s aperag-frontend.tar.gz ]; then
+          echo "Error: aperag-frontend.tar.gz is empty!"
+          exit 1
+        fi
 
     - name: Upload frontend image
       uses: actions/upload-artifact@v4
@@ -141,6 +163,22 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: aperag-frontend-image
+
+    - name: Verify downloaded files
+      run: |
+        echo "Checking downloaded files:"
+        ls -lh *.tar.gz
+        
+        # Verify files are not empty
+        if [ ! -s aperag-backend.tar.gz ]; then
+          echo "Error: aperag-backend.tar.gz is empty or missing!"
+          exit 1
+        fi
+        
+        if [ ! -s aperag-frontend.tar.gz ]; then
+          echo "Error: aperag-frontend.tar.gz is empty or missing!"
+          exit 1
+        fi
 
     - name: Load docker images
       run: |
@@ -205,7 +243,9 @@ jobs:
     - name: Install ApeRAG application
       run: |
         helm install aperag ./deploy/aperag \
+          --set image.repository=apecloud/aperag \
           --set image.tag=dev-latest \
+          --set frontend.image.repository=apecloud/aperag-frontend \
           --set frontend.image.tag=dev-latest \
           --wait --timeout=10m
 
