@@ -169,11 +169,6 @@ addlicense:
 	  -ignore "aperag/vectorstore/**" \
 	  .
 
-.PHONY: install-redocly
-install-redocly:
-	@echo "Installing redocly..."
-	@npm install -g @redocly/cli
-
 .PHONY: merge-openapi
 merge-openapi:
 	@echo "Merging OpenAPI files..."
@@ -202,14 +197,37 @@ generate_model_configs:
 generate-frontend-sdk:
 	cd ./frontend && yarn api:build
 
-.PHONY: dependencies
-dependencies: ## Install dependencies.
-ifeq (, $(shell which redocly))
-	npm install @redocly/cli -g
-endif
-ifeq (, $(shell which openapi-generator-cli))
-	npm install @openapitools/openapi-generator-cli -g
-endif
-ifeq (, $(shell which datamodel-codegen))
-	pip install datamodel-code-generator
-endif
+.PHONY: install-uv venv install dev
+
+# Basic tools
+install-uv: ## Install uv package manager.
+	@if [ -z "$$(which uv)" ]; then \
+		echo "Installing uv..."; \
+		pip install uv; \
+	fi
+
+# Regular users: just want to run the project locally
+venv: install-uv ## Create virtual environment if needed.
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		uv venv -p 3.11; \
+	fi
+
+install: venv ## Install dependencies for running the project.
+	@echo "Installing Python dependencies..."
+	uv sync --all-groups --all-extras
+
+# Developers: need code generation and other dev tools
+dev: install-uv ## Install development tools for code generation.
+	@if [ -z "$$(which redocly)" ]; then \
+		echo "Installing redocly..."; \
+		npm install @redocly/cli -g; \
+	fi
+	@if [ -z "$$(which openapi-generator-cli)" ]; then \
+		echo "Installing openapi-generator-cli..."; \
+		npm install @openapitools/openapi-generator-cli -g; \
+	fi
+	@if [ -z "$$(which datamodel-codegen)" ]; then \
+		echo "Installing datamodel-code-generator..."; \
+		uv tool install datamodel-code-generator; \
+	fi
