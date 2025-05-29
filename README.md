@@ -2,94 +2,175 @@
 
 ApeRAG is a powerful RAG system that deeply analyzes documents and multimedia content while building vector indexes in parallel and measuring retrieval quality. It streamlines workflows with integrated LLM management, data source handling, automatic syncing, and seamless office tool compatibility.
 
-## User Guide
+## Quick Start
 
 ### Prerequisites
 
-- Docker
-- Docker Compose
+- Docker & Docker Compose
 - Git
 
-### Quick Start
+### 1. Environment Setup
 
-1. Configure environment variables:
-   ```bash
-   cp envs/env.template .env
-   cp frontend/deploy/env.local.template frontend/.env
-   ```
+Configure environment variables:
+```bash
+cp envs/env.template .env
+cp frontend/deploy/env.local.template frontend/.env
+```
 
-   **Then edit the `.env` file to configure your AI service settings.**
+**Edit the `.env` file to configure your AI service settings.**
 
-2. (Optional) Set up [doc-ray](https://github.com/apecloud/doc-ray) for improved (but slower) parsing of PDF and MS Office documents.
+### 2. Optional: Enhanced Document Parsing
 
-   * Refer to the deployment instructions within the doc-ray project. **Using a GPU is highly recommended for optimal performance.**
-   * In your `.env` file, update the `DOCRAY_HOST` variable to your doc-ray service endpoint, for example: `DOCRAY_HOST=http://<your-doc-ray-server-host>:8639`.
+For improved PDF and MS Office document parsing, set up [doc-ray](https://github.com/apecloud/doc-ray):
 
-3. (Optional) Use Aliyun image registry if you are in China:
-   ```bash
-   export REGISTRY=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
-   ```
+```bash
+# Deploy doc-ray (GPU recommended for optimal performance)
+docker run -d -p 8639:8639 -p 8265:8265 --gpus=all --name doc-ray apecloud/doc-ray
+```
 
-4. Start the services:
-   ```bash
-   docker compose up --build -d
-   ```
+Then update your `.env` file:
+```bash
+DOCRAY_HOST=http://localhost:8639
+```
 
-5. Access the services: http://localhost:3000/web/
+### 3. Start Services
 
-## License
+```bash
+# Optional: Use Aliyun registry if in China
+export REGISTRY=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
 
-[Your License Here]
+# Start all services
+docker compose up --build -d
+```
 
-# Development Guide
+### 4. Access
 
-* install `uv` and python dependencies
+Open your browser: http://localhost:3000/web/
 
+## Development
+
+### Environment Setup
+
+Install dependencies:
 ```bash
 make install
 ```
 
-* prepare configs
-
+Configure environment:
 ```bash
 cp envs/env.template .env
 ```
 
-* prepare postgres/redis/qdrant/elasticsearch
+### Database Services
 
+Start all required databases:
 ```bash
 make run-db
 ```
 
-* run the django service
+### Backend Development
 
 ```bash
+# Activate virtual environment
 source .venv/bin/activate
-```
 
-```
+# Run Django backend
 make run-backend
+
+# In another terminal, run Celery worker
+make run-celery
 ```
 
-To debug django service, see [HOW-TO-DEBUG.md](docs%2FHOW-TO-DEBUG.md)
-
-* run the celery service
+### Frontend Development
 
 ```bash
-source .venv/bin/activate
-```
-
-```
-PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python celery -A config.celery worker -l INFO --pool threads
-```
-
-To debug celery service, see [HOW-TO-DEBUG.md](docs%2FHOW-TO-DEBUG.md)
-
-* run the frontend
-
-```
-# The node engine version should be ">=20"
+# Node.js >= 20 required
 make run-frontend
 ```
 
-then open the aperag frontend console: http://localhost:3000
+Access frontend at: http://localhost:3000
+
+### Development Tools
+
+```bash
+# Install development tools
+make dev
+
+# Code formatting
+make format
+
+# Code linting
+make lint
+
+# Type checking
+make static-check
+
+# Run tests
+make test
+
+# Generate LLM models configs
+make generate-models
+
+# Generate frontend SDK
+make generate-frontend-sdk
+```
+
+### Database Management
+
+```bash
+# Create migrations
+make makemigration
+
+# Apply migrations
+make migrate
+
+# Connect to database
+make connect-metadb
+
+# View Django settings differences
+make diff
+```
+
+### Docker Compose Operations
+
+```bash
+# Start services
+make compose-up
+
+# Stop services
+make compose-down
+
+# View logs
+make compose-logs
+```
+
+### Cleanup
+
+```bash
+# Clean development environment
+make clean
+```
+
+## Building and Deployment
+
+### Local Builds
+
+```bash
+# Build for local platform
+make build-local
+
+# Build specific components
+make build-aperag-local
+make build-aperag-frontend-local
+```
+
+### Multi-platform Builds
+
+```bash
+# Build for multiple platforms (requires Docker Buildx)
+make build
+
+# Build specific components
+make build-aperag
+make build-aperag-frontend
+```
