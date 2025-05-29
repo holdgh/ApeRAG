@@ -1,0 +1,83 @@
+name: Build and Deploy with KinD
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create KinD cluster
+      uses: helm/kind-action@v1.8.0
+      with:
+        cluster_name: test-cluster
+        config: |
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+            kubeadmConfigPatches:
+            - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+            extraPortMappings:
+            - containerPort: 8000
+              hostPort: 8000
+              protocol: TCP
+            - containerPort: 3000
+              hostPort: 3000
+              protocol: TCP
+          - role: worker
+          - role: worker
+
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+
+    - name: Install KubeBlocks
+      run: |
+        chmod +x ./deploy/databases/01-prepare.sh
+        ./deploy/databases/01-prepare.sh
+
+    - name: Install Databases
+      run: |
+        chmod +x ./deploy/databases/02-install-database.sh
+        ./deploy/databases/02-install-database.sh
+
+    - name: Build local images
+      run: |
+        make build-local VERSION=dev-latest
+
+    - name: Load images to KinD
+      run: |
+        make load-images-to-kind VERSION=dev-latest KIND_CLUSTER_NAME=test-cluster
+
+    - name: Install ApeRAG application
+      run: |
+        helm install aperag ./deploy/aperag \
+          --set image.tag=dev-latest \
+          --set frontend.image.tag=dev-latest
+
+    - name: Wait for deployment
+      run: |
+        kubectl wait --for=condition=available --timeout=300s deployment --all
+        kubectl get pods
+        kubectl get svc
+
+    - name: Port forward services
+      run: |
+        kubectl port-forward svc/aperag 8000:8000 &
+        kubectl port-forward svc/aperag-frontend 3000:3000 &
+        sleep 10  # 等待端口转发生效
+
+    - name: Verify services are accessible
+      run: |
+        curl -f http://localhost:8000/health || echo "Backend health check failed"
+        curl -f http://localhost:3000 || echo "Frontend check failed"
+
+    - name: Run E2E tests
+      run: |
+        make e2e-test

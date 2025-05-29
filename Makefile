@@ -273,6 +273,13 @@ load-images-to-minikube:
 	rm aperag-frontend.tar
 	@echo "Already Load Image To Minikube"
 
+.PHONY: load-images-to-kind
+load-images-to-kind:
+	@echo "Start To Load Image To KinD"
+	kind load docker-image $(APERAG_IMAGE):$(VERSION) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(APERAG_FRONTEND_IMG):$(VERSION) --name $(KIND_CLUSTER_NAME)
+	@echo "Already Load Image To KinD"
+
 # Compatibility aliases
 .PHONY: image celery flower
 image: build
