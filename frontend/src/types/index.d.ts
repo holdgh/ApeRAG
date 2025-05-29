@@ -1,9 +1,7 @@
 import {
-  Bot,
   Document,
   NodeData,
   NodeTypeEnum,
-  WorkflowDefinition,
   WorkflowStyleEdgeTypeEnum,
 } from '@/api';
 
@@ -91,32 +89,6 @@ export type ApeFlowDebugInfo = {
 
 export type ApeFlowStatus = 'running' | 'completed' | 'stopped' | 'error';
 export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
-
-/**
- * bots
- */
-export type BotConfig = {
-  flow?: WorkflowDefinition;
-  model?: string;
-  model_service_provider?: string;
-  model_name?: string;
-  charactor?: string;
-  llm?: {
-    similarity_score_threshold?: number;
-    similarity_topk?: number;
-    context_window?: number;
-    prompt_template?: string;
-    temperature?: number;
-    memory_prompt_template: string;
-  };
-  memory: boolean;
-  use_related_question: boolean;
-  feishu?: {
-    encrypt_key?: string;
-  };
-};
-
-export type ApeBot = Merge<Bot, { config?: BotConfig }>;
 
 /**
  * collection
