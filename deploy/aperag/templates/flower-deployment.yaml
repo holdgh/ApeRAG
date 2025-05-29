@@ -59,12 +59,6 @@ spec:
               {{- else }}
               value: {{ .Values.postgres.POSTGRES_PASSWORD | default "postgres" | quote }}
               {{- end }}
-            - name: DATABASE_URL
-              value: {{ include "database.databaseUrl" . | quote }}
-            - name: CELERY_BROKER_URL
-              value: {{ include "database.celeryBrokerUrl" . | quote }}
-            - name: MEMORY_REDIS_URL
-              value: {{ include "database.memoryRedisUrl" . | quote }}
             - name: REDIS_HOST
               value: {{ .Values.redis.REDIS_HOST | quote }}
             - name: REDIS_PORT
@@ -87,8 +81,12 @@ spec:
               {{- else }}
               value: {{ .Values.redis.REDIS_PASSWORD | default "redis" | quote }}
               {{- end }}
-            - name: ES_HOST
-              value: {{ include "database.esHost" . | quote }}
+            - name: ES_HOST_NAME
+              value: {{ .Values.elasticsearch.ES_HOST | quote }}
+            - name: ES_PORT
+              value: {{ .Values.elasticsearch.ES_PORT | default "9200" | quote }}
+            - name: ES_PROTOCOL
+              value: {{ .Values.elasticsearch.ES_PROTOCOL | default "http" | quote }}
             {{- if .Values.elasticsearch.ES_CREDENTIALS_SECRET_NAME }}
             - name: ES_USER
               valueFrom:
@@ -106,6 +104,10 @@ spec:
             - name: ES_PASSWORD
               value: {{ .Values.elasticsearch.ES_PASSWORD | quote }}
             {{- end }}
+            - name: CELERY_FLOWER_USER
+              values: {{ .Values.django.env.CELERY_FLOWER_USER | quote }}
+            - name: CELERY_FLOWER_PASSWORD
+              values: {{ .Values.django.env.CELERY_FLOWER_PASSWORD | quote }}
           resources:
             {{- toYaml .Values.flower.resources | nindent 12 }}
           volumeMounts:

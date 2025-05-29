@@ -77,7 +77,8 @@ jobs:
 
       - name: make test
         run: |
-          pip install pytest
+          make install
+          uv pip install pytest
           make test
 
   check-image:
@@ -99,6 +100,7 @@ jobs:
       IMG: "apecloud/aperag-frontend"
       BUILDX_PLATFORMS: "linux/amd64"
       DOCKERFILE_PATH: "./frontend/Dockerfile.prod"
+      CONTEXT: "./frontend"
       PYTHON_VERSION: "3.11"
     secrets: inherit
 

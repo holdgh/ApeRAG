@@ -4,47 +4,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-# Load environment variables from file using the most robust method
-# This uses the widely recommended "set -a; source file; set +a" approach
-load_env_from_file() {
-    local env_file="${1:-${ENV_CONFIG_FILE:-/app/env-config/.env}}"
-    
-    if [ ! -f "$env_file" ]; then
-        echo "Info: Environment file $env_file not found, skipping"
-        return 0
-    fi
-    
-    if [ ! -r "$env_file" ]; then
-        echo "Error: Cannot read environment file $env_file"
-        return 1
-    fi
-    
-    echo "Loading environment variables from $env_file"
-    
-    # Count variables before loading
-    local vars_before=$(env | wc -l)
-    
-    # Use the most robust method: set -a enables auto-export, source loads the file
-    # This handles all edge cases including quotes, spaces, special characters, etc.
-    set -a
-    source "$env_file"
-    set +a
-    
-    # Count variables after loading
-    local vars_after=$(env | wc -l)
-    local loaded_count=$((vars_after - vars_before))
-    
-    echo "Environment variables loaded successfully: $loaded_count new variables"
-    return 0
-}
-
-# Load environment variables from config file
-# Allow override via ENV_CONFIG_FILE environment variable
-if ! load_env_from_file; then
-    echo "Failed to load environment variables, exiting"
-    exit 1
-fi
-
 python3 << END
 import sys
 import time
@@ -74,5 +33,29 @@ while True:
 END
 
 >&2 echo 'PostgreSQL is available'
+
+# Build DATABASE_URL from components
+if [[ -n "${POSTGRES_HOST:-}" && -n "${POSTGRES_USER:-}" && -n "${POSTGRES_PASSWORD:-}" ]]; then
+    export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}"
+fi
+
+# Build CELERY_BROKER_URL from Redis components
+if [[ -n "${REDIS_HOST:-}" && -n "${REDIS_USER:-}" && -n "${REDIS_PASSWORD:-}" ]]; then
+    export CELERY_BROKER_URL="redis://${REDIS_USER}:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT:-6379}/0"
+fi
+
+# Build MEMORY_REDIS_URL from Redis components
+if [[ -n "${REDIS_HOST:-}" && -n "${REDIS_USER:-}" && -n "${REDIS_PASSWORD:-}" ]]; then
+    export MEMORY_REDIS_URL="redis://${REDIS_USER}:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT:-6379}/1"
+fi
+
+# Build ES_HOST from Elasticsearch components
+if [[ -n "${ES_HOST_NAME:-}" ]]; then
+    if [[ -n "${ES_USER:-}" && -n "${ES_PASSWORD:-}" ]]; then
+        export ES_HOST="${ES_PROTOCOL:-http}://${ES_USER}:${ES_PASSWORD}@${ES_HOST_NAME}:${ES_PORT:-9200}"
+    else
+        export ES_HOST="${ES_PROTOCOL:-http}://${ES_HOST_NAME}:${ES_PORT:-9200}"
+    fi
+fi
 
 exec "$@"
