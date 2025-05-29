@@ -6,15 +6,6 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
 podAnnotations: {}
 
 service:
@@ -75,7 +66,6 @@ elasticsearch:
   # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
   # ⚠️ Recommend to use ES_CREDENTIALS_SECRET_NAME
   ES_PASSWORD: ""
-
 
 django:
   dataPath: /data/aperag

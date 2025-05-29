@@ -50,17 +50,6 @@ app.kubernetes.io/name: {{ include "aperag.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "aperag.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "aperag.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
 
 {{- define "django.labels" -}}
 app.aperag.io/component: django
