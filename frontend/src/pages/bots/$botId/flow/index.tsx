@@ -45,8 +45,7 @@ import {
   BsPauseFill,
   BsPlayFill,
 } from 'react-icons/bs';
-import { toast } from 'react-toastify';
-import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
+import { css, styled, useIntl, useModel } from 'umi';
 import uniqid from 'uniqid';
 
 import { WorkflowDefinition, WorkflowStyle } from '@/api';
@@ -152,15 +151,10 @@ export default () => {
       style: flowStyle,
     };
     console.log(stringify(flow));
-
-    const res = await api.botsBotIdFlowPut({
+    await api.botsBotIdFlowPut({
       botId: bot.id,
       workflowDefinition: flow,
     });
-
-    if (res.status === 200) {
-      toast.success(formatMessage({ id: 'tips.update.success' }));
-    }
   };
 
   const debug = async () => {
@@ -176,9 +170,10 @@ export default () => {
       {
         responseType: 'stream',
         adapter: 'fetch',
-        timeout: 600 * 1000,
+        timeout: 60 * 1000,
       },
     );
+
     const stream = response.data as unknown as ReadableStream;
     const reader = stream
       .pipeThrough(new TextDecoderStream())
@@ -192,13 +187,13 @@ export default () => {
       }
       try {
         const msg: ApeFlowDebugInfo = JSON.parse(value.data);
-        console.log(msg);
         if (msg.event_type === 'flow_end') {
           setFlowStatus('completed');
         }
         setMessages((msgs) => [...msgs, msg]);
       } catch (err) {
-        console.log('msg parse error', err);
+        console.log('flow msg parse error', err);
+        setFlowStatus('error');
       }
     }
   };
@@ -374,27 +369,22 @@ export default () => {
               <Button type="text" icon={<BsClockHistory />} />
             </Tooltip>
 
-            <Tooltip title={formatMessage({ id: 'action.debug' })}>
-              <Button
-                type={flowStatus === 'running' ? 'primary' : 'text'}
-                onClick={() => {
-                  if (flowStatus === 'running') {
-                    setFlowStatus('stopped');
-                  } else {
-                    setDebugVisible(true);
-                  }
-                }}
-                icon={
-                  flowStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />
+            <Button
+              type="primary"
+              onClick={() => {
+                if (flowStatus === 'running') {
+                  setFlowStatus('stopped');
+                } else {
+                  saveFlow();
+                  setDebugVisible(true);
                 }
-              />
-            </Tooltip>
-
-            <Tooltip title={formatMessage({ id: 'action.save' })}>
-              <Button type="primary" onClick={saveFlow}>
-                <FormattedMessage id="action.save" />
-              </Button>
-            </Tooltip>
+              }}
+              icon={flowStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />}
+            >
+              {flowStatus === 'running'
+                ? formatMessage({ id: 'action.stop' })
+                : formatMessage({ id: 'action.debug' })}
+            </Button>
           </Space>
         </StyledFlowToolbar>
       </StyledReactFlow>

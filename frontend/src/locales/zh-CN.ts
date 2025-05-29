@@ -57,6 +57,7 @@ export default {
   'action.close': '关闭',
   'action.run': '运行',
   'action.debug': '调试',
+  'action.stop': '停止',
   'action.refresh': '刷新',
   'action.confirm': '确认',
   'action.rename': '重命名',
