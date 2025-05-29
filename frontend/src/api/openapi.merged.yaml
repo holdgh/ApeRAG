@@ -2265,6 +2265,12 @@ components:
         topk:
           type: integer
           description: Top K results
+    graphSearchParams:
+      type: object
+      properties:
+        topk:
+          type: integer
+          description: Top K results
     searchTestResultItem:
       type: object
       properties:
@@ -2295,12 +2301,12 @@ components:
           description: The id of the search test result
         query:
           type: string
-        search_type:
-          type: string
         vector_search:
           $ref: '#/components/schemas/vectorSearchParams'
         fulltext_search:
           $ref: '#/components/schemas/fulltextSearchParams'
+        graph_search:
+          $ref: '#/components/schemas/graphSearchParams'
         items:
           type: array
           items:
@@ -2317,12 +2323,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/searchTestResult'
-    graphSearchParams:
-      type: object
-      properties:
-        topk:
-          type: integer
-          description: Top K results
     searchTestRequest:
       type: object
       properties:

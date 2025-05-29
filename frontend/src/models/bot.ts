@@ -1,6 +1,5 @@
-import { Chat, ChatDetails } from '@/api';
+import { Bot, Chat, ChatDetails } from '@/api';
 import { api } from '@/services';
-import { ApeBot, BotConfig } from '@/types';
 import { parseConfig } from '@/utils';
 import { useState } from 'react';
 import { useModel } from 'umi';
@@ -8,10 +7,10 @@ import { useModel } from 'umi';
 export default () => {
   const { setLoading } = useModel('global');
 
-  const [bot, setBot] = useState<ApeBot>();
+  const [bot, setBot] = useState<Bot>();
   const [botLoading, setBotLoading] = useState<boolean>(false);
 
-  const [bots, setBots] = useState<ApeBot[]>();
+  const [bots, setBots] = useState<Bot[]>();
   const [botsLoading, setBotsLoading] = useState<boolean>(false);
 
   const [chat, setChat] = useState<ChatDetails>();
@@ -44,12 +43,7 @@ export default () => {
     setLoading(false);
     setBotLoading(false);
 
-    const config: BotConfig = parseConfig(res.data.config);
-
-    setBot({
-      ...res.data,
-      config,
-    });
+    setBot(res.data);
   };
 
   // chats

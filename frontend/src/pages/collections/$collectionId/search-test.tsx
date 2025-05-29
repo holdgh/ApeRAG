@@ -117,16 +117,9 @@ export default () => {
               </a>
             </Tooltip>
             <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
-              <Space split={<Divider type="vertical" />}>
-                <div>
-                  {formatMessage({
-                    id: `searchTest.type.${record.search_type}`,
-                  })}
-                </div>
-                {record.created
-                  ? moment(record.created).format(DATETIME_FORMAT)
-                  : ''}
-              </Space>
+              {record.created
+                ? moment(record.created).format(DATETIME_FORMAT)
+                : ''}
             </div>
           </>
         );
@@ -187,6 +180,22 @@ export default () => {
             <Progress
               steps={20}
               percent={((record.fulltext_search?.topk || 0) * 100) / 20}
+              size={[3, 4]}
+              showInfo={false}
+            />
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: formatMessage({ id: 'searchTest.graphsearchTopK' }),
+      width: 130,
+      render: (text, record) => {
+        return (
+          <Tooltip title={record.graph_search?.topk}>
+            <Progress
+              steps={20}
+              percent={((record.graph_search?.topk || 0) * 100) / 20}
               size={[3, 4]}
               showInfo={false}
             />
@@ -263,74 +272,85 @@ export default () => {
               options={
                 [
                   {
-                    label: formatMessage({ id: 'searchTest.type.vector' }),
+                    label: formatMessage({
+                      id: 'searchTest.type.vector_search',
+                    }),
                     value: 'vector_search',
                   },
                   {
-                    label: formatMessage({ id: 'searchTest.type.fulltext' }),
+                    label: formatMessage({
+                      id: 'searchTest.type.keyword_search',
+                    }),
                     value: 'fulltext_search',
                   },
                   {
-                    label: formatMessage({ id: 'searchTest.type.graph' }),
+                    label: formatMessage({
+                      id: 'searchTest.type.graph_search',
+                    }),
                     value: 'graph_search',
                   },
                 ] as { label: string; value: SearchTypeEnum }[]
               }
             />
-            <Button
-              disabled={!_.size(searchType)}
-              loading={loading}
-              onClick={onSearch}
-              type="primary"
-            >
-              {formatMessage({ id: 'searchTest.test' })}
-            </Button>
           </Space>
         </Form>
+        <Divider />
+        <Space
+          direction="horizontal"
+          style={{ display: 'flex', justifyContent: 'space-between' }}
+        >
+          <Form form={form} layout="inline">
+            {searchType.find((item) => item === 'vector_search') && (
+              <>
+                <Form.Item
+                  label={formatMessage({ id: 'searchTest.vectorTopK' })}
+                  name={['vector_search', 'topk']}
+                >
+                  <Slider style={{ width: 80 }} min={0} max={20} />
+                </Form.Item>
 
-        <Form form={form} layout="inline">
-          {searchType.find((item) => item === 'vector_search') && (
-            <>
-              <Form.Item
-                label={formatMessage({ id: 'searchTest.vectorTopK' })}
-                name={['vector_search', 'topk']}
-              >
-                <Slider style={{ width: 80 }} min={0} max={20} />
-              </Form.Item>
+                <Form.Item
+                  label={formatMessage({
+                    id: 'searchTest.similarityThreshold',
+                  })}
+                  name={['vector_search', 'similarity']}
+                >
+                  <Slider style={{ width: 80 }} min={0} max={1} step={0.01} />
+                </Form.Item>
+              </>
+            )}
 
-              <Form.Item
-                label={formatMessage({
-                  id: 'searchTest.similarityThreshold',
-                })}
-                name={['vector_search', 'similarity']}
-              >
-                <Slider style={{ width: 80 }} min={0} max={1} step={0.01} />
-              </Form.Item>
-            </>
-          )}
+            {searchType.find((item) => item === 'fulltext_search') && (
+              <>
+                <Form.Item
+                  label={formatMessage({ id: 'searchTest.fulltextTopK' })}
+                  name={['fulltext_search', 'topk']}
+                >
+                  <Slider style={{ width: 80 }} min={0} max={20} />
+                </Form.Item>
+              </>
+            )}
 
-          {searchType.find((item) => item === 'fulltext_search') && (
-            <>
-              <Form.Item
-                label={formatMessage({ id: 'searchTest.fulltextTopK' })}
-                name={['fulltext_search', 'topk']}
-              >
-                <Slider style={{ width: 80 }} min={0} max={20} />
-              </Form.Item>
-            </>
-          )}
-
-          {searchType.find((item) => item === 'graph_search') && (
-            <>
-              <Form.Item
-                label={formatMessage({ id: 'searchTest.graphsearchTopK' })}
-                name={['graph_search', 'topk']}
-              >
-                <Slider style={{ width: 80 }} min={0} max={20} />
-              </Form.Item>
-            </>
-          )}
-        </Form>
+            {searchType.find((item) => item === 'graph_search') && (
+              <>
+                <Form.Item
+                  label={formatMessage({ id: 'searchTest.graphsearchTopK' })}
+                  name={['graph_search', 'topk']}
+                >
+                  <Slider style={{ width: 80 }} min={0} max={20} />
+                </Form.Item>
+              </>
+            )}
+          </Form>
+          <Button
+            disabled={!_.size(searchType)}
+            loading={loading}
+            onClick={onSearch}
+            type="primary"
+          >
+            {formatMessage({ id: 'searchTest.test' })}
+          </Button>
+        </Space>
       </Card>
 
       <Table dataSource={records} bordered columns={columns} rowKey="id" />
@@ -356,12 +376,6 @@ export default () => {
           </Typography.Text>
         }
       >
-        <Typography.Title level={4} style={{ margin: 12 }}>
-          {formatMessage({ id: 'searchTest.question' }) +
-            ': ' +
-            historyModal?.record?.query}
-        </Typography.Title>
-
         {_.size(historyModal?.record?.items) ? (
           <>
             <Collapse
@@ -388,19 +402,28 @@ export default () => {
                 ),
                 children: <ApeMarkdown>{item.content}</ApeMarkdown>,
                 extra: (
-                  <Tooltip title={`Score: ${item.score}`}>
-                    <Space align="center">
-                      <Progress
-                        type="dashboard"
-                        percent={((item.score || 0) * 100) / 1}
-                        showInfo={false}
-                        size={20}
-                      />
-                      <Typography.Text type="secondary">
-                        {(item.score || 0).toFixed(2)}
+                  <Space align="center" size="large">
+                    {item.recall_type ? (
+                      <Typography.Text>
+                        {formatMessage({
+                          id: `searchTest.type.${item.recall_type}`,
+                        })}
                       </Typography.Text>
-                    </Space>
-                  </Tooltip>
+                    ) : null}
+                    <Tooltip title={`Score: ${item.score}`}>
+                      <Space>
+                        <Progress
+                          type="dashboard"
+                          percent={((item.score || 0) * 100) / 1}
+                          showInfo={false}
+                          size={20}
+                        />
+                        <Typography.Text type="secondary">
+                          {(item.score || 0).toFixed(2)}
+                        </Typography.Text>
+                      </Space>
+                    </Tooltip>
+                  </Space>
                 ),
               }))}
             />
