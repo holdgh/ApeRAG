@@ -594,11 +594,13 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
   };
 };
 
-export const getInitialData = (type: BotTypeEnum): WorkflowDefinition => {
+export const getInitialData = (type?: BotTypeEnum): WorkflowDefinition => {
   switch (type) {
     case 'knowledge':
       return getBotKnowledgeWorkflow();
     case 'common':
       return getBotCommonWorkflow();
+    default:
+      return workflow_definition;
   }
 };

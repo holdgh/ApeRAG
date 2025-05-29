@@ -130,7 +130,7 @@ export default () => {
 
   const getFlow = async () => {
     if (!bot?.id) return;
-    const flowDefault = getInitialData();
+    const flowDefault = getInitialData(bot.type);
     const { data } = await api.botsBotIdFlowGet({ botId: bot.id });
     setNodes((data?.nodes || flowDefault.nodes) as ApeNode[]);
     setEdges((data?.edges || flowDefault.edges) as ApeEdge[]);
@@ -146,7 +146,7 @@ export default () => {
   const saveFlow = async () => {
     if (!bot?.id) return;
     const flow: WorkflowDefinition = {
-      ...getInitialData(),
+      ...getInitialData(bot.type),
       nodes,
       edges,
       style: flowStyle,
