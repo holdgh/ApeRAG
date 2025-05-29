@@ -1,2 +1,2 @@
-VERSION = 'v0.1.2'
-GIT_COMMIT_ID = '5a00d9c'
+VERSION = 'v0.5.0-alpha.21-test'
+GIT_COMMIT_ID = 'e783b0c'

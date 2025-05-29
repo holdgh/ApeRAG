@@ -197,7 +197,7 @@ build-aperag-frontend: setup-builder
 build-local: build-aperag-local build-aperag-frontend-local
 
 build-aperag-local: setup-builder version
-	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
+	docker buildx build -t $(APERAG_IMAGE):$(VERSION) \
 		--platform $(LOCAL_PLATFORM) $(BUILDX_ARGS) --load \
 		-f ./Dockerfile .
 
@@ -205,7 +205,7 @@ build-aperag-frontend-local: setup-builder
 	cd frontend && BASE_PATH=/web/ yarn build
 	cd frontend && docker buildx build \
 		--platform=$(LOCAL_PLATFORM) -f Dockerfile.prod --load \
-		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
+		-t $(APERAG_FRONTEND_IMG):$(VERSION) .
 
 ##################################################
 # Utilities and Information
