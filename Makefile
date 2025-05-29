@@ -1,12 +1,24 @@
-VERSION ?= v0.1.2
+VERSION ?= v0.5.0-alpha.21-test
 VERSION_FILE ?= aperag/version/__init__.py
-BUILDX_PLATFORM ?= linux/amd64
+BUILDX_PLATFORM ?= linux/amd64,linux/arm64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 
 # Image names
 APERAG_IMAGE = apecloud/aperag
 APERAG_FRONTEND_IMG = apecloud/aperag-frontend
+
+# Detect host architecture for local builds
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+    LOCAL_PLATFORM = linux/amd64
+else ifeq ($(UNAME_M),aarch64)
+    LOCAL_PLATFORM = linux/arm64
+else ifeq ($(UNAME_M),arm64)
+    LOCAL_PLATFORM = linux/arm64
+else
+    LOCAL_PLATFORM = linux/amd64
+endif
 
 .PHONY: version
 version:
@@ -18,17 +30,30 @@ version:
 # Create a new builder instance for multi-platform builds
 setup-builder:
 	@if ! docker buildx inspect multi-platform >/dev/null 2>&1; then \
-		docker buildx create --name multi-platform --use --driver docker-container; \
+		docker buildx create --name multi-platform --use --driver docker-container --bootstrap; \
 	else \
 		docker buildx use multi-platform; \
 	fi
 
-# Build ApeRAG backend image
+# Build ApeRAG backend image (multi-platform)
 .PHONY: build-aperag
 build-aperag: setup-builder
-	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile .
+	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
+		--platform $(BUILDX_PLATFORM) \
+		$(BUILDX_ARGS) \
+		--push \
+		-f ./Dockerfile .
 
-# Build ApeRAG frontend image
+# Build ApeRAG backend image for local platform only
+.PHONY: build-aperag-local
+build-aperag-local: setup-builder
+	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
+		--platform $(LOCAL_PLATFORM) \
+		$(BUILDX_ARGS) \
+		--load \
+		-f ./Dockerfile .
+
+# Build ApeRAG frontend image (multi-platform)
 .PHONY: build-aperag-frontend
 build-aperag-frontend: setup-builder
 	cd frontend && BASE_PATH=/web/ yarn build
@@ -38,16 +63,41 @@ build-aperag-frontend: setup-builder
 		--push \
 		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
 
+# Build ApeRAG frontend image for local platform only
+.PHONY: build-aperag-frontend-local
+build-aperag-frontend-local: setup-builder
+	cd frontend && BASE_PATH=/web/ yarn build
+	cd frontend && docker buildx build \
+		--platform=$(LOCAL_PLATFORM) \
+		-f Dockerfile \
+		--load \
+		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
+
 .PHONY: image
 image: build
 
-# Build both backend and frontend
+# Build both backend and frontend (multi-platform)
 .PHONY: build
-build: build-aperag build-aperag-frontend clean-builder
+build: build-aperag build-aperag-frontend
+
+# Build both backend and frontend (local platform only)
+.PHONY: build-local
+build-local: build-aperag-local build-aperag-frontend-local
 
 # Clean up builder instance
 clean-builder:
-	docker buildx rm multi-platform
+	@if docker buildx inspect multi-platform >/dev/null 2>&1; then \
+		docker buildx rm multi-platform; \
+	fi
+
+# Show current configuration
+.PHONY: info
+info:
+	@echo "VERSION: $(VERSION)"
+	@echo "BUILDX_PLATFORM: $(BUILDX_PLATFORM)"
+	@echo "LOCAL_PLATFORM: $(LOCAL_PLATFORM)"
+	@echo "REGISTRY: $(REGISTRY)"
+	@echo "HOST ARCH: $(UNAME_M)"
 
 #######################################################################################
 
