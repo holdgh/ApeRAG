@@ -54,5 +54,7 @@ class VectorSearchNodeRunner(BaseNodeRunner):
         vector = embedding_model.embed_query(query)
         results = context_manager.query(query, score_threshold=score_threshold, topk=topk, vector=vector)
         for item in results:
-            item.metadata = item.metadata.update({"recall_type": "vector_search"})
+            if item.metadata is None:
+                item.metadata = {}
+            item.metadata["recall_type"] = "vector_search"
         return VectorSearchOutput(docs=results), {}

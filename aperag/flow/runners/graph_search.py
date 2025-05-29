@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field
@@ -5,6 +6,9 @@ from pydantic import BaseModel, Field
 from aperag.db.ops import query_collection
 from aperag.flow.base.models import BaseNodeRunner, SystemInput, register_node_runner
 from aperag.query.query import DocumentWithScore
+from aperag.schema.utils import parseCollectionConfig
+
+logger = logging.getLogger(__name__)
 
 
 # User input model for graph search node
@@ -36,6 +40,11 @@ class GraphSearchNodeRunner(BaseNodeRunner):
         if collection_ids:
             collection = await query_collection(si.user, collection_ids[0])
         if not collection:
+            return GraphSearchOutput(docs=[]), {}
+
+        config = parseCollectionConfig(collection.config)
+        if not config.enable_knowledge_graph:
+            logger.warning(f"Collection {collection.id} does not have knowledge graph enabled")
             return GraphSearchOutput(docs=[]), {}
 
         # Import LightRAG and run as in _run_light_rag

@@ -72,7 +72,7 @@ def test_update_collection(client, collection):
 
 
 def test_vector_search(client, collection, document):
-    search_data = {"query": "test document", "search_type": "vector", "vector_search": {"topk": 10, "similarity": 0.1}}
+    search_data = {"query": "test document", "vector_search": {"topk": 10, "similarity": 0.1}}
     resp = client.post(f"/api/v1/collections/{collection['id']}/searchTests", json=search_data)
     assert resp.status_code == 200
     results = resp.json()
@@ -84,7 +84,7 @@ def test_vector_search(client, collection, document):
 
 
 def test_full_text_search(client, collection, document):
-    search_data = {"query": "unique test", "search_type": "fulltext", "fulltext_search": {"topk": 10}}
+    search_data = {"query": "unique test", "fulltext_search": {"topk": 10}}
     resp = client.post(f"/api/v1/collections/{collection['id']}/searchTests", json=search_data)
     assert resp.status_code == 200
     results = resp.json()
@@ -98,7 +98,6 @@ def test_full_text_search(client, collection, document):
 def test_hybrid_search(client, collection, document):
     search_data = {
         "query": "specialized test",
-        "search_type": "hybrid",
         "vector_search": {"topk": 10, "similarity": 0.1},
         "fulltext_search": {"topk": 10},
     }

@@ -591,7 +591,6 @@ class SearchTestHistory(models.Model):
     user = models.CharField(max_length=256)
     collection_id = models.CharField(max_length=24, null=True)
     query = models.TextField()
-    search_type = models.CharField(max_length=16)
     vector_search = models.JSONField(null=True, blank=True)
     fulltext_search = models.JSONField(null=True, blank=True)
     graph_search = models.JSONField(null=True, blank=True)

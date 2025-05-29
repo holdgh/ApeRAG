@@ -4,6 +4,7 @@ from .merge import MergeNodeRunner
 from .rerank import RerankNodeRunner
 from .start import StartNodeRunner
 from .vector_search import VectorSearchNodeRunner
+from .graph_search import GraphSearchNodeRunner
 
 __all__ = [
     "KeywordSearchNodeRunner",
@@ -12,4 +13,5 @@ __all__ = [
     "RerankNodeRunner",
     "StartNodeRunner",
     "VectorSearchNodeRunner",
+    "GraphSearchNodeRunner",
 ]

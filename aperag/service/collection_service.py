@@ -135,7 +135,7 @@ async def create_search_test(
         return fail(404, "Collection not found")
     nodes = {}
     edges = []
-    end_node = "merge"
+    end_node_id = "merge"
     end_node_values = {
         "merge_strategy": "union",
         "deduplicate": True,
@@ -154,7 +154,7 @@ async def create_search_test(
             },
         )
         end_node_values["vector_search_docs"] = "{{ nodes.vector_search.output.docs }}"
-        edges.append(Edge(source=node_id, target=end_node))
+        edges.append(Edge(source=node_id, target=end_node_id))
     if data.fulltext_search:
         node_id = "keyword_search"
         nodes[node_id] = NodeInstance(
@@ -167,7 +167,7 @@ async def create_search_test(
             },
         )
         end_node_values["keyword_search_docs"] = "{{ nodes.keyword_search.output.docs }}"
-        edges.append(Edge(source=node_id, target=end_node))
+        edges.append(Edge(source=node_id, target=end_node_id))
     if data.graph_search:
         nodes["graph_search"] = NodeInstance(
             id="graph_search",
@@ -179,9 +179,9 @@ async def create_search_test(
             },
         )
         end_node_values["graph_search_docs"] = "{{ nodes.graph_search.output.docs }}"
-        edges.append(Edge(source="graph_search", target=end_node))
-    nodes[end_node] = NodeInstance(
-        id=end_node,
+        edges.append(Edge(source="graph_search", target=end_node_id))
+    nodes[end_node_id] = NodeInstance(
+        id=end_node_id,
         type="merge",
         input_values=end_node_values,
     )
@@ -196,7 +196,7 @@ async def create_search_test(
     result, _ = await engine.execute_flow(flow, initial_data)
     if not result:
         return fail(400, "Failed to execute flow")
-    docs = result.get(end_node, {}).docs
+    docs = result.get(end_node_id, {}).docs
     items = []
     for idx, doc in enumerate(docs):
         items.append(
@@ -212,7 +212,6 @@ async def create_search_test(
         user=user,
         query=data.query,
         collection_id=collection_id,
-        search_type=data.search_type,
         vector_search=data.vector_search.dict() if data.vector_search else None,
         fulltext_search=data.fulltext_search.dict() if data.fulltext_search else None,
         graph_search=data.graph_search.dict() if data.graph_search else None,
@@ -221,7 +220,6 @@ async def create_search_test(
     result = SearchTestResult(
         id=record.id,
         query=record.query,
-        search_type=record.search_type,
         vector_search=record.vector_search,
         fulltext_search=record.fulltext_search,
         graph_search=record.graph_search,
@@ -245,12 +243,12 @@ async def list_search_tests(user: str, collection_id: str) -> view_models.Search
                     score=item["score"],
                     content=item["content"],
                     source=item["source"],
+                    recall_type=item["recall_type"],
                 )
             )
         result = SearchTestResult(
             id=record.id,
             query=record.query,
-            search_type=record.search_type,
             vector_search=record.vector_search,
             fulltext_search=record.fulltext_search,
             graph_search=record.graph_search,
