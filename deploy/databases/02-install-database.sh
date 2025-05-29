@@ -18,7 +18,7 @@ print "Installing database clusters..."
 
 # Wait for databases to be ready
 print "Waiting for databases to be ready..."
-TIMEOUT=120
+TIMEOUT=600
 START_TIME=$(date +%s)
 
 while true; do
