@@ -91,7 +91,6 @@ jobs:
       run: |
         make e2e-test
 
-    # 失败时的调试步骤
     - name: Debug information on failure
       if: failure()
       run: |
@@ -114,7 +113,6 @@ jobs:
         helm list --all-namespaces
         helm status aperag || true
 
-    # 启用 SSH 访问进行调试
     - name: Setup tmate session for debugging
       if: failure()
       uses: mxschmitt/action-tmate@v3
