@@ -119,7 +119,7 @@ static-check:
 	uvx mypy ./aperag
 
 test:
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 # Code generation
 .PHONY: merge-openapi generate-models generate-frontend-sdk generate_model_configs
