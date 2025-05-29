@@ -47,12 +47,13 @@ import {
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
+import uniqid from "uniqid";
 
 import { WorkflowDefinition, WorkflowStyle } from '@/api';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
-import { getEdgeId, getInitialData, getLayoutedElements } from './utils';
+import { getInitialData, getLayoutedElements } from './utils';
 
 export const StyledFlowToolbar = styled(Panel).withConfig({
   shouldForwardProp: (prop) => !['token'].includes(prop),
@@ -223,7 +224,7 @@ export default () => {
           const createdEdges = incomers.flatMap(
             ({ id: source }) =>
               outgoers.map(({ id: target }) => ({
-                id: getEdgeId(),
+                id: uniqid(),
                 source,
                 target,
                 type: flowStyle.edgeType,
@@ -248,7 +249,7 @@ export default () => {
         addEdge(
           {
             ...connection,
-            id: getEdgeId(),
+            id: uniqid(),
             type: flowStyle.edgeType,
           },
           eds,

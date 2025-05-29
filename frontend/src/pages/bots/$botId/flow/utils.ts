@@ -1,4 +1,9 @@
-import { NodeData, WorkflowDefinition, WorkflowStyle } from "@/api";
+import {
+  BotTypeEnum,
+  NodeData,
+  WorkflowDefinition,
+  WorkflowStyle,
+} from "@/api";
 import uniqid from "uniqid";
 import Dagre from "@dagrejs/dagre";
 import { Position } from "@xyflow/react";
@@ -66,7 +71,8 @@ export const getLayoutedElements = (
   };
 };
 
-export const getNodeStartInitData = (): NodeData => ({
+// start schema
+export const nodeStartDefinition = (): NodeData => ({
   input: {
     schema: {
       type: "object",
@@ -96,7 +102,8 @@ export const getNodeStartInitData = (): NodeData => ({
   },
 });
 
-export const getNodeVectorSearchInitData = (startId: string): NodeData => ({
+// vector_search schema
+export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
   input: {
     schema: {
       type: "object",
@@ -151,7 +158,8 @@ export const getNodeVectorSearchInitData = (startId: string): NodeData => ({
   },
 });
 
-export const getNodeKeywordSearchInitData = (startId: string): NodeData => ({
+// keyword_search schema
+export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
   input: {
     schema: {
       type: "object",
@@ -198,7 +206,8 @@ export const getNodeKeywordSearchInitData = (startId: string): NodeData => ({
   },
 });
 
-export const getNodeMergeNodeInitData = (
+// merge schema
+export const nodeMergeDefinition = (
   vectorSearchDocsId: string,
   keywordSearchDocsId: string
 ): NodeData => ({
@@ -263,7 +272,8 @@ export const getNodeMergeNodeInitData = (
   },
 });
 
-export const getNodeRerankInitData = (mergeId: string): NodeData => ({
+// rerank schema
+export const nodeRerankDefinition = (docId: string): NodeData => ({
   input: {
     schema: {
       type: "object",
@@ -291,7 +301,7 @@ export const getNodeRerankInitData = (mergeId: string): NodeData => ({
     values: {
       model: "bge-reranker",
       model_service_provider: "openai",
-      docs: `$\{{ nodes.${mergeId}.output.docs }}`,
+      docs: docId ? `{{ nodes.${docId}.output.docs }}` : "",
     },
   },
   output: {
@@ -311,9 +321,10 @@ export const getNodeRerankInitData = (mergeId: string): NodeData => ({
   },
 });
 
-export const getNodeLlmInitData = (
+// llm schema
+export const nodeLlmDefinition = (
   startId: string,
-  rerankId: string
+  docId?: string
 ): NodeData => ({
   input: {
     schema: {
@@ -384,7 +395,7 @@ export const getNodeLlmInitData = (
       temperature: 0.7,
       max_tokens: 1000,
       query: `{{ nodes.${startId}.output.query }}`,
-      docs: `{{ nodes.${rerankId}.output.docs }}`,
+      docs: docId ? `{{ nodes.${docId}.output.docs }}` : "",
     },
   },
   output: {
@@ -400,8 +411,89 @@ export const getNodeLlmInitData = (
   },
 });
 
-export const getEdgeId = (): string => uniqid();
-export const getInitialData = (): WorkflowDefinition => {
+// workflow schema
+export const workflow_definition: WorkflowDefinition = {
+  name: "rag_flow",
+  title: "RAG Knowledge Base Flow",
+  description: "A typical RAG flow with parallel retrieval and reranking",
+  version: "1.0.0",
+  execution: {
+    timeout: 300,
+    retry: {
+      max_attempts: 3,
+      delay: 5,
+    },
+    error_handling: {
+      strategy: "stop_on_error",
+      notification: {
+        email: ["admin@example.com"],
+      },
+    },
+  },
+  schema: {
+    document_with_score: {
+      type: "object",
+      properties: {
+        doc_id: {
+          type: "string",
+        },
+        text: {
+          type: "string",
+        },
+        score: {
+          type: "number",
+        },
+        metadata: {
+          type: "object",
+        },
+      },
+    },
+  },
+  nodes: [],
+  edges: [],
+  style: {
+    edgeType: "default",
+    layoutDirection: "LR",
+  },
+};
+
+// workflow schema form common bot
+export const getBotCommonWorkflow = (): WorkflowDefinition => {
+  const startId = uniqid();
+  const llmId = uniqid();
+  return {
+    ...workflow_definition,
+    nodes: [
+      {
+        id: startId,
+        type: "start",
+        data: nodeStartDefinition(),
+        position: { x: 0, y: 435.5 },
+        deletable: false,
+        dragHandle: ".drag-handle",
+      },
+      {
+        id: llmId,
+        type: "llm",
+        data: nodeLlmDefinition(startId),
+        position: { x: 400, y: 186.5 },
+        dragHandle: ".drag-handle",
+        deletable: false,
+      },
+    ],
+    edges: [
+      {
+        id: uniqid(),
+        source: startId,
+        target: llmId,
+        type: "default",
+      },
+    ],
+  };
+};
+
+// workflow schema for knowledge bot
+export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
   const startId = uniqid();
   const vectorSearchId = uniqid();
   const keywordSearchId = uniqid();
@@ -410,54 +502,19 @@ export const getInitialData = (): WorkflowDefinition => {
   const llmId = uniqid();
 
   return {
-    name: "rag_flow",
-    title: "RAG Knowledge Base Flow",
-    description: "A typical RAG flow with parallel retrieval and reranking",
-    version: "1.0.0",
-    execution: {
-      timeout: 300,
-      retry: {
-        max_attempts: 3,
-        delay: 5,
-      },
-      error_handling: {
-        strategy: "stop_on_error",
-        notification: {
-          email: ["admin@example.com"],
-        },
-      },
-    },
-    schema: {
-      document_with_score: {
-        type: "object",
-        properties: {
-          doc_id: {
-            type: "string",
-          },
-          text: {
-            type: "string",
-          },
-          score: {
-            type: "number",
-          },
-          metadata: {
-            type: "object",
-          },
-        },
-      },
-    },
+    ...workflow_definition,
     nodes: [
       {
         id: startId,
         type: "start",
-        data: getNodeStartInitData(),
+        data: nodeStartDefinition(),
         position: { x: 0, y: 435.5 },
         deletable: false,
         dragHandle: ".drag-handle",
       },
       {
         id: vectorSearchId,
-        data: getNodeVectorSearchInitData(startId),
+        data: nodeVectorSearchDefinition(startId),
         position: { x: 422, y: 0 },
         type: "vector_search",
         dragHandle: ".drag-handle",
@@ -466,7 +523,7 @@ export const getInitialData = (): WorkflowDefinition => {
       {
         id: keywordSearchId,
         type: "keyword_search",
-        data: getNodeKeywordSearchInitData(startId),
+        data: nodeKeywordSearchDefinition(startId),
         position: { x: 422, y: 610 },
         dragHandle: ".drag-handle",
         deletable: false,
@@ -474,7 +531,7 @@ export const getInitialData = (): WorkflowDefinition => {
       {
         id: mergeId,
         type: "merge",
-        data: getNodeMergeNodeInitData(vectorSearchId, keywordSearchId),
+        data: nodeMergeDefinition(vectorSearchId, keywordSearchId),
         position: { x: 884, y: 283.5 },
         dragHandle: ".drag-handle",
         deletable: false,
@@ -482,7 +539,7 @@ export const getInitialData = (): WorkflowDefinition => {
       {
         id: rerankId,
         type: "rerank",
-        data: getNodeRerankInitData(mergeId),
+        data: nodeRerankDefinition(mergeId),
         position: { x: 1316, y: 369.5 },
         dragHandle: ".drag-handle",
         deletable: false,
@@ -490,7 +547,7 @@ export const getInitialData = (): WorkflowDefinition => {
       {
         id: llmId,
         type: "llm",
-        data: getNodeLlmInitData(startId, rerankId),
+        data: nodeLlmDefinition(startId, rerankId),
         position: { x: 1718, y: 186.5 },
         dragHandle: ".drag-handle",
         deletable: false,
@@ -498,45 +555,50 @@ export const getInitialData = (): WorkflowDefinition => {
     ],
     edges: [
       {
-        id: getEdgeId(),
+        id: uniqid(),
         source: startId,
         target: vectorSearchId,
         type: "default",
       },
       {
-        id: getEdgeId(),
+        id: uniqid(),
         source: startId,
         target: keywordSearchId,
         type: "default",
       },
       {
-        id: getEdgeId(),
+        id: uniqid(),
         source: vectorSearchId,
         target: mergeId,
         type: "default",
       },
       {
-        id: getEdgeId(),
+        id: uniqid(),
         source: keywordSearchId,
         target: mergeId,
         type: "default",
       },
       {
-        id: getEdgeId(),
+        id: uniqid(),
         source: mergeId,
         target: rerankId,
         type: "default",
       },
       {
-        id: getEdgeId(),
+        id: uniqid(),
         source: rerankId,
         target: llmId,
         type: "default",
       },
     ],
-    style: {
-      edgeType: "default",
-      layoutDirection: "LR",
-    },
   };
+};
+
+export const getInitialData = (type: BotTypeEnum): WorkflowDefinition => {
+  switch (type) {
+    case "knowledge":
+      return getBotKnowledgeWorkflow();
+    case "common":
+      return getBotCommonWorkflow();
+  }
 };
