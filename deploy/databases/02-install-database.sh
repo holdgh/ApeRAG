@@ -53,6 +53,8 @@ while true; do
     break
   fi
 
+  kubectl get pods -n $NAMESPACE
+
   print "Waiting for database pods to be ready (${ELAPSED}s elapsed)..."
   sleep 10
 done
