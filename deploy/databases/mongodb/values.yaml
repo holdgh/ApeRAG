@@ -12,13 +12,13 @@ mode: standalone
 ## default: 0.5
 ## minimum: 0.5
 ## maximum: 64
-cpu: 1
+cpu: 0.5
 
 ## description: Memory, the unit is Gi.
 ## default: 0.5
 ## minimum: 0.5
 ## maximum: 1000
-memory: 1
+memory: 0.5
 
 ## description: Storage size, the unit is Gi.
 ## default: 20

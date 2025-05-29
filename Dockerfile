@@ -6,19 +6,15 @@ WORKDIR /app
 # Copy project files
 COPY pyproject.toml uv.lock* ./
 
-# Install system dependencies and uv in one layer
+# Install system dependencies and uv in one layer, then create venv and install deps
 RUN apt update && \
     apt install --no-install-recommends -y build-essential git curl && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create virtual environment and install dependencies using uv sync
-RUN /root/.local/bin/uv venv /opt/venv --python 3.11 && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    /root/.local/bin/uv venv /opt/venv --python 3.11 && \
     . /opt/venv/bin/activate && \
-    /root/.local/bin/uv sync --active
-
-# Clean up
-RUN apt clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    /root/.local/bin/uv sync --active && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache
 
 # Final stage
 FROM python:3.11.1-slim
@@ -41,6 +37,7 @@ COPY . /app
 WORKDIR /app
 
 # Install only the package structure without dependencies (dependencies already installed by uv)
-RUN . /opt/venv/bin/activate && pip install --no-deps -e .
+RUN . /opt/venv/bin/activate && pip install --no-deps -e . && \
+    rm -rf /root/.cache /tmp/*
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]

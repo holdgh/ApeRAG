@@ -18,7 +18,7 @@ print "Installing database clusters..."
 
 # Wait for databases to be ready
 print "Waiting for databases to be ready..."
-TIMEOUT=600  # Set timeout to 10 minutes
+TIMEOUT=600
 START_TIME=$(date +%s)
 
 while true; do
@@ -52,6 +52,8 @@ while true; do
     print "All database pods are ready, continuing with deployment..."
     break
   fi
+
+  kubectl get pods -n $NAMESPACE
 
   print "Waiting for database pods to be ready (${ELAPSED}s elapsed)..."
   sleep 10
