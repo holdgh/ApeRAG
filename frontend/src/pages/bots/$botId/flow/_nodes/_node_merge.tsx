@@ -56,7 +56,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
       'vector_search_docs',
       refVectorSearchNode?.id
         ? `{{ nodes.${refVectorSearchNode.id}.output.docs }}`
-        : '',
+        : [],
     );
     applyChanges();
   }, [debouncedRefVectorSearchNode]);
@@ -67,7 +67,7 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
       'keyword_search_docs',
       refKeywordSearchNode?.id
         ? `{{ nodes.${refKeywordSearchNode.id}.output.docs }}`
-        : '',
+        : [],
     );
     applyChanges();
   }, [debouncedRefKeywordSearchNode]);

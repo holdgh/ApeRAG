@@ -103,7 +103,9 @@ export const nodeStartDefinition = (): NodeData => ({
 });
 
 // vector_search schema
-export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
+export const nodeVectorSearchDefinition = (params?: {
+  startId?: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -138,7 +140,9 @@ export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
     values: {
       top_k: 5,
       similarity_threshold: 0.7,
-      query: `{{ nodes.${startId}.output.query }}`,
+      query: params?.startId
+        ? `{{ nodes.${params.startId}.output.query }}`
+        : '',
     },
   },
   output: {
@@ -159,7 +163,9 @@ export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
 });
 
 // keyword_search schema
-export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
+export const nodeKeywordSearchDefinition = (params?: {
+  startId?: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -185,7 +191,9 @@ export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
       required: ['query', 'top_k', 'collection_ids'],
     },
     values: {
-      query: `{{ nodes.${startId}.output.query }}`,
+      query: params?.startId
+        ? `{{ nodes.${params.startId}.output.query }}`
+        : '',
       top_k: 3,
     },
   },
@@ -207,10 +215,10 @@ export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
 });
 
 // merge schema
-export const nodeMergeDefinition = (
-  vectorSearchDocsId: string,
-  keywordSearchDocsId: string,
-): NodeData => ({
+export const nodeMergeDefinition = (params?: {
+  vectorSearchId: string;
+  keywordSearchId: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -251,8 +259,12 @@ export const nodeMergeDefinition = (
     values: {
       merge_strategy: 'union',
       deduplicate: true,
-      vector_search_docs: `{{ nodes.${vectorSearchDocsId}.output.docs }}`,
-      keyword_search_docs: `{{ nodes.${keywordSearchDocsId}.output.docs }}`,
+      vector_search_docs: params?.vectorSearchId
+        ? `{{ nodes.${params.vectorSearchId}.output.docs }}`
+        : [],
+      keyword_search_docs: params?.keywordSearchId
+        ? `{{ nodes.${params.keywordSearchId}.output.docs }}`
+        : [],
     },
   },
   output: {
@@ -273,7 +285,7 @@ export const nodeMergeDefinition = (
 });
 
 // rerank schema
-export const nodeRerankDefinition = (docId: string): NodeData => ({
+export const nodeRerankDefinition = (params?: { docId: string }): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -299,9 +311,9 @@ export const nodeRerankDefinition = (docId: string): NodeData => ({
       required: ['model', 'model_service_provider', 'docs'],
     },
     values: {
-      model: 'bge-reranker',
-      model_service_provider: 'openai',
-      docs: docId ? `{{ nodes.${docId}.output.docs }}` : '',
+      model: '',
+      model_service_provider: '',
+      docs: params?.docId ? `{{ nodes.${params.docId}.output.docs }}` : [],
     },
   },
   output: {
@@ -322,10 +334,10 @@ export const nodeRerankDefinition = (docId: string): NodeData => ({
 });
 
 // llm schema
-export const nodeLlmDefinition = (
-  startId: string,
-  docId?: string,
-): NodeData => ({
+export const nodeLlmDefinition = (params?: {
+  startId?: string;
+  docId?: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -388,14 +400,16 @@ export const nodeLlmDefinition = (
       ],
     },
     values: {
-      model_service_provider: 'openrouter',
-      model_name: 'deepseek/deepseek-v3-base:free',
-      custom_llm_provider: 'openrouter',
+      model_service_provider: '',
+      model_name: '',
+      custom_llm_provider: '',
       prompt_template: '{context}\n{query}',
       temperature: 0.7,
       max_tokens: 1000,
-      query: `{{ nodes.${startId}.output.query }}`,
-      docs: docId ? `{{ nodes.${docId}.output.docs }}` : '',
+      query: params?.startId
+        ? `{{ nodes.${params.startId}.output.query }}`
+        : '',
+      docs: params?.docId ? `{{ nodes.${params.docId}.output.docs }}` : [],
     },
   },
   output: {
@@ -475,7 +489,7 @@ export const getBotCommonWorkflow = (): WorkflowDefinition => {
       {
         id: llmId,
         type: 'llm',
-        data: nodeLlmDefinition(startId),
+        data: nodeLlmDefinition({ startId }),
         position: { x: 400, y: 186.5 },
         dragHandle: '.drag-handle',
         deletable: false,
@@ -514,7 +528,7 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       },
       {
         id: vectorSearchId,
-        data: nodeVectorSearchDefinition(startId),
+        data: nodeVectorSearchDefinition({ startId }),
         position: { x: 422, y: 0 },
         type: 'vector_search',
         dragHandle: '.drag-handle',
@@ -523,7 +537,7 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       {
         id: keywordSearchId,
         type: 'keyword_search',
-        data: nodeKeywordSearchDefinition(startId),
+        data: nodeKeywordSearchDefinition({ startId }),
         position: { x: 422, y: 610 },
         dragHandle: '.drag-handle',
         deletable: false,
@@ -531,7 +545,7 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       {
         id: mergeId,
         type: 'merge',
-        data: nodeMergeDefinition(vectorSearchId, keywordSearchId),
+        data: nodeMergeDefinition({ vectorSearchId, keywordSearchId }),
         position: { x: 884, y: 283.5 },
         dragHandle: '.drag-handle',
         deletable: false,
@@ -539,7 +553,7 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       {
         id: rerankId,
         type: 'rerank',
-        data: nodeRerankDefinition(mergeId),
+        data: nodeRerankDefinition({ docId: mergeId }),
         position: { x: 1316, y: 369.5 },
         dragHandle: '.drag-handle',
         deletable: false,
@@ -547,7 +561,7 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       {
         id: llmId,
         type: 'llm',
-        data: nodeLlmDefinition(startId, rerankId),
+        data: nodeLlmDefinition({ startId, docId: rerankId }),
         position: { x: 1718, y: 186.5 },
         dragHandle: '.drag-handle',
         deletable: false,

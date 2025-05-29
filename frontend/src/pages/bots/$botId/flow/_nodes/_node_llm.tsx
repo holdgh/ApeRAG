@@ -48,7 +48,7 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     _.set(
       values,
       'docs',
-      refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : '',
+      refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : [],
     );
     applyChanges();
   }, [debouncedRefNode]);
