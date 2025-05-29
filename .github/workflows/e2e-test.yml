@@ -68,14 +68,12 @@ jobs:
           --set frontend.image.tag=dev-latest \
           --wait --timeout=10m
 
-    - name: Wait for all pods to be ready
+    - name: Wait for ApeRAG pods to be ready
       run: |
-        echo "Waiting for all pods to be ready..."
-        kubectl wait --for=condition=ready pod --all --timeout=600s
-        echo "Checking deployment status..."
+        echo "Waiting for ApeRAG pods to be ready..."
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=aperag --timeout=600s
         kubectl get pods -o wide
         kubectl get svc
-        
 
     - name: Port forward services
       run: |
@@ -94,29 +92,21 @@ jobs:
     - name: Debug information on failure
       if: failure()
       run: |
-        echo "=== Cluster Information ==="
-        kubectl cluster-info
-        echo "=== All Pods ==="
+        echo "=== Pods ==="
         kubectl get pods --all-namespaces -o wide
-        echo "=== All Services ==="
+        echo "=== Services ==="
         kubectl get svc --all-namespaces
         echo "=== Events ==="
-        kubectl get events --sort-by=.metadata.creationTimestamp
-        echo "=== Pod Descriptions ==="
-        kubectl describe pods
+        kubectl get events --sort-by=.metadata.creationTimestamp --all-namespaces
         echo "=== Pod Logs ==="
         for pod in $(kubectl get pods -o jsonpath='{.items[*].metadata.name}'); do
           echo "--- Logs for $pod ---"
           kubectl logs $pod --tail=100 || true
         done
-        echo "=== Helm Status ==="
-        helm list --all-namespaces
-        helm status aperag || true
 
-    - name: Setup tmate session for debugging
+    - name: Setup SSH access for debugging
       if: failure()
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
-        github-token: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 30
