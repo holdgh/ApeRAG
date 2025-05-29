@@ -6,6 +6,7 @@ import { CaretRightOutlined, DeleteOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
+  Checkbox,
   Collapse,
   Divider,
   Drawer,
@@ -14,7 +15,6 @@ import {
   Modal,
   Progress,
   Result,
-  Select,
   Slider,
   Space,
   Table,
@@ -30,13 +30,19 @@ import { toast } from 'react-toastify';
 import { UndrawScience } from 'react-undraw-illustrations';
 import { FormattedMessage, useIntl, useModel, useParams } from 'umi';
 
+type SearchTypeEnum = 'vector_search' | 'fulltext_search' | 'graph_search';
+
 export default () => {
   const { formatMessage } = useIntl();
   const [form] = Form.useForm<SearchTestRequest>();
   const { collectionId } = useParams();
   const { loading, setLoading } = useModel('global');
   const [modal, contextHolder] = Modal.useModal();
-  const searchType = Form.useWatch('search_type', form);
+
+  const [searchType, setSearchType] = useState<SearchTypeEnum[]>([
+    'vector_search',
+  ]);
+
   const [records, setRecords] = useState<SearchTestResult[]>([]);
   const [historyModal, setHistoryModal] = useState<{
     visible: boolean;
@@ -56,17 +62,23 @@ export default () => {
     if (!collectionId) return;
     const values = await form.validateFields();
     setLoading(true);
-    const res = await api.collectionsCollectionIdSearchTestsPost({
-      collectionId,
-      searchTestRequest: values,
-    });
-    setLoading(false);
-    if (!res.data) {
-      toast.error(formatMessage({ id: 'tips.search.failed' }));
-      return;
-    }
-    setHistoryModal({ visible: true, record: res.data });
-    fetchHistory();
+    api
+      .collectionsCollectionIdSearchTestsPost({
+        collectionId,
+        searchTestRequest: values,
+      })
+      .then((res) => {
+        setLoading(false);
+        if (!res.data) {
+          toast.error(formatMessage({ id: 'tips.search.failed' }));
+          return;
+        }
+        setHistoryModal({ visible: true, record: res.data });
+        fetchHistory();
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   };
 
   const onDeleteRecord = async (record: SearchTestResult) => {
@@ -206,12 +218,14 @@ export default () => {
   useEffect(() => {
     form.setFieldsValue({
       query: '',
-      search_type: 'vector',
       vector_search: {
         topk: 5,
         similarity: 0.7,
       },
       fulltext_search: {
+        topk: 5,
+      },
+      graph_search: {
         topk: 5,
       },
     });
@@ -242,65 +256,79 @@ export default () => {
               rows={3}
             />
           </Form.Item>
+          <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Checkbox.Group
+              onChange={(checkedValue) => setSearchType(checkedValue)}
+              value={searchType}
+              options={[
+                {
+                  label: formatMessage({ id: 'searchTest.type.vector' }),
+                  value: 'vector_search',
+                },
+                {
+                  label: formatMessage({ id: 'searchTest.type.fulltext' }),
+                  value: 'fulltext_search',
+                },
+                {
+                  label: formatMessage({ id: 'searchTest.type.graph' }),
+                  value: 'graph_search',
+                },
+              ]}
+            />
+            <Button
+              disabled={!_.size(searchType)}
+              loading={loading}
+              onClick={onSearch}
+              type="primary"
+            >
+              {formatMessage({ id: 'searchTest.test' })}
+            </Button>
+          </Space>
         </Form>
-        <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Form form={form} layout="inline">
-            <Form.Item name="search_type">
-              <Select
-                style={{
-                  width: 140,
-                }}
-                options={[
-                  {
-                    label: formatMessage({ id: 'searchTest.type.vector' }),
-                    value: 'vector',
-                  },
-                  {
-                    label: formatMessage({ id: 'searchTest.type.fulltext' }),
-                    value: 'fulltext',
-                  },
-                  {
-                    label: formatMessage({ id: 'searchTest.type.hybrid' }),
-                    value: 'hybrid',
-                  },
-                ]}
-              />
-            </Form.Item>
-            {_.includes(['vector', 'hybrid'], searchType) && (
-              <>
-                <Form.Item
-                  label={formatMessage({ id: 'searchTest.vectorTopK' })}
-                  name={['vector_search', 'topk']}
-                >
-                  <Slider style={{ width: 80 }} min={0} max={20} />
-                </Form.Item>
 
-                <Form.Item
-                  label={formatMessage({
-                    id: 'searchTest.similarityThreshold',
-                  })}
-                  name={['vector_search', 'similarity']}
-                >
-                  <Slider style={{ width: 80 }} min={0} max={1} step={0.01} />
-                </Form.Item>
-              </>
-            )}
+        <Form form={form} layout="inline">
+          {searchType.find((item) => item === 'vector_search') && (
+            <>
+              <Form.Item
+                label={formatMessage({ id: 'searchTest.vectorTopK' })}
+                name={['vector_search', 'topk']}
+              >
+                <Slider style={{ width: 80 }} min={0} max={20} />
+              </Form.Item>
 
-            {_.includes(['fulltext', 'hybrid'], searchType) && (
-              <>
-                <Form.Item
-                  label={formatMessage({ id: 'searchTest.fulltextTopK' })}
-                  name={['fulltext_search', 'topk']}
-                >
-                  <Slider style={{ width: 80 }} min={0} max={20} />
-                </Form.Item>
-              </>
-            )}
-          </Form>
-          <Button loading={loading} onClick={onSearch} type="primary">
-            {formatMessage({ id: 'searchTest.test' })}
-          </Button>
-        </Space>
+              <Form.Item
+                label={formatMessage({
+                  id: 'searchTest.similarityThreshold',
+                })}
+                name={['vector_search', 'similarity']}
+              >
+                <Slider style={{ width: 80 }} min={0} max={1} step={0.01} />
+              </Form.Item>
+            </>
+          )}
+
+          {searchType.find((item) => item === 'fulltext_search') && (
+            <>
+              <Form.Item
+                label={formatMessage({ id: 'searchTest.fulltextTopK' })}
+                name={['fulltext_search', 'topk']}
+              >
+                <Slider style={{ width: 80 }} min={0} max={20} />
+              </Form.Item>
+            </>
+          )}
+
+          {searchType.find((item) => item === 'graph_search') && (
+            <>
+              <Form.Item
+                label={formatMessage({ id: 'searchTest.graphsearchTopK' })}
+                name={['graph_search', 'topk']}
+              >
+                <Slider style={{ width: 80 }} min={0} max={20} />
+              </Form.Item>
+            </>
+          )}
+        </Form>
       </Card>
 
       <Table dataSource={records} bordered columns={columns} rowKey="id" />
@@ -335,7 +363,6 @@ export default () => {
         {_.size(historyModal?.record?.items) ? (
           <>
             <Collapse
-              // bordered={false}
               defaultActiveKey={['1', '2', '3', '4', '5']}
               expandIcon={({ isActive }) => (
                 <CaretRightOutlined rotate={isActive ? 90 : 0} />

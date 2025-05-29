@@ -266,10 +266,12 @@ export default {
   'searchTest.test': 'Test',
   'searchTest.type.vector': 'Vector Search',
   'searchTest.type.fulltext': 'Fulltext Search',
+  'searchTest.type.graph': 'Graph Search',
   'searchTest.type.hybrid': 'Hybrid Search',
   'searchTest.similarityThreshold': 'Similarity Threshold',
   'searchTest.vectorTopK': 'Vector TopK',
   'searchTest.fulltextTopK': 'Fulltext TopK',
+  'searchTest.graphsearchTopK': 'Graph TopK',
   'searchTest.searchResults': 'Search Results',
   'searchTest.searchResults.detail':
     'There are {count} search results in total',
