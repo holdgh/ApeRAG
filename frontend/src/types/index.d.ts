@@ -89,7 +89,7 @@ export type ApeFlowDebugInfo = {
   };
 };
 
-export type ApeFlowStatus = 'running' | 'completed' | 'stopped';
+export type ApeFlowStatus = 'running' | 'completed' | 'stopped' | 'error';
 export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
 
 /**

@@ -44,5 +44,20 @@ export interface SearchTestResultItem {
      * @memberof SearchTestResultItem
      */
     'source'?: string;
+    /**
+     * Recall type
+     * @type {string}
+     * @memberof SearchTestResultItem
+     */
+    'recall_type'?: SearchTestResultItemRecallTypeEnum;
 }
+
+export const SearchTestResultItemRecallTypeEnum = {
+    vector_search: 'vector_search',
+    graph_search: 'graph_search',
+    keyword_search: 'keyword_search'
+} as const;
+
+export type SearchTestResultItemRecallTypeEnum = typeof SearchTestResultItemRecallTypeEnum[keyof typeof SearchTestResultItemRecallTypeEnum];
+
 

@@ -103,7 +103,9 @@ export const nodeStartDefinition = (): NodeData => ({
 });
 
 // vector_search schema
-export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
+export const nodeVectorSearchDefinition = (params?: {
+  startId?: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -138,7 +140,9 @@ export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
     values: {
       top_k: 5,
       similarity_threshold: 0.7,
-      query: `{{ nodes.${startId}.output.query }}`,
+      query: params?.startId
+        ? `{{ nodes.${params.startId}.output.query }}`
+        : '',
     },
   },
   output: {
@@ -159,7 +163,9 @@ export const nodeVectorSearchDefinition = (startId: string): NodeData => ({
 });
 
 // keyword_search schema
-export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
+export const nodeKeywordSearchDefinition = (params?: {
+  startId?: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -185,7 +191,9 @@ export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
       required: ['query', 'top_k', 'collection_ids'],
     },
     values: {
-      query: `{{ nodes.${startId}.output.query }}`,
+      query: params?.startId
+        ? `{{ nodes.${params.startId}.output.query }}`
+        : '',
       top_k: 3,
     },
   },
@@ -206,11 +214,57 @@ export const nodeKeywordSearchDefinition = (startId: string): NodeData => ({
   },
 });
 
+// graph_search node
+export const nodeGraphSearchDefinition = (): NodeData => ({
+  input: {
+    schema: {
+      type: 'object',
+      properties: {
+        top_k: {
+          type: 'integer',
+          default: 5,
+          minimum: 1,
+          maximum: 10,
+          description: 'Number of top results to return',
+        },
+        collection_ids: {
+          type: 'array',
+          description: 'Collection IDs',
+          items: {
+            type: 'string',
+          },
+          default: [],
+        },
+      },
+      required: ['top_k', 'collection_ids'],
+    },
+    values: {
+      top_k: 5,
+      collection_ids: [],
+    },
+  },
+  output: {
+    schema: {
+      type: 'object',
+      properties: {
+        docs: {
+          type: 'array',
+          description: 'Docs from graph search',
+          items: {
+            $ref: '#/schema/document_with_score',
+          },
+        },
+      },
+      required: ['docs'],
+    },
+  },
+});
+
 // merge schema
-export const nodeMergeDefinition = (
-  vectorSearchDocsId: string,
-  keywordSearchDocsId: string,
-): NodeData => ({
+export const nodeMergeDefinition = (params?: {
+  vectorSearchId: string;
+  keywordSearchId: string;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -240,19 +294,31 @@ export const nodeMergeDefinition = (
             $ref: '#/schema/document_with_score',
           },
         },
+        graph_search_docs: {
+          type: 'array',
+          description: 'Docs from graph search',
+          items: {
+            $ref: '#/schema/document_with_score',
+          },
+        },
       },
       required: [
         'merge_strategy',
         'deduplicate',
         'vector_search_docs',
         'keyword_search_docs',
+        'graph_search_docs',
       ],
     },
     values: {
       merge_strategy: 'union',
       deduplicate: true,
-      vector_search_docs: `{{ nodes.${vectorSearchDocsId}.output.docs }}`,
-      keyword_search_docs: `{{ nodes.${keywordSearchDocsId}.output.docs }}`,
+      vector_search_docs: params?.vectorSearchId
+        ? `{{ nodes.${params.vectorSearchId}.output.docs }}`
+        : [],
+      keyword_search_docs: params?.keywordSearchId
+        ? `{{ nodes.${params.keywordSearchId}.output.docs }}`
+        : [],
     },
   },
   output: {
@@ -273,7 +339,7 @@ export const nodeMergeDefinition = (
 });
 
 // rerank schema
-export const nodeRerankDefinition = (docId: string): NodeData => ({
+export const nodeRerankDefinition = (params?: { docId: string }): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -299,9 +365,9 @@ export const nodeRerankDefinition = (docId: string): NodeData => ({
       required: ['model', 'model_service_provider', 'docs'],
     },
     values: {
-      model: 'bge-reranker',
-      model_service_provider: 'openai',
-      docs: docId ? `{{ nodes.${docId}.output.docs }}` : '',
+      model: '',
+      model_service_provider: '',
+      docs: params?.docId ? `{{ nodes.${params.docId}.output.docs }}` : [],
     },
   },
   output: {
@@ -322,10 +388,11 @@ export const nodeRerankDefinition = (docId: string): NodeData => ({
 });
 
 // llm schema
-export const nodeLlmDefinition = (
-  startId: string,
-  docId?: string,
-): NodeData => ({
+export const nodeLlmDefinition = (params?: {
+  startId?: string;
+  docId?: string;
+  botType?: BotTypeEnum;
+}): NodeData => ({
   input: {
     schema: {
       type: 'object',
@@ -388,14 +455,17 @@ export const nodeLlmDefinition = (
       ],
     },
     values: {
-      model_service_provider: 'openrouter',
-      model_name: 'deepseek/deepseek-v3-base:free',
-      custom_llm_provider: 'openrouter',
-      prompt_template: '{context}\n{query}',
+      model_service_provider: '',
+      model_name: '',
+      custom_llm_provider: '',
+      prompt_template:
+        params?.botType === 'knowledge' ? '{context}\n{query}' : '{query}',
       temperature: 0.7,
       max_tokens: 1000,
-      query: `{{ nodes.${startId}.output.query }}`,
-      docs: docId ? `{{ nodes.${docId}.output.docs }}` : '',
+      query: params?.startId
+        ? `{{ nodes.${params.startId}.output.query }}`
+        : '',
+      docs: params?.docId ? `{{ nodes.${params.docId}.output.docs }}` : [],
     },
   },
   output: {
@@ -458,7 +528,9 @@ export const workflow_definition: WorkflowDefinition = {
 };
 
 // workflow schema form common bot
-export const getBotCommonWorkflow = (): WorkflowDefinition => {
+export const getBotCommonWorkflow = (
+  type?: BotTypeEnum,
+): WorkflowDefinition => {
   const startId = uniqid();
   const llmId = uniqid();
   return {
@@ -475,7 +547,7 @@ export const getBotCommonWorkflow = (): WorkflowDefinition => {
       {
         id: llmId,
         type: 'llm',
-        data: nodeLlmDefinition(startId),
+        data: nodeLlmDefinition({ startId, botType: type }),
         position: { x: 400, y: 186.5 },
         dragHandle: '.drag-handle',
         deletable: false,
@@ -493,10 +565,13 @@ export const getBotCommonWorkflow = (): WorkflowDefinition => {
 };
 
 // workflow schema for knowledge bot
-export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
+export const getBotKnowledgeWorkflow = (
+  type?: BotTypeEnum,
+): WorkflowDefinition => {
   const startId = uniqid();
   const vectorSearchId = uniqid();
   const keywordSearchId = uniqid();
+  const graphSearchId = uniqid();
   const mergeId = uniqid();
   const rerankId = uniqid();
   const llmId = uniqid();
@@ -508,13 +583,13 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
         id: startId,
         type: 'start',
         data: nodeStartDefinition(),
-        position: { x: 0, y: 435.5 },
+        position: { x: 0, y: 719 },
         deletable: false,
         dragHandle: '.drag-handle',
       },
       {
         id: vectorSearchId,
-        data: nodeVectorSearchDefinition(startId),
+        data: nodeVectorSearchDefinition({ startId }),
         position: { x: 422, y: 0 },
         type: 'vector_search',
         dragHandle: '.drag-handle',
@@ -523,32 +598,40 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       {
         id: keywordSearchId,
         type: 'keyword_search',
-        data: nodeKeywordSearchDefinition(startId),
+        data: nodeKeywordSearchDefinition({ startId }),
         position: { x: 422, y: 610 },
+        dragHandle: '.drag-handle',
+        deletable: false,
+      },
+      {
+        id: graphSearchId,
+        type: 'graph_search',
+        data: nodeGraphSearchDefinition(),
+        position: { x: 422, y: 1134 },
         dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: mergeId,
         type: 'merge',
-        data: nodeMergeDefinition(vectorSearchId, keywordSearchId),
-        position: { x: 884, y: 283.5 },
+        data: nodeMergeDefinition({ vectorSearchId, keywordSearchId }),
+        position: { x: 884, y: 567 },
         dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: rerankId,
         type: 'rerank',
-        data: nodeRerankDefinition(mergeId),
-        position: { x: 1316, y: 369.5 },
+        data: nodeRerankDefinition({ docId: mergeId }),
+        position: { x: 1316, y: 653 },
         dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: llmId,
         type: 'llm',
-        data: nodeLlmDefinition(startId, rerankId),
-        position: { x: 1718, y: 186.5 },
+        data: nodeLlmDefinition({ startId, docId: rerankId, botType: type }),
+        position: { x: 1718, y: 470 },
         dragHandle: '.drag-handle',
         deletable: false,
       },
@@ -568,6 +651,12 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       },
       {
         id: uniqid(),
+        source: startId,
+        target: graphSearchId,
+        type: 'default',
+      },
+      {
+        id: uniqid(),
         source: vectorSearchId,
         target: mergeId,
         type: 'default',
@@ -575,6 +664,12 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
       {
         id: uniqid(),
         source: keywordSearchId,
+        target: mergeId,
+        type: 'default',
+      },
+      {
+        id: uniqid(),
+        source: graphSearchId,
         target: mergeId,
         type: 'default',
       },
@@ -597,9 +692,9 @@ export const getBotKnowledgeWorkflow = (): WorkflowDefinition => {
 export const getInitialData = (type?: BotTypeEnum): WorkflowDefinition => {
   switch (type) {
     case 'knowledge':
-      return getBotKnowledgeWorkflow();
+      return getBotKnowledgeWorkflow(type);
     case 'common':
-      return getBotCommonWorkflow();
+      return getBotCommonWorkflow(type);
     default:
       return workflow_definition;
   }

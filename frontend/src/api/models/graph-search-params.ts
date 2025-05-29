@@ -17,14 +17,14 @@
 /**
  * 
  * @export
- * @interface DebugFlowRequest
+ * @interface GraphSearchParams
  */
-export interface DebugFlowRequest {
+export interface GraphSearchParams {
     /**
-     * 
-     * @type {string}
-     * @memberof DebugFlowRequest
+     * Top K results
+     * @type {number}
+     * @memberof GraphSearchParams
      */
-    'query': string;
+    'topk'?: number;
 }
 

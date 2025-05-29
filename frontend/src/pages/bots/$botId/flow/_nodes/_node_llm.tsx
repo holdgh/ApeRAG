@@ -48,11 +48,10 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
     _.set(
       values,
       'docs',
-      refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : '',
+      refNode?.id ? `{{ nodes.${refNode.id}.output.docs }}` : [],
     );
     applyChanges();
   }, [debouncedRefNode]);
-
   return (
     <>
       <Collapse
@@ -127,15 +126,9 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                       }}
                     />
                   </Form.Item>
-                  <Form.Item
-                    required
-                    label={formatMessage({ id: 'flow.input.source' })}
-                  >
+                  <Form.Item label={formatMessage({ id: 'flow.input.source' })}>
                     <NodeInput
                       variant="filled"
-                      placeholder={formatMessage({
-                        id: 'flow.connection.required',
-                      })}
                       disabled
                       value={_.get(values, 'docs')}
                       onChange={(e) => {
