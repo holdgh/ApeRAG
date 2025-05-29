@@ -78,7 +78,7 @@ jobs:
       - name: make test
         run: |
           make install
-          pip install pytest
+          uv pip install pytest
           make test
 
   check-image:
