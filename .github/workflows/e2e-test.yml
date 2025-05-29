@@ -52,7 +52,6 @@ jobs:
             hostPort: 3000
             protocol: TCP
         - role: worker
-        - role: worker
         EOF
 
     - name: Create KinD cluster

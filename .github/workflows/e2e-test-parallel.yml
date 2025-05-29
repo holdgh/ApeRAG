@@ -108,6 +108,30 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Free up disk space for build
+      run: |
+        echo "Initial disk usage:"
+        df -h
+        
+        # Remove unnecessary software to free up space for Docker builds
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf /usr/lib/jvm
+        sudo rm -rf /usr/share/swift
+        
+        # Clean up docker images and containers
+        docker system prune -af --volumes
+        
+        # Clean apt cache
+        sudo apt-get clean
+        sudo apt-get autoremove -y
+        
+        echo "Disk usage after cleanup:"
+        df -h
+
     - name: Download backend image
       uses: actions/download-artifact@v4
       with:
@@ -143,7 +167,6 @@ jobs:
           - containerPort: 3000
             hostPort: 3000
             protocol: TCP
-        - role: worker
         - role: worker
         EOF
 
