@@ -83,7 +83,8 @@ jobs:
         docker builder prune -af
         
         # Build images with optimization
-        make build-local VERSION=dev-latest
+        make build-aperag-local VERSION=dev-latest
+        make build-aperag-frontend-local VERSION=dev-latest
         
         # Clean up intermediate layers after build
         docker image prune -f
