@@ -18,6 +18,9 @@
 import type { FulltextSearchParams } from './fulltext-search-params';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { GraphSearchParams } from './graph-search-params';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { SearchTestResultItem } from './search-test-result-item';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -43,12 +46,6 @@ export interface SearchTestResult {
     'query'?: string;
     /**
      * 
-     * @type {string}
-     * @memberof SearchTestResult
-     */
-    'search_type'?: string;
-    /**
-     * 
      * @type {VectorSearchParams}
      * @memberof SearchTestResult
      */
@@ -59,6 +56,12 @@ export interface SearchTestResult {
      * @memberof SearchTestResult
      */
     'fulltext_search'?: FulltextSearchParams;
+    /**
+     * 
+     * @type {GraphSearchParams}
+     * @memberof SearchTestResult
+     */
+    'graph_search'?: GraphSearchParams;
     /**
      * 
      * @type {Array<SearchTestResultItem>}

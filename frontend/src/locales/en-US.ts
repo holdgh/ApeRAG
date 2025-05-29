@@ -265,10 +265,9 @@ export default {
   'searchTest.title': 'Search Test',
   'searchTest.pleaseInputQuestion': 'Please enter your question',
   'searchTest.test': 'Test',
-  'searchTest.type.vector': 'Vector Search',
-  'searchTest.type.fulltext': 'Fulltext Search',
-  'searchTest.type.graph': 'Graph Search',
-  'searchTest.type.hybrid': 'Hybrid Search',
+  'searchTest.type.vector_search': 'Vector Search',
+  'searchTest.type.keyword_search': 'Fulltext Search',
+  'searchTest.type.graph_search': 'Graph Search',
   'searchTest.similarityThreshold': 'Similarity Threshold',
   'searchTest.vectorTopK': 'Vector TopK',
   'searchTest.fulltextTopK': 'Fulltext TopK',
@@ -277,7 +276,6 @@ export default {
   'searchTest.searchResults.detail':
     'There are {count} search results in total',
   'searchTest.searchResults.empty': 'No search results',
-  'searchTest.question': 'Question',
   'searchTest.history_question': 'History Questions',
   'searchTest.confirmDeleteHistory':
     'Are you sure you want to delete this history record?',
