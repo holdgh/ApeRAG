@@ -223,6 +223,7 @@ export default {
   'flow.input.source': 'Input source',
   'flow.vector_search.source': 'Vector search source',
   'flow.keyword_search.source': 'Keyword search source',
+  'flow.graph_search.source': 'Graph search source',
   'flow.llm.params': 'LLM params',
   'flow.reranker.model': 'Reranker model',
   'flow.temperature': 'Temperature',

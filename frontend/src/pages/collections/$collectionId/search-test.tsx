@@ -258,24 +258,24 @@ export default () => {
           </Form.Item>
           <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
             <Checkbox.Group
-              onChange={(checkedValue) => {
-                setSearchType(checkedValue);
-              }}
+              onChange={(checkedValue) => setSearchType(checkedValue)}
               value={searchType}
-              options={[
-                {
-                  label: formatMessage({ id: 'searchTest.type.vector' }),
-                  value: 'vector_search',
-                },
-                {
-                  label: formatMessage({ id: 'searchTest.type.fulltext' }),
-                  value: 'fulltext_search',
-                },
-                {
-                  label: formatMessage({ id: 'searchTest.type.graph' }),
-                  value: 'graph_search',
-                },
-              ]}
+              options={
+                [
+                  {
+                    label: formatMessage({ id: 'searchTest.type.vector' }),
+                    value: 'vector_search',
+                  },
+                  {
+                    label: formatMessage({ id: 'searchTest.type.fulltext' }),
+                    value: 'fulltext_search',
+                  },
+                  {
+                    label: formatMessage({ id: 'searchTest.type.graph' }),
+                    value: 'graph_search',
+                  },
+                ] as { label: string; value: SearchTypeEnum }[]
+              }
             />
             <Button
               disabled={!_.size(searchType)}

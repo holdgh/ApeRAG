@@ -264,6 +264,7 @@ export const nodeGraphSearchDefinition = (): NodeData => ({
 export const nodeMergeDefinition = (params?: {
   vectorSearchId: string;
   keywordSearchId: string;
+  graphSearchId?: string;
 }): NodeData => ({
   input: {
     schema: {
@@ -318,6 +319,9 @@ export const nodeMergeDefinition = (params?: {
         : [],
       keyword_search_docs: params?.keywordSearchId
         ? `{{ nodes.${params.keywordSearchId}.output.docs }}`
+        : [],
+      graph_search_docs: params?.graphSearchId
+        ? `{{ nodes.${params.graphSearchId}.output.docs }}`
         : [],
     },
   },
@@ -540,7 +544,7 @@ export const getBotCommonWorkflow = (
         id: startId,
         type: 'start',
         data: nodeStartDefinition(),
-        position: { x: 0, y: 435.5 },
+        position: { x: 0, y: 238 },
         deletable: false,
         dragHandle: '.drag-handle',
       },
@@ -548,7 +552,7 @@ export const getBotCommonWorkflow = (
         id: llmId,
         type: 'llm',
         data: nodeLlmDefinition({ startId, botType: type }),
-        position: { x: 400, y: 186.5 },
+        position: { x: 422, y: 0 },
         dragHandle: '.drag-handle',
         deletable: false,
       },
@@ -614,8 +618,12 @@ export const getBotKnowledgeWorkflow = (
       {
         id: mergeId,
         type: 'merge',
-        data: nodeMergeDefinition({ vectorSearchId, keywordSearchId }),
-        position: { x: 884, y: 567 },
+        data: nodeMergeDefinition({
+          vectorSearchId,
+          keywordSearchId,
+          graphSearchId,
+        }),
+        position: { x: 884, y: 524 },
         dragHandle: '.drag-handle',
         deletable: false,
       },
