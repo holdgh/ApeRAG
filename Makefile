@@ -26,7 +26,7 @@ endif
 ##################################################
 
 # Environment setup
-.PHONY: install venv
+.PHONY: install-uv venv install
 install-uv:
 	@if [ -z "$$(which uv)" ]; then \
 		echo "Installing uv..."; \
@@ -44,7 +44,7 @@ install: venv
 	uv sync --all-groups --all-extras
 
 # Database management
-.PHONY: migrate makemigration diff
+.PHONY: makemigration migrate diff
 makemigration:
 	@python manage.py makemigrations
 
@@ -73,7 +73,7 @@ run-frontend:
 
 run-db:
 	@echo "Starting all database services..."
-	@make run-redis run-postgres run-qdrant run-es run-minio
+	@$(MAKE) run-redis run-postgres run-qdrant run-es run-minio
 
 # Docker Compose deployment
 .PHONY: compose-up compose-down compose-logs
@@ -90,8 +90,8 @@ compose-logs:
 .PHONY: clean
 clean:
 	@echo "Cleaning development environment..."
-	@/bin/rm -f db.sqlite3
-	@docker rm -fv aperag-postgres-dev aperag-redis-dev aperag-qdrant-dev aperag-es-dev aperag-minio-dev > /dev/null 2>&1 || true
+	@rm -f db.sqlite3
+	@docker rm -fv aperag-postgres-dev aperag-redis-dev aperag-qdrant-dev aperag-es-dev aperag-minio-dev 2>/dev/null || true
 
 ##################################################
 # Developers - Code Quality and Tools
@@ -101,9 +101,9 @@ clean:
 .PHONY: dev
 dev: install-uv
 	@echo "Installing development tools..."
-	@if [ -z "$$(which redocly)" ]; then npm install @redocly/cli -g; fi
-	@if [ -z "$$(which openapi-generator-cli)" ]; then npm install @openapitools/openapi-generator-cli -g; fi
-	@if [ -z "$$(which datamodel-codegen)" ]; then uv tool install datamodel-code-generator; fi
+	@command -v redocly >/dev/null || npm install @redocly/cli -g
+	@command -v openapi-generator-cli >/dev/null || npm install @openapitools/openapi-generator-cli -g
+	@command -v datamodel-codegen >/dev/null || uv tool install datamodel-code-generator
 
 # Code quality checks
 .PHONY: format lint static-check test
@@ -181,7 +181,7 @@ clean-builder:
 .PHONY: build build-aperag build-aperag-frontend
 build: build-aperag build-aperag-frontend
 
-build-aperag: setup-builder
+build-aperag: setup-builder version
 	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
 		--platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push \
 		-f ./Dockerfile .
@@ -196,7 +196,7 @@ build-aperag-frontend: setup-builder
 .PHONY: build-local build-aperag-local build-aperag-frontend-local
 build-local: build-aperag-local build-aperag-frontend-local
 
-build-aperag-local: setup-builder
+build-aperag-local: setup-builder version
 	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
 		--platform $(LOCAL_PLATFORM) $(BUILDX_ARGS) --load \
 		-f ./Dockerfile .
@@ -228,22 +228,22 @@ connect-metadb:
 # Individual service startup (for advanced users)
 .PHONY: run-redis run-postgres run-qdrant run-es run-minio
 run-redis:
-	@docker inspect aperag-redis-dev > /dev/null 2>&1 || docker run -d --name aperag-redis-dev -p 6379:6379 redis:latest
+	@docker inspect aperag-redis-dev >/dev/null 2>&1 || docker run -d --name aperag-redis-dev -p 6379:6379 redis:latest
 	@docker start aperag-redis-dev
 
 run-postgres:
-	@docker inspect aperag-postgres-dev > /dev/null 2>&1 || \
+	@docker inspect aperag-postgres-dev >/dev/null 2>&1 || \
 		docker run -d --name aperag-postgres-dev -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:pg16
 	@docker start aperag-postgres-dev
 	@sleep 3
-	@docker exec aperag-postgres-dev psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
+	@docker exec aperag-postgres-dev psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;" 2>/dev/null || true
 
 run-qdrant:
-	@docker inspect aperag-qdrant-dev > /dev/null 2>&1 || docker run -d --name aperag-qdrant-dev -p 6333:6333 qdrant/qdrant
+	@docker inspect aperag-qdrant-dev >/dev/null 2>&1 || docker run -d --name aperag-qdrant-dev -p 6333:6333 qdrant/qdrant
 	@docker start aperag-qdrant-dev
 
 run-es:
-	@docker inspect aperag-es-dev > /dev/null 2>&1 || \
+	@docker inspect aperag-es-dev >/dev/null 2>&1 || \
 		docker run -d --name aperag-es-dev -p 9200:9200 \
 		-e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
 		-e xpack.security.enabled=false -v esdata:/usr/share/elasticsearch/data \
@@ -251,7 +251,7 @@ run-es:
 	@docker start aperag-es-dev
 
 run-minio:
-	@docker inspect aperag-minio-dev > /dev/null 2>&1 || \
+	@docker inspect aperag-minio-dev >/dev/null 2>&1 || \
 		docker run -d --name aperag-minio-dev -p 9000:9000 -p 9001:9001 \
 		quay.io/minio/minio server /data --console-address ":9001"
 	@docker start aperag-minio-dev
