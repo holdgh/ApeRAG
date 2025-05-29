@@ -95,6 +95,7 @@ export const NodeTypeEnum = {
     start: 'start',
     vector_search: 'vector_search',
     keyword_search: 'keyword_search',
+    graph_search: 'graph_search',
     merge: 'merge',
     rerank: 'rerank',
     llm: 'llm'

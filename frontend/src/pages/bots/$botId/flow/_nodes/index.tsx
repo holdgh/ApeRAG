@@ -284,6 +284,7 @@ export const NodeTypes: { [key in NodeTypeEnum]: any } = {
   start: ApeBasicNode,
   vector_search: ApeBasicNode,
   keyword_search: ApeBasicNode,
+  graph_search: ApeBasicNode,
   merge: ApeBasicNode,
   rerank: ApeBasicNode,
   llm: ApeBasicNode,

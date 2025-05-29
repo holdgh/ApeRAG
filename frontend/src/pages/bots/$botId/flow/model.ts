@@ -11,6 +11,7 @@ import {
   HomeOutlined,
   InteractionOutlined,
   MergeOutlined,
+  RadarChartOutlined,
   ReadOutlined,
   WechatWorkOutlined,
 } from '@ant-design/icons';
@@ -24,6 +25,7 @@ import { ApeNodeMerge } from '../flow/_nodes/_node_merge';
 import { ApeNodeRerank } from '../flow/_nodes/_node_rerank';
 import { ApeNodeStart } from '../flow/_nodes/_node_start';
 import { ApeNodeVectorSearch } from '../flow/_nodes/_node_vector_search';
+import { ApeNodeGraphSearch } from './_nodes/_node_graph_search';
 
 export default () => {
   // flow data
@@ -54,7 +56,7 @@ export default () => {
         disableConnectionTarget: true,
       },
       vector_search: {
-        color: token.orange,
+        color: token.volcano,
         icon: React.createElement(InteractionOutlined),
         content: ApeNodeVectorSearch,
         width: 360,
@@ -63,6 +65,12 @@ export default () => {
         color: token.volcano,
         icon: React.createElement(ReadOutlined),
         content: ApeNodeKeywordSearch,
+        width: 360,
+      },
+      graph_search: {
+        color: token.volcano,
+        icon: React.createElement(RadarChartOutlined),
+        content: ApeNodeGraphSearch,
         width: 360,
       },
       merge: {

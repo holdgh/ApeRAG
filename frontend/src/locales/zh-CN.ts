@@ -198,6 +198,7 @@ export default {
   'flow.node.type.start': '开始',
   'flow.node.type.vector_search': '向量检索',
   'flow.node.type.keyword_search': '全文检索',
+  'flow.node.type.graph_search': '图检索',
   'flow.node.type.merge': '检索结果合并',
   'flow.node.type.rerank': '重排序',
   'flow.node.type.llm': 'LLM输出',

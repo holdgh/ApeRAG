@@ -3,24 +3,24 @@ import {
   NodeData,
   WorkflowDefinition,
   WorkflowStyle,
-} from "@/api";
-import { ApeEdge, ApeNode, ApeNodeHandlePosition } from "@/types";
-import Dagre from "@dagrejs/dagre";
-import { Position } from "@xyflow/react";
-import uniqid from "uniqid";
+} from '@/api';
+import { ApeEdge, ApeNode, ApeNodeHandlePosition } from '@/types';
+import Dagre from '@dagrejs/dagre';
+import { Position } from '@xyflow/react';
+import uniqid from 'uniqid';
 
 const getNodeHandlePositions = (
-  direction: WorkflowStyle["layoutDirection"] | undefined = "LR"
+  direction: WorkflowStyle['layoutDirection'] | undefined = 'LR',
 ): ApeNodeHandlePosition => {
   const positions: ApeNodeHandlePosition = {};
   switch (direction) {
-    case "TB":
+    case 'TB':
       Object.assign(positions, {
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
       });
       break;
-    case "LR":
+    case 'LR':
       Object.assign(positions, {
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -33,7 +33,7 @@ const getNodeHandlePositions = (
 export const getLayoutedElements = (
   nodes: ApeNode[],
   edges: ApeEdge[],
-  options: { direction: WorkflowStyle["layoutDirection"] }
+  options: { direction: WorkflowStyle['layoutDirection'] },
 ): {
   nodes: ApeNode[];
   edges: ApeEdge[];
@@ -75,29 +75,29 @@ export const getLayoutedElements = (
 export const nodeStartDefinition = (): NodeData => ({
   input: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         query: {
-          type: "string",
+          type: 'string',
           description: "User's question or query",
         },
       },
-      required: ["query"],
+      required: ['query'],
     },
     values: {
-      query: "",
+      query: '',
     },
   },
   output: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         query: {
-          type: "string",
+          type: 'string',
           description: "User's question or query",
         },
       },
-      required: ["query"],
+      required: ['query'],
     },
   },
 });
@@ -108,56 +108,56 @@ export const nodeVectorSearchDefinition = (params?: {
 }): NodeData => ({
   input: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         top_k: {
-          type: "integer",
+          type: 'integer',
           default: 5,
           minimum: 1,
           maximum: 10,
-          description: "Number of top results to return",
+          description: 'Number of top results to return',
         },
         similarity_threshold: {
-          type: "number",
+          type: 'number',
           default: 0.7,
           minimum: 0.1,
           maximum: 1,
-          description: "Similarity threshold for vector search",
+          description: 'Similarity threshold for vector search',
         },
         query: {
-          type: "string",
+          type: 'string',
           description: "User's question or query",
         },
         collection_ids: {
-          type: "array",
+          type: 'array',
           items: {
-            type: "string",
+            type: 'string',
           },
         },
       },
-      required: ["top_k", "similarity_threshold", "query", "collection_ids"],
+      required: ['top_k', 'similarity_threshold', 'query', 'collection_ids'],
     },
     values: {
       top_k: 5,
       similarity_threshold: 0.7,
       query: params?.startId
         ? `{{ nodes.${params.startId}.output.query }}`
-        : "",
+        : '',
     },
   },
   output: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         docs: {
-          type: "array",
-          description: "Docs from vector search",
+          type: 'array',
+          description: 'Docs from vector search',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
       },
-      required: ["docs"],
+      required: ['docs'],
     },
   },
 });
@@ -168,48 +168,94 @@ export const nodeKeywordSearchDefinition = (params?: {
 }): NodeData => ({
   input: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         query: {
-          type: "string",
+          type: 'string',
           description: "User's question or query",
         },
         top_k: {
-          type: "integer",
+          type: 'integer',
           default: 3,
           minimum: 1,
           maximum: 10,
-          description: "Number of top results to return",
+          description: 'Number of top results to return',
         },
         collection_ids: {
-          type: "array",
+          type: 'array',
           items: {
-            type: "string",
+            type: 'string',
           },
         },
       },
-      required: ["query", "top_k", "collection_ids"],
+      required: ['query', 'top_k', 'collection_ids'],
     },
     values: {
       query: params?.startId
         ? `{{ nodes.${params.startId}.output.query }}`
-        : "",
+        : '',
       top_k: 3,
     },
   },
   output: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         docs: {
-          type: "array",
-          description: "Docs from keyword search",
+          type: 'array',
+          description: 'Docs from keyword search',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
       },
-      required: ["docs"],
+      required: ['docs'],
+    },
+  },
+});
+
+// graph_search node
+export const nodeGraphSearchDefinition = (): NodeData => ({
+  input: {
+    schema: {
+      type: 'object',
+      properties: {
+        top_k: {
+          type: 'integer',
+          default: 5,
+          minimum: 1,
+          maximum: 10,
+          description: 'Number of top results to return',
+        },
+        collection_ids: {
+          type: 'array',
+          description: 'Collection IDs',
+          items: {
+            type: 'string',
+          },
+          default: [],
+        },
+      },
+      required: ['top_k', 'collection_ids'],
+    },
+    values: {
+      top_k: 5,
+      collection_ids: [],
+    },
+  },
+  output: {
+    schema: {
+      type: 'object',
+      properties: {
+        docs: {
+          type: 'array',
+          description: 'Docs from graph search',
+          items: {
+            $ref: '#/schema/document_with_score',
+          },
+        },
+      },
+      required: ['docs'],
     },
   },
 });
@@ -221,43 +267,51 @@ export const nodeMergeDefinition = (params?: {
 }): NodeData => ({
   input: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         merge_strategy: {
-          type: "string",
-          default: "union",
-          enum: ["union", "intersection"],
-          description: "How to merge results",
+          type: 'string',
+          default: 'union',
+          enum: ['union', 'intersection'],
+          description: 'How to merge results',
         },
         deduplicate: {
-          type: "boolean",
+          type: 'boolean',
           default: true,
-          description: "Whether to deduplicate merged results",
+          description: 'Whether to deduplicate merged results',
         },
         vector_search_docs: {
-          type: "array",
-          description: "Docs from vector search",
+          type: 'array',
+          description: 'Docs from vector search',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
         keyword_search_docs: {
-          type: "array",
-          description: "Docs from keyword search",
+          type: 'array',
+          description: 'Docs from keyword search',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
+          },
+        },
+        graph_search_docs: {
+          type: 'array',
+          description: 'Docs from graph search',
+          items: {
+            $ref: '#/schema/document_with_score',
           },
         },
       },
       required: [
-        "merge_strategy",
-        "deduplicate",
-        "vector_search_docs",
-        "keyword_search_docs",
+        'merge_strategy',
+        'deduplicate',
+        'vector_search_docs',
+        'keyword_search_docs',
+        'graph_search_docs',
       ],
     },
     values: {
-      merge_strategy: "union",
+      merge_strategy: 'union',
       deduplicate: true,
       vector_search_docs: params?.vectorSearchId
         ? `{{ nodes.${params.vectorSearchId}.output.docs }}`
@@ -269,17 +323,17 @@ export const nodeMergeDefinition = (params?: {
   },
   output: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         docs: {
-          type: "array",
-          description: "Docs after merge",
+          type: 'array',
+          description: 'Docs after merge',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
       },
-      required: ["docs"],
+      required: ['docs'],
     },
   },
 });
@@ -288,47 +342,47 @@ export const nodeMergeDefinition = (params?: {
 export const nodeRerankDefinition = (params?: { docId: string }): NodeData => ({
   input: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         model: {
-          type: "string",
-          default: "bge-reranker",
-          description: "Rerank model name",
+          type: 'string',
+          default: 'bge-reranker',
+          description: 'Rerank model name',
         },
         model_service_provider: {
-          type: "string",
-          default: "openai",
-          description: "model service provider",
+          type: 'string',
+          default: 'openai',
+          description: 'model service provider',
         },
         docs: {
-          type: "array",
-          description: "Docs to rerank",
+          type: 'array',
+          description: 'Docs to rerank',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
       },
-      required: ["model", "model_service_provider", "docs"],
+      required: ['model', 'model_service_provider', 'docs'],
     },
     values: {
-      model: "",
-      model_service_provider: "",
+      model: '',
+      model_service_provider: '',
       docs: params?.docId ? `{{ nodes.${params.docId}.output.docs }}` : [],
     },
   },
   output: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         docs: {
-          type: "array",
-          description: "Docs after rerank",
+          type: 'array',
+          description: 'Docs after rerank',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
       },
-      required: ["docs"],
+      required: ['docs'],
     },
   },
 });
@@ -341,86 +395,86 @@ export const nodeLlmDefinition = (params?: {
 }): NodeData => ({
   input: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         model_service_provider: {
-          type: "string",
-          default: "openrouter",
-          description: "model service provider",
+          type: 'string',
+          default: 'openrouter',
+          description: 'model service provider',
         },
         model_name: {
-          type: "string",
-          default: "deepseek/deepseek-v3-base:free",
-          description: "model name",
+          type: 'string',
+          default: 'deepseek/deepseek-v3-base:free',
+          description: 'model name',
         },
         custom_llm_provider: {
-          type: "string",
-          default: "openai",
-          description: "custom llm provider",
+          type: 'string',
+          default: 'openai',
+          description: 'custom llm provider',
         },
         prompt_template: {
-          type: "string",
-          default: "{context}\n{query}",
-          description: "Prompt template",
+          type: 'string',
+          default: '{context}\n{query}',
+          description: 'Prompt template',
         },
         temperature: {
-          type: "number",
+          type: 'number',
           default: 0.7,
           minimum: 0,
           maximum: 1,
-          description: "Sampling temperature",
+          description: 'Sampling temperature',
         },
         max_tokens: {
-          type: "integer",
+          type: 'integer',
           default: 1000,
           minimum: 1,
           maximum: 128000,
-          description: "Max tokens for generation",
+          description: 'Max tokens for generation',
         },
         query: {
-          type: "string",
+          type: 'string',
           description: "User's question or query",
         },
         docs: {
-          type: "array",
-          description: "Docs for LLM context",
+          type: 'array',
+          description: 'Docs for LLM context',
           items: {
-            $ref: "#/schema/document_with_score",
+            $ref: '#/schema/document_with_score',
           },
         },
       },
       required: [
-        "model_service_provider",
-        "model_name",
-        "custom_llm_provider",
-        "prompt_template",
-        "temperature",
-        "max_tokens",
-        "query",
-        "docs",
+        'model_service_provider',
+        'model_name',
+        'custom_llm_provider',
+        'prompt_template',
+        'temperature',
+        'max_tokens',
+        'query',
+        'docs',
       ],
     },
     values: {
-      model_service_provider: "",
-      model_name: "",
-      custom_llm_provider: "",
+      model_service_provider: '',
+      model_name: '',
+      custom_llm_provider: '',
       prompt_template:
-        params?.botType === "knowledge" ? "{context}\n{query}" : "{query}",
+        params?.botType === 'knowledge' ? '{context}\n{query}' : '{query}',
       temperature: 0.7,
       max_tokens: 1000,
       query: params?.startId
         ? `{{ nodes.${params.startId}.output.query }}`
-        : "",
+        : '',
       docs: params?.docId ? `{{ nodes.${params.docId}.output.docs }}` : [],
     },
   },
   output: {
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         text: {
-          type: "string",
-          description: "text generated by LLM",
+          type: 'string',
+          description: 'text generated by LLM',
         },
       },
     },
@@ -429,10 +483,10 @@ export const nodeLlmDefinition = (params?: {
 
 // workflow schema
 export const workflow_definition: WorkflowDefinition = {
-  name: "rag_flow",
-  title: "RAG Knowledge Base Flow",
-  description: "A typical RAG flow with parallel retrieval and reranking",
-  version: "1.0.0",
+  name: 'rag_flow',
+  title: 'RAG Knowledge Base Flow',
+  description: 'A typical RAG flow with parallel retrieval and reranking',
+  version: '1.0.0',
   execution: {
     timeout: 300,
     retry: {
@@ -440,27 +494,27 @@ export const workflow_definition: WorkflowDefinition = {
       delay: 5,
     },
     error_handling: {
-      strategy: "stop_on_error",
+      strategy: 'stop_on_error',
       notification: {
-        email: ["admin@example.com"],
+        email: ['admin@example.com'],
       },
     },
   },
   schema: {
     document_with_score: {
-      type: "object",
+      type: 'object',
       properties: {
         doc_id: {
-          type: "string",
+          type: 'string',
         },
         text: {
-          type: "string",
+          type: 'string',
         },
         score: {
-          type: "number",
+          type: 'number',
         },
         metadata: {
-          type: "object",
+          type: 'object',
         },
       },
     },
@@ -468,13 +522,15 @@ export const workflow_definition: WorkflowDefinition = {
   nodes: [],
   edges: [],
   style: {
-    edgeType: "default",
-    layoutDirection: "LR",
+    edgeType: 'default',
+    layoutDirection: 'LR',
   },
 };
 
 // workflow schema form common bot
-export const getBotCommonWorkflow = (type?: BotTypeEnum): WorkflowDefinition => {
+export const getBotCommonWorkflow = (
+  type?: BotTypeEnum,
+): WorkflowDefinition => {
   const startId = uniqid();
   const llmId = uniqid();
   return {
@@ -482,18 +538,18 @@ export const getBotCommonWorkflow = (type?: BotTypeEnum): WorkflowDefinition => 
     nodes: [
       {
         id: startId,
-        type: "start",
+        type: 'start',
         data: nodeStartDefinition(),
         position: { x: 0, y: 435.5 },
         deletable: false,
-        dragHandle: ".drag-handle",
+        dragHandle: '.drag-handle',
       },
       {
         id: llmId,
-        type: "llm",
+        type: 'llm',
         data: nodeLlmDefinition({ startId, botType: type }),
         position: { x: 400, y: 186.5 },
-        dragHandle: ".drag-handle",
+        dragHandle: '.drag-handle',
         deletable: false,
       },
     ],
@@ -502,17 +558,20 @@ export const getBotCommonWorkflow = (type?: BotTypeEnum): WorkflowDefinition => 
         id: uniqid(),
         source: startId,
         target: llmId,
-        type: "default",
+        type: 'default',
       },
     ],
   };
 };
 
 // workflow schema for knowledge bot
-export const getBotKnowledgeWorkflow = (type?: BotTypeEnum): WorkflowDefinition => {
+export const getBotKnowledgeWorkflow = (
+  type?: BotTypeEnum,
+): WorkflowDefinition => {
   const startId = uniqid();
   const vectorSearchId = uniqid();
   const keywordSearchId = uniqid();
+  const graphSearchId = uniqid();
   const mergeId = uniqid();
   const rerankId = uniqid();
   const llmId = uniqid();
@@ -522,50 +581,58 @@ export const getBotKnowledgeWorkflow = (type?: BotTypeEnum): WorkflowDefinition 
     nodes: [
       {
         id: startId,
-        type: "start",
+        type: 'start',
         data: nodeStartDefinition(),
-        position: { x: 0, y: 435.5 },
+        position: { x: 0, y: 719 },
         deletable: false,
-        dragHandle: ".drag-handle",
+        dragHandle: '.drag-handle',
       },
       {
         id: vectorSearchId,
         data: nodeVectorSearchDefinition({ startId }),
         position: { x: 422, y: 0 },
-        type: "vector_search",
-        dragHandle: ".drag-handle",
+        type: 'vector_search',
+        dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: keywordSearchId,
-        type: "keyword_search",
+        type: 'keyword_search',
         data: nodeKeywordSearchDefinition({ startId }),
         position: { x: 422, y: 610 },
-        dragHandle: ".drag-handle",
+        dragHandle: '.drag-handle',
+        deletable: false,
+      },
+      {
+        id: graphSearchId,
+        type: 'graph_search',
+        data: nodeGraphSearchDefinition(),
+        position: { x: 422, y: 1134 },
+        dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: mergeId,
-        type: "merge",
+        type: 'merge',
         data: nodeMergeDefinition({ vectorSearchId, keywordSearchId }),
-        position: { x: 884, y: 283.5 },
-        dragHandle: ".drag-handle",
+        position: { x: 884, y: 567 },
+        dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: rerankId,
-        type: "rerank",
+        type: 'rerank',
         data: nodeRerankDefinition({ docId: mergeId }),
-        position: { x: 1316, y: 369.5 },
-        dragHandle: ".drag-handle",
+        position: { x: 1316, y: 653 },
+        dragHandle: '.drag-handle',
         deletable: false,
       },
       {
         id: llmId,
-        type: "llm",
+        type: 'llm',
         data: nodeLlmDefinition({ startId, docId: rerankId, botType: type }),
-        position: { x: 1718, y: 186.5 },
-        dragHandle: ".drag-handle",
+        position: { x: 1718, y: 470 },
+        dragHandle: '.drag-handle',
         deletable: false,
       },
     ],
@@ -574,37 +641,49 @@ export const getBotKnowledgeWorkflow = (type?: BotTypeEnum): WorkflowDefinition 
         id: uniqid(),
         source: startId,
         target: vectorSearchId,
-        type: "default",
+        type: 'default',
       },
       {
         id: uniqid(),
         source: startId,
         target: keywordSearchId,
-        type: "default",
+        type: 'default',
+      },
+      {
+        id: uniqid(),
+        source: startId,
+        target: graphSearchId,
+        type: 'default',
       },
       {
         id: uniqid(),
         source: vectorSearchId,
         target: mergeId,
-        type: "default",
+        type: 'default',
       },
       {
         id: uniqid(),
         source: keywordSearchId,
         target: mergeId,
-        type: "default",
+        type: 'default',
+      },
+      {
+        id: uniqid(),
+        source: graphSearchId,
+        target: mergeId,
+        type: 'default',
       },
       {
         id: uniqid(),
         source: mergeId,
         target: rerankId,
-        type: "default",
+        type: 'default',
       },
       {
         id: uniqid(),
         source: rerankId,
         target: llmId,
-        type: "default",
+        type: 'default',
       },
     ],
   };
@@ -612,9 +691,9 @@ export const getBotKnowledgeWorkflow = (type?: BotTypeEnum): WorkflowDefinition 
 
 export const getInitialData = (type?: BotTypeEnum): WorkflowDefinition => {
   switch (type) {
-    case "knowledge":
+    case 'knowledge':
       return getBotKnowledgeWorkflow(type);
-    case "common":
+    case 'common':
       return getBotCommonWorkflow(type);
     default:
       return workflow_definition;

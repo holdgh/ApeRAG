@@ -200,6 +200,7 @@ export default {
   'flow.node.type.start': 'Start',
   'flow.node.type.vector_search': 'Vector search',
   'flow.node.type.keyword_search': 'Keyword search',
+  'flow.node.type.graph_search': 'Graph search',
   'flow.node.type.merge': 'Merge',
   'flow.node.type.rerank': 'Rerank',
   'flow.node.type.llm': 'LLM',

@@ -1504,6 +1504,7 @@ components:
             - start
             - vector_search
             - keyword_search
+            - graph_search
             - merge
             - rerank
             - llm
@@ -1869,10 +1870,9 @@ components:
           minimum: 1
           example: 4096
         timeout:
-          type: number
+          type: integer
           description: Maximum execution time in seconds for the API request
-          minimum: 1000
-          example: 3000
+          minimum: 1
         top_n:
           type: integer
           description: Number of top results to return when reranking documents
