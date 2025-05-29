@@ -1,24 +1,10 @@
-# Default values for aperag.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-
 image:
   repository: "docker.io/apecloud/aperag"  # Full image name including registry
-  tag: "latest"
+  tag: "v0.5.0-alpha.21"
   pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
-
-serviceAccount:
-  # Specifies whether a service account should be created
-  create: true
-  # Annotations to add to the service account
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
 
 podAnnotations: {}
 
@@ -80,7 +66,6 @@ elasticsearch:
   # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
   # ⚠️ Recommend to use ES_CREDENTIALS_SECRET_NAME
   ES_PASSWORD: ""
-
 
 django:
   dataPath: /data/aperag
@@ -223,7 +208,7 @@ frontend:
   replicaCount: 1
   image:
     repository: "docker.io/apecloud/aperag-frontend"  # Full image name including registry
-    tag: "latest"
+    tag: "v0.5.0-alpha.21"
     pullPolicy: IfNotPresent
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
