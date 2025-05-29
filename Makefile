@@ -148,8 +148,8 @@ generate_model_configs:
 .PHONY: version addlicense
 version:
 	@git rev-parse HEAD | cut -c1-7 > commit_id.txt
-	@echo "VERSION = '$(VERSION)'" > $(VERSION_FILE)
-	@echo "GIT_COMMIT_ID = '$$(cat commit_id.txt)'" >> $(VERSION_FILE)
+	@echo "VERSION = \"$(VERSION)\"" > $(VERSION_FILE)
+	@echo "GIT_COMMIT_ID = \"$$(cat commit_id.txt)\"" >> $(VERSION_FILE)
 	@rm commit_id.txt
 
 addlicense:
