@@ -7,8 +7,17 @@ env:
   IMAGE_NAME_FRONTEND: ${{ github.repository }}/aperag-frontend
 
 jobs:
+  enable-runner:
+    uses: apecloud/apecloud-cd/.github/workflows/enable-self-runner.yml@v0.1.76
+    with:
+      CLOUD_PROVIDER: "eks"
+      GITHUB_REPO: "apecloud/ApeRAG"
+      RUNNER_LABEL: "aperag-e2e-runner"
+    secrets: inherit
+
   build-backend:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, aperag-e2e-runner]
+    needs: [enable-runner]
     permissions:
       contents: read
       packages: write
@@ -66,7 +75,8 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
   build-frontend:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, aperag-e2e-runner]
+    needs: [enable-runner]
     permissions:
       contents: read
       packages: write
@@ -124,7 +134,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, aperag-e2e-runner]
     needs: [build-backend, build-frontend]
     permissions:
       contents: read
@@ -283,4 +293,15 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
-      timeout-minutes: 30 
+      timeout-minutes: 30
+
+  disable-runner:
+    if: ${{ always() }}
+    needs: [test]
+    uses: apecloud/apecloud-cd/.github/workflows/enable-self-runner.yml@v0.1.76
+    with:
+      CLOUD_PROVIDER: "eks"
+      GITHUB_REPO: "apecloud/ApeRAG"
+      RUNNER_LABEL: "aperag-e2e-runner"
+      ENABLE: "disable"
+    secrets: inherit 
