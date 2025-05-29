@@ -27,12 +27,11 @@ import {
   Space,
   Table,
   TableProps,
+  Tag,
   theme,
   Typography,
   Upload,
   UploadProps,
-  Tooltip,
-  Tag,
 } from 'antd';
 import byteSize from 'byte-size';
 import alpha from 'color-alpha';
@@ -97,10 +96,12 @@ export default () => {
     return (
       <Space direction="vertical" size="small">
         {indexTypes.map(({ name, status, key }) => (
-          <Tag 
+          <Tag
             key={key}
             color={
-              status ? UI_INDEX_STATUS[status as keyof typeof UI_INDEX_STATUS] : 'default'
+              status
+                ? UI_INDEX_STATUS[status as keyof typeof UI_INDEX_STATUS]
+                : 'default'
             }
             style={{ minWidth: '70px', textAlign: 'center' }}
           >

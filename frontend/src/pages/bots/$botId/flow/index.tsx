@@ -47,7 +47,7 @@ import {
 } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import { css, FormattedMessage, styled, useIntl, useModel } from 'umi';
-import uniqid from "uniqid";
+import uniqid from 'uniqid';
 
 import { WorkflowDefinition, WorkflowStyle } from '@/api';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
@@ -189,7 +189,7 @@ export default () => {
       if (done) {
         console.log('reader done');
         break;
-      };
+      }
       try {
         const msg: ApeFlowDebugInfo = JSON.parse(value.data);
         console.log(msg);

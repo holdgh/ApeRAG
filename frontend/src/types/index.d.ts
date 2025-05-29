@@ -1,10 +1,17 @@
-import { Bot, Document, WorkflowDefinition, NodeData, NodeTypeEnum, WorkflowStyleEdgeTypeEnum } from "@/api";
+import {
+  Bot,
+  Document,
+  NodeData,
+  NodeTypeEnum,
+  WorkflowDefinition,
+  WorkflowStyleEdgeTypeEnum,
+} from '@/api';
 
 import {
   Position,
-  Node as ReactFlowNode,
   Edge as ReactFlowEdge,
-} from "@xyflow/react";
+  Node as ReactFlowNode,
+} from '@xyflow/react';
 
 export type Merge<M, N> = Omit<M, Extract<keyof M, keyof N>> & N;
 
@@ -18,9 +25,12 @@ export type ApeNode = Merge<
     type: NodeTypeEnum;
   }
 >;
-export type ApeEdge = Merge<ReactFlowEdge, {
-  type: WorkflowStyleEdgeTypeEnum
-}>;
+export type ApeEdge = Merge<
+  ReactFlowEdge,
+  {
+    type: WorkflowStyleEdgeTypeEnum;
+  }
+>;
 
 export type ApeNodeHandlePosition = {
   sourcePosition?: Position;
@@ -59,11 +69,11 @@ export type ApeFlowNodeOutput = {
 
 export type ApeFlowDebugInfo = {
   event_type?:
-    | "flow_start"
-    | "node_start"
-    | "node_end"
-    | "flow_end"
-    | "output_chunk";
+    | 'flow_start'
+    | 'node_start'
+    | 'node_end'
+    | 'flow_end'
+    | 'output_chunk';
   node_id?: string;
   execution_id?: string;
   timestamp?: string;
@@ -79,8 +89,8 @@ export type ApeFlowDebugInfo = {
   };
 };
 
-export type ApeFlowStatus = "running" | "completed" | "stopped";
-export type ApeFlowNodeStatus = "pending" | "running" | "complated" | "stopped";
+export type ApeFlowStatus = 'running' | 'completed' | 'stopped';
+export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
 
 /**
  * bots
@@ -112,17 +122,17 @@ export type ApeBot = Merge<Bot, { config?: BotConfig }>;
  * collection
  */
 export type CollectionConfigSource =
-  | "system"
-  | "local"
-  | "s3"
-  | "oss"
-  | "ftp"
-  | "url"
-  | "git"
-  | "email"
-  | "feishu";
+  | 'system'
+  | 'local'
+  | 's3'
+  | 'oss'
+  | 'ftp'
+  | 'url'
+  | 'git'
+  | 'email'
+  | 'feishu';
 
-export type CollectionEmailSource = "gmail" | "outlook" | "qqmail" | "others";
+export type CollectionEmailSource = 'gmail' | 'outlook' | 'qqmail' | 'others';
 
 /**
  * documents

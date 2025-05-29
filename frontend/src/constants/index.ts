@@ -36,13 +36,13 @@ import iconCommon from '@/assets/bots/common.svg';
 import iconKnowledge from '@/assets/bots/knowledge.svg';
 
 import {
+  BotTypeEnum,
   CollectionConfig,
   CollectionStatusEnum,
-  DocumentStatusEnum,
-  DocumentVectorIndexStatusEnum,
   DocumentFulltextIndexStatusEnum,
   DocumentGraphIndexStatusEnum,
-  BotTypeEnum,
+  DocumentStatusEnum,
+  DocumentVectorIndexStatusEnum,
 } from '@/api';
 import type { CollectionConfigSource, CollectionEmailSource } from '@/types';
 
@@ -206,7 +206,10 @@ export const UI_DOCUMENT_STATUS: {
 };
 
 export const UI_INDEX_STATUS: {
-  [key in DocumentVectorIndexStatusEnum | DocumentFulltextIndexStatusEnum | DocumentGraphIndexStatusEnum]:
+  [key in
+    | DocumentVectorIndexStatusEnum
+    | DocumentFulltextIndexStatusEnum
+    | DocumentGraphIndexStatusEnum]:
     | 'success'
     | 'processing'
     | 'error'

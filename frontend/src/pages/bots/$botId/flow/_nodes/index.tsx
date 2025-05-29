@@ -1,8 +1,5 @@
-import {
-  ApeFlowNodeStatus,
-  ApeNode,
-  ApeNodeConfig,
-} from '@/types';
+import { NodeTypeEnum } from '@/api';
+import { ApeFlowNodeStatus, ApeNode, ApeNodeConfig } from '@/types';
 import {
   CaretDownOutlined,
   EditOutlined,
@@ -33,7 +30,6 @@ import {
   StyledFlowNodeHeader,
   StyledFlowNodeLabel,
 } from './_styles';
-import { NodeTypeEnum } from '@/api';
 
 const nodeStatusMap: {
   [key in ApeFlowNodeStatus]: {

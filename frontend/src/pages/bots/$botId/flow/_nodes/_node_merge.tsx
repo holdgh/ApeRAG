@@ -1,24 +1,21 @@
 import { ApeNode } from '@/types';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { applyNodeChanges, NodeChange } from '@xyflow/react';
+import { useDebounce } from 'ahooks';
 import { Collapse, Form, Select, Switch, theme } from 'antd';
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useIntl, useModel } from 'umi';
 import { NodeInput } from './_node-input';
-import { getCollapsePanelStyle } from './_styles';
 import { OutputParams } from './_outputs_params';
-import { useDebounce } from 'ahooks';
+import { getCollapsePanelStyle } from './_styles';
 
 export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
   const { token } = theme.useToken();
   const { formatMessage } = useIntl();
   const { nodes, setNodes, edges } = useModel('bots.$botId.flow.model');
 
-  const values = useMemo(
-    () => node.data.input?.values || [],
-    [node],
-  );
+  const values = useMemo(() => node.data.input?.values || [], [node]);
   const applyChanges = useCallback(() => {
     setNodes((nds) => {
       const changes: NodeChange[] = [
@@ -46,8 +43,12 @@ export const ApeNodeMerge = ({ node }: { node: ApeNode }) => {
     };
   }, [edges, nodes]);
 
-  const debouncedRefVectorSearchNode = useDebounce(refVectorSearchNode, { wait: 300 });
-  const debouncedRefKeywordSearchNode = useDebounce(refKeywordSearchNode, { wait: 300 });
+  const debouncedRefVectorSearchNode = useDebounce(refVectorSearchNode, {
+    wait: 300,
+  });
+  const debouncedRefKeywordSearchNode = useDebounce(refKeywordSearchNode, {
+    wait: 300,
+  });
 
   useEffect(() => {
     _.set(
