@@ -1,3 +1,4 @@
+# Configuration variables
 VERSION ?= v0.5.0-alpha.21-test
 VERSION_FILE ?= aperag/version/__init__.py
 BUILDX_PLATFORM ?= linux/amd64,linux/arm64
@@ -8,7 +9,7 @@ REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
 APERAG_IMAGE = apecloud/aperag
 APERAG_FRONTEND_IMG = apecloud/aperag-frontend
 
-# Detect host architecture for local builds
+# Detect host architecture
 UNAME_M := $(shell uname -m)
 ifeq ($(UNAME_M),x86_64)
     LOCAL_PLATFORM = linux/amd64
@@ -20,90 +21,30 @@ else
     LOCAL_PLATFORM = linux/amd64
 endif
 
-.PHONY: version
-version:
-	@git rev-parse HEAD | cut -c1-7 > commit_id.txt
-	@echo "VERSION = '$(VERSION)'" > $(VERSION_FILE)
-	@echo "GIT_COMMIT_ID = '$$(cat commit_id.txt)'" >> $(VERSION_FILE)
-	@rm commit_id.txt
+##################################################
+# Users - Local Development and Deployment
+##################################################
 
-# Create a new builder instance for multi-platform builds
-setup-builder:
-	@if ! docker buildx inspect multi-platform >/dev/null 2>&1; then \
-		docker buildx create --name multi-platform --use --driver docker-container --bootstrap; \
-	else \
-		docker buildx use multi-platform; \
+# Environment setup
+.PHONY: install venv
+install-uv:
+	@if [ -z "$$(which uv)" ]; then \
+		echo "Installing uv..."; \
+		pip install uv; \
 	fi
 
-# Build ApeRAG backend image (multi-platform)
-.PHONY: build-aperag
-build-aperag: setup-builder
-	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
-		--platform $(BUILDX_PLATFORM) \
-		$(BUILDX_ARGS) \
-		--push \
-		-f ./Dockerfile .
-
-# Build ApeRAG backend image for local platform only
-.PHONY: build-aperag-local
-build-aperag-local: setup-builder
-	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
-		--platform $(LOCAL_PLATFORM) \
-		$(BUILDX_ARGS) \
-		--load \
-		-f ./Dockerfile .
-
-# Build ApeRAG frontend image (multi-platform)
-.PHONY: build-aperag-frontend
-build-aperag-frontend: setup-builder
-	cd frontend && BASE_PATH=/web/ yarn build
-	cd frontend && docker buildx build \
-		--platform=$(BUILDX_PLATFORM) \
-		-f Dockerfile.prod \
-		--push \
-		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
-
-# Build ApeRAG frontend image for local platform only
-.PHONY: build-aperag-frontend-local
-build-aperag-frontend-local: setup-builder
-	cd frontend && BASE_PATH=/web/ yarn build
-	cd frontend && docker buildx build \
-		--platform=$(LOCAL_PLATFORM) \
-		-f Dockerfile.prod \
-		--load \
-		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
-
-.PHONY: image
-image: build
-
-# Build both backend and frontend (multi-platform)
-.PHONY: build
-build: build-aperag build-aperag-frontend
-
-# Build both backend and frontend (local platform only)
-.PHONY: build-local
-build-local: build-aperag-local build-aperag-frontend-local
-
-# Clean up builder instance
-clean-builder:
-	@if docker buildx inspect multi-platform >/dev/null 2>&1; then \
-		docker buildx rm multi-platform; \
+venv: install-uv
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		uv venv -p 3.11; \
 	fi
 
-# Show current configuration
-.PHONY: info
-info:
-	@echo "VERSION: $(VERSION)"
-	@echo "BUILDX_PLATFORM: $(BUILDX_PLATFORM)"
-	@echo "LOCAL_PLATFORM: $(LOCAL_PLATFORM)"
-	@echo "REGISTRY: $(REGISTRY)"
-	@echo "HOST ARCH: $(UNAME_M)"
+install: venv
+	@echo "Installing Python dependencies..."
+	uv sync --all-groups --all-extras
 
-#######################################################################################
-
-diff:
-	@python manage.py diffsettings
-
+# Database management
+.PHONY: migrate makemigration diff
 makemigration:
 	@python manage.py makemigrations
 
@@ -111,87 +52,31 @@ migrate:
 	@python manage.py migrate aperag
 	@python manage.py migrate
 
-run-redis:
-	@echo "Starting redis"
-	@docker inspect aperag-redis-dev > /dev/null 2>&1 || docker run -d --name aperag-redis-dev -p 6379:6379 redis:latest
-	@docker start aperag-redis-dev
+diff:
+	@python manage.py diffsettings
 
-run-postgres:
-	@echo "Starting postgres with pgvector extension"
-	@docker inspect aperag-postgres-dev > /dev/null 2>&1 || \
-		docker run -d --name aperag-postgres-dev \
-		-p 5432:5432 \
-		-e POSTGRES_PASSWORD=postgres \
-		pgvector/pgvector:pg16
-	@docker start aperag-postgres-dev
-	@echo "Ensuring pgvector extension is enabled"
-	@sleep 3
-	@docker exec aperag-postgres-dev psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
-	@echo "Verifying pgvector installation"
-	@docker exec aperag-postgres-dev psql -U postgres -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';"
+# Local services
+.PHONY: run-backend run-frontend run-db run-celery run-flower
+run-backend: migrate
+	python manage.py collectstatic --noinput
+	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
 
-run-qdrant:
-	@echo "Starting qdrant"
-	@docker inspect aperag-qdrant-dev > /dev/null 2>&1 || docker run -d --name aperag-qdrant-dev -p 6333:6333 qdrant/qdrant
-	@docker start aperag-qdrant-dev
+run-celery:
+	celery -A config.celery worker -B -l INFO
 
-run-es:
-	@echo "Starting Elasticsearch (development mode)"
-	@docker inspect aperag-es-dev > /dev/null 2>&1 || \
-	docker run -d \
-		--name aperag-es-dev \
-		-p 9200:9200 \
-		-e discovery.type=single-node \
-		-e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
-		-e xpack.security.enabled=false \
-		-v esdata:/usr/share/elasticsearch/data \
-		apecloud/elasticsearch:8.8.2
-	@docker start aperag-es-dev || true
-	@echo "Checking if IK Analyzer is installed..."
-	@docker exec aperag-es-dev bash -c \
-		"if [ ! -d plugins/analysis-ik ]; then \
-			echo 'Installing IK Analyzer from get.infini.cloud...'; \
-			curl -L --output /tmp/analysis-ik.zip https://get.infini.cloud/elasticsearch/analysis-ik/8.8.2; \
-			echo 'y' | bin/elasticsearch-plugin install file:///tmp/analysis-ik.zip; \
-			echo 'Restarting Elasticsearch to apply changes...'; \
-		else \
-			echo 'IK Analyzer is already installed.'; \
-		fi"
-	@docker restart aperag-es-dev > /dev/null
-	@echo "Elasticsearch is ready with IK Analyzer!"
-
-run-minio:
-	@echo "Starting MinIO"
-	@docker inspect aperag-minio-dev > /dev/null 2>&1 || \
-	docker run -d --name aperag-minio-dev -p 9000:9000 -p 9001:9001 \
-		quay.io/minio/minio server /data --console-address ":9001"
-	@docker start aperag-minio-dev > /dev/null
-
-run-db: run-redis run-postgres run-qdrant run-es
-
-connect-metadb:
-	@docker exec -it aperag-postgres-dev psql -p 5432 -U postgres
-
-clean:
-	@echo "Removing db.sqlite3"
-	@/bin/rm -f db.sqlite3
-	@echo "Removing container aperag-postgres-dev"
-	@docker rm -fv aperag-postgres-dev > /dev/null 2>&1 || true
-	@echo "Removing container aperag-redis-dev"
-	@docker rm -fv aperag-redis-dev > /dev/null 2>&1 || true
-	@echo "Removing container aperag-qdrant-dev"
-	@docker rm -fv aperag-qdrant-dev > /dev/null 2>&1 || true
-	@echo "Removing container aperag-es-dev"
-	@docker rm -fv aperag-es-dev > /dev/null 2>&1 || true
+run-flower:
+	celery -A config.celery flower --conf/flowerconfig.py
 
 run-frontend:
 	cp ./frontend/deploy/env.local.template ./frontend/.env
 	cd ./frontend && yarn dev
 
-run-backend: migrate
-	python manage.py collectstatic --noinput
-	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
+run-db:
+	@echo "Starting all database services..."
+	@make run-redis run-postgres run-qdrant run-es run-minio
 
+# Docker Compose deployment
+.PHONY: compose-up compose-down compose-logs
 compose-up: migrate
 	docker-compose -f compose.yml up -d
 
@@ -201,13 +86,34 @@ compose-down:
 compose-logs:
 	docker-compose -f compose.yml logs -f
 
+# Environment cleanup
+.PHONY: clean
+clean:
+	@echo "Cleaning development environment..."
+	@/bin/rm -f db.sqlite3
+	@docker rm -fv aperag-postgres-dev aperag-redis-dev aperag-qdrant-dev aperag-es-dev aperag-minio-dev > /dev/null 2>&1 || true
+
+##################################################
+# Developers - Code Quality and Tools
+##################################################
+
+# Development tools installation
+.PHONY: dev
+dev: install-uv
+	@echo "Installing development tools..."
+	@if [ -z "$$(which redocly)" ]; then npm install @redocly/cli -g; fi
+	@if [ -z "$$(which openapi-generator-cli)" ]; then npm install @openapitools/openapi-generator-cli -g; fi
+	@if [ -z "$$(which datamodel-codegen)" ]; then uv tool install datamodel-code-generator; fi
+
+# Code quality checks
+.PHONY: format lint static-check test
 format:
 	uvx ruff check --fix ./aperag ./tests
-	uvx ruff format --exit-non-zero-on-format ./aperag ./tests
+	uvx ruff format ./aperag ./tests
 
 lint:
 	uvx ruff check --no-fix ./aperag
-	uvx ruff format --exit-non-zero-on-format --diff ./aperag
+	uvx ruff format --check ./aperag
 
 static-check:
 	uvx mypy ./aperag
@@ -215,38 +121,12 @@ static-check:
 test:
 	pytest tests/ -v
 
-celery:
-	celery -A config.celery worker -B -l INFO
-
-flower:
-	celery -A config.celery flower --conf/flowerconfig.py
-
-addlicense:
-	@echo "Adding license headers..."
-	addlicense -c "ApeCloud, Inc." -y 2025 -l apache \
-	  -ignore "**/*.md" \
-	  -ignore "**/*.sh" \
-	  -ignore "**/*.yml" \
-	  -ignore "**/*.yaml" \
-	  -ignore "**/*.toml" \
-	  -ignore "**/Makefile" \
-	  -ignore "**/Dockerfile" \
-	  -ignore "**/compose.yml" \
-	  -ignore "**/__pycache__/**" \
-	  -ignore "**/migrations/**" \
-	  -ignore "**/templates/**" \
-	  -ignore "aperag/readers/**" \
-	  -ignore "aperag/vectorstore/**" \
-	  .
-
-.PHONY: merge-openapi
+# Code generation
+.PHONY: merge-openapi generate-models generate-frontend-sdk generate_model_configs
 merge-openapi:
-	@echo "Merging OpenAPI files..."
 	@cd aperag && redocly bundle ./api/openapi.yaml > ./api/openapi.merged.yaml
 
-.PHONY: generate-models
 generate-models: merge-openapi
-	@echo "Generating Python models from OpenAPI specification..."
 	@datamodel-codegen \
 		--input aperag/api/openapi.merged.yaml \
 		--input-file-type openapi \
@@ -257,47 +137,127 @@ generate-models: merge-openapi
 		--use-schema-description \
 		--enum-field-as-literal all
 	@rm aperag/api/openapi.merged.yaml
-	@echo "Models generated successfully in aperag/schema directory"
 
-.PHONY: generate_model_configs
-generate_model_configs:
-	python ./scripts/generate_model_configs.py
-
-.PHONY: generate-frontend-sdk
 generate-frontend-sdk:
 	cd ./frontend && yarn api:build
 
-.PHONY: install-uv venv install dev
+generate_model_configs:
+	python ./scripts/generate_model_configs.py
 
-# Basic tools
-install-uv: ## Install uv package manager.
-	@if [ -z "$$(which uv)" ]; then \
-		echo "Installing uv..."; \
-		pip install uv; \
+# Version management and licensing
+.PHONY: version addlicense
+version:
+	@git rev-parse HEAD | cut -c1-7 > commit_id.txt
+	@echo "VERSION = '$(VERSION)'" > $(VERSION_FILE)
+	@echo "GIT_COMMIT_ID = '$$(cat commit_id.txt)'" >> $(VERSION_FILE)
+	@rm commit_id.txt
+
+addlicense:
+	addlicense -c "ApeCloud, Inc." -y 2025 -l apache \
+		-ignore "**/*.{md,sh,yml,yaml,toml}" \
+		-ignore "**/Makefile" -ignore "**/Dockerfile" \
+		-ignore "**/{__pycache__,migrations,templates}/**" \
+		-ignore "aperag/{readers,vectorstore}/**" .
+
+##################################################
+# Build and CI/CD
+##################################################
+
+# Docker builder setup
+.PHONY: setup-builder clean-builder
+setup-builder:
+	@if ! docker buildx inspect multi-platform >/dev/null 2>&1; then \
+		docker buildx create --name multi-platform --use --driver docker-container --bootstrap; \
+	else \
+		docker buildx use multi-platform; \
 	fi
 
-# Regular users: just want to run the project locally
-venv: install-uv ## Create virtual environment if needed.
-	@if [ ! -d ".venv" ]; then \
-		echo "Creating virtual environment..."; \
-		uv venv -p 3.11; \
+clean-builder:
+	@if docker buildx inspect multi-platform >/dev/null 2>&1; then \
+		docker buildx rm multi-platform; \
 	fi
 
-install: venv ## Install dependencies for running the project.
-	@echo "Installing Python dependencies..."
-	uv sync --all-groups --all-extras
+# Image builds - multi-platform
+.PHONY: build build-aperag build-aperag-frontend
+build: build-aperag build-aperag-frontend
 
-# Developers: need code generation and other dev tools
-dev: install-uv ## Install development tools for code generation.
-	@if [ -z "$$(which redocly)" ]; then \
-		echo "Installing redocly..."; \
-		npm install @redocly/cli -g; \
-	fi
-	@if [ -z "$$(which openapi-generator-cli)" ]; then \
-		echo "Installing openapi-generator-cli..."; \
-		npm install @openapitools/openapi-generator-cli -g; \
-	fi
-	@if [ -z "$$(which datamodel-codegen)" ]; then \
-		echo "Installing datamodel-code-generator..."; \
-		uv tool install datamodel-code-generator; \
-	fi
+build-aperag: setup-builder
+	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
+		--platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push \
+		-f ./Dockerfile .
+
+build-aperag-frontend: setup-builder
+	cd frontend && BASE_PATH=/web/ yarn build
+	cd frontend && docker buildx build \
+		--platform=$(BUILDX_PLATFORM) -f Dockerfile.prod --push \
+		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
+
+# Image builds - local platform
+.PHONY: build-local build-aperag-local build-aperag-frontend-local
+build-local: build-aperag-local build-aperag-frontend-local
+
+build-aperag-local: setup-builder
+	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
+		--platform $(LOCAL_PLATFORM) $(BUILDX_ARGS) --load \
+		-f ./Dockerfile .
+
+build-aperag-frontend-local: setup-builder
+	cd frontend && BASE_PATH=/web/ yarn build
+	cd frontend && docker buildx build \
+		--platform=$(LOCAL_PLATFORM) -f Dockerfile.prod --load \
+		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
+
+##################################################
+# Utilities and Information
+##################################################
+
+# Configuration info
+.PHONY: info
+info:
+	@echo "VERSION: $(VERSION)"
+	@echo "BUILDX_PLATFORM: $(BUILDX_PLATFORM)"
+	@echo "LOCAL_PLATFORM: $(LOCAL_PLATFORM)"
+	@echo "REGISTRY: $(REGISTRY)"
+	@echo "HOST ARCH: $(UNAME_M)"
+
+# Database connection tools
+.PHONY: connect-metadb
+connect-metadb:
+	@docker exec -it aperag-postgres-dev psql -p 5432 -U postgres
+
+# Individual service startup (for advanced users)
+.PHONY: run-redis run-postgres run-qdrant run-es run-minio
+run-redis:
+	@docker inspect aperag-redis-dev > /dev/null 2>&1 || docker run -d --name aperag-redis-dev -p 6379:6379 redis:latest
+	@docker start aperag-redis-dev
+
+run-postgres:
+	@docker inspect aperag-postgres-dev > /dev/null 2>&1 || \
+		docker run -d --name aperag-postgres-dev -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:pg16
+	@docker start aperag-postgres-dev
+	@sleep 3
+	@docker exec aperag-postgres-dev psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+run-qdrant:
+	@docker inspect aperag-qdrant-dev > /dev/null 2>&1 || docker run -d --name aperag-qdrant-dev -p 6333:6333 qdrant/qdrant
+	@docker start aperag-qdrant-dev
+
+run-es:
+	@docker inspect aperag-es-dev > /dev/null 2>&1 || \
+		docker run -d --name aperag-es-dev -p 9200:9200 \
+		-e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
+		-e xpack.security.enabled=false -v esdata:/usr/share/elasticsearch/data \
+		apecloud/elasticsearch:8.8.2
+	@docker start aperag-es-dev
+
+run-minio:
+	@docker inspect aperag-minio-dev > /dev/null 2>&1 || \
+		docker run -d --name aperag-minio-dev -p 9000:9000 -p 9001:9001 \
+		quay.io/minio/minio server /data --console-address ":9001"
+	@docker start aperag-minio-dev
+
+# Compatibility aliases
+.PHONY: image celery flower
+image: build
+celery: run-celery
+flower: run-flower
