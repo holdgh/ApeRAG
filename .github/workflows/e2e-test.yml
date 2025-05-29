@@ -1,5 +1,5 @@
 name: Build and Deploy with KinD
-on: [push, pull_request]
+on: pull_request
 
 jobs:
   test:
@@ -71,12 +71,7 @@ jobs:
       run: |
         kubectl port-forward svc/aperag 8000:8000 &
         kubectl port-forward svc/aperag-frontend 3000:3000 &
-        sleep 10  # 等待端口转发生效
-
-    - name: Verify services are accessible
-      run: |
-        curl -f http://localhost:8000/health || echo "Backend health check failed"
-        curl -f http://localhost:3000 || echo "Frontend check failed"
+        sleep 10
 
     - name: Run E2E tests
       run: |
