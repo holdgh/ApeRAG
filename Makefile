@@ -158,8 +158,8 @@ version:
 	@echo "GIT_COMMIT_ID = \"$$(cat commit_id.txt)\"" >> $(VERSION_FILE)
 	@rm commit_id.txt
 
-.PHONY: addlicense
-addlicense: install-addlicense
+.PHONY: add-license
+add-license: install-addlicense
 	./downloads/addlicense -c "ApeCloud, Inc." -y 2025 -l apache \
 		-ignore "**/{__pycache__,migrations,templates,static}/**" \
 		-ignore "**/.{git,pytest_cache,mypy_cache,ruff_cache,next,nuxt}/**" \
