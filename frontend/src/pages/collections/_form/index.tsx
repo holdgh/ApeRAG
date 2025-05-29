@@ -13,7 +13,6 @@ import {
   Form,
   FormInstance,
   Input,
-  Radio,
   Row,
   Segmented,
   Space,
@@ -38,7 +37,6 @@ type Props = {
 };
 
 const configSourceKey = ['config', 'source'];
-const configSensitiveProtectKey = ['config', 'sensitive_protect'];
 
 const configEmbeddingModelKey = ['config', 'embedding', 'model'];
 const configEmbeddingModelServiceProviderKey = [
@@ -85,7 +83,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
     configEmailSourceKey,
     form,
   );
-  const sensitiveProtect = Form.useWatch(configSensitiveProtectKey, form);
   const embeddingModel = Form.useWatch(configEmbeddingModelKey, form);
 
   const enableKnowledgeGraph = Form.useWatch(
@@ -259,64 +256,6 @@ export default ({ onSubmit, action, values, form }: Props) => {
             </Form.Item>
             <Form.Item name={configCompletionCustomLlmProviderKey} hidden>
               <Input hidden />
-            </Form.Item>
-          </>
-        ) : null}
-
-        <Form.Item
-          label={
-            <>
-              <Typography.Text>
-                {formatMessage({ id: 'collection.sensitive.protect' })}
-              </Typography.Text>
-              <Typography.Text type="secondary">
-                （{formatMessage({ id: 'collection.sensitive.help' })}）
-              </Typography.Text>
-            </>
-          }
-          valuePropName="checked"
-          name={configSensitiveProtectKey}
-        >
-          <Switch />
-        </Form.Item>
-        {sensitiveProtect ? (
-          <>
-            <Form.Item
-              label={formatMessage({
-                id: 'collection.sensitive.protect.method',
-              })}
-              name={['config', 'sensitive_protect_method']}
-              required
-              rules={[
-                {
-                  required: true,
-                  message: formatMessage({
-                    id: 'collection.sensitive.protect.method.required',
-                  }),
-                },
-              ]}
-            >
-              <Radio.Group
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-                options={[
-                  {
-                    label: formatMessage({
-                      id: 'collection.sensitive.nostore',
-                    }),
-                    value: 'nostore',
-                  },
-                  {
-                    label: formatMessage({
-                      id: 'collection.sensitive.replace',
-                    }),
-                    value: 'replace',
-                  },
-                ]}
-              />
             </Form.Item>
           </>
         ) : null}

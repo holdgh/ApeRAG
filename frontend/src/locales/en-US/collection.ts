@@ -9,13 +9,6 @@ export const collection = {
   'collection.select': 'Select Dataset',
   'collection.tips':
     'You can import and manage your data sources in dataset to enhance the context of LLM.',
-  'collection.sensitive.protect': 'Sensitive information protect',
-  'collection.sensitive.protect.method': 'Protect method',
-  'collection.sensitive.protect.method.required': 'Protect method is required',
-  'collection.sensitive.help':
-    'Will not affect the protection status of uploaded documents',
-  'collection.sensitive.nostore': 'Warning and remove sensitive words',
-  'collection.sensitive.replace': 'Replace sensitive words with "*"',
   'collection.source': 'Data source',
   'collection.source.required': 'Data source is required',
   'collection.source.system': 'File upload',
