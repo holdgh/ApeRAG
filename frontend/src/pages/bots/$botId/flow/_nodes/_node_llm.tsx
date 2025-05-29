@@ -81,7 +81,12 @@ export const ApeNodeLlm = ({ node }: { node: ApeNode }) => {
                       value={_.get(values, 'model_name')}
                       onChange={(name) => {
                         _.set(values, 'model_name', name);
-                        // custom_llm_provider todo
+                        _.set(
+                          values,
+                          'custom_llm_provider',
+                          getProviderByModelName(name, 'completion').model
+                            ?.custom_llm_provider,
+                        );
                         _.set(
                           values,
                           'model_service_provider',
