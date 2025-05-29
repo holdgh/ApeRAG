@@ -1,9 +1,12 @@
 VERSION ?= v0.1.2
 VERSION_FILE ?= aperag/version/__init__.py
-LLMSERVER_VERSION ?= v0.1.1
 BUILDX_PLATFORM ?= linux/amd64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
+
+# Image names
+APERAG_IMAGE = apecloud/aperag
+APERAG_FRONTEND_IMG = apecloud/aperag-frontend
 
 .PHONY: version
 version:
@@ -11,8 +14,6 @@ version:
 	@echo "VERSION = '$(VERSION)'" > $(VERSION_FILE)
 	@echo "GIT_COMMIT_ID = '$$(cat commit_id.txt)'" >> $(VERSION_FILE)
 	@rm commit_id.txt
-
-.PHONY: image
 
 # Create a new builder instance for multi-platform builds
 setup-builder:
@@ -22,14 +23,33 @@ setup-builder:
 		docker buildx use multi-platform; \
 	fi
 
-# Build and push multi-platform image
-image: setup-builder
-	docker buildx build -t $(REGISTRY)/apecloud/aperag:$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile .
-	cd frontend && make PLATFORMS=${BUILDX_PLATFORM} REGISTRY=${REGISTRY} TAG=${VERSION}
+# Build ApeRAG backend image
+.PHONY: build-aperag
+build-aperag: setup-builder
+	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) --platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push -f ./Dockerfile .
+
+# Build ApeRAG frontend image
+.PHONY: build-aperag-frontend
+build-aperag-frontend: setup-builder
+	cd frontend && BASE_PATH=/web/ yarn build
+	cd frontend && docker buildx build \
+		--platform=$(BUILDX_PLATFORM) \
+		-f Dockerfile \
+		--push \
+		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
+
+.PHONY: image
+image: build
+
+# Build both backend and frontend
+.PHONY: build
+build: build-aperag build-aperag-frontend clean-builder
 
 # Clean up builder instance
 clean-builder:
 	docker buildx rm multi-platform
+
+#######################################################################################
 
 diff:
 	@python manage.py diffsettings
