@@ -241,11 +241,6 @@ LOGGING = {
         },
     },
     "loggers": {
-        "litellm": {
-            "handlers": ["console"],
-            "level": env.str("LITELLM_LOG_LEVEL", default="WARNING"),  # Read from environment variable
-            "propagate": False,
-        },
         "LiteLLM": {
             "handlers": ["console"],
             "level": env.str("LITELLM_LOG_LEVEL", default="WARNING"),  # Read from environment variable
