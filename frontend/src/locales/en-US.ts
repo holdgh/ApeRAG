@@ -33,7 +33,6 @@ export default {
   'text.direction.TB': 'Top to bottom',
   'text.direction.LR': 'Left to right',
   'text.references': 'References',
-  'text.integrations': 'Integrations',
   'text.title': 'Title',
   'text.title.required': 'Title is required',
   'text.description': 'Description',

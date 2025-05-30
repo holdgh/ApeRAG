@@ -278,11 +278,6 @@ export const NavbarBot = () => {
                     label: formatMessage({ id: 'flow.settings' }),
                     key: `/bots/${botId}/flow`,
                   },
-                  {
-                    label: formatMessage({ id: 'text.integrations' }),
-                    key: `/bots/${botId}/integrations`,
-                    disabled: true,
-                  },
                 ],
               },
             ]}

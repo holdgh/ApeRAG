@@ -39,7 +39,6 @@ import {
   BsArrowsExpand,
   BsArrowsExpandVertical,
   BsBezier,
-  BsClockHistory,
   BsDiagram3,
   BsFullscreenExit,
   BsPauseFill,
@@ -49,7 +48,10 @@ import { css, styled, useIntl, useModel } from 'umi';
 import uniqid from 'uniqid';
 
 import { WorkflowDefinition, WorkflowStyle } from '@/api';
+import { SaveOutlined } from '@ant-design/icons';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
+import _ from 'lodash';
+import { toast } from 'react-toastify';
 import { stringify } from 'yaml';
 import { NodeTypes } from './_nodes';
 import { getInitialData, getLayoutedElements } from './utils';
@@ -142,8 +144,8 @@ export default () => {
     );
   };
 
-  const saveFlow = async () => {
-    if (!bot?.id) return;
+  const saveFlow = async (): Promise<boolean> => {
+    if (!bot?.id) return false;
     const flow: WorkflowDefinition = {
       ...getInitialData(bot.type),
       nodes,
@@ -151,10 +153,11 @@ export default () => {
       style: flowStyle,
     };
     console.log(stringify(flow));
-    await api.botsBotIdFlowPut({
+    const res = await api.botsBotIdFlowPut({
       botId: bot.id,
       workflowDefinition: flow,
     });
+    return res.status === 200;
   };
 
   const debug = async () => {
@@ -334,6 +337,7 @@ export default () => {
                 <Button
                   type="text"
                   icon={<BsDiagram3 />}
+                  disabled={_.isEmpty(nodes)}
                   onClick={() =>
                     setFlowStyle((s) => ({ ...s, edgeType: 'smoothstep' }))
                   }
@@ -343,6 +347,7 @@ export default () => {
                 <Button
                   type="text"
                   icon={<BsBezier />}
+                  disabled={_.isEmpty(nodes)}
                   onClick={() =>
                     setFlowStyle((s) => ({ ...s, edgeType: 'default' }))
                   }
@@ -354,6 +359,7 @@ export default () => {
                 <Button
                   type="text"
                   icon={<BsArrowsExpand />}
+                  disabled={_.isEmpty(nodes)}
                   onClick={() => setLayout('TB')}
                 />
               </Tooltip>
@@ -361,6 +367,7 @@ export default () => {
                 <Button
                   type="text"
                   icon={<BsArrowsExpandVertical />}
+                  disabled={_.isEmpty(nodes)}
                   onClick={() => setLayout('LR')}
                 />
               </Tooltip>
@@ -369,29 +376,49 @@ export default () => {
               <Button
                 type="text"
                 icon={<BsFullscreenExit />}
+                disabled={_.isEmpty(nodes)}
                 onClick={() => setCenterView()}
               />
             </Tooltip>
-            <Tooltip title={formatMessage({ id: 'text.history.records' })}>
+            {/* <Tooltip title={formatMessage({ id: 'text.history.records' })}>
               <Button type="text" icon={<BsClockHistory />} />
-            </Tooltip>
-
-            <Button
-              type="primary"
-              onClick={() => {
-                if (flowStatus === 'running') {
-                  setFlowStatus('stopped');
-                } else {
-                  saveFlow();
-                  setDebugVisible(true);
-                }
-              }}
-              icon={flowStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />}
+            </Tooltip> */}
+            <Tooltip
+              title={
+                flowStatus === 'running'
+                  ? formatMessage({ id: 'action.stop' })
+                  : formatMessage({ id: 'action.run' })
+              }
             >
-              {flowStatus === 'running'
-                ? formatMessage({ id: 'action.stop' })
-                : formatMessage({ id: 'action.debug' })}
-            </Button>
+              <Button
+                type={flowStatus === 'running' ? 'link' : 'text'}
+                disabled={_.isEmpty(nodes)}
+                onClick={() => {
+                  if (flowStatus === 'running') {
+                    setFlowStatus('stopped');
+                  } else {
+                    saveFlow();
+                    setDebugVisible(true);
+                  }
+                }}
+              >
+                {flowStatus === 'running' ? <BsPauseFill /> : <BsPlayFill />}
+              </Button>
+            </Tooltip>
+            <Tooltip title={formatMessage({ id: 'action.save' })}>
+              <Button
+                type="text"
+                disabled={_.isEmpty(nodes)}
+                onClick={async () => {
+                  const isSave = await saveFlow();
+                  if (isSave) {
+                    toast.success(formatMessage({ id: 'tips.update.success' }));
+                  }
+                }}
+              >
+                <SaveOutlined />
+              </Button>
+            </Tooltip>
           </Space>
         </StyledFlowToolbar>
       </StyledReactFlow>
@@ -401,7 +428,7 @@ export default () => {
         onCancel={() => setDebugVisible(false)}
         onOk={debug}
         width={380}
-        okText={formatMessage({ id: 'action.debug' })}
+        okText={formatMessage({ id: 'action.run' })}
       >
         <br />
         <Form layout="vertical" form={debugForm} autoComplete="off">
