@@ -20,7 +20,6 @@ export const collection = {
   'collection.source.feishu': 'Feishu',
   'collection.source.local.placeholder': 'Path',
   'collection.source.local.required': 'Path is required',
-  'collection.status.QUESTION_PENDING': 'Pending',
   'collection.status.ACTIVE': 'Active',
   'collection.status.INACTIVE': 'Inactive',
   'collection.status.DELETED': 'Deleted',

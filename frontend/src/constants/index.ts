@@ -185,7 +185,6 @@ export const UI_COLLECTION_STATUS: {
   ACTIVE: 'success',
   INACTIVE: 'error',
   DELETED: 'error',
-  QUESTION_PENDING: 'warning',
 };
 
 export const UI_DOCUMENT_STATUS: {
