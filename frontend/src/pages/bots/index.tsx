@@ -139,53 +139,57 @@ export default () => {
             return (
               <Col key={bot.id} xs={24} sm={12} md={8} lg={6} xl={6} xxl={6}>
                 <Link to={`/bots/${bot.id}/chats`}>
-                  <Card hoverable size="small">
-                    <div
-                      style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-                    >
-                      <Avatar
-                        style={{ flex: 'none' }}
-                        size={40}
-                        src={bot.type && BOT_TYPE_ICON[bot.type]}
-                        shape="square"
-                      />
-                      <div style={{ flex: 'auto', maxWidth: '65%' }}>
-                        <div>
-                          <Typography.Text ellipsis>
+                  <Tooltip title={bot.description}>
+                    <Card hoverable size="small">
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Avatar
+                          style={{ flex: 'none' }}
+                          size={40}
+                          src={bot.type && BOT_TYPE_ICON[bot.type]}
+                          shape="square"
+                        />
+                        <div style={{ flex: 'auto', maxWidth: '75%' }}>
+                          <Typography.Text ellipsis strong>
                             {bot.title}
                           </Typography.Text>
                         </div>
                       </div>
-                    </div>
-                    <Divider style={{ marginBlock: 8 }} />
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 8,
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Typography.Text
-                        ellipsis
-                        type="secondary"
-                        style={{ fontSize: '0.9em', width: '60%' }}
-                      >
-                        <FormattedMessage id={`bot.type_${bot.type}`} />
-                      </Typography.Text>
-                      <Typography.Text
-                        ellipsis
-                        type="secondary"
+                      <Divider style={{ marginBlock: 8 }} />
+                      <div
                         style={{
-                          fontSize: '0.9em',
-                          width: '40%',
-                          textAlign: 'right',
+                          display: 'flex',
+                          gap: 8,
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
                         }}
                       >
-                        {moment(bot.created).fromNow()}
-                      </Typography.Text>
-                    </div>
-                  </Card>
+                        <Typography.Text
+                          ellipsis
+                          type="secondary"
+                          style={{ fontSize: '0.9em', width: '60%' }}
+                        >
+                          <FormattedMessage id={`bot.type_${bot.type}`} />
+                        </Typography.Text>
+                        <Typography.Text
+                          ellipsis
+                          type="secondary"
+                          style={{
+                            fontSize: '0.9em',
+                            width: '40%',
+                            textAlign: 'right',
+                          }}
+                        >
+                          {moment(bot.created).fromNow()}
+                        </Typography.Text>
+                      </div>
+                    </Card>
+                  </Tooltip>
                 </Link>
               </Col>
             );

@@ -63,10 +63,15 @@ export default () => {
     const values = await form.validateFields();
     setLoading(true);
     api
-      .collectionsCollectionIdSearchTestsPost({
-        collectionId,
-        searchTestRequest: values,
-      })
+      .collectionsCollectionIdSearchTestsPost(
+        {
+          collectionId,
+          searchTestRequest: values,
+        },
+        {
+          timeout: 30 * 1000,
+        },
+      )
       .then((res) => {
         setLoading(false);
         if (!res.data) {

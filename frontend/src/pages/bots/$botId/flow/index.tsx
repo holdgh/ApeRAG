@@ -193,10 +193,12 @@ export default () => {
         if (msg.event_type === 'flow_end') {
           setFlowStatus('completed');
         }
+        if (msg.event_type === 'flow_error' && msg.data?.error) {
+          toast.error(msg.data?.error, { theme: 'colored' });
+        }
         setMessages((msgs) => [...msgs, msg]);
       } catch (err) {
         console.log('flow msg parse error', err);
-        setFlowStatus('error');
       }
     }
   };
@@ -305,6 +307,8 @@ export default () => {
     return () => {
       setNodes([]);
       setEdges([]);
+      setMessages([]);
+      setFlowStatus('stopped');
     };
   }, []);
 
