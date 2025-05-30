@@ -165,6 +165,7 @@ export default () => {
     const { query } = await debugForm.validateFields();
     setDebugVisible(false);
     setFlowStatus('running');
+    setMessages([]);
     const response = await api.botsBotIdFlowDebugPost(
       {
         botId: bot.id,
@@ -196,6 +197,7 @@ export default () => {
         if (msg.event_type === 'flow_error' && msg.data?.error) {
           toast.error(msg.data?.error, { theme: 'colored' });
         }
+        console.log(msg);
         setMessages((msgs) => [...msgs, msg]);
       } catch (err) {
         console.log('flow msg parse error', err);
