@@ -32,7 +32,6 @@ export default {
   'text.direction.TB': '从上到下',
   'text.direction.LR': '从左到右',
   'text.references': '引用',
-  'text.integrations': '外部集成',
   'text.title': '标题',
   'text.title.required': '标题为必填项',
   'text.description': '描述',

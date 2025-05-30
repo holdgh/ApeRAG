@@ -1,8 +1,6 @@
 export const collection = {
   'collection.name': '知识库',
   'collection.files': '全部文件',
-  'collection.sync': '文件同步',
-  'collection.questions': '相关问题',
   'collection.settings': '设置',
   'collection.search_test': '检索测试',
   'collection.add': '添加知识库',

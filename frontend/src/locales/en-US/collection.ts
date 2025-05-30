@@ -1,8 +1,6 @@
 export const collection = {
   'collection.name': 'Dataset',
   'collection.files': 'All files',
-  'collection.sync': 'Files synchronous',
-  'collection.questions': 'Related questions',
   'collection.settings': 'Settings',
   'collection.search_test': 'Search Test',
   'collection.add': 'Add Dataset',

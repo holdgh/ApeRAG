@@ -23,16 +23,6 @@ export const NavbarCollection = () => {
         key: `/collections/${collectionId}/documents`,
       },
       {
-        label: <FormattedMessage id="collection.sync" />,
-        key: `/collections/${collectionId}/sync`,
-        disabled: true,
-      },
-      {
-        label: <FormattedMessage id="collection.questions" />,
-        key: `/collections/${collectionId}/questions`,
-        disabled: true,
-      },
-      {
         label: <FormattedMessage id="collection.search_test" />,
         key: `/collections/${collectionId}/search-test`,
       },
