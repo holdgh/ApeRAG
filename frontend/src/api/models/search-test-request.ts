@@ -30,7 +30,7 @@ import type { VectorSearchParams } from './vector-search-params';
  */
 export interface SearchTestRequest {
     /**
-     * The user input question
+     * The user input query
      * @type {string}
      * @memberof SearchTestRequest
      */
