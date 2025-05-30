@@ -19,7 +19,6 @@ export const collection = {
   'collection.source.feishu': '飞书',
   'collection.source.local.placeholder': '目录地址',
   'collection.source.local.required': '目录地址为必填项',
-  'collection.status.QUESTION_PENDING': '待解答',
   'collection.status.ACTIVE': '已激活',
   'collection.status.INACTIVE': '未激活',
   'collection.status.DELETED': '已删除',
