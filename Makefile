@@ -286,12 +286,29 @@ run-qdrant:
 	@docker start aperag-qdrant-dev
 
 run-es:
-	@docker inspect aperag-es-dev >/dev/null 2>&1 || \
-		docker run -d --name aperag-es-dev -p 9200:9200 \
-		-e discovery.type=single-node -e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
-		-e xpack.security.enabled=false -v esdata:/usr/share/elasticsearch/data \
+	@echo "Starting Elasticsearch (development mode)"
+	@docker inspect aperag-es-dev > /dev/null 2>&1 || \
+	docker run -d \
+		--name aperag-es-dev \
+		-p 9200:9200 \
+		-e discovery.type=single-node \
+		-e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
+		-e xpack.security.enabled=false \
+		-v esdata:/usr/share/elasticsearch/data \
 		apecloud/elasticsearch:8.8.2
-	@docker start aperag-es-dev
+	@docker start aperag-es-dev || true
+	@echo "Checking if IK Analyzer is installed..."
+	@docker exec aperag-es-dev bash -c \
+		"if [ ! -d plugins/analysis-ik ]; then \
+			echo 'Installing IK Analyzer from get.infini.cloud...'; \
+			curl -L --output /tmp/analysis-ik.zip https://get.infini.cloud/elasticsearch/analysis-ik/8.8.2; \
+			echo 'y' | bin/elasticsearch-plugin install file:///tmp/analysis-ik.zip; \
+			echo 'Restarting Elasticsearch to apply changes...'; \
+		else \
+			echo 'IK Analyzer is already installed.'; \
+		fi"
+	@docker restart aperag-es-dev > /dev/null
+	@echo "Elasticsearch is ready with IK Analyzer!"
 
 run-minio:
 	@docker inspect aperag-minio-dev >/dev/null 2>&1 || \

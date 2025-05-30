@@ -23,7 +23,7 @@ from lightrag.base import DocStatus
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.utils import EmbeddingFunc
 
-from aperag.db.models import Collection
+from aperag.db.models import Collection, Document
 from aperag.db.ops import (
     query_msp_dict,
 )
@@ -41,6 +41,10 @@ class LightRAGConfig:
     # Storage Configuration
     WORKING_DIR = "./documents"
     ENABLE_LLM_CACHE = False
+
+    # Chunking Configuration
+    CHUNK_TOKEN_SIZE = 3000
+    CHUNK_OVERLAP_TOKEN_SIZE = 100
 
     # Performance Configuration
     MAX_PARALLEL_INSERT = 2
@@ -146,6 +150,38 @@ class LightRagHolder:
                 f"Failed to delete document {doc_id} from LightRAG namespace {self.namespace_prefix}: {str(e)}"
             )
             raise LightRAGServiceError(f"Document deletion failed: {str(e)}") from e
+
+    async def adelete_by_collection(self, collection_id: str) -> None:
+        """Delete all documents for a collection with error handling"""
+        try:
+            logger.info(f"Deleting all documents for collection {collection_id} from LightRAG namespace: {self.namespace_prefix}")
+            
+            # Get all document IDs in this collection
+            document_ids = await Document.objects.filter(collection_id=collection_id).values_list('id', flat=True)
+            document_ids = [str(doc_id) async for doc_id in document_ids]
+            
+            if not document_ids:
+                logger.info(f"No documents found for collection {collection_id}, skipping deletion")
+                return
+            
+            # Delete each document from lightrag
+            deleted_count = 0
+            failed_count = 0
+            for document_id in document_ids:
+                try:
+                    await self.rag.adelete_by_doc_id(document_id)
+                    deleted_count += 1
+                    logger.debug(f"Successfully deleted lightrag document for document ID: {document_id}")
+                except Exception as e:
+                    failed_count += 1
+                    logger.warning(f"Failed to delete lightrag document for document ID {document_id}: {str(e)}")
+            
+            logger.info(f"Completed lightrag document deletion for collection {collection_id}: {deleted_count} deleted, {failed_count} failed")
+            
+        except Exception as e:
+            # Log error but don't raise - let the deletion task continue with other cleanup
+            logger.error(f"Error during lightrag collection deletion for collection {collection_id}: {str(e)}")
+            logger.warning(f"Continuing with other cleanup tasks despite lightrag deletion failure")
 
 
 def log_llm_performance(start_time: datetime, end_time: datetime, prompt: str, response: str) -> None:
@@ -274,6 +310,8 @@ async def create_and_initialize_lightrag(
         rag = LightRAG(
             namespace_prefix=namespace_prefix,
             working_dir=LightRAGConfig.WORKING_DIR,
+            chunk_token_size=LightRAGConfig.CHUNK_TOKEN_SIZE,
+            chunk_overlap_token_size=LightRAGConfig.CHUNK_OVERLAP_TOKEN_SIZE,
             llm_model_func=llm_func,
             embedding_func=EmbeddingFunc(
                 embedding_dim=embed_dim,
@@ -350,23 +388,29 @@ class LightRAGCache:
 _cache = LightRAGCache()
 
 
-async def get_lightrag_holder(collection: Collection) -> LightRagHolder:
+async def get_lightrag_holder(collection: Collection, use_cache: bool = True) -> LightRagHolder:
     """
     Get or create a LightRAG holder for the given collection.
-    Uses caching to avoid repeated initialization.
+    Uses caching to avoid repeated initialization when use_cache=True.
+    
+    Args:
+        collection: The collection to create LightRAG holder for
+        use_cache: Whether to use cache. If False, always creates a new instance.
     """
     namespace_prefix: str = generate_lightrag_namespace_prefix(collection.id)
 
     if not namespace_prefix or not isinstance(namespace_prefix, str):
         raise ValueError("A valid namespace_prefix string must be provided.")
 
-    # Try to get from cache first
-    cached_holder = await _cache.get(namespace_prefix)
-    if cached_holder:
-        logger.debug(f"Using cached LightRAG instance for namespace '{namespace_prefix}'")
-        return cached_holder
+    # Try to get from cache first only if use_cache is True
+    if use_cache:
+        cached_holder = await _cache.get(namespace_prefix)
+        if cached_holder:
+            logger.debug(f"Using cached LightRAG instance for namespace '{namespace_prefix}'")
+            return cached_holder
 
-    logger.info(f"Initializing new LightRAG instance for namespace '{namespace_prefix}' (cache miss)")
+    cache_status = "cache miss" if use_cache else "cache disabled"
+    logger.info(f"Initializing new LightRAG instance for namespace '{namespace_prefix}' ({cache_status})")
 
     try:
         # Create new instance
@@ -378,15 +422,19 @@ async def get_lightrag_holder(collection: Collection) -> LightRagHolder:
 
         holder = await create_and_initialize_lightrag(namespace_prefix, llm_func, embed_func, embed_dim=dim)
 
-        # Cache the new instance
-        await _cache.set(namespace_prefix, holder)
+        # Cache the new instance only if use_cache is True
+        if use_cache:
+            await _cache.set(namespace_prefix, holder)
+            logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized and cached successfully")
+        else:
+            logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized (not cached)")
 
-        logger.info(f"LightRAG instance for namespace '{namespace_prefix}' initialized and cached successfully")
         return holder
 
     except Exception as e:
-        # Clean up any partial cache entries
-        await _cache.remove(namespace_prefix)
+        # Clean up any partial cache entries if we were using cache
+        if use_cache:
+            await _cache.remove(namespace_prefix)
         logger.error(f"Failed to initialize LightRAG instance for namespace '{namespace_prefix}': {str(e)}")
         raise LightRAGInitializationError(
             f"Failed during LightRAG instance creation/initialization for namespace '{namespace_prefix}'"

@@ -16,18 +16,25 @@
 from asgiref.sync import async_to_sync
 
 from aperag.context.full_text import create_index, delete_index
-from aperag.db.models import Collection
+from aperag.db.models import Collection, Document
 from aperag.embed.base_embedding import get_collection_embedding_service
+from aperag.graph import lightrag_holder
+from aperag.graph.lightrag_holder import delete_lightrag_holder
 from aperag.schema.utils import parseCollectionConfig
 from aperag.source.base import get_source
 from aperag.tasks.sync_documents_task import sync_documents
 from aperag.utils.utils import (
     generate_fulltext_index_name,
+    generate_lightrag_namespace_prefix,
     generate_qa_vector_db_collection_name,
     generate_vector_db_collection_name,
 )
 from config.celery import app
 from config.vector_db import get_vector_db_connector
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @app.task
@@ -60,6 +67,14 @@ def init_collection_task(collection_id, document_user_quota):
 @app.task
 def delete_collection_task(collection_id):
     collection = Collection.objects.get(id=collection_id)
+
+    # Delete lightrag documents for this collection
+    async def _async_delete_lightrag():
+        # Create new LightRAG instance without using cache for Celery tasks
+        rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
+        await rag_holder.adelete_by_collection(collection_id)
+    # Execute the async deletion
+    async_to_sync(_async_delete_lightrag)()
 
     # TODO remove the related collection in the vector db
     index_name = generate_fulltext_index_name(collection.id)

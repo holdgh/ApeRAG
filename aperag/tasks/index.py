@@ -404,8 +404,29 @@ def add_lightrag_index_task(self, content, document_id, file_path):
     """
     logger.info(f"Begin LightRAG indexing task for document (ID: {document_id})")
 
-    # Get document object and update status
-    document = Document.objects.get(id=document_id)
+    # Get document object and check if it's deleted
+    try:
+        document = Document.objects.get(id=document_id)
+    except Document.DoesNotExist:
+        logger.info(f"Document {document_id} not found, skipping LightRAG indexing")
+        return
+    
+    if document.status == Document.Status.DELETED:
+        logger.info(f"Document {document_id} is deleted, skipping LightRAG indexing")
+        return
+    
+    # Check if collection is deleted
+    try:
+        collection = async_to_sync(document.get_collection)()
+        if collection.status == Collection.Status.DELETED:
+            logger.info(f"Collection {collection.id} is deleted, skipping LightRAG indexing for document {document_id}")
+            document.graph_index_status = Document.IndexStatus.SKIPPED
+            document.save()
+            return
+    except Collection.DoesNotExist:
+        logger.info(f"Collection not found for document {document_id}, skipping LightRAG indexing")
+        return
+
     document.graph_index_status = Document.IndexStatus.RUNNING
     document.save()
 
@@ -415,15 +436,8 @@ def add_lightrag_index_task(self, content, document_id, file_path):
         document = await Document.objects.aget(id=document_id)
         collection = await document.get_collection()
 
-        # Avoid using cached instances in Celery tasks, create new ones each time
-        embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
-        llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
-        namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
-
-        # Create new LightRAG instance directly without using cache
-        rag_holder = await lightrag_holder.create_and_initialize_lightrag(
-            namespace_prefix, llm_func, embed_func, embed_dim=dim
-        )
+        # Create new LightRAG instance without using cache for Celery tasks
+        rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
 
         await rag_holder.ainsert(input=content, ids=document_id, file_paths=file_path)
 
@@ -468,15 +482,8 @@ def remove_lightrag_index_task(self, document_id, collection_id):
     async def _async_delete_lightrag():
         collection = await Collection.objects.aget(id=collection_id)
 
-        # Avoid using cached instances in Celery tasks, create new ones each time
-        embed_func, dim = await lightrag_holder.gen_lightrag_embed_func(collection=collection)
-        llm_func = await lightrag_holder.gen_lightrag_llm_func(collection=collection)
-        namespace_prefix = generate_lightrag_namespace_prefix(collection.id)
-
-        # Create new LightRAG instance directly without using cache
-        rag_holder = await lightrag_holder.create_and_initialize_lightrag(
-            namespace_prefix, llm_func, embed_func, embed_dim=dim
-        )
+        # Create new LightRAG instance without using cache for Celery tasks
+        rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
         await rag_holder.adelete_by_doc_id(document_id)
         logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
 
