@@ -62,15 +62,17 @@ export type ApeFlowNodeOutput = {
     name?: string;
     object_path?: string;
     source?: string;
+    recall_type?: string;
   };
 };
 
 export type ApeFlowDebugInfo = {
   event_type?:
     | 'flow_start'
+    | 'flow_error'
+    | 'flow_end'
     | 'node_start'
     | 'node_end'
-    | 'flow_end'
     | 'output_chunk';
   node_id?: string;
   execution_id?: string;
@@ -78,6 +80,7 @@ export type ApeFlowDebugInfo = {
   data?: {
     flow_id: string;
     node_type?: string;
+    error?: string;
     inputs?: any;
     outputs?: {
       docs: ApeFlowNodeOutput[];
@@ -87,7 +90,7 @@ export type ApeFlowDebugInfo = {
   };
 };
 
-export type ApeFlowStatus = 'running' | 'completed' | 'stopped' | 'error';
+export type ApeFlowStatus = 'running' | 'completed' | 'stopped';
 export type ApeFlowNodeStatus = 'pending' | 'running' | 'complated' | 'stopped';
 
 /**

@@ -59,19 +59,28 @@ export const NodeOutputs = ({ node }: OutputProps) => {
       ),
       children: <ApeMarkdown>{output.text}</ApeMarkdown>,
       extra: (
-        <Tooltip title={`Score: ${output.score}`}>
-          <Space align="center">
-            <Progress
-              type="dashboard"
-              percent={((output.score || 0) * 100) / 1}
-              showInfo={false}
-              size={20}
-            />
-            <Typography.Text type="secondary">
-              {(output.score || 0).toFixed(2)}
+        <Space size="large">
+          {output.metadata?.recall_type ? (
+            <Typography.Text>
+              {formatMessage({
+                id: `searchTest.type.${output.metadata.recall_type}`,
+              })}
             </Typography.Text>
-          </Space>
-        </Tooltip>
+          ) : null}
+          <Tooltip title={`Score: ${output.score}`}>
+            <Space align="center">
+              <Progress
+                type="dashboard"
+                percent={((output.score || 0) * 100) / 1}
+                showInfo={false}
+                size={20}
+              />
+              <Typography.Text type="secondary">
+                {(output.score || 0).toFixed(2)}
+              </Typography.Text>
+            </Space>
+          </Tooltip>
+        </Space>
       ),
       style: {
         background: token.colorBgContainer,

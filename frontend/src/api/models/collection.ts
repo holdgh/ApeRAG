@@ -85,8 +85,7 @@ export interface Collection {
 export const CollectionStatusEnum = {
     ACTIVE: 'ACTIVE',
     INACTIVE: 'INACTIVE',
-    DELETED: 'DELETED',
-    QUESTION_PENDING: 'QUESTION_PENDING'
+    DELETED: 'DELETED'
 } as const;
 
 export type CollectionStatusEnum = typeof CollectionStatusEnum[keyof typeof CollectionStatusEnum];
