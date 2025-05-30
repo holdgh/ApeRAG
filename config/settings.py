@@ -240,6 +240,18 @@ LOGGING = {
             "formatter": "verbose",
         },
     },
+    "loggers": {
+        "litellm": {
+            "handlers": ["console"],
+            "level": env.str("LITELLM_LOG_LEVEL", default="WARNING"),  # Read from environment variable
+            "propagate": False,
+        },
+        "LiteLLM": {
+            "handlers": ["console"],
+            "level": env.str("LITELLM_LOG_LEVEL", default="WARNING"),  # Read from environment variable
+            "propagate": False,
+        },
+    },
     "root": {
         "handlers": ["console"],
         "level": env.str("DJANGO_LOG_LEVEL", default="INFO"),
