@@ -1,51 +1,114 @@
 # Git Hooks
 
-这个目录包含了项目的git hooks，用于在git操作时自动执行代码质量检查。
+This directory contains the project's Git hooks, which are used to automatically perform code quality checks during Git operations.
 
-## 可用的Hooks
+## Available Hooks
 
 ### pre-commit
-在每次`git commit`之前自动执行：
-- `make lint` - 代码质量检查
-- `make add-license` - 自动添加Apache许可证头
+Automatically executes before every `git commit`:
+- `make lint` - Performs code quality checks.
+- `make add-license` - Automatically adds the Apache license header.
 
-## 安装方法
+---
+## Installation Methods
 
-### 方法1：使用make命令（推荐）
+### Method 1: Using `make` (Recommended)
 ```bash
 make dev
 ```
 
-### 方法2：直接运行安装脚本
+### Method 2: Directly Run the Installation Script
 ```bash
 ./scripts/install-hooks.sh
 ```
 
-### 方法3：手动安装
+### Method 3: Manual Installation
 ```bash
 cp scripts/hooks/* .git/hooks/
 chmod +x .git/hooks/*
 ```
 
-## 工作流程
+---
+## Workflow
 
-1. 当你运行`git commit`时，pre-commit hook会自动执行
-2. 首先运行`make lint`检查代码质量
-3. 然后运行`make add-license`添加许可证头
-4. 如果有文件被修改（如添加了许可证头），需要重新提交
-5. 如果检查失败，提交会被阻止
+1.  When you run `git commit`, the pre-commit hook automatically executes.
+2.  First, `make lint` runs to check code quality.
+3.  Then, `make add-license` runs to add the license header.
+4.  If files are modified (e.g., by adding the license header), you'll need to re-commit.
+5.  If checks fail, the commit will be blocked.
 
-## 跳过Hooks（不推荐）
+---
+## Skipping Hooks (Not Recommended)
 
-如果在特殊情况下需要跳过hooks，可以使用：
+In special circumstances, if you need to skip the hooks, you can use:
 ```bash
 git commit --no-verify -m "commit message"
 ```
 
-**注意：** 跳过hooks可能导致代码质量问题，请谨慎使用。
+**Note:** Skipping hooks can lead to code quality issues. Please use with caution.
 
-## 团队协作
+---
+## Team Collaboration
 
-- 所有团队成员在克隆仓库后都应该运行`make dev`来安装hooks
-- hooks脚本存储在`scripts/hooks/`目录中，可以被git跟踪
-- 对hooks的修改会影响整个团队，请谨慎修改 
+-   All team members should run `make dev` to install the hooks after cloning the repository.
+-   Hook scripts are stored in the `scripts/hooks/` directory and can be tracked by Git.
+-   Modifications to hooks will affect the entire team. Please make changes carefully.
+Got it. Here's the English version of the Git Hooks documentation, keeping it concise as you prefer:
+
+---
+# Git Hooks
+
+This directory contains the project's Git hooks, which automatically run code quality checks during Git operations.
+
+---
+## Available Hooks
+
+### `pre-commit`
+Automatically runs before every `git commit`:
+- `make lint` - performs code quality checks.
+- `make add-license` - automatically adds the Apache license header.
+
+---
+## Installation
+
+### Method 1: Using `make` (Recommended)
+```bash
+make dev
+```
+
+### Method 2: Running the Install Script Directly
+```bash
+./scripts/install-hooks.sh
+```
+
+### Method 3: Manual Installation
+```bash
+cp scripts/hooks/* .git/hooks/
+chmod +x .git/hooks/*
+```
+
+---
+## Workflow
+
+1.  When you run `git commit`, the `pre-commit` hook automatically executes.
+2.  First, `make lint` checks code quality.
+3.  Then, `make add-license` adds the license header.
+4.  If files are modified (e.g., by adding the license header), a re-commit is required.
+5.  If checks fail, the commit is prevented.
+
+---
+## Skipping Hooks (Not Recommended)
+
+To skip hooks in special cases, use:
+```bash
+git commit --no-verify -m "commit message"
+```
+
+**Note:** Skipping hooks can lead to code quality issues. Use with caution.
+
+---
+## Team Collaboration
+
+* All team members should run `make dev` after cloning the repository to install the hooks.
+* Hook scripts are stored in the `scripts/hooks/` directory and are tracked by Git.
+* Changes to hooks affect the entire team, so modify them carefully.
