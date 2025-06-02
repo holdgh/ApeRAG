@@ -105,6 +105,7 @@ test = [
     "pytablewriter<2.0.0,>=1.0.0",
     "pytest",
     "pytest_asyncio",
+    "pytest-benchmark>=5.1.0",
     "moto",
 ]
 
