@@ -318,10 +318,10 @@ async def query_msp(user, provider, filterDeletion=True):
     try:
         if filterDeletion:
             return await ModelServiceProvider.objects.exclude(status=ModelServiceProvider.Status.DELETED).aget(
-                user=user, pk=provider
+                user=user, name=provider
             )
         else:
-            return await ModelServiceProvider.objects.aget(user=user, pk=provider)
+            return await ModelServiceProvider.objects.aget(user=user, name=provider)
     except ModelServiceProvider.DoesNotExist:
         return None
 
