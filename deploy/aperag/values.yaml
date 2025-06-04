@@ -16,6 +16,7 @@ ingress:
   annotations: {}
 
 postgres:
+  enabled: true  # Enable/disable PostgreSQL database integration
   POSTGRES_HOST: "pg-cluster-postgresql-postgresql"
   POSTGRES_PORT: "5432"
   POSTGRES_DB: "postgres"
@@ -35,6 +36,7 @@ postgres:
   POSTGRES_PASSWORD: ""
 
 redis:
+  enabled: true  # Enable/disable Redis database integration
   REDIS_HOST: "redis-cluster-redis-redis"
   REDIS_PORT: "6379"
   # The name of the Secret containing Redis credentials (e.g., "password" key).
@@ -49,6 +51,7 @@ redis:
   REDIS_PASSWORD: "redis"
 
 elasticsearch:
+  enabled: true  # Enable/disable Elasticsearch integration (used for hybrid search)
   # Hostname for the Elasticsearch HTTP service.
   # Default: "es-cluster-mdit-http" (Kubeblocks Elasticsearch SVC name)
   ES_HOST: "es-cluster-mdit-http"
@@ -68,6 +71,7 @@ elasticsearch:
   ES_PASSWORD: ""
 
 neo4j:
+  enabled: false  # Enable/disable Neo4j graph database integration (optional for graph features)
   # Hostname for the Neo4j Bolt service.
   # Default: "neo4j-cluster-neo4j" (Kubeblocks Neo4j SVC name)
   NEO4J_HOST: "neo4j-cluster-neo4j"
