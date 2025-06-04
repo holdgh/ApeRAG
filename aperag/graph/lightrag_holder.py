@@ -324,7 +324,7 @@ async def create_and_initialize_lightrag(
         )
 
         rag = LightRAG(
-            namespace_prefix=namespace_prefix,
+            # namespace_prefix=namespace_prefix,
             working_dir=LightRAGConfig.WORKING_DIR,
             chunk_token_size=LightRAGConfig.CHUNK_TOKEN_SIZE,
             chunk_overlap_token_size=LightRAGConfig.CHUNK_OVERLAP_TOKEN_SIZE,
@@ -402,7 +402,7 @@ async def checkAndConfigurePostgresqlStorage(
         os.environ["POSTGRES_PORT"] = POSTGRES_PORT
         os.environ["POSTGRES_USER"] = POSTGRES_USER
         os.environ["POSTGRES_PASSWORD"] = POSTGRES_PASSWORD
-        os.environ["POSTGRES_DB"] = POSTGRES_DATABASE
+        os.environ["POSTGRES_DATABASE"] = POSTGRES_DATABASE
         os.environ["POSTGRES_WORKSPACE"] = POSTGRES_WORKSPACE
 
         # Log which storage types are using PostgreSQL
