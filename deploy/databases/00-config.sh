@@ -16,6 +16,6 @@ HELM_REPO="https://apecloud.github.io/helm-charts"
 ENABLE_POSTGRESQL=true
 ENABLE_REDIS=true
 ENABLE_QDRANT=true
-ENABLE_NEO4J=false
+ENABLE_NEO4J=true
 ENABLE_ELASTICSEARCH=true
 ENABLE_MONGODB=false
