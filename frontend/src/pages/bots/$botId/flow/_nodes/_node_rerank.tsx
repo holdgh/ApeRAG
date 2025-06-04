@@ -83,6 +83,12 @@ export const ApeNodeRerank = ({ node }: { node: ApeNode }) => {
                       _.set(values, 'model', name);
                       _.set(
                         values,
+                        'custom_llm_provider',
+                        getProviderByModelName(name, 'rerank').model
+                          ?.custom_llm_provider,
+                      );
+                      _.set(
+                        values,
                         'model_service_provider',
                         getProviderByModelName(name, 'rerank').provider?.name,
                       );
