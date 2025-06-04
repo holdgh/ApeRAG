@@ -69,8 +69,8 @@ elasticsearch:
 
 neo4j:
   # Hostname for the Neo4j Bolt service.
-  # Default: "neo4j-cluster-neo4j-neo4j" (Kubeblocks Neo4j SVC name)
-  NEO4J_HOST: "neo4j-cluster-neo4j-neo4j"
+  # Default: "neo4j-cluster-neo4j" (Kubeblocks Neo4j SVC name)
+  NEO4J_HOST: "neo4j-cluster-neo4j"
   # Port for the Neo4j Bolt service. Default: "7687"
   NEO4J_PORT: "7687"
   # The name of the Secret containing Neo4j username and password (e.g., "username" and "password" keys).
