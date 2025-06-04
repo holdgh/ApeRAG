@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 class RerankInput(BaseModel):
     model: str = Field(..., description="Rerank model name")
     model_service_provider: str = Field(..., description="Model service provider")
+    custom_llm_provider: str = Field(..., description="Custom LLM provider (e.g., 'jina_ai', 'openai')")
     docs: List[DocumentWithScore]
 
 
@@ -63,7 +64,7 @@ class RerankNodeRunner(BaseNodeRunner):
 
             # Create rerank service with configuration from model service provider
             rerank_service = RerankService(
-                rerank_provider=ui.model_service_provider,
+                rerank_provider=ui.custom_llm_provider,
                 rerank_model=ui.model,
                 rerank_service_url=msp.base_url,
                 rerank_service_api_key=msp.api_key,
