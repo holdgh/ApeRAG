@@ -68,7 +68,7 @@ def create_openai_config(enable_whitelist=False, model_whitelist=None):
         "name": provider,
         "label": "OpenAI",
         "dialect": "openai",
-        "allow_custom_base_url": True,
+        "allow_custom_base_url": False,
         "base_url": "https://api.openai.com/v1"
     }
     
@@ -91,7 +91,7 @@ def create_anthropic_config(enable_whitelist=False, model_whitelist=None):
         "name": provider,
         "label": "Anthropic",
         "dialect": "anthropic",
-        "allow_custom_base_url": True,
+        "allow_custom_base_url": False,
         "base_url": "https://api.anthropic.com"
     }
     
@@ -143,7 +143,7 @@ def create_gemini_config(enable_whitelist=False, model_whitelist=None):
         "name": provider,
         "label": "Google Gemini",
         "dialect": "google",
-        "allow_custom_base_url": True,
+        "allow_custom_base_url": False,
         "base_url": "https://generativelanguage.googleapis.com"
     }
     
@@ -166,7 +166,7 @@ def create_xai_config(enable_whitelist=False, model_whitelist=None):
         "name": provider,
         "label": "xAI",
         "dialect": "openai",
-        "allow_custom_base_url": True,
+        "allow_custom_base_url": False,
         "base_url": "https://api.xai.com/v1"
     }
     
