@@ -15,7 +15,6 @@
 from typing import List
 
 import litellm
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from aperag.query.query import DocumentWithScore
 
@@ -48,11 +47,6 @@ class RerankService:
         self.api_base = rerank_service_url
         self.api_key = rerank_service_api_key
 
-    @retry(
-        wait=wait_exponential(multiplier=1, min=1, max=20),
-        stop=stop_after_attempt(6),
-        reraise=True,
-    )
     async def rank(self, query: str, results: List[DocumentWithScore]) -> List[DocumentWithScore]:
         """
         Rerank documents based on relevance to the query.
@@ -64,21 +58,28 @@ class RerankService:
         Returns:
             List of documents reordered by relevance
         """
-        if not results:
-            return []
+        try:
+            if not results:
+                return []
 
-        documents = [d.text for d in results]
+            documents = [d.text for d in results]
 
-        resp = await litellm.arerank(
-            custom_llm_provider=self.rerank_provider,
-            model=self.model,
-            query=query,
-            documents=documents,
-            api_key=self.api_key,
-            api_base=self.api_base,
-            return_documents=False,
-        )
+            resp = await litellm.arerank(
+                custom_llm_provider=self.rerank_provider,
+                model=self.model,
+                query=query,
+                documents=documents,
+                api_key=self.api_key,
+                api_base=self.api_base,
+                return_documents=False,
+            )
 
-        # Reorder documents based on the returned indices
-        indices = [item["index"] for item in resp["results"]]
-        return [results[i] for i in indices]
+            # Reorder documents based on the returned indices
+            indices = [item["index"] for item in resp["results"]]
+            return [results[i] for i in indices]
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to rerank documents: {e}. "
+                f"Provider: {self.rerank_provider}, Model: {self.model}, "
+                f"API Base: {self.api_base}"
+            ) from e
