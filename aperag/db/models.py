@@ -467,12 +467,7 @@ class ModelServiceProvider(models.Model):
     name = models.CharField(max_length=256)
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=Status.choices)
-    completion_dialect = models.CharField(max_length=32, default="openai", blank=False, null=False)
-    embedding_dialect = models.CharField(max_length=32, default="openai", blank=False, null=False)
-    rerank_dialect = models.CharField(max_length=32, default="jina_ai", blank=False, null=False)
-    base_url = models.CharField(max_length=256, blank=True, null=True)
     api_key = models.CharField(max_length=256)
-    extra = models.TextField(null=True)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
@@ -481,7 +476,7 @@ class ModelServiceProvider(models.Model):
         unique_together = [("name", "user")]
 
     def __str__(self):
-        return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, base_url={self.base_url}, api_key={self.api_key}, extra={self.extra})"
+        return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, api_key={self.api_key})"
 
 
 class Role(models.TextChoices):
@@ -568,6 +563,7 @@ class LLMProvider(models.Model):
     rerank_dialect = models.CharField(max_length=64, help_text="API dialect for rerank APIs")
     allow_custom_base_url = models.BooleanField(default=False, help_text="Whether custom base URLs are allowed")
     base_url = models.URLField(max_length=512, help_text="Default API base URL for this provider")
+    extra = models.TextField(null=True, help_text="Additional configuration data in JSON format")
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)

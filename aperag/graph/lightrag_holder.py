@@ -211,8 +211,16 @@ async def create_lightrag_llm_func(collection: Collection, msp_dict: Dict[str, A
         )
 
     msp = msp_dict[lightrag_msp]
-    base_url = msp.base_url
     api_key = msp.api_key
+
+    # Get base_url from LLMProvider
+    try:
+        from aperag.db.models import LLMProvider
+
+        llm_provider = await LLMProvider.objects.aget(name=lightrag_msp)
+        base_url = llm_provider.base_url
+    except LLMProvider.DoesNotExist:
+        raise LightRAGInitializationError(f"LLMProvider '{lightrag_msp}' not found")
 
     logger.info(f"Using base URL: {base_url}")
 
