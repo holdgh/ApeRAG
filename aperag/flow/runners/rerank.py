@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from aperag.db.ops import query_msp_dict
 from aperag.flow.base.models import BaseNodeRunner, SystemInput, register_node_runner
 from aperag.query.query import DocumentWithScore
-from aperag.rank.reranker import rerank
+from aperag.rank.rerank_service import RerankService
+
+logger = logging.getLogger(__name__)
 
 
 class RerankInput(BaseModel):
@@ -45,6 +49,31 @@ class RerankNodeRunner(BaseNodeRunner):
         query = si.query
         docs = ui.docs
         result = []
+
         if docs:
-            result = await rerank(query, docs)
+            # Get API key and base URL from user's model service provider settings
+            msp_dict = await query_msp_dict(si.user)
+            if ui.model_service_provider not in msp_dict:
+                raise ValueError(
+                    f"Model service provider '{ui.model_service_provider}' not configured. "
+                    f"Please configure it in the settings."
+                )
+
+            msp = msp_dict[ui.model_service_provider]
+
+            # Create rerank service with configuration from model service provider
+            rerank_service = RerankService(
+                rerank_provider=ui.model_service_provider,
+                rerank_model=ui.model,
+                rerank_service_url=msp.base_url,
+                rerank_service_api_key=msp.api_key,
+            )
+
+            logger.info(
+                f"Using rerank service with provider: {ui.model_service_provider}, "
+                f"model: {ui.model}, url: {msp.base_url}"
+            )
+
+            result = await rerank_service.rank(query, docs)
+
         return RerankOutput(docs=result), {}

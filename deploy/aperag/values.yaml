@@ -135,11 +135,6 @@ django:
     MAX_DOCUMENT_COUNT: 1000
     MAX_CONVERSATION_COUNT: 100
     EMBEDDING_MAX_CHUNKS_IN_BATCH: 16
-    # RERANK
-    RERANK_BACKEND: jina_ai
-    RERANK_SERVICE_URL: https://api.jina.ai/v1/rerank
-    RERANK_SERVICE_MODEL: jina-reranker-v2-base-multilingual
-    RERANK_SERVICE_TOKEN_API_KEY: ""
     # Chunking
     CHUNK_SIZE: 400
     CHUNK_OVERLAP_SIZE: 20

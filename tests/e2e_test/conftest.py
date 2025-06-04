@@ -135,15 +135,18 @@ def bot(client, document, collection):
 @pytest.fixture
 def register_user():
     """Register a new user and return user info and password"""
-    import random, string
+    import random
+    import string
+
     username = f"e2euser_{''.join(random.choices(string.ascii_lowercase, k=6))}"
     email = f"{username}@example.com"
-    password = f"TestPwd!{random.randint(1000,9999)}"
+    password = f"TestPwd!{random.randint(1000, 9999)}"
     data = {"username": username, "email": email, "password": password}
     resp = httpx.post(f"{API_BASE_URL}/api/v1/register", json=data)
     assert resp.status_code == HTTPStatus.OK, f"register failed: {resp.text}"
     user = resp.json()
     return {"username": username, "email": email, "password": password, "user": user}
+
 
 @pytest.fixture
 def login_user(register_user):
@@ -154,7 +157,13 @@ def login_user(register_user):
         assert resp.status_code == HTTPStatus.OK, f"login failed: {resp.text}"
         cookies = c.cookies  # use httpx.Cookies directly
         user = resp.json()
-        yield {"cookies": cookies, "user": user, "username": register_user["username"], "password": register_user["password"]}
+        yield {
+            "cookies": cookies,
+            "user": user,
+            "username": register_user["username"],
+            "password": register_user["password"],
+        }
+
 
 @pytest.fixture
 def cookie_client(login_user):
