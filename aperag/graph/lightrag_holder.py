@@ -14,6 +14,7 @@
 
 import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional, Tuple
 
@@ -311,6 +312,27 @@ async def create_and_initialize_lightrag(
     logger.info(f"Creating and initializing LightRAG object for namespace: '{namespace_prefix}'")
 
     try:
+
+        LIGHTRAG_KV_STORAGE = os.environ.get("LIGHTRAG_KV_STORAGE", "JsonKVStorage")
+        LIGHTRAG_VECTOR_STORAGE = os.environ.get("LIGHTRAG_VECTOR_STORAGE", "NanoVectorDBStorage")
+        LIGHTRAG_GRAPH_STORAGE = os.environ.get("LIGHTRAG_GRAPH_STORAGE", "NetworkXStorage")
+        LIGHTRAG_DOC_STATUS_STORAGE = os.environ.get("LIGHTRAG_DOC_STATUS_STORAGE", "JsonDocStatusStorage")
+
+        # TODO: 如果LightRAG用到了Neo4J作为Storage (LIGHTRAG_GRAPH_STORAGE=Neo4JStorage)，则检查并输出下面这些值，并设置为环境变量。
+        NEO4J_HOST=os.environ.get("NEO4J_HOST")
+        NEO4J_PORT=os.environ.get("NEO4J_PORT")
+        NEO4J_URI=f"neo4j://{NEO4J_HOST}:{NEO4J_PORT}"
+        NEO4J_USERNAME=os.environ.get("NEO4J_USERNAME")
+        NEO4J_PASSWORD=os.environ.get("NEO4J_PASSWORD")
+
+        # TODO: 如果LightRAG用到了PG作为Storage（LIGHTRAG_KV_STORAGE=PGKVStorage，LIGHTRAG_VECTOR_STORAGE=PGVectorStorage，LIGHTRAG_GRAPH_STORAGE=PGGraphStorage，LIGHTRAG_DOC_STATUS_STORAGE=PGDocStatusStorage），则检查并输出下面这些值，并设置为环境变量。
+        POSTGRES_HOST=os.environ.get("POSTGRES_HOST")
+        POSTGRES_PORT=os.environ.get("POSTGRES_PORT")
+        POSTGRES_USER=os.environ.get("POSTGRES_USER")
+        POSTGRES_PASSWORD=os.environ.get("POSTGRES_PASSWORD")
+        POSTGRES_DATABASE=os.environ.get("POSTGRES_DB")
+        POSTGRES_WORKSPACE=os.environ.get("POSTGRES_WORKSPACE", "default")
+
         rag = LightRAG(
             namespace_prefix=namespace_prefix,
             working_dir=LightRAGConfig.WORKING_DIR,
@@ -330,6 +352,10 @@ async def create_and_initialize_lightrag(
             addon_params={
                 "language": LightRAGConfig.DEFAULT_LANGUAGE,
             },
+            kv_storage=LIGHTRAG_KV_STORAGE,
+            vector_storage=LIGHTRAG_VECTOR_STORAGE,
+            graph_storage=LIGHTRAG_GRAPH_STORAGE,
+            doc_status_storage=LIGHTRAG_DOC_STATUS_STORAGE,
         )
 
         await rag.initialize_storages()

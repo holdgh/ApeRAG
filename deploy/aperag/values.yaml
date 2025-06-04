@@ -142,6 +142,11 @@ django:
     DEFAULT_ENCODING_MODEL: cl100k_base
     TOKENIZERS_PARALLELISM: "false"
 
+    LIGHTRAG_KV_STORAGE: PGKVStorage
+    LIGHTRAG_VECTOR_STORAGE: PGVectorStorage
+    LIGHTRAG_GRAPH_STORAGE: Neo4JStorage
+    LIGHTRAG_DOC_STATUS_STORAGE: PGDocStatusStorage
+
 
 celery-worker:
   replicaCount: 1
