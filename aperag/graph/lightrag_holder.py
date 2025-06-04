@@ -323,8 +323,17 @@ async def create_and_initialize_lightrag(
             LIGHTRAG_DOC_STATUS_STORAGE, LIGHTRAG_GRAPH_STORAGE, LIGHTRAG_KV_STORAGE, LIGHTRAG_VECTOR_STORAGE
         )
 
+        using_local_storage = any(
+            [
+                LIGHTRAG_KV_STORAGE == "JsonKVStorage",
+                LIGHTRAG_VECTOR_STORAGE == "NanoVectorDBStorage",
+                LIGHTRAG_GRAPH_STORAGE == "NetworkXStorage",
+                LIGHTRAG_DOC_STATUS_STORAGE == "JsonDocStatusStorage",
+            ]
+        )
+
         rag = LightRAG(
-            # namespace_prefix=namespace_prefix,
+            namespace_prefix=namespace_prefix if using_local_storage else "",
             working_dir=LightRAGConfig.WORKING_DIR,
             chunk_token_size=LightRAGConfig.CHUNK_TOKEN_SIZE,
             chunk_overlap_token_size=LightRAGConfig.CHUNK_OVERLAP_TOKEN_SIZE,
