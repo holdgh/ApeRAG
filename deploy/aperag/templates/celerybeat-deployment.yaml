@@ -102,6 +102,28 @@ spec:
             - name: ES_PASSWORD
               value: {{ .Values.elasticsearch.ES_PASSWORD | quote }}
             {{- end }}
+            - name: NEO4J_HOST
+              value: {{ .Values.neo4j.NEO4J_HOST | quote }}
+            - name: NEO4J_PORT
+              value: {{ .Values.neo4j.NEO4J_PORT | default "7687" | quote }}
+            - name: NEO4J_USERNAME
+              {{- if .Values.neo4j.NEO4J_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.neo4j.NEO4J_CREDENTIALS_SECRET_NAME }}
+                  key: username
+              {{- else }}
+              value: {{ .Values.neo4j.NEO4J_USERNAME | default "neo4j" | quote }}
+              {{- end }}
+            - name: NEO4J_PASSWORD
+              {{- if .Values.neo4j.NEO4J_CREDENTIALS_SECRET_NAME }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.neo4j.NEO4J_CREDENTIALS_SECRET_NAME }}
+                  key: password
+              {{- else }}
+              value: {{ .Values.neo4j.NEO4J_PASSWORD | default "neo4j" | quote }}
+              {{- end }}
           resources:
             {{- toYaml .Values.celerybeat.resources | nindent 12 }}
           volumeMounts:

@@ -67,6 +67,27 @@ elasticsearch:
   # ⚠️ Recommend to use ES_CREDENTIALS_SECRET_NAME
   ES_PASSWORD: ""
 
+neo4j:
+  # Hostname for the Neo4j Bolt service.
+  # Default: "neo4j-cluster-neo4j-neo4j" (Kubeblocks Neo4j SVC name)
+  NEO4J_HOST: "neo4j-cluster-neo4j-neo4j"
+  # Port for the Neo4j Bolt service. Default: "7687"
+  NEO4J_PORT: "7687"
+  # The name of the Secret containing Neo4j username and password (e.g., "username" and "password" keys).
+  # Example: "neo4j-cluster-neo4j-account-neo4j" (references your Kubeblocks credential Secret)
+  NEO4J_CREDENTIALS_SECRET_NAME: "neo4j-cluster-neo4j-account-neo4j"
+  # Username and Password Priority:
+  # 1. If NEO4J_CREDENTIALS_SECRET_NAME is set, attempts to fetch 'username' and 'password' from that Secret.
+  # 2. If NEO4J_CREDENTIALS_SECRET_NAME is empty, uses the direct values of NEO4J_USERNAME and NEO4J_PASSWORD.
+  # 3. If direct values are also empty, defaults to "neo4j" for user or forces a failure for password.
+  # ⚠️ Recommend to use NEO4J_CREDENTIALS_SECRET_NAME
+  NEO4J_USERNAME: "neo4j" # Default Neo4j user
+  # Password (Sensitive information, strongly recommended NOT to set directly in values.yaml):
+  # Only use this if you are NOT using NEO4J_CREDENTIALS_SECRET_NAME and accept the security implications.
+  # ⚠️ Strongly discourage directly setting sensitive passwords here. Use Secrets for production.
+  # ⚠️ Recommend to use NEO4J_CREDENTIALS_SECRET_NAME
+  NEO4J_PASSWORD: ""
+
 django:
   dataPath: /data/aperag
   replicaCount: 1
