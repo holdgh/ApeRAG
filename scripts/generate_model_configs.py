@@ -67,7 +67,9 @@ def create_openai_config(enable_whitelist=False, model_whitelist=None):
     config = {
         "name": provider,
         "label": "OpenAI",
-        "dialect": "openai",
+        "completion_dialect": "openai",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://api.openai.com/v1"
     }
@@ -90,7 +92,9 @@ def create_anthropic_config(enable_whitelist=False, model_whitelist=None):
     config = {
         "name": provider,
         "label": "Anthropic",
-        "dialect": "anthropic",
+        "completion_dialect": "anthropic",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://api.anthropic.com"
     }
@@ -112,7 +116,9 @@ def create_deepseek_config():
     config = {
         "name": "deepseek",
         "label": "DeepSeek",
-        "dialect": "openai",
+        "completion_dialect": "openai",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://api.deepseek.com/v1",
         "embedding": [],
@@ -142,7 +148,9 @@ def create_gemini_config(enable_whitelist=False, model_whitelist=None):
     config = {
         "name": provider,
         "label": "Google Gemini",
-        "dialect": "google",
+        "completion_dialect": "google",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://generativelanguage.googleapis.com"
     }
@@ -165,7 +173,9 @@ def create_xai_config(enable_whitelist=False, model_whitelist=None):
     config = {
         "name": provider,
         "label": "xAI",
-        "dialect": "openai",
+        "completion_dialect": "openai",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://api.xai.com/v1"
     }
@@ -285,7 +295,9 @@ def create_openrouter_config():
         config = {
             "name": "openrouter",
             "label": "OpenRouter",
-            "dialect": "openai",
+            "completion_dialect": "openai",
+            "embedding_dialect": "openai",
+            "rerank_dialect": "jina_ai",
             "allow_custom_base_url": False,
             "base_url": "https://openrouter.ai/api/v1",
             "embedding": [],
@@ -370,7 +382,9 @@ def create_alibabacloud_config():
     config = {
         "name": "alibabacloud",
         "label": "AlibabaCloud",
-        "dialect": "openai",
+        "completion_dialect": "openai",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "embedding": [
@@ -452,7 +466,9 @@ def create_siliconflow_config():
     config = {
         "name": "siliconflow",
         "label": "SiliconFlow",
-        "dialect": "openai",
+        "completion_dialect": "openai",
+        "embedding_dialect": "openai",
+        "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://api.siliconflow.cn/v1",
         "embedding": [

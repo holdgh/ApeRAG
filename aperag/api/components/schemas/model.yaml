@@ -16,7 +16,11 @@ modelServiceProvider:
   properties:
     name:
       type: string
-    dialect:
+    completion_dialect:
+      type: string
+    embedding_dialect:
+      type: string
+    rerank_dialect:
       type: string
     label:
       type: string
@@ -117,7 +121,11 @@ modelConfig:
   properties:
     name:
       type: string
-    dialect:
+    completion_dialect:
+      type: string
+    embedding_dialect:
+      type: string
+    rerank_dialect:
       type: string
     label:
       type: string

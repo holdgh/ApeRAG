@@ -31,7 +31,19 @@ export interface ModelServiceProvider {
      * @type {string}
      * @memberof ModelServiceProvider
      */
-    'dialect'?: string;
+    'completion_dialect'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelServiceProvider
+     */
+    'embedding_dialect'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ModelServiceProvider
+     */
+    'rerank_dialect'?: string;
     /**
      * 
      * @type {string}

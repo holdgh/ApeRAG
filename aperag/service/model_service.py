@@ -31,7 +31,9 @@ def build_model_service_provider_response(
     """Build ModelServiceProvider response object for API return."""
     return view_models.ModelServiceProvider(
         name=msp.name,
-        dialect=msp.dialect,
+        completion_dialect=msp.completion_dialect,
+        embedding_dialect=msp.embedding_dialect,
+        rerank_dialect=msp.rerank_dialect,
         label=supported_msp.label,
         allow_custom_base_url=supported_msp.allow_custom_base_url,
         base_url=msp.base_url,
@@ -67,7 +69,9 @@ async def update_model_service_provider(
         msp = db_models.ModelServiceProvider(
             user=user,
             name=provider,
-            dialect=msp_config.dialect,
+            completion_dialect=msp_config.completion_dialect,
+            embedding_dialect=msp_config.embedding_dialect,
+            rerank_dialect=msp_config.rerank_dialect,
             api_key=mspIn.api_key,
             base_url=mspIn.base_url if msp_config.allow_custom_base_url else msp_config.base_url,
             extra=mspIn.extra,
@@ -117,7 +121,9 @@ async def list_supported_model_service_providers() -> view_models.ModelServicePr
     for supported_msp in settings.MODEL_CONFIGS:
         provider = ModelServiceProvider(
             name=supported_msp["name"],
-            dialect=supported_msp["dialect"],
+            completion_dialect=supported_msp["completion_dialect"],
+            embedding_dialect=supported_msp["embedding_dialect"],
+            rerank_dialect=supported_msp["rerank_dialect"],
             label=supported_msp["label"],
             allow_custom_base_url=supported_msp["allow_custom_base_url"],
             base_url=supported_msp["base_url"],
