@@ -21,8 +21,8 @@ from aperag.db import models as db_models
 from aperag.db.ops import query_msp, query_msp_list
 from aperag.schema import view_models
 from aperag.schema.view_models import ModelServiceProvider, ModelServiceProviderList
+from aperag.service.llm_config_service import get_model_config_objects, get_model_configs, get_supported_provider_names
 from aperag.views.utils import fail, success
-from config import settings
 
 
 def build_model_service_provider_response(
@@ -42,7 +42,8 @@ def build_model_service_provider_response(
 
 
 async def list_model_service_providers(user: str) -> view_models.ModelServiceProviderList:
-    supported_msp_dict = {msp["name"]: ModelServiceProvider(**msp) for msp in settings.MODEL_CONFIGS}
+    model_configs = await get_model_configs()
+    supported_msp_dict = {msp["name"]: ModelServiceProvider(**msp) for msp in model_configs}
     msp_list = await query_msp_list(user)
     response = []
     for msp in msp_list:
@@ -91,7 +92,7 @@ async def update_model_service_provider(
 
 
 async def delete_model_service_provider(user: str, provider: str):
-    supported_msp_names = {item["name"] for item in settings.MODEL_CONFIGS}
+    supported_msp_names = await get_supported_provider_names()
     if provider not in supported_msp_names:
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
     msp = await query_msp(user, provider)
@@ -104,9 +105,9 @@ async def delete_model_service_provider(user: str, provider: str):
 
 
 async def list_available_models(user: str) -> view_models.ModelConfigList:
-    from aperag.schema.view_models import ModelConfig, ModelConfigList
+    from aperag.schema.view_models import ModelConfigList
 
-    supported_providers = [ModelConfig(**msp) for msp in settings.MODEL_CONFIGS]
+    supported_providers = await get_model_config_objects()
     supported_msp_dict = {provider.name: provider for provider in supported_providers}
     msp_list = await query_msp_list(user)
     available_providers = []
@@ -117,8 +118,9 @@ async def list_available_models(user: str) -> view_models.ModelConfigList:
 
 
 async def list_supported_model_service_providers() -> view_models.ModelServiceProviderList:
+    model_configs = await get_model_configs()
     response = []
-    for supported_msp in settings.MODEL_CONFIGS:
+    for supported_msp in model_configs:
         provider = ModelServiceProvider(
             name=supported_msp["name"],
             completion_dialect=supported_msp["completion_dialect"],

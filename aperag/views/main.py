@@ -43,6 +43,7 @@ from aperag.service.document_service import (
     update_document,
 )
 from aperag.service.flow_service import debug_flow_stream
+from aperag.service.llm_config_service import get_model_config_objects
 from aperag.service.model_service import (
     delete_model_service_provider,
     list_available_models,
@@ -54,7 +55,6 @@ from aperag.service.prompt_template_service import list_prompt_templates
 from aperag.service.sync_service import cancel_sync, get_sync_history, list_sync_histories, sync_immediately
 from aperag.utils.request import get_urls, get_user
 from aperag.views.utils import success
-from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -274,10 +274,8 @@ async def list_model_service_providers_view(request) -> view_models.ModelService
 
 @router.put("/model_service_providers/{provider}")
 async def update_model_service_provider_view(request, provider: str, mspIn: view_models.ModelServiceProviderUpdate):
-    from aperag.schema.view_models import ModelConfig
-
     user = get_user(request)
-    supported_providers = [ModelConfig(**item) for item in settings.MODEL_CONFIGS]
+    supported_providers = await get_model_config_objects()
     return await update_model_service_provider(user, provider, mspIn, supported_providers)
 
 
