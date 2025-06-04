@@ -463,12 +463,8 @@ class ModelServiceProvider(models.Model):
         INACTIVE = "INACTIVE"
         DELETED = "DELETED"
 
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for model service provider"""
-        return "int" + random_id()
-
-    name = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=256)
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=Status.choices)
     dialect = models.CharField(max_length=32, default="openai", blank=False, null=False)
@@ -478,6 +474,9 @@ class ModelServiceProvider(models.Model):
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = [("name", "user")]
 
     def __str__(self):
         return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, base_url={self.base_url}, api_key={self.api_key}, extra={self.extra})"
