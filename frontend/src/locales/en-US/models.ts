@@ -6,7 +6,7 @@ export const model = {
   'model.llm.tips': 'Large language chat model',
   'model.rerank.tips':
     'Using Reranker after getting the results of a vector query (ANN) can more effectively determine the semantic relevance between documents and queries, re-rank the results more finely, and ultimately improve search quality.',
-  
+
   // Provider related
   'model.provider.title': 'LLM Providers',
   'model.provider.add': 'Add Provider',
@@ -23,8 +23,9 @@ export const model = {
   'model.provider.rerank_dialect': 'Rerank API Dialect',
   'model.provider.allow_custom_base_url': 'Allow Custom Base URL',
   'model.provider.extra_config': 'Extra Configuration (JSON)',
-  'model.provider.delete.confirm': 'Are you sure to delete provider "{name}"? This will also delete all models under this provider.',
-  
+  'model.provider.delete.confirm':
+    'Are you sure to delete provider "{name}"? This will also delete all models under this provider.',
+
   // Model related
   'model.management.title': '{provider} - Model Management',
   'model.list.title': 'Model List',
@@ -40,7 +41,7 @@ export const model = {
   'model.custom_llm_provider': 'API Dialect',
   'model.max_tokens': 'Max Tokens',
   'model.tags': 'Tags',
-  
+
   // Form placeholders and validation
   'model.provider.name.placeholder': 'e.g: openai',
   'model.provider.name.required': 'Please enter provider name',
@@ -49,13 +50,14 @@ export const model = {
   'model.provider.base_url.placeholder': 'https://api.openai.com/v1',
   'model.provider.base_url.required': 'Please enter API base URL',
   'model.provider.completion_dialect.placeholder': 'openai',
-  'model.provider.completion_dialect.required': 'Please enter completion API dialect',
+  'model.provider.completion_dialect.required':
+    'Please enter completion API dialect',
   'model.provider.embedding_dialect.placeholder': 'openai',
-  'model.provider.embedding_dialect.required': 'Please enter embedding API dialect',
+  'model.provider.embedding_dialect.required':
+    'Please enter embedding API dialect',
   'model.provider.rerank_dialect.placeholder': 'jina_ai',
   'model.provider.rerank_dialect.required': 'Please enter rerank API dialect',
-  'model.provider.extra_config.placeholder': '{"key": "value"}',
-  
+
   'model.provider.required': 'Please select provider',
   'model.api_type.required': 'Please select API type',
   'model.model_name.placeholder': 'e.g: gpt-4o-mini',
@@ -64,12 +66,12 @@ export const model = {
   'model.custom_llm_provider.required': 'Please enter API Dialect',
   'model.max_tokens.placeholder': '4096',
   'model.tags.placeholder': 'Enter tags',
-  
+
   // API types
   'model.api_type.completion': 'Completion',
-  'model.api_type.embedding': 'Embedding', 
+  'model.api_type.embedding': 'Embedding',
   'model.api_type.rerank': 'Rerank',
-  
+
   // Messages
   'model.provider.create.success': 'Provider created successfully',
   'model.provider.update.success': 'Provider updated successfully',
