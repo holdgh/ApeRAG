@@ -22,7 +22,6 @@ ApeRAG is a comprehensive RAG (Retrieval-Augmented Generation) platform designed
   - [Building Container Images](#building-container-images)
   - [Deployment](#deployment)
 - [Project Structure Overview](#project-structure-overview)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Getting Started
@@ -270,18 +269,36 @@ The `Makefile` at the root of the project provides several helpful commands to s
 
 ### Typical Development Workflow
 
-1.  Ensure your development environment is set up (dependencies installed, databases running/accessible).
-2.  Create a new branch for your feature or bug fix.
-3.  Make code changes in the backend (`aperag/`) or frontend (`frontend/src/`) directories.
-4.  If you change backend API endpoints (add, remove, modify parameters/responses):
-    *   Update the OpenAPI specification (usually in `aperag/api/`).
-    *   Run `make generate-frontend-sdk` to update the frontend client.
-5.  If you change Django models:
-    *   Run `make makemigration` to create migration files.
-    *   Run `make migrate` to apply changes to your development database.
-6.  Regularly run `make format` and `make lint` to maintain code quality.
-7.  Write unit tests for new functionality and run `make test` to ensure everything passes.
-8.  Commit your changes and push to your branch.
+Contributing to ApeRAG involves the following typical workflow. Before starting significant work, it's a good idea to open an issue to discuss your proposed changes with the maintainers.
+
+1.  **Fork and Branch**:
+    *   Fork the official ApeRAG repository to your GitHub account.
+    *   Create a new branch from `main` for your feature or bug fix. Use a descriptive branch name (e.g., `feat/add-new-parser` or `fix/login-bug`).
+
+2.  **Environment Setup**: Ensure your development environment is set up as described in [Development Environment](#development-environment) and [Getting Started with Source Code](#getting-started-with-source-code) (dependencies installed, databases running/accessible).
+
+3.  **Code Implementation**:
+    *   Make your code changes in the backend (`aperag/`) or frontend (`frontend/src/`) directories.
+    *   **Follow Code Style**: Adhere to PEP 8 for Python and standard practices for TypeScript/React. Use English for all code, comments, and documentation.
+    *   Regularly use `make format` and `make lint` to ensure code consistency and quality.
+
+4.  **Handle API and Model Changes**:
+    *   If you change backend API endpoints (add, remove, modify parameters/responses): Update the OpenAPI specification (usually in `aperag/api/`) and then run `make generate-frontend-sdk` to update the frontend client.
+    *   If you change Django models: Run `make makemigration` to create migration files, and then `make migrate` to apply changes to your development database.
+
+5.  **Testing**: Add unit tests for new backend logic and integration tests for API changes. Ensure all existing tests pass by running `make test`.
+
+6.  **Documentation**: If your changes affect API specifications, user guides, or deployment processes, update the relevant documentation (e.g., OpenAPI specs, this README, files in `docs/`).
+
+7.  **Commit and Push**:
+    *   Make clear and concise commit messages.
+    *   Push your branch to your fork on GitHub.
+
+8.  **Submit a Pull Request (PR)**:
+    *   Submit a PR from your branch to the `main` branch of the official ApeRAG repository.
+    *   Provide a clear description of your changes in the PR and link any relevant issues.
+
+9.  **Code Review**: Your PR will be reviewed by maintainers. Be prepared to address feedback and make further changes if necessary.
 
 ## Build Docker Image
 
@@ -363,27 +380,6 @@ ApeRAG follows a modular structure to separate concerns and facilitate developme
 *   **`tests/`**: Contains unit, integration, and end-to-end tests.
 
 This structure helps maintain a clean and organized codebase, making it easier to navigate and contribute to the project.
-
-## Contributing
-
-We welcome contributions to ApeRAG! If you're interested in contributing, please follow these general guidelines:
-
-1.  **Fork the Repository**: Start by forking the official ApeRAG repository to your own GitHub account.
-2.  **Create a Branch**: Create a new branch from `main` for your feature or bug fix. Use a descriptive branch name (e.g., `feat/add-new-parser` or `fix/login-bug`).
-3.  **Follow Code Style**:
-    *   Python: Adhere to PEP 8. Use `make format` and `make lint` to ensure consistency.
-    *   TypeScript/React: Follow standard practices. Use `make format` to format frontend code.
-    *   Use English for all code, comments, and documentation.
-4.  **Write Tests**: Add unit tests for new backend logic and integration tests for API changes. Ensure existing tests pass by running `make test`.
-5.  **Update Documentation**: If your changes affect API specifications, user guides, or deployment, update the relevant documentation (OpenAPI specs, README, docs/).
-6.  **Generate Frontend SDK**: If you modify backend API definitions, run `make generate-frontend-sdk` to update the frontend client.
-7.  **Commit Changes**: Make clear and concise commit messages.
-8.  **Submit a Pull Request (PR)**: Push your branch to your fork and submit a PR to the `main` branch of the official ApeRAG repository.
-    *   Provide a clear description of your changes in the PR.
-    *   Link any relevant issues.
-9.  **Code Review**: Your PR will be reviewed by maintainers. Be prepared to address feedback and make further changes if necessary.
-
-Before starting significant work, it's a good idea to open an issue to discuss your proposed changes with the maintainers.
 
 ## License
 
