@@ -1,7 +1,7 @@
 import { PageContainer, PageHeader } from '@/components';
 import { api } from '@/services';
 import { LlmConfigurationResponse, LlmProvider, LlmProviderModel } from '@/api';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined, ArrowLeftOutlined, SettingOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
@@ -19,9 +19,15 @@ import {
   Tag,
   Typography,
   message,
+  Space,
 } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useIntl, useModel } from 'umi';
+
+const { Title } = Typography;
+
+// 弹窗内容视图类型
+type ModalViewType = 'list' | 'add' | 'edit';
 
 export default () => {
   const { loading, setLoading } = useModel('global');
@@ -37,9 +43,11 @@ export default () => {
   const [providerModalVisible, setProviderModalVisible] = useState(false);
   const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(null);
 
-  // Model form state
+  // Model management modal state
+  const [modelManagementVisible, setModelManagementVisible] = useState(false);
+  const [currentProvider, setCurrentProvider] = useState<LlmProvider | null>(null);
+  const [modalView, setModalView] = useState<ModalViewType>('list');
   const [modelForm] = Form.useForm();
-  const [modelModalVisible, setModelModalVisible] = useState(false);
   const [editingModel, setEditingModel] = useState<LlmProviderModel | null>(null);
 
   const [modal, contextHolder] = Modal.useModal();
@@ -61,7 +69,6 @@ export default () => {
   const handleCreateProvider = useCallback(() => {
     setEditingProvider(null);
     providerForm.resetFields();
-    // Set default values
     providerForm.setFieldsValue({
       completion_dialect: 'openai',
       embedding_dialect: 'openai',
@@ -83,14 +90,12 @@ export default () => {
       setLoading(true);
 
       if (editingProvider) {
-        // Update existing provider
         await api.llmProvidersProviderNamePut({
           providerName: editingProvider.name,
           llmProviderUpdate: values,
         });
         message.success('Provider updated successfully');
       } else {
-        // Create new provider
         await api.llmProvidersPost({
           llmProviderCreate: values,
         });
@@ -129,20 +134,26 @@ export default () => {
     }
   }, [modal, formatMessage, setLoading, fetchConfiguration]);
 
-  // Model operations
-  const handleCreateModel = useCallback((providerName?: string) => {
+  // Model management operations
+  const handleManageModels = useCallback((provider: LlmProvider) => {
+    setCurrentProvider(provider);
+    setModalView('list');
+    setModelManagementVisible(true);
+  }, []);
+
+  const handleAddModel = useCallback(() => {
     setEditingModel(null);
     modelForm.resetFields();
-    if (providerName) {
-      modelForm.setFieldValue('provider_name', providerName);
+    if (currentProvider) {
+      modelForm.setFieldValue('provider_name', currentProvider.name);
     }
-    setModelModalVisible(true);
-  }, [modelForm]);
+    setModalView('add');
+  }, [modelForm, currentProvider]);
 
   const handleEditModel = useCallback((model: LlmProviderModel) => {
     setEditingModel(model);
     modelForm.setFieldsValue(model);
-    setModelModalVisible(true);
+    setModalView('edit');
   }, [modelForm]);
 
   const handleSaveModel = useCallback(async () => {
@@ -151,7 +162,6 @@ export default () => {
       setLoading(true);
 
       if (editingModel) {
-        // Update existing model
         await api.llmProvidersProviderNameModelsApiModelPut({
           providerName: editingModel.provider_name,
           api: editingModel.api as any,
@@ -160,7 +170,6 @@ export default () => {
         });
         message.success('Model updated successfully');
       } else {
-        // Create new model
         await api.llmProvidersProviderNameModelsPost({
           providerName: values.provider_name,
           llmProviderModelCreate: values,
@@ -168,7 +177,7 @@ export default () => {
         message.success('Model created successfully');
       }
 
-      setModelModalVisible(false);
+      setModalView('list');
       await fetchConfiguration();
     } catch (error) {
       message.error('Failed to save model');
@@ -202,40 +211,63 @@ export default () => {
     }
   }, [modal, formatMessage, setLoading, fetchConfiguration]);
 
+  const handleBackToList = useCallback(() => {
+    setModalView('list');
+    setEditingModel(null);
+    modelForm.resetFields();
+  }, [modelForm]);
+
+  const handleCloseModelManagement = useCallback(() => {
+    setModelManagementVisible(false);
+    setModalView('list');
+    setCurrentProvider(null);
+    setEditingModel(null);
+    modelForm.resetFields();
+  }, [modelForm]);
+
   // Handle API type change to auto-fill custom_llm_provider
   const handleApiTypeChange = useCallback((api: string) => {
-    const currentProviderName = modelForm.getFieldValue('provider_name');
-    if (currentProviderName) {
-      const provider = configuration.providers.find(p => p.name === currentProviderName);
-      if (provider) {
-        let dialect = '';
-        switch (api) {
-          case 'completion':
-            dialect = provider.completion_dialect;
-            break;
-          case 'embedding':
-            dialect = provider.embedding_dialect;
-            break;
-          case 'rerank':
-            dialect = provider.rerank_dialect;
-            break;
-        }
-        modelForm.setFieldValue('custom_llm_provider', dialect);
+    if (currentProvider) {
+      let dialect = '';
+      switch (api) {
+        case 'completion':
+          dialect = currentProvider.completion_dialect || 'openai';
+          break;
+        case 'embedding':
+          dialect = currentProvider.embedding_dialect || 'openai';
+          break;
+        case 'rerank':
+          dialect = currentProvider.rerank_dialect || 'jina_ai';
+          break;
       }
+      modelForm.setFieldValue('custom_llm_provider', dialect);
     }
-  }, [modelForm, configuration.providers]);
+  }, [modelForm, currentProvider]);
+
+  // Get models for current provider
+  const getCurrentProviderModels = useCallback(() => {
+    if (!currentProvider) return [];
+    return configuration.models.filter(model => model.provider_name === currentProvider.name);
+  }, [configuration.models, currentProvider]);
+
+  // Get model count for provider
+  const getProviderModelCount = useCallback((providerName: string) => {
+    return configuration.models.filter(model => model.provider_name === providerName).length;
+  }, [configuration.models]);
 
   // Provider table columns
   const providerColumns: TableProps<LlmProvider>['columns'] = [
     {
-      title: '提供商名称',
+      title: '服务商ID',
       dataIndex: 'name',
       key: 'name',
+      width: 120,
     },
     {
       title: '显示名称',
       dataIndex: 'label',
       key: 'label',
+      width: 150,
     },
     {
       title: 'API基础URL',
@@ -244,50 +276,56 @@ export default () => {
       ellipsis: true,
     },
     {
-      title: '允许自定义URL',
-      dataIndex: 'allow_custom_base_url',
-      key: 'allow_custom_base_url',
-      render: (value: boolean) => <Switch checked={value} disabled />,
+      title: '模型数量',
+      key: 'model_count',
+      width: 100,
+      render: (_, record) => (
+        <span>{getProviderModelCount(record.name)}</span>
+      ),
     },
     {
       title: '操作',
       key: 'actions',
+      width: 200,
       render: (_, record) => (
-        <div>
+        <Space>
           <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEditProvider(record)}
-          />
-          <Button
-            type="text"
-            icon={<DeleteOutlined />}
-            danger
-            onClick={() => handleDeleteProvider(record)}
-          />
+            type="primary"
+            size="small"
+            icon={<SettingOutlined />}
+            onClick={() => handleManageModels(record)}
+          >
+            管理模型
+          </Button>
           <Button
             type="text"
             size="small"
-            onClick={() => handleCreateModel(record.name)}
+            icon={<EditOutlined />}
+            onClick={() => handleEditProvider(record)}
           >
-            添加模型
+            编辑
           </Button>
-        </div>
+          <Button
+            type="text"
+            size="small"
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => handleDeleteProvider(record)}
+          >
+            删除
+          </Button>
+        </Space>
       ),
     },
   ];
 
-  // Model table columns
-  const modelColumns: TableProps<LlmProviderModel>['columns'] = [
-    {
-      title: '提供商',
-      dataIndex: 'provider_name',
-      key: 'provider_name',
-    },
+  // Model table columns for modal
+  const modalModelColumns: TableProps<LlmProviderModel>['columns'] = [
     {
       title: 'API类型',
       dataIndex: 'api',
       key: 'api',
+      width: 100,
       render: (api: string) => (
         <Tag color={api === 'completion' ? 'blue' : api === 'embedding' ? 'green' : 'orange'}>
           {api}
@@ -303,21 +341,24 @@ export default () => {
       title: '自定义提供商',
       dataIndex: 'custom_llm_provider',
       key: 'custom_llm_provider',
+      width: 150,
     },
     {
       title: '最大Token数',
       dataIndex: 'max_tokens',
       key: 'max_tokens',
+      width: 120,
       render: (value?: number) => value || '-',
     },
     {
       title: '标签',
       dataIndex: 'tags',
       key: 'tags',
+      width: 120,
       render: (tags: string[]) => (
         <>
-          {tags.map(tag => (
-            <Tag key={tag} size="small">{tag}</Tag>
+          {tags?.map(tag => (
+            <Tag key={tag}>{tag}</Tag>
           ))}
         </>
       ),
@@ -325,20 +366,27 @@ export default () => {
     {
       title: '操作',
       key: 'actions',
+      width: 120,
       render: (_, record) => (
-        <div>
+        <Space>
           <Button
             type="text"
+            size="small"
             icon={<EditOutlined />}
             onClick={() => handleEditModel(record)}
-          />
+          >
+            编辑
+          </Button>
           <Button
             type="text"
+            size="small"
             icon={<DeleteOutlined />}
             danger
             onClick={() => handleDeleteModel(record)}
-          />
-        </div>
+          >
+            删除
+          </Button>
+        </Space>
       ),
     },
   ];
@@ -367,7 +415,6 @@ export default () => {
             添加提供商
           </Button>
         }
-        style={{ marginBottom: 24 }}
       >
         <Table
           columns={providerColumns}
@@ -375,28 +422,6 @@ export default () => {
           rowKey="name"
           loading={loading}
           pagination={false}
-        />
-      </Card>
-
-      {/* Models Section */}
-      <Card
-        title="LLM模型"
-        extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => handleCreateModel()}
-          >
-            添加模型
-          </Button>
-        }
-      >
-        <Table
-          columns={modelColumns}
-          dataSource={configuration.models}
-          rowKey={(record) => `${record.provider_name}-${record.api}-${record.model}`}
-          loading={loading}
-          pagination={{ pageSize: 10 }}
         />
       </Card>
 
@@ -467,99 +492,143 @@ export default () => {
         </Form>
       </Modal>
 
-      {/* Model Modal */}
+      {/* Model Management Modal */}
       <Modal
-        title={editingModel ? '编辑模型' : '添加模型'}
-        open={modelModalVisible}
-        onCancel={() => setModelModalVisible(false)}
-        onOk={handleSaveModel}
-        width={600}
-        confirmLoading={loading}
+        title={currentProvider ? `${currentProvider.label} - 模型管理` : '模型管理'}
+        open={modelManagementVisible}
+        onCancel={handleCloseModelManagement}
+        footer={null}
+        width={900}
+        destroyOnClose
       >
-        <Form form={modelForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="provider_name"
-                label="提供商"
-                rules={[{ required: true, message: '请选择提供商' }]}
+        {modalView === 'list' && (
+          <div>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Title level={5} style={{ margin: 0 }}>模型列表</Title>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAddModel}
               >
-                <Select
-                  placeholder="选择提供商"
-                  disabled={!!editingModel}
-                  onChange={(value) => {
-                    const api = modelForm.getFieldValue('api');
-                    if (api) {
-                      handleApiTypeChange(api);
-                    }
-                  }}
-                >
-                  {configuration.providers.map(provider => (
-                    <Select.Option key={provider.name} value={provider.name}>
-                      {provider.label}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="api"
-                label="API类型"
-                rules={[{ required: true, message: '请选择API类型' }]}
-              >
-                <Select
-                  placeholder="选择API类型"
-                  disabled={!!editingModel}
-                  onChange={handleApiTypeChange}
-                >
-                  <Select.Option value="completion">Completion</Select.Option>
-                  <Select.Option value="embedding">Embedding</Select.Option>
-                  <Select.Option value="rerank">Rerank</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                添加模型
+              </Button>
+            </div>
+            <Table
+              columns={modalModelColumns}
+              dataSource={getCurrentProviderModels()}
+              rowKey={(record) => `${record.api}-${record.model}`}
+              loading={loading}
+              pagination={false}
+              size="small"
+            />
+          </div>
+        )}
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="model"
-                label="模型名称"
-                rules={[{ required: true, message: '请输入模型名称' }]}
+        {(modalView === 'add' || modalView === 'edit') && (
+          <div>
+            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
+              <Button
+                type="text"
+                icon={<ArrowLeftOutlined />}
+                onClick={handleBackToList}
+                style={{ marginRight: 8 }}
               >
-                <Input placeholder="例如: gpt-4o-mini" disabled={!!editingModel} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="custom_llm_provider"
-                label="自定义LLM提供商"
-                rules={[{ required: true, message: '请输入自定义LLM提供商' }]}
-              >
-                <Input placeholder="自动填充" />
-              </Form.Item>
-            </Col>
-          </Row>
+                返回列表
+              </Button>
+              <Title level={5} style={{ margin: 0 }}>
+                {modalView === 'add' ? '添加新模型' : `编辑模型：${editingModel?.model}`}
+              </Title>
+            </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="max_tokens" label="最大Token数">
-                <InputNumber placeholder="4096" min={1} style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="tags" label="标签">
-                <Select
-                  mode="tags"
-                  placeholder="输入标签"
-                  tokenSeparators={[',']}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
+            <Form form={modelForm} layout="vertical" onFinish={handleSaveModel}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="provider_name"
+                    label="提供商"
+                    rules={[{ required: true, message: '请选择提供商' }]}
+                  >
+                    <Select
+                      placeholder="选择提供商"
+                      disabled
+                    >
+                      {configuration.providers.map(provider => (
+                        <Select.Option key={provider.name} value={provider.name}>
+                          {provider.label}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="api"
+                    label="API类型"
+                    rules={[{ required: true, message: '请选择API类型' }]}
+                  >
+                    <Select
+                      placeholder="选择API类型"
+                      disabled={!!editingModel}
+                      onChange={handleApiTypeChange}
+                    >
+                      <Select.Option value="completion">Completion</Select.Option>
+                      <Select.Option value="embedding">Embedding</Select.Option>
+                      <Select.Option value="rerank">Rerank</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="model"
+                    label="模型名称"
+                    rules={[{ required: true, message: '请输入模型名称' }]}
+                  >
+                    <Input placeholder="例如: gpt-4o-mini" disabled={!!editingModel} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="custom_llm_provider"
+                    label="自定义LLM提供商"
+                    rules={[{ required: true, message: '请输入自定义LLM提供商' }]}
+                  >
+                    <Input placeholder="自动填充" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="max_tokens" label="最大Token数">
+                    <InputNumber placeholder="4096" min={1} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="tags" label="标签">
+                    <Select
+                      mode="tags"
+                      placeholder="输入标签"
+                      tokenSeparators={[',']}
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <Button onClick={handleBackToList}>
+                  取消
+                </Button>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  保存
+                </Button>
+              </div>
+            </Form>
+          </div>
+        )}
       </Modal>
     </PageContainer>
   );
