@@ -34,7 +34,7 @@ ApeRAG can be deployed to a Kubernetes cluster using the provided Helm chart. Th
 
 **Phase 1: Deploying Databases with KubeBlocks (Optional)**
 
-ApeRAG requires several databases: PostgreSQL, Redis, and Qdrant are essential. Elasticsearch (for advanced search) and Neo4j (for graph features) are optional.
+ApeRAG requires several databases: PostgreSQL, Redis, Qdrant, and Elasticsearch are essential for core functionality and hybrid search. Neo4j is not required for the basic operation of ApeRAG but can be enabled if you intend to use specific graph-based knowledge features.
 
 *If you already have these database services running and accessible from your Kubernetes cluster (e.g., managed services or self-deployed), you can **skip this phase** and proceed directly to Phase 2.* 
 
@@ -47,8 +47,8 @@ If you choose to use the KubeBlocks scripts provided in `deploy/databases/`:
 
 2.  **Configure Target Databases (in `deploy/databases/00-config.sh`)**:
     Edit the `deploy/databases/00-config.sh` script. Key settings include:
-    *   Ensure `ENABLE_POSTGRESQL=true`, `ENABLE_REDIS=true`, `ENABLE_QDRANT=true`.
-    *   Set `ENABLE_ELASTICSEARCH` and `ENABLE_NEO4J` according to your needs (e.g., `true` or `false`).
+    *   Ensure `ENABLE_POSTGRESQL=true`, `ENABLE_REDIS=true`, `ENABLE_QDRANT=true`, and `ENABLE_ELASTICSEARCH=true`.
+    *   Set `ENABLE_NEO4J=false` (unless you specifically require graph features and have configured ApeRAG to use them).
     *   The `NAMESPACE` variable in this script is set to `"default"`. All KubeBlocks-related resources and databases will be deployed into this `default` namespace. If you change this value, ensure consistency in all subsequent `kubectl` commands and Helm chart configurations.
     ```bash
     # Example relevant lines from deploy/databases/00-config.sh:
