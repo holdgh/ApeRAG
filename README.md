@@ -5,7 +5,7 @@ ApeRAG is a comprehensive RAG (Retrieval-Augmented Generation) platform designed
 *   **Versatile Document Processing**: Efficiently parses various document types.
 *   **Flexible Data Management**: Utilizes Django backend with Celery for asynchronous tasks, supporting databases like PostgreSQL, Qdrant, Neo4j, and Elasticsearch.
 *   **Dynamic Frontend**: Modern user interface built with React and TypeScript (UmiJS).
-*   **Advanced RAG Pipelines**: Supports embedding generation, hybrid search (vector + keyword), and sophisticated workflow automation for complex RAG scenarios.
+*   **Advanced RAG Pipelines**: Supports embedding generation, hybrid search (vector, keyword, and graph), and sophisticated workflow automation for complex RAG scenarios.
 *   **LLM Integration**: Seamlessly connects with Large Language Models.
 
 ## Table of Contents
@@ -143,82 +143,73 @@ To get started with ApeRAG using Docker Compose, follow these steps:
 
 ### Getting Started with Source Code
 
-This approach is suitable for developers who want to contribute to ApeRAG or run it locally for development purposes.
+This approach is suitable for developers who want to contribute to ApeRAG or run it locally for development purposes. Follow these steps in order to set up and run ApeRAG from source:
 
-1.  **Prerequisites**:
-    *   Git
-    *   Python (>=3.10 recommended, check `pyproject.toml` for exact version). `uv` will create and manage a virtual environment with the correct Python version if available on your system.
-    *   Node.js (>=20 recommended, for frontend development).
-    *   `uv` (Python package installer and virtual environment manager). If you don't have `uv` installed, the `make install` command (or `make install-uv` specifically) will attempt to install it for you using `pip`.
-        You can also install it manually: `pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`.
-    *   Access to database services (PostgreSQL, Redis, Qdrant, etc.). You can run these locally using Docker (see `make run-db` which uses Docker Compose definitions) or connect to remote instances.
-
-2.  **Clone the Repository**:
+1.  **Clone the Repository**:
     ```bash
     git clone https://github.com/apecloud/ApeRAG.git
     cd ApeRAG
     ```
 
-3.  **Environment Setup & Dependencies**:
-    This single command will:
-    *   Ensure `uv` is installed.
-    *   Create a Python virtual environment (e.g., in `.venv/`) using `uv`.
-    *   Install all Python dependencies (including development tools) into the virtual environment using `uv sync` based on `pyproject.toml`.
-    *   Install frontend Node.js dependencies using `yarn`.
+2.  **Prerequisites**:
+    *   Python 3.11. The `make install` process (detailed below) will use `uv` to create a virtual environment with this Python version if it's available on your system.
+    *   Node.js (>=20 recommended, for frontend development).
+    *   `uv` (Python package installer and virtual environment manager). If you don't have `uv` installed, the `make install` command will attempt to install it for you using `pip`. You can also install it manually: `pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+    *   Access to database services (PostgreSQL, Redis, Qdrant, etc.). For a complete local setup, you can run these using Docker. The command `make run-db` (which utilizes `docker-compose.yml`) can start these for you if Docker is installed.
+
+3.  **Install Dependencies and Setup Environment**:
+    This single command performs several crucial setup steps:
+    *   Ensures `uv` is installed.
+    *   Creates a Python 3.11 virtual environment (in `.venv/`) using `uv`.
+    *   Installs all Python dependencies (including development tools) into this virtual environment using `uv sync` based on `pyproject.toml`.
+    *   Installs frontend Node.js dependencies using `yarn`.
     ```bash
     make install
     ```
 
 4.  **Configure Environment Variables**:
-    *   Copy and configure the backend environment file:
+    *   Backend: Copy the template and customize it:
         ```bash
         cp envs/env.template .env
         ```
-        Edit `.env` to set database connection strings, API keys for AI services, and other configurations. Refer to `envs/env.template` for available options.
-    *   Copy and configure the frontend environment file (if you plan to run/develop the frontend):
+        Edit `.env` to set database connection strings (ensure they match your running databases, e.g., those started by `make run-db`), API keys for AI services, and other configurations. Refer to `envs/env.template` for all options.
+    *   Frontend (optional, if developing the frontend):
         ```bash
         cp frontend/deploy/env.local.template frontend/.env
         ```
-        Edit `frontend/.env` for frontend-specific settings like API URLs if they differ from defaults.
+        Edit `frontend/.env` for frontend-specific settings, like API URLs if they differ from defaults.
 
-5.  **Setup Databases**:
-    Ensure your databases are running and accessible. If you are running them locally (e.g., using `make run-db`), make sure the connection details in your `.env` file are correct.
-    Apply database migrations to set up the schema:
-    ```bash
-    # Ensure your virtual environment is active if not using make
-    # source .venv/bin/activate 
-    make migrate
-    ```
+5.  **Setup Databases & Apply Migrations**:
+    *   If you haven't already, start your database services. For a local Docker-based setup:
+        ```bash
+        make run-db
+        ```
+        Wait for the databases to be ready.
+    *   Apply database migrations to set up the required schema. This command uses the Python environment set up by `make install`:
+        ```bash
+        make migrate
+        ```
 
 6.  **Run Backend Services**:
-    *   Activate the Python virtual environment (if not already active or if you're not using the `make` command directly):
-        ```bash
-        source .venv/bin/activate
-        ```
+    These commands should be run in separate terminals. They will use the `.venv/` Python environment automatically if run via `make` from the project root.
     *   Start the Django backend development server (includes automatic reload):
         ```bash
         make run-backend
         ```
         The backend API will typically be available at `http://localhost:8000`.
-    *   In a separate terminal (with the virtual environment activated), start the Celery worker for background tasks:
+    *   Start the Celery worker for background tasks (includes Celery Beat for scheduled tasks due to the `-B` flag in the Makefile's `run-celery` target):
         ```bash
         make run-celery
         ```
-    *   (Optional) If scheduled tasks are needed, start the Celery Beat scheduler in another terminal:
-        ```bash
-        # make run-celery-beat (if a specific target exists, otherwise use the command from Makefile)
-        celery -A config.celery beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
-        ```
 
-7.  **Run Frontend Service** (Optional):
-    If you need to run the frontend development server:
+7.  **Run Frontend Service** (Optional, if needed for development/testing):
     ```bash
     make run-frontend
     ```
     The frontend will typically be available at `http://localhost:3000` and will proxy API requests to the backend.
 
 8.  **Access ApeRAG**:
-    Once services are running, you can access the frontend at `http://localhost:3000` and the backend API at `http://localhost:8000` (or as configured).
+    Once services are running, you can access the frontend at `http://localhost:3000` and the backend API at `http://localhost:8000` (or as configured in your `.env` and frontend settings).
 
 ## Development
 
@@ -233,15 +224,15 @@ It's recommended to use the "Getting Started with Source Code" approach for sett
 The `Makefile` at the root of the project provides several helpful commands to streamline development:
 
 *   **Environment & Dependencies**:
-    *   `make install`: Installs all necessary backend (Python) and frontend (Node.js) dependencies. It sets up a virtual environment for Python.
+    *   `make install`: Installs all necessary backend (Python) and frontend (Node.js) dependencies. It sets up a Python 3.11 virtual environment using `uv`.
     *   `make dev`: Installs development tools like pre-commit hooks to ensure code quality before commits.
 
 *   **Running Services**:
     *   `make run-db`: (Uses Docker Compose) Starts all required database services (PostgreSQL, Redis, Qdrant, etc.) as defined in `docker-compose.yml`. Useful if you don't have these services running elsewhere.
     *   `make run-backend`: Starts the Django development server.
     *   `make run-frontend`: Starts the UmiJS frontend development server.
-    *   `make run-celery`: Starts a Celery worker for processing background tasks.
-    *   `make run-celery-beat`: Starts the Celery beat scheduler for periodic tasks.
+    *   `make run-celery`: Starts a Celery worker for processing background tasks (includes Celery Beat).
+    *   `make run-celery-beat`: (Note: `make run-celery` usually includes Beat due to the `-B` flag. This target might be redundant or for specific scenarios. Check Makefile if explicitly needed separate from worker).
 
 *   **Code Quality & Testing**:
     *   `make format`: Formats Python code using Ruff and frontend code using Prettier.
@@ -252,15 +243,15 @@ The `Makefile` at the root of the project provides several helpful commands to s
 *   **Database Management**:
     *   `make makemigration`: Creates new database migration files based on changes to Django models.
     *   `make migrate`: Applies pending database migrations to your connected database.
-    *   `make connect-metadb`: Provides a command to connect to the primary PostgreSQL database (usually for inspection).
+    *   `make connect-metadb`: Provides a command to connect to the primary PostgreSQL database (usually for inspection, if run via `make run-db`).
     *   `make diff`: Shows differences in Django settings (useful for debugging configurations).
 
 *   **Generators**:
-    *   `make generate-models`: Generates LLM model configuration files.
+    *   `make generate-models`: Generates Pydantic models from the OpenAPI schema.
     *   `make generate-frontend-sdk`: Generates the frontend API client/SDK from the OpenAPI specification. **Run this command whenever backend API definitions change.**
 
 *   **Docker Compose (for local full-stack testing)**:
-    *   `make compose-up`: Starts all services (backend, frontend, databases, Celery) using Docker Compose. This is similar to the "Getting Started with Docker Compose" method but can also be used during development for a full-stack test.
+    *   `make compose-up`: Starts all services (backend, frontend, databases, Celery) using Docker Compose.
     *   `make compose-down`: Stops all services started with `make compose-up`.
     *   `make compose-logs`: Tails the logs from all services running under Docker Compose.
 
@@ -283,7 +274,7 @@ Contributing to ApeRAG involves the following typical workflow. Before starting 
     *   Regularly use `make format` and `make lint` to ensure code consistency and quality.
 
 4.  **Handle API and Model Changes**:
-    *   If you change backend API endpoints (add, remove, modify parameters/responses): Update the OpenAPI specification (usually in `aperag/api/`) and then run `make generate-frontend-sdk` to update the frontend client.
+    *   If you change backend API endpoints (add, remove, modify parameters/responses): Update the OpenAPI specification (usually in `aperag/api/openapi.yaml`) and then run `make generate-frontend-sdk` to update the frontend client. Also, run `make generate-models` if schema components are affected.
     *   If you change Django models: Run `make makemigration` to create migration files, and then `make migrate` to apply changes to your development database.
 
 5.  **Testing**: Add unit tests for new backend logic and integration tests for API changes. Ensure all existing tests pass by running `make test`.
@@ -302,7 +293,7 @@ Contributing to ApeRAG involves the following typical workflow. Before starting 
 
 ## Build Docker Image
 
-This section covers how to build ApeRAG container images and deploy the application. It's primarily for users who need to create their own builds or deploy to environments other than the ones covered in "Getting Started".
+This section covers how to build ApeRAG container images. It's primarily for users who need to create their own builds or deploy to environments other than the ones covered in "Getting Started".
 
 ### Building Container Images
 
@@ -359,7 +350,7 @@ ApeRAG follows a modular structure to separate concerns and facilitate developme
     *   `flow/`: Workflow orchestration for RAG pipelines.
     *   `graph/`: Graph database interactions (e.g., Neo4j).
     *   `llm/`: Large Language Model integration.
-    *   `schema/`: Pydantic models and data schemas.
+    *   `schema/`: Pydantic models and data schemas (`view_models.py` is auto-generated).
     *   `service/`: Core business logic and services.
     *   `tasks/`: Celery asynchronous background tasks.
     *   `views/`: Django Ninja API endpoint definitions.
