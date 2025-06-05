@@ -407,8 +407,10 @@ export default () => {
         showTitle: false,
       },
       render: (provider: string) => (
-        <Tooltip title={provider}>
-          <Text code style={{ fontSize: '11px' }}>{provider}</Text>
+        <Tooltip title={provider || '-'}>
+          <Text code style={{ fontSize: '11px' }}>
+            {provider || '-'}
+          </Text>
         </Tooltip>
       ),
     },
@@ -814,7 +816,6 @@ export default () => {
                   >
                     <Input 
                       placeholder={formatMessage({ id: 'model.custom_llm_provider.placeholder' })}
-                      disabled
                       style={{ borderRadius: '6px' }}
                     />
                   </Form.Item>

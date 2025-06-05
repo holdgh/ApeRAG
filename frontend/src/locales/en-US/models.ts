@@ -37,7 +37,7 @@ export const model = {
   'model.back_to_list': 'Back to List',
   'model.api_type': 'API Type',
   'model.model_name': 'Model Name',
-  'model.custom_llm_provider': 'Custom LLM Provider',
+  'model.custom_llm_provider': 'API Dialect',
   'model.max_tokens': 'Max Tokens',
   'model.tags': 'Tags',
   
@@ -61,7 +61,7 @@ export const model = {
   'model.model_name.placeholder': 'e.g: gpt-4o-mini',
   'model.model_name.required': 'Please enter model name',
   'model.custom_llm_provider.placeholder': 'Auto-filled',
-  'model.custom_llm_provider.required': 'Please enter custom LLM provider',
+  'model.custom_llm_provider.required': 'Please enter API Dialect',
   'model.max_tokens.placeholder': '4096',
   'model.tags.placeholder': 'Enter tags',
   

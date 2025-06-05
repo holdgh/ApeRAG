@@ -37,7 +37,7 @@ export const model = {
   'model.back_to_list': '返回列表',
   'model.api_type': 'API类型',
   'model.model_name': '模型名称',
-  'model.custom_llm_provider': '自定义LLM提供商',
+  'model.custom_llm_provider': 'API方言',
   'model.max_tokens': '最大Token数',
   'model.tags': '标签',
   
@@ -61,7 +61,7 @@ export const model = {
   'model.model_name.placeholder': '例如: gpt-4o-mini',
   'model.model_name.required': '请输入模型名称',
   'model.custom_llm_provider.placeholder': '自动填充',
-  'model.custom_llm_provider.required': '请输入自定义LLM提供商',
+  'model.custom_llm_provider.required': '请输入API方言',
   'model.max_tokens.placeholder': '4096',
   'model.tags.placeholder': '输入标签',
   
@@ -128,7 +128,7 @@ export const model_configuration = {
   'llm.model.api_type': 'API类型',
   'llm.model.model_name': '模型名称',
   'llm.model.model_name.placeholder': '例如: gpt-4o-mini',
-  'llm.model.custom_llm_provider': '自定义LLM提供商',
+  'llm.model.custom_llm_provider': 'API方言',
   'llm.model.custom_llm_provider.placeholder': '自动填充',
   'llm.model.max_tokens': '最大Token数',
   'llm.model.max_tokens.placeholder': '4096',
@@ -151,7 +151,7 @@ export const model_configuration = {
   'llm.model.provider.required': '请选择提供商',
   'llm.model.api_type.required': '请选择API类型',
   'llm.model.model_name.required': '请输入模型名称',
-  'llm.model.custom_llm_provider.required': '请输入自定义LLM提供商',
+  'llm.model.custom_llm_provider.required': '请输入API方言',
   
   // Success messages
   'llm.provider.created': '提供商创建成功',
