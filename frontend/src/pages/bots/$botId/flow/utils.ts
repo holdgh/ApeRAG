@@ -371,7 +371,12 @@ export const nodeRerankDefinition = (params?: { docId: string }): NodeData => ({
           },
         },
       },
-      required: ['model', 'model_service_provider', 'custom_llm_provider', 'docs'],
+      required: [
+        'model',
+        'model_service_provider',
+        'custom_llm_provider',
+        'docs',
+      ],
     },
     values: {
       model: '',

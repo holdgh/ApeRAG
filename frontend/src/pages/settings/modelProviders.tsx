@@ -42,12 +42,6 @@ export default () => {
 
   const [modal, contextHolder] = Modal.useModal();
 
-  const providerName = Form.useWatch(['name'], form);
-  const currentProvider = useMemo(
-    () => supportedModelProviders?.find((s) => s.name === providerName),
-    [providerName],
-  );
-
   const getSupportedModelProviders = useCallback(async () => {
     setLoading(true);
     const res = await api.supportedModelServiceProvidersGet();
@@ -144,6 +138,7 @@ export default () => {
       },
       {
         title: formatMessage({ id: 'action.name' }),
+        width: 140,
         render: (value, record) => {
           return (
             <Space split={<Divider type="vertical" />}>
@@ -190,8 +185,6 @@ export default () => {
     [supportedModelProviders, modelProviders],
   );
 
-
-
   useEffect(() => {
     getSupportedModelProviders();
     getModelProviders();
@@ -237,7 +230,6 @@ export default () => {
           >
             <Input />
           </Form.Item>
-
 
           <Form.Item
             name="api_key"
