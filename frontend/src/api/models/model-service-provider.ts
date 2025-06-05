@@ -31,37 +31,7 @@ export interface ModelServiceProvider {
      * @type {string}
      * @memberof ModelServiceProvider
      */
-    'completion_dialect'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProvider
-     */
-    'embedding_dialect'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProvider
-     */
-    'rerank_dialect'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProvider
-     */
     'label'?: string;
-    /**
-     * 
-     * @type {boolean}
-     * @memberof ModelServiceProvider
-     */
-    'allow_custom_base_url'?: boolean;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProvider
-     */
-    'base_url'?: string;
     /**
      * 
      * @type {string}

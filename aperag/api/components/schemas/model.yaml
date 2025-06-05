@@ -1,4 +1,3 @@
-
 modelServiceProviderUpdate:
   type: object
   properties:
@@ -6,27 +5,13 @@ modelServiceProviderUpdate:
       type: string
     api_key:
       type: string
-    base_url:
-      type: string
-    extra:
-      type: string
 
 modelServiceProvider:
   type: object
   properties:
     name:
       type: string
-    completion_dialect:
-      type: string
-    embedding_dialect:
-      type: string
-    rerank_dialect:
-      type: string
     label:
-      type: string
-    allow_custom_base_url:
-      type: boolean
-    base_url:
       type: string
     api_key:
       type: string

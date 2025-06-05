@@ -29,21 +29,9 @@ async def build_model_service_provider_response(
     msp: db_models.ModelServiceProvider, supported_msp: view_models.ModelServiceProvider
 ) -> view_models.ModelServiceProvider:
     """Build ModelServiceProvider response object for API return."""
-    # Get LLMProvider data for dialect and base_url information
-    llm_provider = await db_models.LLMProvider.objects.aget(name=msp.name)
-    base_url = llm_provider.base_url
-    completion_dialect = llm_provider.completion_dialect
-    embedding_dialect = llm_provider.embedding_dialect
-    rerank_dialect = llm_provider.rerank_dialect
-
     return view_models.ModelServiceProvider(
         name=msp.name,
-        completion_dialect=completion_dialect,
-        embedding_dialect=embedding_dialect,
-        rerank_dialect=rerank_dialect,
         label=supported_msp.label,
-        allow_custom_base_url=supported_msp.allow_custom_base_url,
-        base_url=base_url,
         api_key=msp.api_key,
     )
 
@@ -69,13 +57,8 @@ async def update_model_service_provider(
     supported_msp_names = {provider.name for provider in supported_providers if provider.name}
     if provider not in supported_msp_names:
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
-    msp_config = next(item for item in supported_providers if item.name == provider)
-    if not msp_config.allow_custom_base_url and mspIn.base_url is not None:
-        return fail(HTTPStatus.BAD_REQUEST, f"model service provider {provider} does not support setting base_url")
 
-    # For now, base_url and extra are stored in LLMProvider, but this update endpoint only handles api_key for ModelServiceProvider
-    # The mspIn.base_url and mspIn.extra should be handled by LLMProvider management if needed
-
+    # Only handle api_key for ModelServiceProvider
     msp = await query_msp(user, provider, filterDeletion=False)
     if msp is None:
         msp = db_models.ModelServiceProvider(
@@ -125,12 +108,7 @@ async def list_supported_model_service_providers() -> view_models.ModelServicePr
     for supported_msp in model_configs:
         provider = ModelServiceProvider(
             name=supported_msp["name"],
-            completion_dialect=supported_msp["completion_dialect"],
-            embedding_dialect=supported_msp["embedding_dialect"],
-            rerank_dialect=supported_msp["rerank_dialect"],
             label=supported_msp["label"],
-            allow_custom_base_url=supported_msp["allow_custom_base_url"],
-            base_url=supported_msp["base_url"],
         )
         response.append(provider)
     return success(ModelServiceProviderList(items=response))

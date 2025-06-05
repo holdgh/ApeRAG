@@ -1,4 +1,4 @@
-import { ModelServiceProvider, SupportedModelServiceProvider } from '@/api';
+import { ModelServiceProvider } from '@/api';
 import { PageContainer, PageHeader } from '@/components';
 import { MODEL_PROVIDER_ICON } from '@/constants';
 import { api } from '@/services';
@@ -31,7 +31,7 @@ export default () => {
   const { formatMessage } = useIntl();
 
   const [supportedModelProviders, setSupportedModelProviders] =
-    useState<SupportedModelServiceProvider[]>();
+    useState<ModelServiceProvider[]>();
 
   const [modelProviders, setModelProviders] =
     useState<ModelServiceProvider[]>();
@@ -132,15 +132,7 @@ export default () => {
           );
         },
       },
-      {
-        title: formatMessage({ id: 'model.provider.uri' }),
-        dataIndex: 'base_url',
-        render: (value, record) => (
-          <Typography.Text type={record.enabled ? undefined : 'secondary'}>
-            {value}
-          </Typography.Text>
-        ),
-      },
+
       {
         title: formatMessage({ id: 'model.provider.api_key' }),
         dataIndex: 'api_key',
@@ -193,17 +185,12 @@ export default () => {
           enabled: enabledProvider !== undefined,
           label: enabledProvider?.label || smp.label,
           api_key: enabledProvider?.api_key,
-          base_url: enabledProvider?.base_url || smp.base_url,
-          allow_custom_base_url:
-            enabledProvider?.allow_custom_base_url || smp.allow_custom_base_url,
         };
       }) || [],
     [supportedModelProviders, modelProviders],
   );
 
-  useEffect(() => {
-    form.setFieldValue('base_url', currentProvider?.base_url);
-  }, [currentProvider]);
+
 
   useEffect(() => {
     getSupportedModelProviders();
@@ -250,30 +237,7 @@ export default () => {
           >
             <Input />
           </Form.Item>
-          {currentProvider?.allow_custom_base_url ? (
-            <Form.Item
-              name="base_url"
-              label={formatMessage({ id: 'model.provider.uri' })}
-              required
-              rules={[
-                {
-                  required: true,
-                  message: formatMessage({ id: 'model.provider.uri.required' }),
-                },
-              ]}
-            >
-              <Input
-                placeholder={formatMessage({ id: 'model.provider.uri' })}
-              />
-            </Form.Item>
-          ) : (
-            <Form.Item
-              label={formatMessage({ id: 'model.provider.uri' })}
-              required
-            >
-              <Input disabled value={currentProvider?.base_url} />
-            </Form.Item>
-          )}
+
 
           <Form.Item
             name="api_key"
