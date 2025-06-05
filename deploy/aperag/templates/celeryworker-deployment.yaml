@@ -152,7 +152,8 @@ spec:
             - mountPath: /data
               name: data
             - name: env-config
-              mountPath: /app/env-config
+              mountPath: /app/.env
+              subPath: .env
               readOnly: true
       restartPolicy: Always
       {{- with index .Values "celery-worker" "affinity" }}
