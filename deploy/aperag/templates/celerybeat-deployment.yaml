@@ -136,7 +136,8 @@ spec:
             {{- toYaml .Values.celerybeat.resources | nindent 12 }}
           volumeMounts:
             - name: env-config
-              mountPath: /app/env-config
+              mountPath: /app/.env
+              subPath: .env
               readOnly: true
       restartPolicy: Always
       volumes:

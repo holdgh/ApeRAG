@@ -82,7 +82,7 @@ With databases running:
 3.  **Access ApeRAG UI**:
     Use `kubectl port-forward` for quick access:
     ```bash
-    kubectl port-forward deploy/aperag-frontend 3000:3000 -n default
+    kubectl port-forward svc/aperag-frontend 3000:3000 -n default
     ```
     Open `http://localhost:3000` in your browser.
 
