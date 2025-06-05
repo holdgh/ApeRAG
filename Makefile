@@ -62,7 +62,7 @@ run-backend: migrate
 	uvicorn config.asgi:application --host 0.0.0.0 --reload --reload-include '*.html'
 
 run-celery:
-	celery -A config.celery worker -B -l INFO
+	celery -A config.celery worker -B -l INFO --pool=solo
 
 run-flower:
 	celery -A config.celery flower --conf/flowerconfig.py
