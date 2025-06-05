@@ -27,26 +27,21 @@ from aperag.schema.view_models import ModelConfig
 class LLMConfigService:
     """Service for managing LLM configurations from database"""
 
-    _providers_cache: Optional[List[db_models.LLMProvider]] = None
-    _models_cache: Optional[List[db_models.LLMProviderModel]] = None
-
     @classmethod
     async def get_providers(cls) -> List[db_models.LLMProvider]:
         """Get all active LLM providers from database"""
-        if cls._providers_cache is None:
-            cls._providers_cache = []
-            async for provider in db_models.LLMProvider.objects.filter(gmt_deleted__isnull=True).all():
-                cls._providers_cache.append(provider)
-        return cls._providers_cache
+        providers = []
+        async for provider in db_models.LLMProvider.objects.filter(gmt_deleted__isnull=True).all():
+            providers.append(provider)
+        return providers
 
     @classmethod
     async def get_provider_models(cls) -> List[db_models.LLMProviderModel]:
         """Get all active LLM provider models from database"""
-        if cls._models_cache is None:
-            cls._models_cache = []
-            async for model in db_models.LLMProviderModel.objects.filter(gmt_deleted__isnull=True).all():
-                cls._models_cache.append(model)
-        return cls._models_cache
+        models = []
+        async for model in db_models.LLMProviderModel.objects.filter(gmt_deleted__isnull=True).all():
+            models.append(model)
+        return models
 
     @classmethod
     async def get_provider_by_name(cls, name: str) -> Optional[db_models.LLMProvider]:
@@ -126,12 +121,6 @@ class LLMConfigService:
         """Build ModelConfig objects for API responses"""
         config_list = await cls.build_model_configs()
         return [ModelConfig(**config) for config in config_list]
-
-    @classmethod
-    def clear_cache(cls):
-        """Clear the configuration cache"""
-        cls._providers_cache = None
-        cls._models_cache = None
 
 
 # Global function to get model configurations for backward compatibility
