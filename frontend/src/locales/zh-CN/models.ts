@@ -1,10 +1,87 @@
 export const model = {
   'model.name': '模型',
   'model.configuration': '模型配置',
+  'model.configuration.description': '配置LLM提供商和模型',
   'model.prompt_template': '提示模版',
   'model.llm.tips': '大型语言对话模型',
   'model.rerank.tips':
     '在拿到向量查询（ANN）的结果后使用 Reranker，能够更有效地确定文档和查询之间的语义相关性，更精细地对结果重排，最终提高搜索质量。',
+  
+  // Provider related
+  'model.provider.title': 'LLM提供商',
+  'model.provider.add': '添加提供商',
+  'model.provider.edit': '编辑提供商',
+  'model.provider.delete': '删除提供商',
+  'model.provider.manage': '管理模型',
+  'model.provider.id': '服务商ID',
+  'model.provider.name': '提供商名称',
+  'model.provider.label': '显示名称',
+  'model.provider.base_url': 'API基础URL',
+  'model.provider.model_count': '模型数量',
+  'model.provider.completion_dialect': '对话API方言',
+  'model.provider.embedding_dialect': '嵌入API方言',
+  'model.provider.rerank_dialect': '重排API方言',
+  'model.provider.allow_custom_base_url': '允许自定义基础URL',
+  'model.provider.extra_config': '额外配置 (JSON)',
+  'model.provider.delete.confirm': '确定要删除提供商 "{name}" 吗？这将同时删除该提供商下的所有模型。',
+  
+  // Model related
+  'model.management.title': '{provider} - 模型管理',
+  'model.list.title': '模型列表',
+  'model.add': '添加模型',
+  'model.add.title': '添加新模型',
+  'model.edit': '编辑模型',
+  'model.edit.title': '编辑模型：{model}',
+  'model.delete': '删除模型',
+  'model.delete.confirm': '确定要删除模型 "{model}" 吗？',
+  'model.back_to_list': '返回列表',
+  'model.api_type': 'API类型',
+  'model.model_name': '模型名称',
+  'model.custom_llm_provider': '自定义LLM提供商',
+  'model.max_tokens': '最大Token数',
+  'model.tags': '标签',
+  
+  // Form placeholders and validation
+  'model.provider.name.placeholder': '例如: openai',
+  'model.provider.name.required': '请输入提供商名称',
+  'model.provider.label.placeholder': '例如: OpenAI',
+  'model.provider.label.required': '请输入显示名称',
+  'model.provider.base_url.placeholder': 'https://api.openai.com/v1',
+  'model.provider.base_url.required': '请输入API基础URL',
+  'model.provider.completion_dialect.placeholder': 'openai',
+  'model.provider.completion_dialect.required': '请输入对话API方言',
+  'model.provider.embedding_dialect.placeholder': 'openai',
+  'model.provider.embedding_dialect.required': '请输入嵌入API方言',
+  'model.provider.rerank_dialect.placeholder': 'jina_ai',
+  'model.provider.rerank_dialect.required': '请输入重排API方言',
+  'model.provider.extra_config.placeholder': '{"key": "value"}',
+  
+  'model.provider.required': '请选择提供商',
+  'model.api_type.required': '请选择API类型',
+  'model.model_name.placeholder': '例如: gpt-4o-mini',
+  'model.model_name.required': '请输入模型名称',
+  'model.custom_llm_provider.placeholder': '自动填充',
+  'model.custom_llm_provider.required': '请输入自定义LLM提供商',
+  'model.max_tokens.placeholder': '4096',
+  'model.tags.placeholder': '输入标签',
+  
+  // API types
+  'model.api_type.completion': 'Completion',
+  'model.api_type.embedding': 'Embedding', 
+  'model.api_type.rerank': 'Rerank',
+  
+  // Messages
+  'model.provider.create.success': '提供商创建成功',
+  'model.provider.update.success': '提供商更新成功',
+  'model.provider.delete.success': '提供商删除成功',
+  'model.provider.save.failed': '提供商保存失败',
+  'model.provider.delete.failed': '提供商删除失败',
+  'model.create.success': '模型创建成功',
+  'model.update.success': '模型更新成功',
+  'model.delete.success': '模型删除成功',
+  'model.save.failed': '模型保存失败',
+  'model.delete.failed': '模型删除失败',
+  'model.configuration.fetch.failed': '获取LLM配置失败',
 };
 
 export const model_provider = {
