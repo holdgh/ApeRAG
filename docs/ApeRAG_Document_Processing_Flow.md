@@ -530,4 +530,116 @@ This data-centric architecture design ensures:
 1. **Clear Data Flow**: Clear inputs and outputs for each component
 2. **Separation of Concerns**: Components focus on specific data processing tasks
 3. **Scalability**: Easy to add new data sources and storage backends
-4. **Traceability**: Complete data processing pipeline can be traced 
+4. **Traceability**: Complete data processing pipeline can be traced
+
+## Known Architectural Issues and Improvement Plans
+
+### Current Architecture Limitations
+
+While the current data flow architecture works well, there is an important design issue: **The `LocalPathEmbedding` class takes on too many responsibilities, and its data interface design limits reuse by other index types**.
+
+#### Core Problem
+The `LocalPathEmbedding.load_data()` method concentrates multiple processing steps:
+```python
+def load_data(self) -> Tuple[List[str], str]:
+    # 1. Document parsing (DocParser)
+    # 2. Content chunking (rechunk) 
+    # 3. Metadata enhancement
+    # 4. Vector embedding generation
+    # 5. Asset storage
+    # 6. Vector database storage
+    
+    return vector_ids, content  # Only returns vector IDs and text content
+```
+
+**Problem Impact**:
+- **Data Loss**: Full-text index and knowledge graph cannot access structured parsing results, chunk metadata, hierarchical information
+- **Duplicate Processing**: Different index types cannot reuse document parsing and chunking results
+- **Extension Difficulties**: Adding new index types requires redesigning data flow
+- **Responsibility Confusion**: Single class handles parsing, chunking, embedding, storage and other concerns
+
+#### Specific Examples
+
+**Full-text Index Limitations**:
+```python
+# Current: Only gets merged text
+content = "# Title\nContent..."  # Flat string
+
+# Ideal: Should get structured data
+chunks = [
+    {
+        "content": "paragraph content",
+        "metadata": {
+            "section": "Chapter 1", 
+            "hierarchy": ["Chapter 1", "Section 1"],
+            "labels": [{"key": "type", "value": "technical document"}]
+        }
+    }
+]
+```
+
+**Knowledge Graph Limitations**:
+```python
+# Current: Only gets flat text
+add_lightrag_index_task.delay(content, document.id, local_doc.path)
+
+# Ideal: Should get document structure
+structured_data = {
+    "sections": [{"title": "chapter", "content": "..."}],
+    "entities": [...],
+    "hierarchy": {...}
+}
+```
+
+### Solution
+
+We have developed a detailed refactoring plan to address these issues:
+
+#### 📋 RFC 001: Document Processing Pipeline Refactor
+
+**Reference Document**: [`docs/rfc/001-document-processing-pipeline-refactor.md`](rfc/001-document-processing-pipeline-refactor.md)
+
+**Core Improvements**:
+1. **Separation of Concerns**: Separate document parsing, content processing, and index generation into independent stages
+2. **Standardized Data Models**: Define standard interfaces like `ParsedDocument`, `ProcessedDocumentBundle`
+3. **Modular Processors**: Create dedicated processors for each index type
+4. **Pipeline Architecture**: Support parallel processing and data reuse
+
+**Expected Benefits**:
+- **Avoid Duplicate Processing**: Documents only need to be parsed once, shared by all index types
+- **Rich Metadata Support**: Full-text index and knowledge graph can access complete structured data
+- **Parallel Processing**: Multiple indexes can be generated simultaneously, improving processing efficiency
+- **Easy Extension**: Adding new index types requires no modification to existing code
+
+**Implementation Timeline**:
+- **Phase 1-2** (1-4 weeks): Extract data models and document parser
+- **Phase 3-4** (5-8 weeks): Refactor content processing and index generation
+- **Phase 5-6** (9-12 weeks): Create unified orchestrator and cleanup old code
+
+#### Migration Strategy
+The refactoring will use a gradual approach to ensure:
+- **Backward Compatibility**: Existing APIs remain available during migration
+- **Zero-Downtime Deployment**: Production environment can transition smoothly
+- **Comprehensive Testing**: Each phase has complete test coverage
+
+### Impact on Developers
+
+#### Current Phase
+Developers should note when using the current architecture:
+- `LocalPathEmbedding` is primarily designed for vector indexing, other index types have limited functionality
+- Consider data reuse limitations when adding new index types
+- Document processing performance bottlenecks may come from duplicate parsing
+
+#### After Refactoring
+After the refactoring is complete, developers will get:
+- **Clearer Component Boundaries**: Each component has clear responsibilities
+- **Richer Data Interfaces**: Access to complete document structure and metadata
+- **Better Extensibility**: Easily add custom index processors
+- **Higher Performance**: Parallel processing and data reuse reduce computational overhead
+
+---
+
+**Related Documentation**:
+- RFC Detailed Design: [`docs/rfc/001-document-processing-pipeline-refactor.md`](rfc/001-document-processing-pipeline-refactor.md)
+- Current Implementation: `aperag/embed/local_path_embedding.py`
+- Index Tasks: `aperag/tasks/index.py` 
