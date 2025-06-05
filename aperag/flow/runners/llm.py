@@ -115,8 +115,16 @@ class LLMNodeRunner(BaseNodeRunner):
         msp_dict = await query_msp_dict(user)
         if model_service_provider in msp_dict:
             msp = msp_dict[model_service_provider]
-            base_url = msp.base_url
             api_key = msp.api_key
+
+            # Get base_url from LLMProvider
+            try:
+                from aperag.db.models import LLMProvider
+
+                llm_provider = await LLMProvider.objects.aget(name=model_service_provider)
+                base_url = llm_provider.base_url
+            except LLMProvider.DoesNotExist:
+                raise Exception(f"LLMProvider {model_service_provider} not found")
         else:
             raise Exception("Model service provider not found")
         context = ""

@@ -62,17 +62,25 @@ class RerankNodeRunner(BaseNodeRunner):
 
             msp = msp_dict[ui.model_service_provider]
 
+            # Get base_url from LLMProvider
+            try:
+                from aperag.db.models import LLMProvider
+
+                llm_provider = await LLMProvider.objects.aget(name=ui.model_service_provider)
+                base_url = llm_provider.base_url
+            except LLMProvider.DoesNotExist:
+                raise ValueError(f"LLMProvider '{ui.model_service_provider}' not found")
+
             # Create rerank service with configuration from model service provider
             rerank_service = RerankService(
                 rerank_provider=ui.custom_llm_provider,
                 rerank_model=ui.model,
-                rerank_service_url=msp.base_url,
+                rerank_service_url=base_url,
                 rerank_service_api_key=msp.api_key,
             )
 
             logger.info(
-                f"Using rerank service with provider: {ui.model_service_provider}, "
-                f"model: {ui.model}, url: {msp.base_url}"
+                f"Using rerank service with provider: {ui.model_service_provider}, model: {ui.model}, url: {base_url}"
             )
 
             result = await rerank_service.rank(query, docs)

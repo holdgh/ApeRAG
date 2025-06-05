@@ -120,8 +120,15 @@ async def update_bot(user, bot_id, bot_in: view_models.BotUpdate) -> view_models
     msp_dict = await query_msp_dict(user)
     if model_service_provider in msp_dict:
         msp = msp_dict[model_service_provider]
-        base_url = msp.base_url
         api_key = msp.api_key
+
+        # Get base_url from LLMProvider
+        try:
+            llm_provider = await db_models.LLMProvider.objects.aget(name=model_service_provider)
+            base_url = llm_provider.base_url
+        except db_models.LLMProvider.DoesNotExist:
+            return fail(HTTPStatus.BAD_REQUEST, f"LLMProvider {model_service_provider} not found")
+
         valid, msg = validate_bot_config(
             model_service_provider, model_name, base_url, api_key, llm_config, bot_in.type, memory
         )

@@ -2,8 +2,10 @@
   {
     "name": "openai",
     "label": "OpenAI",
-    "dialect": "openai",
-    "allow_custom_base_url": true,
+    "completion_dialect": "openai",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
+    "allow_custom_base_url": false,
     "base_url": "https://api.openai.com/v1",
     "completion": [
       {
@@ -60,9 +62,19 @@
         "model": "o3-mini",
         "custom_llm_provider": "openai",
         "max_tokens": 100000
+      },
+      {
+        "model": "o4-mini",
+        "custom_llm_provider": "openai",
+        "max_tokens": 100000
       }
     ],
     "embedding": [
+      {
+        "model": "text-embedding-3-large",
+        "custom_llm_provider": "openai",
+        "max_tokens": 8191
+      },
       {
         "model": "text-embedding-3-small",
         "custom_llm_provider": "openai",
@@ -84,8 +96,10 @@
   {
     "name": "anthropic",
     "label": "Anthropic",
-    "dialect": "anthropic",
-    "allow_custom_base_url": true,
+    "completion_dialect": "anthropic",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
+    "allow_custom_base_url": false,
     "base_url": "https://api.anthropic.com",
     "completion": [
       {
@@ -105,19 +119,21 @@
   {
     "name": "gemini",
     "label": "Google Gemini",
-    "dialect": "google",
+    "completion_dialect": "google",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
     "allow_custom_base_url": false,
-    "base_url": "",
+    "base_url": "https://generativelanguage.googleapis.com",
     "completion": [
       {
         "model": "gemini/gemini-2.5-flash-preview-04-17",
         "custom_llm_provider": "gemini",
-        "max_tokens": 65536
+        "max_tokens": 65535
       },
       {
         "model": "gemini/gemini-2.5-pro-preview-03-25",
         "custom_llm_provider": "gemini",
-        "max_tokens": 65536
+        "max_tokens": 65535
       }
     ],
     "embedding": [],
@@ -126,8 +142,10 @@
   {
     "name": "xai",
     "label": "xAI",
-    "dialect": "openai",
-    "allow_custom_base_url": true,
+    "completion_dialect": "openai",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
+    "allow_custom_base_url": false,
     "base_url": "https://api.xai.com/v1",
     "completion": [
       {
@@ -157,7 +175,9 @@
   {
     "name": "deepseek",
     "label": "DeepSeek",
-    "dialect": "openai",
+    "completion_dialect": "openai",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
     "allow_custom_base_url": false,
     "base_url": "https://api.deepseek.com/v1",
     "embedding": [],
@@ -176,7 +196,9 @@
   {
     "name": "alibabacloud",
     "label": "AlibabaCloud",
-    "dialect": "openai",
+    "completion_dialect": "openai",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
     "allow_custom_base_url": false,
     "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     "embedding": [
@@ -203,11 +225,11 @@
         "custom_llm_provider": "openai"
       },
       {
-        "model": "qwen-max",
+        "model": "qwen-long",
         "custom_llm_provider": "openai"
       },
       {
-        "model": "qwen-long",
+        "model": "qwen-max",
         "custom_llm_provider": "openai"
       },
       {
@@ -223,6 +245,14 @@
         "custom_llm_provider": "openai"
       },
       {
+        "model": "qwen-vl-max",
+        "custom_llm_provider": "openai"
+      },
+      {
+        "model": "qwen-vl-plus",
+        "custom_llm_provider": "openai"
+      },
+      {
         "model": "qwq-32b",
         "custom_llm_provider": "openai"
       },
@@ -233,14 +263,6 @@
       {
         "model": "qwq-plus-latest",
         "custom_llm_provider": "openai"
-      },
-      {
-        "model": "qwen-vl-max",
-        "custom_llm_provider": "openai"
-      },
-      {
-        "model": "qwen-vl-plus",
-        "custom_llm_provider": "openai"
       }
     ],
     "rerank": []
@@ -248,7 +270,9 @@
   {
     "name": "siliconflow",
     "label": "SiliconFlow",
-    "dialect": "openai",
+    "completion_dialect": "openai",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
     "allow_custom_base_url": false,
     "base_url": "https://api.siliconflow.cn/v1",
     "embedding": [
@@ -305,7 +329,9 @@
   {
     "name": "openrouter",
     "label": "OpenRouter",
-    "dialect": "openai",
+    "completion_dialect": "openai",
+    "embedding_dialect": "openai",
+    "rerank_dialect": "jina_ai",
     "allow_custom_base_url": false,
     "base_url": "https://openrouter.ai/api/v1",
     "embedding": [],

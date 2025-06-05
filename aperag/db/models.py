@@ -467,10 +467,7 @@ class ModelServiceProvider(models.Model):
     name = models.CharField(max_length=256)
     user = models.CharField(max_length=256)
     status = models.CharField(max_length=16, choices=Status.choices)
-    dialect = models.CharField(max_length=32, default="openai", blank=False, null=False)
-    base_url = models.CharField(max_length=256, blank=True, null=True)
     api_key = models.CharField(max_length=256)
-    extra = models.TextField(null=True)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_updated = models.DateTimeField(auto_now=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
@@ -479,7 +476,7 @@ class ModelServiceProvider(models.Model):
         unique_together = [("name", "user")]
 
     def __str__(self):
-        return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, base_url={self.base_url}, api_key={self.api_key}, extra={self.extra})"
+        return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, api_key={self.api_key})"
 
 
 class Role(models.TextChoices):
@@ -549,3 +546,105 @@ class SearchTestHistory(models.Model):
     items = models.JSONField(default=list)
     gmt_created = models.DateTimeField(auto_now_add=True)
     gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+
+class LLMProvider(models.Model):
+    """LLM Provider configuration model
+
+    This model stores the provider-level configuration that was previously
+    stored in model_configs.json file. Each provider has basic information
+    and dialect configurations for different API types.
+    """
+
+    name = models.CharField(max_length=128, primary_key=True, help_text="Unique provider name identifier")
+    label = models.CharField(max_length=256, help_text="Human-readable provider display name")
+    completion_dialect = models.CharField(max_length=64, help_text="API dialect for completion/chat APIs")
+    embedding_dialect = models.CharField(max_length=64, help_text="API dialect for embedding APIs")
+    rerank_dialect = models.CharField(max_length=64, help_text="API dialect for rerank APIs")
+    allow_custom_base_url = models.BooleanField(default=False, help_text="Whether custom base URLs are allowed")
+    base_url = models.URLField(max_length=512, help_text="Default API base URL for this provider")
+    extra = models.TextField(null=True, help_text="Additional configuration data in JSON format")
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "aperag_llm_provider"
+        app_label = "aperag"
+
+    def __str__(self):
+        return f"LLMProvider(name={self.name}, label={self.label})"
+
+
+class LLMProviderModel(models.Model):
+    """LLM Provider Model configuration
+
+    This model stores individual model configurations for each provider.
+    Each model belongs to a provider and has a specific API type (completion, embedding, rerank).
+    """
+
+    class APIType(models.TextChoices):
+        COMPLETION = "completion", "Completion"
+        EMBEDDING = "embedding", "Embedding"
+        RERANK = "rerank", "Rerank"
+
+    provider_name = models.CharField(max_length=128, help_text="Reference to LLMProvider.name")
+    api = models.CharField(max_length=16, choices=APIType.choices, help_text="API type for this model")
+    model = models.CharField(max_length=256, help_text="Model name/identifier")
+    custom_llm_provider = models.CharField(max_length=128, help_text="Custom LLM provider implementation")
+    max_tokens = models.PositiveIntegerField(null=True, blank=True, help_text="Maximum tokens for this model")
+    tags = models.JSONField(
+        default=list, blank=True, help_text="Tags for model categorization, e.g. ['free', 'recommend']"
+    )
+    gmt_created = models.DateTimeField(auto_now_add=True)
+    gmt_updated = models.DateTimeField(auto_now=True)
+    gmt_deleted = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "aperag_llm_provider_models"
+        app_label = "aperag"
+        unique_together = [("provider_name", "api", "model")]
+        indexes = [
+            models.Index(fields=["provider_name"]),
+            models.Index(fields=["api"]),
+            models.Index(fields=["provider_name", "api"]),
+        ]
+
+    def __str__(self):
+        return f"LLMProviderModel(provider={self.provider_name}, api={self.api}, model={self.model})"
+
+    async def get_provider(self):
+        """Get the associated provider object"""
+        try:
+            return await LLMProvider.objects.aget(name=self.provider_name)
+        except LLMProvider.DoesNotExist:
+            return None
+
+    @property
+    async def provider(self):
+        """Property to get the provider object"""
+        return await self.get_provider()
+
+    def has_tag(self, tag: str) -> bool:
+        """Check if model has a specific tag"""
+        return tag in (self.tags or [])
+
+    def add_tag(self, tag: str) -> bool:
+        """Add a tag to model. Returns True if tag was added, False if already exists"""
+        if self.tags is None:
+            self.tags = []
+        if tag not in self.tags:
+            self.tags.append(tag)
+            return True
+        return False
+
+    def remove_tag(self, tag: str) -> bool:
+        """Remove a tag from model. Returns True if tag was removed, False if not found"""
+        if self.tags and tag in self.tags:
+            self.tags.remove(tag)
+            return True
+        return False
+
+    def get_tags(self) -> list:
+        """Get all tags for this model"""
+        return self.tags or []

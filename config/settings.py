@@ -253,10 +253,6 @@ LOGGING = {
     },
 }
 
-json_path = os.path.join(BASE_DIR, 'model_configs.json')
-with open(json_path, 'r', encoding='utf-8') as f:
-    MODEL_CONFIGS = json.load(f)
-
 EMBEDDING_MAX_CHUNKS_IN_BATCH = env.int("EMBEDDING_MAX_CHUNKS_IN_BATCH", default=16)
 
 # Memory backend

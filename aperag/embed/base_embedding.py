@@ -89,8 +89,17 @@ async def get_collection_embedding_service(collection) -> tuple[Embeddings | Non
     msp_dict = await query_msp_dict(collection.user)
     if embedding_msp in msp_dict:
         msp = msp_dict[embedding_msp]
-        embedding_service_url = msp.base_url
         embedding_service_api_key = msp.api_key
+
+        # Get base_url from LLMProvider
+        try:
+            from aperag.db.models import LLMProvider
+
+            llm_provider = await LLMProvider.objects.aget(name=embedding_msp)
+            embedding_service_url = llm_provider.base_url
+        except LLMProvider.DoesNotExist:
+            raise ValueError(f"LLMProvider '{embedding_msp}' not found")
+
         logging.info("get_collection_embedding_model %s %s", embedding_service_url, embedding_service_api_key)
 
         return get_embedding_model(
