@@ -12,8 +12,8 @@ ApeRAG is a comprehensive RAG (Retrieval-Augmented Generation) platform designed
 
 - [Getting Started](#getting-started)
   - [Getting Started with Kubernetes](#getting-started-with-kubernetes)
-  - [Getting Started with Docker Compose](#getting-started-with-docker-compose)
   - [Getting Started with Source Code](#getting-started-with-source-code)
+  - [Getting Started with Docker Compose](#getting-started-with-docker-compose)
 - [Development](#development)
   - [Development Environment](#development-environment)
   - [Key `make` Commands for Development](#key-make-commands-for-development)
@@ -30,115 +30,61 @@ This section will guide you through setting up ApeRAG using different methods.
 
 ### Getting Started with Kubernetes
 
-ApeRAG can be deployed to a Kubernetes cluster using the provided Helm chart. This guide outlines deploying the necessary databases (optionally using KubeBlocks scripts from `deploy/databases/`) and then deploying the ApeRAG application itself.
+This guide covers deploying ApeRAG to Kubernetes using the provided Helm chart. It involves two main phases: setting up databases (optional if you have them) and deploying the ApeRAG application.
 
-**Phase 1: Deploying Databases with KubeBlocks (Optional)**
+**Phase 1: Deploy Databases with KubeBlocks (Optional)**
 
-ApeRAG requires several databases: PostgreSQL, Redis, Qdrant, and Elasticsearch are essential for core functionality and hybrid search.
+ApeRAG needs PostgreSQL, Redis, Qdrant, and Elasticsearch. If you don't have these, use the KubeBlocks scripts in `deploy/databases/`.
 
-*If you already have these database services running and accessible from your Kubernetes cluster (e.g., managed services or self-deployed), you can **skip this phase** and proceed directly to Phase 2.* 
+*Skip this phase if your databases are already available in your Kubernetes cluster.*
 
-If you choose to use the KubeBlocks scripts provided in `deploy/databases/`:
-
-1.  **Prerequisites for KubeBlocks Database Deployment**:
-    *   A running Kubernetes cluster (e.g., Minikube, EKS, GKE, AKS).
-    *   `kubectl` installed and configured to connect to your cluster.
-    *   Helm v3+ installed.
+1.  **Prerequisites**:
+    *   Kubernetes cluster.
+    *   `kubectl` configured.
+    *   Helm v3+.
 
 2.  **Database Configuration (`deploy/databases/00-config.sh`)**:
-    This script determines which databases (like PostgreSQL, Redis, Qdrant, Elasticsearch) are installed by the KubeBlocks helper scripts and into which `NAMESPACE` (default is `"default"`). For a standard ApeRAG setup, the default configurations in this script are generally sufficient and **do not require modification**.
+    This script controls database deployment (defaults: PostgreSQL, Redis, Qdrant, Elasticsearch in the `default` namespace). **Defaults are usually fine; no changes needed for a standard setup.** Edit only for advanced cases (e.g., changing namespace, enabling optional databases like Neo4j).
 
-    You would only consider editing this file for advanced scenarios, such as changing the deployment namespace or specifically enabling/disabling certain optional databases (like Neo4j).
-
-3.  **Run KubeBlocks Database Deployment Scripts**:
-    Navigate to the `deploy/databases/` directory and execute the scripts in order:
+3.  **Run Database Deployment Scripts**:
     ```bash
     cd deploy/databases/
-    bash ./01-prepare.sh          # Prepares KubeBlocks environment & add-ons for selected databases.
-    bash ./02-install-database.sh # Deploys the actual database clusters.
-    cd ../.. # Navigate back to the project root directory.
+    bash ./01-prepare.sh          # Prepares KubeBlocks environment.
+    bash ./02-install-database.sh # Deploys database clusters.
+    cd ../.. # Back to project root.
     ```
-    After running the scripts, monitor the pod status in the `default` namespace (or your custom namespace if changed):
+    Monitor pods in the `default` namespace (or your custom one) until ready:
     ```bash
     kubectl get pods -n default
     ```
-    Wait until all necessary database pods (e.g., `pg-cluster-postgresql-0`, `redis-cluster-redis-0`, `qdrant-cluster-qdrant-0`) show `Running` status.
 
-**Phase 2: Deploying the ApeRAG Application**
+**Phase 2: Deploy ApeRAG Application**
 
-Once your database services are confirmed to be running and accessible:
+With databases running:
 
-1.  **Configure ApeRAG Helm Chart (`deploy/aperag/values.yaml`)**:
-    The Helm chart for the ApeRAG application is located in `deploy/aperag/`.
-    *   **If you used the Phase 1 KubeBlocks scripts (in the `default` namespace)**: The database service names and ports in `deploy/aperag/values.yaml` are typically pre-configured to correctly connect to these KubeBlocks-managed instances (e.g., service names like `pg-cluster-postgresql-postgresql.default.svc.cluster.local`). In this scenario, you usually **do not need to modify the database connection details** in `values.yaml`.
-    *   **If using your own externally managed or self-deployed database services**: You **must** update `deploy/aperag/values.yaml` with the correct hostnames, ports, usernames, and passwords for PostgreSQL, Redis, Qdrant, and any optional databases (Elasticsearch, Neo4j) you intend to use.
-    *   Review other settings in `values.yaml` as needed, such as image repositories/tags (if not using default images from Docker Hub), resource requests/limits, Ingress configuration, `AUTH_TYPE`, `OBJECT_STORE_TYPE`, etc.
+1.  **Helm Chart Configuration (`deploy/aperag/values.yaml`)**:
+    *   **Using KubeBlocks (Phase 1 in `default` namespace)?** Database connections in `values.yaml` are likely pre-configured. **No changes usually needed.**
+    *   **Using your own databases?** You MUST update `values.yaml` with your database connection details.
+    *   Optionally, review other settings (images, resources, Ingress, etc.).
 
-2.  **Deploy ApeRAG using Helm**:
-    The following command installs ApeRAG into the `default` namespace. If your databases are in a different namespace and ApeRAG needs to be in the same one, adjust accordingly.
+2.  **Deploy ApeRAG with Helm**:
+    This installs ApeRAG to the `default` namespace:
     ```bash
     helm install aperag ./deploy/aperag --namespace default --create-namespace
     ```
-    After execution, monitor the ApeRAG application pods:
+    Monitor ApeRAG pods until `Running`:
     ```bash
     kubectl get pods -n default -l app.kubernetes.io/instance=aperag
     ```
-    Wait for the `aperag-django-...`, `aperag-celeryworker-...`, and `aperag-frontend-...` pods to reach `Running` status.
 
-3.  **Access the ApeRAG Frontend UI**:
-    Once the `aperag-frontend` pod is running, you can access the web UI using `kubectl port-forward`. This is useful for testing or when an Ingress controller isn't configured.
+3.  **Access ApeRAG UI**:
+    Use `kubectl port-forward` for quick access:
     ```bash
-    # Forward the frontend deployment's port 3000 to your local machine's port 3000
     kubectl port-forward deploy/aperag-frontend 3000:3000 -n default
     ```
-    Then, open your web browser and navigate to `http://localhost:3000`.
+    Open `http://localhost:3000` in your browser.
 
-For more detailed information on KubeBlocks database management (like retrieving specific credentials, uninstalling database clusters), please refer to the `deploy/databases/README.md` file.
-
-### Getting Started with Docker Compose
-
-To get started with ApeRAG using Docker Compose, follow these steps:
-
-1.  **Prerequisites**:
-    *   Docker & Docker Compose
-    *   Git
-
-2.  **Environment Setup**:
-    Configure environment variables by copying the template files:
-    ```bash
-    cp envs/env.template .env
-    cp frontend/deploy/env.local.template frontend/.env
-    ```
-    Then, **edit the `.env` file** to configure your AI service settings and other necessary configurations according to your needs.
-
-3.  **Start Services**:
-    You can start all ApeRAG services using the following `make` command:
-    ```bash
-    # Optional: Use Aliyun registry if in China
-    # export REGISTRY=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
-
-    # Start ApeRAG services
-    make compose-up
-    ```
-    If you need to use the `doc-ray` service for advanced document parsing (recommended for complex documents, tables, or formulas), you can start it along with other services:
-    ```bash
-    make compose-up WITH_DOCRAY=1
-    ```
-    If your environment has GPUs, you can enable GPU support for `doc-ray` for better performance:
-    ```bash
-    make compose-up WITH_DOCRAY=1 WITH_GPU=1
-    ```
-    > **About the doc-ray parsing service**
-    >
-    > ApeRAG includes a basic built-in parser for extracting text from documents like PDFs and DOCX files for RAG indexing. However, this parser may not optimally handle complex document structures, tables, or formulas.
-    >
-    > For enhanced document parsing capabilities and more accurate content extraction, we recommend deploying the [doc-ray](https://github.com/apecloud/doc-ray) service. `doc-ray` leverages **MinerU** for advanced document analysis.
-    >
-    > * When `WITH_GPU=1` is not specified, `doc-ray` will run using only the CPU. In this case, it is recommended to allocate at least 4 CPU cores and 8GB+ of RAM for it.
-    > * When `WITH_GPU=1` is specified, `doc-ray` will run using the GPU. It requires approximately 6GB of VRAM, along with 2 CPU cores and 8GB of RAM.
-
-4.  **Access ApeRAG**:
-    Once the services are up and running, open your browser and navigate to: http://localhost:3000/web/
+For KubeBlocks details (credentials, uninstall), see `deploy/databases/README.md`.
 
 ### Getting Started with Source Code
 
@@ -158,7 +104,7 @@ Before you begin, ensure your system has:
 
 *   **Python 3.11**: The project uses Python 3.11. If it's not your system default, `uv` (see below) will attempt to use it when creating the virtual environment if available.
 *   **Node.js**: Version 20 or higher is recommended for frontend development.
-*   **`uv`**: This is a fast Python package installer and virtual environment manager. 
+*   **`uv`**: This is a fast Python package installer and virtual environment manager.
     *   If you don't have `uv`, the `make install` command (Step 3) will try to install it via `pip`.
 *   **Docker**: (Recommended for local databases) If you plan to run dependent services like PostgreSQL, Redis, etc., locally, Docker is the easiest way. The `make run-db` command uses Docker Compose.
 
@@ -222,7 +168,7 @@ These should typically be run in separate terminal windows/tabs. The `make` comm
     ```bash
     make run-celery
     ```
-    This starts the Celery worker for processing asynchronous background tasks. 
+    This starts the Celery worker for processing asynchronous background tasks.
 
 **7. Run Frontend Development Server (Optional)**
 
@@ -239,6 +185,51 @@ With the backend (and optionally frontend) services running:
 *   The **Backend API** is available at `http://localhost:8000`.
 
 Now you have ApeRAG running locally from the source code, ready for development or testing!
+
+### Getting Started with Docker Compose
+
+To get started with ApeRAG using Docker Compose, follow these steps:
+
+1.  **Prerequisites**:
+    *   Docker & Docker Compose
+    *   Git
+
+2.  **Environment Setup**:
+    Configure environment variables by copying the template files:
+    ```bash
+    cp envs/env.template .env
+    cp frontend/deploy/env.local.template frontend/.env
+    ```
+    Then, **edit the `.env` file** to configure your AI service settings and other necessary configurations according to your needs.
+
+3.  **Start Services**:
+    You can start all ApeRAG services using the following `make` command:
+    ```bash
+    # Optional: Use Aliyun registry if in China
+    # export REGISTRY=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
+
+    # Start ApeRAG services
+    make compose-up
+    ```
+    If you need to use the `doc-ray` service for advanced document parsing (recommended for complex documents, tables, or formulas), you can start it along with other services:
+    ```bash
+    make compose-up WITH_DOCRAY=1
+    ```
+    If your environment has GPUs, you can enable GPU support for `doc-ray` for better performance:
+    ```bash
+    make compose-up WITH_DOCRAY=1 WITH_GPU=1
+    ```
+    > **About the doc-ray parsing service**
+    >
+    > ApeRAG includes a basic built-in parser for extracting text from documents like PDFs and DOCX files for RAG indexing. However, this parser may not optimally handle complex document structures, tables, or formulas.
+    >
+    > For enhanced document parsing capabilities and more accurate content extraction, we recommend deploying the [doc-ray](https://github.com/apecloud/doc-ray) service. `doc-ray` leverages **MinerU** for advanced document analysis.
+    >
+    > * When `WITH_GPU=1` is not specified, `doc-ray` will run using only the CPU. In this case, it is recommended to allocate at least 4 CPU cores and 8GB+ of RAM for it.
+    > * When `WITH_GPU=1` is specified, `doc-ray` will run using the GPU. It requires approximately 6GB of VRAM, along with 2 CPU cores and 8GB of RAM.
+
+4.  **Access ApeRAG**:
+    Once the services are up and running, open your browser and navigate to: http://localhost:3000/web/
 
 ## Development
 
@@ -366,40 +357,6 @@ Refer to the "Getting Started" section for common deployment methods:
 
 For custom deployments, you will need to adapt these methods or use the built container images with your chosen orchestration platform. Ensure all required services (databases, backend, frontend, Celery workers) are correctly configured and can communicate with each other.
 
-## Project Structure Overview
-
-ApeRAG follows a modular structure to separate concerns and facilitate development. Here's a high-level overview of the key directories:
-
-*   **`aperag/`**: Contains the core backend Django application.
-    *   `api/`: OpenAPI specifications and generated schema components.
-    *   `auth/`: Authentication and authorization logic.
-    *   `chat/`: Real-time chat functionalities.
-    *   `docparser/`: Document parsing and text extraction modules.
-    *   `embed/`: Embedding generation and management.
-    *   `flow/`: Workflow orchestration for RAG pipelines.
-    *   `graph/`: Graph database interactions (e.g., Neo4j).
-    *   `llm/`: Large Language Model integration.
-    *   `schema/`: Pydantic models and data schemas (`view_models.py` is auto-generated).
-    *   `service/`: Core business logic and services.
-    *   `tasks/`: Celery asynchronous background tasks.
-    *   `views/`: Django Ninja API endpoint definitions.
-    *   `vectorstore/`: Vector database operations (e.g., Qdrant).
-*   **`frontend/`**: Contains the UmiJS (React/TypeScript) frontend application.
-    *   `src/api/`: Auto-generated API client from OpenAPI specs.
-    *   `src/components/`: Reusable UI components.
-    *   `src/layouts/`: Page layout components.
-    *   `src/locales/`: Internationalization (i18n) files.
-    *   `src/models/`: UmiJS state management models.
-    *   `src/pages/`: Application pages and views.
-*   **`deploy/`**: Contains deployment configurations.
-    *   `aperag/`: Helm chart for Kubernetes deployment.
-    *   `databases/`: Scripts and configurations for deploying dependent databases (e.g., PostgreSQL, Redis, Qdrant) often using KubeBlocks.
-*   **`docker-compose.yml`**: Defines services for local development and testing using Docker Compose.
-*   **`Makefile`**: Provides convenient `make` commands for common development tasks like installation, running services, linting, testing, and building.
-*   **`docs/`**: Contains additional project documentation, guides, and design documents.
-*   **`tests/`**: Contains unit, integration, and end-to-end tests.
-
-This structure helps maintain a clean and organized codebase, making it easier to navigate and contribute to the project.
 
 ## License
 
