@@ -109,27 +109,53 @@ async def list_llm_providers():
 
 
 async def create_llm_provider(provider_data: dict):
-    """Create a new LLM provider"""
+    """Create a new LLM provider or restore a soft-deleted one with the same name"""
     try:
-        # Check if provider with same name already exists
-        existing = await db_models.LLMProvider.objects.filter(
+        # First check if there's an active provider with the same name
+        active_existing = await db_models.LLMProvider.objects.filter(
             name=provider_data["name"], gmt_deleted__isnull=True
         ).afirst()
 
-        if existing:
+        if active_existing:
             return fail(HTTPStatus.BAD_REQUEST, f"Provider with name '{provider_data['name']}' already exists")
 
-        # Create new provider
-        provider = await db_models.LLMProvider.objects.acreate(
-            name=provider_data["name"],
-            label=provider_data["label"],
-            completion_dialect=provider_data.get("completion_dialect", "openai"),
-            embedding_dialect=provider_data.get("embedding_dialect", "openai"),
-            rerank_dialect=provider_data.get("rerank_dialect", "jina_ai"),
-            allow_custom_base_url=provider_data.get("allow_custom_base_url", False),
-            base_url=provider_data["base_url"],
-            extra=provider_data.get("extra"),
-        )
+        # Check if there's a soft-deleted provider with the same name
+        deleted_existing = await db_models.LLMProvider.objects.filter(
+            name=provider_data["name"], gmt_deleted__isnull=False
+        ).afirst()
+
+        if deleted_existing:
+            # Restore and update the soft-deleted provider
+            deleted_existing.label = provider_data["label"]
+            deleted_existing.completion_dialect = provider_data.get("completion_dialect", "openai")
+            deleted_existing.embedding_dialect = provider_data.get("embedding_dialect", "openai")
+            deleted_existing.rerank_dialect = provider_data.get("rerank_dialect", "jina_ai")
+            deleted_existing.allow_custom_base_url = provider_data.get("allow_custom_base_url", False)
+            deleted_existing.base_url = provider_data["base_url"]
+            deleted_existing.extra = provider_data.get("extra")
+            deleted_existing.gmt_deleted = None  # Restore the record
+            deleted_existing.gmt_updated = timezone.now()
+
+            await deleted_existing.asave()
+
+            # Also restore any soft-deleted models for this provider
+            await db_models.LLMProviderModel.objects.filter(
+                provider_name=provider_data["name"], gmt_deleted__isnull=False
+            ).aupdate(gmt_deleted=None, gmt_updated=timezone.now())
+
+            provider = deleted_existing
+        else:
+            # Create new provider
+            provider = await db_models.LLMProvider.objects.acreate(
+                name=provider_data["name"],
+                label=provider_data["label"],
+                completion_dialect=provider_data.get("completion_dialect", "openai"),
+                embedding_dialect=provider_data.get("embedding_dialect", "openai"),
+                rerank_dialect=provider_data.get("rerank_dialect", "jina_ai"),
+                allow_custom_base_url=provider_data.get("allow_custom_base_url", False),
+                base_url=provider_data["base_url"],
+                extra=provider_data.get("extra"),
+            )
 
         return success(
             {
@@ -270,7 +296,7 @@ async def list_llm_provider_models(provider_name: Optional[str] = None):
 
 
 async def create_llm_provider_model(provider_name: str, model_data: dict):
-    """Create a new model for a specific provider"""
+    """Create a new model for a specific provider or restore a soft-deleted one with the same combination"""
     try:
         # Check if provider exists
         provider = await db_models.LLMProvider.objects.filter(name=provider_name, gmt_deleted__isnull=True).afirst()
@@ -278,26 +304,42 @@ async def create_llm_provider_model(provider_name: str, model_data: dict):
         if not provider:
             return fail(HTTPStatus.NOT_FOUND, f"Provider '{provider_name}' not found")
 
-        # Check if model already exists
-        existing = await db_models.LLMProviderModel.objects.filter(
+        # First check if there's an active model with the same combination
+        active_existing = await db_models.LLMProviderModel.objects.filter(
             provider_name=provider_name, api=model_data["api"], model=model_data["model"], gmt_deleted__isnull=True
         ).afirst()
 
-        if existing:
+        if active_existing:
             return fail(
                 HTTPStatus.BAD_REQUEST,
                 f"Model '{model_data['model']}' for API '{model_data['api']}' already exists for provider '{provider_name}'",
             )
 
-        # Create new model
-        model = await db_models.LLMProviderModel.objects.acreate(
-            provider_name=provider_name,
-            api=model_data["api"],
-            model=model_data["model"],
-            custom_llm_provider=model_data["custom_llm_provider"],
-            max_tokens=model_data.get("max_tokens"),
-            tags=model_data.get("tags", []),
-        )
+        # Check if there's a soft-deleted model with the same combination
+        deleted_existing = await db_models.LLMProviderModel.objects.filter(
+            provider_name=provider_name, api=model_data["api"], model=model_data["model"], gmt_deleted__isnull=False
+        ).afirst()
+
+        if deleted_existing:
+            # Restore and update the soft-deleted model
+            deleted_existing.custom_llm_provider = model_data["custom_llm_provider"]
+            deleted_existing.max_tokens = model_data.get("max_tokens")
+            deleted_existing.tags = model_data.get("tags", [])
+            deleted_existing.gmt_deleted = None  # Restore the record
+            deleted_existing.gmt_updated = timezone.now()
+
+            await deleted_existing.asave()
+            model = deleted_existing
+        else:
+            # Create new model
+            model = await db_models.LLMProviderModel.objects.acreate(
+                provider_name=provider_name,
+                api=model_data["api"],
+                model=model_data["model"],
+                custom_llm_provider=model_data["custom_llm_provider"],
+                max_tokens=model_data.get("max_tokens"),
+                tags=model_data.get("tags", []),
+            )
 
         return success(
             {
