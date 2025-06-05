@@ -1,6 +1,23 @@
 # ApeRAG
 
-ApeRAG is a powerful RAG system that deeply analyzes documents and multimedia content while building vector indexes in parallel and measuring retrieval quality. It streamlines workflows with integrated LLM management, data source handling, automatic syncing, and seamless office tool compatibility.
+ApeRAG is an advanced Retrieval-Augmented Generation (RAG) system designed to build sophisticated enterprise-level AI applications. It features a robust backend powered by Django and Celery for asynchronous task processing, and a dynamic frontend built with React and TypeScript (UmiJS). ApeRAG excels in parsing diverse document types, generating embeddings, performing hybrid vector/keyword searches, and integrating with Large Language Models (LLMs). It supports a wide array of databases including PostgreSQL, MongoDB, Neo4j, Redis, Qdrant, and Elasticsearch, enabling flexible data storage and retrieval strategies. With a focus on workflow automation, data source management, and seamless integration capabilities, ApeRAG provides a comprehensive platform for developing and deploying cutting-edge RAG solutions.
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+  - [Getting Started with Kubernetes](#getting-started-with-kubernetes)
+  - [Getting Started with Docker Compose](#getting-started-with-docker-compose)
+  - [Getting Started with Source Code](#getting-started-with-source-code)
+- [Development](#development)
+  - [Development Environment](#development-environment)
+  - [Key `make` Commands for Development](#key-make-commands-for-development)
+  - [Typical Development Workflow](#typical-development-workflow)
+- [Building and Deployment](#building-and-deployment)
+  - [Building Container Images](#building-container-images)
+  - [Deployment](#deployment)
+- [Project Structure Overview](#project-structure-overview)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Getting Started
 
@@ -8,38 +25,71 @@ This section will guide you through setting up ApeRAG using different methods.
 
 ### Getting Started with Kubernetes
 
-ApeRAG can be deployed to a Kubernetes cluster using the provided Helm chart.
+ApeRAG can be deployed to a Kubernetes cluster using the provided Helm chart. This guide focuses on deploying the necessary databases using KubeBlocks and then deploying the ApeRAG application.
 
-1.  **Prerequisites**:
-    *   A running Kubernetes cluster.
-    *   `kubectl` configured to connect to your cluster.
-    *   Helm v3 installed.
+**Phase 1: Deploying Databases with KubeBlocks**
 
-2.  **Configure Databases**:
-    ApeRAG requires several databases (PostgreSQL, Redis, Qdrant, Elasticsearch, Neo4j). You can use existing managed database services or deploy them in your Kubernetes cluster.
-    Scripts for deploying databases using KubeBlocks are provided in the `deploy/databases/` directory.
-    *   Modify `deploy/databases/00-config.sh` to enable the databases you want to deploy.
-    *   Run `deploy/databases/01-create-all-cluster.sh` to create the database clusters.
-    *   Run `deploy/databases/02-install-database.sh` to wait for databases to be ready and install necessary configurations.
+ApeRAG relies on several databases (PostgreSQL, Redis, Qdrant, Elasticsearch, Neo4j). The scripts in the `deploy/databases/` directory leverage [KubeBlocks](https://kubeblocks.io/) to simplify the deployment and management of these stateful services on Kubernetes.
 
-3.  **Configure ApeRAG Helm Chart**:
-    The Helm chart for ApeRAG is located in `deploy/aperag/`.
-    *   Review and customize the `deploy/aperag/values.yaml` file. Pay close attention to:
-        *   Database connection details (PostgreSQL, Redis, Elasticsearch, Neo4j, Qdrant). Ensure these point to your deployed databases. If you used the scripts in `deploy/databases/`, the default values might work but always verify.
-        *   Image repository and tags for `aperag` and `aperag-frontend` if you are using a private registry or specific versions.
-        *   Resource requests and limits for various components (`django`, `celery-worker`, `frontend`, etc.).
-        *   Ingress configuration if you want to expose ApeRAG externally.
-        *   Any other application-specific configurations like `AUTH_TYPE`, `OBJECT_STORE_TYPE`, etc.
+1.  **Prerequisites for Database Deployment**:
+    *   A running Kubernetes cluster (e.g., Minikube, EKS, GKE, AKS).
+    *   `kubectl` installed and configured to connect to your cluster.
+    *   Helm v3+ installed.
 
-4.  **Deploy ApeRAG**:
-    Once the `values.yaml` is configured, deploy ApeRAG using Helm:
+2.  **Configure Target Databases**:
+    Edit the `deploy/databases/00-config.sh` script. Set the corresponding environment variable to `true` for each database you intend to deploy. For example:
     ```bash
-    helm install <release-name> ./deploy/aperag -n <namespace> --create-namespace
+    ENABLE_POSTGRESQL=true
+    ENABLE_REDIS=true
+    ENABLE_QDRANT=true
+    ENABLE_ELASTICSEARCH=true # Optional, for hybrid search
+    ENABLE_NEO4J=true       # Optional, for graph knowledge
+    ENABLE_MONGODB=false    # Example: Not enabling MongoDB
     ```
-    Replace `<release-name>` with your desired release name (e.g., `aperag`) and `<namespace>` with the target namespace.
+    By default, scripts will operate in the `rag` namespace. You can change the `NAMESPACE` variable in `00-config.sh` if needed.
 
-5.  **Access ApeRAG**:
-    After deployment, the method to access ApeRAG depends on your service and ingress configuration. If using an Ingress controller, you would access it via the configured host. If using NodePort or LoadBalancer services, you would use the respective IP and port.
+3.  **Prepare Environment & Install KubeBlocks Add-ons**:
+    This script performs pre-checks, adds the KubeBlocks Helm repository, and installs necessary KubeBlocks components and add-ons for the selected databases.
+    ```bash
+    bash ./deploy/databases/01-prepare.sh
+    ```
+
+4.  **(Optional) Customize Database Instance Settings**:
+    Before deploying the actual database clusters, you can customize their configurations (like version, replicas, CPU/memory, storage) by editing the respective `values.yaml` files located within each database subdirectory (e.g., `deploy/databases/postgresql/values.yaml`, `deploy/databases/redis/values.yaml`, etc.).
+
+5.  **Install Database Clusters**:
+    This script deploys the database clusters you configured in `00-config.sh` into your Kubernetes cluster using KubeBlocks.
+    ```bash
+    bash ./deploy/databases/02-install-database.sh
+    ```
+    Monitor the status of the database pods. It might take a few minutes for all services to become ready, especially if images need to be pulled.
+    ```bash
+    kubectl get clusters -n rag # Or your configured namespace
+    kubectl get pods -n rag     # Or your configured namespace
+    ```
+    Wait until all relevant pods are in the `Running` state.
+
+**Phase 2: Deploying ApeRAG Application**
+
+Once the databases are running and accessible within your Kubernetes cluster:
+
+1.  **Configure ApeRAG Helm Chart**:
+    The Helm chart for ApeRAG is located in `deploy/aperag/`.
+    *   Review and customize the `deploy/aperag/values.yaml` file. Crucially, ensure the database connection details (hostnames, ports, credentials) correctly point to the services created by KubeBlocks in the previous phase. The default service names in `values.yaml` often align with KubeBlocks conventions (e.g., `pg-cluster-postgresql-postgresql` for PostgreSQL in the `rag` namespace), but always verify.
+    *   Consult the `deploy/databases/README.md` for guidance on how to retrieve credentials (e.g., from Kubernetes Secrets) for the KubeBlocks-managed databases and configure them in `deploy/aperag/values.yaml` or via secrets referenced by the Helm chart.
+    *   Adjust other settings as needed: image repositories/tags, resource limits, ingress rules, `AUTH_TYPE`, `OBJECT_STORE_TYPE`, etc.
+
+2.  **Deploy ApeRAG**:
+    Deploy ApeRAG using the configured Helm chart:
+    ```bash
+    helm install <release-name> ./deploy/aperag -n <target-namespace-for-aperag> --create-namespace
+    ```
+    Replace `<release-name>` (e.g., `aperag`) and `<target-namespace-for-aperag>` (this can be the same as the database namespace, e.g., `rag`, or different).
+
+3.  **Access ApeRAG**:
+    The access method depends on your Kubernetes service type (e.g., LoadBalancer, NodePort) and Ingress configuration within the `deploy/aperag/values.yaml` file. If using an Ingress, access ApeRAG via the configured hostname. Otherwise, use the external IP and port of the relevant service.
+
+For detailed instructions on managing the KubeBlocks-deployed databases (connecting, uninstalling), refer to `deploy/databases/README.md`.
 
 ### Getting Started with Docker Compose
 
