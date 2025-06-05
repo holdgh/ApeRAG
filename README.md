@@ -160,13 +160,6 @@ Before you begin, ensure your system has:
 *   **Node.js**: Version 20 or higher is recommended for frontend development.
 *   **`uv`**: This is a fast Python package installer and virtual environment manager. 
     *   If you don't have `uv`, the `make install` command (Step 3) will try to install it via `pip`.
-    *   Alternatively, install `uv` manually:
-        ```bash
-        # Using pip
-        pip install uv
-        # Or using curl
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        ```
 *   **Docker**: (Recommended for local databases) If you plan to run dependent services like PostgreSQL, Redis, etc., locally, Docker is the easiest way. The `make run-db` command uses Docker Compose.
 
 **3. Install Dependencies & Setup Virtual Environment**
@@ -196,7 +189,8 @@ ApeRAG uses `.env` files for configuration.
     *   `CELERY_BROKER_URL` and `MEMORY_REDIS_URL`: Connection strings for Redis.
     *   `VECTOR_DB_CONTEXT`: Configuration for Qdrant.
     *   API keys for any external AI services you plan to use.
-    *   *(Ensure these settings match your running database instances, especially if you use `make run-db` in the next step.)*
+
+    **Note**: If you start the required database services using the `make run-db` command (see Step 5), the default connection settings in the `.env` file (copied from `envs/env.template`) are pre-configured to work with these services, and you typically won't need to change them. You would only need to modify these if you are connecting to externally managed databases or have custom configurations.
 
 *   **Frontend (`frontend/.env`)** (Optional - if you are developing the frontend):
     ```bash
@@ -211,14 +205,12 @@ ApeRAG uses `.env` files for configuration.
     ```bash
     make run-db
     ```
-    This command uses `docker-compose.yml` to start PostgreSQL, Redis, Qdrant, and other necessary services. Wait for a few moments for these services to initialize.
 
 *   **Apply Database Migrations**:
     Once your databases are running and configured in `.env`, set up the database schema:
     ```bash
     make migrate
     ```
-    This uses the Python virtual environment created by `make install`.
 
 **6. Run ApeRAG Backend Services**
 
@@ -234,7 +226,7 @@ These should typically be run in separate terminal windows/tabs. The `make` comm
     ```bash
     make run-celery
     ```
-    This starts the Celery worker for processing asynchronous background tasks. The `-B` flag in the `Makefile` target also starts Celery Beat for scheduled tasks.
+    This starts the Celery worker for processing asynchronous background tasks. 
 
 **7. Run Frontend Development Server (Optional)**
 
