@@ -1,6 +1,6 @@
-[Read this document in Chinese](./README_zh.md) | [阅读中文文档](./README_zh.md)
-
 # ApeRAG
+
+[Read this document in Chinese](./README_zh.md) | [阅读中文文档](./README_zh.md)
 
 ApeRAG is a comprehensive RAG (Retrieval-Augmented Generation) platform designed for building advanced, enterprise-grade AI applications. It integrates **LightRAG** to enhance its capabilities, notably enabling powerful **graph-based query and knowledge retrieval**. Key features include:
 
