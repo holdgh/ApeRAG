@@ -44,6 +44,18 @@ from aperag.service.document_service import (
 )
 from aperag.service.flow_service import debug_flow_stream
 from aperag.service.llm_config_service import get_model_config_objects
+from aperag.service.llm_configuration_service import (
+    create_llm_provider,
+    create_llm_provider_model,
+    delete_llm_provider,
+    delete_llm_provider_model,
+    get_llm_configuration,
+    get_llm_provider,
+    list_llm_provider_models,
+    list_llm_providers,
+    update_llm_provider,
+    update_llm_provider_model,
+)
 from aperag.service.model_service import (
     delete_model_service_provider,
     list_available_models,
@@ -335,3 +347,82 @@ async def list_search_tests_view(request, collection_id: str) -> view_models.Sea
 async def debug_flow_stream_view(request: HttpRequest, bot_id: str, debug: view_models.DebugFlowRequest):
     user = get_user(request)
     return await debug_flow_stream(user, bot_id, debug)
+
+
+# LLM Configuration API endpoints
+@router.get("/llm_configuration")
+async def get_llm_configuration_view(request):
+    """Get complete LLM configuration including providers and models"""
+    return await get_llm_configuration()
+
+
+@router.get("/llm_providers")
+async def list_llm_providers_view(request):
+    """List all LLM providers"""
+    return await list_llm_providers()
+
+
+@router.post("/llm_providers")
+async def create_llm_provider_view(request):
+    """Create a new LLM provider"""
+    import json
+
+    data = json.loads(request.body.decode("utf-8"))
+    return await create_llm_provider(data)
+
+
+@router.get("/llm_providers/{provider_name}")
+async def get_llm_provider_view(request, provider_name: str):
+    """Get a specific LLM provider"""
+    return await get_llm_provider(provider_name)
+
+
+@router.put("/llm_providers/{provider_name}")
+async def update_llm_provider_view(request, provider_name: str):
+    """Update an existing LLM provider"""
+    import json
+
+    data = json.loads(request.body.decode("utf-8"))
+    return await update_llm_provider(provider_name, data)
+
+
+@router.delete("/llm_providers/{provider_name}")
+async def delete_llm_provider_view(request, provider_name: str):
+    """Delete an LLM provider"""
+    return await delete_llm_provider(provider_name)
+
+
+@router.get("/llm_provider_models")
+async def list_llm_provider_models_view(request, provider_name: str = None):
+    """List LLM provider models, optionally filtered by provider"""
+    return await list_llm_provider_models(provider_name)
+
+
+@router.get("/llm_providers/{provider_name}/models")
+async def get_provider_models_view(request, provider_name: str):
+    """Get all models for a specific provider"""
+    return await list_llm_provider_models(provider_name=provider_name)
+
+
+@router.post("/llm_providers/{provider_name}/models")
+async def create_provider_model_view(request, provider_name: str):
+    """Create a new model for a specific provider"""
+    import json
+
+    data = json.loads(request.body.decode("utf-8"))
+    return await create_llm_provider_model(provider_name, data)
+
+
+@router.put("/llm_providers/{provider_name}/models/{api}/{model}")
+async def update_provider_model_view(request, provider_name: str, api: str, model: str):
+    """Update a specific model"""
+    import json
+
+    data = json.loads(request.body.decode("utf-8"))
+    return await update_llm_provider_model(provider_name, api, model, data)
+
+
+@router.delete("/llm_providers/{provider_name}/models/{api}/{model}")
+async def delete_provider_model_view(request, provider_name: str, api: str, model: str):
+    """Delete a specific model"""
+    return await delete_llm_provider_model(provider_name, api, model)

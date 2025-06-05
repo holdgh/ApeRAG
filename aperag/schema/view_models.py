@@ -845,3 +845,5 @@ class ChangePassword(BaseModel):
     new_password: Optional[str] = Field(
         None, description='The new password of the user'
     )
+
+
