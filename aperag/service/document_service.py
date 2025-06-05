@@ -62,29 +62,36 @@ def build_document_response(document: db_models.Document) -> view_models.Documen
 
 
 async def create_documents(user: str, collection_id: str, files: List[UploadedFile]) -> view_models.DocumentList:
+    # 1. Validate the number of files
     if len(files) > 50:
         return fail(HTTPStatus.BAD_REQUEST, "documents are too many,add document failed")
+    # 2. Query the collection and check its status
     collection = await query_collection(user, collection_id)
     if collection is None:
         return fail(HTTPStatus.NOT_FOUND, "Collection not found")
     if collection.status != db_models.Collection.Status.ACTIVE:
         return fail(HTTPStatus.BAD_REQUEST, "Collection is not active")
+    # 3. Check document count against the limit
     if settings.MAX_DOCUMENT_COUNT:
         document_limit = await query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         if document_limit is None:
             document_limit = settings.MAX_DOCUMENT_COUNT
         if await query_documents_count(user, collection_id) >= document_limit:
             return fail(HTTPStatus.FORBIDDEN, f"document number has reached the limit of {document_limit}")
+    # 4. Get supported file extensions
     supported_file_extensions = DocParser().supported_extensions()
     supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
     response = []
+    # 5. Process each uploaded file
     for item in files:
+        # 5.1 Validate file type and size
         file_suffix = os.path.splitext(item.name)[1].lower()
         if file_suffix not in supported_file_extensions:
             return fail(HTTPStatus.BAD_REQUEST, f"unsupported file type {file_suffix}")
         if item.size > settings.MAX_DOCUMENT_SIZE:
             return fail(HTTPStatus.BAD_REQUEST, "file size is too large")
         try:
+            # 5.2 Create Document instance in database
             document_instance = db_models.Document(
                 user=user,
                 name=item.name,
@@ -93,9 +100,11 @@ async def create_documents(user: str, collection_id: str, files: List[UploadedFi
                 collection_id=collection.id,
             )
             await document_instance.asave()
+            # 5.3 Upload file to object storage
             obj_store = get_object_store()
             upload_path = f"{document_instance.object_store_base_path()}/original{file_suffix}"
             await sync_to_async(obj_store.put)(upload_path, item)
+            # 5.4 Update document metadata and save
             document_instance.object_path = upload_path
             document_instance.metadata = json.dumps(
                 {
@@ -103,13 +112,17 @@ async def create_documents(user: str, collection_id: str, files: List[UploadedFi
                 }
             )
             await document_instance.asave()
+            # 5.5 Add document to response and trigger indexing task
             response.append(build_document_response(document_instance))
             add_index_for_local_document.delay(document_instance.id)
         except IntegrityError:
+            # 5.6 Handle duplicate document name
             return fail(HTTPStatus.BAD_REQUEST, f"document {item.name} already exists")
         except Exception:
+            # 5.7 Handle other exceptions during processing
             logger.exception("add document failed")
             return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "add document failed")
+    # 6. Return success response with created documents
     return success(DocumentList(items=response))
 
 
