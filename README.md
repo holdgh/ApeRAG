@@ -47,11 +47,10 @@ ApeRAG relies on several databases (PostgreSQL, Redis, Qdrant, Elasticsearch, Ne
     ENABLE_POSTGRESQL=true
     ENABLE_REDIS=true
     ENABLE_QDRANT=true
-    ENABLE_ELASTICSEARCH=true # Optional, for hybrid search
-    ENABLE_NEO4J=true       # Optional, for graph knowledge
-    ENABLE_MONGODB=false    # Example: Not enabling MongoDB
+    ENABLE_ELASTICSEARCH=true
+    ENABLE_NEO4J=false
+    ENABLE_MONGODB=false
     ```
-    By default, scripts will operate in the `rag` namespace. You can change the `NAMESPACE` variable in `00-config.sh` if needed.
 
 3.  **Prepare Environment & Install KubeBlocks Add-ons**:
     This script performs pre-checks, adds the KubeBlocks Helm repository, and installs necessary KubeBlocks components and add-ons for the selected databases.
@@ -143,73 +142,115 @@ To get started with ApeRAG using Docker Compose, follow these steps:
 
 ### Getting Started with Source Code
 
-This approach is suitable for developers who want to contribute to ApeRAG or run it locally for development purposes. Follow these steps in order to set up and run ApeRAG from source:
+This guide is for developers looking to contribute to ApeRAG or run it locally for development. Follow these steps to get ApeRAG running from the source code:
 
-1.  **Clone the Repository**:
+**1. Clone the Repository**
+
+First, get the source code:
+```bash
+git clone https://github.com/apecloud/ApeRAG.git
+cd ApeRAG
+```
+
+**2. System Prerequisites**
+
+Before you begin, ensure your system has:
+
+*   **Python 3.11**: The project uses Python 3.11. If it's not your system default, `uv` (see below) will attempt to use it when creating the virtual environment if available.
+*   **Node.js**: Version 20 or higher is recommended for frontend development.
+*   **`uv`**: This is a fast Python package installer and virtual environment manager. 
+    *   If you don't have `uv`, the `make install` command (Step 3) will try to install it via `pip`.
+    *   Alternatively, install `uv` manually:
+        ```bash
+        # Using pip
+        pip install uv
+        # Or using curl
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        ```
+*   **Docker**: (Recommended for local databases) If you plan to run dependent services like PostgreSQL, Redis, etc., locally, Docker is the easiest way. The `make run-db` command uses Docker Compose.
+
+**3. Install Dependencies & Setup Virtual Environment**
+
+This crucial `make` command automates several setup tasks:
+
+```bash
+make install
+```
+
+This command will:
+*   Verify or install `uv`.
+*   Create a Python 3.11 virtual environment (located in `.venv/`) using `uv`.
+*   Install all Python backend dependencies (including development tools) from `pyproject.toml` into the virtual environment.
+*   Install frontend Node.js dependencies using `yarn`.
+
+**4. Configure Environment Variables**
+
+ApeRAG uses `.env` files for configuration.
+
+*   **Backend (`.env`)**: Copy the template and customize it for your setup.
     ```bash
-    git clone https://github.com/apecloud/ApeRAG.git
-    cd ApeRAG
+    cp envs/env.template .env
     ```
+    Then, edit the newly created `.env` file. Key configurations include:
+    *   `DATABASE_URL`: Connection string for PostgreSQL.
+    *   `CELERY_BROKER_URL` and `MEMORY_REDIS_URL`: Connection strings for Redis.
+    *   `VECTOR_DB_CONTEXT`: Configuration for Qdrant.
+    *   API keys for any external AI services you plan to use.
+    *   *(Ensure these settings match your running database instances, especially if you use `make run-db` in the next step.)*
 
-2.  **Prerequisites**:
-    *   Python 3.11. The `make install` process (detailed below) will use `uv` to create a virtual environment with this Python version if it's available on your system.
-    *   Node.js (>=20 recommended, for frontend development).
-    *   `uv` (Python package installer and virtual environment manager). If you don't have `uv` installed, the `make install` command will attempt to install it for you using `pip`. You can also install it manually: `pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`.
-    *   Access to database services (PostgreSQL, Redis, Qdrant, etc.). For a complete local setup, you can run these using Docker. The command `make run-db` (which utilizes `docker-compose.yml`) can start these for you if Docker is installed.
-
-3.  **Install Dependencies and Setup Environment**:
-    This single command performs several crucial setup steps:
-    *   Ensures `uv` is installed.
-    *   Creates a Python 3.11 virtual environment (in `.venv/`) using `uv`.
-    *   Installs all Python dependencies (including development tools) into this virtual environment using `uv sync` based on `pyproject.toml`.
-    *   Installs frontend Node.js dependencies using `yarn`.
+*   **Frontend (`frontend/.env`)** (Optional - if you are developing the frontend):
     ```bash
-    make install
+    cp frontend/deploy/env.local.template frontend/.env
     ```
+    Edit `frontend/.env` if you need to change frontend-specific settings, such as the backend API URL (though defaults usually work for local development).
 
-4.  **Configure Environment Variables**:
-    *   Backend: Copy the template and customize it:
-        ```bash
-        cp envs/env.template .env
-        ```
-        Edit `.env` to set database connection strings (ensure they match your running databases, e.g., those started by `make run-db`), API keys for AI services, and other configurations. Refer to `envs/env.template` for all options.
-    *   Frontend (optional, if developing the frontend):
-        ```bash
-        cp frontend/deploy/env.local.template frontend/.env
-        ```
-        Edit `frontend/.env` for frontend-specific settings, like API URLs if they differ from defaults.
+**5. Start Databases & Apply Migrations**
 
-5.  **Setup Databases & Apply Migrations**:
-    *   If you haven't already, start your database services. For a local Docker-based setup:
-        ```bash
-        make run-db
-        ```
-        Wait for the databases to be ready.
-    *   Apply database migrations to set up the required schema. This command uses the Python environment set up by `make install`:
-        ```bash
-        make migrate
-        ```
-
-6.  **Run Backend Services**:
-    These commands should be run in separate terminals. They will use the `.venv/` Python environment automatically if run via `make` from the project root.
-    *   Start the Django backend development server (includes automatic reload):
-        ```bash
-        make run-backend
-        ```
-        The backend API will typically be available at `http://localhost:8000`.
-    *   Start the Celery worker for background tasks (includes Celery Beat for scheduled tasks due to the `-B` flag in the Makefile's `run-celery` target):
-        ```bash
-        make run-celery
-        ```
-
-7.  **Run Frontend Service** (Optional, if needed for development/testing):
+*   **Start Database Services**:
+    If you're using Docker for local databases, the `Makefile` provides a convenient command:
     ```bash
-    make run-frontend
+    make run-db
     ```
-    The frontend will typically be available at `http://localhost:3000` and will proxy API requests to the backend.
+    This command uses `docker-compose.yml` to start PostgreSQL, Redis, Qdrant, and other necessary services. Wait for a few moments for these services to initialize.
 
-8.  **Access ApeRAG**:
-    Once services are running, you can access the frontend at `http://localhost:3000` and the backend API at `http://localhost:8000` (or as configured in your `.env` and frontend settings).
+*   **Apply Database Migrations**:
+    Once your databases are running and configured in `.env`, set up the database schema:
+    ```bash
+    make migrate
+    ```
+    This uses the Python virtual environment created by `make install`.
+
+**6. Run ApeRAG Backend Services**
+
+These should typically be run in separate terminal windows/tabs. The `make` commands will automatically use the correct Python virtual environment.
+
+*   **Django Development Server**:
+    ```bash
+    make run-backend
+    ```
+    This starts the main backend application. It will typically be accessible at `http://localhost:8000` and features auto-reload on code changes.
+
+*   **Celery Worker & Beat**:
+    ```bash
+    make run-celery
+    ```
+    This starts the Celery worker for processing asynchronous background tasks. The `-B` flag in the `Makefile` target also starts Celery Beat for scheduled tasks.
+
+**7. Run Frontend Development Server (Optional)**
+
+If you need to work on or view the frontend:
+```bash
+make run-frontend
+```
+This will start the frontend development server, usually available at `http://localhost:3000`. It's configured to proxy API requests to the backend running on port 8000.
+
+**8. Access ApeRAG**
+
+With the backend (and optionally frontend) services running:
+*   Access the **Frontend UI** at `http://localhost:3000` (if started).
+*   The **Backend API** is available at `http://localhost:8000`.
+
+Now you have ApeRAG running locally from the source code, ready for development or testing!
 
 ## Development
 
