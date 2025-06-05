@@ -184,11 +184,7 @@ ApeRAG uses `.env` files for configuration.
     ```bash
     cp envs/env.template .env
     ```
-    Then, edit the newly created `.env` file. Key configurations include:
-    *   `DATABASE_URL`: Connection string for PostgreSQL.
-    *   `CELERY_BROKER_URL` and `MEMORY_REDIS_URL`: Connection strings for Redis.
-    *   `VECTOR_DB_CONTEXT`: Configuration for Qdrant.
-    *   API keys for any external AI services you plan to use.
+    Then, edit the newly created `.env` file.
 
     **Note**: If you start the required database services using the `make run-db` command (see Step 5), the default connection settings in the `.env` file (copied from `envs/env.template`) are pre-configured to work with these services, and you typically won't need to change them. You would only need to modify these if you are connecting to externally managed databases or have custom configurations.
 
