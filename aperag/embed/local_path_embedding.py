@@ -17,16 +17,13 @@
 import faulthandler
 import logging
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, List
 
 from langchain_core.embeddings import Embeddings
 from llama_index.core.schema import BaseNode, TextNode
 
-from aperag.docparser.base import AssetBinPart, MarkdownPart, Part
+from aperag.docparser.base import Part
 from aperag.docparser.chunking import rechunk
-from aperag.docparser.doc_parser import DocParser
-from aperag.objectstore.base import get_object_store
 from aperag.utils.tokenizer import get_default_tokenizer
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 from config import settings
@@ -59,18 +56,16 @@ class DocumentBaseEmbedding(ABC):
 
 class LocalPathEmbedding(DocumentBaseEmbedding):
     """
-    Handles embedding for documents located at a local file path.
+    Handles embedding for documents from parsed parts.
 
-    This class parses a local document, chunks its content, generates embeddings,
-    and stores the processed data and assets.
+    This class takes pre-parsed document parts, chunks the content, generates embeddings,
+    and stores the nodes in the vector database.
     """
 
     def __init__(
         self,
         *,
-        filepath: str,
-        file_metadata: Dict[str, Any],
-        object_store_base_path: str | None = None,
+        parts: List[Part],
         vector_store_adaptor: VectorStoreConnectorAdaptor,
         embedding_model: Embeddings = None,
         vector_size: int = None,
@@ -79,72 +74,39 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
         # 1. Initialize the base class with vector store and embedding details
         super().__init__(vector_store_adaptor, embedding_model, vector_size)
 
-        # 2. Store document-specific attributes
-        self.filepath = filepath
-        self.file_metadata = file_metadata or {}
-        self.object_store_base_path = object_store_base_path
-        # 3. Initialize document parser and chunking parameters
-        self.parser = DocParser()  # TODO: use the parser config from the collection
+        # 2. Store document parts
+        self.parts = parts
+
+        # 3. Initialize chunking parameters
         self.chunk_size = kwargs.get("chunk_size", settings.CHUNK_SIZE)
         self.chunk_overlap = kwargs.get("chunk_overlap", settings.CHUNK_OVERLAP_SIZE)
         self.tokenizer = get_default_tokenizer()
 
-    def parse_doc(
-        self,
-    ) -> list[Part]:
+    def load_data(self, **kwargs) -> List[str]:
         """
-        Parses the document at the given filepath.
+        Processes document parts, rechunks content, generates embeddings,
+        and stores nodes in the vector database.
 
         Returns:
-            list[Part]: A list of document parts.
-        Raises:
-            ValueError: If the file type is unsupported.
-        """
-        filepath = Path(self.filepath)
-        if not self.parser.accept(filepath.suffix):
-            raise ValueError(f"unsupported file type: {filepath.suffix}")
-        parts = self.parser.parse_file(filepath, self.file_metadata)
-        return parts
-
-    def load_data(self, **kwargs) -> Tuple[List[str], str]:
-        """
-        Loads, processes, embeds, and stores data from the document.
-
-        Processes includes parsing, chunking, adding metadata paddings.
-        Stores markdown content and assets to object storage.
-        Embeds text chunks and stores nodes in the vector database.
-
-        Returns:
-            Tuple[List[str], str]: A tuple containing a list of vector store IDs
-                                   and the full markdown content of the document.
+            List[str]: A list of vector store IDs
         """
         nodes: List[BaseNode] = []
-        content = ""
 
-        # 1. Parse the document into parts
-        doc_parts = self.parse_doc()
+        # 1. Get document parts
+        doc_parts = self.parts
         if len(doc_parts) == 0:
-            return [], ""
+            return []
 
         # 2. Rechunk the document parts (resulting in text parts)
         # After rechunk(), parts only contains TextPart
         parts = rechunk(doc_parts, self.chunk_size, self.chunk_overlap, self.tokenizer)
 
-        # 3. Extract full markdown content if available
-        md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)
-        if md_part is not None:
-            content = md_part.markdown
-
-        # 4. Process each text chunk
+        # 3. Process each text chunk
         for part in parts:
             if not part.content:
                 continue
 
-            # Append chunk content to full content if markdown part not found
-            if md_part is None:
-                content += part.content + "\n\n"
-
-            # 4.1 Prepare metadata paddings (titles, labels)
+            # 3.1 Prepare metadata paddings (titles, labels)
             paddings = []
             # padding titles of the hierarchy
             if "titles" in part.metadata:
@@ -162,57 +124,29 @@ class LocalPathEmbedding(DocumentBaseEmbedding):
             prefix = ""
             if len(paddings) > 0:
                 prefix = "\n\n".join(paddings)
-                logger.debug("add extra prefix for document %s before embedding: %s", self.filepath, prefix)
+                logger.debug("add extra prefix for document before embedding: %s", prefix)
 
-            # embedding without the prefix #, which is usually used for padding in the LLM
-            # lines = []
-            # for line in text.split("\n"):
-            #     lines.append(line.strip("#").strip())
-            # text = "\n".join(lines)
-
-            # embedding without the code block
-            # text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-
-            # 4.2 Construct text for embedding with paddings
+            # 3.2 Construct text for embedding with paddings
             if prefix:
                 text = f"{prefix}\n\n{part.content}"
             else:
                 text = part.content
-            # 4.3 Prepare metadata for the node
+            # 3.3 Prepare metadata for the node
             metadata = part.metadata.copy()
             metadata["source"] = metadata.get("name", "")
-            # 4.4 Create TextNode
+            # 3.4 Create TextNode
             nodes.append(TextNode(text=text, metadata=metadata))
 
-        # 5. Save processed content and assets to object storage if base path is provided
-        if self.object_store_base_path is not None:
-            base_path = self.object_store_base_path
-            obj_store = get_object_store()
-
-            # 5.1 Save markdown content
-            md_upload_path = f"{base_path}/parsed.md"
-            md_data = content.encode("utf-8")
-            obj_store.put(md_upload_path, md_data)
-            logger.info(f"uploaded markdown content to {md_upload_path}, size: {len(md_data)}")
-
-            # 5.2 Save assets
-            for part in doc_parts:
-                if not isinstance(part, AssetBinPart):
-                    continue
-                asset_upload_path = f"{base_path}/assets/{part.asset_id}"
-                obj_store.put(asset_upload_path, part.data)
-                logger.info(f"uploaded asset to {asset_upload_path}, size: {len(part.data)}")
-
-        # 6. Generate embeddings for text chunks
+        # 4. Generate embeddings for text chunks
         texts = [node.get_content() for node in nodes]
         vectors = self.embedding.embed_documents(texts)
-        # 7. Assign embeddings to nodes
+        # 5. Assign embeddings to nodes
         for i in range(len(vectors)):
             nodes[i].embedding = vectors[i]
 
-        logger.info(f"processed file: {self.filepath} with {len(vectors)} chunks")
-        # 8. Add nodes to vector store and return results
-        return self.connector.store.add(nodes), content
+        logger.info(f"processed document with {len(doc_parts)} parts and {len(vectors)} chunks")
+        # 6. Add nodes to vector store and return results
+        return self.connector.store.add(nodes)
 
     def delete(self, **kwargs) -> bool:
         """

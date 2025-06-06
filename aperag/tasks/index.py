@@ -17,6 +17,7 @@ import os
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Any
 
 from asgiref.sync import async_to_sync
 from celery import Task
@@ -95,13 +96,10 @@ class CustomDeleteDocumentTask(Task):
         logger.error(f"remove_index(): index delete from vector db failed:{exc}")
 
 
-# Utility functions: Extract repeated code without changing main flow
-def create_local_path_embedding_loader(local_doc, document, collection, embedding_model, vector_size):
-    """Create LocalPathEmbedding instance - extracted from repeated code"""
+def create_parts_based_embedding_loader(parts, collection, embedding_model, vector_size):
+    """Create LocalPathEmbedding instance using pre-parsed parts"""
     return LocalPathEmbedding(
-        filepath=local_doc.path,
-        file_metadata=local_doc.metadata,
-        object_store_base_path=document.object_store_base_path(),
+        parts=parts,
         embedding_model=embedding_model,
         vector_size=vector_size,
         vector_store_adaptor=get_vector_db_connector(
@@ -117,6 +115,107 @@ def get_collection_config_settings(collection):
     """Extract collection configuration settings - extracted from repeated code"""
     config = parseCollectionConfig(collection.config)
     return config, config.enable_knowledge_graph or False
+
+
+def parse_document(filepath: str, file_metadata: dict[str, Any]) -> list:
+    """
+    Parse document into parts using DocParser.
+
+    Args:
+        filepath: Path to the document file
+        file_metadata: Metadata associated with the document
+
+    Returns:
+        list[Part]: List of document parts (MarkdownPart, AssetBinPart, etc.)
+
+    Raises:
+        ValueError: If the file type is unsupported
+    """
+
+    parser = DocParser()  # TODO: use the parser config from the collection
+    filepath_obj = Path(filepath)
+
+    if not parser.accept(filepath_obj.suffix):
+        raise ValueError(f"unsupported file type: {filepath_obj.suffix}")
+
+    parts = parser.parse_file(filepath_obj, file_metadata)
+    logger.info(f"Parsed document {filepath} into {len(parts)} parts")
+    return parts
+
+
+def save_processed_content_and_assets(doc_parts: list, object_store_base_path: str | None) -> str:
+    """
+    Save processed content and assets to object storage.
+
+    Args:
+        doc_parts: List of document parts from DocParser
+        object_store_base_path: Base path for object storage, if None, skip saving
+
+    Returns:
+        str: Full markdown content of the document
+
+    Raises:
+        Exception: If object storage operations fail
+    """
+    from aperag.docparser.base import AssetBinPart, MarkdownPart
+
+    content = ""
+
+    # Extract full markdown content if available
+    md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)
+    if md_part is not None:
+        content = md_part.markdown
+
+    # Save to object storage if base path is provided
+    if object_store_base_path is not None:
+        base_path = object_store_base_path
+        obj_store = get_object_store()
+
+        # Save markdown content
+        md_upload_path = f"{base_path}/parsed.md"
+        md_data = content.encode("utf-8")
+        obj_store.put(md_upload_path, md_data)
+        logger.info(f"uploaded markdown content to {md_upload_path}, size: {len(md_data)}")
+
+        # Save assets
+        asset_count = 0
+        for part in doc_parts:
+            if not isinstance(part, AssetBinPart):
+                continue
+            asset_upload_path = f"{base_path}/assets/{part.asset_id}"
+            obj_store.put(asset_upload_path, part.data)
+            asset_count += 1
+            logger.info(f"uploaded asset to {asset_upload_path}, size: {len(part.data)}")
+
+        logger.info(f"Saved {asset_count} assets to object storage")
+
+    return content
+
+
+def extract_content_from_parts(doc_parts: list) -> str:
+    """
+    Extract content from document parts when no MarkdownPart is available.
+
+    Args:
+        doc_parts: List of document parts
+
+    Returns:
+        str: Concatenated content from all text parts
+    """
+    from aperag.docparser.base import MarkdownPart
+
+    # Check if MarkdownPart exists
+    md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)
+    if md_part is not None:
+        return md_part.markdown
+
+    # If no MarkdownPart, concatenate content from other parts
+    content_parts = []
+    for part in doc_parts:
+        if hasattr(part, "content") and part.content:
+            content_parts.append(part.content)
+
+    return "\n\n".join(content_parts)
 
 
 def uncompress_file(document: Document, supported_file_extensions: list[str]):
@@ -230,16 +329,20 @@ def add_index_for_document(self, document_id):
 
             # 5. Process vector index
             try:
-                # 5.1 Get embedding model and create loader
+                # 5.1 Parse document into parts
+                doc_parts = parse_document(local_doc.path, local_doc.metadata)
+
+                # 5.2 Save processed content and assets to object storage
+                content = save_processed_content_and_assets(doc_parts, document.object_store_base_path())
+
+                # 5.3 Get embedding model and create parts-based loader
                 embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-                loader = create_local_path_embedding_loader(
-                    local_doc, document, collection, embedding_model, vector_size
-                )
+                loader = create_parts_based_embedding_loader(doc_parts, collection, embedding_model, vector_size)
 
-                # 5.2 Load data (chunks and content)
-                ctx_ids, content = loader.load_data()
+                # 5.4 Load data (chunks and generate embeddings)
+                ctx_ids = loader.load_data()
 
-                # 5.3 Update document with related IDs and set status. Handle errors.
+                # 5.5 Update document with related IDs and set status. Handle errors.
                 relate_ids = {
                     "ctx": ctx_ids,
                 }
@@ -371,12 +474,17 @@ def update_index_for_document(self, document_id):
         metadata["doc_id"] = document_id
         local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
+        # Parse document into parts and save assets
+        doc_parts = parse_document(local_doc.path, local_doc.metadata)
+        content = save_processed_content_and_assets(doc_parts, document.object_store_base_path())
+
+        # Create parts-based embedding loader and delete old vectors
         embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-        loader = create_local_path_embedding_loader(local_doc, document, collection, embedding_model, vector_size)
+        loader = create_parts_based_embedding_loader(doc_parts, collection, embedding_model, vector_size)
         loader.connector.delete(ids=relate_ids.get("ctx", []))
 
         config, enable_knowledge_graph = get_collection_config_settings(collection)
-        ctx_ids, content = loader.load_data()
+        ctx_ids = loader.load_data()
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
