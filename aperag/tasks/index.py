@@ -193,6 +193,7 @@ def add_index_for_document(self, document_id):
     Raises:
         Exception: Various document processing exceptions (permissions, etc.)
     """
+    # 1. Retrieve Document object and set initial status to RUNNING
     document = Document.objects.get(id=document_id)
     # Set all index statuses to running
     document.vector_index_status = Document.IndexStatus.RUNNING
@@ -203,19 +204,23 @@ def add_index_for_document(self, document_id):
 
     source = None
     local_doc = None
+    # 2. Load document metadata and collection configuration
     metadata = json.loads(document.metadata)
     metadata["doc_id"] = document_id
     collection = async_to_sync(document.get_collection)()
     supported_file_extensions = DocParser().supported_extensions()  # TODO: apply collection config
     supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
     try:
+        # 3. Check if the file is compressed
         if document.object_path and Path(document.object_path).suffix in SUPPORTED_COMPRESSED_EXTENSIONS:
             config = parseCollectionConfig(collection.config)
             if config.source != "system":
                 return
+            # 3.1 If compressed, uncompress and trigger index tasks for extracted files, then return
             uncompress_file(document, supported_file_extensions)
             return
         else:
+            # 4. If not compressed, prepare the document using the configured source
             source = get_source(parseCollectionConfig(collection.config))
             local_doc = source.prepare_document(name=document.name, metadata=metadata)
             if document.size == 0:
@@ -223,15 +228,18 @@ def add_index_for_document(self, document_id):
 
             config, enable_knowledge_graph = get_collection_config_settings(collection)
 
-            # Process vector index
+            # 5. Process vector index
             try:
+                # 5.1 Get embedding model and create loader
                 embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
                 loader = create_local_path_embedding_loader(
                     local_doc, document, collection, embedding_model, vector_size
                 )
 
+                # 5.2 Load data (chunks and content)
                 ctx_ids, content = loader.load_data()
 
+                # 5.3 Update document with related IDs and set status. Handle errors.
                 relate_ids = {
                     "ctx": ctx_ids,
                 }
@@ -244,8 +252,9 @@ def add_index_for_document(self, document_id):
                 logger.error(f"Vector index failed for document {local_doc.path}: {str(e)}")
                 raise e
 
-            # Process fulltext index
+            # 6. Process fulltext index
             try:
+                # 6.1 Check if vector data exists, insert into fulltext index and set status. Handle errors.
                 if ctx_ids:  # Only create fulltext index when vector data exists
                     index = generate_fulltext_index_name(collection.id)
                     insert_document(index, document.id, local_doc.name, content)
@@ -258,8 +267,9 @@ def add_index_for_document(self, document_id):
                 document.fulltext_index_status = Document.IndexStatus.FAILED
                 logger.error(f"Fulltext index failed for document {local_doc.path}: {str(e)}")
 
-            # Process knowledge graph index
+            # 7. Process knowledge graph index
             try:
+                # 7.1 Check if knowledge graph is enabled, schedule LightRAG indexing task and set status. Handle errors.
                 if enable_knowledge_graph:
                     # Start asynchronous LightRAG indexing task
                     add_lightrag_index_task.delay(content, document.id, local_doc.path)
@@ -279,9 +289,10 @@ def add_index_for_document(self, document_id):
     except Exception as e:
         raise e
     finally:
-        # Update overall status
+        # 8. Update overall status and save document
         document.update_overall_status()
         document.save()
+        # 9. Cleanup local document file
         if local_doc and source:
             source.cleanup_document(local_doc.path)
 

@@ -15,9 +15,7 @@
 
 # -*- coding: utf-8 -*-
 import logging
-from abc import ABC, abstractmethod
 from threading import Lock
-from typing import Any
 
 from langchain_core.embeddings import Embeddings
 
@@ -26,7 +24,6 @@ from aperag.db.ops import (
 )
 from aperag.embed.embedding_service import EmbeddingService
 from aperag.schema.utils import parseCollectionConfig
-from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 from config.settings import (
     EMBEDDING_MAX_CHUNKS_IN_BATCH,
 )
@@ -112,24 +109,3 @@ async def get_collection_embedding_service(collection) -> tuple[Embeddings | Non
 
     logging.warning("get_collection_embedding_model cannot find model service provider %s", embedding_msp)
     return None, 0
-
-
-class DocumentBaseEmbedding(ABC):
-    def __init__(
-        self,
-        vector_store_adaptor: VectorStoreConnectorAdaptor,
-        embedding_model: Embeddings = None,
-        vector_size: int = None,
-        **kwargs: Any,
-    ) -> None:
-        self.connector = vector_store_adaptor.connector
-        # Improved logic to handle optional embedding_model/vector_size
-        if embedding_model is None or vector_size is None:
-            raise ValueError("lacks embedding model or vector size")
-
-        self.embedding, self.vector_size = embedding_model, vector_size
-        self.client = vector_store_adaptor.connector.client
-
-    @abstractmethod
-    def load_data(self, **kwargs: Any):
-        pass
