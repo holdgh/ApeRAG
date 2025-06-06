@@ -16,16 +16,16 @@
 # -*- coding: utf-8 -*-
 import faulthandler
 import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from langchain.embeddings.base import Embeddings
+from langchain_core.embeddings import Embeddings
 from llama_index.core.schema import BaseNode, TextNode
 
 from aperag.docparser.base import AssetBinPart, MarkdownPart, Part
 from aperag.docparser.chunking import rechunk
 from aperag.docparser.doc_parser import DocParser
-from aperag.embed.base_embedding import DocumentBaseEmbedding
 from aperag.objectstore.base import get_object_store
 from aperag.utils.tokenizer import get_default_tokenizer
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
@@ -34,6 +34,27 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 faulthandler.enable()
+
+
+class DocumentBaseEmbedding(ABC):
+    def __init__(
+        self,
+        vector_store_adaptor: VectorStoreConnectorAdaptor,
+        embedding_model: Embeddings = None,
+        vector_size: int = None,
+        **kwargs: Any,
+    ) -> None:
+        self.connector = vector_store_adaptor.connector
+        # Improved logic to handle optional embedding_model/vector_size
+        if embedding_model is None or vector_size is None:
+            raise ValueError("lacks embedding model or vector size")
+
+        self.embedding, self.vector_size = embedding_model, vector_size
+        self.client = vector_store_adaptor.connector.client
+
+    @abstractmethod
+    def load_data(self, **kwargs: Any):
+        pass
 
 
 class LocalPathEmbedding(DocumentBaseEmbedding):
