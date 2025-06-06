@@ -27,7 +27,7 @@ from aperag.context.full_text import insert_document, remove_document
 from aperag.db.models import Collection, Document
 from aperag.docparser.doc_parser import DocParser
 from aperag.embed.base_embedding import get_collection_embedding_service
-from aperag.embed.local_path_embedding import LocalPathEmbedding
+from aperag.embed.embedding_utils import create_embeddings_and_store
 from aperag.graph import lightrag_holder
 from aperag.objectstore.base import get_object_store
 from aperag.schema.utils import parseCollectionConfig
@@ -94,21 +94,6 @@ class CustomDeleteDocumentTask(Task):
         document.status = Document.Status.FAILED
         document.save()
         logger.error(f"remove_index(): index delete from vector db failed:{exc}")
-
-
-def create_parts_based_embedding_loader(parts, collection, embedding_model, vector_size):
-    """Create LocalPathEmbedding instance using pre-parsed parts"""
-    return LocalPathEmbedding(
-        parts=parts,
-        embedding_model=embedding_model,
-        vector_size=vector_size,
-        vector_store_adaptor=get_vector_db_connector(
-            collection=generate_vector_db_collection_name(collection_id=collection.id)
-        ),
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
-        tokenizer=get_default_tokenizer(),
-    )
 
 
 def get_collection_config_settings(collection):
@@ -335,12 +320,21 @@ def add_index_for_document(self, document_id):
                 # 5.2 Save processed content and assets to object storage
                 content = save_processed_content_and_assets(doc_parts, document.object_store_base_path())
 
-                # 5.3 Get embedding model and create parts-based loader
+                # 5.3 Get embedding model and create embeddings
                 embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-                loader = create_parts_based_embedding_loader(doc_parts, collection, embedding_model, vector_size)
+                vector_store_adaptor = get_vector_db_connector(
+                    collection=generate_vector_db_collection_name(collection_id=collection.id)
+                )
 
-                # 5.4 Load data (chunks and generate embeddings)
-                ctx_ids = loader.load_data()
+                # 5.4 Generate embeddings and store in vector database
+                ctx_ids = create_embeddings_and_store(
+                    parts=doc_parts,
+                    vector_store_adaptor=vector_store_adaptor,
+                    embedding_model=embedding_model,
+                    chunk_size=settings.CHUNK_SIZE,
+                    chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
+                    tokenizer=get_default_tokenizer(),
+                )
 
                 # 5.5 Update document with related IDs and set status. Handle errors.
                 relate_ids = {
@@ -478,13 +472,26 @@ def update_index_for_document(self, document_id):
         doc_parts = parse_document(local_doc.path, local_doc.metadata)
         content = save_processed_content_and_assets(doc_parts, document.object_store_base_path())
 
-        # Create parts-based embedding loader and delete old vectors
+        # Get embedding model and vector store adaptor
         embedding_model, vector_size = async_to_sync(get_collection_embedding_service)(collection)
-        loader = create_parts_based_embedding_loader(doc_parts, collection, embedding_model, vector_size)
-        loader.connector.delete(ids=relate_ids.get("ctx", []))
+        vector_store_adaptor = get_vector_db_connector(
+            collection=generate_vector_db_collection_name(collection_id=collection.id)
+        )
+
+        # Delete old vectors
+        vector_store_adaptor.connector.delete(ids=relate_ids.get("ctx", []))
 
         config, enable_knowledge_graph = get_collection_config_settings(collection)
-        ctx_ids = loader.load_data()
+
+        # Generate embeddings and store in vector database
+        ctx_ids = create_embeddings_and_store(
+            parts=doc_parts,
+            vector_store_adaptor=vector_store_adaptor,
+            embedding_model=embedding_model,
+            chunk_size=settings.CHUNK_SIZE,
+            chunk_overlap=settings.CHUNK_OVERLAP_SIZE,
+            tokenizer=get_default_tokenizer(),
+        )
         logger.info(f"add ctx qdrant points: {ctx_ids} for document {local_doc.path}")
 
         # only index the document that have points in the vector database
