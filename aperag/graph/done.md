@@ -46,3 +46,69 @@
 
 ---
 
+## 将ainsert拆分为三个独立的无状态接口：
+
+### 1. 接口拆分设计
+
+已将现有的 `ainsert` 拆分为三个独立的无状态接口：
+
+#### 1.1 ainsert_document
+```python
+async def ainsert_document(
+    self,
+    documents: List[str],
+    doc_ids: List[str] | None = None,
+    file_paths: List[str] | None = None,
+) -> Dict[str, Any]:
+    """
+    纯粹的文档写入功能
+    - 写入 full_docs
+    - 写入 doc_status (状态设为PENDING)
+    - 返回文档元数据
+    """
+    # 无状态实现，直接写入存储
+    # 没有全局锁检查
+    # 没有pipeline_status依赖
+```
+
+#### 1.2 aprocess_chunking
+```python
+async def aprocess_chunking(
+    self,
+    doc_id: str,
+    content: str | None = None,
+    file_path: str = "unknown_source",
+    split_by_character: str | None = None,
+    split_by_character_only: bool = False,
+) -> Dict[str, Any]:
+    """
+    纯粹的文档分块功能
+    - 如果content为None，从full_docs读取
+    - 执行分块算法
+    - 写入 chunks_vdb 和 text_chunks
+    - 更新 doc_status (状态设为PROCESSING)
+    - 返回chunks数据
+    """
+    # 无状态实现，不依赖全局变量
+```
+
+#### 1.3 aprocess_graph_indexing
+```python
+async def aprocess_graph_indexing(
+    self,
+    chunks: Dict[str, Any],
+    collection_id: str | None = None,
+) -> Dict[str, Any]:
+    """
+    核心图索引构建功能
+    - 实体和关系抽取（extract_entities）
+    - 合并和存储（merge_nodes_and_edges）
+    - 写入 entities_vdb, relationships_vdb
+    - 写入 chunk_entity_relation_graph
+    """
+    # 无 pipeline_status
+    # 无全局锁（只有merge_nodes_and_edges内部的graph_db_lock）
+```
+
+---
+

@@ -588,6 +588,260 @@ class LightRAG:
             split_by_character, split_by_character_only
         )
 
+    # ============= New Stateless Interfaces =============
+    
+    async def ainsert_document(
+        self,
+        documents: list[str],
+        doc_ids: list[str] | None = None,
+        file_paths: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Stateless document insertion - only writes documents to storage.
+        
+        Args:
+            documents: List of document contents
+            doc_ids: Optional list of document IDs (will generate if not provided)
+            file_paths: Optional list of file paths for citation
+            
+        Returns:
+            Dict with document metadata including generated IDs
+        """
+        # Ensure lists
+        if isinstance(documents, str):
+            documents = [documents]
+        if isinstance(doc_ids, str):
+            doc_ids = [doc_ids]
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+            
+        # Validate inputs
+        if file_paths and len(file_paths) != len(documents):
+            raise ValueError("Number of file paths must match number of documents")
+        if doc_ids and len(doc_ids) != len(documents):
+            raise ValueError("Number of doc IDs must match number of documents")
+            
+        # Use default file paths if not provided
+        if not file_paths:
+            file_paths = ["unknown_source"] * len(documents)
+            
+        # Generate or validate IDs
+        if not doc_ids:
+            doc_ids = [
+                compute_mdhash_id(clean_text(doc), prefix="doc-") 
+                for doc in documents
+            ]
+        else:
+            # Check uniqueness
+            if len(doc_ids) != len(set(doc_ids)):
+                raise ValueError("Document IDs must be unique")
+                
+        # Prepare document data
+        doc_data = {}
+        status_data = {}
+        
+        for doc_id, content, file_path in zip(doc_ids, documents, file_paths):
+            cleaned_content = clean_text(content)
+            
+            # Document content for full_docs storage
+            doc_data[doc_id] = {"content": cleaned_content}
+            
+            # Status data for doc_status storage
+            status_data[doc_id] = {
+                "status": DocStatus.PENDING,
+                "content": cleaned_content,
+                "content_summary": get_content_summary(cleaned_content),
+                "content_length": len(cleaned_content),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "file_path": file_path,
+            }
+            
+        # Write to storage (no global state checks)
+        await asyncio.gather(
+            self.full_docs.upsert(doc_data),
+            self.doc_status.upsert(status_data)
+        )
+        
+        # Return metadata
+        return {
+            "doc_ids": doc_ids,
+            "count": len(doc_ids),
+            "status": "inserted"
+        }
+    
+    async def aprocess_chunking(
+        self,
+        doc_id: str,
+        content: str | None = None,
+        file_path: str = "unknown_source",
+        split_by_character: str | None = None,
+        split_by_character_only: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Stateless document chunking - only performs text chunking.
+        
+        Args:
+            doc_id: Document ID
+            content: Document content to chunk (if None, will fetch from storage)
+            file_path: File path for citation
+            split_by_character: Optional character to split by
+            split_by_character_only: If True, only split by character
+            
+        Returns:
+            Dict containing chunks with their metadata
+        """
+        # Get content if not provided
+        if content is None:
+            doc_data = await self.full_docs.get_by_id(doc_id)
+            if not doc_data:
+                raise ValueError(f"Document {doc_id} not found in storage")
+            content = doc_data.get("content", "")
+            
+        # Perform chunking
+        chunk_list = self.chunking_func(
+            self.tokenizer,
+            content,
+            split_by_character,
+            split_by_character_only,
+            self.chunk_overlap_token_size,
+            self.chunk_token_size,
+        )
+        
+        # Create chunk data with IDs
+        chunks = {}
+        for chunk_data in chunk_list:
+            chunk_id = compute_mdhash_id(chunk_data["content"], prefix="chunk-")
+            chunks[chunk_id] = {
+                **chunk_data,
+                "full_doc_id": doc_id,
+                "file_path": file_path,
+            }
+            
+        # Write chunks to storage
+        await asyncio.gather(
+            self.chunks_vdb.upsert(chunks),
+            self.text_chunks.upsert(chunks)
+        )
+        
+        # Update document status to indicate chunking is done
+        await self.doc_status.upsert({
+            doc_id: {
+                "status": DocStatus.PROCESSING,
+                "chunks_count": len(chunks),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        })
+        
+        return {
+            "doc_id": doc_id,
+            "chunks": list(chunks.keys()),
+            "chunk_count": len(chunks),
+            "chunks_data": chunks  # Return the actual chunks data
+        }
+    
+    async def aprocess_graph_indexing(
+        self,
+        chunks: dict[str, Any],
+        collection_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Stateless graph indexing - extracts entities/relations and builds graph index.
+        
+        Args:
+            chunks: Dict of chunk_id -> chunk_data
+            collection_id: Optional collection ID for logging
+            
+        Returns:
+            Dict with extraction results
+        """
+        # No global state or pipeline_status
+        try:
+            # 1. Extract entities and relations from chunks
+            chunk_results = await extract_entities(
+                chunks,
+                global_config=asdict(self),
+                pipeline_status=None,  # No pipeline status
+                pipeline_status_lock=None,  # No lock
+                llm_response_cache=self.llm_response_cache,
+            )
+            
+            # 2. Merge nodes and edges (this already uses graph_db_lock internally)
+            await merge_nodes_and_edges(
+                chunk_results=chunk_results,
+                knowledge_graph_inst=self.chunk_entity_relation_graph,
+                entity_vdb=self.entities_vdb,
+                relationships_vdb=self.relationships_vdb,
+                global_config=asdict(self),
+                pipeline_status=None,  # No pipeline status
+                pipeline_status_lock=None,  # No lock
+                llm_response_cache=self.llm_response_cache,
+                current_file_number=0,
+                total_files=0,
+                file_path="stateless_processing",
+            )
+            
+            # 3. Call index done callbacks
+            await self._insert_done()
+            
+            # Count results
+            entity_count = sum(len(nodes) for nodes, _ in chunk_results)
+            relation_count = sum(len(edges) for _, edges in chunk_results)
+            
+            return {
+                "status": "success",
+                "chunks_processed": len(chunks),
+                "entities_extracted": entity_count,
+                "relations_extracted": relation_count,
+                "collection_id": collection_id,
+            }
+            
+        except Exception as e:
+            logger.error(f"Graph indexing failed: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "chunks_processed": 0,
+                "collection_id": collection_id,
+            }
+
+    # ============= End of New Stateless Interfaces =============
+    
+    async def aget_chunks_by_doc_id(self, doc_id: str) -> dict[str, Any]:
+        """
+        Get all chunks for a specific document.
+        
+        Args:
+            doc_id: Document ID
+            
+        Returns:
+            Dict of chunk_id -> chunk_data
+        """
+        all_chunks = await self.text_chunks.get_all()
+        doc_chunks = {
+            chunk_id: chunk_data
+            for chunk_id, chunk_data in all_chunks.items()
+            if isinstance(chunk_data, dict) and chunk_data.get("full_doc_id") == doc_id
+        }
+        return doc_chunks
+    
+    async def aget_chunks_by_ids(self, chunk_ids: list[str]) -> dict[str, Any]:
+        """
+        Get specific chunks by their IDs.
+        
+        Args:
+            chunk_ids: List of chunk IDs
+            
+        Returns:
+            Dict of chunk_id -> chunk_data
+        """
+        chunks = {}
+        for chunk_id in chunk_ids:
+            chunk_data = await self.text_chunks.get_by_id(chunk_id)
+            if chunk_data:
+                chunks[chunk_id] = chunk_data
+        return chunks
+
     # TODO: deprecated, use insert instead
     def insert_custom_chunks(
         self,

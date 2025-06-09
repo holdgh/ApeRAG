@@ -11,28 +11,29 @@
 3. **接口过于综合**：`ainsert` 混合了文档管理、分块、实体抽取等多个职责
 4. **并发限制**：`pipeline_status["busy"]` 全局锁导致无法真正并发
 
-## 改造方案
+## 已实施的改造方案
 
 ### 1. 接口拆分设计
 
-将现有的 `ainsert` 拆分为三个独立的无状态接口：
+已将现有的 `ainsert` 拆分为三个独立的无状态接口：
 
 #### 1.1 ainsert_document
 ```python
 async def ainsert_document(
     self,
     documents: List[str],
-    doc_ids: List[str],
-    file_paths: List[str],
+    doc_ids: List[str] | None = None,
+    file_paths: List[str] | None = None,
 ) -> Dict[str, Any]:
     """
     纯粹的文档写入功能
     - 写入 full_docs
-    - 写入 doc_status
+    - 写入 doc_status (状态设为PENDING)
     - 返回文档元数据
     """
     # 无状态实现，直接写入存储
-    pass
+    # 没有全局锁检查
+    # 没有pipeline_status依赖
 ```
 
 #### 1.2 aprocess_chunking
@@ -40,177 +41,205 @@ async def ainsert_document(
 async def aprocess_chunking(
     self,
     doc_id: str,
-    content: str,
-    file_path: str,
-    split_by_character: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+    content: str | None = None,
+    file_path: str = "unknown_source",
+    split_by_character: str | None = None,
+    split_by_character_only: bool = False,
+) -> Dict[str, Any]:
     """
     纯粹的文档分块功能
-    - 执行 chunking_func
+    - 如果content为None，从full_docs读取
+    - 执行分块算法
     - 写入 chunks_vdb 和 text_chunks
-    - 返回 chunks 列表
+    - 更新 doc_status (状态设为PROCESSING)
+    - 返回chunks数据
     """
-    # 无状态实现，不依赖任何全局状态
-    pass
+    # 无状态实现，不依赖全局变量
 ```
 
 #### 1.3 aprocess_graph_indexing
 ```python
 async def aprocess_graph_indexing(
     self,
-    chunks: List[Dict[str, Any]],
-    collection_id: str,
+    chunks: Dict[str, Any],
+    collection_id: str | None = None,
 ) -> Dict[str, Any]:
     """
     核心图索引构建功能
-    - 实体抽取
-    - 关系抽取
-    - 实体/关系合并
-    - 写入 entities_vdb 和 relationships_vdb
+    - 实体和关系抽取（extract_entities）
+    - 合并和存储（merge_nodes_and_edges）
+    - 写入 entities_vdb, relationships_vdb
+    - 写入 chunk_entity_relation_graph
     """
-    # 完全无状态，每次调用独立
-    pass
+    # 无 pipeline_status
+    # 无全局锁（只有merge_nodes_and_edges内部的graph_db_lock）
 ```
 
-### 2. 无状态化实现策略
+### 2. 辅助方法
 
-#### 2.1 移除所有全局状态
+#### 2.1 获取Chunks数据
 ```python
-# 删除或重构以下内容：
-# - shared_storage.py 的所有全局变量
-# - pipeline_status 相关逻辑
-# - 文档扫描循环
-# - 全局锁机制
+async def aget_chunks_by_doc_id(self, doc_id: str) -> Dict[str, Any]:
+    """获取文档的所有chunks"""
+    
+async def aget_chunks_by_ids(self, chunk_ids: List[str]) -> Dict[str, Any]:
+    """根据ID列表获取特定chunks"""
 ```
 
-#### 2.2 简化初始化
+### 3. Celery集成方案
+
+#### 3.1 基础任务类
 ```python
-class LightRAG:
-    def __init__(self, working_dir: str, workspace: str):
-        # 只初始化存储连接
-        # 不创建任何共享状态
-        # 不启动后台任务
-        self.working_dir = working_dir
-        self.workspace = workspace
-        self._init_storages()  # 同步初始化
+class LightRAGStatelessTask(Task):
+    """
+    无状态任务基类
+    - 每个worker进程维护LightRAG实例缓存
+    - 独立的事件循环管理
+    - 避免与Celery事件循环冲突
+    """
+    _instances: Dict[str, LightRAG] = {}
+    
+    def run_async(self, coro):
+        """在新的事件循环中运行异步任务"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
 ```
 
-#### 2.3 每个方法独立运行
-- 不检查 busy 状态
-- 不等待其他操作
-- 不共享任何状态
-- 每次调用都是幂等的
-
-### 3. Celery 集成方案
-
-#### 3.1 任务定义
+#### 3.2 无状态任务实现
 ```python
-@app.task
-def process_document_task(
-    document: str,
-    doc_id: str,
-    collection_id: str,
-    file_path: str
-):
-    """处理单个文档的 Celery 任务"""
-    # 1. 创建 LightRAG 实例（无状态）
-    rag = LightRAG(
-        working_dir=f"./lightrag_cache/{collection_id}",
-        workspace=collection_id
-    )
-    
-    # 2. 写入文档（可选，用于兼容性）
-    await rag.ainsert_document([document], [doc_id], [file_path])
-    
-    # 3. 文档分块
-    chunks = await rag.aprocess_chunking(doc_id, document, file_path)
-    
-    # 4. 构建图索引（核心）
-    result = await rag.aprocess_graph_indexing(chunks, collection_id)
-    
-    return result
+@app.task(base=LightRAGStatelessTask, bind=True)
+def insert_documents(self, documents, collection_id, doc_ids=None, file_paths=None):
+    """文档插入任务"""
+
+@app.task(base=LightRAGStatelessTask, bind=True)
+def process_document_chunking(self, doc_id, content, collection_id, file_path):
+    """文档分块任务"""
+
+@app.task(base=LightRAGStatelessTask, bind=True)
+def extract_graph_index(self, chunks, collection_id):
+    """图索引构建任务"""
+
+@app.task(base=LightRAGStatelessTask, bind=True)
+def get_document_chunks(self, doc_id, collection_id):
+    """获取chunks任务"""
 ```
 
-#### 3.2 并发处理
+### 4. 工作流示例
+
 ```python
 @app.task
-def process_collection_documents(
-    documents: List[Tuple[str, str, str]],  # (content, doc_id, file_path)
-    collection_id: str
-):
-    """并发处理多个文档"""
-    # 每个文档独立处理，无状态竞争
-    tasks = []
-    for content, doc_id, file_path in documents:
-        task = process_document_task.delay(
-            content, doc_id, collection_id, file_path
+def process_document_workflow(document, collection_id, doc_id=None, file_path="unknown"):
+    """
+    完整的文档处理工作流
+    1. 插入文档
+    2. 文档分块  
+    3. 抽取实体和关系
+    """
+    # Step 1: 插入文档
+    insert_result = insert_documents.apply_async(
+        args=[[document], collection_id],
+        kwargs={"doc_ids": [doc_id], "file_paths": [file_path]}
+    ).get()
+    
+    # Step 2: 分块
+    chunk_result = process_document_chunking.apply_async(
+        args=[doc_id, document, collection_id],
+        kwargs={"file_path": file_path}
+    ).get()
+    
+    # Step 3: 图索引
+    chunks = chunk_result.get("chunks_data")
+    graph_result = extract_graph_index.apply_async(
+        args=[chunks, collection_id]
+    ).get()
+    
+    return {
+        "doc_id": doc_id,
+        "chunks_created": chunk_result["chunk_count"],
+        "entities_extracted": graph_result["entities_extracted"],
+        "relations_extracted": graph_result["relations_extracted"],
+    }
+```
+
+## 改造优势
+
+### 1. 真正的并发能力
+- 不同collection可以真正并发处理
+- 没有全局`pipeline_status["busy"]`限制
+- 每个任务独立执行
+
+### 2. 灵活的组合
+- 可以单独调用任何一个接口
+- 可以跳过某些步骤（如直接处理已有的chunks）
+- 易于构建自定义工作流
+
+### 3. 更好的错误处理
+- 任务级别的错误隔离
+- 可以重试单个失败的步骤
+- 不会影响其他正在处理的文档
+
+### 4. 与Celery完美集成
+- 独立的事件循环管理
+- 避免了事件循环冲突
+- 支持真正的分布式处理
+
+## 使用建议
+
+### 1. 批量处理
+```python
+# 并行处理多个文档
+@app.task
+def batch_process_documents(documents, collection_id):
+    jobs = []
+    for doc in documents:
+        job = process_document_workflow.apply_async(
+            args=[doc["content"], collection_id],
+            kwargs={"doc_id": doc.get("doc_id")}
         )
-        tasks.append(task)
+        jobs.append(job)
     
-    # 等待所有任务完成
-    results = [task.get() for task in tasks]
+    # 收集结果
+    results = [job.get() for job in jobs]
     return results
 ```
 
-### 4. 实施步骤
-
-#### 第一步：接口拆分（保持向后兼容）
-1. 实现三个新接口
-2. 修改 `ainsert` 调用新接口
-3. 测试兼容性
-
-#### 第二步：移除全局状态
-1. 删除 `shared_storage.py` 的使用
-2. 移除 `pipeline_status` 相关代码
-3. 删除文档扫描循环
-
-#### 第三步：简化初始化
-1. 移除异步初始化
-2. 删除后台任务
-3. 简化存储初始化
-
-#### 第四步：Celery 集成
-1. 创建专门的任务模块
-2. 实现文档处理任务
-3. 测试并发处理
-
-### 5. 最终架构
-
-```mermaid
-graph TD
-    A[Celery Worker 1] --> B[LightRAG Instance 1]
-    C[Celery Worker 2] --> D[LightRAG Instance 2]
-    E[Celery Worker 3] --> F[LightRAG Instance 3]
-    
-    B --> G[PostgreSQL/MongoDB]
-    D --> G
-    F --> G
-    
-    B --> H[Vector DB]
-    D --> H
-    F --> H
-    
-    B --> I[Graph DB]
-    D --> I
-    F --> I
+### 2. 增量处理
+```python
+# 只处理新的chunks
+new_chunks = get_new_chunks_from_somewhere()
+result = extract_graph_index.delay(new_chunks, collection_id)
 ```
 
-每个 Worker 创建独立的 LightRAG 实例，完全无状态，可以真正并发处理。
+### 3. 错误重试
+```python
+# 使用Celery的重试机制
+@app.task(bind=True, max_retries=3)
+def resilient_graph_indexing(self, chunks, collection_id):
+    try:
+        return extract_graph_index(chunks, collection_id)
+    except Exception as exc:
+        # 指数退避重试
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+```
 
-### 6. 优势总结
+## 注意事项
 
-1. **真正的无状态**：每次调用独立，无全局依赖
-2. **完美的并发**：没有任何锁或状态冲突
-3. **简单的接口**：职责单一，易于理解和使用
-4. **灵活的集成**：可以按需调用特定功能
-5. **水平扩展**：添加更多 Worker 即可提升处理能力
+1. **存储依赖**：虽然接口无状态，但仍依赖底层存储（PostgreSQL、Neo4j等）
+2. **实例缓存**：每个worker进程会缓存LightRAG实例，需要考虑内存使用
+3. **事务性**：需要在应用层处理事务一致性
+4. **并发限制**：`merge_nodes_and_edges`内部仍有`graph_db_lock`，但这是必要的数据一致性保护
 
-### 7. 迁移建议
+## 未来改进方向
 
-1. **保持向后兼容**：旧的 `ainsert` 接口继续工作
-2. **渐进式迁移**：先使用新接口，再移除旧代码
-3. **充分测试**：确保无状态化不影响核心功能
-4. **监控性能**：对比改造前后的性能指标
+1. **完全移除全局锁**：将`graph_db_lock`改为更细粒度的锁
+2. **流式处理**：支持流式处理大文档
+3. **更细粒度的接口**：如单独的实体抽取、关系抽取接口
+4. **原生异步Celery**：当Celery支持原生异步时，可以简化事件循环管理
 
 ## 代码示例
 
