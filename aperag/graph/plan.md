@@ -1,479 +1,333 @@
-# LightRAG 代码改造计划
+# LightRAG 渐进式改造详细计划
 
-## 1. 核心问题定位
+## 改造原则
+1. **保持核心逻辑不变**：不修改 operate.py 中的算法逻辑
+2. **渐进式改造**：每个步骤可独立实现和测试
+3. **向后兼容**：每个阶段都保持 API 兼容性
+4. **最小化破坏**：优先使用包装器和适配器模式
 
-### 1.1 全局状态管理问题
+## 改造路线图
 
-**问题模块**: `aperag/graph/lightrag/kg/shared_storage.py`
+### 第一阶段：基础设施准备（不破坏任何现有功能）
 
-**具体问题**:
+#### 1.1 创建存储抽象层
+**目标**：在不修改现有存储实现的情况下，创建统一的存储接口
+
+##### 1.1.1 创建存储协议定义
 ```python
-# 模块级全局变量导致无法多实例运行
-_is_multiprocess = None
-_manager = None
-_shared_dicts: Optional[Dict[str, Any]] = None
-_pipeline_status_lock: Optional[LockType] = None
-_storage_lock: Optional[LockType] = None
-_graph_db_lock: Optional[LockType] = None
-_initialized = None
+# aperag/graph/storage_protocol.py
 ```
+- [ ] 定义 `StorageProtocol` 基类
+- [ ] 定义 `CollectionAwareStorage` 接口
+- [ ] 定义 `StorageFactory` 工厂类
 
-**影响**:
-- 同一进程内所有 LightRAG 实例共享这些全局变量
-- 创建第二个实例时，`initialize_share_data()` 会直接返回，使用第一个实例的配置
-- 多个 collection 会互相干扰，共享管道状态
-
-### 1.2 管道状态串行化问题
-
-**问题模块**: `aperag/graph/lightrag/lightrag.py` 的 `apipeline_process_enqueue_documents` 方法
-
-**具体问题**:
+##### 1.1.2 创建存储适配器
 ```python
-# Line 855-890
-pipeline_status = await get_namespace_data("pipeline_status")  # 全局共享
-pipeline_status_lock = get_pipeline_status_lock()              # 全局锁
-
-async with pipeline_status_lock:
-    if not pipeline_status.get("busy", False):
-        pipeline_status["busy"] = True  # 阻止所有其他实例
-        # 处理文档...
-    else:
-        pipeline_status["request_pending"] = True
-        return  # 其他实例直接返回
+# aperag/graph/storage_adapter.py
 ```
+- [ ] 创建 `LightRAGStorageAdapter` 类，包装现有存储
+- [ ] 实现 collection_id 到 namespace_prefix 的映射
+- [ ] 添加存储实例缓存机制
 
-**影响**:
-- 即使创建多个 LightRAG 实例，同一时刻只有一个能执行 `ainsert`
-- `max_parallel_insert` 只控制单个批次内的并发，不能实现真正的多实例并发
+##### 1.1.3 测试存储适配器
+- [ ] 编写单元测试验证适配器功能
+- [ ] 确保不影响现有 LightRAG 功能
 
-### 1.3 异步初始化缺陷
+#### 1.2 创建函数式接口包装器
+**目标**：提供简单的函数调用接口，内部仍使用 LightRAG
 
-**问题模块**: `aperag/graph/lightrag/lightrag.py` 的 `__post_init__` 和 `_run_async_safely` 方法
-
-**具体问题**:
+##### 1.2.1 创建知识提取接口
 ```python
-# Line 450-474
-def __post_init__(self):
-    # ...
-    if self.auto_manage_storages_states:
-        self._run_async_safely(self.initialize_storages, "Storage Initialization")
-
-def _run_async_safely(self, async_func, action_name=""):
-    loop = always_get_an_event_loop()
-    if loop.is_running():
-        # 创建后台任务但不等待！
-        task = loop.create_task(async_func())
-        task.add_done_callback(lambda t: logger.info(f"{action_name} completed!"))
-        # 对象立即返回，可能未初始化完成
-    else:
-        loop.run_until_complete(async_func())
+# aperag/graph/knowledge_extraction.py
 ```
+- [ ] 实现 `extract_knowledge_and_store` 函数
+- [ ] 内部调用 LightRAG 的功能
+- [ ] 支持函数注入（llm_func, embedding_func）
 
-**影响**:
-- 在异步环境中创建 LightRAG 时返回未完全初始化的对象
-- 立即使用会导致 `AttributeError` 或其他不可预测的错误
+##### 1.2.2 创建查询接口
+```python
+# aperag/graph/knowledge_query.py
+```
+- [ ] 实现 `query_knowledge` 函数
+- [ ] 包装 LightRAG 的查询功能
+- [ ] 支持多种查询模式
 
-### 1.4 存储实例耦合问题
+### 第二阶段：状态管理改造（逐步移除全局状态）
 
-**问题模块**: 各种存储实现（`json_kv_impl.py`, `networkx_impl.py` 等）
+#### 2.1 创建实例级状态管理器
+**目标**：替代 shared_storage.py 的全局变量，但保持接口兼容
 
-**具体问题**:
-- 存储实例绑定了 `namespace_prefix`，无法动态切换
-- 缺少存储池化机制，每个实例都创建新的存储连接
-- 文件存储路径硬编码，难以适配多租户场景
-
-## 2. 改造方案
-
-### 2.1 移除全局状态管理
-
-**目标**: 将所有全局状态改为实例级别
-
-**改造模块**: 
-- 删除 `shared_storage.py` 中的全局变量
-- 改造为实例级的状态管理器
-
-**新设计**:
+##### 2.1.1 实现状态管理器
 ```python
 # aperag/graph/lightrag/instance_state.py
-class InstanceStateManager:
-    """实例级状态管理器，替代全局状态"""
-    
-    def __init__(self, namespace: str, workers: int = 1):
-        self.namespace = namespace
-        self.workers = workers
-        self._is_multiprocess = workers > 1
-        
-        # 实例级锁
-        if self._is_multiprocess:
-            self._manager = Manager()
-            self._storage_lock = self._manager.Lock()
-            self._pipeline_lock = self._manager.Lock()
-            self._graph_lock = self._manager.Lock()
-        else:
-            self._storage_lock = asyncio.Lock()
-            self._pipeline_lock = asyncio.Lock()
-            self._graph_lock = asyncio.Lock()
-        
-        # 实例级状态
-        self._pipeline_status = {
-            "busy": False,
-            "job_name": "",
-            "docs": 0,
-            "cur_batch": 0,
-        }
-        
-        # 实例级存储状态
-        self._storage_initialized = {}
 ```
+- [ ] 创建 `InstanceStateManager` 类
+- [ ] 实现锁管理（单进程/多进程）
+- [ ] 实现状态存储（pipeline_status 等）
 
-**修改 LightRAG 类**:
+##### 2.1.2 创建兼容层
 ```python
-@dataclass
-class LightRAG:
-    # ... 原有字段 ...
-    
-    # 添加实例级状态管理
-    _state_manager: InstanceStateManager = field(init=False)
-    
-    def __post_init__(self):
-        # 创建实例级状态管理器
-        self._state_manager = InstanceStateManager(
-            namespace=self.namespace_prefix,
-            workers=1  # 始终使用单进程模式
-        )
-        
-        # 使用实例级状态初始化存储
-        self._initialize_storages_sync()
+# aperag/graph/lightrag/kg/shared_storage_compat.py
 ```
+- [ ] 保留原有的函数接口
+- [ ] 内部重定向到实例级状态管理器
+- [ ] 添加废弃警告
 
-### 2.2 重构管道处理逻辑
+##### 2.1.3 修改 LightRAG 初始化
+**文件**：`aperag/graph/lightrag/lightrag.py`
+- [ ] 在 `__post_init__` 中创建 `InstanceStateManager`
+- [ ] 修改存储初始化逻辑，使用实例状态
+- [ ] 保持原有 API 不变
 
-**目标**: 移除全局 pipeline_status，实现真正的并发处理
+#### 2.2 重构全局锁机制
+**目标**：将全局锁改为实例级锁
 
-**改造模块**: `lightrag.py` 的 `apipeline_process_enqueue_documents` 方法
+##### 2.2.1 识别所有使用全局锁的地方
+- [ ] 搜索 `get_pipeline_status_lock()`
+- [ ] 搜索 `get_storage_lock()`
+- [ ] 搜索 `get_graph_db_lock()`
 
-**新设计**:
+##### 2.2.2 创建锁代理
 ```python
-async def apipeline_process_enqueue_documents(
-    self,
-    split_by_character: str | None = None,
-    split_by_character_only: bool = False,
-) -> None:
-    """重构后的文档处理管道，支持并发"""
-    
-    # 使用实例级管道状态
-    pipeline_status = self._state_manager.get_pipeline_status()
-    
-    # 获取待处理文档（不使用全局锁）
-    to_process_docs = await self._get_pending_documents()
-    
-    if not to_process_docs:
-        logger.info(f"[{self.namespace_prefix}] No documents to process")
-        return
-    
-    # 使用信号量控制并发，而非全局锁
-    semaphore = asyncio.Semaphore(self.max_parallel_insert)
-    
-    async def process_document_concurrent(doc_id: str, status_doc: DocProcessingStatus):
-        async with semaphore:
-            try:
-                # 处理单个文档
-                await self._process_single_document(
-                    doc_id, status_doc, 
-                    split_by_character, split_by_character_only
-                )
-            except Exception as e:
-                logger.error(f"[{self.namespace_prefix}] Failed to process {doc_id}: {e}")
-                await self._mark_document_failed(doc_id, str(e))
-    
-    # 真正的并发处理
-    tasks = [
-        process_document_concurrent(doc_id, doc) 
-        for doc_id, doc in to_process_docs.items()
-    ]
-    
-    await asyncio.gather(*tasks, return_exceptions=True)
+# aperag/graph/lightrag/lock_proxy.py
 ```
+- [ ] 实现 `LockProxy` 类
+- [ ] 支持从全局锁迁移到实例锁
+- [ ] 添加锁使用统计
 
-### 2.3 修复异步初始化问题
+##### 2.2.3 逐步替换锁调用
+- [ ] 先在新代码中使用实例锁
+- [ ] 添加配置开关控制锁类型
+- [ ] 逐步迁移旧代码
 
-**目标**: 确保 LightRAG 实例创建时同步完成初始化
+### 第三阶段：Collection 隔离机制实现
 
-**改造模块**: `__post_init__` 方法
+#### 3.1 设计 Collection 管理器
+**目标**：实现真正的 collection 级别隔离
 
-**新设计**:
+##### 3.1.1 创建 Collection 管理器
 ```python
-def __post_init__(self):
-    """同步初始化，确保对象完全可用"""
-    # 1. 初始化状态管理器
-    self._state_manager = InstanceStateManager(self.namespace_prefix)
-    
-    # 2. 同步初始化存储
-    self._initialize_storages_sync()
-    
-    # 3. 标记初始化完成
-    self._initialized = True
-
-def _initialize_storages_sync(self):
-    """同步初始化所有存储"""
-    # 创建存储实例
-    self.llm_response_cache = self._create_kv_storage("llm_cache")
-    self.full_docs = self._create_kv_storage("full_docs")
-    self.text_chunks = self._create_kv_storage("text_chunks")
-    self.entities_vdb = self._create_vector_storage("entities")
-    self.relationships_vdb = self._create_vector_storage("relationships")
-    self.chunks_vdb = self._create_vector_storage("chunks")
-    self.chunk_entity_relation_graph = self._create_graph_storage("entity_relation")
-    self.doc_status = self._create_doc_status_storage("doc_status")
-    
-    # 同步初始化存储（不使用异步）
-    for storage in self._get_all_storages():
-        storage.initialize_sync()  # 新增同步初始化方法
-
-async def initialize_storages_async(self):
-    """提供异步初始化选项，但不在构造函数中调用"""
-    if not self._initialized:
-        raise RuntimeError("Must call __post_init__ first")
-    
-    # 异步初始化逻辑...
+# aperag/graph/collection_manager.py
 ```
+- [ ] 实现 `CollectionManager` 类
+- [ ] 管理 collection 到存储的映射
+- [ ] 实现 collection 级别的配置
 
-### 2.4 实现存储池化机制
+##### 3.1.2 改造存储命名空间
+- [ ] 修改 `make_namespace` 函数支持 collection_id
+- [ ] 创建 collection_id 到 namespace 的转换规则
+- [ ] 保持向后兼容性
 
-**目标**: 避免重复创建存储连接，支持存储实例复用
-
-**新增模块**: `storage_pool.py`
-
+##### 3.1.3 实现 Collection 上下文
 ```python
-# aperag/graph/lightrag/storage_pool.py
-from typing import Dict, Any, Optional
-import asyncio
-from weakref import WeakValueDictionary
-
-class StoragePool:
-    """存储实例池，支持复用和生命周期管理"""
-    
-    def __init__(self):
-        # 使用弱引用避免内存泄漏
-        self._kv_storages: WeakValueDictionary = WeakValueDictionary()
-        self._vector_storages: WeakValueDictionary = WeakValueDictionary()
-        self._graph_storages: WeakValueDictionary = WeakValueDictionary()
-        self._lock = asyncio.Lock()
-    
-    async def get_kv_storage(
-        self, 
-        storage_type: str, 
-        namespace: str,
-        config: Dict[str, Any]
-    ) -> BaseKVStorage:
-        """获取或创建 KV 存储实例"""
-        key = f"{storage_type}:{namespace}"
-        
-        async with self._lock:
-            storage = self._kv_storages.get(key)
-            if storage is None:
-                storage = self._create_kv_storage(storage_type, namespace, config)
-                self._kv_storages[key] = storage
-            
-            return storage
-    
-    def _create_kv_storage(
-        self,
-        storage_type: str,
-        namespace: str, 
-        config: Dict[str, Any]
-    ) -> BaseKVStorage:
-        """创建新的 KV 存储实例"""
-        if storage_type == "JsonKVStorage":
-            from .kg.json_kv_impl import JsonKVStorage
-            return JsonKVStorage(namespace=namespace, global_config=config)
-        elif storage_type == "PGKVStorage":
-            from .kg.postgres_impl import PGKVStorage
-            return PGKVStorage(namespace=namespace, global_config=config)
-        # ... 其他存储类型
-
-# 全局存储池（这是唯一允许的全局对象）
-_storage_pool = StoragePool()
-
-def get_storage_pool() -> StoragePool:
-    return _storage_pool
+# aperag/graph/collection_context.py
 ```
+- [ ] 创建 `CollectionContext` 上下文管理器
+- [ ] 自动处理存储切换
+- [ ] 支持批量操作
 
-### 2.5 重构存储实现
+#### 3.2 改造文档处理流程
+**目标**：支持按 collection 并发处理
 
-**目标**: 使存储实现支持命名空间切换和连接复用
+##### 3.2.1 重构管道处理
+**文件**：`aperag/graph/lightrag/lightrag.py`
+- [ ] 修改 `apipeline_process_enqueue_documents`
+- [ ] 移除全局 pipeline_status 检查
+- [ ] 使用 collection 级别的队列
 
-**改造示例**: `json_kv_impl.py`
+##### 3.2.2 实现并发控制
+- [ ] 使用 asyncio.Semaphore 替代全局锁
+- [ ] 支持 collection 级别的并发限制
+- [ ] 添加并发监控
 
+### 第四阶段：存储层解耦
+
+#### 4.1 创建存储接口层
+**目标**：定义统一的存储接口，隐藏实现细节
+
+##### 4.1.1 定义存储接口
 ```python
-class JsonKVStorage(BaseKVStorage):
-    def __init__(self, namespace: str, global_config: dict[str, Any]):
-        super().__init__(namespace, global_config)
-        self._cache = {}  # 内存缓存
-        self._file_lock = asyncio.Lock()
-        self._initialized = False
-    
-    def initialize_sync(self):
-        """同步初始化"""
-        if self._initialized:
-            return
-        
-        # 创建存储目录
-        os.makedirs(self._get_storage_path(), exist_ok=True)
-        
-        # 加载已有数据
-        self._load_from_disk()
-        
-        self._initialized = True
-    
-    async def initialize(self):
-        """异步初始化（兼容旧接口）"""
-        self.initialize_sync()
-    
-    def _get_storage_path(self) -> str:
-        """动态计算存储路径"""
-        base_dir = self.global_config.get("working_dir", "./lightrag_cache")
-        return os.path.join(base_dir, "kv_store", self.namespace)
-    
-    async def switch_namespace(self, new_namespace: str):
-        """切换命名空间"""
-        async with self._file_lock:
-            # 保存当前数据
-            await self._save_to_disk()
-            
-            # 切换命名空间
-            self.namespace = new_namespace
-            
-            # 重新加载数据
-            self._load_from_disk()
+# aperag/storage/interfaces.py
 ```
+- [ ] 定义 `IKVStorage` 接口
+- [ ] 定义 `IVectorStorage` 接口
+- [ ] 定义 `IGraphStorage` 接口
 
-## 3. 实施步骤
-
-### 第一阶段：解耦全局状态（优先级：高）
-
-1. **创建 `instance_state.py`**
-   - 实现 `InstanceStateManager` 类
-   - 提供实例级的锁和状态管理
-
-2. **修改 `lightrag.py`**
-   - 在 `__post_init__` 中创建实例级状态管理器
-   - 替换所有对 `shared_storage` 的引用
-
-3. **删除或重构 `shared_storage.py`**
-   - 保留必要的工具函数
-   - 移除所有全局变量
-
-### 第二阶段：修复并发问题（优先级：高）
-
-1. **重构 `apipeline_process_enqueue_documents`**
-   - 移除全局 pipeline_status 检查
-   - 实现基于信号量的并发控制
-
-2. **修改文档状态管理**
-   - 使用数据库级别的原子操作
-   - 避免内存状态共享
-
-### 第三阶段：优化存储层（优先级：中）
-
-1. **实现存储池**
-   - 创建 `storage_pool.py`
-   - 支持存储实例复用
-
-2. **改造存储实现**
-   - 添加 `initialize_sync` 方法
-   - 支持命名空间动态切换
-
-### 第四阶段：完善错误处理（优先级：低）
-
-1. **添加初始化状态检查**
-   - 在所有公开方法中检查初始化状态
-   - 提供清晰的错误信息
-
-2. **实现优雅降级**
-   - 部分存储失败时继续运行
-   - 提供降级模式配置
-
-## 4. 兼容性考虑
-
-### 保持 API 兼容
-
+##### 4.1.2 实现存储工厂
 ```python
-# 提供兼容层
-class LightRAG:
-    @classmethod
-    def create_async(cls, **kwargs) -> Awaitable['LightRAG']:
-        """异步创建方法，完全初始化后返回"""
-        instance = cls(**kwargs)
-        await instance.initialize_storages_async()
-        return instance
-    
-    def insert(self, *args, **kwargs):
-        """同步接口保持不变"""
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(self.ainsert(*args, **kwargs))
-        finally:
-            loop.close()
+# aperag/storage/factory.py
 ```
+- [ ] 创建存储工厂类
+- [ ] 支持注册自定义存储实现
+- [ ] 提供默认实现（使用 LightRAG 存储）
 
-### 配置迁移
+#### 4.2 实现外部存储适配器
+**目标**：支持使用外部数据库
 
+##### 4.2.1 PostgreSQL 适配器
 ```python
-# 支持旧配置格式
-if "namespace_prefix" in kwargs and "namespace" not in kwargs:
-    kwargs["namespace"] = kwargs.pop("namespace_prefix")
+# aperag/storage/postgres_adapter.py
 ```
+- [ ] 实现 KV 存储接口
+- [ ] 实现向量存储接口（使用 pgvector）
+- [ ] 支持事务
 
-## 5. 测试策略
+##### 4.2.2 Neo4j 适配器
+```python
+# aperag/storage/neo4j_adapter.py
+```
+- [ ] 实现图存储接口
+- [ ] 支持批量操作
+- [ ] 优化查询性能
+
+### 第五阶段：核心算法提取
+
+#### 5.1 提取文档处理算法
+**目标**：将算法与存储分离
+
+##### 5.1.1 创建算法模块
+```python
+# aperag/graph/algorithms/chunking.py
+```
+- [ ] 提取 `chunking_by_token_size` 逻辑
+- [ ] 创建无状态的分块器类
+- [ ] 添加更多分块策略
+
+##### 5.1.2 提取实体抽取算法
+```python
+# aperag/graph/algorithms/extraction.py
+```
+- [ ] 提取实体抽取逻辑
+- [ ] 创建可配置的抽取器
+- [ ] 支持自定义 prompt
+
+#### 5.2 创建轻量级包装器
+**目标**：只保留必要的 LightRAG 功能
+
+##### 5.2.1 创建核心包装器
+```python
+# aperag/graph/lightrag_core.py
+```
+- [ ] 只包含核心算法调用
+- [ ] 移除所有存储依赖
+- [ ] 提供简单的 API
+
+### 第六阶段：最终整合与优化
+
+#### 6.1 创建新的统一接口
+**目标**：提供简洁、易用的 API
+
+##### 6.1.1 实现主接口
+```python
+# aperag/graph/api.py
+```
+- [ ] 整合所有功能
+- [ ] 提供流式接口
+- [ ] 支持批处理
+
+##### 6.1.2 迁移工具
+```python
+# aperag/graph/migration.py
+```
+- [ ] 提供从旧 API 到新 API 的迁移工具
+- [ ] 自动转换配置
+- [ ] 数据迁移支持
+
+#### 6.2 性能优化
+- [ ] 实现连接池
+- [ ] 添加缓存层
+- [ ] 优化并发性能
+
+## 实施时间表
+
+### 第1-2周：基础设施准备
+- 完成存储抽象层
+- 实现函数式接口
+- 不影响现有功能
+
+### 第3-4周：状态管理改造
+- 实现实例级状态管理
+- 创建兼容层
+- 开始移除全局状态
+
+### 第5-6周：Collection 隔离
+- 实现 Collection 管理器
+- 改造处理流程
+- 支持并发处理
+
+### 第7-8周：存储层解耦
+- 定义存储接口
+- 实现外部存储适配器
+- 测试存储切换
+
+### 第9-10周：核心算法提取
+- 提取算法模块
+- 创建轻量级包装器
+- 优化性能
+
+### 第11-12周：整合与发布
+- 创建统一 API
+- 完善文档
+- 性能测试
+
+## 测试策略
 
 ### 单元测试
+每个模块都需要独立的单元测试：
+- [ ] 存储适配器测试
+- [ ] 状态管理器测试
+- [ ] Collection 管理器测试
+- [ ] 算法模块测试
 
-```python
-# tests/test_concurrent_instances.py
-async def test_multiple_instances_concurrent():
-    """测试多实例并发处理"""
-    instances = [
-        LightRAG(namespace_prefix=f"test_{i}")
-        for i in range(5)
-    ]
-    
-    # 并发插入文档
-    tasks = [
-        instance.ainsert([f"Document for instance {i}"])
-        for i, instance in enumerate(instances)
-    ]
-    
-    results = await asyncio.gather(*tasks)
-    assert all(results)  # 所有实例都应成功
-```
+### 集成测试
+- [ ] 端到端处理流程测试
+- [ ] 并发处理测试
+- [ ] 存储切换测试
+- [ ] 性能基准测试
 
-### 性能测试
+### 兼容性测试
+- [ ] 确保旧 API 继续工作
+- [ ] 测试迁移工具
+- [ ] 验证数据兼容性
 
-```python
-# tests/test_performance.py
-async def test_throughput_improvement():
-    """测试改造后的吞吐量提升"""
-    # 测试单实例串行处理
-    single_instance_time = await measure_single_instance_time()
-    
-    # 测试多实例并发处理
-    multi_instance_time = await measure_multi_instance_time()
-    
-    # 期望至少3倍性能提升
-    assert multi_instance_time < single_instance_time / 3
-```
+## 风险管理
 
-## 6. 风险与缓解
+### 技术风险
+1. **全局状态耦合**
+   - 缓解：逐步替换，保留兼容层
+   - 监控：添加状态使用追踪
 
-### 风险1：破坏现有功能
-- **缓解**: 保持原有 API，提供兼容层
-- **测试**: 完整的回归测试套件
+2. **性能下降**
+   - 缓解：实现缓存和连接池
+   - 监控：建立性能基准
 
-### 风险2：性能下降
-- **缓解**: 实现存储池化，减少重复初始化
-- **监控**: 添加性能指标采集
+3. **数据一致性**
+   - 缓解：使用事务和锁
+   - 监控：添加一致性检查
 
-### 风险3：数据一致性
-- **缓解**: 使用数据库事务，避免内存状态
-- **验证**: 并发场景下的数据一致性测试
+### 项目风险
+1. **时间估算不准**
+   - 缓解：每阶段设置缓冲时间
+   - 监控：每周进度评审
+
+2. **需求变更**
+   - 缓解：保持灵活的架构
+   - 监控：定期与用户沟通
+
+## 成功标准
+
+1. **功能完整性**
+   - 所有现有功能继续工作
+   - 新 API 覆盖所有用例
+
+2. **性能指标**
+   - 并发处理能力提升 3x
+   - 内存使用降低 50%
+
+3. **可维护性**
+   - 代码覆盖率 > 80%
+   - 文档完整性 100%
+
+4. **用户体验**
+   - API 调用简化 70%
+   - 错误信息清晰度提升
