@@ -8,49 +8,6 @@
 
 ## 改造路线图
 
-### 第一阶段：基础设施准备（不破坏任何现有功能）
-
-#### 1.1 创建存储抽象层
-**目标**：在不修改现有存储实现的情况下，创建统一的存储接口
-
-##### 1.1.1 创建存储协议定义
-```python
-# aperag/graph/storage_protocol.py
-```
-- [ ] 定义 `StorageProtocol` 基类
-- [ ] 定义 `CollectionAwareStorage` 接口
-- [ ] 定义 `StorageFactory` 工厂类
-
-##### 1.1.2 创建存储适配器
-```python
-# aperag/graph/storage_adapter.py
-```
-- [ ] 创建 `LightRAGStorageAdapter` 类，包装现有存储
-- [ ] 实现 collection_id 到 namespace_prefix 的映射
-- [ ] 添加存储实例缓存机制
-
-##### 1.1.3 测试存储适配器
-- [ ] 编写单元测试验证适配器功能
-- [ ] 确保不影响现有 LightRAG 功能
-
-#### 1.2 创建函数式接口包装器
-**目标**：提供简单的函数调用接口，内部仍使用 LightRAG
-
-##### 1.2.1 创建知识提取接口
-```python
-# aperag/graph/knowledge_extraction.py
-```
-- [ ] 实现 `extract_knowledge_and_store` 函数
-- [ ] 内部调用 LightRAG 的功能
-- [ ] 支持函数注入（llm_func, embedding_func）
-
-##### 1.2.2 创建查询接口
-```python
-# aperag/graph/knowledge_query.py
-```
-- [ ] 实现 `query_knowledge` 函数
-- [ ] 包装 LightRAG 的查询功能
-- [ ] 支持多种查询模式
 
 ### 第二阶段：状态管理改造（逐步移除全局状态）
 
@@ -102,29 +59,13 @@
 
 ### 第三阶段：Collection 隔离机制实现
 
-#### 3.1 设计 Collection 管理器
+#### 3.1 collection 级别隔离
 **目标**：实现真正的 collection 级别隔离
 
-##### 3.1.1 创建 Collection 管理器
-```python
-# aperag/graph/collection_manager.py
-```
-- [ ] 实现 `CollectionManager` 类
-- [ ] 管理 collection 到存储的映射
-- [ ] 实现 collection 级别的配置
-
-##### 3.1.2 改造存储命名空间
-- [ ] 修改 `make_namespace` 函数支持 collection_id
-- [ ] 创建 collection_id 到 namespace 的转换规则
-- [ ] 保持向后兼容性
-
-##### 3.1.3 实现 Collection 上下文
-```python
-# aperag/graph/collection_context.py
-```
-- [ ] 创建 `CollectionContext` 上下文管理器
-- [ ] 自动处理存储切换
-- [ ] 支持批量操作
+我想要删掉目前的namespace_prefix机制。
+目前JsonKVStorage,NanoVectorDBStorage,NetworkXStorage,JsonDocStatusStorage可以按照namespace prefix隔离，neo4j之类的应该也是可以的。
+但是pg结合namespace prefix有严重bug, "sql = SQL_TEMPLATES["get_by_id_" + self.namespace]"会把namespace prefix也拼接进去，导致无法获得要执行的SQL。
+我希望你能够帮我用workspace机制替代namespace prefix机制（目前pg已经有了，但是我希望能够推广到所有的db），workspace可以理解为collection的概念。
 
 #### 3.2 改造文档处理流程
 **目标**：支持按 collection 并发处理

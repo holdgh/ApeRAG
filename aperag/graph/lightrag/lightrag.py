@@ -218,17 +218,8 @@ class LightRAG:
     llm_model_func: Callable[..., object] | None = field(default=None)
     """Function for interacting with the large language model (LLM). Must be set before use."""
 
-    llm_model_name: str = field(default="gpt-4o-mini")
-    """Name of the LLM model used for generating responses."""
-
-    llm_model_max_token_size: int = field(default=int(os.getenv("MAX_TOKENS", 32768)))
-    """Maximum number of tokens allowed per LLM response."""
-
     llm_model_max_async: int = field(default=int(os.getenv("MAX_ASYNC", 4)))
     """Maximum number of concurrent LLM calls."""
-
-    llm_model_kwargs: dict[str, Any] = field(default_factory=dict)
-    """Additional keyword arguments passed to the LLM model function."""
 
     # Storage
     # ---
@@ -441,7 +432,6 @@ class LightRAG:
             partial(
                 self.llm_model_func,  # type: ignore
                 hashing_kv=hashing_kv,
-                **self.llm_model_kwargs,
             )
         )
 
