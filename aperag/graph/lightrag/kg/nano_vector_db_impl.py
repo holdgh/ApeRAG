@@ -43,8 +43,14 @@ class NanoVectorDBStorage(BaseVectorStorage):
             )
         self.cosine_better_than_threshold = cosine_threshold
 
+        # Create workspace directory structure
+        working_dir = self.global_config["working_dir"]
+        workspace_dir = os.path.join(working_dir, self.workspace)
+        os.makedirs(workspace_dir, exist_ok=True)
+        
+        # Use storage_type for file naming to keep it clean
         self._client_file_name = os.path.join(
-            self.global_config["working_dir"], f"vdb_{self.namespace}.json"
+            workspace_dir, f"vdb_{self.storage_type}.json"
         )
         self._max_batch_size = self.global_config["embedding_batch_num"]
 

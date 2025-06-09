@@ -48,8 +48,14 @@ class NetworkXStorage(BaseGraphStorage):
         nx.write_graphml(graph, file_name)
 
     def __post_init__(self):
+        # Create workspace directory structure
+        working_dir = self.global_config["working_dir"]
+        workspace_dir = os.path.join(working_dir, self.workspace)
+        os.makedirs(workspace_dir, exist_ok=True)
+        
+        # Use storage_type for file naming to keep it clean
         self._graphml_xml_file = os.path.join(
-            self.global_config["working_dir"], f"graph_{self.namespace}.graphml"
+            workspace_dir, f"graph_{self.storage_type}.graphml"
         )
         self._storage_lock = None
         self.storage_updated = None

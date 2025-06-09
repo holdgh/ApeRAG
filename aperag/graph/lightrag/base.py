@@ -104,7 +104,15 @@ class QueryParam:
 @dataclass
 class StorageNameSpace(ABC):
     namespace: str
+    workspace: str
     global_config: dict[str, Any]
+
+    @property
+    def storage_type(self) -> str:
+        """Get the base storage type from namespace, e.g., 'full_docs' from any namespace ending with 'full_docs'"""
+        # Remove any prefix and return just the storage type
+        # This is used for looking up SQL templates, file naming, etc.
+        return self.namespace
 
     async def initialize(self):
         """Initialize the storage"""

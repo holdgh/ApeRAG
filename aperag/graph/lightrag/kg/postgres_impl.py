@@ -394,7 +394,9 @@ class PGKVStorage(BaseKVStorage):
 
     async def get_by_id(self, id: str) -> dict[str, Any] | None:
         """Get doc_full data by id."""
-        sql = SQL_TEMPLATES["get_by_id_" + self.namespace]
+        # Use storage_type property to get the correct SQL template key
+        sql_key = f"get_by_id_{self.storage_type}"
+        sql = SQL_TEMPLATES[sql_key]
         params = {"workspace": self.db.workspace, "id": id}
         if is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
             array_res = await self.db.query(sql, params, multirows=True)
@@ -408,7 +410,8 @@ class PGKVStorage(BaseKVStorage):
 
     async def get_by_mode_and_id(self, mode: str, id: str) -> Union[dict, None]:
         """Specifically for llm_response_cache."""
-        sql = SQL_TEMPLATES["get_by_mode_id_" + self.namespace]
+        sql_key = f"get_by_mode_id_{self.storage_type}"
+        sql = SQL_TEMPLATES[sql_key]
         params = {"workspace": self.db.workspace, "mode": mode, "id": id}
         if is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
             array_res = await self.db.query(sql, params, multirows=True)
@@ -422,7 +425,8 @@ class PGKVStorage(BaseKVStorage):
     # Query by id
     async def get_by_ids(self, ids: list[str]) -> list[dict[str, Any]]:
         """Get doc_chunks data by id"""
-        sql = SQL_TEMPLATES["get_by_ids_" + self.namespace].format(
+        sql_key = f"get_by_ids_{self.storage_type}"
+        sql = SQL_TEMPLATES[sql_key].format(
             ids=",".join([f"'{id}'" for id in ids])
         )
         params = {"workspace": self.db.workspace}
@@ -443,9 +447,10 @@ class PGKVStorage(BaseKVStorage):
 
     async def get_by_status(self, status: str) -> Union[list[dict[str, Any]], None]:
         """Specifically for llm_response_cache."""
-        SQL = SQL_TEMPLATES["get_by_status_" + self.namespace]
+        sql_key = f"get_by_status_{self.storage_type}"
+        sql = SQL_TEMPLATES[sql_key]
         params = {"workspace": self.db.workspace, "status": status}
-        return await self.db.query(SQL, params, multirows=True)
+        return await self.db.query(sql, params, multirows=True)
 
     async def filter_keys(self, keys: set[str]) -> set[str]:
         """Filter out duplicated content"""
@@ -726,7 +731,7 @@ class PGVectorStorage(BaseVectorStorage):
         embedding = embeddings[0]
         embedding_string = ",".join(map(str, embedding))
         # Use parameterized document IDs (None means search across all documents)
-        sql = SQL_TEMPLATES[self.namespace].format(embedding_string=embedding_string)
+        sql = SQL_TEMPLATES[self.storage_type].format(embedding_string=embedding_string)
         params = {
             "workspace": self.db.workspace,
             "doc_ids": ids,
@@ -1127,7 +1132,8 @@ class PGGraphQueryException(Exception):
 @dataclass
 class PGGraphStorage(BaseGraphStorage):
     def __post_init__(self):
-        self.graph_name = self.namespace or os.environ.get("AGE_GRAPH_NAME", "lightrag")
+        # Use the base namespace (storage_type) for graph name
+        self.graph_name = self.storage_type or os.environ.get("AGE_GRAPH_NAME", "lightrag")
         self.db: PostgreSQLDB | None = None
 
     @staticmethod

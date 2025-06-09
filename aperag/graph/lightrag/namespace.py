@@ -17,11 +17,8 @@ class NameSpace:
     DOC_STATUS = "doc_status"
 
 
-def make_namespace(prefix: str, base_namespace: str):
-    return prefix + base_namespace
-
-
 def is_namespace(namespace: str, base_namespace: str | Iterable[str]):
+    """Check if namespace matches the base namespace"""
     if isinstance(base_namespace, str):
-        return namespace.endswith(base_namespace)
-    return any(is_namespace(namespace, ns) for ns in base_namespace)
+        return namespace == base_namespace
+    return namespace in base_namespace
