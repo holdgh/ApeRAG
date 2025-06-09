@@ -16,7 +16,7 @@
 from abc import ABC, abstractmethod
 from typing import IO
 
-from config import settings
+from aperag.config import settings
 
 
 class ObjectStore(ABC):
@@ -37,12 +37,18 @@ class ObjectStore(ABC):
 
 
 def get_object_store() -> ObjectStore:
-    match settings.OBJECT_STORE_TYPE:
+    match settings.object_store_type:
         case "local":
             from aperag.objectstore.local import Local, LocalConfig
 
-            return Local(LocalConfig(**settings.OBJECT_STORE_LOCAL_CONFIG))
+            # Convert pydantic model to dict for unpacking
+            local_config_dict = (
+                settings.object_store_local_config.model_dump() if settings.object_store_local_config else {}
+            )
+            return Local(LocalConfig(**local_config_dict))
         case "s3":
             from aperag.objectstore.s3 import S3, S3Config
 
-            return S3(S3Config(**settings.OBJECT_STORE_S3_CONFIG))
+            # Convert pydantic model to dict for unpacking
+            s3_config_dict = settings.object_store_s3_config.model_dump() if settings.object_store_s3_config else {}
+            return S3(S3Config(**s3_config_dict))

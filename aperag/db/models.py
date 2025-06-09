@@ -12,543 +12,438 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import enum
 import random
 import uuid
-from datetime import timedelta
+from datetime import datetime
+from enum import Enum
+from typing import Optional, Type
 
-from django.contrib.auth.models import AbstractUser
-from django.db import models
-from django.utils import timezone
+from sqlalchemy import JSON, Column, String, TypeDecorator
+from sqlmodel import Field, SQLModel, UniqueConstraint, select
+
+from aperag.config import AsyncSessionDep
 
 
+# Helper function for random id generation
 def random_id():
     """Generate a random ID string"""
     return "".join(random.sample(uuid.uuid4().hex, 16))
 
 
-class Collection(models.Model):
-    class Status(models.TextChoices):
-        INACTIVE = "INACTIVE"
-        ACTIVE = "ACTIVE"
-        DELETED = "DELETED"
+# Enums for choices
+class CollectionStatus(str, Enum):
+    INACTIVE = "INACTIVE"
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
-    class SyncStatus(models.TextChoices):
-        RUNNING = "RUNNING"
-        CANCELED = "CANCELED"
-        COMPLETED = "COMPLETED"
 
-    class Type(models.TextChoices):
-        DOCUMENT = "document"
+class CollectionType(str, Enum):
+    DOCUMENT = "document"
 
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for collection"""
-        return "col" + random_id()
 
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    title = models.CharField(max_length=256)
-    description = models.TextField(null=True, blank=True)
-    user = models.CharField(max_length=256)
-    status = models.CharField(max_length=16, choices=Status.choices)
-    type = models.CharField(max_length=16, choices=Type.choices)
-    config = models.TextField()
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
+class DocumentStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETE = "COMPLETE"
+    FAILED = "FAILED"
+    DELETING = "DELETING"
+    DELETED = "DELETED"
 
-    async def bots(self, only_ids=False):
-        """Get all active bots related to this collection"""
-        from aperag.db import models as db_models
 
-        result = []
-        async for rel in db_models.BotCollectionRelation.objects.filter(
-            collection_id=self.id, gmt_deleted__isnull=True
-        ).all():
-            if only_ids:
-                result.append(rel.bot_id)
-            else:
-                bot = await db_models.Bot.objects.aget(id=rel.bot_id)
-                result.append(bot)
-        return result
+class DocumentIndexStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETE = "COMPLETE"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
 
 
-class Document(models.Model):
-    class Status(models.TextChoices):
-        PENDING = "PENDING"
-        RUNNING = "RUNNING"
-        COMPLETE = "COMPLETE"
-        FAILED = "FAILED"
-        DELETING = "DELETING"
-        DELETED = "DELETED"
+class BotStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
-    class IndexStatus(models.TextChoices):
-        PENDING = "PENDING"
-        RUNNING = "RUNNING"
-        COMPLETE = "COMPLETE"
-        FAILED = "FAILED"
-        SKIPPED = "SKIPPED"  # When certain functionality is not enabled
 
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for document"""
-        return "doc" + random_id()
+class BotType(str, Enum):
+    KNOWLEDGE = "knowledge"
+    COMMON = "common"
 
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    name = models.CharField(max_length=1024)
-    user = models.CharField(max_length=256)
-    config = models.TextField(null=True)
-    collection_id = models.CharField(max_length=24, null=True)
-    status = models.CharField(max_length=16, choices=Status.choices)
 
-    # Independent index status fields for different index types
-    vector_index_status = models.CharField(max_length=16, choices=IndexStatus.choices, default=IndexStatus.PENDING)
-    fulltext_index_status = models.CharField(max_length=16, choices=IndexStatus.choices, default=IndexStatus.PENDING)
-    graph_index_status = models.CharField(max_length=16, choices=IndexStatus.choices, default=IndexStatus.PENDING)
-
-    size = models.BigIntegerField()
-    object_path = models.CharField(max_length=1024, null=True)
-    relate_ids = models.TextField()
-    metadata = models.TextField(default="{}")
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        unique_together = ("collection_id", "name")
-
-    def object_store_base_path(self) -> str:
-        user = self.user.replace("|", "-")
-        return "user-{0}/{1}/{2}".format(user, self.collection_id, self.id)
-
-    def get_overall_status(self):
-        """Calculate overall status based on individual index statuses"""
-        index_statuses = [self.vector_index_status, self.fulltext_index_status, self.graph_index_status]
-
-        # If any index failed, overall status is failed
-        if any(status == self.IndexStatus.FAILED for status in index_statuses):
-            return self.Status.FAILED
-        # If any index is running, overall status is running
-        elif any(status == self.IndexStatus.RUNNING for status in index_statuses):
-            return self.Status.RUNNING
-        # If all indexes are complete or skipped, overall status is complete
-        elif all(status in [self.IndexStatus.COMPLETE, self.IndexStatus.SKIPPED] for status in index_statuses):
-            return self.Status.COMPLETE
-        # Otherwise, status is pending
-        else:
-            return self.Status.PENDING
-
-    def update_overall_status(self):
-        """Update overall status field"""
-        self.status = self.get_overall_status()
-
-    async def get_collection(self):
-        """Get the associated collection object"""
-        try:
-            return await Collection.objects.aget(id=self.collection_id)
-        except Collection.DoesNotExist:
-            return None
-
-    @property
-    async def collection(self):
-        """Property to maintain backwards compatibility"""
-        return await self.get_collection()
-
-    @collection.setter
-    async def collection(self, collection):
-        """Setter to maintain backwards compatibility"""
-        if isinstance(collection, Collection):
-            self.collection_id = collection.id
-        elif isinstance(collection, str):
-            self.collection_id = collection
-
-
-class Bot(models.Model):
-    class Status(models.TextChoices):
-        ACTIVE = "ACTIVE"
-        DELETED = "DELETED"
-
-    class Type(models.TextChoices):
-        KNOWLEDGE = "knowledge"
-        COMMON = "common"
-
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for bot"""
-        return "bot" + random_id()
-
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    user = models.CharField(max_length=256)
-    title = models.CharField(max_length=256)
-    type = models.CharField(max_length=16, choices=Type.choices, default=Type.KNOWLEDGE)
-    description = models.TextField(null=True, blank=True)
-    status = models.CharField(max_length=16, choices=Status.choices)
-    config = models.TextField()
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    async def collections(self, only_ids=False):
-        """Get all active collections related to this bot"""
-        from aperag.db import models as db_models
-
-        result = []
-        async for rel in db_models.BotCollectionRelation.objects.filter(bot_id=self.id, gmt_deleted__isnull=True).all():
-            if only_ids:
-                result.append(rel.collection_id)
-            else:
-                collection = await db_models.Collection.objects.aget(id=rel.collection_id)
-                result.append(collection)
-        return result
-
-
-class BotCollectionRelation(models.Model):
-    bot_id = models.CharField(max_length=24)
-    collection_id = models.CharField(max_length=24)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["bot_id", "collection_id"],
-                condition=models.Q(gmt_deleted__isnull=True),
-                name="unique_active_bot_collection",
-            )
-        ]
-
-
-class Config(models.Model):
-    key = models.CharField(max_length=256, unique=True)
-    value = models.TextField()
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-
-class UserQuota(models.Model):
-    user = models.CharField(max_length=256)
-    key = models.CharField(max_length=256)
-    value = models.PositiveIntegerField(default=0)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-
-class Chat(models.Model):
-    class Status(models.TextChoices):
-        ACTIVE = "ACTIVE"
-        DELETED = "DELETED"
-
-    class PeerType(models.TextChoices):
-        SYSTEM = "system"
-        FEISHU = "feishu"
-        WEIXIN = "weixin"
-        WEIXIN_OFFICIAL = "weixin_official"
-        WEB = "web"
-        DINGTALK = "dingtalk"
-
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for chat"""
-        return "chat" + random_id()
-
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    user = models.CharField(max_length=256)
-    peer_type = models.CharField(max_length=16, default=PeerType.SYSTEM, choices=PeerType.choices)
-    peer_id = models.CharField(max_length=256, null=True)
-    status = models.CharField(max_length=16, choices=Status.choices)
-    bot_id = models.CharField(max_length=24)
-    title = models.TextField()
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        unique_together = ("bot_id", "peer_type", "peer_id")
-
-    async def get_bot(self):
-        """Get the associated bot object"""
-        try:
-            return await Bot.objects.aget(id=self.bot_id)
-        except Bot.DoesNotExist:
-            return None
-
-    @property
-    async def bot(self):
-        """Property to maintain backwards compatibility"""
-        return await self.get_bot()
-
-    @bot.setter
-    async def bot(self, bot):
-        """Setter to maintain backwards compatibility"""
-        if isinstance(bot, Bot):
-            self.bot_id = bot.id
-        elif isinstance(bot, str):
-            self.bot_id = bot
-
-
-class MessageFeedback(models.Model):
-    class Status(models.TextChoices):
-        PENDING = "PENDING"
-        RUNNING = "RUNNING"
-        COMPLETE = "COMPLETE"
-        FAILED = "FAILED"
-
-    class Type(models.TextChoices):
-        GOOD = "good"
-        BAD = "bad"
-
-    class Tag(models.TextChoices):
-        HARMFUL = "Harmful"
-        UNSAFE = "Unsafe"
-        FAKE = "Fake"
-        UNHELPFUL = "Unhelpful"
-        OTHER = "Other"
-
-    user = models.CharField(max_length=256)
-    collection_id = models.CharField(max_length=24, null=True, blank=True)
-    chat_id = models.CharField(max_length=24)
-    message_id = models.CharField(max_length=256)
-    type = models.CharField(max_length=16, choices=Type.choices, null=True)
-    tag = models.CharField(max_length=16, choices=Tag.choices, null=True)
-    message = models.TextField(null=True, blank=True)
-    question = models.TextField(null=True, blank=True)
-    status = models.CharField(max_length=16, choices=Status.choices, null=True)
-    original_answer = models.TextField(null=True, blank=True)
-    revised_answer = models.TextField(null=True, blank=True)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        unique_together = ("chat_id", "message_id")
-
-    async def get_collection(self):
-        """Get the associated collection object"""
-        try:
-            return await Collection.objects.aget(id=self.collection_id)
-        except Collection.DoesNotExist:
-            return None
-
-    @property
-    async def collection(self):
-        """Property to maintain backwards compatibility"""
-        return await self.get_collection()
-
-    @collection.setter
-    async def collection(self, collection):
-        """Setter to maintain backwards compatibility"""
-        if isinstance(collection, Collection):
-            self.collection_id = collection.id
-        elif isinstance(collection, str):
-            self.collection_id = collection
-
-    async def get_chat(self):
-        """Get the associated chat object"""
-        try:
-            return await Chat.objects.aget(id=self.chat_id)
-        except Chat.DoesNotExist:
-            return None
-
-    @property
-    async def chat(self):
-        """Property to maintain backwards compatibility"""
-        return await self.get_chat()
-
-    @chat.setter
-    async def chat(self, chat):
-        """Setter to maintain backwards compatibility"""
-        if isinstance(chat, Chat):
-            self.chat_id = chat.id
-        elif isinstance(chat, str):
-            self.chat_id = chat
-
-
-class ApiKey(models.Model):
-    class Status(models.TextChoices):
-        ACTIVE = "ACTIVE"
-        DELETED = "DELETED"
-
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for API key"""
-        return "".join(random.sample(uuid.uuid4().hex, 12))
-
-    @staticmethod
-    def generate_key():
-        """Generate a random API key with sk- prefix"""
-        return f"sk-{uuid.uuid4().hex}"
-
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    key = models.CharField(max_length=40, default=generate_key.__func__, editable=False)
-    user = models.CharField(max_length=256)
-    description = models.CharField(max_length=256, blank=True, null=True)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
-    last_used_at = models.DateTimeField(null=True, blank=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"ApiKeyToken(id={self.id}, user={self.user}, description={self.description})"
-
-    async def update_last_used(self):
-        """Update the last used timestamp"""
-        self.last_used_at = timezone.now()
-        await self.asave()
-
-
-class CollectionSyncHistory(models.Model):
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for collection sync history"""
-        return "colhist" + random_id()
-
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    user = models.CharField(max_length=256)
-    collection_id = models.CharField(max_length=24)
-    total_documents = models.PositiveIntegerField(default=0)
-    new_documents = models.PositiveIntegerField(default=0)
-    deleted_documents = models.PositiveIntegerField(default=0)
-    modified_documents = models.PositiveIntegerField(default=0)
-    processing_documents = models.PositiveIntegerField(default=0)
-    pending_documents = models.PositiveIntegerField(default=0)
-    failed_documents = models.PositiveIntegerField(default=0)
-    successful_documents = models.PositiveIntegerField(default=0)
-    total_documents_to_sync = models.PositiveIntegerField(default=0)
-    execution_time = models.DurationField(null=True)
-    start_time = models.DateTimeField()
-    task_context = models.JSONField(default=dict)
-    status = models.CharField(
-        max_length=16, choices=Collection.SyncStatus.choices, default=Collection.SyncStatus.RUNNING
-    )
-    gmt_created = models.DateTimeField(auto_now_add=True, null=True)
-    gmt_updated = models.DateTimeField(auto_now=True, null=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    def update_execution_time(self):
-        self.refresh_from_db()
-        self.execution_time = timezone.now() - self.start_time
-        self.save()
-
-    async def collection(self):
-        """Get the associated collection object"""
-        try:
-            return await Collection.objects.aget(id=self.collection_id)
-        except Collection.DoesNotExist:
-            return None
-
-    def view(self):
-        return {
-            "id": str(self.id),
-            "user": str(self.user),
-            "total_documents": self.total_documents,
-            "new_documents": self.new_documents,
-            "deleted_documents": self.deleted_documents,
-            "pending_documents": self.pending_documents,
-            "processing_documents": self.processing_documents,
-            "modified_documents": self.modified_documents,
-            "failed_documents": self.failed_documents,
-            "successful_documents": self.successful_documents,
-            "total_documents_to_sync": self.total_documents_to_sync,
-            "start_time": self.start_time,
-            "execution_time": self.execution_time,
-            "status": self.status,
-        }
-
-
-class ModelServiceProvider(models.Model):
-    class Status(models.TextChoices):
-        ACTIVE = "ACTIVE"
-        INACTIVE = "INACTIVE"
-        DELETED = "DELETED"
-
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=256)
-    user = models.CharField(max_length=256)
-    status = models.CharField(max_length=16, choices=Status.choices)
-    api_key = models.CharField(max_length=256)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        unique_together = [("name", "user")]
-
-    def __str__(self):
-        return f"ModelServiceProvider(name={self.name}, user={self.user}, status={self.status}, api_key={self.api_key})"
-
-
-class Role(models.TextChoices):
+class Role(str, Enum):
     ADMIN = "admin"
     RW = "rw"
     RO = "ro"
 
 
-class User(AbstractUser):
-    """Custom user model that extends AbstractUser"""
-
-    email = models.EmailField(unique=True, blank=True, null=True)
-    role = models.CharField(max_length=16, choices=Role.choices, default=Role.RO)
-
-    class Meta:
-        app_label = "aperag"  # Set app_label to 'aperag' since we're using AUTH_USER_MODEL = 'aperag.User'
+class ChatStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
 
 
-class Invitation(models.Model):
-    """Invitation model for user registration"""
+class ChatPeerType(str, Enum):
+    SYSTEM = "system"
+    FEISHU = "feishu"
+    WEIXIN = "weixin"
+    WEIXIN_OFFICIAL = "weixin_official"
+    WEB = "web"
+    DINGTALK = "dingtalk"
+
+
+class MessageFeedbackStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETE = "COMPLETE"
+    FAILED = "FAILED"
+
+
+class MessageFeedbackType(str, Enum):
+    GOOD = "good"
+    BAD = "bad"
+
+
+class MessageFeedbackTag(str, Enum):
+    HARMFUL = "Harmful"
+    UNSAFE = "Unsafe"
+    FAKE = "Fake"
+    UNHELPFUL = "Unhelpful"
+    OTHER = "Other"
+
+
+class ModelServiceProviderStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    DELETED = "DELETED"
+
+
+class ApiKeyStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"
+
+
+class EnumAsSQLALCHEMYString(TypeDecorator):
+    """
+    Stores Python Enums as their string values in a VARCHAR column.
+    Retrieves them back as Enum members.
+    """
+
+    impl = String  # The underlying SQLAlchemy type is String (VARCHAR)
+    cache_ok = True  # Important for performance with TypeDecorator
+
+    def __init__(self, enum_class: Type[enum.Enum], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._enum_class = enum_class
+
+    def process_bind_param(self, value: Optional[enum.Enum], dialect) -> Optional[str]:
+        # Called when sending data to the database
+        if value is None:
+            return None
+        if not isinstance(value, self._enum_class):
+            raise ValueError(f"Value {value!r} is not an instance of enum {self._enum_class.__name__}")
+        return value.value  # Store the enum's .value (e.g., "completion")
+
+    def process_result_value(self, value: Optional[str], dialect) -> Optional[enum.Enum]:
+        # Called when retrieving data from the database
+        if value is None:
+            return None
+        try:
+            return self._enum_class(value)  # Convert string value back to Enum member
+        except ValueError:
+            # Handle cases where the value from DB doesn't match any enum member
+            # This could happen if enum definitions change or data is manually inserted
+            # You might want to log this, return None, or raise a different error
+            raise ValueError(f"Invalid value '{value}' for enum {self._enum_class.__name__}")
+
+    # If you want to ensure the VARCHAR has a specific length,
+    # you can override load_dialect_impl.
+    # This is often preferred over passing length directly to String in __init__
+    # if you want the TypeDecorator to be more self-contained.
+    def load_dialect_impl(self, dialect):
+        # Get the implementation for the specific dialect
+        # Here, we ensure the String type has the length provided during __init__
+        # The 'length' attribute is passed from Column(EnumAsSQLALCHEMYString(APIType, length=50))
+        if hasattr(self, "length"):  # 'length' will be passed from Column's constructor args
+            return dialect.type_descriptor(String(self.length))
+        return dialect.type_descriptor(String)  # Or a default if no length given
+
+
+# Models
+class Collection(SQLModel, table=True):
+    __tablename__ = "collection"
+    __table_args__ = (UniqueConstraint("id", name="uq_collection_id"),)
+
+    id: str = Field(default_factory=lambda: "col" + random_id(), primary_key=True, max_length=24)
+    title: str = Field(max_length=256)
+    description: Optional[str] = Field(default=None)
+    user: str = Field(max_length=256)
+    status: CollectionStatus
+    type: CollectionType
+    config: str
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+    async def bots(self, session: AsyncSessionDep, only_ids: bool = False):
+        """Get all active bots related to this collection"""
+        from aperag.db.models import Bot, BotCollectionRelation
+
+        stmt = select(BotCollectionRelation).where(
+            BotCollectionRelation.collection_id == self.id, BotCollectionRelation.gmt_deleted.is_(None)
+        )
+        result = await session.execute(stmt)
+        rels = result.scalars().all()
+        if only_ids:
+            return [rel.bot_id for rel in rels]
+        else:
+            bots = []
+            for rel in rels:
+                bot = await session.get(Bot, rel.bot_id)
+                if bot:
+                    bots.append(bot)
+            return bots
+
+
+class Document(SQLModel, table=True):
+    __tablename__ = "document"
+    __table_args__ = (
+        UniqueConstraint("collection_id", "name", "gmt_deleted", name="uq_document_collection_name_deleted"),
+    )
+
+    id: str = Field(default_factory=lambda: "doc" + random_id(), primary_key=True, max_length=24)
+    name: str = Field(max_length=1024)
+    user: str = Field(max_length=256)
+    collection_id: Optional[str] = Field(default=None, max_length=24)
+    status: DocumentStatus
+    vector_index_status: DocumentIndexStatus = DocumentIndexStatus.PENDING
+    fulltext_index_status: DocumentIndexStatus = DocumentIndexStatus.PENDING
+    graph_index_status: DocumentIndexStatus = DocumentIndexStatus.PENDING
+    size: int
+    object_path: Optional[str] = None
+    doc_metadata: Optional[str] = None  # Store document metadata as JSON string
+    relate_ids: Optional[str] = None
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+    def get_overall_status(self) -> "DocumentStatus":
+        """Calculate overall status based on individual index statuses"""
+        index_statuses = [self.vector_index_status, self.fulltext_index_status, self.graph_index_status]
+        if any(status == DocumentIndexStatus.FAILED for status in index_statuses):
+            return DocumentStatus.FAILED
+        elif any(status == DocumentIndexStatus.RUNNING for status in index_statuses):
+            return DocumentStatus.RUNNING
+        elif all(status in [DocumentIndexStatus.COMPLETE, DocumentIndexStatus.SKIPPED] for status in index_statuses):
+            return DocumentStatus.COMPLETE
+        else:
+            return DocumentStatus.PENDING
+
+    def update_overall_status(self):
+        """Update overall status field"""
+        self.status = self.get_overall_status()
+
+    def object_store_base_path(self) -> str:
+        """Generate the base path for object store"""
+        user = self.user.replace("|", "-")
+        return f"user-{user}/{self.collection_id}/{self.id}"
+
+    async def get_collection(self, session: AsyncSessionDep):
+        """Get the associated collection object"""
+        from aperag.db.models import Collection
+
+        return await session.get(Collection, self.collection_id)
+
+    async def set_collection(self, collection):
+        """Set the collection_id by Collection object or id"""
+        if hasattr(collection, "id"):
+            self.collection_id = collection.id
+        elif isinstance(collection, str):
+            self.collection_id = collection
+
+
+class Bot(SQLModel, table=True):
+    __tablename__ = "bot"
+    id: str = Field(default_factory=lambda: "bot" + random_id(), primary_key=True, max_length=24)
+    user: str = Field(max_length=256)
+    title: Optional[str] = Field(default=None, max_length=256)
+    type: BotType = BotType.KNOWLEDGE
+    description: Optional[str] = None
+    status: BotStatus
+    config: str
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+    async def collections(self, session: AsyncSessionDep, only_ids: bool = False):
+        """Get all active collections related to this bot"""
+        from aperag.db.models import BotCollectionRelation, Collection
+
+        stmt = select(BotCollectionRelation).where(
+            BotCollectionRelation.bot_id == self.id, BotCollectionRelation.gmt_deleted.is_(None)
+        )
+        result = await session.execute(stmt)
+        rels = result.scalars().all()
+        if only_ids:
+            return [rel.collection_id for rel in rels]
+        else:
+            collections = []
+            for rel in rels:
+                collection = await session.get(Collection, rel.collection_id)
+                if collection:
+                    collections.append(collection)
+            return collections
+
+
+class BotCollectionRelation(SQLModel, table=True):
+    __tablename__ = "bot_collection_relation"
+    __table_args__ = (UniqueConstraint("bot_id", "collection_id", "gmt_deleted", name="uq_bot_collection_deleted"),)
+
+    id: str = Field(default_factory=lambda: "bcr" + random_id(), primary_key=True, max_length=24)
+    bot_id: str = Field(max_length=24)
+    collection_id: str = Field(max_length=24)
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+
+class ConfigModel(SQLModel, table=True):
+    __tablename__ = "config"
+    key: str = Field(primary_key=True, max_length=256)
+    value: str
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+
+class UserQuota(SQLModel, table=True):
+    __tablename__ = "user_quota"
+    user: str = Field(max_length=256, primary_key=True)
+    key: str = Field(max_length=256, primary_key=True)
+    value: int = 0
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+
+class Chat(SQLModel, table=True):
+    __tablename__ = "chat"
+    __table_args__ = (
+        UniqueConstraint("bot_id", "peer_type", "peer_id", "gmt_deleted", name="uq_chat_bot_peer_deleted"),
+    )
+
+    id: str = Field(default_factory=lambda: "chat" + random_id(), primary_key=True, max_length=24)
+    user: str = Field(max_length=256)
+    peer_type: ChatPeerType = ChatPeerType.SYSTEM
+    peer_id: Optional[str] = Field(default=None, max_length=256)
+    status: ChatStatus
+    bot_id: str = Field(max_length=24)
+    title: Optional[str] = Field(default=None, max_length=256)
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+    async def get_bot(self, session: AsyncSessionDep):
+        """Get the associated bot object"""
+        from aperag.db.models import Bot
+
+        return await session.get(Bot, self.bot_id)
+
+    async def set_bot(self, bot):
+        """Set the bot_id by Bot object or id"""
+        if hasattr(bot, "id"):
+            self.bot_id = bot.id
+        elif isinstance(bot, str):
+            self.bot_id = bot
+
+
+class MessageFeedback(SQLModel, table=True):
+    __tablename__ = "message_feedback"
+    __table_args__ = (
+        UniqueConstraint("chat_id", "message_id", "gmt_deleted", name="uq_feedback_chat_message_deleted"),
+    )
+
+    user: str = Field(max_length=256)
+    collection_id: Optional[str] = Field(default=None, max_length=24)
+    chat_id: str = Field(max_length=24, primary_key=True)
+    message_id: str = Field(max_length=256, primary_key=True)
+    type: Optional[MessageFeedbackType] = None
+    tag: Optional[MessageFeedbackTag] = None
+    message: Optional[str] = None
+    question: Optional[str] = None
+    status: Optional[MessageFeedbackStatus] = None
+    original_answer: Optional[str] = None
+    revised_answer: Optional[str] = None
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+    async def get_collection(self, session: AsyncSessionDep):
+        """Get the associated collection object"""
+        from aperag.db.models import Collection
+
+        return await session.get(Collection, self.collection_id)
+
+    async def set_collection(self, collection):
+        """Set the collection_id by Collection object or id"""
+        if hasattr(collection, "id"):
+            self.collection_id = collection.id
+        elif isinstance(collection, str):
+            self.collection_id = collection
+
+    async def get_chat(self, session: AsyncSessionDep):
+        """Get the associated chat object"""
+        from aperag.db.models import Chat
+
+        return await session.get(Chat, self.chat_id)
+
+    async def set_chat(self, chat):
+        """Set the chat_id by Chat object or id"""
+        if hasattr(chat, "id"):
+            self.chat_id = chat.id
+        elif isinstance(chat, str):
+            self.chat_id = chat
+
+
+class ApiKey(SQLModel, table=True):
+    __tablename__ = "api_key"
+    id: str = Field(
+        default_factory=lambda: "".join(random.sample(uuid.uuid4().hex, 12)), primary_key=True, max_length=24
+    )
+    key: str = Field(default_factory=lambda: f"sk-{uuid.uuid4().hex}", max_length=40)
+    user: str = Field(max_length=256)
+    description: Optional[str] = Field(default=None, max_length=256)
+    status: ApiKeyStatus
+    last_used_at: Optional[datetime] = None
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
 
     @staticmethod
-    def generate_id():
-        """Generate a random ID for invitation"""
-        return "invite" + random_id()
+    def generate_key() -> str:
+        """Generate a unique API key"""
+        return f"sk-{uuid.uuid4().hex}"
 
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    email = models.EmailField()
-    token = models.CharField(max_length=64, unique=True)
-    created_by = models.CharField(max_length=256)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-    is_used = models.BooleanField(default=False)
-    used_at = models.DateTimeField(null=True, blank=True)
-    role = models.CharField(max_length=16, choices=Role.choices, default=Role.RO)
-
-    class Meta:
-        app_label = "aperag"
-
-    async def asave(self, *args, **kwargs):
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(days=7)
-        await super().asave(*args, **kwargs)
-
-    def is_valid(self):
-        return not self.is_used and self.expires_at > timezone.now()
-
-    async def use(self):
-        self.is_used = True
-        self.used_at = timezone.now()
-        await self.asave()
+    async def update_last_used(self, session: AsyncSessionDep):
+        """Update the last_used_at timestamp"""
+        self.last_used_at = datetime.utcnow()
+        session.add(self)
+        await session.commit()
 
 
-class SearchTestHistory(models.Model):
-    @staticmethod
-    def generate_id():
-        """Generate a random ID for search test history"""
-        return "sth" + random_id()
+class ModelServiceProvider(SQLModel, table=True):
+    __tablename__ = "model_service_provider"
+    __table_args__ = (
+        UniqueConstraint("name", "user", "gmt_deleted", name="uq_model_service_provider_name_user_deleted"),
+    )
 
-    id = models.CharField(primary_key=True, default=generate_id.__func__, editable=False, max_length=24)
-    user = models.CharField(max_length=256)
-    collection_id = models.CharField(max_length=24, null=True)
-    query = models.TextField()
-    vector_search = models.JSONField(null=True, blank=True)
-    fulltext_search = models.JSONField(null=True, blank=True)
-    graph_search = models.JSONField(null=True, blank=True)
-    items = models.JSONField(default=list)
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
+    id: str = Field(default_factory=lambda: "msp" + random_id(), primary_key=True, max_length=24)
+    name: str = Field(max_length=256)
+    user: str = Field(max_length=256)
+    status: ModelServiceProviderStatus
+    api_key: str = Field(max_length=256)
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
 
 
-class LLMProvider(models.Model):
+class LLMProvider(SQLModel, table=True):
     """LLM Provider configuration model
 
     This model stores the provider-level configuration that was previously
@@ -556,74 +451,63 @@ class LLMProvider(models.Model):
     and dialect configurations for different API types.
     """
 
-    name = models.CharField(max_length=128, primary_key=True, help_text="Unique provider name identifier")
-    label = models.CharField(max_length=256, help_text="Human-readable provider display name")
-    completion_dialect = models.CharField(max_length=64, help_text="API dialect for completion/chat APIs")
-    embedding_dialect = models.CharField(max_length=64, help_text="API dialect for embedding APIs")
-    rerank_dialect = models.CharField(max_length=64, help_text="API dialect for rerank APIs")
-    allow_custom_base_url = models.BooleanField(default=False, help_text="Whether custom base URLs are allowed")
-    base_url = models.URLField(max_length=512, help_text="Default API base URL for this provider")
-    extra = models.TextField(null=True, help_text="Additional configuration data in JSON format")
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
+    __tablename__ = "llm_provider"
 
-    class Meta:
-        db_table = "aperag_llm_provider"
-        app_label = "aperag"
+    name: str = Field(primary_key=True, max_length=128)  # Unique provider name identifier
+    label: str = Field(max_length=256)  # Human-readable provider display name
+    completion_dialect: str = Field(max_length=64)  # API dialect for completion/chat APIs
+    embedding_dialect: str = Field(max_length=64)  # API dialect for embedding APIs
+    rerank_dialect: str = Field(max_length=64)  # API dialect for rerank APIs
+    allow_custom_base_url: bool = Field(default=False)  # Whether custom base URLs are allowed
+    base_url: str = Field(max_length=512)  # Default API base URL for this provider
+    extra: Optional[str] = Field(default=None)  # Additional configuration data in JSON format
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
 
     def __str__(self):
         return f"LLMProvider(name={self.name}, label={self.label})"
 
 
-class LLMProviderModel(models.Model):
+class APIType(str, Enum):
+    COMPLETION = "completion"
+    EMBEDDING = "embedding"
+    RERANK = "rerank"
+
+
+class LLMProviderModel(SQLModel, table=True):
     """LLM Provider Model configuration
 
     This model stores individual model configurations for each provider.
     Each model belongs to a provider and has a specific API type (completion, embedding, rerank).
     """
 
-    class APIType(models.TextChoices):
-        COMPLETION = "completion", "Completion"
-        EMBEDDING = "embedding", "Embedding"
-        RERANK = "rerank", "Rerank"
+    __tablename__ = "llm_provider_models"
+    __table_args__ = ()
 
-    provider_name = models.CharField(max_length=128, help_text="Reference to LLMProvider.name")
-    api = models.CharField(max_length=16, choices=APIType.choices, help_text="API type for this model")
-    model = models.CharField(max_length=256, help_text="Model name/identifier")
-    custom_llm_provider = models.CharField(max_length=128, help_text="Custom LLM provider implementation")
-    max_tokens = models.PositiveIntegerField(null=True, blank=True, help_text="Maximum tokens for this model")
-    tags = models.JSONField(
-        default=list, blank=True, help_text="Tags for model categorization, e.g. ['free', 'recommend']"
-    )
-    gmt_created = models.DateTimeField(auto_now_add=True)
-    gmt_updated = models.DateTimeField(auto_now=True)
-    gmt_deleted = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = "aperag_llm_provider_models"
-        app_label = "aperag"
-        unique_together = [("provider_name", "api", "model")]
-        indexes = [
-            models.Index(fields=["provider_name"]),
-            models.Index(fields=["api"]),
-            models.Index(fields=["provider_name", "api"]),
-        ]
+    provider_name: str = Field(primary_key=True, max_length=128)  # Reference to LLMProvider.name
+    api: APIType = Field(sa_column=Column(EnumAsSQLALCHEMYString(APIType, length=50), nullable=False, primary_key=True))
+    model: str = Field(primary_key=True, max_length=256)  # Model name/identifier
+    custom_llm_provider: str = Field(max_length=128)  # Custom LLM provider implementation
+    max_tokens: Optional[int] = Field(default=None)  # Maximum tokens for this model
+    tags: Optional[list] = Field(default_factory=list, sa_column=Column(JSON))  # Tags for model categorization
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
 
     def __str__(self):
         return f"LLMProviderModel(provider={self.provider_name}, api={self.api}, model={self.model})"
 
-    async def get_provider(self):
+    async def get_provider(self, session: AsyncSessionDep):
         """Get the associated provider object"""
-        try:
-            return await LLMProvider.objects.aget(name=self.provider_name)
-        except LLMProvider.DoesNotExist:
-            return None
+        return await session.get(LLMProvider, self.provider_name)
 
-    @property
-    async def provider(self):
-        """Property to get the provider object"""
-        return await self.get_provider()
+    async def set_provider(self, provider):
+        """Set the provider_name by LLMProvider object or name"""
+        if hasattr(provider, "name"):
+            self.provider_name = provider.name
+        elif isinstance(provider, str):
+            self.provider_name = provider
 
     def has_tag(self, tag: str) -> bool:
         """Check if model has a specific tag"""
@@ -648,3 +532,70 @@ class LLMProviderModel(models.Model):
     def get_tags(self) -> list:
         """Get all tags for this model"""
         return self.tags or []
+
+
+class User(SQLModel, table=True):
+    __tablename__ = "user"
+    id: str = Field(default_factory=lambda: "user" + random_id(), primary_key=True, max_length=24)
+    username: str = Field(max_length=150, unique=True)
+    email: Optional[str] = Field(default=None, unique=True, max_length=254)
+    role: Role = Role.RO
+    hashed_password: str = Field(max_length=128)  # fastapi-users expects hashed_password
+    is_active: bool = True
+    is_superuser: bool = False
+    is_verified: bool = True  # fastapi-users requires is_verified
+    is_staff: bool = False
+    date_joined: datetime = Field(default_factory=datetime.utcnow)
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_updated: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None
+
+    @property
+    def password(self):
+        raise AttributeError("password is not a readable attribute")
+
+    @password.setter
+    def password(self, value):
+        self.hashed_password = value
+
+
+class Invitation(SQLModel, table=True):
+    __tablename__ = "invitation"
+    id: str = Field(default_factory=lambda: "invite" + random_id(), primary_key=True, max_length=24)
+    email: str = Field(max_length=254)
+    token: str = Field(max_length=64, unique=True)
+    created_by: str = Field(max_length=256)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime
+    is_used: bool = False
+    used_at: Optional[datetime] = None
+    role: Role = Role.RO
+
+    def is_valid(self) -> bool:
+        """Check if invitation is still valid"""
+        now = datetime.utcnow()
+        return not self.is_used and now < self.expires_at
+
+    async def use(self, session: AsyncSessionDep):
+        """Mark invitation as used"""
+        self.is_used = True
+        self.used_at = datetime.utcnow()
+        session.add(self)
+        await session.commit()
+
+        # Auto-expire after use (optional)
+        # self.expires_at = datetime.utcnow()
+
+
+class SearchTestHistory(SQLModel, table=True):
+    __tablename__ = "searchtesthistory"
+    id: str = Field(default_factory=lambda: "sth" + random_id(), primary_key=True, max_length=24)
+    user: str = Field(max_length=256)
+    collection_id: Optional[str] = Field(default=None, max_length=24)
+    query: str
+    vector_search: Optional[dict] = Field(default_factory=dict, sa_column=Column(JSON))
+    fulltext_search: Optional[dict] = Field(default_factory=dict, sa_column=Column(JSON))
+    graph_search: Optional[dict] = Field(default_factory=dict, sa_column=Column(JSON))
+    items: Optional[list] = Field(default_factory=list, sa_column=Column(JSON))
+    gmt_created: datetime = Field(default_factory=datetime.utcnow)
+    gmt_deleted: Optional[datetime] = None

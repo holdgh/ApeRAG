@@ -18,9 +18,9 @@ Service for managing LLM provider and model configurations from database.
 Replaces the previous JSON file-based configuration system.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from aperag.db import models as db_models
+from aperag.db.ops import async_db_ops
 from aperag.schema.view_models import ModelConfig
 
 
@@ -28,40 +28,27 @@ class LLMConfigService:
     """Service for managing LLM configurations from database"""
 
     @classmethod
-    async def get_providers(cls) -> List[db_models.LLMProvider]:
+    async def get_providers(cls):
         """Get all active LLM providers from database"""
-        providers = []
-        async for provider in db_models.LLMProvider.objects.filter(gmt_deleted__isnull=True).all():
-            providers.append(provider)
-        return providers
+        return await async_db_ops.query_llm_providers()
 
     @classmethod
-    async def get_provider_models(cls) -> List[db_models.LLMProviderModel]:
+    async def get_provider_models(cls):
         """Get all active LLM provider models from database"""
-        models = []
-        async for model in db_models.LLMProviderModel.objects.filter(gmt_deleted__isnull=True).all():
-            models.append(model)
-        return models
+        return await async_db_ops.query_llm_provider_models()
 
     @classmethod
-    async def get_provider_by_name(cls, name: str) -> Optional[db_models.LLMProvider]:
+    async def get_provider_by_name(cls, name: str):
         """Get provider by name"""
-        providers = await cls.get_providers()
-        for provider in providers:
-            if provider.name == name:
-                return provider
-        return None
+        return await async_db_ops.query_llm_provider_by_name(name)
 
     @classmethod
-    async def get_models_by_provider(cls, provider_name: str) -> List[db_models.LLMProviderModel]:
+    async def get_models_by_provider(cls, provider_name: str):
         """Get all models for a specific provider"""
-        models = await cls.get_provider_models()
-        return [model for model in models if model.provider_name == provider_name]
+        return await async_db_ops.query_llm_provider_models(provider_name)
 
     @classmethod
-    async def get_models_by_provider_and_api(
-        cls, provider_name: str, api_type: str
-    ) -> List[db_models.LLMProviderModel]:
+    async def get_models_by_provider_and_api(cls, provider_name: str, api_type: str):
         """Get models for a specific provider and API type"""
         models = await cls.get_models_by_provider(provider_name)
         return [model for model in models if model.api == api_type]
@@ -128,7 +115,7 @@ async def get_model_configs() -> List[Dict]:
     """Get model configurations from database
 
     This function provides backward compatibility for code that expects
-    the same format as settings.MODEL_CONFIGS.
+    the same format as settings.model_configs.
     """
     return await LLMConfigService.build_model_configs()
 

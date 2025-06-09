@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
 from http import HTTPStatus
 from typing import List
 
-from django.utils import timezone
-
-from aperag.db import models as db_models
-from aperag.db.ops import query_msp, query_msp_list
+import aperag.db.models as db_models
+from aperag.db.ops import async_db_ops
 from aperag.schema import view_models
-from aperag.schema.view_models import ModelServiceProvider, ModelServiceProviderList
 from aperag.service.llm_config_service import get_model_config_objects, get_model_configs, get_supported_provider_names
 from aperag.views.utils import fail, success
 
@@ -38,14 +36,14 @@ async def build_model_service_provider_response(
 
 async def list_model_service_providers(user: str) -> view_models.ModelServiceProviderList:
     model_configs = await get_model_configs()
-    supported_msp_dict = {msp["name"]: ModelServiceProvider(**msp) for msp in model_configs}
-    msp_list = await query_msp_list(user)
+    supported_msp_dict = {msp["name"]: view_models.ModelServiceProvider(**msp) for msp in model_configs}
+    msp_list = await async_db_ops.query_msp_list(user)
     response = []
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             supported_msp = supported_msp_dict[msp.name]
             response.append(await build_model_service_provider_response(msp, supported_msp))
-    return success(ModelServiceProviderList(items=response))
+    return success(view_models.ModelServiceProviderList(items=response))
 
 
 async def update_model_service_provider(
@@ -59,20 +57,20 @@ async def update_model_service_provider(
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
 
     # Only handle api_key for ModelServiceProvider
-    msp = await query_msp(user, provider, filterDeletion=False)
+    msp = await async_db_ops.query_msp(user, provider, filterDeletion=False)
     if msp is None:
         msp = db_models.ModelServiceProvider(
             user=user,
             name=provider,
             api_key=mspIn.api_key,
-            status=db_models.ModelServiceProvider.Status.ACTIVE,
+            status=db_models.ModelServiceProviderStatus.ACTIVE,
         )
     else:
-        if msp.status == db_models.ModelServiceProvider.Status.DELETED:
-            msp.status = db_models.ModelServiceProvider.Status.ACTIVE
+        if msp.status == db_models.ModelServiceProviderStatus.DELETED:
+            msp.status = db_models.ModelServiceProviderStatus.ACTIVE
             msp.gmt_deleted = None
         msp.api_key = mspIn.api_key
-    await msp.asave()
+    await async_db_ops.update_msp(msp)
     return success({})
 
 
@@ -80,35 +78,35 @@ async def delete_model_service_provider(user: str, provider: str):
     supported_msp_names = await get_supported_provider_names()
     if provider not in supported_msp_names:
         return fail(HTTPStatus.BAD_REQUEST, f"unsupported model service provider {provider}")
-    msp = await query_msp(user, provider)
+    msp = await async_db_ops.query_msp(user, provider)
     if msp is None:
         return fail(HTTPStatus.NOT_FOUND, f"model service provider {provider} not found")
-    msp.status = db_models.ModelServiceProvider.Status.DELETED
-    msp.gmt_deleted = timezone.now()
-    await msp.asave()
+    msp.status = db_models.ModelServiceProviderStatus.DELETED
+    msp.gmt_deleted = datetime.utcnow()
+    await async_db_ops.delete_msp(msp)
     return success({})
 
 
 async def list_available_models(user: str) -> view_models.ModelConfigList:
-    from aperag.schema.view_models import ModelConfigList
-
     supported_providers = await get_model_config_objects()
     supported_msp_dict = {provider.name: provider for provider in supported_providers}
-    msp_list = await query_msp_list(user)
+    msp_list = await async_db_ops.query_msp_list(user)
     available_providers = []
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             available_providers.append(supported_msp_dict[msp.name])
-    return success(ModelConfigList(items=available_providers, pageResult=None).model_dump(exclude_none=True))
+    return success(
+        view_models.ModelConfigList(items=available_providers, pageResult=None).model_dump(exclude_none=True)
+    )
 
 
 async def list_supported_model_service_providers() -> view_models.ModelServiceProviderList:
     model_configs = await get_model_configs()
     response = []
     for supported_msp in model_configs:
-        provider = ModelServiceProvider(
+        provider = view_models.ModelServiceProvider(
             name=supported_msp["name"],
             label=supported_msp["label"],
         )
         response.append(provider)
-    return success(ModelServiceProviderList(items=response))
+    return success(view_models.ModelServiceProviderList(items=response))

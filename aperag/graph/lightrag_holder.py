@@ -26,7 +26,7 @@ from lightrag.utils import EmbeddingFunc
 
 from aperag.db.models import Collection, Document
 from aperag.db.ops import (
-    query_msp_dict,
+    async_db_ops,
 )
 from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.schema.utils import parseCollectionConfig
@@ -269,7 +269,7 @@ async def create_lightrag_llm_func(collection: Collection, msp_dict: Dict[str, A
 async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]:
     """Generate LightRAG LLM function with improved error handling"""
     try:
-        msp_dict = await query_msp_dict(collection.user)
+        msp_dict = await async_db_ops.query_msp_dict(collection.user)
         return await create_lightrag_llm_func(collection, msp_dict)
     except Exception as e:
         logger.error(f"Failed to generate LightRAG LLM function for collection {collection.id}: {str(e)}")

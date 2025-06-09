@@ -19,14 +19,12 @@ from threading import Lock
 
 from langchain_core.embeddings import Embeddings
 
-from aperag.db.ops import (
-    query_msp_dict,
-)
+from aperag.config import settings
+from aperag.db.ops import async_db_ops, db_ops
 from aperag.embed.embedding_service import EmbeddingService
 from aperag.schema.utils import parseCollectionConfig
-from config.settings import (
-    EMBEDDING_MAX_CHUNKS_IN_BATCH,
-)
+
+logger = logging.getLogger(__name__)
 
 mutex = Lock()
 
@@ -62,7 +60,7 @@ def get_embedding_model(
     embedding_model: str,
     embedding_service_url: str,
     embedding_service_api_key: str,
-    embedding_max_chunks_in_batch: int = EMBEDDING_MAX_CHUNKS_IN_BATCH,
+    embedding_max_chunks_in_batch: int = settings.embedding_max_chunks_in_batch,
     **kwargs,
 ) -> tuple[Embeddings | None, int]:
     embedding_svc = EmbeddingService(
@@ -83,18 +81,16 @@ async def get_collection_embedding_service(collection) -> tuple[Embeddings | Non
     custom_llm_provider = config.embedding.custom_llm_provider
     logging.info("get_collection_embedding_model %s %s", embedding_msp, embedding_model_name)
 
-    msp_dict = await query_msp_dict(collection.user)
+    msp_dict = await async_db_ops.query_msp_dict(collection.user)
     if embedding_msp in msp_dict:
         msp = msp_dict[embedding_msp]
         embedding_service_api_key = msp.api_key
 
         # Get base_url from LLMProvider
         try:
-            from aperag.db.models import LLMProvider
-
-            llm_provider = await LLMProvider.objects.aget(name=embedding_msp)
+            llm_provider = await async_db_ops.query_llm_provider_by_name(embedding_msp)
             embedding_service_url = llm_provider.base_url
-        except LLMProvider.DoesNotExist:
+        except Exception:
             raise ValueError(f"LLMProvider '{embedding_msp}' not found")
 
         logging.info("get_collection_embedding_model %s %s", embedding_service_url, embedding_service_api_key)
@@ -104,8 +100,37 @@ async def get_collection_embedding_service(collection) -> tuple[Embeddings | Non
             embedding_model=embedding_model_name,
             embedding_service_url=embedding_service_url,
             embedding_service_api_key=embedding_service_api_key,
-            embedding_max_chunks_in_batch=EMBEDDING_MAX_CHUNKS_IN_BATCH,
         )
 
     logging.warning("get_collection_embedding_model cannot find model service provider %s", embedding_msp)
+    return None, 0
+
+
+def get_collection_embedding_service_sync(collection) -> tuple[object, int]:
+    """Synchronous version of get_collection_embedding_service for Celery tasks"""
+    config = parseCollectionConfig(collection.config)
+    embedding_msp = config.embedding.model_service_provider
+    embedding_model_name = config.embedding.model
+    custom_llm_provider = config.embedding.custom_llm_provider
+    logger.info("get_collection_embedding_model_sync %s %s", embedding_msp, embedding_model_name)
+
+    msp_dict = db_ops.query_msp_dict(collection.user)
+    if embedding_msp in msp_dict:
+        msp = msp_dict[embedding_msp]
+        embedding_service_api_key = msp.api_key
+
+        try:
+            llm_provider = db_ops.query_llm_provider_by_name(embedding_msp)
+            embedding_service_url = llm_provider.base_url
+        except Exception:
+            raise ValueError(f"LLMProvider '{embedding_msp}' not found")
+
+        return get_embedding_model(
+            embedding_provider=custom_llm_provider,
+            embedding_model=embedding_model_name,
+            embedding_service_url=embedding_service_url,
+            embedding_service_api_key=embedding_service_api_key,
+        )
+
+    logger.warning("get_collection_embedding_model_sync cannot find model service provider %s", embedding_msp)
     return None, 0

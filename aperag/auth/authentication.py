@@ -18,13 +18,12 @@ import logging
 from typing import Any, Optional
 
 from channels.middleware import BaseMiddleware
-from django.core.cache import cache
 from django.http import HttpRequest
 from ninja.security import APIKeyCookie, HttpBearer
 from ninja.security.http import HttpAuthBase
 
-import config.settings as settings
 from aperag.auth import tv
+from aperag.config import settings
 from aperag.db.ops import get_api_key_by_key
 from aperag.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 
@@ -43,7 +42,7 @@ def get_user_from_token(token: str) -> str:
     Parse token based on different auth types (auth0/authing/logto)
     to extract user identifier
     """
-    match settings.AUTH_TYPE:
+    match settings.auth_type:
         case "auth0" | "authing" | "logto":
             payload = tv.verify(token)
             user = payload["sub"]
@@ -66,17 +65,12 @@ async def get_user_from_api_key(key: str) -> Optional[str]:
 
     Uses Redis cache to optimize performance and avoid frequent database queries
     """
-    cache_key = build_api_key_cache_key(key)
-    user = cache.get(cache_key)
-    if user is not None:
-        return user
 
     api_key = await get_api_key_by_key(key)
     if not api_key or api_key.status == api_key.Status.DELETED:
         return None
     await api_key.update_last_used()
 
-    cache.set(cache_key, api_key.user)
     return api_key.user
 
 
@@ -164,21 +158,6 @@ class SessionAuth(APIKeyCookie, BaseAuthBackend):
         return user
 
 
-class AdminAuth(HttpBearer, BaseAuthBackend):
-    """Admin authentication
-
-    Uses specific admin token for authentication
-    Has highest authentication priority
-    """
-
-    async def authenticate(self, request: HttpRequest, token: str) -> Optional[Any]:
-        if not settings.ADMIN_TOKEN or token != settings.ADMIN_TOKEN:
-            return None
-
-        self.set_user(request, settings.ADMIN_USER)
-        return token
-
-
 class GlobalAuth:
     """Global authentication class
 
@@ -194,7 +173,6 @@ class GlobalAuth:
     """
 
     def __init__(self):
-        self.admin_auth = AdminAuth()
         self.jwt_auth = JWTAuth()
         self.api_key_auth = ApiKeyAuth()
         self.session_auth = SessionAuth()
@@ -208,7 +186,6 @@ class GlobalAuth:
                 token = parts[1]
                 # Try different auth methods by priority
                 auth_methods = [
-                    self.admin_auth,  # Admin auth has highest priority
                     self.api_key_auth,  # API key auth second
                     self.jwt_auth,  # JWT auth third
                 ]
@@ -240,7 +217,7 @@ class GlobalAuth:
         - admin: Admin authentication
         - apikey: API Key authentication
         - jwt: JWT authentication
-        - session: Session authentication
+        - session: SessionDep authentication
         """
         return getattr(request, "auth_type", None)
 

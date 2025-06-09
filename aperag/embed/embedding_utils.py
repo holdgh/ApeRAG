@@ -21,11 +21,11 @@ from typing import List
 from langchain_core.embeddings import Embeddings
 from llama_index.core.schema import BaseNode, TextNode
 
+from aperag.config import settings
 from aperag.docparser.base import Part
 from aperag.docparser.chunking import rechunk
 from aperag.utils.tokenizer import get_default_tokenizer
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
-from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +48,8 @@ def create_embeddings_and_store(
         parts: List of document parts to process
         vector_store_adaptor: Vector store connector adaptor
         embedding_model: Embedding model to use for generating embeddings
-        chunk_size: Size for chunking text (defaults to settings.CHUNK_SIZE)
-        chunk_overlap: Overlap size for chunking (defaults to settings.CHUNK_OVERLAP_SIZE)
+        chunk_size: Size for chunking text (defaults to settings.chunk_size)
+        chunk_overlap: Overlap size for chunking (defaults to settings.chunk_overlap_size)
         tokenizer: Tokenizer to use (defaults to default tokenizer)
 
     Returns:
@@ -59,8 +59,8 @@ def create_embeddings_and_store(
         return []
 
     # Initialize parameters with defaults
-    chunk_size = chunk_size or settings.CHUNK_SIZE
-    chunk_overlap = chunk_overlap or settings.CHUNK_OVERLAP_SIZE
+    chunk_size = chunk_size or settings.chunk_size
+    chunk_overlap = chunk_overlap or settings.chunk_overlap_size
     tokenizer = tokenizer or get_default_tokenizer()
 
     nodes: List[BaseNode] = []

@@ -12,67 +12,79 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from http import HTTPStatus
 from typing import Optional
 
-from django.core.cache import cache
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from aperag.auth.authentication import build_api_key_cache_key
-from aperag.db import ops
 from aperag.db.models import ApiKey
+from aperag.db.ops import AsyncDatabaseOps, async_db_ops
 from aperag.schema.view_models import ApiKey as ApiKeyModel
 from aperag.schema.view_models import ApiKeyCreate, ApiKeyList, ApiKeyUpdate
+from aperag.views.utils import fail, success
 
 
-# Convert database ApiKey model to API response model
-def to_api_key_model(apikey: ApiKey) -> ApiKeyModel:
-    return ApiKeyModel(
-        id=str(apikey.id),
-        key=apikey.key,
-        description=apikey.description,
-        created_at=apikey.gmt_created,
-        updated_at=apikey.gmt_updated,
-        last_used_at=apikey.last_used_at,
-    )
+class ApiKeyService:
+    """API Key service that handles business logic for API keys"""
+
+    def __init__(self, session: AsyncSession = None):
+        # Use global db_ops instance by default, or create custom one with provided session
+        if session is None:
+            self.db_ops = async_db_ops  # Use global instance
+        else:
+            self.db_ops = AsyncDatabaseOps(session)  # Create custom instance for transaction control
+
+    # Convert database ApiKey model to API response model
+    def to_api_key_model(self, apikey: ApiKey) -> ApiKeyModel:
+        return ApiKeyModel(
+            id=str(apikey.id),
+            key=apikey.key,
+            description=apikey.description,
+            created_at=apikey.gmt_created,
+            updated_at=apikey.gmt_updated,
+            last_used_at=apikey.last_used_at,
+        )
+
+    async def list_api_keys(self, user: str) -> ApiKeyList:
+        """List all API keys for the current user"""
+        tokens = await self.db_ops.query_api_keys(user)
+        items = []
+        for token in tokens:
+            items.append(self.to_api_key_model(token))
+        return success(ApiKeyList(items=items))
+
+    async def create_api_key(self, user: str, api_key_create: ApiKeyCreate) -> ApiKeyModel:
+        """Create a new API key"""
+        try:
+            # For single operations, use DatabaseOps directly
+            token = await self.db_ops.create_api_key(user, api_key_create.description)
+            return success(self.to_api_key_model(token))
+        except Exception as e:
+            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to create API key: {str(e)}")
+
+    async def delete_api_key(self, user: str, apikey_id: str):
+        """Delete an API key"""
+        try:
+            # For single operations, use DatabaseOps directly
+            deleted = await self.db_ops.delete_api_key(user, apikey_id)
+            if not deleted:
+                return fail(HTTPStatus.NOT_FOUND, "API key not found")
+            return success({})
+        except Exception as e:
+            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to delete API key: {str(e)}")
+
+    async def update_api_key(self, user: str, apikey_id: str, api_key_update: ApiKeyUpdate) -> Optional[ApiKeyModel]:
+        """Update an API key"""
+        try:
+            # For single operations, use DatabaseOps directly
+            updated_key = await self.db_ops.update_api_key_by_id(user, apikey_id, api_key_update.description)
+            if not updated_key:
+                return fail(HTTPStatus.NOT_FOUND, "API key not found")
+            return success(self.to_api_key_model(updated_key))
+        except Exception as e:
+            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to update API key: {str(e)}")
 
 
-async def list_api_keys(user) -> ApiKeyList:
-    """
-    List all API keys for the current user
-    """
-    tokens = await ops.list_user_api_keys(user)
-    items = []
-    async for token in tokens:
-        items.append(to_api_key_model(token))
-    return ApiKeyList(items=items)
-
-
-async def create_api_key(user, api_key_create: ApiKeyCreate) -> ApiKeyModel:
-    """
-    Create a new API key
-    """
-    token = await ops.create_api_key(user, api_key_create.description)
-    return to_api_key_model(token)
-
-
-async def delete_api_key(user, apikey_id: str):
-    """
-    Delete an API key
-    """
-    api_key = await ops.get_api_key_by_id(user, apikey_id)
-    if not api_key:
-        return None
-    await ops.delete_api_key(user, apikey_id)
-    cache.delete(build_api_key_cache_key(api_key.key))
-    return True
-
-
-async def update_api_key(user, apikey_id: str, api_key_update: ApiKeyUpdate) -> Optional[ApiKeyModel]:
-    """
-    Update an API key
-    """
-    api_key = await ops.get_api_key_by_id(user, apikey_id)
-    if not api_key:
-        return None
-    api_key.description = api_key_update.description
-    await api_key.asave()
-    return to_api_key_model(api_key)
+# Create a global service instance for easy access
+# This uses the global db_ops instance and doesn't require session management in views
+api_key_service = ApiKeyService()

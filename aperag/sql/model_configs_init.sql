@@ -1,13 +1,13 @@
 -- Model configuration initialization SQL script
 -- Generated from model_configs.json on 2025-06-04 23:14:20
--- This script populates aperag_llm_provider and aperag_llm_provider_models tables
+-- This script populates llm_provider and llm_provider_models tables
 
 BEGIN;
 
 -- Insert/Update LLM Providers
 
 -- Provider: openai
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -24,7 +24,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: anthropic
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -41,7 +41,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: gemini
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -58,7 +58,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: xai
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -75,7 +75,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: deepseek
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -92,7 +92,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: alibabacloud
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -109,7 +109,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: siliconflow
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -126,7 +126,7 @@ ON CONFLICT (name) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Provider: openrouter
-INSERT INTO aperag_llm_provider (
+INSERT INTO llm_provider (
     name, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
@@ -145,7 +145,7 @@ ON CONFLICT (name) DO UPDATE SET
 -- Insert/Update Provider Models
 
 -- Completion models for openai
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -158,7 +158,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -171,7 +171,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -184,7 +184,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -197,7 +197,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -210,7 +210,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -223,7 +223,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -236,7 +236,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -249,7 +249,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -262,7 +262,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -275,7 +275,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -288,7 +288,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -302,7 +302,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Embedding models for openai
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -315,7 +315,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -328,7 +328,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -341,7 +341,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -355,7 +355,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for anthropic
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -368,7 +368,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -382,7 +382,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for gemini
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -395,7 +395,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -409,7 +409,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for xai
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -422,7 +422,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -435,7 +435,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -448,7 +448,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -462,7 +462,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for deepseek
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -475,7 +475,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -489,7 +489,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for alibabacloud
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -502,7 +502,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -515,7 +515,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -528,7 +528,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -541,7 +541,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -554,7 +554,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -567,7 +567,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -580,7 +580,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -593,7 +593,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -606,7 +606,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -619,7 +619,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -632,7 +632,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -646,7 +646,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Embedding models for alibabacloud
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -659,7 +659,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -672,7 +672,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -686,7 +686,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for siliconflow
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -699,7 +699,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -712,7 +712,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -726,7 +726,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Embedding models for siliconflow
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -739,7 +739,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -752,7 +752,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -765,7 +765,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -778,7 +778,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -792,7 +792,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Rerank models for siliconflow
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -805,7 +805,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -818,7 +818,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -832,7 +832,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Completion models for openrouter
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -845,7 +845,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -858,7 +858,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -871,7 +871,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -884,7 +884,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -897,7 +897,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -910,7 +910,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -923,7 +923,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -936,7 +936,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -949,7 +949,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -962,7 +962,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -975,7 +975,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -988,7 +988,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1001,7 +1001,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1014,7 +1014,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1027,7 +1027,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1040,7 +1040,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1053,7 +1053,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1066,7 +1066,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1079,7 +1079,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1092,7 +1092,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1105,7 +1105,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1118,7 +1118,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1131,7 +1131,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1144,7 +1144,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1157,7 +1157,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1170,7 +1170,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1183,7 +1183,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1196,7 +1196,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1209,7 +1209,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1222,7 +1222,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1235,7 +1235,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1248,7 +1248,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1261,7 +1261,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1274,7 +1274,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1287,7 +1287,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1300,7 +1300,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1313,7 +1313,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1326,7 +1326,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1339,7 +1339,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1352,7 +1352,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1365,7 +1365,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1378,7 +1378,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1391,7 +1391,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1404,7 +1404,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1417,7 +1417,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1430,7 +1430,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1443,7 +1443,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1456,7 +1456,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1469,7 +1469,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1482,7 +1482,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1495,7 +1495,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1508,7 +1508,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1521,7 +1521,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1534,7 +1534,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1547,7 +1547,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1560,7 +1560,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1573,7 +1573,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1586,7 +1586,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1599,7 +1599,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1612,7 +1612,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1625,7 +1625,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1638,7 +1638,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1651,7 +1651,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1664,7 +1664,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1677,7 +1677,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1690,7 +1690,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1703,7 +1703,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1716,7 +1716,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
@@ -1729,7 +1729,7 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     tags = EXCLUDED.tags,
     gmt_updated = NOW();
 
-INSERT INTO aperag_llm_provider_models (
+INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (

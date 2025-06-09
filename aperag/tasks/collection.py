@@ -18,13 +18,11 @@ import logging
 from asgiref.sync import async_to_sync
 
 from aperag.context.full_text import create_index, delete_index
-from aperag.db.models import Collection
-from aperag.embed.base_embedding import get_collection_embedding_service
+from aperag.db.models import CollectionStatus
+from aperag.db.ops import db_ops
+from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.graph import lightrag_holder
-from aperag.schema.utils import parseCollectionConfig
-from aperag.source.base import get_source
 from aperag.tasks.index import get_collection_config_settings
-from aperag.tasks.sync_documents_task import sync_documents
 from aperag.utils.utils import (
     generate_fulltext_index_name,
     generate_qa_vector_db_collection_name,
@@ -36,14 +34,17 @@ from config.vector_db import get_vector_db_connector
 logger = logging.getLogger(__name__)
 
 
-@app.task
-def init_collection_task(collection_id, document_user_quota):
-    collection = Collection.objects.get(id=collection_id)
-    if collection.status == Collection.Status.DELETED:
+def _init_collection_logic(collection_id: str, document_user_quota: int):
+    """Internal function for collection initialization logic"""
+    # Get collection from database using db_ops
+    collection = db_ops.query_collection_by_id(collection_id)
+
+    if not collection or collection.status == CollectionStatus.DELETED:
         return
 
+    # Get embedding service using sync version
     vector_db_conn = get_vector_db_connector(collection=generate_vector_db_collection_name(collection_id=collection_id))
-    _, vector_size = async_to_sync(get_collection_embedding_service)(collection)
+    _, vector_size = get_collection_embedding_service_sync(collection)
     # pre-create collection in vector db
     vector_db_conn.connector.create_collection(vector_size=vector_size)
 
@@ -55,29 +56,33 @@ def init_collection_task(collection_id, document_user_quota):
     index_name = generate_fulltext_index_name(collection_id)
     create_index(index_name)
 
-    collection.status = Collection.Status.ACTIVE
-    collection.save()
+    # Update collection status using db_ops
+    collection.status = CollectionStatus.ACTIVE
+    db_ops.update_collection(collection)
 
-    source = get_source(parseCollectionConfig(collection.config))
-    if source.sync_enabled():
-        sync_documents.delay(collection_id=collection_id, document_user_quota=document_user_quota)
+    logger.info(f"Successfully initialized collection {collection_id}")
 
 
-@app.task
-def delete_collection_task(collection_id):
-    collection = Collection.objects.get(id=collection_id)
+def _delete_collection_logic(collection_id: str):
+    """Internal function for collection deletion logic"""
+    # Get collection from database using db_ops
+    collection = db_ops.query_collection_by_id(collection_id)
+
+    if not collection:
+        return
 
     _, enable_knowledge_graph = get_collection_config_settings(collection)
 
     # Delete lightrag documents for this collection
-    async def _async_delete_lightrag():
-        # Create new LightRAG instance without using cache for Celery tasks
-        rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
-        await rag_holder.adelete_by_collection(collection_id)
-
-    # Execute the async deletion
     if enable_knowledge_graph:
-        async_to_sync(_async_delete_lightrag)()
+
+        async def _delete_lightrag():
+            # Create new LightRAG instance without using cache for Celery tasks
+            rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
+            await rag_holder.adelete_by_collection(collection_id)
+
+        # Execute async deletion
+        async_to_sync(_delete_lightrag)()
 
     # TODO remove the related collection in the vector db
     index_name = generate_fulltext_index_name(collection.id)
@@ -90,3 +95,25 @@ def delete_collection_task(collection_id):
         collection=generate_qa_vector_db_collection_name(collection=collection_id)
     )
     qa_vector_db_conn.connector.delete_collection()
+
+    logger.info(f"Successfully deleted collection {collection_id}")
+
+
+@app.task
+def init_collection_task(collection_id, document_user_quota):
+    """Celery task for collection initialization"""
+    try:
+        return _init_collection_logic(collection_id, document_user_quota)
+    except Exception as e:
+        logger.error(f"Failed to initialize collection {collection_id}: {e}")
+        raise
+
+
+@app.task
+def delete_collection_task(collection_id):
+    """Celery task for collection deletion"""
+    try:
+        return _delete_collection_logic(collection_id)
+    except Exception as e:
+        logger.error(f"Failed to delete collection {collection_id}: {e}")
+        raise

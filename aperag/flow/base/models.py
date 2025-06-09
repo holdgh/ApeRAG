@@ -17,8 +17,8 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from aperag.chat.history.base import BaseChatMessageHistory
 from aperag.flow.base.exceptions import CycleError
+from aperag.utils.history import BaseChatMessageHistory
 
 
 @dataclass
@@ -146,6 +146,7 @@ def register_node_runner(
 class SystemInput:
     query: str
     user: str
+    chat_id: Optional[str] = None
     history: Optional[BaseChatMessageHistory] = None
     message_id: Optional[str] = None
 

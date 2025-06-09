@@ -14,10 +14,10 @@ def get_auth_headers(api_key):
 
 
 @pytest.fixture
-def new_api_key(client):
+def new_api_key(benchmark, client):
     # Create a new API key for testing
     create_data = {"description": "e2e test key"}
-    resp = client.post(API_KEY_ENDPOINT, json=create_data)
+    resp = benchmark(client.post, API_KEY_ENDPOINT, json=create_data)
     assert resp.status_code == HTTPStatus.OK
     resp_data = resp.json()
     yield resp_data
@@ -54,11 +54,11 @@ def test_access_config_with_valid_api_key(benchmark, client, new_api_key):
         pytest.fail(f"API key {new_api_key['id']} not found in response")
 
 
-def test_access_config_with_fake_api_key():
+def test_access_config_with_fake_api_key(benchmark):
     # Test access /api/v1/config with a fake API key
     fake_key = "sk-fakekey1234567890"
     with httpx.Client(base_url=API_BASE_URL, headers=get_auth_headers(fake_key)) as c:
-        config_resp = c.get(CONFIG_ENDPOINT)
+        config_resp = benchmark(c.get, CONFIG_ENDPOINT)
         assert config_resp.status_code == HTTPStatus.UNAUTHORIZED
 
 

@@ -7,21 +7,52 @@ import pytest
 
 from tests.e2e_test.config import (
     API_BASE_URL,
-    API_KEY,
     COMPLETION_MODEL_NAME,
     COMPLETION_MODEL_PROVIDER,
+    COMPLETION_MODEL_PROVIDER_API_KEY,
     EMBEDDING_MODEL_CUSTOM_PROVIDER,
     EMBEDDING_MODEL_NAME,
     EMBEDDING_MODEL_PROVIDER,
+    EMBEDDING_MODEL_PROVIDER_API_KEY,
+    RERANK_MODEL_PROVIDER,
+    RERANK_MODEL_PROVIDER_API_KEY,
 )
 from tests.e2e_test.utils import assert_dict_subset
 
 
 @pytest.fixture(scope="module")
-def client():
-    assert len(API_KEY) > 0
-    assert len(API_BASE_URL) > 0
-    headers = {"Authorization": f"Bearer {API_KEY}"} if API_KEY else {}
+def api_key(cookie_client):
+    """Dynamically create an API key for testing and yield its value, then delete it after tests."""
+    resp = cookie_client.post("/api/v1/apikeys", json={"description": "e2e dynamic key"})
+    assert resp.status_code == HTTPStatus.OK, f"Failed to create API key: {resp.text}"
+    api_key = resp.json()["key"]
+    yield api_key
+    cookie_client.delete(f"/api/v1/apikeys/{resp.json()['id']}")
+
+
+@pytest.fixture(scope="module")
+def setup_model_service_provider(cookie_client):
+    """Setup completion/embedding/rerank model service provider for testing."""
+    resp = cookie_client.put(
+        f"/api/v1/model_service_providers/{COMPLETION_MODEL_PROVIDER}",
+        json={"api_key": COMPLETION_MODEL_PROVIDER_API_KEY},
+    )
+    assert resp.status_code == HTTPStatus.OK, f"Failed to create completion model service provider: {resp.text}"
+    resp = cookie_client.put(
+        f"/api/v1/model_service_providers/{EMBEDDING_MODEL_PROVIDER}",
+        json={"api_key": EMBEDDING_MODEL_PROVIDER_API_KEY},
+    )
+    assert resp.status_code == HTTPStatus.OK, f"Failed to create embedding model service provider: {resp.text}"
+    resp = cookie_client.put(
+        f"/api/v1/model_service_providers/{RERANK_MODEL_PROVIDER}", json={"api_key": RERANK_MODEL_PROVIDER_API_KEY}
+    )
+    assert resp.status_code == HTTPStatus.OK, f"Failed to create rerank model service provider: {resp.text}"
+
+
+@pytest.fixture(scope="module")
+def client(cookie_client, api_key, setup_model_service_provider):
+    """Return a httpx.Client using api key authentication."""
+    headers = {"Authorization": f"Bearer {api_key}"}
     with httpx.Client(base_url=API_BASE_URL, headers=headers) as c:
         yield c
 
@@ -132,7 +163,7 @@ def bot(client, document, collection):
     assert resp.status_code in (200, 204)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def register_user():
     """Register a new user and return user info and password"""
     import random
@@ -148,7 +179,7 @@ def register_user():
     return {"username": username, "email": email, "password": password, "user": user}
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def login_user(register_user):
     """Login with the registered user and return cookies and user info"""
     data = {"username": register_user["username"], "password": register_user["password"]}
@@ -165,10 +196,9 @@ def login_user(register_user):
         }
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def cookie_client(login_user):
     """Return a httpx.Client with cookie-based authentication"""
-    c = httpx.Client(base_url=API_BASE_URL)
-    c.cookies.update(login_user["cookies"])
-    yield c
-    c.close()
+    with httpx.Client(base_url=API_BASE_URL) as c:
+        c.cookies.update(login_user["cookies"])
+        yield c

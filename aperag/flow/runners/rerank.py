@@ -17,7 +17,7 @@ from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
-from aperag.db.ops import query_msp_dict
+from aperag.db.ops import async_db_ops
 from aperag.flow.base.models import BaseNodeRunner, SystemInput, register_node_runner
 from aperag.query.query import DocumentWithScore
 from aperag.rank.rerank_service import RerankService
@@ -53,7 +53,7 @@ class RerankNodeRunner(BaseNodeRunner):
 
         if docs:
             # Get API key and base URL from user's model service provider settings
-            msp_dict = await query_msp_dict(si.user)
+            msp_dict = await async_db_ops.query_msp_dict(si.user)
             if ui.model_service_provider not in msp_dict:
                 raise ValueError(
                     f"Model service provider '{ui.model_service_provider}' not configured. "
@@ -64,11 +64,9 @@ class RerankNodeRunner(BaseNodeRunner):
 
             # Get base_url from LLMProvider
             try:
-                from aperag.db.models import LLMProvider
-
-                llm_provider = await LLMProvider.objects.aget(name=ui.model_service_provider)
+                llm_provider = await async_db_ops.query_llm_provider_by_name(ui.model_service_provider)
                 base_url = llm_provider.base_url
-            except LLMProvider.DoesNotExist:
+            except Exception:
                 raise ValueError(f"LLMProvider '{ui.model_service_provider}' not found")
 
             # Create rerank service with configuration from model service provider
