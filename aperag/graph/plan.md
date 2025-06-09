@@ -62,10 +62,7 @@
 #### 3.1 collection 级别隔离
 **目标**：实现真正的 collection 级别隔离
 
-我想要删掉目前的namespace_prefix机制。
-目前JsonKVStorage,NanoVectorDBStorage,NetworkXStorage,JsonDocStatusStorage可以按照namespace prefix隔离，neo4j之类的应该也是可以的。
-但是pg结合namespace prefix有严重bug, "sql = SQL_TEMPLATES["get_by_id_" + self.namespace]"会把namespace prefix也拼接进去，导致无法获得要执行的SQL。
-我希望你能够帮我用workspace机制替代namespace prefix机制（目前pg已经有了，但是我希望能够推广到所有的db），workspace可以理解为collection的概念。
+已经用workspace参数实现，所有的数据库都用workspace隔离collection的数据。
 
 #### 3.2 改造文档处理流程
 **目标**：支持按 collection 并发处理
@@ -81,45 +78,6 @@
 - [ ] 支持 collection 级别的并发限制
 - [ ] 添加并发监控
 
-### 第四阶段：存储层解耦
-
-#### 4.1 创建存储接口层
-**目标**：定义统一的存储接口，隐藏实现细节
-
-##### 4.1.1 定义存储接口
-```python
-# aperag/storage/interfaces.py
-```
-- [ ] 定义 `IKVStorage` 接口
-- [ ] 定义 `IVectorStorage` 接口
-- [ ] 定义 `IGraphStorage` 接口
-
-##### 4.1.2 实现存储工厂
-```python
-# aperag/storage/factory.py
-```
-- [ ] 创建存储工厂类
-- [ ] 支持注册自定义存储实现
-- [ ] 提供默认实现（使用 LightRAG 存储）
-
-#### 4.2 实现外部存储适配器
-**目标**：支持使用外部数据库
-
-##### 4.2.1 PostgreSQL 适配器
-```python
-# aperag/storage/postgres_adapter.py
-```
-- [ ] 实现 KV 存储接口
-- [ ] 实现向量存储接口（使用 pgvector）
-- [ ] 支持事务
-
-##### 4.2.2 Neo4j 适配器
-```python
-# aperag/storage/neo4j_adapter.py
-```
-- [ ] 实现图存储接口
-- [ ] 支持批量操作
-- [ ] 优化查询性能
 
 ### 第五阶段：核心算法提取
 
