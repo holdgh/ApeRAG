@@ -27,7 +27,6 @@ from aperag.db.ops import (
 from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.graph.lightrag import LightRAG, QueryParam
 from aperag.graph.lightrag.base import DocStatus
-from aperag.graph.lightrag.kg.shared_storage import initialize_pipeline_status
 from aperag.graph.lightrag.utils import EmbeddingFunc
 from aperag.schema.utils import parseCollectionConfig
 
@@ -365,7 +364,6 @@ async def create_and_initialize_lightrag(
         )
 
         await rag.initialize_storages()
-        await initialize_pipeline_status()
 
         logger.info(f"LightRAG object for collection '{collection_id}' successfully initialized")
         return LightRagHolder(rag=rag, llm_func=llm_func, embed_impl=embed_impl, collection_id=collection_id)
