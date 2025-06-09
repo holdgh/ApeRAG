@@ -61,9 +61,8 @@ class StatelessLightRAGWrapper:
         Process a document using the new stateless interfaces.
         
         This method:
-        1. Inserts the document
-        2. Processes chunking
-        3. Extracts entities and builds graph index
+        1. Inserts the document and processes chunking
+        2. Extracts entities and builds graph index
         
         Args:
             content: Document content
@@ -76,64 +75,80 @@ class StatelessLightRAGWrapper:
         rag = await self._get_or_create_instance()
         
         try:
-            # # Step 1: Insert document
-            # logger.info(f"Inserting document {doc_id} into LightRAG")
-            # insert_result = await rag.ainsert_document(
-            #     documents=[content],
-            #     doc_ids=[doc_id],
-            #     file_paths=[file_path]
-            # )
-            #
-            # # Verify document was inserted
-            # inserted_doc_id = insert_result["doc_ids"][0]
-            # if str(inserted_doc_id) != str(doc_id):
-            #     logger.warning(f"Document ID mismatch: expected {doc_id}, got {inserted_doc_id}")
-            #
-            # # Step 2: Process chunking
-            # logger.info(f"Processing chunks for document {doc_id}")
-            # chunk_result = await rag.aprocess_chunking(
-            #     doc_id=str(doc_id),
-            #     content=content,
-            #     file_path=file_path
-            # )
-
+            # Step 1 & 2: Insert document and process chunking in one step
+            logger.info(f"Inserting and chunking document {doc_id} into LightRAG")
             chunk_result = await rag.ainsert_and_chunk_document(
                 documents=[content],
                 doc_ids=[doc_id],
                 file_paths=[file_path]
             )
             
-            # Step 3: Extract entities and build graph index
-            logger.info(f"Building graph index for document {doc_id}")
-            chunks_data = chunk_result.get("chunks_data", {})
-            
-            if not chunks_data:
-                logger.warning(f"No chunks data returned for document {doc_id}")
+            # Get results list from the response
+            results = chunk_result.get("results", [])
+            if not results:
+                logger.warning(f"No results returned for document {doc_id}")
                 return {
                     "status": "warning",
                     "doc_id": doc_id,
-                    "message": "No chunks generated",
+                    "message": "No processing results returned",
                     "chunks_created": 0,
                     "entities_extracted": 0,
                     "relations_extracted": 0
                 }
             
-            graph_result = await rag.aprocess_graph_indexing(
-                chunks=chunks_data,
-                collection_id=str(self.collection.id)
-            )
+            # Process each document result (though typically there's only one for this use case)
+            total_chunks_created = 0
+            total_entities_extracted = 0
+            total_relations_extracted = 0
+            processed_docs = []
             
-            # Compile results
+            for doc_result in results:
+                doc_result_id = doc_result.get("doc_id")
+                chunks_data = doc_result.get("chunks_data", {})
+                chunk_count = doc_result.get("chunk_count", 0)
+                
+                logger.info(f"Processing {chunk_count} chunks for document {doc_result_id}")
+                
+                if not chunks_data:
+                    logger.warning(f"No chunks data returned for document {doc_result_id}")
+                    continue
+                
+                # Step 3: Extract entities and build graph index for this document's chunks
+                logger.info(f"Building graph index for document {doc_result_id}")
+                graph_result = await rag.aprocess_graph_indexing(
+                    chunks=chunks_data,
+                    collection_id=str(self.collection.id)
+                )
+                
+                # Accumulate results
+                total_chunks_created += chunk_count
+                total_entities_extracted += graph_result.get("entities_extracted", 0)
+                total_relations_extracted += graph_result.get("relations_extracted", 0)
+                
+                processed_docs.append({
+                    "doc_id": doc_result_id,
+                    "chunks_created": chunk_count,
+                    "entities_extracted": graph_result.get("entities_extracted", 0),
+                    "relations_extracted": graph_result.get("relations_extracted", 0),
+                    "graph_status": graph_result.get("status", "unknown")
+                })
+                
+                logger.info(f"Successfully processed document {doc_result_id}: "
+                           f"chunks={chunk_count}, entities={graph_result.get('entities_extracted', 0)}, "
+                           f"relations={graph_result.get('relations_extracted', 0)}")
+            
+            # Compile final results
             result = {
                 "status": "success",
-                "doc_id": doc_id,
-                "chunks_created": chunk_result.get("chunk_count", 0),
-                "entities_extracted": graph_result.get("entities_extracted", 0),
-                "relations_extracted": graph_result.get("relations_extracted", 0),
-                "processing_status": graph_result.get("status", "unknown")
+                "doc_id": doc_id,  # Keep the original requested doc_id
+                "total_documents_processed": len(processed_docs),
+                "chunks_created": total_chunks_created,
+                "entities_extracted": total_entities_extracted,
+                "relations_extracted": total_relations_extracted,
+                "documents": processed_docs  # Detailed results for each document
             }
             
-            logger.info(f"Successfully processed document {doc_id}: {result}")
+            logger.info(f"Successfully processed all documents for request {doc_id}: {result}")
             return result
             
         except Exception as e:
