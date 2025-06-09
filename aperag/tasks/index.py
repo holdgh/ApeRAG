@@ -28,6 +28,7 @@ from aperag.config import settings
 from aperag.context.full_text import insert_document, remove_document
 from aperag.db.models import (
     Collection,
+    CollectionStatus,
     Document,
     DocumentIndexStatus,
     DocumentStatus,
@@ -36,7 +37,7 @@ from aperag.db.ops import db_ops
 from aperag.docparser.doc_parser import DocParser
 from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.embed.embedding_utils import create_embeddings_and_store
-from aperag.graph import lightrag_holder
+from aperag.graph import lightrag_holder2 as lightrag_holder
 from aperag.objectstore.base import get_object_store
 from aperag.schema.utils import parseCollectionConfig
 from aperag.source.base import get_source
@@ -599,13 +600,13 @@ def add_lightrag_index_task(self, content, document_id, file_path):
             )
             return
 
-        if collection.status == Collection.Status.DELETED:
+        if collection.status == CollectionStatus.DELETED:
             logger.info(f"Collection {collection.id} is deleted, skipping LightRAG indexing for document {document_id}")
             document.graph_index_status = DocumentIndexStatus.SKIPPED
             db_ops.update_document(document)
             return
     except Exception:
-        logger.info(f"Collection not found for document {document_id}, skipping LightRAG indexing")
+        logger.error(f"Collection not found for document {document_id}, skipping LightRAG indexing")
         return
 
     document.graph_index_status = DocumentIndexStatus.RUNNING
