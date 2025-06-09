@@ -14,7 +14,7 @@
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from aperag.graph.lightrag import LightRAG
 from aperag.db.models import Collection
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class StatelessLightRAGWrapper:
     """
     A wrapper for using stateless LightRAG interfaces in Celery tasks.
-    This wrapper handles event loop management and provides clean async execution.
+    Simple implementation: each task creates its own instance and event loop.
     """
     
     def __init__(self, collection: Collection, use_cache: bool = False):
@@ -33,23 +33,20 @@ class StatelessLightRAGWrapper:
         
         Args:
             collection: The collection configuration
-            use_cache: Whether to use instance caching (default False for Celery)
+            use_cache: Whether to use instance caching (always False for simplicity)
         """
         self.collection = collection
-        self.use_cache = use_cache
-        self._rag_instance: Optional[LightRAG] = None
+        # Always disable cache to ensure each task gets a fresh instance
+        self.use_cache = False
         
-    async def _get_or_create_instance(self) -> LightRAG:
-        """Get or create a LightRAG instance for this wrapper."""
-        if self._rag_instance is None:
-            # Import here to avoid circular imports
-            from aperag.graph.lightrag_holder import get_lightrag_holder
-            
-            # Get a LightRAG holder without caching for Celery tasks
-            rag_holder = await get_lightrag_holder(self.collection, use_cache=self.use_cache)
-            self._rag_instance = rag_holder.rag
-            
-        return self._rag_instance
+    async def _create_fresh_instance(self) -> LightRAG:
+        """Create a fresh LightRAG instance for this task."""
+        # Import here to avoid circular imports
+        from aperag.graph.lightrag_holder import get_lightrag_holder
+        
+        # Always create a new instance, never cache
+        rag_holder = await get_lightrag_holder(self.collection, use_cache=False)
+        return rag_holder.rag
     
     async def process_document_async(
         self, 
@@ -59,10 +56,7 @@ class StatelessLightRAGWrapper:
     ) -> Dict[str, Any]:
         """
         Process a document using the new stateless interfaces.
-        
-        This method:
-        1. Inserts the document and processes chunking
-        2. Extracts entities and builds graph index
+        Creates a fresh LightRAG instance and cleans up after use.
         
         Args:
             content: Document content
@@ -72,7 +66,8 @@ class StatelessLightRAGWrapper:
         Returns:
             Dict containing processing results
         """
-        rag = await self._get_or_create_instance()
+        # Create a fresh instance for this task
+        rag = await self._create_fresh_instance()
         
         try:
             # Step 1 & 2: Insert document and process chunking in one step
@@ -96,7 +91,7 @@ class StatelessLightRAGWrapper:
                     "relations_extracted": 0
                 }
             
-            # Process each document result (though typically there's only one for this use case)
+            # Process each document result
             total_chunks_created = 0
             total_entities_extracted = 0
             total_relations_extracted = 0
@@ -113,7 +108,7 @@ class StatelessLightRAGWrapper:
                     logger.warning(f"No chunks data returned for document {doc_result_id}")
                     continue
                 
-                # Step 3: Extract entities and build graph index for this document's chunks
+                # Step 3: Extract entities and build graph index
                 logger.info(f"Building graph index for document {doc_result_id}")
                 graph_result = await rag.aprocess_graph_indexing(
                     chunks=chunks_data,
@@ -140,12 +135,12 @@ class StatelessLightRAGWrapper:
             # Compile final results
             result = {
                 "status": "success",
-                "doc_id": doc_id,  # Keep the original requested doc_id
+                "doc_id": doc_id,
                 "total_documents_processed": len(processed_docs),
                 "chunks_created": total_chunks_created,
                 "entities_extracted": total_entities_extracted,
                 "relations_extracted": total_relations_extracted,
-                "documents": processed_docs  # Detailed results for each document
+                "documents": processed_docs
             }
             
             logger.info(f"Successfully processed all documents for request {doc_id}: {result}")
@@ -154,6 +149,13 @@ class StatelessLightRAGWrapper:
         except Exception as e:
             logger.error(f"Error processing document {doc_id}: {str(e)}")
             raise
+        finally:
+            # Clean up resources - this is crucial!
+            try:
+                await rag.finalize_storages()
+                logger.debug(f"Cleaned up LightRAG resources for document {doc_id}")
+            except Exception as e:
+                logger.warning(f"Error during cleanup for document {doc_id}: {e}")
     
     def process_document_sync(
         self, 
@@ -162,8 +164,7 @@ class StatelessLightRAGWrapper:
         file_path: str
     ) -> Dict[str, Any]:
         """
-        Synchronous wrapper for process_document_async.
-        Creates a new event loop to avoid conflicts with Celery.
+        Synchronous wrapper - creates a fresh event loop for each task.
         
         Args:
             content: Document content
@@ -173,24 +174,38 @@ class StatelessLightRAGWrapper:
         Returns:
             Dict containing processing results
         """
-        # Create a new event loop for this task
+        # Create a fresh event loop for this task
         loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         
         try:
-            # Run the async method in the new loop
-            result = loop.run_until_complete(
-                self.process_document_async(content, doc_id, file_path)
-            )
+            # Set this as the current event loop
+            asyncio.set_event_loop(loop)
+            
+            # Define the complete workflow in the loop
+            async def do_work():
+                return await self.process_document_async(content, doc_id, file_path)
+            
+            # Run everything in this event loop
+            result = loop.run_until_complete(do_work())
             return result
+            
         finally:
             # Clean up the event loop
-            loop.close()
-            asyncio.set_event_loop(None)
+            try:
+                # Wait for any remaining tasks to complete
+                pending = asyncio.all_tasks(loop)
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            except Exception:
+                pass
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
     
     async def delete_document_async(self, doc_id: str) -> Dict[str, Any]:
         """
-        Delete a document from LightRAG using stateless interface.
+        Delete a document from LightRAG.
+        Creates a fresh LightRAG instance and cleans up after use.
         
         Args:
             doc_id: Document ID to delete
@@ -198,7 +213,8 @@ class StatelessLightRAGWrapper:
         Returns:
             Dict containing deletion status
         """
-        rag = await self._get_or_create_instance()
+        # Create a fresh instance for this task
+        rag = await self._create_fresh_instance()
         
         try:
             logger.info(f"Deleting document {doc_id} from LightRAG")
@@ -212,10 +228,17 @@ class StatelessLightRAGWrapper:
         except Exception as e:
             logger.error(f"Error deleting document {doc_id}: {str(e)}")
             raise
+        finally:
+            # Clean up resources
+            try:
+                await rag.finalize_storages()
+                logger.debug(f"Cleaned up LightRAG resources for deletion {doc_id}")
+            except Exception as e:
+                logger.warning(f"Error during cleanup for deletion {doc_id}: {e}")
     
     def delete_document_sync(self, doc_id: str) -> Dict[str, Any]:
         """
-        Synchronous wrapper for delete_document_async.
+        Synchronous wrapper for deletion.
         
         Args:
             doc_id: Document ID to delete
@@ -223,20 +246,31 @@ class StatelessLightRAGWrapper:
         Returns:
             Dict containing deletion status
         """
-        # Create a new event loop for this task
+        # Create a fresh event loop for this task
         loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         
         try:
-            # Run the async method in the new loop
-            result = loop.run_until_complete(
-                self.delete_document_async(doc_id)
-            )
+            asyncio.set_event_loop(loop)
+            
+            # Define the complete workflow
+            async def do_work():
+                return await self.delete_document_async(doc_id)
+            
+            # Run everything in this event loop
+            result = loop.run_until_complete(do_work())
             return result
+            
         finally:
             # Clean up the event loop
-            loop.close()
-            asyncio.set_event_loop(None)
+            try:
+                pending = asyncio.all_tasks(loop)
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            except Exception:
+                pass
+            finally:
+                loop.close()
+                asyncio.set_event_loop(None)
 
 
 def process_document_for_celery(
