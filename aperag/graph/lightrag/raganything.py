@@ -17,19 +17,19 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 # Add project root directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lightrag import LightRAG, QueryParam
+from aperag.graph.lightrag import LightRAG, QueryParam
 
 # Import parser and multimodal processors
-from lightrag.mineru_parser import MineruParser
+from aperag.graph.lightrag.mineru_parser import MineruParser
 
 # Import specialized processors
-from lightrag.modalprocessors import (
+from aperag.graph.lightrag.modalprocessors import (
     EquationModalProcessor,
     GenericModalProcessor,
     ImageModalProcessor,
     TableModalProcessor,
 )
-from lightrag.utils import EmbeddingFunc, setup_logger
+from aperag.graph.lightrag.utils import EmbeddingFunc, setup_logger
 
 
 class RAGAnything:
@@ -122,7 +122,7 @@ class RAGAnything:
                 "embedding_func must be provided when LightRAG is not pre-initialized"
             )
 
-        from lightrag.kg.shared_storage import initialize_pipeline_status
+        from aperag.graph.lightrag.kg.shared_storage import initialize_pipeline_status
 
         # Create LightRAG instance with provided functions
         self.lightrag = LightRAG(

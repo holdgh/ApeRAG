@@ -17,12 +17,12 @@ from typing import TYPE_CHECKING, Any, Callable, List, Protocol
 import numpy as np
 from dotenv import load_dotenv
 
-from lightrag.constants import (
+from aperag.graph.lightrag.constants import (
     DEFAULT_LOG_BACKUP_COUNT,
     DEFAULT_LOG_FILENAME,
     DEFAULT_LOG_MAX_BYTES,
 )
-from lightrag.prompt import PROMPTS
+from aperag.graph.lightrag.prompt import PROMPTS
 
 
 def get_env_value(
@@ -58,7 +58,7 @@ def get_env_value(
 
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
-    from lightrag.base import BaseKVStorage
+    from aperag.graph.lightrag.base import BaseKVStorage
 
 # use the .env that is inside the current folder
 # allows to use different .env file for each lightrag instance
@@ -1698,7 +1698,7 @@ def check_storage_env_vars(storage_name: str) -> None:
     Raises:
         ValueError: If required environment variables are missing
     """
-    from lightrag.kg import STORAGE_ENV_REQUIREMENTS
+    from aperag.graph.lightrag.kg import STORAGE_ENV_REQUIREMENTS
 
     required_vars = STORAGE_ENV_REQUIREMENTS.get(storage_name, [])
     missing_vars = [var for var in required_vars if var not in os.environ]

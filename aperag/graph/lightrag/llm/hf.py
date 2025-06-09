@@ -22,12 +22,12 @@ from tenacity import (
 )
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from lightrag.exceptions import (
+from aperag.graph.lightrag.exceptions import (
     APIConnectionError,
     APITimeoutError,
     RateLimitError,
 )
-from lightrag.utils import (
+from aperag.graph.lightrag.utils import (
     locate_json_string_body_from_string,
 )
 

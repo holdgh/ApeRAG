@@ -17,10 +17,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Tuple, cast
 
-from lightrag.base import StorageNameSpace
-from lightrag.kg.shared_storage import get_namespace_data, get_pipeline_status_lock
-from lightrag.lightrag import LightRAG
-from lightrag.utils import (
+from aperag.graph.lightrag.base import StorageNameSpace
+from aperag.graph.lightrag.kg.shared_storage import get_namespace_data, get_pipeline_status_lock
+from aperag.graph.lightrag.lightrag import LightRAG
+from aperag.graph.lightrag.utils import (
     compute_mdhash_id,
     logger,
 )
@@ -145,7 +145,7 @@ class BaseModalProcessor:
         await self.chunks_vdb.upsert(chunk_vdb_data)
 
         # Trigger extraction process
-        from lightrag.operate import extract_entities, merge_nodes_and_edges
+        from aperag.graph.lightrag.operate import extract_entities, merge_nodes_and_edges
 
         pipeline_status = await get_namespace_data("pipeline_status")
         pipeline_status_lock = get_pipeline_status_lock()

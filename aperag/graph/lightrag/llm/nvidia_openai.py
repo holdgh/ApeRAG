@@ -26,7 +26,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.utils import (
+from aperag.graph.lightrag.utils import (
     wrap_embedding_func_with_attrs,
 )
 

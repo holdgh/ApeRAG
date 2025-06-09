@@ -6,8 +6,8 @@ from typing import Any, final
 import numpy as np
 import pipmaster as pm
 
-from lightrag.base import BaseVectorStorage
-from lightrag.utils import logger
+from aperag.graph.lightrag.base import BaseVectorStorage
+from aperag.graph.lightrag.utils import logger
 
 if not pm.is_installed("chromadb"):
     pm.install("chromadb")

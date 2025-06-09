@@ -34,8 +34,8 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.api import __api_version__
-from lightrag.utils import (
+from aperag.graph.lightrag.api import __api_version__
+from aperag.graph.lightrag.utils import (
     logger,
     safe_unicode_decode,
 )

@@ -24,19 +24,19 @@ from typing import (
 
 from dotenv import load_dotenv
 
-from lightrag.constants import (
+from aperag.graph.lightrag.constants import (
     DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE,
     DEFAULT_MAX_TOKEN_SUMMARY,
 )
-from lightrag.kg import (
+from aperag.graph.lightrag.kg import (
     STORAGES,
     verify_storage_implementation,
 )
-from lightrag.kg.shared_storage import (
+from aperag.graph.lightrag.kg.shared_storage import (
     get_namespace_data,
     get_pipeline_status_lock,
 )
-from lightrag.utils import get_env_value
+from aperag.graph.lightrag.utils import get_env_value
 
 from .base import (
     BaseGraphStorage,
@@ -283,7 +283,7 @@ class LightRAG:
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)
 
     def __post_init__(self):
-        from lightrag.kg.shared_storage import (
+        from aperag.graph.lightrag.kg.shared_storage import (
             initialize_share_data,
         )
 

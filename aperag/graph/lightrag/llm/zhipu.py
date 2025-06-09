@@ -29,8 +29,8 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.types import GPTKeywordExtractionFormat
-from lightrag.utils import (
+from aperag.graph.lightrag.types import GPTKeywordExtractionFormat
+from aperag.graph.lightrag.utils import (
     logger,
     wrap_embedding_func_with_attrs,
 )

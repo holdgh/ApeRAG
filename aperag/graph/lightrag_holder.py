@@ -19,16 +19,16 @@ from datetime import datetime
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import numpy
-from lightrag import LightRAG, QueryParam
-from lightrag.base import DocStatus
-from lightrag.kg.shared_storage import initialize_pipeline_status
-from lightrag.utils import EmbeddingFunc
 
 from aperag.db.models import Collection
 from aperag.db.ops import (
     db_ops,
 )
 from aperag.embed.base_embedding import get_collection_embedding_service
+from aperag.graph.lightrag import LightRAG, QueryParam
+from aperag.graph.lightrag.base import DocStatus
+from aperag.graph.lightrag.kg.shared_storage import initialize_pipeline_status
+from aperag.graph.lightrag.utils import EmbeddingFunc
 from aperag.schema.utils import parseCollectionConfig
 from aperag.utils.utils import generate_lightrag_namespace_prefix
 

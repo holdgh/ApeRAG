@@ -8,7 +8,7 @@ from typing import Any, Union, final
 import numpy as np
 import pipmaster as pm
 
-from lightrag.types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
+from aperag.graph.lightrag.types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
 
 from ..base import BaseGraphStorage, BaseKVStorage, BaseVectorStorage
 from ..namespace import NameSpace, is_namespace

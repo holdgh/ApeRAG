@@ -2,10 +2,10 @@ import os
 from dataclasses import dataclass
 from typing import Any, final
 
-from lightrag.base import (
+from aperag.graph.lightrag.base import (
     BaseKVStorage,
 )
-from lightrag.utils import (
+from aperag.graph.lightrag.utils import (
     load_json,
     logger,
     write_json,

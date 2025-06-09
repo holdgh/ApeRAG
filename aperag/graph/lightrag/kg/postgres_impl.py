@@ -16,7 +16,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
+from aperag.graph.lightrag.types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
 
 from ..base import (
     BaseGraphStorage,

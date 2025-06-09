@@ -7,7 +7,7 @@ from llama_index.core.llms import (
     MessageRole,
 )
 
-from lightrag.utils import logger
+from aperag.graph.lightrag.utils import logger
 
 # Install required dependencies
 if not pm.is_installed("llama-index"):
@@ -23,12 +23,12 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.exceptions import (
+from aperag.graph.lightrag.exceptions import (
     APIConnectionError,
     APITimeoutError,
     RateLimitError,
 )
-from lightrag.utils import (
+from aperag.graph.lightrag.utils import (
     locate_json_string_body_from_string,
     wrap_embedding_func_with_attrs,
 )

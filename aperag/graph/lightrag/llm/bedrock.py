@@ -15,7 +15,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.utils import (
+from aperag.graph.lightrag.utils import (
     locate_json_string_body_from_string,
 )
 

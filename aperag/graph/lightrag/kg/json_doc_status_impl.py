@@ -2,12 +2,12 @@ import os
 from dataclasses import dataclass
 from typing import Any, Union, final
 
-from lightrag.base import (
+from aperag.graph.lightrag.base import (
     DocProcessingStatus,
     DocStatus,
     DocStatusStorage,
 )
-from lightrag.utils import (
+from aperag.graph.lightrag.utils import (
     load_json,
     logger,
     write_json,

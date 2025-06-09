@@ -4,9 +4,9 @@ from typing import final
 
 import pipmaster as pm
 
-from lightrag.base import BaseGraphStorage
-from lightrag.types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
-from lightrag.utils import logger
+from aperag.graph.lightrag.base import BaseGraphStorage
+from aperag.graph.lightrag.types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
+from aperag.graph.lightrag.utils import logger
 
 if not pm.is_installed("networkx"):
     pm.install("networkx")

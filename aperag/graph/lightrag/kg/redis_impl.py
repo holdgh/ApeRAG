@@ -15,8 +15,8 @@ import json
 from redis.asyncio import ConnectionPool, Redis  # type: ignore
 from redis.exceptions import ConnectionError, RedisError  # type: ignore
 
-from lightrag.base import BaseKVStorage
-from lightrag.utils import logger
+from aperag.graph.lightrag.base import BaseKVStorage
+from aperag.graph.lightrag.utils import logger
 
 config = configparser.ConfigParser()
 config.read("config.ini", "utf-8")

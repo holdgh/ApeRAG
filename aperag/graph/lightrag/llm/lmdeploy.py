@@ -13,7 +13,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from lightrag.exceptions import (
+from aperag.graph.lightrag.exceptions import (
     APIConnectionError,
     APITimeoutError,
     RateLimitError,

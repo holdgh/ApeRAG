@@ -22,11 +22,11 @@ pip install llama-index-llms-litellm llama-index-embeddings-litellm
 ### Standard OpenAI Usage
 
 ```python
-from lightrag import LightRAG
-from lightrag.llm.llama_index_impl import llama_index_complete_if_cache, llama_index_embed
+from aperag.graph.lightrag import LightRAG
+from aperag.graph.lightrag.llm.llama_index_impl import llama_index_complete_if_cache, llama_index_embed
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
-from lightrag.utils import EmbeddingFunc
+from aperag.graph.lightrag.utils import EmbeddingFunc
 
 # Initialize with direct OpenAI access
 async def llm_model_func(prompt, system_prompt=None, history_messages=[], **kwargs):
@@ -77,11 +77,11 @@ rag = LightRAG(
 3. Maintain consistent configuration across services
 
 ```python
-from lightrag import LightRAG
-from lightrag.llm.llama_index_impl import llama_index_complete_if_cache, llama_index_embed
+from aperag.graph.lightrag import LightRAG
+from aperag.graph.lightrag.llm.llama_index_impl import llama_index_complete_if_cache, llama_index_embed
 from llama_index.llms.litellm import LiteLLM
 from llama_index.embeddings.litellm import LiteLLMEmbedding
-from lightrag.utils import EmbeddingFunc
+from aperag.graph.lightrag.utils import EmbeddingFunc
 
 # Initialize with LiteLLM proxy
 async def llm_model_func(prompt, system_prompt=None, history_messages=[], **kwargs):

@@ -6,7 +6,7 @@ from typing import Any, final
 import numpy as np
 import pipmaster as pm
 
-from lightrag.utils import compute_mdhash_id, logger
+from aperag.graph.lightrag.utils import compute_mdhash_id, logger
 
 from ..base import BaseVectorStorage
 
