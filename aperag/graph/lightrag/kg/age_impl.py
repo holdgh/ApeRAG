@@ -63,9 +63,10 @@ class AGEStorage(BaseGraphStorage):
     def load_nx_graph(file_name):
         print("no preloading of graph with AGE in production")
 
-    def __init__(self, namespace, global_config, embedding_func):
+    def __init__(self, namespace, workspace, global_config, embedding_func):
         super().__init__(
             namespace=namespace,
+            workspace=workspace,
             global_config=global_config,
             embedding_func=embedding_func,
         )
@@ -80,7 +81,7 @@ class AGEStorage(BaseGraphStorage):
         )
         HOST = os.environ["AGE_POSTGRES_HOST"].replace("\\", "\\\\").replace("'", "\\'")
         PORT = os.environ.get("AGE_POSTGRES_PORT", "8529")
-        self.graph_name = namespace or os.environ.get("AGE_GRAPH_NAME", "lightrag")
+        self.graph_name = workspace or os.environ.get("AGE_GRAPH_NAME", "lightrag")
 
         connection_string = f"dbname='{DB}' user='{USER}' password='{PASSWORD}' host='{HOST}' port={PORT}"
 

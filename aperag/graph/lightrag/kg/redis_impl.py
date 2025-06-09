@@ -44,7 +44,7 @@ class RedisKVStorage(BaseKVStorage):
         )
         self._redis = Redis(connection_pool=self._pool)
         logger.info(
-            f"Initialized Redis connection pool for {self.namespace} with max {MAX_CONNECTIONS} connections"
+            f"Initialized Redis connection pool for {self.workspace}:{self.storage_type} with max {MAX_CONNECTIONS} connections"
         )
 
     @asynccontextmanager
@@ -53,14 +53,14 @@ class RedisKVStorage(BaseKVStorage):
         try:
             yield self._redis
         except ConnectionError as e:
-            logger.error(f"Redis connection error in {self.namespace}: {e}")
+            logger.error(f"Redis connection error in {self.workspace}:{self.storage_type}: {e}")
             raise
         except RedisError as e:
-            logger.error(f"Redis operation error in {self.namespace}: {e}")
+            logger.error(f"Redis operation error in {self.workspace}:{self.storage_type}: {e}")
             raise
         except Exception as e:
             logger.error(
-                f"Unexpected error in Redis operation for {self.namespace}: {e}"
+                f"Unexpected error in Redis operation for {self.workspace}:{self.storage_type}: {e}"
             )
             raise
 
@@ -69,7 +69,7 @@ class RedisKVStorage(BaseKVStorage):
         if hasattr(self, "_redis") and self._redis:
             await self._redis.close()
             await self._pool.disconnect()
-            logger.debug(f"Closed Redis connection pool for {self.namespace}")
+            logger.debug(f"Closed Redis connection pool for {self.workspace}:{self.storage_type}")
 
     async def __aenter__(self):
         """Support for async context manager."""
@@ -82,7 +82,7 @@ class RedisKVStorage(BaseKVStorage):
     async def get_by_id(self, id: str) -> dict[str, Any] | None:
         async with self._get_redis_connection() as redis:
             try:
-                data = await redis.get(f"{self.namespace}:{id}")
+                data = await redis.get(f"{self.workspace}:{self.storage_type}:{id}")
                 return json.loads(data) if data else None
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error for id {id}: {e}")
@@ -93,7 +93,7 @@ class RedisKVStorage(BaseKVStorage):
             try:
                 pipe = redis.pipeline()
                 for id in ids:
-                    pipe.get(f"{self.namespace}:{id}")
+                    pipe.get(f"{self.workspace}:{self.storage_type}:{id}")
                 results = await pipe.execute()
                 return [json.loads(result) if result else None for result in results]
             except json.JSONDecodeError as e:
@@ -104,22 +104,22 @@ class RedisKVStorage(BaseKVStorage):
         async with self._get_redis_connection() as redis:
             pipe = redis.pipeline()
             for key in keys:
-                pipe.exists(f"{self.namespace}:{key}")
+                pipe.exists(f"{self.workspace}:{self.storage_type}:{key}")
             results = await pipe.execute()
 
-            existing_ids = {keys[i] for i, exists in enumerate(results) if exists}
+            existing_ids = {list(keys)[i] for i, exists in enumerate(results) if exists}
             return set(keys) - existing_ids
 
     async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
         if not data:
             return
 
-        logger.info(f"Inserting {len(data)} items to {self.namespace}")
+        logger.info(f"Inserting {len(data)} items to {self.workspace}:{self.storage_type}")
         async with self._get_redis_connection() as redis:
             try:
                 pipe = redis.pipeline()
                 for k, v in data.items():
-                    pipe.set(f"{self.namespace}:{k}", json.dumps(v))
+                    pipe.set(f"{self.workspace}:{self.storage_type}:{k}", json.dumps(v))
                 await pipe.execute()
 
                 for k in data:
@@ -140,12 +140,12 @@ class RedisKVStorage(BaseKVStorage):
         async with self._get_redis_connection() as redis:
             pipe = redis.pipeline()
             for id in ids:
-                pipe.delete(f"{self.namespace}:{id}")
+                pipe.delete(f"{self.workspace}:{self.storage_type}:{id}")
 
             results = await pipe.execute()
             deleted_count = sum(results)
             logger.info(
-                f"Deleted {deleted_count} of {len(ids)} entries from {self.namespace}"
+                f"Deleted {deleted_count} of {len(ids)} entries from {self.workspace}:{self.storage_type}"
             )
 
     async def drop_cache_by_modes(self, modes: list[str] | None = None) -> bool:
@@ -171,14 +171,14 @@ class RedisKVStorage(BaseKVStorage):
             return False
 
     async def drop(self) -> dict[str, str]:
-        """Drop the storage by removing all keys under the current namespace.
+        """Drop the storage by removing all keys under the current workspace:storage_type.
 
         Returns:
             dict[str, str]: Status of the operation with keys 'status' and 'message'
         """
         async with self._get_redis_connection() as redis:
             try:
-                keys = await redis.keys(f"{self.namespace}:*")
+                keys = await redis.keys(f"{self.workspace}:{self.storage_type}:*")
 
                 if keys:
                     pipe = redis.pipeline()
@@ -187,15 +187,15 @@ class RedisKVStorage(BaseKVStorage):
                     results = await pipe.execute()
                     deleted_count = sum(results)
 
-                    logger.info(f"Dropped {deleted_count} keys from {self.namespace}")
+                    logger.info(f"Dropped {deleted_count} keys from {self.workspace}:{self.storage_type}")
                     return {
                         "status": "success",
                         "message": f"{deleted_count} keys dropped",
                     }
                 else:
-                    logger.info(f"No keys found to drop in {self.namespace}")
+                    logger.info(f"No keys found to drop in {self.workspace}:{self.storage_type}")
                     return {"status": "success", "message": "no keys to drop"}
 
             except Exception as e:
-                logger.error(f"Error dropping keys from {self.namespace}: {e}")
+                logger.error(f"Error dropping keys from {self.workspace}:{self.storage_type}: {e}")
                 return {"status": "error", "message": str(e)}

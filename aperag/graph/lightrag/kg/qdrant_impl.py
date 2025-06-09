@@ -78,16 +78,18 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             ),
         )
         self._max_batch_size = self.global_config["embedding_batch_num"]
+        # Use workspace and storage_type to create collection name for proper isolation
+        self._collection_name = f"{self.workspace}_{self.storage_type}"
         QdrantVectorDBStorage.create_collection_if_not_exist(
             self._client,
-            self.namespace,
+            self._collection_name,
             vectors_config=models.VectorParams(
                 size=self.embedding_func.embedding_dim, distance=models.Distance.COSINE
             ),
         )
 
     async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
-        logger.info(f"Inserting {len(data)} to {self.namespace}")
+        logger.info(f"Inserting {len(data)} to {self._collection_name}")
         if not data:
             return
 
@@ -125,7 +127,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             )
 
         results = self._client.upsert(
-            collection_name=self.namespace, points=list_points, wait=True
+            collection_name=self._collection_name, points=list_points, wait=True
         )
         return results
 
@@ -136,7 +138,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             [query], _priority=5
         )  # higher priority for query
         results = self._client.search(
-            collection_name=self.namespace,
+            collection_name=self._collection_name,
             query_vector=embedding[0],
             limit=top_k,
             with_payload=True,
@@ -169,17 +171,17 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             qdrant_ids = [compute_mdhash_id_for_qdrant(id) for id in ids]
             # Delete points from the collection
             self._client.delete(
-                collection_name=self.namespace,
+                collection_name=self._collection_name,
                 points_selector=models.PointIdsList(
                     points=qdrant_ids,
                 ),
                 wait=True,
             )
             logger.debug(
-                f"Successfully deleted {len(ids)} vectors from {self.namespace}"
+                f"Successfully deleted {len(ids)} vectors from {self._collection_name}"
             )
         except Exception as e:
-            logger.error(f"Error while deleting vectors from {self.namespace}: {e}")
+            logger.error(f"Error while deleting vectors from {self._collection_name}: {e}")
 
     async def delete_entity(self, entity_name: str) -> None:
         """Delete an entity by name
@@ -196,7 +198,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
 
             # Delete the entity point from the collection
             self._client.delete(
-                collection_name=self.namespace,
+                collection_name=self._collection_name,
                 points_selector=models.PointIdsList(
                     points=[entity_id],
                 ),
@@ -215,7 +217,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
         try:
             # Find relations where the entity is either source or target
             results = self._client.scroll(
-                collection_name=self.namespace,
+                collection_name=self._collection_name,
                 scroll_filter=models.Filter(
                     should=[
                         models.FieldCondition(
@@ -237,7 +239,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             if ids_to_delete:
                 # Delete the relations
                 self._client.delete(
-                    collection_name=self.namespace,
+                    collection_name=self._collection_name,
                     points_selector=models.PointIdsList(
                         points=ids_to_delete,
                     ),
@@ -266,7 +268,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
 
             # Retrieve the point by ID
             result = self._client.retrieve(
-                collection_name=self.namespace,
+                collection_name=self._collection_name,
                 ids=[qdrant_id],
                 with_payload=True,
             )
@@ -302,7 +304,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
 
             # Retrieve the points by IDs
             results = self._client.retrieve(
-                collection_name=self.namespace,
+                collection_name=self._collection_name,
                 ids=qdrant_ids,
                 with_payload=True,
             )
@@ -332,13 +334,13 @@ class QdrantVectorDBStorage(BaseVectorStorage):
         """
         try:
             # Delete the collection and recreate it
-            if self._client.collection_exists(self.namespace):
-                self._client.delete_collection(self.namespace)
+            if self._client.collection_exists(self._collection_name):
+                self._client.delete_collection(self._collection_name)
 
             # Recreate the collection
             QdrantVectorDBStorage.create_collection_if_not_exist(
                 self._client,
-                self.namespace,
+                self._collection_name,
                 vectors_config=models.VectorParams(
                     size=self.embedding_func.embedding_dim,
                     distance=models.Distance.COSINE,
@@ -346,9 +348,9 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             )
 
             logger.info(
-                f"Process {os.getpid()} drop Qdrant collection {self.namespace}"
+                f"Process {os.getpid()} drop Qdrant collection {self._collection_name}"
             )
             return {"status": "success", "message": "data dropped"}
         except Exception as e:
-            logger.error(f"Error dropping Qdrant collection {self.namespace}: {e}")
+            logger.error(f"Error dropping Qdrant collection {self._collection_name}: {e}")
             return {"status": "error", "message": str(e)}

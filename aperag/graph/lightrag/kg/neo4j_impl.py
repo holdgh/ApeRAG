@@ -50,9 +50,10 @@ logging.getLogger("neo4j").setLevel(logging.ERROR)
 @final
 @dataclass
 class Neo4JStorage(BaseGraphStorage):
-    def __init__(self, namespace, global_config, embedding_func):
+    def __init__(self, namespace, workspace, global_config, embedding_func):
         super().__init__(
             namespace=namespace,
+            workspace=workspace,
             global_config=global_config,
             embedding_func=embedding_func,
         )
@@ -91,7 +92,7 @@ class Neo4JStorage(BaseGraphStorage):
             ),
         )
         DATABASE = os.environ.get(
-            "NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", self.namespace)
+            "NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", self.workspace)
         )
 
         self._driver: AsyncDriver = AsyncGraphDatabase.driver(
