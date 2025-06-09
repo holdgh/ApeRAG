@@ -37,7 +37,7 @@ from aperag.db.ops import db_ops
 from aperag.docparser.doc_parser import DocParser
 from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.embed.embedding_utils import create_embeddings_and_store
-from aperag.graph import lightrag_holder as lightrag_holder
+from aperag.graph import lightrag_holder2 as lightrag_holder
 from aperag.objectstore.base import get_object_store
 from aperag.schema.utils import parseCollectionConfig
 from aperag.source.base import get_source

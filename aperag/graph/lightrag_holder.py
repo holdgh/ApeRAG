@@ -26,7 +26,7 @@ from lightrag.utils import EmbeddingFunc
 
 from aperag.db.models import Collection
 from aperag.db.ops import (
-    async_db_ops,
+    db_ops,
 )
 from aperag.embed.base_embedding import get_collection_embedding_service
 from aperag.schema.utils import parseCollectionConfig
@@ -160,7 +160,7 @@ class LightRagHolder:
             )
 
             # Get all document IDs in this collection
-            document_ids = await async_db_ops.query_documents(collection_id).values_list("id", flat=True)
+            document_ids = db_ops.query_documents(collection_id).values_list("id", flat=True)
             document_ids = [str(doc_id) async for doc_id in document_ids]
 
             if not document_ids:
@@ -217,7 +217,7 @@ async def create_lightrag_llm_func(collection: Collection, msp_dict: Dict[str, A
     try:
         from aperag.db.models import LLMProvider
 
-        llm_provider = await async_db_ops.query_llm_provider_by_name(lightrag_msp)
+        llm_provider = db_ops.query_llm_provider_by_name(lightrag_msp)
         base_url = llm_provider.base_url
     except LLMProvider.DoesNotExist:
         raise LightRAGInitializationError(f"LLMProvider '{lightrag_msp}' not found")
@@ -269,7 +269,7 @@ async def create_lightrag_llm_func(collection: Collection, msp_dict: Dict[str, A
 async def gen_lightrag_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]:
     """Generate LightRAG LLM function with improved error handling"""
     try:
-        msp_dict = await async_db_ops.query_msp_dict(collection.user)
+        msp_dict = db_ops.query_msp_dict(collection.user)
         return await create_lightrag_llm_func(collection, msp_dict)
     except Exception as e:
         logger.error(f"Failed to generate LightRAG LLM function for collection {collection.id}: {str(e)}")
