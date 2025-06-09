@@ -112,3 +112,62 @@ async def aprocess_graph_indexing(
 
 ---
 
+## Celery任务无状态化改造
+
+### 已完成的改动
+
+1. **新增文件** (aperag/graph/lightrag/stateless_task_wrapper.py)
+   - 创建了 `StatelessLightRAGWrapper` 类，专门用于Celery任务
+   - 提供了异步和同步方法：`process_document_async` 和 `process_document_sync`
+   - 实现了独立的事件循环管理，避免与Celery冲突
+   - 提供了便捷函数：`process_document_for_celery` 和 `delete_document_for_celery`
+
+2. **修改index.py中的Celery任务**
+   - **add_lightrag_index_task**：
+     - 移除了 `async_to_sync` 和内部异步函数
+     - 使用 `process_document_for_celery` 替代原有的 `ainsert` 调用
+     - 返回详细的处理结果（chunks数量、实体数量、关系数量）
+   - **remove_lightrag_index_task**：
+     - 简化实现，移除异步代码
+     - 使用 `delete_document_for_celery` 替代 `adelete_by_doc_id`
+     - 改进错误处理和日志记录
+
+3. **清理不必要的导入**
+   - 从 index.py 中移除了 `async_to_sync` 导入
+   - 移除了 `lightrag_holder` 的直接导入
+
+### 核心改变
+
+- **事件循环隔离**：每个Celery任务使用独立的事件循环，完全避免冲突
+- **使用无状态接口**：充分利用新的三个无状态接口进行文档处理
+- **结构化结果**：返回详细的处理信息，包括chunks、实体、关系的数量
+- **更清晰的错误处理**：区分成功、警告和失败状态
+
+### 工作流程
+
+1. **文档处理流程**：
+   - 调用 `ainsert_document` 插入文档
+   - 调用 `aprocess_chunking` 进行分块
+   - 调用 `aprocess_graph_indexing` 构建图索引
+
+2. **事件循环管理**：
+   ```python
+   loop = asyncio.new_event_loop()
+   asyncio.set_event_loop(loop)
+   try:
+       result = loop.run_until_complete(async_method())
+   finally:
+       loop.close()
+       asyncio.set_event_loop(None)
+   ```
+
+### 优势
+
+- **无事件循环冲突**：完全隔离的事件循环管理
+- **更好的并发支持**：使用无状态接口，避免全局锁限制
+- **详细的处理信息**：返回chunks、实体、关系的具体数量
+- **更简洁的代码**：移除了复杂的异步转同步逻辑
+- **保持兼容性**：`lightrag_holder.py` 保持不变，确保向后兼容
+
+---
+

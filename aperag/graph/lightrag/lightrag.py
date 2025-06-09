@@ -657,11 +657,9 @@ class LightRAG:
                 "file_path": file_path,
             }
             
-        # Write to storage (no global state checks)
-        await asyncio.gather(
-            self.full_docs.upsert(doc_data),
-            self.doc_status.upsert(status_data)
-        )
+        # Write to storage (avoid concurrent operations on same connection)
+        await self.full_docs.upsert(doc_data)
+        await self.doc_status.upsert(status_data)
         
         # Return metadata
         return {
@@ -697,20 +695,40 @@ class LightRAG:
             if not doc_data:
                 raise ValueError(f"Document {doc_id} not found in storage")
             content = doc_data.get("content", "")
+            if not content:
+                raise ValueError(f"Document {doc_id} has no content")
             
-        # Perform chunking
+        # Clean content
+        content = clean_text(content)
+        if not content.strip():
+            raise ValueError(f"Document {doc_id} content is empty after cleaning")
+            
+        # Perform chunking with correct parameter order
         chunk_list = self.chunking_func(
             self.tokenizer,
             content,
             split_by_character,
             split_by_character_only,
-            self.chunk_overlap_token_size,
-            self.chunk_token_size,
+            self.chunk_overlap_token_size,  # overlap_token_size parameter
+            self.chunk_token_size,          # max_token_size parameter
         )
         
-        # Create chunk data with IDs
+        # Validate chunk_list format
+        if not chunk_list:
+            raise ValueError(f"Chunking returned empty list for document {doc_id}")
+            
+        # Create chunk data with IDs and validate each chunk
         chunks = {}
-        for chunk_data in chunk_list:
+        for i, chunk_data in enumerate(chunk_list):
+            # Validate chunk_data format
+            if not isinstance(chunk_data, dict):
+                raise ValueError(f"Chunk {i} is not a dictionary: {type(chunk_data)}")
+            if "content" not in chunk_data:
+                raise ValueError(f"Chunk {i} missing 'content' key: {chunk_data.keys()}")
+            if not chunk_data["content"]:
+                logger.warning(f"Chunk {i} has empty content, skipping")
+                continue
+                
             chunk_id = compute_mdhash_id(chunk_data["content"], prefix="chunk-")
             chunks[chunk_id] = {
                 **chunk_data,
@@ -718,11 +736,12 @@ class LightRAG:
                 "file_path": file_path,
             }
             
-        # Write chunks to storage
-        await asyncio.gather(
-            self.chunks_vdb.upsert(chunks),
-            self.text_chunks.upsert(chunks)
-        )
+        if not chunks:
+            raise ValueError(f"No valid chunks created for document {doc_id}")
+            
+        # Write chunks to storage (avoid concurrent operations on same connection)
+        await self.chunks_vdb.upsert(chunks)
+        await self.text_chunks.upsert(chunks)
         
         # Update document status to indicate chunking is done
         await self.doc_status.upsert({
@@ -732,6 +751,8 @@ class LightRAG:
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         })
+        
+        logger.info(f"Created {len(chunks)} chunks for document {doc_id}")
         
         return {
             "doc_id": doc_id,
@@ -757,6 +778,21 @@ class LightRAG:
         """
         # No global state or pipeline_status
         try:
+            # Validate chunks input
+            if not chunks:
+                raise ValueError("No chunks provided for graph indexing")
+                
+            # Validate each chunk has required fields
+            for chunk_id, chunk_data in chunks.items():
+                if not isinstance(chunk_data, dict):
+                    raise ValueError(f"Chunk {chunk_id} is not a dictionary")
+                if "content" not in chunk_data:
+                    raise ValueError(f"Chunk {chunk_id} missing 'content' key")
+                if not chunk_data["content"]:
+                    raise ValueError(f"Chunk {chunk_id} has empty content")
+                    
+            logger.info(f"Starting graph indexing for {len(chunks)} chunks")
+            
             # 1. Extract entities and relations from chunks
             chunk_results = await extract_entities(
                 chunks,
@@ -765,6 +801,8 @@ class LightRAG:
                 pipeline_status_lock=None,  # No lock
                 llm_response_cache=self.llm_response_cache,
             )
+            
+            logger.info(f"Extracted entities and relations from {len(chunks)} chunks")
             
             # 2. Merge nodes and edges (this already uses graph_db_lock internally)
             await merge_nodes_and_edges(
@@ -781,12 +819,16 @@ class LightRAG:
                 file_path="stateless_processing",
             )
             
+            logger.info("Completed merging entities and relations")
+            
             # 3. Call index done callbacks
             await self._insert_done()
             
             # Count results
             entity_count = sum(len(nodes) for nodes, _ in chunk_results)
             relation_count = sum(len(edges) for _, edges in chunk_results)
+            
+            logger.info(f"Graph indexing completed: {entity_count} entities, {relation_count} relations")
             
             return {
                 "status": "success",
@@ -797,7 +839,7 @@ class LightRAG:
             }
             
         except Exception as e:
-            logger.error(f"Graph indexing failed: {str(e)}")
+            logger.error(f"Graph indexing failed: {str(e)}", exc_info=True)
             return {
                 "status": "error",
                 "error": str(e),

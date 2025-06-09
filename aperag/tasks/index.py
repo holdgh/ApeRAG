@@ -20,7 +20,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from asgiref.sync import async_to_sync
 from celery import Task
 from sqlmodel import select
 
@@ -37,7 +36,6 @@ from aperag.db.ops import db_ops
 from aperag.docparser.doc_parser import DocParser
 from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.embed.embedding_utils import create_embeddings_and_store
-from aperag.graph import lightrag_holder as lightrag_holder
 from aperag.objectstore.base import get_object_store
 from aperag.schema.utils import parseCollectionConfig
 from aperag.source.base import get_source
@@ -576,8 +574,7 @@ def update_index_for_document(self, document_id):
 @app.task(bind=True, track_started=True)
 def add_lightrag_index_task(self, content, document_id, file_path):
     """
-    Dedicated Celery task for LightRAG indexing
-    Create new LightRAG instance each time to avoid event loop conflicts in this task
+    Dedicated Celery task for LightRAG indexing using stateless interfaces
     """
     logger.info(f"Begin LightRAG indexing task for document (ID: {document_id})")
 
@@ -612,25 +609,41 @@ def add_lightrag_index_task(self, content, document_id, file_path):
     document.graph_index_status = DocumentIndexStatus.RUNNING
     db_ops.update_document(document)
 
-    async def _async_add_lightrag_index():
-        # Create new LightRAG instance without using cache for Celery tasks
-        rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
-
-        await rag_holder.ainsert(input=content, ids=document_id, file_paths=file_path)
-
-        lightrag_docs = await rag_holder.get_processed_docs()
-        if not lightrag_docs or str(document_id) not in lightrag_docs:
-            error_msg = f"Error indexing document for LightRAG (ID: {document_id}). No processed document found."
-            logger.error(error_msg)
-            raise RuntimeError(error_msg)
-
-        logger.info(f"Successfully completed LightRAG indexing for document (ID: {document_id})")
-
     try:
-        async_to_sync(_async_add_lightrag_index)()
-        # Update graph index status to complete
-        document.graph_index_status = DocumentIndexStatus.COMPLETE
-        logger.info(f"Graph index completed for document (ID: {document_id})")
+        # Use the new stateless wrapper for document processing
+        from aperag.graph.lightrag.stateless_task_wrapper import process_document_for_celery
+        
+        # Process the document using stateless interfaces
+        result = process_document_for_celery(
+            collection=collection,
+            content=content,
+            doc_id=str(document_id),
+            file_path=file_path
+        )
+        
+        # Check if processing was successful
+        if result.get("status") == "success":
+            # Update graph index status to complete
+            document.graph_index_status = DocumentIndexStatus.COMPLETE
+            logger.info(
+                f"Graph index completed for document (ID: {document_id}). "
+                f"Chunks: {result.get('chunks_created', 0)}, "
+                f"Entities: {result.get('entities_extracted', 0)}, "
+                f"Relations: {result.get('relations_extracted', 0)}"
+            )
+        elif result.get("status") == "warning":
+            # Handle warning cases (e.g., no chunks generated)
+            document.graph_index_status = DocumentIndexStatus.COMPLETE
+            logger.warning(
+                f"Graph index completed with warnings for document (ID: {document_id}): "
+                f"{result.get('message', 'Unknown warning')}"
+            )
+        else:
+            # Unexpected status
+            document.graph_index_status = DocumentIndexStatus.FAILED
+            logger.error(
+                f"Unexpected status for document (ID: {document_id}): {result.get('status', 'unknown')}"
+            )
     except Exception as e:
         logger.error(f"LightRAG indexing failed for document (ID: {document_id}): {str(e)}")
         # Update graph index status to failed
@@ -648,30 +661,35 @@ def add_lightrag_index_task(self, content, document_id, file_path):
 @app.task(bind=True, track_started=True)
 def remove_lightrag_index_task(self, document_id, collection_id):
     """
-    Dedicated Celery task for LightRAG deletion
-    Create new LightRAG instance without using cache for Celery tasks
+    Dedicated Celery task for LightRAG deletion using stateless interfaces
     """
     logger.info(f"Begin LightRAG deletion task for document (ID: {document_id})")
 
-    async def _async_delete_lightrag():
-        from aperag.config import get_async_session
-
-        collection: Collection = None
-        async for async_session in get_async_session():
-            collection_stmt = select(Collection).where(Collection.id == collection_id)
-            collection_result = await async_session.execute(collection_stmt)
-            collection = collection_result.scalars().first()
-
-            if not collection:
-                raise Exception(f"Collection {collection_id} not found")
-
-        # Create new LightRAG instance without using cache for Celery tasks
-        rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
-        await rag_holder.adelete_by_doc_id(document_id)
-        logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
-
     try:
-        async_to_sync(_async_delete_lightrag)()
+        # Get collection object using db_ops
+        collection = db_ops.query_collection_by_id(collection_id)
+        if not collection:
+            logger.error(f"Collection {collection_id} not found for document deletion")
+            raise Exception(f"Collection {collection_id} not found")
+        
+        # Use the new stateless wrapper for document deletion
+        from aperag.graph.lightrag.stateless_task_wrapper import delete_document_for_celery
+        
+        # Delete the document using stateless interface
+        result = delete_document_for_celery(
+            collection=collection,
+            doc_id=str(document_id)
+        )
+        
+        if result.get("status") == "success":
+            logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
+        else:
+            logger.error(
+                f"LightRAG deletion failed for document (ID: {document_id}): "
+                f"{result.get('message', 'Unknown error')}"
+            )
+            raise Exception(f"Deletion failed: {result.get('message', 'Unknown error')}")
+            
     except Exception as e:
         logger.error(f"LightRAG deletion failed for document (ID: {document_id}): {str(e)}")
         raise self.retry(
