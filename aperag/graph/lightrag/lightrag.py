@@ -590,6 +590,136 @@ class LightRAG:
 
     # ============= New Stateless Interfaces =============
     
+    async def ainsert_and_chunk_document(
+        self,
+        documents: list[str],
+        doc_ids: list[str] | None = None,
+        file_paths: list[str] | None = None,
+        split_by_character: str | None = None,
+        split_by_character_only: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Stateless document insertion and chunking - inserts documents and performs chunking in one step.
+        
+        Args:
+            documents: List of document contents
+            doc_ids: Optional list of document IDs (will generate if not provided)
+            file_paths: Optional list of file paths for citation
+            split_by_character: Optional character to split by
+            split_by_character_only: If True, only split by character
+            
+        Returns:
+            Dict with document metadata and chunks
+        """
+        # Ensure lists
+        if isinstance(documents, str):
+            documents = [documents]
+        if isinstance(doc_ids, str):
+            doc_ids = [doc_ids]
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+            
+        # Validate inputs
+        if file_paths and len(file_paths) != len(documents):
+            raise ValueError("Number of file paths must match number of documents")
+        if doc_ids and len(doc_ids) != len(documents):
+            raise ValueError("Number of doc IDs must match number of documents")
+            
+        # Use default file paths if not provided
+        if not file_paths:
+            file_paths = ["unknown_source"] * len(documents)
+            
+        # Generate or validate IDs
+        if not doc_ids:
+            doc_ids = [
+                compute_mdhash_id(clean_text(doc), prefix="doc-") 
+                for doc in documents
+            ]
+        else:
+            # Check uniqueness
+            if len(doc_ids) != len(set(doc_ids)):
+                raise ValueError("Document IDs must be unique")
+                
+        results = []
+        
+        for doc_id, content, file_path in zip(doc_ids, documents, file_paths):
+            cleaned_content = clean_text(content)
+            
+            if not cleaned_content.strip():
+                raise ValueError(f"Document {doc_id} content is empty after cleaning")
+            
+            # Perform chunking
+            chunk_list = self.chunking_func(
+                self.tokenizer,
+                cleaned_content,
+                split_by_character,
+                split_by_character_only,
+                self.chunk_overlap_token_size,
+                self.chunk_token_size,
+            )
+            
+            # Validate chunk_list format
+            if not chunk_list:
+                raise ValueError(f"Chunking returned empty list for document {doc_id}")
+                
+            # Create chunk data with IDs and validate each chunk
+            chunks = {}
+            for i, chunk_data in enumerate(chunk_list):
+                # Validate chunk_data format
+                if not isinstance(chunk_data, dict):
+                    raise ValueError(f"Chunk {i} is not a dictionary: {type(chunk_data)}")
+                if "content" not in chunk_data:
+                    raise ValueError(f"Chunk {i} missing 'content' key: {chunk_data.keys()}")
+                if not chunk_data["content"]:
+                    logger.warning(f"Chunk {i} has empty content, skipping")
+                    continue
+                    
+                chunk_id = compute_mdhash_id(chunk_data["content"], prefix="chunk-")
+                chunks[chunk_id] = {
+                    **chunk_data,
+                    "full_doc_id": doc_id,
+                    "file_path": file_path,
+                }
+                
+            if not chunks:
+                raise ValueError(f"No valid chunks created for document {doc_id}")
+            
+            # Prepare complete status data
+            status_data = {
+                "status": DocStatus.PROCESSING,
+                "content": cleaned_content,
+                "content_summary": get_content_summary(cleaned_content),
+                "content_length": len(cleaned_content),
+                "chunks_count": len(chunks),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "file_path": file_path,
+            }
+            
+            # Write to storage (avoid concurrent operations on same connection)
+            doc_data = {doc_id: {"content": cleaned_content}}
+            await self.full_docs.upsert(doc_data)
+            await self.chunks_vdb.upsert(chunks)
+            await self.text_chunks.upsert(chunks)
+            await self.doc_status.upsert({doc_id: status_data})
+            
+            logger.info(f"Inserted and chunked document {doc_id}: {len(chunks)} chunks")
+            
+            results.append({
+                "doc_id": doc_id,
+                "chunks": list(chunks.keys()),
+                "chunk_count": len(chunks),
+                "chunks_data": chunks,
+                "status": "processed"
+            })
+        
+        return {
+            "results": results,
+            "total_documents": len(doc_ids),
+            "total_chunks": sum(len(r["chunks"]) for r in results),
+            "status": "success"
+        }
+    
     async def ainsert_document(
         self,
         documents: list[str],
@@ -689,7 +819,7 @@ class LightRAG:
         Returns:
             Dict containing chunks with their metadata
         """
-        # Get content if not provided
+        # Get content and existing status if not provided
         if content is None:
             doc_data = await self.full_docs.get_by_id(doc_id)
             if not doc_data:
@@ -697,6 +827,11 @@ class LightRAG:
             content = doc_data.get("content", "")
             if not content:
                 raise ValueError(f"Document {doc_id} has no content")
+            
+        # Get existing document status to preserve all fields
+        existing_status = await self.doc_status.get_by_id(doc_id)
+        if not existing_status:
+            raise ValueError(f"Document status for {doc_id} not found in storage")
             
         # Clean content
         content = clean_text(content)
@@ -743,14 +878,19 @@ class LightRAG:
         await self.chunks_vdb.upsert(chunks)
         await self.text_chunks.upsert(chunks)
         
-        # Update document status to indicate chunking is done
-        await self.doc_status.upsert({
-            doc_id: {
-                "status": DocStatus.PROCESSING,
-                "chunks_count": len(chunks),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
-        })
+        # Update document status with complete fields preserved
+        updated_status = {
+            "status": DocStatus.PROCESSING,
+            "content": existing_status.get("content", content),
+            "content_summary": existing_status.get("content_summary", get_content_summary(content)),
+            "content_length": existing_status.get("content_length", len(content)),
+            "chunks_count": len(chunks),
+            "created_at": existing_status.get("created_at", datetime.now(timezone.utc).isoformat()),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "file_path": existing_status.get("file_path", file_path),
+        }
+        
+        await self.doc_status.upsert({doc_id: updated_status})
         
         logger.info(f"Created {len(chunks)} chunks for document {doc_id}")
         

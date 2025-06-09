@@ -76,25 +76,31 @@ class StatelessLightRAGWrapper:
         rag = await self._get_or_create_instance()
         
         try:
-            # Step 1: Insert document
-            logger.info(f"Inserting document {doc_id} into LightRAG")
-            insert_result = await rag.ainsert_document(
+            # # Step 1: Insert document
+            # logger.info(f"Inserting document {doc_id} into LightRAG")
+            # insert_result = await rag.ainsert_document(
+            #     documents=[content],
+            #     doc_ids=[doc_id],
+            #     file_paths=[file_path]
+            # )
+            #
+            # # Verify document was inserted
+            # inserted_doc_id = insert_result["doc_ids"][0]
+            # if str(inserted_doc_id) != str(doc_id):
+            #     logger.warning(f"Document ID mismatch: expected {doc_id}, got {inserted_doc_id}")
+            #
+            # # Step 2: Process chunking
+            # logger.info(f"Processing chunks for document {doc_id}")
+            # chunk_result = await rag.aprocess_chunking(
+            #     doc_id=str(doc_id),
+            #     content=content,
+            #     file_path=file_path
+            # )
+
+            chunk_result = await rag.ainsert_and_chunk_document(
                 documents=[content],
                 doc_ids=[doc_id],
                 file_paths=[file_path]
-            )
-            
-            # Verify document was inserted
-            inserted_doc_id = insert_result["doc_ids"][0]
-            if str(inserted_doc_id) != str(doc_id):
-                logger.warning(f"Document ID mismatch: expected {doc_id}, got {inserted_doc_id}")
-            
-            # Step 2: Process chunking
-            logger.info(f"Processing chunks for document {doc_id}")
-            chunk_result = await rag.aprocess_chunking(
-                doc_id=str(doc_id),
-                content=content,
-                file_path=file_path
             )
             
             # Step 3: Extract entities and build graph index
