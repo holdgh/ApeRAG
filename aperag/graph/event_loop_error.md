@@ -27,16 +27,16 @@ Traceback (most recent call last):
   File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/tasks/index.py", line 617, in add_lightrag_index_task
     result = process_document_for_celery(
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/lightrag/stateless_task_wrapper.py", line 264, in process_document_for_celery
+  File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/stateless_task_wrapper.py", line 264, in process_document_for_celery
     return wrapper.process_document_sync(content, doc_id, file_path)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/lightrag/stateless_task_wrapper.py", line 182, in process_document_sync
+  File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/stateless_task_wrapper.py", line 182, in process_document_sync
     result = loop.run_until_complete(
              ^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
     return future.result()
            ^^^^^^^^^^^^^^^
-  File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/lightrag/stateless_task_wrapper.py", line 80, in process_document_async
+  File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/stateless_task_wrapper.py", line 80, in process_document_async
     chunk_result = await rag.ainsert_and_chunk_document(
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Users/earayu/Documents/GitHub/apecloud/ApeRAG/aperag/graph/lightrag/lightrag.py", line 701, in ainsert_and_chunk_document

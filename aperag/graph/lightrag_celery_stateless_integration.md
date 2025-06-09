@@ -8,7 +8,7 @@
 
 ### 1. 新增文件
 
-#### `aperag/graph/lightrag/stateless_task_wrapper.py`
+#### `aperag/graph/stateless_task_wrapper.py`
 
 提供了一个专门用于 Celery 任务的包装器，主要特性：
 

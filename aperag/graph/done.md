@@ -116,7 +116,7 @@ async def aprocess_graph_indexing(
 
 ### 已完成的改动
 
-1. **新增文件** (aperag/graph/lightrag/stateless_task_wrapper.py)
+1. **新增文件** (aperag/graph/stateless_task_wrapper.py)
    - 创建了 `StatelessLightRAGWrapper` 类，专门用于Celery任务
    - 提供了异步和同步方法：`process_document_async` 和 `process_document_sync`
    - 实现了独立的事件循环管理，避免与Celery冲突
