@@ -37,6 +37,7 @@ STORAGE_IMPLEMENTATIONS = {
         "implementations": [
             "PGVectorStorage",
             "PGSyncVectorStorage",
+            "PGOpsSyncVectorStorage",
             "QdrantVectorDBStorage",
         ],
         "required_methods": ["query", "upsert"],
@@ -57,7 +58,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "RedisKVStorage": ["REDIS_URI"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "PGSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    "PGOpsSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    # PGOpsSyncKVStorage uses DatabaseOps, no direct env vars needed
     # Graph Storage Implementations
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
@@ -74,18 +75,28 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # Document Status Storage Implementations
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "PGSyncDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    "PGOpsDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    # PGOpsDocStatusStorage uses DatabaseOps, no direct env vars needed
 }
 
 # Storage implementation module mapping
 STORAGES = {
     "Neo4JStorage": ".kg.neo4j_impl",
     "Neo4JSyncStorage": ".kg.neo4j_sync_impl",
+
     "RedisKVStorage": ".kg.redis_impl",
+
     "PGKVStorage": ".kg.postgres_impl",
     "PGVectorStorage": ".kg.postgres_impl",
-    "PGGraphStorage": ".kg.postgres_impl",
     "PGDocStatusStorage": ".kg.postgres_impl",
+
+    "PGSyncDocStatusStorage": ".kg.postgres_sync_impl",
+    "PGSyncKVStorage": ".kg.postgres_sync_impl",
+    "PGSyncVectorStorage": ".kg.postgres_sync_impl",
+
+    "PGOpsDocStatusStorage": ".kg.postgres_sync_impl",
+    "PGOpsSyncKVStorage": ".kg.postgres_sync_impl",
+    "PGOpsSyncVectorStorage": ".kg.postgres_sync_impl",
+
     "QdrantVectorDBStorage": ".kg.qdrant_impl",
 }
 

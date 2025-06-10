@@ -374,6 +374,10 @@ async def checkAndConfigurePostgresqlStorage(
             LIGHTRAG_KV_STORAGE == "PGSyncKVStorage",
             LIGHTRAG_VECTOR_STORAGE == "PGSyncVectorStorage",
             LIGHTRAG_DOC_STATUS_STORAGE == "PGSyncDocStatusStorage",
+            # Ops Sync
+            LIGHTRAG_KV_STORAGE == "PGOpsSyncKVStorage",
+            LIGHTRAG_VECTOR_STORAGE == "PGOpsSyncVectorStorage",
+            LIGHTRAG_DOC_STATUS_STORAGE == "PGOpsDocStatusStorage",
         ]
     )
     if using_pg_storage:
