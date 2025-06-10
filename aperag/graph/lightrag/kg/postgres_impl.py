@@ -66,126 +66,6 @@ class PostgreSQLDB:
             )
             raise
 
-    @staticmethod
-    async def configure_age(connection: asyncpg.Connection, graph_name: str) -> None:
-        """Set the Apache AGE environment and creates a graph if it does not exist.
-
-        This method:
-        - Sets the PostgreSQL `search_path` to include `ag_catalog`, ensuring that Apache AGE functions can be used without specifying the schema.
-        - Attempts to create a new graph with the provided `graph_name` if it does not already exist.
-        - Silently ignores errors related to the graph already existing.
-
-        """
-        try:
-            await connection.execute(  # type: ignore
-                'SET search_path = ag_catalog, "$user", public'
-            )
-            await connection.execute(  # type: ignore
-                f"select create_graph('{graph_name}')"
-            )
-        except (
-            asyncpg.exceptions.InvalidSchemaNameError,
-            asyncpg.exceptions.UniqueViolationError,
-        ):
-            pass
-
-    async def _migrate_timestamp_columns(self):
-        """Migrate timestamp columns in tables to timezone-aware types, assuming original data is in UTC time"""
-        # Tables and columns that need migration
-        tables_to_migrate = {
-            "LIGHTRAG_VDB_ENTITY": ["create_time", "update_time"],
-            "LIGHTRAG_VDB_RELATION": ["create_time", "update_time"],
-            "LIGHTRAG_DOC_CHUNKS": ["create_time", "update_time"],
-        }
-
-        for table_name, columns in tables_to_migrate.items():
-            for column_name in columns:
-                try:
-                    # Check if column exists
-                    check_column_sql = f"""
-                    SELECT column_name, data_type
-                    FROM information_schema.columns
-                    WHERE table_name = '{table_name.lower()}'
-                    AND column_name = '{column_name}'
-                    """
-
-                    column_info = await self.query(check_column_sql)
-                    if not column_info:
-                        logger.warning(
-                            f"Column {table_name}.{column_name} does not exist, skipping migration"
-                        )
-                        continue
-
-                    # Check column type
-                    data_type = column_info.get("data_type")
-                    if data_type == "timestamp with time zone":
-                        logger.info(
-                            f"Column {table_name}.{column_name} is already timezone-aware, no migration needed"
-                        )
-                        continue
-
-                    # Execute migration, explicitly specifying UTC timezone for interpreting original data
-                    logger.info(
-                        f"Migrating {table_name}.{column_name} to timezone-aware type"
-                    )
-                    migration_sql = f"""
-                    ALTER TABLE {table_name}
-                    ALTER COLUMN {column_name} TYPE TIMESTAMP(0) WITH TIME ZONE
-                    USING {column_name} AT TIME ZONE 'UTC'
-                    """
-
-                    await self.execute(migration_sql)
-                    logger.info(
-                        f"Successfully migrated {table_name}.{column_name} to timezone-aware type"
-                    )
-                except Exception as e:
-                    # Log error but don't interrupt the process
-                    logger.warning(f"Failed to migrate {table_name}.{column_name}: {e}")
-
-    async def check_tables(self):
-        # First create all tables
-        for k, v in TABLES.items():
-            try:
-                await self.query(f"SELECT 1 FROM {k} LIMIT 1")
-            except Exception:
-                try:
-                    logger.info(f"PostgreSQL, Try Creating table {k} in database")
-                    await self.execute(v["ddl"])
-                    logger.info(
-                        f"PostgreSQL, Creation success table {k} in PostgreSQL database"
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"PostgreSQL, Failed to create table {k} in database, Please verify the connection with PostgreSQL database, Got: {e}"
-                    )
-                    raise e
-
-            # Create index for id column in each table
-            try:
-                index_name = f"idx_{k.lower()}_id"
-                check_index_sql = f"""
-                SELECT 1 FROM pg_indexes
-                WHERE indexname = '{index_name}'
-                AND tablename = '{k.lower()}'
-                """
-                index_exists = await self.query(check_index_sql)
-
-                if not index_exists:
-                    create_index_sql = f"CREATE INDEX {index_name} ON {k}(id)"
-                    logger.info(f"PostgreSQL, Creating index {index_name} on table {k}")
-                    await self.execute(create_index_sql)
-            except Exception as e:
-                logger.error(
-                    f"PostgreSQL, Failed to create index on table {k}, Got: {e}"
-                )
-
-        # After all tables are created, attempt to migrate timestamp fields
-        try:
-            await self._migrate_timestamp_columns()
-        except Exception as e:
-            logger.error(f"PostgreSQL, Failed to migrate timestamp columns: {e}")
-            # Don't throw an exception, allow the initialization process to continue
-
     async def query(
         self,
         sql: str,
@@ -198,11 +78,6 @@ class PostgreSQLDB:
         # logger.info(f"PostgreSQL, Querying:\n{sql}")
 
         async with self.pool.acquire() as connection:  # type: ignore
-            if with_age and graph_name:
-                await self.configure_age(connection, graph_name)  # type: ignore
-            elif with_age and not graph_name:
-                raise ValueError("Graph name is required when with_age is True")
-
             try:
                 if params:
                     rows = await connection.fetch(sql, *params.values())
@@ -241,11 +116,6 @@ class PostgreSQLDB:
     ):
         try:
             async with self.pool.acquire() as connection:  # type: ignore
-                if with_age and graph_name:
-                    await self.configure_age(connection, graph_name)  # type: ignore
-                elif with_age and not graph_name:
-                    raise ValueError("Graph name is required when with_age is True")
-
                 if data is None:
                     await connection.execute(sql)  # type: ignore
                 else:
@@ -1087,93 +957,6 @@ def namespace_to_table_name(namespace: str) -> str:
     for k, v in NAMESPACE_TABLE_MAP.items():
         if is_namespace(namespace, k):
             return v
-
-
-TABLES = {
-    "LIGHTRAG_DOC_FULL": {
-        "ddl": """CREATE TABLE LIGHTRAG_DOC_FULL (
-                    id VARCHAR(255),
-                    workspace VARCHAR(255),
-                    doc_name VARCHAR(1024),
-                    content TEXT,
-                    meta JSONB,
-                    create_time TIMESTAMP(0),
-                    update_time TIMESTAMP(0),
-	                CONSTRAINT LIGHTRAG_DOC_FULL_PK PRIMARY KEY (workspace, id)
-                    )"""
-    },
-    "LIGHTRAG_DOC_CHUNKS": {
-        "ddl": """CREATE TABLE LIGHTRAG_DOC_CHUNKS (
-                    id VARCHAR(255),
-                    workspace VARCHAR(255),
-                    full_doc_id VARCHAR(256),
-                    chunk_order_index INTEGER,
-                    tokens INTEGER,
-                    content TEXT,
-                    content_vector VECTOR,
-                    file_path VARCHAR(256),
-                    create_time TIMESTAMP(0) WITH TIME ZONE,
-                    update_time TIMESTAMP(0) WITH TIME ZONE,
-	                CONSTRAINT LIGHTRAG_DOC_CHUNKS_PK PRIMARY KEY (workspace, id)
-                    )"""
-    },
-    "LIGHTRAG_VDB_ENTITY": {
-        "ddl": """CREATE TABLE LIGHTRAG_VDB_ENTITY (
-                    id VARCHAR(255),
-                    workspace VARCHAR(255),
-                    entity_name VARCHAR(255),
-                    content TEXT,
-                    content_vector VECTOR,
-                    create_time TIMESTAMP(0) WITH TIME ZONE,
-                    update_time TIMESTAMP(0) WITH TIME ZONE,
-                    chunk_ids VARCHAR(255)[] NULL,
-                    file_path TEXT NULL,
-	                CONSTRAINT LIGHTRAG_VDB_ENTITY_PK PRIMARY KEY (workspace, id)
-                    )"""
-    },
-    "LIGHTRAG_VDB_RELATION": {
-        "ddl": """CREATE TABLE LIGHTRAG_VDB_RELATION (
-                    id VARCHAR(255),
-                    workspace VARCHAR(255),
-                    source_id VARCHAR(256),
-                    target_id VARCHAR(256),
-                    content TEXT,
-                    content_vector VECTOR,
-                    create_time TIMESTAMP(0) WITH TIME ZONE,
-                    update_time TIMESTAMP(0) WITH TIME ZONE,
-                    chunk_ids VARCHAR(255)[] NULL,
-                    file_path TEXT NULL,
-	                CONSTRAINT LIGHTRAG_VDB_RELATION_PK PRIMARY KEY (workspace, id)
-                    )"""
-    },
-    "LIGHTRAG_LLM_CACHE": {
-        "ddl": """CREATE TABLE LIGHTRAG_LLM_CACHE (
-	                workspace varchar(255) NOT NULL,
-	                id varchar(255) NOT NULL,
-	                mode varchar(32) NOT NULL,
-                    original_prompt TEXT,
-                    return_value TEXT,
-                    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    update_time TIMESTAMP,
-	                CONSTRAINT LIGHTRAG_LLM_CACHE_PK PRIMARY KEY (workspace, mode, id)
-                    )"""
-    },
-    "LIGHTRAG_DOC_STATUS": {
-        "ddl": """CREATE TABLE LIGHTRAG_DOC_STATUS (
-	               workspace varchar(255) NOT NULL,
-	               id varchar(255) NOT NULL,
-	               content TEXT NULL,
-	               content_summary varchar(255) NULL,
-	               content_length int4 NULL,
-	               chunks_count int4 NULL,
-	               status varchar(64) NULL,
-	               file_path TEXT NULL,
-	               created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NULL,
-	               updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NULL,
-	               CONSTRAINT LIGHTRAG_DOC_STATUS_PK PRIMARY KEY (workspace, id)
-	              )"""
-    },
-}
 
 
 SQL_TEMPLATES = {
