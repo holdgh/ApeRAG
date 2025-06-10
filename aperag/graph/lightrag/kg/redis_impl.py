@@ -23,7 +23,7 @@ SOCKET_CONNECT_TIMEOUT = 3.0
 class RedisKVStorage(BaseKVStorage):
     def __post_init__(self):
         redis_url = os.environ.get(
-            "REDIS_URI"
+            "REDIS_URI", "redis://localhost:6379"
         )
         # Create a connection pool with limits
         self._pool = ConnectionPool.from_url(

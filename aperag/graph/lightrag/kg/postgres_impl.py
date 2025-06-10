@@ -279,13 +279,13 @@ class ClientManager:
     @staticmethod
     def get_config() -> dict[str, Any]:
         return {
-            "host": os.environ.get("POSTGRES_HOST"),
-            "port": os.environ.get("POSTGRES_PORT"),
-            "user": os.environ.get("POSTGRES_USER"),
-            "password": os.environ.get("POSTGRES_PASSWORD"),
-            "database": os.environ.get("POSTGRES_DATABASE"),
-            "workspace": os.environ.get("POSTGRES_WORKSPACE"),
-            "max_connections": os.environ.get("POSTGRES_MAX_CONNECTIONS"),
+            "host": os.environ.get("POSTGRES_HOST", "localhost"),
+            "port": os.environ.get("POSTGRES_PORT", 5432),
+            "user": os.environ.get("POSTGRES_USER", "postgres"),
+            "password": os.environ.get("POSTGRES_PASSWORD", "password"),
+            "database": os.environ.get("POSTGRES_DATABASE", "postgres"),
+            "workspace": os.environ.get("POSTGRES_WORKSPACE", "default"),
+            "max_connections": os.environ.get("POSTGRES_MAX_CONNECTIONS", 20),
         }
 
     @classmethod

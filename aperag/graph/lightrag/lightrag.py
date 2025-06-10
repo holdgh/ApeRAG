@@ -713,7 +713,11 @@ class LightRAG:
             # 1. Extract entities and relations from chunks
             chunk_results = await extract_entities(
                 chunks,
-                global_config=asdict(self),
+                use_llm_func=self.llm_model_func,
+                entity_extract_max_gleaning=self.entity_extract_max_gleaning,
+                addon_params=self.addon_params,
+                tokenizer=self.tokenizer,
+                llm_model_max_async=self.llm_model_max_async,
                 llm_response_cache=self.llm_response_cache,
                 lightrag_logger=lightrag_logger,
             )
@@ -1231,7 +1235,11 @@ class LightRAG:
         try:
             chunk_results = await extract_entities(
                 chunk,
-                global_config=asdict(self),
+                use_llm_func=self.llm_model_func,
+                entity_extract_max_gleaning=self.entity_extract_max_gleaning,
+                addon_params=self.addon_params,
+                tokenizer=self.tokenizer,
+                llm_model_max_async=self.llm_model_max_async,
                 llm_response_cache=self.llm_response_cache,
                 lightrag_logger=lightrag_logger,
             )

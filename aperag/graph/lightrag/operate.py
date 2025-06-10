@@ -692,22 +692,19 @@ async def merge_nodes_and_edges(
 
 async def extract_entities(
     chunks: dict[str, TextChunkSchema],
-    global_config: dict[str, str],
+    use_llm_func: callable,
+    entity_extract_max_gleaning: int,
+    addon_params: dict,
+    tokenizer: Tokenizer,
+    llm_model_max_async: int,
     llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ) -> list:
-    use_llm_func: callable = global_config["llm_model_func"]
-    entity_extract_max_gleaning = global_config["entity_extract_max_gleaning"]
-
     ordered_chunks = list(chunks.items())
     # add language and example number params to prompt
-    language = global_config["addon_params"].get(
-        "language", PROMPTS["DEFAULT_LANGUAGE"]
-    )
-    entity_types = global_config["addon_params"].get(
-        "entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"]
-    )
-    example_number = global_config["addon_params"].get("example_number", None)
+    language = addon_params.get("language", PROMPTS["DEFAULT_LANGUAGE"])
+    entity_types = addon_params.get("entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"])
+    example_number = addon_params.get("example_number", None)
     if example_number and example_number < len(PROMPTS["entity_extraction_examples"]):
         examples = "\n".join(
             PROMPTS["entity_extraction_examples"][: int(example_number)]
@@ -875,8 +872,7 @@ async def extract_entities(
         # Return the extracted nodes and edges for centralized processing
         return maybe_nodes, maybe_edges
 
-    # Get max async tasks limit from global_config
-    llm_model_max_async = global_config.get("llm_model_max_async", 4)
+    # Get max async tasks limit
     semaphore = asyncio.Semaphore(llm_model_max_async)
 
     async def _process_with_semaphore(chunk):
