@@ -305,40 +305,6 @@ class PGKVStorage(BaseKVStorage):
         except Exception as e:
             logger.error(f"Error while deleting records from {self.namespace}: {e}")
 
-    # todo deprecated: LIGHTRAG_LLM_CACHE is not needed
-    async def drop_cache_by_modes(self, modes: list[str] | None = None) -> bool:
-        """Delete specific records from storage by cache mode
-
-        Args:
-            modes (list[str]): List of cache modes to be dropped from storage
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        if not modes:
-            return False
-
-        try:
-            table_name = namespace_to_table_name(self.namespace)
-            if not table_name:
-                return False
-
-            if table_name != "LIGHTRAG_LLM_CACHE":
-                return False
-
-            sql = f"""
-            DELETE FROM {table_name}
-            WHERE workspace = $1 AND mode = ANY($2)
-            """
-            params = {"workspace": self.db.workspace, "modes": modes}
-
-            logger.info(f"Deleting cache by modes: {modes}")
-            await self.db.execute(sql, params)
-            return True
-        except Exception as e:
-            logger.error(f"Error deleting cache by modes {modes}: {e}")
-            return False
-
     async def drop(self) -> dict[str, str]:
         """Drop the storage"""
         try:

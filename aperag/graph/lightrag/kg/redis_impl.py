@@ -135,27 +135,6 @@ class RedisKVStorage(BaseKVStorage):
                 f"Deleted {deleted_count} of {len(ids)} entries from {self.workspace}:{self.storage_type}"
             )
 
-    async def drop_cache_by_modes(self, modes: list[str] | None = None) -> bool:
-        """Delete specific records from storage by by cache mode
-
-        Importance notes for Redis storage:
-        1. This will immediately delete the specified cache modes from Redis
-
-        Args:
-            modes (list[str]): List of cache mode to be drop from storage
-
-        Returns:
-             True: if the cache drop successfully
-             False: if the cache drop failed
-        """
-        if not modes:
-            return False
-
-        try:
-            await self.delete(modes)
-            return True
-        except Exception:
-            return False
 
     async def drop(self) -> dict[str, str]:
         """Drop the storage by removing all keys under the current workspace:storage_type.

@@ -1123,13 +1123,6 @@ class LightRAG:
             self.adelete_by_relation(source_entity, target_entity)
         )
 
-    async def get_processing_status(self) -> dict[str, int]:
-        """Get current document processing status counts
-
-        Returns:
-            Dict with counts for each status
-        """
-        return await self.doc_status.get_status_counts()
 
     async def get_entity_info(
         self, entity_name: str, include_vector_data: bool = False
