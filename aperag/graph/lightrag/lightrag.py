@@ -366,9 +366,7 @@ class LightRAG:
         self.llm_response_cache: BaseKVStorage = self.key_string_value_json_storage_cls(  # type: ignore
             namespace=NameSpace.KV_STORE_LLM_RESPONSE_CACHE,
             workspace=self.workspace,
-            global_config=asdict(
-                self
-            ),  # Add global_config to ensure cache works properly
+            global_config=global_config,
             embedding_func=self.embedding_func,
         )
 
