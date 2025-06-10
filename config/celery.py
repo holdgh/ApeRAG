@@ -20,9 +20,20 @@ from aperag.config import settings
 # Import Neo4j sync configuration signal handlers
 try:
     from aperag.db.neo4j_sync_manager import setup_worker_neo4j, cleanup_worker_neo4j
-    neo4j_signals_available = True
+    neo4j_available = True
 except ImportError:
-    neo4j_signals_available = False
+    setup_worker_neo4j = None
+    cleanup_worker_neo4j = None
+    neo4j_available = False
+
+# Import PostgreSQL sync configuration signal handlers
+try:
+    from aperag.db.postgres_sync_manager import setup_worker_postgres, cleanup_worker_postgres
+    postgres_available = True
+except ImportError:
+    setup_worker_postgres = None
+    cleanup_worker_postgres = None
+    postgres_available = False
 
 # Create celery app instance
 app = Celery("aperag")
@@ -50,9 +61,23 @@ if settings.local_queue_name:
     }
 
 # Connect Neo4j worker lifecycle signals
-if neo4j_signals_available:
-    worker_process_init.connect(setup_worker_neo4j)
-    worker_process_shutdown.connect(cleanup_worker_neo4j)
+if neo4j_available:
+    setup_worker_neo4j.connect(worker_process_init)
+    cleanup_worker_neo4j.connect(worker_process_shutdown)
+
+if postgres_available:
+    setup_worker_postgres.connect(worker_process_init)
+    cleanup_worker_postgres.connect(worker_process_shutdown)
+
+@worker_process_init.connect
+def setup_worker(**kwargs):
+    """Additional worker setup if needed"""
+    pass
+
+@worker_process_shutdown.connect
+def shutdown_worker(**kwargs):
+    """Additional worker cleanup if needed"""
+    pass
 
 if __name__ == "__main__":
     app.start()

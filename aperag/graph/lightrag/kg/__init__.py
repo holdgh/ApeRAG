@@ -1,8 +1,23 @@
+# Import sync storage implementations  
+try:
+    from .neo4j_sync_impl import Neo4JSyncStorage
+except ImportError:
+    Neo4JSyncStorage = None
+
+try:
+    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGSyncGraphStorage
+except ImportError:
+    PGSyncKVStorage = None
+    PGSyncVectorStorage = None 
+    PGSyncDocStatusStorage = None
+    PGSyncGraphStorage = None
+
 STORAGE_IMPLEMENTATIONS = {
     "KV_STORAGE": {
         "implementations": [
             "RedisKVStorage",
             "PGKVStorage",
+            "PGSyncKVStorage",
         ],
         "required_methods": ["get_by_id", "upsert"],
     },
@@ -12,6 +27,7 @@ STORAGE_IMPLEMENTATIONS = {
             "Neo4JSyncStorage",
             "Neo4JHybridStorage",
             "PGGraphStorage",
+            "PGSyncGraphStorage",
             "AGEStorage",
         ],
         "required_methods": ["upsert_node", "upsert_edge"],
@@ -19,6 +35,7 @@ STORAGE_IMPLEMENTATIONS = {
     "VECTOR_STORAGE": {
         "implementations": [
             "PGVectorStorage",
+            "PGSyncVectorStorage",
             "QdrantVectorDBStorage",
         ],
         "required_methods": ["query", "upsert"],
@@ -26,6 +43,7 @@ STORAGE_IMPLEMENTATIONS = {
     "DOC_STATUS_STORAGE": {
         "implementations": [
             "PGDocStatusStorage",
+            "PGSyncDocStatusStorage",
         ],
         "required_methods": ["get_docs_by_status"],
     },
@@ -36,6 +54,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # KV Storage Implementations
     "RedisKVStorage": ["REDIS_URI"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    "PGSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     # Graph Storage Implementations
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
@@ -49,11 +68,18 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
         "POSTGRES_PASSWORD",
         "POSTGRES_DATABASE",
     ],
+    "PGSyncGraphStorage": [
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_DATABASE",
+    ],
     # Vector Storage Implementations
     "PGVectorStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    "PGSyncVectorStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "QdrantVectorDBStorage": ["QDRANT_URL"],  # QDRANT_API_KEY has default value None
     # Document Status Storage Implementations
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    "PGSyncDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
 }
 
 # Storage implementation module mapping
@@ -69,6 +95,21 @@ STORAGES = {
     "QdrantVectorDBStorage": ".kg.qdrant_impl",
 }
 
+# Add sync implementations to storage_dict
+if Neo4JSyncStorage is not None:
+    STORAGES["Neo4JSyncStorage"] = ".kg.neo4j_sync_impl"
+
+if PGSyncKVStorage is not None:
+    STORAGES["PGSyncKVStorage"] = ".kg.postgres_sync_impl"
+    
+if PGSyncVectorStorage is not None:
+    STORAGES["PGSyncVectorStorage"] = ".kg.postgres_sync_impl"
+    
+if PGSyncDocStatusStorage is not None:
+    STORAGES["PGSyncDocStatusStorage"] = ".kg.postgres_sync_impl"
+    
+if PGSyncGraphStorage is not None:
+    STORAGES["PGSyncGraphStorage"] = ".kg.postgres_sync_impl"
 
 def verify_storage_implementation(storage_type: str, storage_name: str) -> None:
     """Verify if storage implementation is compatible with specified storage type
