@@ -36,6 +36,7 @@ from .utils import (
     split_string_by_multi_markers,
     truncate_list_by_token_size,
     use_llm_func_with_cache,
+    LightRAGLogger,
 )
 
 # use the .env that is inside the current folder
@@ -103,9 +104,8 @@ async def _handle_entity_relation_summary(
     entity_or_relation_name: str,
     description: str,
     global_config: dict,
-    pipeline_status: dict = None,
-    pipeline_status_lock=None,
     llm_response_cache: BaseKVStorage | None = None,
+    lightrag_logger: LightRAGLogger | None = None,
 ) -> str:
     """Handle entity relation summary
     For each entity or relation, input is the combined description of already existing description and new description.
@@ -137,7 +137,11 @@ async def _handle_entity_relation_summary(
         language=language,
     )
     use_prompt = prompt_template.format(**context_base)
-    logger.debug(f"Trigger summary: {entity_or_relation_name}")
+    
+    if lightrag_logger:
+        lightrag_logger.debug(f"Trigger summary: {entity_or_relation_name}")
+    else:
+        logger.debug(f"Trigger summary: {entity_or_relation_name}")
 
     # Use LLM function with cache (higher priority for summary generation)
     summary = await use_llm_func_with_cache(
@@ -246,9 +250,8 @@ async def _merge_nodes_then_upsert(
     nodes_data: list[dict],
     knowledge_graph_inst: BaseGraphStorage,
     global_config: dict,
-    pipeline_status: dict = None,
-    pipeline_status_lock=None,
     llm_response_cache: BaseKVStorage | None = None,
+    lightrag_logger: LightRAGLogger | None = None,
 ):
     """Get existing nodes from knowledge graph use name,if exists, merge data, else create, then upsert."""
     already_entity_types = []
@@ -291,27 +294,23 @@ async def _merge_nodes_then_upsert(
 
     if num_fragment > 1:
         if num_fragment >= force_llm_summary_on_merge:
-            status_message = f"LLM merge N: {entity_name} | {num_new_fragment}+{num_fragment-num_new_fragment}"
-            logger.info(status_message)
-            if pipeline_status is not None and pipeline_status_lock is not None:
-                async with pipeline_status_lock:
-                    pipeline_status["latest_message"] = status_message
-                    pipeline_status["history_messages"].append(status_message)
+            if lightrag_logger:
+                lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=True)
+            else:
+                logger.info(f"LLM merge N: {entity_name} | {num_new_fragment}+{num_fragment-num_new_fragment}")
+            
             description = await _handle_entity_relation_summary(
                 entity_name,
                 description,
                 global_config,
-                pipeline_status,
-                pipeline_status_lock,
                 llm_response_cache,
+                lightrag_logger,
             )
         else:
-            status_message = f"Merge N: {entity_name} | {num_new_fragment}+{num_fragment-num_new_fragment}"
-            logger.info(status_message)
-            if pipeline_status is not None and pipeline_status_lock is not None:
-                async with pipeline_status_lock:
-                    pipeline_status["latest_message"] = status_message
-                    pipeline_status["history_messages"].append(status_message)
+            if lightrag_logger:
+                lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=False)
+            else:
+                logger.info(f"Merge N: {entity_name} | {num_new_fragment}+{num_fragment-num_new_fragment}")
 
     node_data = dict(
         entity_id=entity_name,
@@ -335,9 +334,8 @@ async def _merge_edges_then_upsert(
     edges_data: list[dict],
     knowledge_graph_inst: BaseGraphStorage,
     global_config: dict,
-    pipeline_status: dict = None,
-    pipeline_status_lock=None,
     llm_response_cache: BaseKVStorage | None = None,
+    lightrag_logger: LightRAGLogger | None = None,
 ):
     if src_id == tgt_id:
         return None
@@ -424,16 +422,6 @@ async def _merge_edges_then_upsert(
 
     for need_insert_id in [src_id, tgt_id]:
         if not (await knowledge_graph_inst.has_node(need_insert_id)):
-            # # Discard this edge if the node does not exist
-            # if need_insert_id == src_id:
-            #     logger.warning(
-            #         f"Discard edge: {src_id} - {tgt_id} | Source node missing"
-            #     )
-            # else:
-            #     logger.warning(
-            #         f"Discard edge: {src_id} - {tgt_id} | Target node missing"
-            #     )
-            # return None
             await knowledge_graph_inst.upsert_node(
                 need_insert_id,
                 node_data={
@@ -455,27 +443,23 @@ async def _merge_edges_then_upsert(
 
     if num_fragment > 1:
         if num_fragment >= force_llm_summary_on_merge:
-            status_message = f"LLM merge E: {src_id} - {tgt_id} | {num_new_fragment}+{num_fragment-num_new_fragment}"
-            logger.info(status_message)
-            if pipeline_status is not None and pipeline_status_lock is not None:
-                async with pipeline_status_lock:
-                    pipeline_status["latest_message"] = status_message
-                    pipeline_status["history_messages"].append(status_message)
+            if lightrag_logger:
+                lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=True)
+            else:
+                logger.info(f"LLM merge E: {src_id} - {tgt_id} | {num_new_fragment}+{num_fragment-num_new_fragment}")
+            
             description = await _handle_entity_relation_summary(
                 f"({src_id}, {tgt_id})",
                 description,
                 global_config,
-                pipeline_status,
-                pipeline_status_lock,
                 llm_response_cache,
+                lightrag_logger,
             )
         else:
-            status_message = f"Merge E: {src_id} - {tgt_id} | {num_new_fragment}+{num_fragment-num_new_fragment}"
-            logger.info(status_message)
-            if pipeline_status is not None and pipeline_status_lock is not None:
-                async with pipeline_status_lock:
-                    pipeline_status["latest_message"] = status_message
-                    pipeline_status["history_messages"].append(status_message)
+            if lightrag_logger:
+                lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=False)
+            else:
+                logger.info(f"Merge E: {src_id} - {tgt_id} | {num_new_fragment}+{num_fragment-num_new_fragment}")
 
     await knowledge_graph_inst.upsert_edge(
         src_id,
@@ -509,12 +493,11 @@ async def merge_nodes_and_edges(
     entity_vdb: BaseVectorStorage,
     relationships_vdb: BaseVectorStorage,
     global_config: dict[str, str],
-    pipeline_status: dict = None,
-    pipeline_status_lock=None,
     llm_response_cache: BaseKVStorage | None = None,
     current_file_number: int = 0,
     total_files: int = 0,
     file_path: str = "unknown_source",
+    lightrag_logger: LightRAGLogger | None = None,
 ) -> None:
     """Merge nodes and edges from extraction results
 
@@ -524,9 +507,11 @@ async def merge_nodes_and_edges(
         entity_vdb: Entity vector database
         relationships_vdb: Relationship vector database
         global_config: Global configuration
-        pipeline_status: Pipeline status dictionary
-        pipeline_status_lock: Lock for pipeline status
         llm_response_cache: LLM response cache
+        current_file_number: Current file number for progress tracking
+        total_files: Total number of files for progress tracking
+        file_path: Current file path for logging
+        lightrag_logger: Optional logger for progress tracking
     """
     # Get lock manager from shared storage
     from .kg.shared_storage import get_graph_db_lock
@@ -553,13 +538,11 @@ async def merge_nodes_and_edges(
     # Use graph database lock to ensure atomic merges and updates
     graph_db_lock = get_graph_db_lock(enable_logging=False)
     async with graph_db_lock:
-        async with pipeline_status_lock:
-            log_message = (
-                f"Merging stage {current_file_number}/{total_files}: {file_path}"
-            )
+        if lightrag_logger:
+            lightrag_logger.log_stage_progress("Merging", current_file_number, total_files, file_path)
+        else:
+            log_message = f"Merging stage {current_file_number}/{total_files}: {file_path}"
             logger.info(log_message)
-            pipeline_status["latest_message"] = log_message
-            pipeline_status["history_messages"].append(log_message)
 
         # Process and update all entities at once
         for entity_name, entities in all_nodes.items():
@@ -568,9 +551,8 @@ async def merge_nodes_and_edges(
                 entities,
                 knowledge_graph_inst,
                 global_config,
-                pipeline_status,
-                pipeline_status_lock,
                 llm_response_cache,
+                lightrag_logger,
             )
             entities_data.append(entity_data)
 
@@ -582,9 +564,8 @@ async def merge_nodes_and_edges(
                 edges,
                 knowledge_graph_inst,
                 global_config,
-                pipeline_status,
-                pipeline_status_lock,
                 llm_response_cache,
+                lightrag_logger,
             )
             if edge_data is not None:
                 relationships_data.append(edge_data)
@@ -593,12 +574,11 @@ async def merge_nodes_and_edges(
         total_entities_count = len(entities_data)
         total_relations_count = len(relationships_data)
 
-        log_message = f"Updating {total_entities_count} entities  {current_file_number}/{total_files}: {file_path}"
-        logger.info(log_message)
-        if pipeline_status is not None:
-            async with pipeline_status_lock:
-                pipeline_status["latest_message"] = log_message
-                pipeline_status["history_messages"].append(log_message)
+        if lightrag_logger:
+            lightrag_logger.info(f"Updating {total_entities_count} entities {current_file_number}/{total_files}: {file_path}")
+        else:
+            log_message = f"Updating {total_entities_count} entities  {current_file_number}/{total_files}: {file_path}"
+            logger.info(log_message)
 
         # Update vector databases with all collected data
         if entity_vdb is not None and entities_data:
@@ -614,12 +594,11 @@ async def merge_nodes_and_edges(
             }
             await entity_vdb.upsert(data_for_vdb)
 
-        log_message = f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}"
-        logger.info(log_message)
-        if pipeline_status is not None:
-            async with pipeline_status_lock:
-                pipeline_status["latest_message"] = log_message
-                pipeline_status["history_messages"].append(log_message)
+        if lightrag_logger:
+            lightrag_logger.info(f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}")
+        else:
+            log_message = f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}"
+            logger.info(log_message)
 
         if relationships_vdb is not None and relationships_data:
             data_for_vdb = {
@@ -639,9 +618,8 @@ async def merge_nodes_and_edges(
 async def extract_entities(
     chunks: dict[str, TextChunkSchema],
     global_config: dict[str, str],
-    pipeline_status: dict = None,
-    pipeline_status_lock=None,
     llm_response_cache: BaseKVStorage | None = None,
+    lightrag_logger: LightRAGLogger | None = None,
 ) -> list:
     use_llm_func: callable = global_config["llm_model_func"]
     entity_extract_max_gleaning = global_config["entity_extract_max_gleaning"]
@@ -812,12 +790,12 @@ async def extract_entities(
         processed_chunks += 1
         entities_count = len(maybe_nodes)
         relations_count = len(maybe_edges)
-        log_message = f"Chunk {processed_chunks} of {total_chunks} extracted {entities_count} Ent + {relations_count} Rel"
-        logger.info(log_message)
-        if pipeline_status is not None:
-            async with pipeline_status_lock:
-                pipeline_status["latest_message"] = log_message
-                pipeline_status["history_messages"].append(log_message)
+        
+        if lightrag_logger:
+            lightrag_logger.log_extraction_progress(processed_chunks, total_chunks, entities_count, relations_count)
+        else:
+            log_message = f"Chunk {processed_chunks} of {total_chunks} extracted {entities_count} Ent + {relations_count} Rel"
+            logger.info(log_message)
 
         # Return the extracted nodes and edges for centralized processing
         return maybe_nodes, maybe_edges

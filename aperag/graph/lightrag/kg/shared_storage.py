@@ -5,6 +5,10 @@ from multiprocessing import Manager
 from multiprocessing.synchronize import Lock as ProcessLock
 from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Define a direct print function for critical logs that must be visible in all processes
 def direct_log(message, level="INFO", enable_output: bool = True):
@@ -37,7 +41,6 @@ _update_flags: Optional[Dict[str, bool]] = None  # namespace -> updated
 # locks for mutex access
 _storage_lock: Optional[LockType] = None
 _internal_lock: Optional[LockType] = None
-_pipeline_status_lock: Optional[LockType] = None
 _graph_db_lock: Optional[LockType] = None
 _data_init_lock: Optional[LockType] = None
 
@@ -211,28 +214,6 @@ class UnifiedLock(Generic[T]):
             raise
 
 
-def get_internal_lock(enable_logging: bool = False) -> UnifiedLock:
-    """return unified storage lock for data consistency"""
-    async_lock = _async_locks.get("internal_lock") if _is_multiprocess else None
-    return UnifiedLock(
-        lock=_internal_lock,
-        is_async=not _is_multiprocess,
-        name="internal_lock",
-        enable_logging=enable_logging,
-        async_lock=async_lock,
-    )
-
-
-def get_pipeline_status_lock(enable_logging: bool = False) -> UnifiedLock:
-    """return unified storage lock for data consistency"""
-    async_lock = _async_locks.get("pipeline_status_lock") if _is_multiprocess else None
-    return UnifiedLock(
-        lock=_pipeline_status_lock,
-        is_async=not _is_multiprocess,
-        name="pipeline_status_lock",
-        enable_logging=enable_logging,
-        async_lock=async_lock,
-    )
 
 
 def get_graph_db_lock(enable_logging: bool = False) -> UnifiedLock:
@@ -245,7 +226,6 @@ def get_graph_db_lock(enable_logging: bool = False) -> UnifiedLock:
         enable_logging=enable_logging,
         async_lock=async_lock,
     )
-
 
 
 def initialize_share_data(workers: int = 1):
@@ -272,7 +252,6 @@ def initialize_share_data(workers: int = 1):
         _is_multiprocess, \
         _storage_lock, \
         _internal_lock, \
-        _pipeline_status_lock, \
         _graph_db_lock, \
         _data_init_lock, \
         _shared_dicts, \
@@ -295,7 +274,6 @@ def initialize_share_data(workers: int = 1):
         _manager = Manager()
         _internal_lock = _manager.Lock()
         _storage_lock = _manager.Lock()
-        _pipeline_status_lock = _manager.Lock()
         _graph_db_lock = _manager.Lock()
         _data_init_lock = _manager.Lock()
         _shared_dicts = _manager.dict()
@@ -306,7 +284,6 @@ def initialize_share_data(workers: int = 1):
         _async_locks = {
             "internal_lock": asyncio.Lock(),
             "storage_lock": asyncio.Lock(),
-            "pipeline_status_lock": asyncio.Lock(),
             "graph_db_lock": asyncio.Lock(),
             "data_init_lock": asyncio.Lock(),
         }
@@ -318,7 +295,6 @@ def initialize_share_data(workers: int = 1):
         _is_multiprocess = False
         _internal_lock = asyncio.Lock()
         _storage_lock = asyncio.Lock()
-        _pipeline_status_lock = asyncio.Lock()
         _graph_db_lock = asyncio.Lock()
         _data_init_lock = asyncio.Lock()
         _shared_dicts = {}
@@ -331,144 +307,3 @@ def initialize_share_data(workers: int = 1):
     _initialized = True
 
 
-async def initialize_pipeline_status():
-    """
-    Initialize pipeline namespace with default values.
-    This function is called during FASTAPI lifespan for each worker.
-    """
-    pipeline_namespace = await get_namespace_data("pipeline_status")
-
-    async with get_internal_lock():
-        # Check if already initialized by checking for required fields
-        if "busy" in pipeline_namespace:
-            return
-
-        # Create a shared list object for history_messages
-        history_messages = _manager.list() if _is_multiprocess else []
-        pipeline_namespace.update(
-            {
-                "autoscanned": False,  # Auto-scan started
-                "busy": False,  # Control concurrent processes
-                "job_name": "-",  # Current job name (indexing files/indexing texts)
-                "job_start": None,  # Job start time
-                "docs": 0,  # Total number of documents to be indexed
-                "batchs": 0,  # Number of batches for processing documents
-                "cur_batch": 0,  # Current processing batch
-                "request_pending": False,  # Flag for pending request for processing
-                "latest_message": "",  # Latest message from pipeline processing
-                "history_messages": history_messages,  # 使用共享列表对象
-            }
-        )
-        direct_log(f"Process {os.getpid()} Pipeline namespace initialized")
-
-
-
-async def get_namespace_data(namespace: str) -> Dict[str, Any]:
-    """get the shared data reference for specific namespace"""
-    if _shared_dicts is None:
-        direct_log(
-            f"Error: try to getnanmespace before it is initialized, pid={os.getpid()}",
-            level="ERROR",
-        )
-        raise ValueError("Shared dictionaries not initialized")
-
-    async with get_internal_lock():
-        if namespace not in _shared_dicts:
-            if _is_multiprocess and _manager is not None:
-                _shared_dicts[namespace] = _manager.dict()
-            else:
-                _shared_dicts[namespace] = {}
-
-    return _shared_dicts[namespace]
-
-
-def finalize_share_data():
-    """
-    Release shared resources and clean up.
-
-    This function should be called when the application is shutting down
-    to properly release shared resources and avoid memory leaks.
-
-    In multi-process mode, it shuts down the Manager and releases all shared objects.
-    In single-process mode, it simply resets the global variables.
-    """
-    global \
-        _manager, \
-        _is_multiprocess, \
-        _storage_lock, \
-        _internal_lock, \
-        _pipeline_status_lock, \
-        _graph_db_lock, \
-        _data_init_lock, \
-        _shared_dicts, \
-        _init_flags, \
-        _initialized, \
-        _update_flags, \
-        _async_locks
-
-    # Check if already initialized
-    if not _initialized:
-        direct_log(
-            f"Process {os.getpid()} storage data not initialized, nothing to finalize"
-        )
-        return
-
-    direct_log(
-        f"Process {os.getpid()} finalizing storage data (multiprocess={_is_multiprocess})"
-    )
-
-    # In multi-process mode, shut down the Manager
-    if _is_multiprocess and _manager is not None:
-        try:
-            # Clear shared resources before shutting down Manager
-            if _shared_dicts is not None:
-                # Clear pipeline status history messages first if exists
-                try:
-                    pipeline_status = _shared_dicts.get("pipeline_status", {})
-                    if "history_messages" in pipeline_status:
-                        pipeline_status["history_messages"].clear()
-                except Exception:
-                    pass  # Ignore any errors during history messages cleanup
-                _shared_dicts.clear()
-            if _init_flags is not None:
-                _init_flags.clear()
-            if _update_flags is not None:
-                # Clear each namespace's update flags list and Value objects
-                try:
-                    for namespace in _update_flags:
-                        flags_list = _update_flags[namespace]
-                        if isinstance(flags_list, list):
-                            # Clear Value objects in the list
-                            for flag in flags_list:
-                                if hasattr(
-                                    flag, "value"
-                                ):  # Check if it's a Value object
-                                    flag.value = False
-                            flags_list.clear()
-                except Exception:
-                    pass  # Ignore any errors during update flags cleanup
-                _update_flags.clear()
-
-            # Shut down the Manager - this will automatically clean up all shared resources
-            _manager.shutdown()
-            direct_log(f"Process {os.getpid()} Manager shutdown complete")
-        except Exception as e:
-            direct_log(
-                f"Process {os.getpid()} Error shutting down Manager: {e}", level="ERROR"
-            )
-
-    # Reset global variables
-    _manager = None
-    _initialized = None
-    _is_multiprocess = None
-    _shared_dicts = None
-    _init_flags = None
-    _storage_lock = None
-    _internal_lock = None
-    _pipeline_status_lock = None
-    _graph_db_lock = None
-    _data_init_lock = None
-    _update_flags = None
-    _async_locks = None
-
-    direct_log(f"Process {os.getpid()} storage data finalization complete")

@@ -121,7 +121,8 @@ class LightragPathFilter(logging.Filter):
             "/documents",
             "/health",
             "/webui/",
-            "/documents/pipeline_status",
+            "/documents/processing_status",
+            "/documents/stats",
         ]
         # self.filtered_paths = ["/health", "/webui/"]
 
@@ -1669,7 +1670,7 @@ def normalize_extracted_info(name: str, is_entity=False) -> str:
 
     if is_entity:
         # remove Chinese quotes
-        name = name.replace("“", "").replace("”", "").replace("‘", "").replace("’", "")
+        name = name.replace(""", "").replace(""", "").replace("'", "").replace("'", "")
         # remove English queotes in and around chinese
         name = re.sub(r"['\"]+(?=[\u4e00-\u9fa5])", "", name)
         name = re.sub(r"(?<=[\u4e00-\u9fa5])['\"]+", "", name)
@@ -1765,3 +1766,105 @@ class TokenTracker:
             f"Completion tokens: {usage['completion_tokens']}, "
             f"Total tokens: {usage['total_tokens']}"
         )
+
+
+class LightRAGLogger:
+    """
+    Unified logger for LightRAG processing progress.
+    Replaces the legacy pipeline_status system with structured logging.
+    """
+    
+    def __init__(self, prefix: str = "LightRAG", workspace: str = "default"):
+        """
+        Initialize the logger with custom prefix and workspace.
+        
+        Args:
+            prefix: Log message prefix (default: "LightRAG")
+            workspace: Workspace identifier for multi-tenant logging
+        """
+        self.prefix = prefix
+        self.workspace = workspace
+        self._current_job = None
+        self._current_progress = {"current": 0, "total": 0}
+    
+    def _format_message(self, message: str, level: str = "INFO") -> str:
+        """Format log message with prefix and workspace."""
+        workspace_info = f"[{self.workspace}]" if self.workspace != "default" else ""
+        job_info = f"[{self._current_job}]" if self._current_job else ""
+        progress_info = ""
+        if self._current_progress["total"] > 0:
+            progress_info = f"[{self._current_progress['current']}/{self._current_progress['total']}]"
+        
+        return f"{self.prefix}{workspace_info}{job_info}{progress_info} {message}"
+    
+    def info(self, message: str):
+        """Log info level message."""
+        formatted_msg = self._format_message(message, "INFO")
+        logger.info(formatted_msg)
+    
+    def warning(self, message: str):
+        """Log warning level message."""
+        formatted_msg = self._format_message(message, "WARNING")
+        logger.warning(formatted_msg)
+    
+    def error(self, message: str):
+        """Log error level message."""
+        formatted_msg = self._format_message(message, "ERROR")
+        logger.error(formatted_msg)
+    
+    def debug(self, message: str):
+        """Log debug level message."""
+        formatted_msg = self._format_message(message, "DEBUG")
+        logger.debug(formatted_msg)
+    
+    def start_job(self, job_name: str, total_items: int = 0):
+        """Start a new job with progress tracking."""
+        self._current_job = job_name
+        self._current_progress = {"current": 0, "total": total_items}
+        self.info(f"Starting job: {job_name}" + (f" ({total_items} items)" if total_items > 0 else ""))
+    
+    def update_progress(self, current: int, message: str = ""):
+        """Update current progress."""
+        self._current_progress["current"] = current
+        if message:
+            self.info(message)
+    
+    def increment_progress(self, message: str = ""):
+        """Increment progress by 1."""
+        self._current_progress["current"] += 1
+        if message:
+            self.info(message)
+    
+    def finish_job(self, message: str = ""):
+        """Finish current job."""
+        final_message = message or f"Completed job: {self._current_job}"
+        self.info(final_message)
+        self._current_job = None
+        self._current_progress = {"current": 0, "total": 0}
+    
+    def log_extraction_progress(self, current_chunk: int, total_chunks: int, entities_count: int, relations_count: int):
+        """Log chunk extraction progress."""
+        message = f"Chunk {current_chunk} of {total_chunks} extracted {entities_count} Ent + {relations_count} Rel"
+        self.info(message)
+    
+    def log_stage_progress(self, stage: str, current_file: int, total_files: int, file_path: str):
+        """Log stage progress for file processing."""
+        message = f"{stage} stage {current_file}/{total_files}: {file_path}"
+        self.info(message)
+    
+    def log_entity_merge(self, entity_name: str, total_fragments: int, new_fragments: int, is_llm_summary: bool = False):
+        """Log entity merge operations."""
+        prefix = "LLM merge N" if is_llm_summary else "Merge N"
+        message = f"{prefix}: {entity_name} | {new_fragments}+{total_fragments-new_fragments}"
+        self.info(message)
+    
+    def log_relation_merge(self, src_id: str, tgt_id: str, total_fragments: int, new_fragments: int, is_llm_summary: bool = False):
+        """Log relation merge operations."""
+        prefix = "LLM merge E" if is_llm_summary else "Merge E"
+        message = f"{prefix}: {src_id} - {tgt_id} | {new_fragments}+{total_fragments-new_fragments}"
+        self.info(message)
+
+
+def create_lightrag_logger(prefix: str = "LightRAG", workspace: str = "default") -> LightRAGLogger:
+    """Create a LightRAGLogger instance with specified prefix and workspace."""
+    return LightRAGLogger(prefix=prefix, workspace=workspace)
