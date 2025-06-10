@@ -113,12 +113,10 @@ class LightRAG:
     # Text chunking
     # ---
 
-    chunk_token_size: int = field(default=int(os.getenv("CHUNK_SIZE", 1200)))
+    chunk_token_size: int = field(default=1200)
     """Maximum number of tokens per text chunk when splitting documents."""
 
-    chunk_overlap_token_size: int = field(
-        default=int(os.getenv("CHUNK_OVERLAP_SIZE", 100))
-    )
+    chunk_overlap_token_size: int = field(default=100)
     """Number of overlapping tokens between consecutive text chunks to preserve context."""
 
     tokenizer: Optional[Tokenizer] = field(default=None)
@@ -167,11 +165,11 @@ class LightRAG:
     embedding_func: EmbeddingFunc | None = field(default=None)
     """Function for computing text embeddings. Must be set before use."""
 
-    embedding_batch_num: int = field(default=int(os.getenv("EMBEDDING_BATCH_NUM", 32)))
+    embedding_batch_num: int = field(default=32)
     """Batch size for embedding computations."""
 
     embedding_func_max_async: int = field(
-        default=int(os.getenv("EMBEDDING_FUNC_MAX_ASYNC", 16))
+        default=16
     )
     """Maximum number of concurrent embedding function calls."""
 
@@ -197,10 +195,10 @@ class LightRAG:
     llm_model_name: str = field(default="gpt-4o-mini")
     """Name of the LLM model used for generating responses."""
 
-    llm_model_max_token_size: int = field(default=int(os.getenv("MAX_TOKENS", 32768)))
+    llm_model_max_token_size: int = field(default=32768)
     """Maximum number of tokens allowed per LLM response."""
 
-    llm_model_max_async: int = field(default=int(os.getenv("MAX_ASYNC", 4)))
+    llm_model_max_async: int = field(default=4)
     """Maximum number of concurrent LLM calls."""
 
     llm_model_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -218,7 +216,7 @@ class LightRAG:
     # Extensions
     # ---
 
-    max_parallel_insert: int = field(default=int(os.getenv("MAX_PARALLEL_INSERT", 2)))
+    max_parallel_insert: int = field(default=2)
     """Maximum number of parallel insert operations."""
 
     addon_params: dict[str, Any] = field(
@@ -240,7 +238,7 @@ class LightRAG:
     """
 
     cosine_better_than_threshold: float = field(
-        default=float(os.getenv("COSINE_THRESHOLD", 0.2))
+        default=0.2
     )
 
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)

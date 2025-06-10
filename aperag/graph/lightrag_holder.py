@@ -338,6 +338,7 @@ async def create_and_initialize_lightrag(
                 max_token_size=LightRAGConfig.EMBEDDING_MAX_TOKEN_SIZE,
                 func=embed_impl,
             ),
+            cosine_better_than_threshold=0.2,
             max_parallel_insert=LightRAGConfig.MAX_PARALLEL_INSERT,
             llm_model_max_async=LightRAGConfig.LLM_MODEL_MAX_ASYNC,
             entity_extract_max_gleaning=LightRAGConfig.ENTITY_EXTRACT_MAX_GLEANING,
