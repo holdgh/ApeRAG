@@ -662,9 +662,7 @@ class LightRAG:
                 use_llm_func=self.llm_model_func,
                 entity_extract_max_gleaning=self.entity_extract_max_gleaning,
                 addon_params=self.addon_params,
-                tokenizer=self.tokenizer,
                 llm_model_max_async=self.llm_model_max_async,
-                llm_response_cache=self.llm_response_cache,
                 lightrag_logger=lightrag_logger,
             )
             
@@ -1459,61 +1457,4 @@ class LightRAG:
             self.amerge_entities(
                 source_entities, target_entity, merge_strategy, target_entity_data
             )
-        )
-
-    async def aexport_data(
-        self,
-        output_path: str,
-        file_format: Literal["csv", "excel", "md", "txt"] = "csv",
-        include_vector_data: bool = False,
-    ) -> None:
-        """
-        Asynchronously exports all entities, relations, and relationships to various formats.
-        Args:
-            output_path: The path to the output file (including extension).
-            file_format: Output format - "csv", "excel", "md", "txt".
-                - csv: Comma-separated values file
-                - excel: Microsoft Excel file with multiple sheets
-                - md: Markdown tables
-                - txt: Plain text formatted output
-                - table: Print formatted tables to console
-            include_vector_data: Whether to include data from the vector database.
-        """
-        from .utils import aexport_data as utils_aexport_data
-
-        await utils_aexport_data(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            output_path,
-            file_format,
-            include_vector_data,
-        )
-
-    def export_data(
-        self,
-        output_path: str,
-        file_format: Literal["csv", "excel", "md", "txt"] = "csv",
-        include_vector_data: bool = False,
-    ) -> None:
-        """
-        Synchronously exports all entities, relations, and relationships to various formats.
-        Args:
-            output_path: The path to the output file (including extension).
-            file_format: Output format - "csv", "excel", "md", "txt".
-                - csv: Comma-separated values file
-                - excel: Microsoft Excel file with multiple sheets
-                - md: Markdown tables
-                - txt: Plain text formatted output
-                - table: Print formatted tables to console
-            include_vector_data: Whether to include data from the vector database.
-        """
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        loop.run_until_complete(
-            self.aexport_data(output_path, file_format, include_vector_data)
         )

@@ -6,7 +6,6 @@ import os
 import re
 import time
 from collections import Counter, defaultdict
-from functools import partial
 from typing import Any, AsyncIterator
 
 from dotenv import load_dotenv
@@ -20,22 +19,17 @@ from .base import (
 )
 from .prompt import GRAPH_FIELD_SEP, PROMPTS
 from .utils import (
-    CacheData,
     Tokenizer,
     clean_str,
-    compute_args_hash,
     compute_mdhash_id,
     get_conversation_turns,
-    handle_cache,
     is_float_regex,
     logger,
     normalize_extracted_info,
     pack_user_ass_to_openai_messages,
     process_combine_contexts,
-    save_to_cache,
     split_string_by_multi_markers,
     truncate_list_by_token_size,
-    use_llm_func_with_cache,
     LightRAGLogger,
 )
 
@@ -108,7 +102,6 @@ async def _handle_entity_relation_summary(
     llm_model_max_token_size: int,
     summary_to_max_tokens: int,
     language: str,
-    llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ) -> str:
     """Handle entity relation summary
@@ -118,10 +111,6 @@ async def _handle_entity_relation_summary(
     use_llm_func: callable = llm_model_func
 
     tokens = tokenizer.encode(description)
-
-    ### summarize is not determined here anymore (It's determined by num_fragment now)
-    # if len(tokens) < summary_max_tokens:  # No need for summary
-    #     return description
 
     prompt_template = PROMPTS["summarize_entity_descriptions"]
     use_description = tokenizer.decode(tokens[:llm_model_max_token_size])
@@ -137,14 +126,7 @@ async def _handle_entity_relation_summary(
     else:
         logger.debug(f"Trigger summary: {entity_or_relation_name}")
 
-    # Use LLM function with cache (higher priority for summary generation)
-    summary = await use_llm_func_with_cache(
-        use_prompt,
-        use_llm_func,
-        llm_response_cache=llm_response_cache,
-        max_tokens=summary_to_max_tokens,
-        cache_type="extract",
-    )
+    summary = await use_llm_func(use_prompt, max_tokens=summary_to_max_tokens)
     return summary
 
 
@@ -304,7 +286,6 @@ async def _merge_nodes_then_upsert(
                 llm_model_max_token_size,
                 summary_to_max_tokens,
                 language,
-                llm_response_cache,
                 lightrag_logger,
             )
         else:
@@ -460,7 +441,6 @@ async def _merge_edges_then_upsert(
                 llm_model_max_token_size,
                 summary_to_max_tokens,
                 language,
-                llm_response_cache,
                 lightrag_logger,
             )
         else:
@@ -716,9 +696,7 @@ async def extract_entities(
     use_llm_func: callable,
     entity_extract_max_gleaning: int,
     addon_params: dict,
-    tokenizer: Tokenizer,
     llm_model_max_async: int,
-    llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ) -> list:
     ordered_chunks = list(chunks.items())
@@ -824,12 +802,7 @@ async def extract_entities(
             **{**context_base, "input_text": content}
         )
 
-        final_result = await use_llm_func_with_cache(
-            hint_prompt,
-            use_llm_func,
-            llm_response_cache=llm_response_cache,
-            cache_type="extract",
-        )
+        final_result = await use_llm_func(hint_prompt)
         history = pack_user_ass_to_openai_messages(hint_prompt, final_result)
 
         # Process initial extraction with file path
@@ -839,13 +812,7 @@ async def extract_entities(
 
         # Process additional gleaning results
         for now_glean_index in range(entity_extract_max_gleaning):
-            glean_result = await use_llm_func_with_cache(
-                continue_prompt,
-                use_llm_func,
-                llm_response_cache=llm_response_cache,
-                history_messages=history,
-                cache_type="extract",
-            )
+            glean_result = await use_llm_func(continue_prompt,history_messages=history)
 
             history += pack_user_ass_to_openai_messages(continue_prompt, glean_result)
 
@@ -869,13 +836,7 @@ async def extract_entities(
             if now_glean_index == entity_extract_max_gleaning - 1:
                 break
 
-            if_loop_result: str = await use_llm_func_with_cache(
-                if_loop_prompt,
-                use_llm_func,
-                llm_response_cache=llm_response_cache,
-                history_messages=history,
-                cache_type="extract",
-            )
+            if_loop_result: str = await use_llm_func(if_loop_prompt,history_messages=history)
             if_loop_result = if_loop_result.strip().strip('"').strip("'").lower()
             if if_loop_result != "yes":
                 break
@@ -950,14 +911,6 @@ async def kg_query(
         use_model_func = query_param.model_func
     else:
         use_model_func = llm_model_func
-
-    # Handle cache
-    args_hash = compute_args_hash(query_param.mode, query, cache_type="query")
-    cached_response, quantized, min_val, max_val = await handle_cache(
-        hashing_kv, args_hash, query, query_param.mode, cache_type="query"
-    )
-    if cached_response is not None:
-        return cached_response
 
     hl_keywords, ll_keywords = await get_keywords_from_query(
         query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv, enable_llm_cache
@@ -1047,22 +1000,6 @@ async def kg_query(
             .strip()
         )
 
-    if enable_llm_cache:
-        # Save to cache
-        await save_to_cache(
-            hashing_kv,
-            CacheData(
-                args_hash=args_hash,
-                content=response,
-                prompt=query,
-                quantized=quantized,
-                min_val=min_val,
-                max_val=max_val,
-                mode=query_param.mode,
-                cache_type="query",
-            ),
-        )
-
     return response
 
 
@@ -1109,23 +1046,6 @@ async def extract_keywords_only(
     This method does NOT build the final RAG context or provide a final answer.
     It ONLY extracts keywords (hl_keywords, ll_keywords).
     """
-
-    # 1. Handle cache if needed - add cache type for keywords
-    args_hash = compute_args_hash(param.mode, text, cache_type="keywords")
-    cached_response, quantized, min_val, max_val = await handle_cache(
-        hashing_kv, args_hash, text, param.mode, cache_type="keywords"
-    )
-    if cached_response is not None:
-        try:
-            keywords_data = json.loads(cached_response)
-            return keywords_data["high_level_keywords"], keywords_data[
-                "low_level_keywords"
-            ]
-        except (json.JSONDecodeError, KeyError):
-            logger.warning(
-                "Invalid cache format for keywords, proceeding with extraction"
-            )
-
     # 2. Build the examples
     example_number = addon_params.get("example_number", None)
     if example_number and example_number < len(PROMPTS["keywords_extraction_examples"]):
@@ -1179,20 +1099,6 @@ async def extract_keywords_only(
             "high_level_keywords": hl_keywords,
             "low_level_keywords": ll_keywords,
         }
-        if enable_llm_cache:
-            await save_to_cache(
-                hashing_kv,
-                CacheData(
-                    args_hash=args_hash,
-                    content=json.dumps(cache_data),
-                    prompt=text,
-                    quantized=quantized,
-                    min_val=min_val,
-                    max_val=max_val,
-                    mode=param.mode,
-                    cache_type="keywords",
-                ),
-            )
 
     return hl_keywords, ll_keywords
 
@@ -1978,14 +1884,6 @@ async def naive_query(
     else:
         use_model_func = llm_model_func
 
-    # Handle cache
-    args_hash = compute_args_hash(query_param.mode, query, cache_type="query")
-    cached_response, quantized, min_val, max_val = await handle_cache(
-        hashing_kv, args_hash, query, query_param.mode, cache_type="query"
-    )
-    if cached_response is not None:
-        return cached_response
-
     _, _, text_units_context = await _get_vector_context(
         query, chunks_vdb, query_param, tokenizer
     )
@@ -2048,21 +1946,6 @@ async def naive_query(
             .strip()
         )
 
-    if enable_llm_cache:
-        # Save to cache
-        await save_to_cache(
-            hashing_kv,
-            CacheData(
-                args_hash=args_hash,
-                content=response,
-                prompt=query,
-                quantized=quantized,
-                min_val=min_val,
-                max_val=max_val,
-                mode=query_param.mode,
-                cache_type="query",
-            ),
-        )
 
     return response
 
@@ -2092,13 +1975,6 @@ async def kg_query_with_keywords(
         use_model_func = query_param.model_func
     else:
         use_model_func = llm_model_func
-
-    args_hash = compute_args_hash(query_param.mode, query, cache_type="query")
-    cached_response, quantized, min_val, max_val = await handle_cache(
-        hashing_kv, args_hash, query, query_param.mode, cache_type="query"
-    )
-    if cached_response is not None:
-        return cached_response
 
     # If neither has any keywords, you could handle that logic here.
     if not hl_keywords and not ll_keywords:
@@ -2171,20 +2047,5 @@ async def kg_query_with_keywords(
             .replace("</system>", "")
             .strip()
         )
-
-        if enable_llm_cache:
-            await save_to_cache(
-                hashing_kv,
-                CacheData(
-                    args_hash=args_hash,
-                    content=response,
-                    prompt=query,
-                    quantized=quantized,
-                    min_val=min_val,
-                    max_val=max_val,
-                    mode=query_param.mode,
-                    cache_type="query",
-                ),
-            )
 
     return response
