@@ -195,6 +195,7 @@ class StatelessLightRAGWrapper:
                 # Wait for any remaining tasks to complete
                 pending = asyncio.all_tasks(loop)
                 if pending:
+                    logger.warning("Pending tasks found during cleanup, waiting for them to finish")
                     loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
             except Exception:
                 pass
