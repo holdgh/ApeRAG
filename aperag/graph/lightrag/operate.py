@@ -500,7 +500,12 @@ async def merge_nodes_and_edges(
     knowledge_graph_inst: BaseGraphStorage,
     entity_vdb: BaseVectorStorage,
     relationships_vdb: BaseVectorStorage,
-    global_config: dict[str, str],
+    llm_model_func,
+    tokenizer,
+    llm_model_max_token_size,
+    summary_to_max_tokens,
+    addon_params,
+    force_llm_summary_on_merge,
     llm_response_cache: BaseKVStorage | None = None,
     current_file_number: int = 0,
     total_files: int = 0,
@@ -508,21 +513,7 @@ async def merge_nodes_and_edges(
     lightrag_logger: LightRAGLogger | None = None,
     graph_db_lock: asyncio.Lock | None = None,
 ) -> None:
-    """Merge nodes and edges from extraction results
-
-    Args:
-        chunk_results: List of tuples (maybe_nodes, maybe_edges) containing extracted entities and relationships
-        knowledge_graph_inst: Knowledge graph storage
-        entity_vdb: Entity vector database
-        relationships_vdb: Relationship vector database
-        global_config: Global configuration
-        llm_response_cache: LLM response cache
-        current_file_number: Current file number for progress tracking
-        total_files: Total number of files for progress tracking
-        file_path: Current file path for logging
-        lightrag_logger: Optional logger for progress tracking
-        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
-    """
+    """Merge nodes and edges from extraction results"""
 
     # Collect all nodes and edges from all chunks
     all_nodes = defaultdict(list)
@@ -558,12 +549,12 @@ async def merge_nodes_and_edges(
                     entity_name,
                     entities,
                     knowledge_graph_inst,
-                    global_config["llm_model_func"],
-                    global_config["tokenizer"],
-                    global_config["llm_model_max_token_size"],
-                    global_config["summary_to_max_tokens"],
-                    global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
-                    global_config["force_llm_summary_on_merge"],
+                    llm_model_func,
+                    tokenizer,
+                    llm_model_max_token_size,
+                    summary_to_max_tokens,
+                    addon_params,
+                    force_llm_summary_on_merge,
                     llm_response_cache,
                     lightrag_logger,
                 )
@@ -576,12 +567,12 @@ async def merge_nodes_and_edges(
                     edge_key[1],
                     edges,
                     knowledge_graph_inst,
-                    global_config["llm_model_func"],
-                    global_config["tokenizer"],
-                    global_config["llm_model_max_token_size"],
-                    global_config["summary_to_max_tokens"],
-                    global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
-                    global_config["force_llm_summary_on_merge"],
+                    llm_model_func,
+                    tokenizer,
+                    llm_model_max_token_size,
+                    summary_to_max_tokens,
+                    addon_params,
+                    force_llm_summary_on_merge,
                     llm_response_cache,
                     lightrag_logger,
                 )
@@ -645,12 +636,12 @@ async def merge_nodes_and_edges(
                 entity_name,
                 entities,
                 knowledge_graph_inst,
-                global_config["llm_model_func"],
-                global_config["tokenizer"],
-                global_config["llm_model_max_token_size"],
-                global_config["summary_to_max_tokens"],
-                global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
-                global_config["force_llm_summary_on_merge"],
+                llm_model_func,
+                tokenizer,
+                llm_model_max_token_size,
+                summary_to_max_tokens,
+                addon_params,
+                force_llm_summary_on_merge,
                 llm_response_cache,
                 lightrag_logger,
             )
@@ -663,12 +654,12 @@ async def merge_nodes_and_edges(
                 edge_key[1],
                 edges,
                 knowledge_graph_inst,
-                global_config["llm_model_func"],
-                global_config["tokenizer"],
-                global_config["llm_model_max_token_size"],
-                global_config["summary_to_max_tokens"],
-                global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
-                global_config["force_llm_summary_on_merge"],
+                llm_model_func,
+                tokenizer,
+                llm_model_max_token_size,
+                summary_to_max_tokens,
+                addon_params,
+                force_llm_summary_on_merge,
                 llm_response_cache,
                 lightrag_logger,
             )
@@ -950,6 +941,7 @@ async def kg_query(
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
+    enable_llm_cache,
     hashing_kv: BaseKVStorage | None = None,
     system_prompt: str | None = None,
     chunks_vdb: BaseVectorStorage = None,
@@ -968,7 +960,7 @@ async def kg_query(
         return cached_response
 
     hl_keywords, ll_keywords = await get_keywords_from_query(
-        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv
+        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv, enable_llm_cache
     )
 
     logger.debug(f"High-level keywords: {hl_keywords}")
@@ -1055,7 +1047,7 @@ async def kg_query(
             .strip()
         )
 
-    if hashing_kv.global_config.get("enable_llm_cache"):
+    if enable_llm_cache:
         # Save to cache
         await save_to_cache(
             hashing_kv,
@@ -1081,18 +1073,13 @@ async def get_keywords_from_query(
     llm_model_func: callable,
     addon_params: dict,
     hashing_kv: BaseKVStorage | None = None,
+    enable_llm_cache = False,
 ) -> tuple[list[str], list[str]]:
     """
     Retrieves high-level and low-level keywords for RAG operations.
 
     This function checks if keywords are already provided in query parameters,
     and if not, extracts them from the query text using LLM.
-
-    Args:
-        query: The user's query text
-        query_param: Query parameters that may contain pre-defined keywords
-        global_config: Global configuration dictionary
-        hashing_kv: Optional key-value storage for caching results
 
     Returns:
         A tuple containing (high_level_keywords, low_level_keywords)
@@ -1103,7 +1090,7 @@ async def get_keywords_from_query(
 
     # Extract keywords using extract_keywords_only function which already supports conversation history
     hl_keywords, ll_keywords = await extract_keywords_only(
-        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv
+        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv, enable_llm_cache
     )
     return hl_keywords, ll_keywords
 
@@ -1115,6 +1102,7 @@ async def extract_keywords_only(
     llm_model_func: callable,
     addon_params: dict,
     hashing_kv: BaseKVStorage | None = None,
+    enable_llm_cache = False,
 ) -> tuple[list[str], list[str]]:
     """
     Extract high-level and low-level keywords from the given 'text' using the LLM.
@@ -1191,7 +1179,7 @@ async def extract_keywords_only(
             "high_level_keywords": hl_keywords,
             "low_level_keywords": ll_keywords,
         }
-        if hashing_kv.global_config.get("enable_llm_cache"):
+        if enable_llm_cache:
             await save_to_cache(
                 hashing_kv,
                 CacheData(
@@ -1979,14 +1967,16 @@ async def naive_query(
     query: str,
     chunks_vdb: BaseVectorStorage,
     query_param: QueryParam,
-    global_config: dict[str, str],
+    llm_model_func,
+    tokenizer,
+    enable_llm_cache,
     hashing_kv: BaseKVStorage | None = None,
     system_prompt: str | None = None,
 ) -> str | AsyncIterator[str]:
     if query_param.model_func:
         use_model_func = query_param.model_func
     else:
-        use_model_func = global_config["llm_model_func"]
+        use_model_func = llm_model_func
 
     # Handle cache
     args_hash = compute_args_hash(query_param.mode, query, cache_type="query")
@@ -1995,8 +1985,6 @@ async def naive_query(
     )
     if cached_response is not None:
         return cached_response
-
-    tokenizer: Tokenizer = global_config["tokenizer"]
 
     _, _, text_units_context = await _get_vector_context(
         query, chunks_vdb, query_param, tokenizer
@@ -2060,7 +2048,7 @@ async def naive_query(
             .strip()
         )
 
-    if hashing_kv.global_config.get("enable_llm_cache"):
+    if enable_llm_cache:
         # Save to cache
         await save_to_cache(
             hashing_kv,
@@ -2089,6 +2077,7 @@ async def kg_query_with_keywords(
     query_param: QueryParam,
     tokenizer: Tokenizer,
     llm_model_func: callable,
+    enable_llm_cache,
     hashing_kv: BaseKVStorage | None = None,
     ll_keywords: list[str] = [],
     hl_keywords: list[str] = [],
@@ -2183,7 +2172,7 @@ async def kg_query_with_keywords(
             .strip()
         )
 
-        if hashing_kv.global_config.get("enable_llm_cache"):
+        if enable_llm_cache:
             await save_to_cache(
                 hashing_kv,
                 CacheData(
@@ -2199,82 +2188,3 @@ async def kg_query_with_keywords(
             )
 
     return response
-
-
-# TODO: Deprecated, use user_prompt in QueryParam instead
-async def query_with_keywords(
-    query: str,
-    prompt: str,
-    param: QueryParam,
-    knowledge_graph_inst: BaseGraphStorage,
-    entities_vdb: BaseVectorStorage,
-    relationships_vdb: BaseVectorStorage,
-    chunks_vdb: BaseVectorStorage,
-    text_chunks_db: BaseKVStorage,
-    global_config: dict[str, str],
-    hashing_kv: BaseKVStorage | None = None,
-) -> str | AsyncIterator[str]:
-    """
-    Extract keywords from the query and then use them for retrieving information.
-
-    1. Extracts high-level and low-level keywords from the query
-    2. Formats the query with the extracted keywords and prompt
-    3. Uses the appropriate query method based on param.mode
-
-    Args:
-        query: The user's query
-        prompt: Additional prompt to prepend to the query
-        param: Query parameters
-        knowledge_graph_inst: Knowledge graph storage
-        entities_vdb: Entities vector database
-        relationships_vdb: Relationships vector database
-        chunks_vdb: Document chunks vector database
-        text_chunks_db: Text chunks storage
-        global_config: Global configuration
-        hashing_kv: Cache storage
-
-    Returns:
-        Query response or async iterator
-    """
-    # Extract keywords
-    hl_keywords, ll_keywords = await get_keywords_from_query(
-        query=query,
-        query_param=param,
-        global_config=global_config,
-        hashing_kv=hashing_kv,
-    )
-
-    # Create a new string with the prompt and the keywords
-    keywords_str = ", ".join(ll_keywords + hl_keywords)
-    formatted_question = (
-        f"{prompt}\n\n### Keywords\n\n{keywords_str}\n\n### Query\n\n{query}"
-    )
-
-    param.original_query = query
-
-    # Use appropriate query method based on mode
-    if param.mode in ["local", "global", "hybrid", "mix"]:
-        return await kg_query_with_keywords(
-            formatted_question,
-            knowledge_graph_inst,
-            entities_vdb,
-            relationships_vdb,
-            text_chunks_db,
-            param,
-            global_config,
-            hashing_kv=hashing_kv,
-            hl_keywords=hl_keywords,
-            ll_keywords=ll_keywords,
-            chunks_vdb=chunks_vdb,
-        )
-    elif param.mode == "naive":
-        return await naive_query(
-            formatted_question,
-            chunks_vdb,
-            text_chunks_db,
-            param,
-            global_config,
-            hashing_kv=hashing_kv,
-        )
-    else:
-        raise ValueError(f"Unknown mode {param.mode}")

@@ -51,7 +51,7 @@ from .operate import (
     merge_nodes_and_edges,
     naive_query,
 )
-from .prompt import GRAPH_FIELD_SEP
+from .prompt import GRAPH_FIELD_SEP, PROMPTS
 from .types import KnowledgeGraph
 from .utils import (
     EmbeddingFunc,
@@ -679,7 +679,12 @@ class LightRAG:
                 knowledge_graph_inst=self.chunk_entity_relation_graph,
                 entity_vdb=self.entities_vdb,
                 relationships_vdb=self.relationships_vdb,
-                global_config=asdict(self),
+                llm_model_func=self.llm_model_func,
+                tokenizer=self.tokenizer,
+                llm_model_max_token_size=self.llm_model_max_token_size,
+                summary_to_max_tokens=self.summary_to_max_tokens,
+                addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
+                force_llm_summary_on_merge=self.force_llm_summary_on_merge,
                 llm_response_cache=self.llm_response_cache,
                 current_file_number=0,
                 total_files=0,
@@ -1079,7 +1084,12 @@ class LightRAG:
                                 knowledge_graph_inst=self.chunk_entity_relation_graph,
                                 entity_vdb=self.entities_vdb,
                                 relationships_vdb=self.relationships_vdb,
-                                global_config=asdict(self),
+                                llm_model_func=self.llm_model_func,
+                                tokenizer=self.tokenizer,
+                                llm_model_max_token_size=self.llm_model_max_token_size,
+                                summary_to_max_tokens=self.summary_to_max_tokens,
+                                addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
+                                force_llm_summary_on_merge=self.force_llm_summary_on_merge,
                                 llm_response_cache=self.llm_response_cache,
                                 current_file_number=current_file_number,
                                 total_files=total_files,
@@ -1240,7 +1250,6 @@ class LightRAG:
             str: The result of the query execution.
         """
         # If a custom model is provided in param, temporarily update global config
-        global_config = asdict(self)
         # Save original query for vector search
         param.original_query = query
 
@@ -1255,6 +1264,7 @@ class LightRAG:
                 self.tokenizer,
                 self.llm_model_func,
                 self.addon_params,
+                self.enable_llm_cache,
                 hashing_kv=self.llm_response_cache,
                 system_prompt=system_prompt,
                 chunks_vdb=self.chunks_vdb,
@@ -1264,16 +1274,17 @@ class LightRAG:
                 query.strip(),
                 self.chunks_vdb,
                 param,
-                global_config,
+                self.llm_model_func,
+                self.tokenizer,
+                self.enable_llm_cache,
                 hashing_kv=self.llm_response_cache,
                 system_prompt=system_prompt,
             )
         elif param.mode == "bypass":
             # Bypass mode: directly use LLM without knowledge retrieval
-            use_llm_func = param.model_func or global_config["llm_model_func"]
 
             param.stream = True if param.stream is None else param.stream
-            response = await use_llm_func(
+            response = await self.llm_model_func(
                 query.strip(),
                 system_prompt=system_prompt,
                 history_messages=param.conversation_history,
