@@ -5,12 +5,13 @@ except ImportError:
     Neo4JSyncStorage = None
 
 try:
-    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGOpsDocStatusStorage
+    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGOpsDocStatusStorage, PGOpsSyncKVStorage
 except ImportError:
     PGSyncKVStorage = None
     PGSyncVectorStorage = None 
     PGSyncDocStatusStorage = None
     PGOpsDocStatusStorage = None
+    PGOpsSyncKVStorage = None
 
 STORAGE_IMPLEMENTATIONS = {
     "KV_STORAGE": {
@@ -18,6 +19,7 @@ STORAGE_IMPLEMENTATIONS = {
             "RedisKVStorage",
             "PGKVStorage",
             "PGSyncKVStorage",
+            "PGOpsSyncKVStorage",
         ],
         "required_methods": ["get_by_id", "upsert"],
     },
@@ -55,6 +57,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "RedisKVStorage": ["REDIS_URI"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "PGSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    "PGOpsSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     # Graph Storage Implementations
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
@@ -101,6 +104,9 @@ if PGSyncDocStatusStorage is not None:
 
 if PGOpsDocStatusStorage is not None:
     STORAGES["PGOpsDocStatusStorage"] = ".kg.postgres_sync_impl"
+
+if PGOpsSyncKVStorage is not None:
+    STORAGES["PGOpsSyncKVStorage"] = ".kg.postgres_sync_impl"
 
 def verify_storage_implementation(storage_type: str, storage_name: str) -> None:
     """Verify if storage implementation is compatible with specified storage type

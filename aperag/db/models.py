@@ -19,7 +19,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Type
 
-from sqlalchemy import JSON, Column, String, TypeDecorator
+from sqlalchemy import JSON, Column, String, TypeDecorator, Text, ARRAY
+from pgvector.sqlalchemy import Vector
 from sqlmodel import Field, SQLModel, UniqueConstraint, select
 
 from aperag.config import AsyncSessionDep
@@ -624,3 +625,76 @@ class LightRAGDocStatusModel(SQLModel, table=True):
     file_path: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class LightRAGDocFullModel(SQLModel, table=True):
+    """LightRAG Document Full Storage Model"""
+    __tablename__ = "lightrag_doc_full"
+    
+    id: str = Field(primary_key=True, max_length=255)
+    workspace: str = Field(primary_key=True, max_length=255)
+    doc_name: Optional[str] = Field(default=None, max_length=1024)
+    content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    meta: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    create_time: datetime = Field(default_factory=datetime.utcnow)
+    update_time: datetime = Field(default_factory=datetime.utcnow)
+
+
+class LightRAGDocChunksModel(SQLModel, table=True):
+    """LightRAG Document Chunks Storage Model"""
+    __tablename__ = "lightrag_doc_chunks"
+    
+    id: str = Field(primary_key=True, max_length=255)
+    workspace: str = Field(primary_key=True, max_length=255)
+    full_doc_id: Optional[str] = Field(default=None, max_length=256)
+    chunk_order_index: Optional[int] = None
+    tokens: Optional[int] = None
+    content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    content_vector: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
+    file_path: Optional[str] = Field(default=None, max_length=256)
+    create_time: datetime = Field(default_factory=datetime.utcnow)
+    update_time: datetime = Field(default_factory=datetime.utcnow)
+
+
+class LightRAGVDBEntityModel(SQLModel, table=True):
+    """LightRAG VDB Entity Storage Model"""
+    __tablename__ = "lightrag_vdb_entity"
+    
+    id: str = Field(primary_key=True, max_length=255)
+    workspace: str = Field(primary_key=True, max_length=255)
+    entity_name: Optional[str] = Field(default=None, max_length=255)
+    content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    content_vector: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
+    create_time: datetime = Field(default_factory=datetime.utcnow)
+    update_time: datetime = Field(default_factory=datetime.utcnow)
+    chunk_ids: Optional[list[str]] = Field(default=None, sa_column=Column(ARRAY(String)))
+    file_path: Optional[str] = Field(default=None, sa_column=Column(Text))
+
+
+class LightRAGVDBRelationModel(SQLModel, table=True):
+    """LightRAG VDB Relation Storage Model"""
+    __tablename__ = "lightrag_vdb_relation"
+    
+    id: str = Field(primary_key=True, max_length=255)
+    workspace: str = Field(primary_key=True, max_length=255)
+    source_id: Optional[str] = Field(default=None, max_length=256)
+    target_id: Optional[str] = Field(default=None, max_length=256)
+    content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    content_vector: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
+    create_time: datetime = Field(default_factory=datetime.utcnow)
+    update_time: datetime = Field(default_factory=datetime.utcnow)
+    chunk_ids: Optional[list[str]] = Field(default=None, sa_column=Column(ARRAY(String)))
+    file_path: Optional[str] = Field(default=None, sa_column=Column(Text))
+
+
+class LightRAGLLMCacheModel(SQLModel, table=True):
+    """LightRAG LLM Cache Storage Model"""
+    __tablename__ = "lightrag_llm_cache"
+    
+    workspace: str = Field(primary_key=True, max_length=255)
+    id: str = Field(primary_key=True, max_length=255)
+    mode: str = Field(primary_key=True, max_length=32)
+    original_prompt: Optional[str] = Field(default=None, sa_column=Column(Text))
+    return_value: Optional[str] = Field(default=None, sa_column=Column(Text))
+    create_time: datetime = Field(default_factory=datetime.utcnow)
+    update_time: Optional[datetime] = None

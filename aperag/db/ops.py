@@ -37,6 +37,11 @@ from aperag.db.models import (
     Invitation,
     LightRAGDocStatus,
     LightRAGDocStatusModel,
+    LightRAGDocFullModel,
+    LightRAGDocChunksModel,
+    LightRAGVDBEntityModel,
+    LightRAGVDBRelationModel,
+    LightRAGLLMCacheModel,
     LLMProvider,
     LLMProviderModel,
     MessageFeedback,
@@ -216,6 +221,488 @@ class DatabaseOps:
                 session.delete(doc)
             session.commit()
             return len(docs)
+
+        return self._execute_transaction(_operation)
+
+    # LightRAG Doc Full Operations
+    def query_lightrag_doc_full_by_id(self, workspace: str, doc_id: str):
+        """Query LightRAG document full by ID"""
+        def _query(session):
+            stmt = select(LightRAGDocFullModel).where(
+                LightRAGDocFullModel.workspace == workspace,
+                LightRAGDocFullModel.id == doc_id
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def query_lightrag_doc_full_by_ids(self, workspace: str, doc_ids: list):
+        """Query LightRAG document full by IDs"""
+        def _query(session):
+            if not doc_ids:
+                return []
+            stmt = select(LightRAGDocFullModel).where(
+                LightRAGDocFullModel.workspace == workspace,
+                LightRAGDocFullModel.id.in_(doc_ids)
+            )
+            result = session.execute(stmt)
+            return result.scalars().all()
+
+        return self._execute_query(_query)
+
+    def query_lightrag_doc_full_all(self, workspace: str):
+        """Query all LightRAG document full records for workspace"""
+        def _query(session):
+            stmt = select(LightRAGDocFullModel).where(
+                LightRAGDocFullModel.workspace == workspace
+            )
+            result = session.execute(stmt)
+            return {doc.id: doc for doc in result.scalars().all()}
+
+        return self._execute_query(_query)
+
+    def filter_lightrag_doc_full_keys(self, workspace: str, keys: list):
+        """Filter existing keys for LightRAG document full"""
+        def _query(session):
+            if not keys:
+                return []
+            stmt = select(LightRAGDocFullModel.id).where(
+                LightRAGDocFullModel.workspace == workspace,
+                LightRAGDocFullModel.id.in_(keys)
+            )
+            result = session.execute(stmt)
+            return [row[0] for row in result.fetchall()]
+
+        return self._execute_query(_query)
+
+    def upsert_lightrag_doc_full(self, workspace: str, doc_data: dict):
+        """Upsert LightRAG document full records"""
+        def _operation(session):
+            for doc_id, doc_content in doc_data.items():
+                # Check if record exists
+                stmt = select(LightRAGDocFullModel).where(
+                    LightRAGDocFullModel.workspace == workspace,
+                    LightRAGDocFullModel.id == doc_id
+                )
+                result = session.execute(stmt)
+                existing = result.scalars().first()
+                
+                if existing:
+                    # Update existing record
+                    existing.doc_name = doc_content.get("doc_name")
+                    existing.content = doc_content.get("content", "")
+                    existing.meta = doc_content.get("meta")
+                    existing.update_time = datetime.utcnow()
+                    session.add(existing)
+                else:
+                    # Create new record
+                    new_doc = LightRAGDocFullModel(
+                        workspace=workspace,
+                        id=doc_id,
+                        doc_name=doc_content.get("doc_name"),
+                        content=doc_content.get("content", ""),
+                        meta=doc_content.get("meta"),
+                        create_time=datetime.utcnow(),
+                        update_time=datetime.utcnow()
+                    )
+                    session.add(new_doc)
+            
+            session.commit()
+
+        return self._execute_transaction(_operation)
+
+    def delete_lightrag_doc_full(self, workspace: str, doc_ids: list):
+        """Delete LightRAG document full records"""
+        def _operation(session):
+            stmt = select(LightRAGDocFullModel).where(
+                LightRAGDocFullModel.workspace == workspace,
+                LightRAGDocFullModel.id.in_(doc_ids)
+            )
+            result = session.execute(stmt)
+            docs = result.scalars().all()
+            
+            for doc in docs:
+                session.delete(doc)
+            session.commit()
+            return len(docs)
+
+        return self._execute_transaction(_operation)
+
+    # LightRAG Doc Chunks Operations
+    def query_lightrag_doc_chunks_by_id(self, workspace: str, chunk_id: str):
+        """Query LightRAG document chunks by ID"""
+        def _query(session):
+            stmt = select(LightRAGDocChunksModel).where(
+                LightRAGDocChunksModel.workspace == workspace,
+                LightRAGDocChunksModel.id == chunk_id
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def query_lightrag_doc_chunks_by_ids(self, workspace: str, chunk_ids: list):
+        """Query LightRAG document chunks by IDs"""
+        def _query(session):
+            if not chunk_ids:
+                return []
+            stmt = select(LightRAGDocChunksModel).where(
+                LightRAGDocChunksModel.workspace == workspace,
+                LightRAGDocChunksModel.id.in_(chunk_ids)
+            )
+            result = session.execute(stmt)
+            return result.scalars().all()
+
+        return self._execute_query(_query)
+
+    def query_lightrag_doc_chunks_all(self, workspace: str):
+        """Query all LightRAG document chunks records for workspace"""
+        def _query(session):
+            stmt = select(LightRAGDocChunksModel).where(
+                LightRAGDocChunksModel.workspace == workspace
+            )
+            result = session.execute(stmt)
+            return {chunk.id: chunk for chunk in result.scalars().all()}
+
+        return self._execute_query(_query)
+
+    def filter_lightrag_doc_chunks_keys(self, workspace: str, keys: list):
+        """Filter existing keys for LightRAG document chunks"""
+        def _query(session):
+            if not keys:
+                return []
+            stmt = select(LightRAGDocChunksModel.id).where(
+                LightRAGDocChunksModel.workspace == workspace,
+                LightRAGDocChunksModel.id.in_(keys)
+            )
+            result = session.execute(stmt)
+            return [row[0] for row in result.fetchall()]
+
+        return self._execute_query(_query)
+
+    def upsert_lightrag_doc_chunks(self, workspace: str, chunks_data: dict):
+        """Upsert LightRAG document chunks records"""
+        def _operation(session):
+            for chunk_id, chunk_data in chunks_data.items():
+                # Check if record exists
+                stmt = select(LightRAGDocChunksModel).where(
+                    LightRAGDocChunksModel.workspace == workspace,
+                    LightRAGDocChunksModel.id == chunk_id
+                )
+                result = session.execute(stmt)
+                existing = result.scalars().first()
+                
+                if existing:
+                    # Update existing record
+                    existing.tokens = chunk_data.get("tokens")
+                    existing.chunk_order_index = chunk_data.get("chunk_order_index")
+                    existing.full_doc_id = chunk_data.get("full_doc_id")
+                    existing.content = chunk_data.get("content", "")
+                    # Handle vector data - convert from JSON string if needed
+                    vector_data = chunk_data.get("content_vector")
+                    if isinstance(vector_data, str):
+                        import json
+                        existing.content_vector = json.loads(vector_data)
+                    else:
+                        existing.content_vector = vector_data
+                    existing.file_path = chunk_data.get("file_path")
+                    existing.update_time = datetime.utcnow()
+                    session.add(existing)
+                else:
+                    # Handle vector data - convert from JSON string if needed
+                    vector_data = chunk_data.get("content_vector")
+                    if isinstance(vector_data, str):
+                        import json
+                        vector_data = json.loads(vector_data)
+                    
+                    # Create new record
+                    new_chunk = LightRAGDocChunksModel(
+                        workspace=workspace,
+                        id=chunk_id,
+                        tokens=chunk_data.get("tokens"),
+                        chunk_order_index=chunk_data.get("chunk_order_index"),
+                        full_doc_id=chunk_data.get("full_doc_id"),
+                        content=chunk_data.get("content", ""),
+                        content_vector=vector_data,
+                        file_path=chunk_data.get("file_path"),
+                        create_time=datetime.utcnow(),
+                        update_time=datetime.utcnow()
+                    )
+                    session.add(new_chunk)
+            
+            session.commit()
+
+        return self._execute_transaction(_operation)
+
+    def delete_lightrag_doc_chunks(self, workspace: str, chunk_ids: list):
+        """Delete LightRAG document chunks records"""
+        def _operation(session):
+            stmt = select(LightRAGDocChunksModel).where(
+                LightRAGDocChunksModel.workspace == workspace,
+                LightRAGDocChunksModel.id.in_(chunk_ids)
+            )
+            result = session.execute(stmt)
+            chunks = result.scalars().all()
+            
+            for chunk in chunks:
+                session.delete(chunk)
+            session.commit()
+            return len(chunks)
+
+        return self._execute_transaction(_operation)
+
+    # LightRAG VDB Entity Operations
+    def query_lightrag_vdb_entity_by_id(self, workspace: str, entity_id: str):
+        """Query LightRAG VDB Entity by ID"""
+        def _query(session):
+            stmt = select(LightRAGVDBEntityModel).where(
+                LightRAGVDBEntityModel.workspace == workspace,
+                LightRAGVDBEntityModel.id == entity_id
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def upsert_lightrag_vdb_entity(self, workspace: str, entity_data: dict):
+        """Upsert LightRAG VDB Entity records"""
+        def _operation(session):
+            for entity_id, entity_info in entity_data.items():
+                # Check if record exists
+                stmt = select(LightRAGVDBEntityModel).where(
+                    LightRAGVDBEntityModel.workspace == workspace,
+                    LightRAGVDBEntityModel.id == entity_id
+                )
+                result = session.execute(stmt)
+                existing = result.scalars().first()
+                
+                if existing:
+                    # Update existing record
+                    existing.entity_name = entity_info.get("entity_name")
+                    existing.content = entity_info.get("content", "")
+                    # Handle vector data - convert from JSON string if needed
+                    vector_data = entity_info.get("content_vector")
+                    if isinstance(vector_data, str):
+                        import json
+                        existing.content_vector = json.loads(vector_data)
+                    else:
+                        existing.content_vector = vector_data
+                    existing.chunk_ids = entity_info.get("chunk_ids")
+                    existing.file_path = entity_info.get("file_path")
+                    existing.update_time = datetime.utcnow()
+                    session.add(existing)
+                else:
+                    # Handle vector data - convert from JSON string if needed
+                    vector_data = entity_info.get("content_vector")
+                    if isinstance(vector_data, str):
+                        import json
+                        vector_data = json.loads(vector_data)
+                    
+                    # Create new record
+                    new_entity = LightRAGVDBEntityModel(
+                        workspace=workspace,
+                        id=entity_id,
+                        entity_name=entity_info.get("entity_name"),
+                        content=entity_info.get("content", ""),
+                        content_vector=vector_data,
+                        chunk_ids=entity_info.get("chunk_ids"),
+                        file_path=entity_info.get("file_path"),
+                        create_time=datetime.utcnow(),
+                        update_time=datetime.utcnow()
+                    )
+                    session.add(new_entity)
+            
+            session.commit()
+
+        return self._execute_transaction(_operation)
+
+    def delete_lightrag_vdb_entity(self, workspace: str, entity_ids: list):
+        """Delete LightRAG VDB Entity records"""
+        def _operation(session):
+            stmt = select(LightRAGVDBEntityModel).where(
+                LightRAGVDBEntityModel.workspace == workspace,
+                LightRAGVDBEntityModel.id.in_(entity_ids)
+            )
+            result = session.execute(stmt)
+            entities = result.scalars().all()
+            
+            for entity in entities:
+                session.delete(entity)
+            session.commit()
+            return len(entities)
+
+        return self._execute_transaction(_operation)
+
+    # LightRAG VDB Relation Operations
+    def query_lightrag_vdb_relation_by_id(self, workspace: str, relation_id: str):
+        """Query LightRAG VDB Relation by ID"""
+        def _query(session):
+            stmt = select(LightRAGVDBRelationModel).where(
+                LightRAGVDBRelationModel.workspace == workspace,
+                LightRAGVDBRelationModel.id == relation_id
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def upsert_lightrag_vdb_relation(self, workspace: str, relation_data: dict):
+        """Upsert LightRAG VDB Relation records"""
+        def _operation(session):
+            for relation_id, relation_info in relation_data.items():
+                # Check if record exists
+                stmt = select(LightRAGVDBRelationModel).where(
+                    LightRAGVDBRelationModel.workspace == workspace,
+                    LightRAGVDBRelationModel.id == relation_id
+                )
+                result = session.execute(stmt)
+                existing = result.scalars().first()
+                
+                if existing:
+                    # Update existing record
+                    existing.source_id = relation_info.get("source_id")
+                    existing.target_id = relation_info.get("target_id")
+                    existing.content = relation_info.get("content", "")
+                    # Handle vector data - convert from JSON string if needed
+                    vector_data = relation_info.get("content_vector")
+                    if isinstance(vector_data, str):
+                        import json
+                        existing.content_vector = json.loads(vector_data)
+                    else:
+                        existing.content_vector = vector_data
+                    existing.chunk_ids = relation_info.get("chunk_ids")
+                    existing.file_path = relation_info.get("file_path")
+                    existing.update_time = datetime.utcnow()
+                    session.add(existing)
+                else:
+                    # Handle vector data - convert from JSON string if needed
+                    vector_data = relation_info.get("content_vector")
+                    if isinstance(vector_data, str):
+                        import json
+                        vector_data = json.loads(vector_data)
+                    
+                    # Create new record
+                    new_relation = LightRAGVDBRelationModel(
+                        workspace=workspace,
+                        id=relation_id,
+                        source_id=relation_info.get("source_id"),
+                        target_id=relation_info.get("target_id"),
+                        content=relation_info.get("content", ""),
+                        content_vector=vector_data,
+                        chunk_ids=relation_info.get("chunk_ids"),
+                        file_path=relation_info.get("file_path"),
+                        create_time=datetime.utcnow(),
+                        update_time=datetime.utcnow()
+                    )
+                    session.add(new_relation)
+            
+            session.commit()
+
+        return self._execute_transaction(_operation)
+
+    def delete_lightrag_vdb_relation(self, workspace: str, relation_ids: list):
+        """Delete LightRAG VDB Relation records"""
+        def _operation(session):
+            stmt = select(LightRAGVDBRelationModel).where(
+                LightRAGVDBRelationModel.workspace == workspace,
+                LightRAGVDBRelationModel.id.in_(relation_ids)
+            )
+            result = session.execute(stmt)
+            relations = result.scalars().all()
+            
+            for relation in relations:
+                session.delete(relation)
+            session.commit()
+            return len(relations)
+
+        return self._execute_transaction(_operation)
+
+    # LightRAG LLM Cache Operations
+    def query_lightrag_llm_cache(self, workspace: str, cache_id: str, mode: str):
+        """Query LightRAG LLM Cache by ID and mode"""
+        def _query(session):
+            stmt = select(LightRAGLLMCacheModel).where(
+                LightRAGLLMCacheModel.workspace == workspace,
+                LightRAGLLMCacheModel.id == cache_id,
+                LightRAGLLMCacheModel.mode == mode
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def upsert_lightrag_llm_cache(self, workspace: str, cache_data: dict):
+        """Upsert LightRAG LLM Cache records"""
+        def _operation(session):
+            for cache_key, cache_info in cache_data.items():
+                # Extract ID and mode from cache_key or cache_info
+                cache_id = cache_info.get("id")
+                mode = cache_info.get("mode")
+                
+                if not cache_id or not mode:
+                    continue
+                
+                # Check if record exists
+                stmt = select(LightRAGLLMCacheModel).where(
+                    LightRAGLLMCacheModel.workspace == workspace,
+                    LightRAGLLMCacheModel.id == cache_id,
+                    LightRAGLLMCacheModel.mode == mode
+                )
+                result = session.execute(stmt)
+                existing = result.scalars().first()
+                
+                if existing:
+                    # Update existing record
+                    existing.original_prompt = cache_info.get("original_prompt")
+                    existing.return_value = cache_info.get("return_value")
+                    existing.update_time = datetime.utcnow()
+                    session.add(existing)
+                else:
+                    # Create new record
+                    new_cache = LightRAGLLMCacheModel(
+                        workspace=workspace,
+                        id=cache_id,
+                        mode=mode,
+                        original_prompt=cache_info.get("original_prompt"),
+                        return_value=cache_info.get("return_value"),
+                        create_time=datetime.utcnow(),
+                        update_time=datetime.utcnow()
+                    )
+                    session.add(new_cache)
+            
+            session.commit()
+
+        return self._execute_transaction(_operation)
+
+    def delete_lightrag_llm_cache(self, workspace: str, cache_keys: list):
+        """Delete LightRAG LLM Cache records"""
+        def _operation(session):
+            deleted_count = 0
+            for cache_key in cache_keys:
+                # Extract ID and mode from cache_key
+                if isinstance(cache_key, dict):
+                    cache_id = cache_key.get("id")
+                    mode = cache_key.get("mode")
+                elif isinstance(cache_key, tuple) and len(cache_key) >= 2:
+                    cache_id, mode = cache_key[0], cache_key[1]
+                else:
+                    continue
+                
+                stmt = select(LightRAGLLMCacheModel).where(
+                    LightRAGLLMCacheModel.workspace == workspace,
+                    LightRAGLLMCacheModel.id == cache_id,
+                    LightRAGLLMCacheModel.mode == mode
+                )
+                result = session.execute(stmt)
+                cache_item = result.scalars().first()
+                
+                if cache_item:
+                    session.delete(cache_item)
+                    deleted_count += 1
+            
+            session.commit()
+            return deleted_count
 
         return self._execute_transaction(_operation)
 
