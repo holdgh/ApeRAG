@@ -26,6 +26,15 @@ except ImportError:
     cleanup_worker_neo4j = None
     neo4j_available = False
 
+# Import PostgreSQL sync configuration signal handlers
+try:
+    from aperag.db.postgres_sync_manager import setup_worker_postgres, cleanup_worker_postgres
+    postgres_available = True
+except ImportError:
+    setup_worker_postgres = None
+    cleanup_worker_postgres = None
+    postgres_available = False
+
 # Create celery app instance
 app = Celery("aperag")
 
@@ -57,6 +66,13 @@ if neo4j_available and setup_worker_neo4j is not None:
 
 if neo4j_available and cleanup_worker_neo4j is not None:
     worker_process_shutdown.connect(cleanup_worker_neo4j)
+
+# Connect PostgreSQL worker lifecycle signals
+if postgres_available and setup_worker_postgres is not None:
+    worker_process_init.connect(setup_worker_postgres)
+
+if postgres_available and cleanup_worker_postgres is not None:
+    worker_process_shutdown.connect(cleanup_worker_postgres)
 
 @worker_process_init.connect
 def setup_worker(**kwargs):

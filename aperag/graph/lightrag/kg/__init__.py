@@ -5,12 +5,11 @@ except ImportError:
     Neo4JSyncStorage = None
 
 try:
-    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGSyncGraphStorage
+    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage
 except ImportError:
     PGSyncKVStorage = None
     PGSyncVectorStorage = None 
     PGSyncDocStatusStorage = None
-    PGSyncGraphStorage = None
 
 STORAGE_IMPLEMENTATIONS = {
     "KV_STORAGE": {
@@ -27,7 +26,6 @@ STORAGE_IMPLEMENTATIONS = {
             "Neo4JSyncStorage",
             "Neo4JHybridStorage",
             "PGGraphStorage",
-            "PGSyncGraphStorage",
             "AGEStorage",
         ],
         "required_methods": ["upsert_node", "upsert_edge"],
@@ -60,11 +58,6 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
 
     "PGGraphStorage": [
-        "POSTGRES_USER",
-        "POSTGRES_PASSWORD",
-        "POSTGRES_DATABASE",
-    ],
-    "PGSyncGraphStorage": [
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
         "POSTGRES_DATABASE",
@@ -102,9 +95,6 @@ if PGSyncVectorStorage is not None:
     
 if PGSyncDocStatusStorage is not None:
     STORAGES["PGSyncDocStatusStorage"] = ".kg.postgres_sync_impl"
-    
-if PGSyncGraphStorage is not None:
-    STORAGES["PGSyncGraphStorage"] = ".kg.postgres_sync_impl"
 
 def verify_storage_implementation(storage_type: str, storage_name: str) -> None:
     """Verify if storage implementation is compatible with specified storage type

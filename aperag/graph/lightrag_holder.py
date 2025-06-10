@@ -370,6 +370,10 @@ async def checkAndConfigurePostgresqlStorage(
             LIGHTRAG_VECTOR_STORAGE == "PGVectorStorage",
             LIGHTRAG_GRAPH_STORAGE == "PGGraphStorage",
             LIGHTRAG_DOC_STATUS_STORAGE == "PGDocStatusStorage",
+            # Add sync versions
+            LIGHTRAG_KV_STORAGE == "PGSyncKVStorage",
+            LIGHTRAG_VECTOR_STORAGE == "PGSyncVectorStorage",
+            LIGHTRAG_DOC_STATUS_STORAGE == "PGSyncDocStatusStorage",
         ]
     )
     if using_pg_storage:
@@ -406,14 +410,14 @@ async def checkAndConfigurePostgresqlStorage(
 
         # Log which storage types are using PostgreSQL
         pg_storage_in_use = []
-        if LIGHTRAG_KV_STORAGE == "PGKVStorage":
-            pg_storage_in_use.append("KV")
-        if LIGHTRAG_VECTOR_STORAGE == "PGVectorStorage":
-            pg_storage_in_use.append("Vector")
+        if LIGHTRAG_KV_STORAGE in ["PGKVStorage", "PGSyncKVStorage"]:
+            pg_storage_in_use.append(f"KV({LIGHTRAG_KV_STORAGE})")
+        if LIGHTRAG_VECTOR_STORAGE in ["PGVectorStorage", "PGSyncVectorStorage"]:
+            pg_storage_in_use.append(f"Vector({LIGHTRAG_VECTOR_STORAGE})")
         if LIGHTRAG_GRAPH_STORAGE == "PGGraphStorage":
-            pg_storage_in_use.append("Graph")
-        if LIGHTRAG_DOC_STATUS_STORAGE == "PGDocStatusStorage":
-            pg_storage_in_use.append("DocStatus")
+            pg_storage_in_use.append(f"Graph({LIGHTRAG_GRAPH_STORAGE})")
+        if LIGHTRAG_DOC_STATUS_STORAGE in ["PGDocStatusStorage", "PGSyncDocStatusStorage"]:
+            pg_storage_in_use.append(f"DocStatus({LIGHTRAG_DOC_STATUS_STORAGE})")
 
         logger.info(
             f"PostgreSQL configuration: Host={POSTGRES_HOST}:{POSTGRES_PORT}, "
