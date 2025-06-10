@@ -947,7 +947,9 @@ async def kg_query(
     relationships_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
-    global_config: dict[str, str],
+    tokenizer: Tokenizer,
+    llm_model_func: callable,
+    addon_params: dict,
     hashing_kv: BaseKVStorage | None = None,
     system_prompt: str | None = None,
     chunks_vdb: BaseVectorStorage = None,
@@ -955,7 +957,7 @@ async def kg_query(
     if query_param.model_func:
         use_model_func = query_param.model_func
     else:
-        use_model_func = global_config["llm_model_func"]
+        use_model_func = llm_model_func
 
     # Handle cache
     args_hash = compute_args_hash(query_param.mode, query, cache_type="query")
@@ -966,7 +968,7 @@ async def kg_query(
         return cached_response
 
     hl_keywords, ll_keywords = await get_keywords_from_query(
-        query, query_param, global_config, hashing_kv
+        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv
     )
 
     logger.debug(f"High-level keywords: {hl_keywords}")
@@ -1001,6 +1003,7 @@ async def kg_query(
         relationships_vdb,
         text_chunks_db,
         query_param,
+        tokenizer,
         chunks_vdb,
     )
 
@@ -1033,7 +1036,6 @@ async def kg_query(
     if query_param.only_need_prompt:
         return sys_prompt
 
-    tokenizer: Tokenizer = global_config["tokenizer"]
     len_of_prompts = len(tokenizer.encode(query + sys_prompt))
     logger.debug(f"[kg_query]Prompt Tokens: {len_of_prompts}")
 
@@ -1075,7 +1077,9 @@ async def kg_query(
 async def get_keywords_from_query(
     query: str,
     query_param: QueryParam,
-    global_config: dict[str, str],
+    tokenizer: Tokenizer,
+    llm_model_func: callable,
+    addon_params: dict,
     hashing_kv: BaseKVStorage | None = None,
 ) -> tuple[list[str], list[str]]:
     """
@@ -1099,7 +1103,7 @@ async def get_keywords_from_query(
 
     # Extract keywords using extract_keywords_only function which already supports conversation history
     hl_keywords, ll_keywords = await extract_keywords_only(
-        query, query_param, global_config, hashing_kv
+        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv
     )
     return hl_keywords, ll_keywords
 
@@ -1107,7 +1111,9 @@ async def get_keywords_from_query(
 async def extract_keywords_only(
     text: str,
     param: QueryParam,
-    global_config: dict[str, str],
+    tokenizer: Tokenizer,
+    llm_model_func: callable,
+    addon_params: dict,
     hashing_kv: BaseKVStorage | None = None,
 ) -> tuple[list[str], list[str]]:
     """
@@ -1133,16 +1139,14 @@ async def extract_keywords_only(
             )
 
     # 2. Build the examples
-    example_number = global_config["addon_params"].get("example_number", None)
+    example_number = addon_params.get("example_number", None)
     if example_number and example_number < len(PROMPTS["keywords_extraction_examples"]):
         examples = "\n".join(
             PROMPTS["keywords_extraction_examples"][: int(example_number)]
         )
     else:
         examples = "\n".join(PROMPTS["keywords_extraction_examples"])
-    language = global_config["addon_params"].get(
-        "language", PROMPTS["DEFAULT_LANGUAGE"]
-    )
+    language = addon_params.get("language", PROMPTS["DEFAULT_LANGUAGE"])
 
     # 3. Process conversation history
     history_context = ""
@@ -1156,7 +1160,6 @@ async def extract_keywords_only(
         query=text, examples=examples, language=language, history=history_context
     )
 
-    tokenizer: Tokenizer = global_config["tokenizer"]
     len_of_prompts = len(tokenizer.encode(kw_prompt))
     logger.debug(f"[kg_query]Prompt Tokens: {len_of_prompts}")
 
@@ -1164,7 +1167,7 @@ async def extract_keywords_only(
     if param.model_func:
         use_model_func = param.model_func
     else:
-        use_model_func = global_config["llm_model_func"]
+        use_model_func = llm_model_func
 
     result = await use_model_func(kw_prompt, keyword_extraction=True)
 
@@ -1295,6 +1298,7 @@ async def _build_query_context(
     relationships_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
+    tokenizer: Tokenizer,
     chunks_vdb: BaseVectorStorage = None,  # Add chunks_vdb parameter for mix mode
 ):
     logger.info(f"Process {os.getpid()} building query context...")
@@ -1307,6 +1311,7 @@ async def _build_query_context(
             entities_vdb,
             text_chunks_db,
             query_param,
+            tokenizer,
         )
     elif query_param.mode == "global":
         entities_context, relations_context, text_units_context = await _get_edge_data(
@@ -1315,6 +1320,7 @@ async def _build_query_context(
             relationships_vdb,
             text_chunks_db,
             query_param,
+            tokenizer,
         )
     else:  # hybrid or mix mode
         ll_data = await _get_node_data(
@@ -1323,6 +1329,7 @@ async def _build_query_context(
             entities_vdb,
             text_chunks_db,
             query_param,
+            tokenizer,
         )
         hl_data = await _get_edge_data(
             hl_keywords,
@@ -1330,6 +1337,7 @@ async def _build_query_context(
             relationships_vdb,
             text_chunks_db,
             query_param,
+            tokenizer,
         )
 
         (
@@ -1353,9 +1361,6 @@ async def _build_query_context(
 
         # Only get vector data if in mix mode
         if query_param.mode == "mix" and hasattr(query_param, "original_query"):
-            # Get tokenizer from text_chunks_db
-            tokenizer = text_chunks_db.global_config.get("tokenizer")
-
             # Get vector context in triple format
             vector_data = await _get_vector_context(
                 query_param.original_query,  # We need to pass the original query
@@ -1419,6 +1424,7 @@ async def _get_node_data(
     entities_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
+    tokenizer: Tokenizer,
 ):
     # get similar entities
     logger.info(
@@ -1464,14 +1470,15 @@ async def _get_node_data(
         query_param,
         text_chunks_db,
         knowledge_graph_inst,
+        tokenizer,
     )
     use_relations = await _find_most_related_edges_from_entities(
         node_datas,
         query_param,
         knowledge_graph_inst,
+        tokenizer,
     )
 
-    tokenizer: Tokenizer = text_chunks_db.global_config.get("tokenizer")
     len_node_datas = len(node_datas)
     node_datas = truncate_list_by_token_size(
         node_datas,
@@ -1550,6 +1557,7 @@ async def _find_most_related_text_unit_from_entities(
     query_param: QueryParam,
     text_chunks_db: BaseKVStorage,
     knowledge_graph_inst: BaseGraphStorage,
+    tokenizer: Tokenizer,
 ):
     text_units = [
         split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
@@ -1631,7 +1639,6 @@ async def _find_most_related_text_unit_from_entities(
         logger.warning("No valid text units found")
         return []
 
-    tokenizer: Tokenizer = text_chunks_db.global_config.get("tokenizer")
     all_text_units = sorted(
         all_text_units, key=lambda x: (x["order"], -x["relation_counts"])
     )
@@ -1654,6 +1661,7 @@ async def _find_most_related_edges_from_entities(
     node_datas: list[dict],
     query_param: QueryParam,
     knowledge_graph_inst: BaseGraphStorage,
+    tokenizer: Tokenizer,
 ):
     node_names = [dp["entity_name"] for dp in node_datas]
     batch_edges_dict = await knowledge_graph_inst.get_nodes_edges_batch(node_names)
@@ -1699,7 +1707,6 @@ async def _find_most_related_edges_from_entities(
             }
             all_edges_data.append(combined)
 
-    tokenizer: Tokenizer = knowledge_graph_inst.global_config.get("tokenizer")
     all_edges_data = sorted(
         all_edges_data, key=lambda x: (x["rank"], x["weight"]), reverse=True
     )
@@ -1723,6 +1730,7 @@ async def _get_edge_data(
     relationships_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
+    tokenizer: Tokenizer,
 ):
     logger.info(
         f"Query edges: {keywords}, top_k: {query_param.top_k}, cosine: {relationships_vdb.cosine_better_than_threshold}"
@@ -1769,7 +1777,6 @@ async def _get_edge_data(
             }
             edge_datas.append(combined)
 
-    tokenizer: Tokenizer = text_chunks_db.global_config.get("tokenizer")
     edge_datas = sorted(
         edge_datas, key=lambda x: (x["rank"], x["weight"]), reverse=True
     )
@@ -1784,12 +1791,14 @@ async def _get_edge_data(
             edge_datas,
             query_param,
             knowledge_graph_inst,
+            tokenizer,
         ),
         _find_related_text_unit_from_relationships(
             edge_datas,
             query_param,
             text_chunks_db,
             knowledge_graph_inst,
+            tokenizer,
         ),
     )
     logger.info(
@@ -1858,6 +1867,7 @@ async def _find_most_related_entities_from_relationships(
     edge_datas: list[dict],
     query_param: QueryParam,
     knowledge_graph_inst: BaseGraphStorage,
+    tokenizer: Tokenizer,
 ):
     entity_names = []
     seen = set()
@@ -1888,7 +1898,6 @@ async def _find_most_related_entities_from_relationships(
         combined = {**node, "entity_name": entity_name, "rank": degree}
         node_datas.append(combined)
 
-    tokenizer: Tokenizer = knowledge_graph_inst.global_config.get("tokenizer")
     len_node_datas = len(node_datas)
     node_datas = truncate_list_by_token_size(
         node_datas,
@@ -1908,6 +1917,7 @@ async def _find_related_text_unit_from_relationships(
     query_param: QueryParam,
     text_chunks_db: BaseKVStorage,
     knowledge_graph_inst: BaseGraphStorage,
+    tokenizer: Tokenizer,
 ):
     text_units = [
         split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
@@ -1949,7 +1959,6 @@ async def _find_related_text_unit_from_relationships(
         logger.warning("No valid text chunks after filtering")
         return []
 
-    tokenizer: Tokenizer = text_chunks_db.global_config.get("tokenizer")
     truncated_text_units = truncate_list_by_token_size(
         valid_text_units,
         key=lambda x: x["data"]["content"],
@@ -2078,7 +2087,8 @@ async def kg_query_with_keywords(
     relationships_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
-    global_config: dict[str, str],
+    tokenizer: Tokenizer,
+    llm_model_func: callable,
     hashing_kv: BaseKVStorage | None = None,
     ll_keywords: list[str] = [],
     hl_keywords: list[str] = [],
@@ -2092,7 +2102,7 @@ async def kg_query_with_keywords(
     if query_param.model_func:
         use_model_func = query_param.model_func
     else:
-        use_model_func = global_config["llm_model_func"]
+        use_model_func = llm_model_func
 
     args_hash = compute_args_hash(query_param.mode, query, cache_type="query")
     cached_response, quantized, min_val, max_val = await handle_cache(
@@ -2125,6 +2135,7 @@ async def kg_query_with_keywords(
         relationships_vdb,
         text_chunks_db,
         query_param,
+        tokenizer,
         chunks_vdb=chunks_vdb,
     )
     if not context:
@@ -2150,7 +2161,6 @@ async def kg_query_with_keywords(
     if query_param.only_need_prompt:
         return sys_prompt
 
-    tokenizer: Tokenizer = global_config["tokenizer"]
     len_of_prompts = len(tokenizer.encode(query + sys_prompt))
     logger.debug(f"[kg_query_with_keywords]Prompt Tokens: {len_of_prompts}")
 
