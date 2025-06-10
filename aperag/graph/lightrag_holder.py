@@ -429,8 +429,8 @@ async def checkAndConfigurePostgresqlStorage(
 
 async def checkAndConfigureNeo4jStorage(LIGHTRAG_GRAPH_STORAGE):
     # Check and configure Neo4J storage if used
-    if LIGHTRAG_GRAPH_STORAGE == "Neo4JStorage":
-        logger.info("LightRAG is configured to use Neo4J as graph storage, checking environment variables...")
+    if LIGHTRAG_GRAPH_STORAGE in ["Neo4JStorage", "Neo4JSyncStorage"]:
+        logger.info(f"LightRAG is configured to use {LIGHTRAG_GRAPH_STORAGE} as graph storage, checking environment variables...")
 
         NEO4J_HOST = os.environ.get("NEO4J_HOST")
         NEO4J_PORT = os.environ.get("NEO4J_PORT", "7687")
@@ -448,7 +448,7 @@ async def checkAndConfigureNeo4jStorage(LIGHTRAG_GRAPH_STORAGE):
 
         if missing_neo4j_vars:
             raise LightRAGInitializationError(
-                f"Neo4J storage requires the following environment variables: {', '.join(missing_neo4j_vars)}"
+                f"{LIGHTRAG_GRAPH_STORAGE} requires the following environment variables: {', '.join(missing_neo4j_vars)}"
             )
 
         NEO4J_URI = f"neo4j://{NEO4J_HOST}:{NEO4J_PORT}"
@@ -458,7 +458,7 @@ async def checkAndConfigureNeo4jStorage(LIGHTRAG_GRAPH_STORAGE):
         os.environ["NEO4J_USERNAME"] = NEO4J_USERNAME
         os.environ["NEO4J_PASSWORD"] = NEO4J_PASSWORD
 
-        logger.info(f"Neo4J configuration: URI={NEO4J_URI}, Username={NEO4J_USERNAME}")
+        logger.info(f"{LIGHTRAG_GRAPH_STORAGE} configuration: URI={NEO4J_URI}, Username={NEO4J_USERNAME}")
 
 
 # Module-level cache management

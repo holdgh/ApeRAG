@@ -9,6 +9,7 @@ STORAGE_IMPLEMENTATIONS = {
     "GRAPH_STORAGE": {
         "implementations": [
             "Neo4JStorage",
+            "Neo4JSyncStorage",
             "PGGraphStorage",
             "AGEStorage",
         ],
@@ -36,6 +37,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     # Graph Storage Implementations
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
+    "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "AGEStorage": [
         "AGE_POSTGRES_DB",
         "AGE_POSTGRES_USER",
@@ -56,6 +58,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
 # Storage implementation module mapping
 STORAGES = {
     "Neo4JStorage": ".kg.neo4j_impl",
+    "Neo4JSyncStorage": ".kg.neo4j_sync_impl",
     "RedisKVStorage": ".kg.redis_impl",
     "PGKVStorage": ".kg.postgres_impl",
     "PGVectorStorage": ".kg.postgres_impl",

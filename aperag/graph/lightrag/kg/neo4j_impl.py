@@ -27,10 +27,10 @@ from neo4j import (
 
 # Import Neo4j connection manager
 try:
-    from aperag.db.neo4j_manager import Neo4jConnectionManager, Neo4jConnectionFactory
+    from aperag.db.neo4j_manager import Neo4jConnectionFactory, BorrowedConnection
 except ImportError:
-    Neo4jConnectionManager = None
     Neo4jConnectionFactory = None
+    BorrowedConnection = None
 
 # use the .env that is inside the current folder
 # allows to use different .env file for each lightrag instance
@@ -55,45 +55,36 @@ class Neo4JStorage(BaseGraphStorage):
             embedding_func=embedding_func,
         )
         self._driver = None
-        self._connection_manager = None
+        self._borrowed_connection = None
         self._DATABASE = None
 
     async def initialize(self):
         """
-        Initialize Neo4j storage by creating a connection manager in the current event loop.
-        This ensures no event loop conflicts with Celery tasks.
+        Initialize Neo4j storage by borrowing a connection from the global pool.
+        This provides connection reuse while maintaining event loop safety.
         """
-        if Neo4jConnectionManager is None:
-            raise RuntimeError("Neo4j connection manager is not available")
+        if Neo4jConnectionFactory is None:
+            raise RuntimeError("Neo4j connection factory is not available")
         
-        # Create connection manager in current event loop (event-loop safe)
-        try:
-            if Neo4jConnectionFactory is not None:
-                # Use factory for Celery environments (shares config, creates new connections)
-                self._connection_manager = await Neo4jConnectionFactory.get_connection_manager()
-                logger.info(f"Neo4jStorage using event-loop-safe connection factory for workspace '{self.workspace}'")
-            else:
-                # Fallback: create new connection manager for this instance
-                self._connection_manager = Neo4jConnectionManager()
-                logger.info(f"Neo4jStorage created new connection manager for workspace '{self.workspace}'")
-        except Exception as e:
-            logger.warning(f"Failed to get connection manager from factory: {e}. Creating new connection manager.")
-            self._connection_manager = Neo4jConnectionManager()
+        # Borrow a connection from the global pool
+        self._borrowed_connection = Neo4jConnectionFactory.borrow_connection()
+        await self._borrowed_connection.__aenter__()
         
-        # Get driver from connection manager
-        self._driver = await self._connection_manager.get_driver()
+        # Get driver from borrowed connection
+        self._driver = await self._borrowed_connection.get_driver()
         
-        # Prepare database and get database name  
-        self._DATABASE = await Neo4jConnectionManager.prepare_database(self._driver, self.workspace)
-        logger.info(f"Neo4jStorage initialized for workspace '{self.workspace}', database '{self._DATABASE}'")
+        # Prepare database using borrowed connection
+        self._DATABASE = await self._borrowed_connection.prepare_database(self.workspace)
+        
+        logger.info(f"Neo4jStorage initialized with pooled connection for workspace '{self.workspace}', database '{self._DATABASE}'")
 
     async def finalize(self):
-        """Clean up resources - close the connection manager for this storage instance"""
+        """Clean up resources - return the borrowed connection to the pool"""
         self._driver = None
-        if self._connection_manager:
-            await self._connection_manager.close()
-            self._connection_manager = None
-            logger.debug(f"Neo4jStorage closed connection manager for workspace '{self.workspace}'")
+        if self._borrowed_connection:
+            await self._borrowed_connection.__aexit__(None, None, None)
+            self._borrowed_connection = None
+            logger.debug(f"Neo4jStorage returned connection to pool for workspace '{self.workspace}'")
 
     async def __aexit__(self, exc_type, exc, tb):
         """Ensure driver is closed when context manager exits"""
