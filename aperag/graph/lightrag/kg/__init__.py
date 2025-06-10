@@ -10,6 +10,7 @@ STORAGE_IMPLEMENTATIONS = {
         "implementations": [
             "Neo4JStorage",
             "Neo4JSyncStorage",
+            "Neo4JHybridStorage",
             "PGGraphStorage",
             "AGEStorage",
         ],
