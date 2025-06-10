@@ -51,10 +51,12 @@ if settings.local_queue_name:
         "aperag.tasks.index.add_index_for_local_document": {"queue": f"{settings.local_queue_name}"},
     }
 
-# Connect Neo4j worker lifecycle signals
-if neo4j_available:
-    setup_worker_neo4j.connect(worker_process_init)
-    cleanup_worker_neo4j.connect(worker_process_shutdown)
+# Connect Neo4j worker lifecycle signals using correct syntax
+if neo4j_available and setup_worker_neo4j is not None:
+    worker_process_init.connect(setup_worker_neo4j)
+
+if neo4j_available and cleanup_worker_neo4j is not None:
+    worker_process_shutdown.connect(cleanup_worker_neo4j)
 
 @worker_process_init.connect
 def setup_worker(**kwargs):
