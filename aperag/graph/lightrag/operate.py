@@ -231,7 +231,6 @@ async def _merge_nodes_then_upsert(
     summary_to_max_tokens: int,
     language: str,
     force_llm_summary_on_merge: int,
-    llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ):
     """Get existing nodes from knowledge graph use name,if exists, merge data, else create, then upsert."""
@@ -321,7 +320,6 @@ async def _merge_edges_then_upsert(
     summary_to_max_tokens: int,
     language: str,
     force_llm_summary_on_merge: int,
-    llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ):
     if src_id == tgt_id:
@@ -486,7 +484,6 @@ async def merge_nodes_and_edges(
     summary_to_max_tokens,
     addon_params,
     force_llm_summary_on_merge,
-    llm_response_cache: BaseKVStorage | None = None,
     current_file_number: int = 0,
     total_files: int = 0,
     file_path: str = "unknown_source",
@@ -535,7 +532,6 @@ async def merge_nodes_and_edges(
                     summary_to_max_tokens,
                     addon_params,
                     force_llm_summary_on_merge,
-                    llm_response_cache,
                     lightrag_logger,
                 )
                 entities_data.append(entity_data)
@@ -553,7 +549,6 @@ async def merge_nodes_and_edges(
                     summary_to_max_tokens,
                     addon_params,
                     force_llm_summary_on_merge,
-                    llm_response_cache,
                     lightrag_logger,
                 )
                 if edge_data is not None:
@@ -622,7 +617,6 @@ async def merge_nodes_and_edges(
                 summary_to_max_tokens,
                 addon_params,
                 force_llm_summary_on_merge,
-                llm_response_cache,
                 lightrag_logger,
             )
             entities_data.append(entity_data)
@@ -640,7 +634,6 @@ async def merge_nodes_and_edges(
                 summary_to_max_tokens,
                 addon_params,
                 force_llm_summary_on_merge,
-                llm_response_cache,
                 lightrag_logger,
             )
             if edge_data is not None:
@@ -902,8 +895,6 @@ async def kg_query(
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-    enable_llm_cache,
-    hashing_kv: BaseKVStorage | None = None,
     system_prompt: str | None = None,
     chunks_vdb: BaseVectorStorage = None,
 ) -> str | AsyncIterator[str]:
@@ -913,7 +904,7 @@ async def kg_query(
         use_model_func = llm_model_func
 
     hl_keywords, ll_keywords = await get_keywords_from_query(
-        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv, enable_llm_cache
+        query, query_param, tokenizer, llm_model_func, addon_params
     )
 
     logger.debug(f"High-level keywords: {hl_keywords}")
@@ -1009,8 +1000,6 @@ async def get_keywords_from_query(
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-    hashing_kv: BaseKVStorage | None = None,
-    enable_llm_cache = False,
 ) -> tuple[list[str], list[str]]:
     """
     Retrieves high-level and low-level keywords for RAG operations.
@@ -1027,7 +1016,7 @@ async def get_keywords_from_query(
 
     # Extract keywords using extract_keywords_only function which already supports conversation history
     hl_keywords, ll_keywords = await extract_keywords_only(
-        query, query_param, tokenizer, llm_model_func, addon_params, hashing_kv, enable_llm_cache
+        query, query_param, tokenizer, llm_model_func, addon_params
     )
     return hl_keywords, ll_keywords
 
@@ -1038,8 +1027,6 @@ async def extract_keywords_only(
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-    hashing_kv: BaseKVStorage | None = None,
-    enable_llm_cache = False,
 ) -> tuple[list[str], list[str]]:
     """
     Extract high-level and low-level keywords from the given 'text' using the LLM.
@@ -1875,8 +1862,6 @@ async def naive_query(
     query_param: QueryParam,
     llm_model_func,
     tokenizer,
-    enable_llm_cache,
-    hashing_kv: BaseKVStorage | None = None,
     system_prompt: str | None = None,
 ) -> str | AsyncIterator[str]:
     if query_param.model_func:
@@ -1946,106 +1931,5 @@ async def naive_query(
             .strip()
         )
 
-
-    return response
-
-
-# TODO: Deprecated, use user_prompt in QueryParam instead
-async def kg_query_with_keywords(
-    query: str,
-    knowledge_graph_inst: BaseGraphStorage,
-    entities_vdb: BaseVectorStorage,
-    relationships_vdb: BaseVectorStorage,
-    text_chunks_db: BaseKVStorage,
-    query_param: QueryParam,
-    tokenizer: Tokenizer,
-    llm_model_func: callable,
-    enable_llm_cache,
-    hashing_kv: BaseKVStorage | None = None,
-    ll_keywords: list[str] = [],
-    hl_keywords: list[str] = [],
-    chunks_vdb: BaseVectorStorage | None = None,
-) -> str | AsyncIterator[str]:
-    """
-    Refactored kg_query that does NOT extract keywords by itself.
-    It expects hl_keywords and ll_keywords to be set in query_param, or defaults to empty.
-    Then it uses those to build context and produce a final LLM response.
-    """
-    if query_param.model_func:
-        use_model_func = query_param.model_func
-    else:
-        use_model_func = llm_model_func
-
-    # If neither has any keywords, you could handle that logic here.
-    if not hl_keywords and not ll_keywords:
-        logger.warning(
-            "No keywords found in query_param. Could default to global mode or fail."
-        )
-        return PROMPTS["fail_response"]
-    if not ll_keywords and query_param.mode in ["local", "hybrid"]:
-        logger.warning("low_level_keywords is empty, switching to global mode.")
-        query_param.mode = "global"
-    if not hl_keywords and query_param.mode in ["global", "hybrid"]:
-        logger.warning("high_level_keywords is empty, switching to local mode.")
-        query_param.mode = "local"
-
-    ll_keywords_str = ", ".join(ll_keywords) if ll_keywords else ""
-    hl_keywords_str = ", ".join(hl_keywords) if hl_keywords else ""
-
-    context = await _build_query_context(
-        ll_keywords_str,
-        hl_keywords_str,
-        knowledge_graph_inst,
-        entities_vdb,
-        relationships_vdb,
-        text_chunks_db,
-        query_param,
-        tokenizer,
-        chunks_vdb=chunks_vdb,
-    )
-    if not context:
-        return PROMPTS["fail_response"]
-
-    if query_param.only_need_context:
-        return context
-
-    # Process conversation history
-    history_context = ""
-    if query_param.conversation_history:
-        history_context = get_conversation_turns(
-            query_param.conversation_history, query_param.history_turns
-        )
-
-    sys_prompt_temp = PROMPTS["rag_response"]
-    sys_prompt = sys_prompt_temp.format(
-        context_data=context,
-        response_type=query_param.response_type,
-        history=history_context,
-    )
-
-    if query_param.only_need_prompt:
-        return sys_prompt
-
-    len_of_prompts = len(tokenizer.encode(query + sys_prompt))
-    logger.debug(f"[kg_query_with_keywords]Prompt Tokens: {len_of_prompts}")
-
-    # 6. Generate response
-    response = await use_model_func(
-        query,
-        system_prompt=sys_prompt,
-        stream=query_param.stream,
-    )
-
-    # Clean up response content
-    if isinstance(response, str) and len(response) > len(sys_prompt):
-        response = (
-            response.replace(sys_prompt, "")
-            .replace("user", "")
-            .replace("model", "")
-            .replace(query, "")
-            .replace("<system>", "")
-            .replace("</system>", "")
-            .strip()
-        )
 
     return response

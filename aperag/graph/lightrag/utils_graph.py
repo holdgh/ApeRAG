@@ -32,28 +32,8 @@ async def adelete_by_entity(
             logger.info(
                 f"Entity '{entity_name}' and its relationships have been deleted."
             )
-            await _delete_by_entity_done(
-                entities_vdb, relationships_vdb, chunk_entity_relation_graph
-            )
         except Exception as e:
             logger.error(f"Error while deleting entity '{entity_name}': {e}")
-
-
-async def _delete_by_entity_done(
-    entities_vdb, relationships_vdb, chunk_entity_relation_graph
-) -> None:
-    """Callback after entity deletion is complete, ensures updates are persisted"""
-    await asyncio.gather(
-        *[
-            cast(StorageNameSpace, storage_inst).index_done_callback()
-            for storage_inst in [  # type: ignore
-                entities_vdb,
-                relationships_vdb,
-                chunk_entity_relation_graph,
-            ]
-        ]
-    )
-
 
 async def adelete_by_relation(
     chunk_entity_relation_graph,
@@ -99,25 +79,10 @@ async def adelete_by_relation(
             logger.info(
                 f"Successfully deleted relation from '{source_entity}' to '{target_entity}'"
             )
-            await _delete_relation_done(relationships_vdb, chunk_entity_relation_graph)
         except Exception as e:
             logger.error(
                 f"Error while deleting relation from '{source_entity}' to '{target_entity}': {e}"
             )
-
-
-async def _delete_relation_done(relationships_vdb, chunk_entity_relation_graph) -> None:
-    """Callback after relation deletion is complete, ensures updates are persisted"""
-    await asyncio.gather(
-        *[
-            cast(StorageNameSpace, storage_inst).index_done_callback()
-            for storage_inst in [  # type: ignore
-                relationships_vdb,
-                chunk_entity_relation_graph,
-            ]
-        ]
-    )
-
 
 async def aedit_entity(
     chunk_entity_relation_graph,
@@ -300,11 +265,6 @@ async def aedit_entity(
             # Update vector database
             await entities_vdb.upsert(entity_data)
 
-            # 4. Save changes
-            await _edit_entity_done(
-                entities_vdb, relationships_vdb, chunk_entity_relation_graph
-            )
-
             logger.info(f"Entity '{entity_name}' successfully updated")
             return await get_entity_info(
                 chunk_entity_relation_graph,
@@ -315,23 +275,6 @@ async def aedit_entity(
         except Exception as e:
             logger.error(f"Error while editing entity '{entity_name}': {e}")
             raise
-
-
-async def _edit_entity_done(
-    entities_vdb, relationships_vdb, chunk_entity_relation_graph
-) -> None:
-    """Callback after entity editing is complete, ensures updates are persisted"""
-    await asyncio.gather(
-        *[
-            cast(StorageNameSpace, storage_inst).index_done_callback()
-            for storage_inst in [  # type: ignore
-                entities_vdb,
-                relationships_vdb,
-                chunk_entity_relation_graph,
-            ]
-        ]
-    )
-
 
 async def aedit_relation(
     chunk_entity_relation_graph,
@@ -418,9 +361,6 @@ async def aedit_relation(
             # Update vector database
             await relationships_vdb.upsert(relation_data)
 
-            # 4. Save changes
-            await _edit_relation_done(relationships_vdb, chunk_entity_relation_graph)
-
             logger.info(
                 f"Relation from '{source_entity}' to '{target_entity}' successfully updated"
             )
@@ -437,18 +377,6 @@ async def aedit_relation(
             )
             raise
 
-
-async def _edit_relation_done(relationships_vdb, chunk_entity_relation_graph) -> None:
-    """Callback after relation editing is complete, ensures updates are persisted"""
-    await asyncio.gather(
-        *[
-            cast(StorageNameSpace, storage_inst).index_done_callback()
-            for storage_inst in [  # type: ignore
-                relationships_vdb,
-                chunk_entity_relation_graph,
-            ]
-        ]
-    )
 
 
 async def acreate_entity(
@@ -519,11 +447,6 @@ async def acreate_entity(
 
             # Update vector database
             await entities_vdb.upsert(entity_data_for_vdb)
-
-            # Save changes
-            await _edit_entity_done(
-                entities_vdb, relationships_vdb, chunk_entity_relation_graph
-            )
 
             logger.info(f"Entity '{entity_name}' successfully created")
             return await get_entity_info(
@@ -629,9 +552,6 @@ async def acreate_relation(
 
             # Update vector database
             await relationships_vdb.upsert(relation_data_for_vdb)
-
-            # Save changes
-            await _edit_relation_done(relationships_vdb, chunk_entity_relation_graph)
 
             logger.info(
                 f"Relation from '{source_entity}' to '{target_entity}' successfully created"
@@ -885,10 +805,6 @@ async def amerge_entities(
                     f"Deleted source entity '{entity_name}' and its vector embedding from database"
                 )
 
-            # 10. Save changes
-            await _merge_entities_done(
-                entities_vdb, relationships_vdb, chunk_entity_relation_graph
-            )
 
             logger.info(
                 f"Successfully merged {len(source_entities)} entities into '{target_entity}'"
@@ -1012,21 +928,6 @@ def _merge_relation_attributes(
 
     return merged_data
 
-
-async def _merge_entities_done(
-    entities_vdb, relationships_vdb, chunk_entity_relation_graph
-) -> None:
-    """Callback after entity merging is complete, ensures updates are persisted"""
-    await asyncio.gather(
-        *[
-            cast(StorageNameSpace, storage_inst).index_done_callback()
-            for storage_inst in [  # type: ignore
-                entities_vdb,
-                relationships_vdb,
-                chunk_entity_relation_graph,
-            ]
-        ]
-    )
 
 
 async def get_entity_info(

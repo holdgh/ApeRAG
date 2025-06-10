@@ -225,12 +225,6 @@ class LightRAG:
     workspace: str = field(default="default")
     """Workspace identifier for data isolation across different collections/tenants."""
 
-    enable_llm_cache: bool = field(default=True)
-    """Enables caching for LLM responses to avoid redundant computations."""
-
-    enable_llm_cache_for_entity_extract: bool = field(default=True)
-    """If True, enables caching for entity extraction steps to reduce LLM costs."""
-
     # Extensions
     # ---
 
@@ -680,7 +674,6 @@ class LightRAG:
                 summary_to_max_tokens=self.summary_to_max_tokens,
                 addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
                 force_llm_summary_on_merge=self.force_llm_summary_on_merge,
-                llm_response_cache=self.llm_response_cache,
                 current_file_number=0,
                 total_files=0,
                 file_path="stateless_processing",
@@ -774,8 +767,6 @@ class LightRAG:
                 self.tokenizer,
                 self.llm_model_func,
                 self.addon_params,
-                self.enable_llm_cache,
-                hashing_kv=self.llm_response_cache,
                 system_prompt=system_prompt,
                 chunks_vdb=self.chunks_vdb,
             )
@@ -786,8 +777,6 @@ class LightRAG:
                 param,
                 self.llm_model_func,
                 self.tokenizer,
-                self.enable_llm_cache,
-                hashing_kv=self.llm_response_cache,
                 system_prompt=system_prompt,
             )
         elif param.mode == "bypass":
@@ -802,12 +791,8 @@ class LightRAG:
             )
         else:
             raise ValueError(f"Unknown mode {param.mode}")
-        await self._query_done()
         return response
 
-
-    async def _query_done(self):
-        await self.llm_response_cache.index_done_callback()
 
     async def aclear_cache(self, modes: list[str] | None = None) -> None:
         """Clear cache data from the LLM response cache storage.
@@ -852,8 +837,6 @@ class LightRAG:
                     logger.info("Cleared all cache")
                 else:
                     logger.warning("Failed to clear all cache")
-
-            await self.llm_response_cache.index_done_callback()
 
         except Exception as e:
             logger.error(f"Error while clearing cache: {e}")
