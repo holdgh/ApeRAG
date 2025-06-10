@@ -382,54 +382,45 @@ class DatabaseOps:
         return self._execute_query(_query)
 
     def upsert_lightrag_doc_chunks(self, workspace: str, chunks_data: dict):
-        """Upsert LightRAG document chunks records"""
+        """Upsert LightRAG document chunks records using PostgreSQL UPSERT"""
         def _operation(session):
             for chunk_id, chunk_data in chunks_data.items():
-                # Check if record exists
-                stmt = select(LightRAGDocChunksModel).where(
-                    LightRAGDocChunksModel.workspace == workspace,
-                    LightRAGDocChunksModel.id == chunk_id
-                )
-                result = session.execute(stmt)
-                existing = result.scalars().first()
+                # Prepare vector data - convert from JSON string if needed
+                vector_data = chunk_data.get("content_vector")
+                if isinstance(vector_data, str):
+                    import json
+                    vector_data = json.loads(vector_data)
                 
-                if existing:
-                    # Update existing record
-                    existing.tokens = chunk_data.get("tokens")
-                    existing.chunk_order_index = chunk_data.get("chunk_order_index")
-                    existing.full_doc_id = chunk_data.get("full_doc_id")
-                    existing.content = chunk_data.get("content", "")
-                    # Handle vector data - convert from JSON string if needed
-                    vector_data = chunk_data.get("content_vector")
-                    if isinstance(vector_data, str):
-                        import json
-                        existing.content_vector = json.loads(vector_data)
-                    else:
-                        existing.content_vector = vector_data
-                    existing.file_path = chunk_data.get("file_path")
-                    existing.update_time = datetime.utcnow()
-                    session.add(existing)
-                else:
-                    # Handle vector data - convert from JSON string if needed
-                    vector_data = chunk_data.get("content_vector")
-                    if isinstance(vector_data, str):
-                        import json
-                        vector_data = json.loads(vector_data)
-                    
-                    # Create new record
-                    new_chunk = LightRAGDocChunksModel(
-                        workspace=workspace,
-                        id=chunk_id,
-                        tokens=chunk_data.get("tokens"),
-                        chunk_order_index=chunk_data.get("chunk_order_index"),
-                        full_doc_id=chunk_data.get("full_doc_id"),
-                        content=chunk_data.get("content", ""),
-                        content_vector=vector_data,
-                        file_path=chunk_data.get("file_path"),
-                        create_time=datetime.utcnow(),
-                        update_time=datetime.utcnow()
-                    )
-                    session.add(new_chunk)
+                # Use raw SQL UPSERT to avoid race conditions
+                sql = """
+                INSERT INTO lightrag_doc_chunks (workspace, id, tokens, chunk_order_index, full_doc_id, content, content_vector, file_path, create_time, update_time)
+                VALUES (:workspace, :id, :tokens, :chunk_order_index, :full_doc_id, :content, :content_vector, :file_path, :create_time, :update_time)
+                ON CONFLICT (workspace, id) DO UPDATE SET
+                    tokens = EXCLUDED.tokens,
+                    chunk_order_index = EXCLUDED.chunk_order_index,
+                    full_doc_id = EXCLUDED.full_doc_id,
+                    content = EXCLUDED.content,
+                    content_vector = CASE 
+                        WHEN EXCLUDED.content_vector IS NOT NULL THEN EXCLUDED.content_vector 
+                        ELSE lightrag_doc_chunks.content_vector 
+                    END,
+                    file_path = EXCLUDED.file_path,
+                    update_time = EXCLUDED.update_time
+                """
+                
+                from sqlalchemy import text
+                session.execute(text(sql), {
+                    'workspace': workspace,
+                    'id': chunk_id,
+                    'tokens': chunk_data.get("tokens"),
+                    'chunk_order_index': chunk_data.get("chunk_order_index"),
+                    'full_doc_id': chunk_data.get("full_doc_id"),
+                    'content': chunk_data.get("content", ""),
+                    'content_vector': vector_data,
+                    'file_path': chunk_data.get("file_path"),
+                    'create_time': datetime.utcnow(),
+                    'update_time': datetime.utcnow()
+                })
             
             session.commit()
 
@@ -466,52 +457,43 @@ class DatabaseOps:
         return self._execute_query(_query)
 
     def upsert_lightrag_vdb_entity(self, workspace: str, entity_data: dict):
-        """Upsert LightRAG VDB Entity records"""
+        """Upsert LightRAG VDB Entity records using PostgreSQL UPSERT"""
         def _operation(session):
             for entity_id, entity_info in entity_data.items():
-                # Check if record exists
-                stmt = select(LightRAGVDBEntityModel).where(
-                    LightRAGVDBEntityModel.workspace == workspace,
-                    LightRAGVDBEntityModel.id == entity_id
-                )
-                result = session.execute(stmt)
-                existing = result.scalars().first()
+                # Prepare vector data - convert from JSON string if needed
+                vector_data = entity_info.get("content_vector")
+                if isinstance(vector_data, str):
+                    import json
+                    vector_data = json.loads(vector_data)
                 
-                if existing:
-                    # Update existing record
-                    existing.entity_name = entity_info.get("entity_name")
-                    existing.content = entity_info.get("content", "")
-                    # Handle vector data - convert from JSON string if needed
-                    vector_data = entity_info.get("content_vector")
-                    if isinstance(vector_data, str):
-                        import json
-                        existing.content_vector = json.loads(vector_data)
-                    else:
-                        existing.content_vector = vector_data
-                    existing.chunk_ids = entity_info.get("chunk_ids")
-                    existing.file_path = entity_info.get("file_path")
-                    existing.update_time = datetime.utcnow()
-                    session.add(existing)
-                else:
-                    # Handle vector data - convert from JSON string if needed
-                    vector_data = entity_info.get("content_vector")
-                    if isinstance(vector_data, str):
-                        import json
-                        vector_data = json.loads(vector_data)
-                    
-                    # Create new record
-                    new_entity = LightRAGVDBEntityModel(
-                        workspace=workspace,
-                        id=entity_id,
-                        entity_name=entity_info.get("entity_name"),
-                        content=entity_info.get("content", ""),
-                        content_vector=vector_data,
-                        chunk_ids=entity_info.get("chunk_ids"),
-                        file_path=entity_info.get("file_path"),
-                        create_time=datetime.utcnow(),
-                        update_time=datetime.utcnow()
-                    )
-                    session.add(new_entity)
+                # Use raw SQL UPSERT to avoid race conditions
+                sql = """
+                INSERT INTO lightrag_vdb_entity (workspace, id, entity_name, content, content_vector, chunk_ids, file_path, create_time, update_time)
+                VALUES (:workspace, :id, :entity_name, :content, :content_vector, :chunk_ids, :file_path, :create_time, :update_time)
+                ON CONFLICT (workspace, id) DO UPDATE SET
+                    entity_name = EXCLUDED.entity_name,
+                    content = EXCLUDED.content,
+                    content_vector = CASE 
+                        WHEN EXCLUDED.content_vector IS NOT NULL THEN EXCLUDED.content_vector 
+                        ELSE lightrag_vdb_entity.content_vector 
+                    END,
+                    chunk_ids = EXCLUDED.chunk_ids,
+                    file_path = EXCLUDED.file_path,
+                    update_time = EXCLUDED.update_time
+                """
+                
+                from sqlalchemy import text
+                session.execute(text(sql), {
+                    'workspace': workspace,
+                    'id': entity_id,
+                    'entity_name': entity_info.get("entity_name"),
+                    'content': entity_info.get("content", ""),
+                    'content_vector': vector_data,
+                    'chunk_ids': entity_info.get("chunk_ids"),
+                    'file_path': entity_info.get("file_path"),
+                    'create_time': datetime.utcnow(),
+                    'update_time': datetime.utcnow()
+                })
             
             session.commit()
 
@@ -548,54 +530,45 @@ class DatabaseOps:
         return self._execute_query(_query)
 
     def upsert_lightrag_vdb_relation(self, workspace: str, relation_data: dict):
-        """Upsert LightRAG VDB Relation records"""
+        """Upsert LightRAG VDB Relation records using PostgreSQL UPSERT"""
         def _operation(session):
             for relation_id, relation_info in relation_data.items():
-                # Check if record exists
-                stmt = select(LightRAGVDBRelationModel).where(
-                    LightRAGVDBRelationModel.workspace == workspace,
-                    LightRAGVDBRelationModel.id == relation_id
-                )
-                result = session.execute(stmt)
-                existing = result.scalars().first()
+                # Prepare vector data - convert from JSON string if needed
+                vector_data = relation_info.get("content_vector")
+                if isinstance(vector_data, str):
+                    import json
+                    vector_data = json.loads(vector_data)
                 
-                if existing:
-                    # Update existing record
-                    existing.source_id = relation_info.get("source_id")
-                    existing.target_id = relation_info.get("target_id")
-                    existing.content = relation_info.get("content", "")
-                    # Handle vector data - convert from JSON string if needed
-                    vector_data = relation_info.get("content_vector")
-                    if isinstance(vector_data, str):
-                        import json
-                        existing.content_vector = json.loads(vector_data)
-                    else:
-                        existing.content_vector = vector_data
-                    existing.chunk_ids = relation_info.get("chunk_ids")
-                    existing.file_path = relation_info.get("file_path")
-                    existing.update_time = datetime.utcnow()
-                    session.add(existing)
-                else:
-                    # Handle vector data - convert from JSON string if needed
-                    vector_data = relation_info.get("content_vector")
-                    if isinstance(vector_data, str):
-                        import json
-                        vector_data = json.loads(vector_data)
-                    
-                    # Create new record
-                    new_relation = LightRAGVDBRelationModel(
-                        workspace=workspace,
-                        id=relation_id,
-                        source_id=relation_info.get("source_id"),
-                        target_id=relation_info.get("target_id"),
-                        content=relation_info.get("content", ""),
-                        content_vector=vector_data,
-                        chunk_ids=relation_info.get("chunk_ids"),
-                        file_path=relation_info.get("file_path"),
-                        create_time=datetime.utcnow(),
-                        update_time=datetime.utcnow()
-                    )
-                    session.add(new_relation)
+                # Use raw SQL UPSERT to avoid race conditions
+                sql = """
+                INSERT INTO lightrag_vdb_relation (workspace, id, source_id, target_id, content, content_vector, chunk_ids, file_path, create_time, update_time)
+                VALUES (:workspace, :id, :source_id, :target_id, :content, :content_vector, :chunk_ids, :file_path, :create_time, :update_time)
+                ON CONFLICT (workspace, id) DO UPDATE SET
+                    source_id = EXCLUDED.source_id,
+                    target_id = EXCLUDED.target_id,
+                    content = EXCLUDED.content,
+                    content_vector = CASE 
+                        WHEN EXCLUDED.content_vector IS NOT NULL THEN EXCLUDED.content_vector 
+                        ELSE lightrag_vdb_relation.content_vector 
+                    END,
+                    chunk_ids = EXCLUDED.chunk_ids,
+                    file_path = EXCLUDED.file_path,
+                    update_time = EXCLUDED.update_time
+                """
+                
+                from sqlalchemy import text
+                session.execute(text(sql), {
+                    'workspace': workspace,
+                    'id': relation_id,
+                    'source_id': relation_info.get("source_id"),
+                    'target_id': relation_info.get("target_id"),
+                    'content': relation_info.get("content", ""),
+                    'content_vector': vector_data,
+                    'chunk_ids': relation_info.get("chunk_ids"),
+                    'file_path': relation_info.get("file_path"),
+                    'create_time': datetime.utcnow(),
+                    'update_time': datetime.utcnow()
+                })
             
             session.commit()
 

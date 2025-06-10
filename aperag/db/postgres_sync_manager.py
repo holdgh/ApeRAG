@@ -120,6 +120,10 @@ class PostgreSQLSyncConnectionManager:
                     logger.error(f"PostgreSQL query error: {e}")
                     logger.error(f"Query: {query}")
                     logger.error(f"Params: {params}")
+                    logger.error(f"Exception type: {type(e).__name__}")
+                    logger.error(f"Exception details: {str(e)}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
                     raise
     
     @classmethod

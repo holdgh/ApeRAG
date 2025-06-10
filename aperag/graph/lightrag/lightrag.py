@@ -550,10 +550,14 @@ class LightRAG:
             
             # Write to storage (avoid concurrent operations on same connection)
             doc_data = {doc_id: {"content": cleaned_content}}
+            logger.info(f"LightRAG: About to upsert {len(chunks)} chunks to storages")
             await self.full_docs.upsert(doc_data)
+            logger.info(f"LightRAG: Calling chunks_vdb.upsert with {len(chunks)} chunks")
             await self.chunks_vdb.upsert(chunks)
+            logger.info(f"LightRAG: Calling text_chunks.upsert with {len(chunks)} chunks")
             await self.text_chunks.upsert(chunks)
             await self.doc_status.upsert({doc_id: status_data})
+            logger.info(f"LightRAG: Completed all upsert operations for {doc_id}")
             
             logger.info(f"Inserted and chunked document {doc_id}: {len(chunks)} chunks")
             

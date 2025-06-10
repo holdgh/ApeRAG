@@ -129,8 +129,26 @@ class PGSyncKVStorage(BaseKVStorage):
                 return
 
             if is_namespace(self.namespace, NameSpace.KV_STORE_TEXT_CHUNKS):
-                # Handle text chunks if needed
-                pass
+                # Handle text chunks - insert without vectors (vectors will be added by VectorStorage)
+                upsert_sql = """INSERT INTO LIGHTRAG_DOC_CHUNKS (workspace, id, tokens,
+                              chunk_order_index, full_doc_id, content, file_path, create_time, update_time)
+                              VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                              ON CONFLICT (workspace,id) DO UPDATE
+                              SET tokens=EXCLUDED.tokens,
+                              chunk_order_index=EXCLUDED.chunk_order_index,
+                              full_doc_id=EXCLUDED.full_doc_id,
+                              content = EXCLUDED.content,
+                              file_path=EXCLUDED.file_path,
+                              update_time = CURRENT_TIMESTAMP
+                             """
+                for k, v in data.items():
+                    PostgreSQLSyncConnectionManager.execute_query(
+                        upsert_sql, (
+                            self.workspace, k, v.get("tokens", 0),
+                            v.get("chunk_order_index", 0), v.get("full_doc_id", ""),
+                            v.get("content", ""), v.get("file_path", "")
+                        )
+                    )
             elif is_namespace(self.namespace, NameSpace.KV_STORE_FULL_DOCS):
                 upsert_sql = SQL_TEMPLATES["upsert_doc_full"]
                 for k, v in data.items():
@@ -203,28 +221,34 @@ class PGSyncVectorStorage(BaseVectorStorage):
         """Prepare upsert SQL and data based on namespace."""
         if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
             sql = SQL_TEMPLATES["upsert_chunk"]
+            # Use json.dumps() like the async version (postgres_impl.py)
+            content_vector = json.dumps(item["__vector__"].tolist()) if hasattr(item["__vector__"], 'tolist') else json.dumps(item["__vector__"])
             data = (
                 self.workspace, item["__id__"], item["tokens"],
                 item["chunk_order_index"], item["full_doc_id"], item["content"],
-                json.dumps(item["__vector__"].tolist()), item["file_path"],
+                content_vector, item["file_path"],
                 current_time, current_time
             )
         elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
             source_id = item["source_id"]
             chunk_ids = source_id.split("<SEP>") if isinstance(source_id, str) and "<SEP>" in source_id else [source_id]
             sql = SQL_TEMPLATES["upsert_entity"]
+            # Use json.dumps() for entities too
+            content_vector = json.dumps(item["__vector__"].tolist()) if hasattr(item["__vector__"], 'tolist') else json.dumps(item["__vector__"])
             data = (
                 self.workspace, item["__id__"], item["entity_name"], item["content"],
-                json.dumps(item["__vector__"].tolist()), chunk_ids, 
+                content_vector, chunk_ids, 
                 item.get("file_path"), current_time, current_time
             )
         elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
             source_id = item["source_id"]
             chunk_ids = source_id.split("<SEP>") if isinstance(source_id, str) and "<SEP>" in source_id else [source_id]
             sql = SQL_TEMPLATES["upsert_relationship"]
+            # Use json.dumps() for relationships too
+            content_vector = json.dumps(item["__vector__"].tolist()) if hasattr(item["__vector__"], 'tolist') else json.dumps(item["__vector__"])
             data = (
                 self.workspace, item["__id__"], item["src_id"], item["tgt_id"], item["content"],
-                json.dumps(item["__vector__"].tolist()), chunk_ids,
+                content_vector, chunk_ids,
                 item.get("file_path"), current_time, current_time
             )
         else:
@@ -264,9 +288,15 @@ class PGSyncVectorStorage(BaseVectorStorage):
         
         # Now perform sync upsert
         def _sync_upsert_with_vectors():
-            for item in list_data:
-                sql, params = self._prepare_upsert_data(item, current_time)
-                PostgreSQLSyncConnectionManager.execute_query(sql, params)
+            try:
+                for item in list_data:
+                    sql, params = self._prepare_upsert_data(item, current_time)
+                    logger.info(f"PGSyncVectorStorage executing SQL for {item['__id__']}: {sql[:100]}...")
+                    PostgreSQLSyncConnectionManager.execute_query(sql, params)
+                logger.info(f"PGSyncVectorStorage successfully upserted {len(list_data)} items to {self.namespace}")
+            except Exception as e:
+                logger.error(f"PGSyncVectorStorage upsert failed for {self.namespace}: {e}")
+                raise
         
         await asyncio.to_thread(_sync_upsert_with_vectors)
 
