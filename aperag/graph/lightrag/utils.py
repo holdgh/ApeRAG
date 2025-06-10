@@ -221,15 +221,6 @@ def setup_logger(
         logger_instance.addFilter(path_filter)
 
 
-class UnlimitedSemaphore:
-    """A context manager that allows unlimited access."""
-
-    async def __aenter__(self):
-        pass
-
-    async def __aexit__(self, exc_type, exc, tb):
-        pass
-
 
 @dataclass
 class EmbeddingFunc:
@@ -242,62 +233,6 @@ class EmbeddingFunc:
         return await self.func(*args, **kwargs)
 
 
-def locate_json_string_body_from_string(content: str) -> str | None:
-    """Locate the JSON string body from a string"""
-    try:
-        maybe_json_str = re.search(r"{.*}", content, re.DOTALL)
-        if maybe_json_str is not None:
-            maybe_json_str = maybe_json_str.group(0)
-            maybe_json_str = maybe_json_str.replace("\\n", "")
-            maybe_json_str = maybe_json_str.replace("\n", "")
-            maybe_json_str = maybe_json_str.replace("'", '"')
-            # json.loads(maybe_json_str) # don't check here, cannot validate schema after all
-            return maybe_json_str
-    except Exception:
-        pass
-        # try:
-        #     content = (
-        #         content.replace(kw_prompt[:-1], "")
-        #         .replace("user", "")
-        #         .replace("model", "")
-        #         .strip()
-        #     )
-        #     maybe_json_str = "{" + content.split("{")[1].split("}")[0] + "}"
-        #     json.loads(maybe_json_str)
-
-        return None
-
-
-def convert_response_to_json(response: str) -> dict[str, Any]:
-    json_str = locate_json_string_body_from_string(response)
-    assert json_str is not None, f"Unable to parse JSON from response: {response}"
-    try:
-        data = json.loads(json_str)
-        return data
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse JSON: {json_str}")
-        raise e from None
-
-
-def compute_args_hash(*args: Any, cache_type: str | None = None) -> str:
-    """Compute a hash for the given arguments.
-    Args:
-        *args: Arguments to hash
-        cache_type: Type of cache (e.g., 'keywords', 'query', 'extract')
-    Returns:
-        str: Hash string
-    """
-    import hashlib
-
-    # Convert all arguments to strings and join them
-    args_str = "".join([str(arg) for arg in args])
-    if cache_type:
-        args_str = f"{cache_type}:{args_str}"
-
-    # Compute MD5 hash
-    return hashlib.md5(args_str.encode()).hexdigest()
-
-
 def compute_mdhash_id(content: str, prefix: str = "") -> str:
     """
     Compute a unique ID for a given content string.
@@ -305,13 +240,6 @@ def compute_mdhash_id(content: str, prefix: str = "") -> str:
     The ID is a combination of the given prefix and the MD5 hash of the content string.
     """
     return prefix + md5(content.encode()).hexdigest()
-
-
-# Custom exception class
-class QueueFullError(Exception):
-    """Raised when the queue is full and the wait times out"""
-
-    pass
 
 
 class TokenizerInterface(Protocol):
@@ -479,172 +407,12 @@ def process_combine_contexts(*context_lists):
 
     return combined_data
 
-
-async def get_best_cached_response(
-    hashing_kv,
-    current_embedding,
-    similarity_threshold=0.95,
-    mode="default",
-    use_llm_check=False,
-    llm_func=None,
-    original_prompt=None,
-    cache_type=None,
-) -> str | None:
-    logger.debug(
-        f"get_best_cached_response:  mode={mode} cache_type={cache_type} use_llm_check={use_llm_check}"
-    )
-    mode_cache = await hashing_kv.get_by_id(mode)
-    if not mode_cache:
-        return None
-
-    best_similarity = -1
-    best_response = None
-    best_prompt = None
-    best_cache_id = None
-
-    # Only iterate through cache entries for this mode
-    for cache_id, cache_data in mode_cache.items():
-        # Skip if cache_type doesn't match
-        if cache_type and cache_data.get("cache_type") != cache_type:
-            continue
-
-        # Check if cache data is valid
-        if cache_data["embedding"] is None:
-            continue
-
-        try:
-            # Safely convert cached embedding
-            cached_quantized = np.frombuffer(
-                bytes.fromhex(cache_data["embedding"]), dtype=np.uint8
-            ).reshape(cache_data["embedding_shape"])
-
-            # Ensure min_val and max_val are valid float values
-            embedding_min = cache_data.get("embedding_min")
-            embedding_max = cache_data.get("embedding_max")
-
-            if (
-                embedding_min is None
-                or embedding_max is None
-                or embedding_min >= embedding_max
-            ):
-                logger.warning(
-                    f"Invalid embedding min/max values: min={embedding_min}, max={embedding_max}"
-                )
-                continue
-
-            cached_embedding = dequantize_embedding(
-                cached_quantized,
-                embedding_min,
-                embedding_max,
-            )
-        except Exception as e:
-            logger.warning(f"Error processing cached embedding: {str(e)}")
-            continue
-
-        similarity = cosine_similarity(current_embedding, cached_embedding)
-        if similarity > best_similarity:
-            best_similarity = similarity
-            best_response = cache_data["return"]
-            best_prompt = cache_data["original_prompt"]
-            best_cache_id = cache_id
-
-    if best_similarity > similarity_threshold:
-        # If LLM check is enabled and all required parameters are provided
-        if (
-            use_llm_check
-            and llm_func
-            and original_prompt
-            and best_prompt
-            and best_response is not None
-        ):
-            compare_prompt = PROMPTS["similarity_check"].format(
-                original_prompt=original_prompt, cached_prompt=best_prompt
-            )
-
-            try:
-                llm_result = await llm_func(compare_prompt)
-                llm_result = llm_result.strip()
-                llm_similarity = float(llm_result)
-
-                # Replace vector similarity with LLM similarity score
-                best_similarity = llm_similarity
-                if best_similarity < similarity_threshold:
-                    log_data = {
-                        "event": "cache_rejected_by_llm",
-                        "type": cache_type,
-                        "mode": mode,
-                        "original_question": original_prompt[:100] + "..."
-                        if len(original_prompt) > 100
-                        else original_prompt,
-                        "cached_question": best_prompt[:100] + "..."
-                        if len(best_prompt) > 100
-                        else best_prompt,
-                        "similarity_score": round(best_similarity, 4),
-                        "threshold": similarity_threshold,
-                    }
-                    logger.debug(json.dumps(log_data, ensure_ascii=False))
-                    logger.info(f"Cache rejected by LLM(mode:{mode} tpye:{cache_type})")
-                    return None
-            except Exception as e:  # Catch all possible exceptions
-                logger.warning(f"LLM similarity check failed: {e}")
-                return None  # Return None directly when LLM check fails
-
-        prompt_display = (
-            best_prompt[:50] + "..." if len(best_prompt) > 50 else best_prompt
-        )
-        log_data = {
-            "event": "cache_hit",
-            "type": cache_type,
-            "mode": mode,
-            "similarity": round(best_similarity, 4),
-            "cache_id": best_cache_id,
-            "original_prompt": prompt_display,
-        }
-        logger.debug(json.dumps(log_data, ensure_ascii=False))
-        return best_response
-    return None
-
-
 def cosine_similarity(v1, v2):
     """Calculate cosine similarity between two vectors"""
     dot_product = np.dot(v1, v2)
     norm1 = np.linalg.norm(v1)
     norm2 = np.linalg.norm(v2)
     return dot_product / (norm1 * norm2)
-
-
-def quantize_embedding(embedding: np.ndarray | list[float], bits: int = 8) -> tuple:
-    """Quantize embedding to specified bits"""
-    # Convert list to numpy array if needed
-    if isinstance(embedding, list):
-        embedding = np.array(embedding)
-
-    # Calculate min/max values for reconstruction
-    min_val = embedding.min()
-    max_val = embedding.max()
-
-    if min_val == max_val:
-        # handle constant vector
-        quantized = np.zeros_like(embedding, dtype=np.uint8)
-        return quantized, min_val, max_val
-
-    # Quantize to 0-255 range
-    scale = (2**bits - 1) / (max_val - min_val)
-    quantized = np.round((embedding - min_val) * scale).astype(np.uint8)
-
-    return quantized, min_val, max_val
-
-
-def dequantize_embedding(
-    quantized: np.ndarray, min_val: float, max_val: float, bits=8
-) -> np.ndarray:
-    """Restore quantized embedding"""
-    if min_val == max_val:
-        # handle constant vector
-        return np.full_like(quantized, min_val, dtype=np.float32)
-
-    scale = (max_val - min_val) / (2**bits - 1)
-    return (quantized * scale + min_val).astype(np.float32)
 
 
 def get_conversation_turns(

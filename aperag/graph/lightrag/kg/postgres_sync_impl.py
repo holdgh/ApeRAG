@@ -31,9 +31,19 @@ class PGOpsDocStatusStorage(DocStatusStorage):
         logger.debug(f"PGOpsDocStatusStorage finalized for workspace '{self.workspace}'")
 
     async def filter_keys(self, keys: set[str]) -> set[str]:
-        """Filter out existing keys - not commonly used, return all as new"""
-        # This method is not commonly used in LightRAG, so we return all keys as new
-        return keys
+        """Filter out existing keys"""
+        def _sync_filter_keys():
+            if not keys:
+                return set()
+                
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            
+            # Use the new filter method
+            existing_keys = db_ops.filter_lightrag_doc_status_keys(self.workspace, list(keys))
+            return keys - set(existing_keys)
+
+        return await asyncio.to_thread(_sync_filter_keys)
 
     async def get_by_id(self, id: str) -> Union[dict[str, Any], None]:
         """Get document status by id"""
@@ -61,8 +71,34 @@ class PGOpsDocStatusStorage(DocStatusStorage):
         return await asyncio.to_thread(_sync_get_by_id)
 
     async def get_by_ids(self, ids: list[str]) -> list[dict[str, Any]]:
-        """Get document status by ids - not used in the 4 core functions"""
-        return []
+        """Get document status by ids"""
+        def _sync_get_by_ids():
+            if not ids:
+                return []
+                
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            
+            # Use the new batch query method
+            models = db_ops.query_lightrag_doc_status_by_ids(self.workspace, ids)
+            
+            # Convert to the expected format
+            results = []
+            for model in models:
+                results.append({
+                    "content": model.content or "",
+                    "content_length": model.content_length or 0,
+                    "content_summary": model.content_summary or "",
+                    "status": model.status.value if model.status else "pending",
+                    "chunks_count": model.chunks_count,
+                    "created_at": model.created_at.isoformat() if model.created_at else "",
+                    "updated_at": model.updated_at.isoformat() if model.updated_at else "",
+                    "file_path": model.file_path or "",
+                })
+            
+            return results
+
+        return await asyncio.to_thread(_sync_get_by_ids)
 
     async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
         """Update or insert document status"""
@@ -425,11 +461,43 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
 
         def _sync_query():
             # Import here to avoid circular imports
-
-            # For now, return empty list as we need to implement vector similarity search in DatabaseOps
-            # This would require adding vector similarity query methods to db_ops
-            logger.warning(f"Vector similarity query not yet implemented for DatabaseOps-based storage")
-            return []
+            from aperag.db.ops import db_ops
+            from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+            
+            # Convert embedding to list if it's numpy array
+            if hasattr(embedding, 'tolist'):
+                embedding_list = embedding.tolist()
+            else:
+                embedding_list = list(embedding)
+            
+            # Use appropriate similarity search method based on namespace
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+                return db_ops.query_lightrag_doc_chunks_similarity(
+                    self.workspace, 
+                    embedding_list, 
+                    top_k, 
+                    ids, 
+                    self.cosine_better_than_threshold
+                )
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+                return db_ops.query_lightrag_vdb_entity_similarity(
+                    self.workspace, 
+                    embedding_list, 
+                    top_k, 
+                    ids, 
+                    self.cosine_better_than_threshold
+                )
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+                return db_ops.query_lightrag_vdb_relation_similarity(
+                    self.workspace, 
+                    embedding_list, 
+                    top_k, 
+                    ids, 
+                    self.cosine_better_than_threshold
+                )
+            else:
+                logger.error(f"Unknown namespace for vector similarity query: {self.namespace}")
+                return []
         
         return await asyncio.to_thread(_sync_query)
 
@@ -457,25 +525,40 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
         
         await asyncio.to_thread(_sync_delete)
 
+
+
     async def delete_entity(self, entity_name: str) -> None:
         """Delete an entity by its name from the vector storage."""
         def _sync_delete_entity():
             # Import here to avoid circular imports
-
-            # Query entity by entity_name and delete by ID
-            # Note: We need to add a method to query by entity_name in DatabaseOps
-            logger.warning(f"Delete entity by name not yet fully implemented for DatabaseOps-based storage")
+            from aperag.db.ops import db_ops
+            
+            try:
+                # Use the new delete by name method
+                deleted_count = db_ops.delete_lightrag_vdb_entity_by_name(self.workspace, entity_name)
+                if deleted_count > 0:
+                    logger.debug(f"Successfully deleted entity {entity_name}")
+                else:
+                    logger.debug(f"Entity {entity_name} not found")
+            except Exception as e:
+                logger.error(f"Error deleting entity {entity_name}: {e}")
             
         await asyncio.to_thread(_sync_delete_entity)
+
+
 
     async def delete_entity_relation(self, entity_name: str) -> None:
         """Delete all relations associated with an entity."""
         def _sync_delete_entity_relation():
             # Import here to avoid circular imports
-
-            # Query relations where source_id or target_id matches entity_name and delete by IDs
-            # Note: We need to add methods to query relations by entity names in DatabaseOps
-            logger.warning(f"Delete entity relations not yet fully implemented for DatabaseOps-based storage")
+            from aperag.db.ops import db_ops
+            
+            try:
+                # Use the new delete relations by entity method
+                deleted_count = db_ops.delete_lightrag_vdb_relation_by_entity(self.workspace, entity_name)
+                logger.debug(f"Successfully deleted {deleted_count} relations for entity {entity_name}")
+            except Exception as e:
+                logger.error(f"Error deleting relations for entity {entity_name}: {e}")
             
         await asyncio.to_thread(_sync_delete_entity_relation)
 
@@ -558,13 +641,34 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
                     } for model in models
                 ]
             elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
-                # Note: We need to add query_lightrag_vdb_entity_by_ids method to DatabaseOps
-                logger.warning(f"Batch query by IDs not yet implemented for entities in DatabaseOps")
-                return []
+                # Use the new batch query method for entities
+                models = db_ops.query_lightrag_vdb_entity_by_ids(self.workspace, ids)
+                return [
+                    {
+                        "id": model.id,
+                        "entity_name": model.entity_name,
+                        "content": model.content or "",
+                        "content_vector": model.content_vector,
+                        "chunk_ids": model.chunk_ids,
+                        "file_path": model.file_path,
+                        "created_at": int(model.create_time.timestamp()) if model.create_time else None,
+                    } for model in models
+                ]
             elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
-                # Note: We need to add query_lightrag_vdb_relation_by_ids method to DatabaseOps
-                logger.warning(f"Batch query by IDs not yet implemented for relations in DatabaseOps")
-                return []
+                # Use the new batch query method for relations
+                models = db_ops.query_lightrag_vdb_relation_by_ids(self.workspace, ids)
+                return [
+                    {
+                        "id": model.id,
+                        "source_id": model.source_id,
+                        "target_id": model.target_id,
+                        "content": model.content or "",
+                        "content_vector": model.content_vector,
+                        "chunk_ids": model.chunk_ids,
+                        "file_path": model.file_path,
+                        "created_at": int(model.create_time.timestamp()) if model.create_time else None,
+                    } for model in models
+                ]
             else:
                 logger.error(f"Unknown namespace for IDs lookup: {self.namespace}")
                 return []

@@ -679,6 +679,286 @@ class DatabaseOps:
 
         return self._execute_transaction(_operation)
 
+    # Add vector similarity search methods
+    def query_lightrag_doc_chunks_similarity(self, workspace: str, embedding: list, top_k: int, doc_ids: list = None, threshold: float = 0.2):
+        """Query similar document chunks using vector similarity"""
+        def _query(session):
+            from sqlalchemy import text
+            
+            # Convert embedding to PostgreSQL array format
+            embedding_string = ','.join(map(str, embedding))
+            
+            if doc_ids:
+                # Query with document ID filter
+                sql = text("""
+                    WITH relevant_chunks AS (
+                        SELECT id as chunk_id
+                        FROM lightrag_doc_chunks
+                        WHERE full_doc_id = ANY(:doc_ids)
+                    )
+                    SELECT id, content, file_path, EXTRACT(EPOCH FROM create_time)::BIGINT as created_at,
+                           1 - (content_vector <=> '[:embedding]'::vector) as distance
+                    FROM lightrag_doc_chunks
+                    WHERE workspace = :workspace
+                    AND id IN (SELECT chunk_id FROM relevant_chunks)
+                    AND 1 - (content_vector <=> '[:embedding]'::vector) > :threshold
+                    ORDER BY distance DESC
+                    LIMIT :top_k
+                """.replace(':embedding', embedding_string))
+                
+                result = session.execute(sql, {
+                    'workspace': workspace,
+                    'doc_ids': doc_ids,
+                    'threshold': threshold,
+                    'top_k': top_k
+                })
+            else:
+                # Query without document ID filter
+                sql = text("""
+                    SELECT id, content, file_path, EXTRACT(EPOCH FROM create_time)::BIGINT as created_at,
+                           1 - (content_vector <=> '[:embedding]'::vector) as distance
+                    FROM lightrag_doc_chunks
+                    WHERE workspace = :workspace
+                    AND 1 - (content_vector <=> '[:embedding]'::vector) > :threshold
+                    ORDER BY distance DESC
+                    LIMIT :top_k
+                """.replace(':embedding', embedding_string))
+                
+                result = session.execute(sql, {
+                    'workspace': workspace,
+                    'threshold': threshold,
+                    'top_k': top_k
+                })
+            
+            return [dict(row) for row in result]
+
+        return self._execute_query(_query)
+
+    def query_lightrag_vdb_entity_similarity(self, workspace: str, embedding: list, top_k: int, doc_ids: list = None, threshold: float = 0.2):
+        """Query similar entities using vector similarity"""
+        def _query(session):
+            from sqlalchemy import text
+            
+            # Convert embedding to PostgreSQL array format
+            embedding_string = ','.join(map(str, embedding))
+            
+            if doc_ids:
+                # Query with document ID filter
+                sql = text("""
+                    WITH relevant_chunks AS (
+                        SELECT id as chunk_id
+                        FROM lightrag_doc_chunks
+                        WHERE full_doc_id = ANY(:doc_ids)
+                    )
+                    SELECT entity_name, EXTRACT(EPOCH FROM create_time)::BIGINT as created_at,
+                           1 - (content_vector <=> '[:embedding]'::vector) as distance
+                    FROM lightrag_vdb_entity e
+                    WHERE e.workspace = :workspace
+                    AND EXISTS (
+                        SELECT 1 FROM relevant_chunks rc 
+                        WHERE rc.chunk_id = ANY(e.chunk_ids)
+                    )
+                    AND 1 - (content_vector <=> '[:embedding]'::vector) > :threshold
+                    ORDER BY distance DESC
+                    LIMIT :top_k
+                """.replace(':embedding', embedding_string))
+                
+                result = session.execute(sql, {
+                    'workspace': workspace,
+                    'doc_ids': doc_ids,
+                    'threshold': threshold,
+                    'top_k': top_k
+                })
+            else:
+                # Query without document ID filter
+                sql = text("""
+                    SELECT entity_name, EXTRACT(EPOCH FROM create_time)::BIGINT as created_at,
+                           1 - (content_vector <=> '[:embedding]'::vector) as distance
+                    FROM lightrag_vdb_entity
+                    WHERE workspace = :workspace
+                    AND 1 - (content_vector <=> '[:embedding]'::vector) > :threshold
+                    ORDER BY distance DESC
+                    LIMIT :top_k
+                """.replace(':embedding', embedding_string))
+                
+                result = session.execute(sql, {
+                    'workspace': workspace,
+                    'threshold': threshold,
+                    'top_k': top_k
+                })
+            
+            return [dict(row) for row in result]
+
+        return self._execute_query(_query)
+
+    def query_lightrag_vdb_relation_similarity(self, workspace: str, embedding: list, top_k: int, doc_ids: list = None, threshold: float = 0.2):
+        """Query similar relations using vector similarity"""
+        def _query(session):
+            from sqlalchemy import text
+            
+            # Convert embedding to PostgreSQL array format
+            embedding_string = ','.join(map(str, embedding))
+            
+            if doc_ids:
+                # Query with document ID filter
+                sql = text("""
+                    WITH relevant_chunks AS (
+                        SELECT id as chunk_id
+                        FROM lightrag_doc_chunks
+                        WHERE full_doc_id = ANY(:doc_ids)
+                    )
+                    SELECT source_id as src_id, target_id as tgt_id, 
+                           EXTRACT(EPOCH FROM create_time)::BIGINT as created_at,
+                           1 - (content_vector <=> '[:embedding]'::vector) as distance
+                    FROM lightrag_vdb_relation r
+                    WHERE r.workspace = :workspace
+                    AND EXISTS (
+                        SELECT 1 FROM relevant_chunks rc 
+                        WHERE rc.chunk_id = ANY(r.chunk_ids)
+                    )
+                    AND 1 - (content_vector <=> '[:embedding]'::vector) > :threshold
+                    ORDER BY distance DESC
+                    LIMIT :top_k
+                """.replace(':embedding', embedding_string))
+                
+                result = session.execute(sql, {
+                    'workspace': workspace,
+                    'doc_ids': doc_ids,
+                    'threshold': threshold,
+                    'top_k': top_k
+                })
+            else:
+                # Query without document ID filter
+                sql = text("""
+                    SELECT source_id as src_id, target_id as tgt_id,
+                           EXTRACT(EPOCH FROM create_time)::BIGINT as created_at,
+                           1 - (content_vector <=> '[:embedding]'::vector) as distance
+                    FROM lightrag_vdb_relation
+                    WHERE workspace = :workspace
+                    AND 1 - (content_vector <=> '[:embedding]'::vector) > :threshold
+                    ORDER BY distance DESC
+                    LIMIT :top_k
+                """.replace(':embedding', embedding_string))
+                
+                result = session.execute(sql, {
+                    'workspace': workspace,
+                    'threshold': threshold,
+                    'top_k': top_k
+                })
+            
+            return [dict(row) for row in result]
+
+        return self._execute_query(_query)
+
+    # Additional entity and relation operations
+    def query_lightrag_vdb_entity_by_name(self, workspace: str, entity_name: str):
+        """Query entity by entity name"""
+        def _query(session):
+            stmt = select(LightRAGVDBEntityModel).where(
+                LightRAGVDBEntityModel.workspace == workspace,
+                LightRAGVDBEntityModel.entity_name == entity_name
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def delete_lightrag_vdb_entity_by_name(self, workspace: str, entity_name: str):
+        """Delete entity by entity name"""
+        def _operation(session):
+            stmt = select(LightRAGVDBEntityModel).where(
+                LightRAGVDBEntityModel.workspace == workspace,
+                LightRAGVDBEntityModel.entity_name == entity_name
+            )
+            result = session.execute(stmt)
+            entity = result.scalars().first()
+            
+            if entity:
+                session.delete(entity)
+                session.commit()
+                return 1
+            return 0
+
+        return self._execute_transaction(_operation)
+
+    def delete_lightrag_vdb_relation_by_entity(self, workspace: str, entity_name: str):
+        """Delete all relations where entity is source or target"""
+        def _operation(session):
+            from sqlalchemy import or_
+            
+            stmt = select(LightRAGVDBRelationModel).where(
+                LightRAGVDBRelationModel.workspace == workspace,
+                or_(
+                    LightRAGVDBRelationModel.source_id == entity_name,
+                    LightRAGVDBRelationModel.target_id == entity_name
+                )
+            )
+            result = session.execute(stmt)
+            relations = result.scalars().all()
+            
+            for relation in relations:
+                session.delete(relation)
+            session.commit()
+            return len(relations)
+
+        return self._execute_transaction(_operation)
+
+    def query_lightrag_vdb_entity_by_ids(self, workspace: str, entity_ids: list):
+        """Query entities by IDs"""
+        def _query(session):
+            if not entity_ids:
+                return []
+            stmt = select(LightRAGVDBEntityModel).where(
+                LightRAGVDBEntityModel.workspace == workspace,
+                LightRAGVDBEntityModel.id.in_(entity_ids)
+            )
+            result = session.execute(stmt)
+            return result.scalars().all()
+
+        return self._execute_query(_query)
+
+    def query_lightrag_vdb_relation_by_ids(self, workspace: str, relation_ids: list):
+        """Query relations by IDs"""
+        def _query(session):
+            if not relation_ids:
+                return []
+            stmt = select(LightRAGVDBRelationModel).where(
+                LightRAGVDBRelationModel.workspace == workspace,
+                LightRAGVDBRelationModel.id.in_(relation_ids)
+            )
+            result = session.execute(stmt)
+            return result.scalars().all()
+
+        return self._execute_query(_query)
+
+    def query_lightrag_doc_status_by_ids(self, workspace: str, doc_ids: list):
+        """Query document status by IDs"""
+        def _query(session):
+            if not doc_ids:
+                return []
+            stmt = select(LightRAGDocStatusModel).where(
+                LightRAGDocStatusModel.workspace == workspace,
+                LightRAGDocStatusModel.id.in_(doc_ids)
+            )
+            result = session.execute(stmt)
+            return result.scalars().all()
+
+        return self._execute_query(_query)
+
+    def filter_lightrag_doc_status_keys(self, workspace: str, keys: list):
+        """Filter existing keys for document status"""
+        def _query(session):
+            if not keys:
+                return []
+            stmt = select(LightRAGDocStatusModel.id).where(
+                LightRAGDocStatusModel.workspace == workspace,
+                LightRAGDocStatusModel.id.in_(keys)
+            )
+            result = session.execute(stmt)
+            return [row[0] for row in result.fetchall()]
+
+        return self._execute_query(_query)
+
 
 class AsyncDatabaseOps:
     """Database operations manager that handles session management"""

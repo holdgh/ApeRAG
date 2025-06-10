@@ -56,7 +56,6 @@ from .utils import (
     check_storage_env_vars,
     clean_text,
     compute_mdhash_id,
-    convert_response_to_json,
     get_content_summary,
     lazy_external_import,
     logger,
@@ -227,15 +226,6 @@ class LightRAG:
 
     # Storages Management
     # ---
-
-    convert_response_to_json_func: Callable[[str], dict[str, Any]] = field(
-        default_factory=lambda: convert_response_to_json
-    )
-    """
-    Custom function for converting LLM responses to JSON format.
-
-    The default function is :func:`.utils.convert_response_to_json`.
-    """
 
     cosine_better_than_threshold: float = field(
         default=0.2
