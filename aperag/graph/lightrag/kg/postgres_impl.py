@@ -1,5 +1,4 @@
 import asyncio
-import configparser
 import datetime
 import json
 import os
@@ -279,36 +278,14 @@ class ClientManager:
 
     @staticmethod
     def get_config() -> dict[str, Any]:
-        config = configparser.ConfigParser()
-        config.read("config.ini", "utf-8")
-
         return {
-            "host": os.environ.get(
-                "POSTGRES_HOST",
-                config.get("postgres", "host", fallback="localhost"),
-            ),
-            "port": os.environ.get(
-                "POSTGRES_PORT", config.get("postgres", "port", fallback=5432)
-            ),
-            "user": os.environ.get(
-                "POSTGRES_USER", config.get("postgres", "user", fallback="postgres")
-            ),
-            "password": os.environ.get(
-                "POSTGRES_PASSWORD",
-                config.get("postgres", "password", fallback=None),
-            ),
-            "database": os.environ.get(
-                "POSTGRES_DATABASE",
-                config.get("postgres", "database", fallback="postgres"),
-            ),
-            "workspace": os.environ.get(
-                "POSTGRES_WORKSPACE",
-                config.get("postgres", "workspace", fallback="default"),
-            ),
-            "max_connections": os.environ.get(
-                "POSTGRES_MAX_CONNECTIONS",
-                config.get("postgres", "max_connections", fallback=20),
-            ),
+            "host": os.environ.get("POSTGRES_HOST"),
+            "port": os.environ.get("POSTGRES_PORT"),
+            "user": os.environ.get("POSTGRES_USER"),
+            "password": os.environ.get("POSTGRES_PASSWORD"),
+            "database": os.environ.get("POSTGRES_DATABASE"),
+            "workspace": os.environ.get("POSTGRES_WORKSPACE"),
+            "max_connections": os.environ.get("POSTGRES_MAX_CONNECTIONS"),
         }
 
     @classmethod

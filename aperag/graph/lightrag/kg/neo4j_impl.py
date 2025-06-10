@@ -1,8 +1,6 @@
-import configparser
 import inspect
 import logging
 import os
-import re
 from dataclasses import dataclass
 from typing import final
 
@@ -40,10 +38,6 @@ load_dotenv(dotenv_path=".env", override=False)
 
 # Get maximum number of graph nodes from environment variable, default is 1000
 MAX_GRAPH_NODES = int(os.getenv("MAX_GRAPH_NODES", 1000))
-
-config = configparser.ConfigParser()
-config.read("config.ini", "utf-8")
-
 
 # Set neo4j logger level to ERROR to suppress warning logs
 logging.getLogger("neo4j").setLevel(logging.ERROR)

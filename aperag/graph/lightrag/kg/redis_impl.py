@@ -1,4 +1,3 @@
-import configparser
 import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -13,9 +12,6 @@ from redis.exceptions import ConnectionError, RedisError  # type: ignore
 from aperag.graph.lightrag.base import BaseKVStorage
 from aperag.graph.lightrag.utils import logger
 
-config = configparser.ConfigParser()
-config.read("config.ini", "utf-8")
-
 # Constants for Redis connection pool
 MAX_CONNECTIONS = 50
 SOCKET_TIMEOUT = 5.0
@@ -27,7 +23,7 @@ SOCKET_CONNECT_TIMEOUT = 3.0
 class RedisKVStorage(BaseKVStorage):
     def __post_init__(self):
         redis_url = os.environ.get(
-            "REDIS_URI", config.get("redis", "uri", fallback="redis://localhost:6379")
+            "REDIS_URI"
         )
         # Create a connection pool with limits
         self._pool = ConnectionPool.from_url(

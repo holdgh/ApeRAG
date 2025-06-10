@@ -1,5 +1,4 @@
 import asyncio
-import configparser
 import hashlib
 import os
 import uuid
@@ -12,9 +11,6 @@ from ..base import BaseVectorStorage
 from ..utils import logger
 
 from qdrant_client import QdrantClient, models  # type: ignore
-
-config = configparser.ConfigParser()
-config.read("config.ini", "utf-8")
 
 
 def compute_mdhash_id_for_qdrant(
@@ -67,10 +63,10 @@ class QdrantVectorDBStorage(BaseVectorStorage):
 
         self._client = QdrantClient(
             url=os.environ.get(
-                "QDRANT_URL", config.get("qdrant", "uri", fallback=None)
+                "QDRANT_URL"
             ),
             api_key=os.environ.get(
-                "QDRANT_API_KEY", config.get("qdrant", "apikey", fallback=None)
+                "QDRANT_API_KEY"
             ),
         )
         self._max_batch_size = self.global_config["embedding_batch_num"]

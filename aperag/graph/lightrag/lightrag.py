@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import configparser
 import os
-import time
 import traceback
 import warnings
 from dataclasses import asdict, dataclass, field
@@ -75,10 +73,6 @@ from .utils import (
 # allows to use different .env file for each lightrag instance
 # the OS environment variables take precedence over the .env file
 load_dotenv(dotenv_path=".env", override=False)
-
-# TODO: TO REMOVE @Yannick
-config = configparser.ConfigParser()
-config.read("config.ini", "utf-8")
 
 
 @final
