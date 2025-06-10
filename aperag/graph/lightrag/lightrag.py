@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-import traceback
 import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -14,7 +13,6 @@ from typing import (
     Dict,
     Iterator,
     List,
-    Literal,
     Optional,
     final,
 )
@@ -29,7 +27,7 @@ from aperag.graph.lightrag.kg import (
     STORAGES,
     verify_storage_implementation,
 )
-from aperag.graph.lightrag.utils import get_env_value, LightRAGLogger
+from aperag.graph.lightrag.utils import get_env_value
 from .base import (
     BaseGraphStorage,
     BaseKVStorage,
@@ -75,14 +73,6 @@ load_dotenv(dotenv_path=".env", override=False)
 @dataclass
 class LightRAG:
     """LightRAG: Simple and Fast Retrieval-Augmented Generation."""
-
-    # Directory
-    # ---
-
-    working_dir: str = field(
-        default=f"./lightrag_cache_{datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
-    )
-    """Directory where cache and temporary files are stored."""
 
     # Storage
     # ---
@@ -282,10 +272,6 @@ class LightRAG:
         # Initialize instance-level database connection management lock 
         self._db_conn_lock = asyncio.Lock()
 
-        if not os.path.exists(self.working_dir):
-            logger.info(f"Creating working directory {self.working_dir}")
-            os.makedirs(self.working_dir)
-
         # Verify storage implementation compatibility and environment variables
         storage_configs = [
             ("KV_STORAGE", self.kv_storage),
@@ -347,13 +333,6 @@ class LightRAG:
         # Initialize document status storage
         self.doc_status_storage_cls = self._get_storage_class(self.doc_status_storage)
 
-        self.llm_response_cache: BaseKVStorage = self.key_string_value_json_storage_cls(  # type: ignore
-            namespace=NameSpace.KV_STORE_LLM_RESPONSE_CACHE,
-            workspace=self.workspace,
-            global_config=global_config,
-            embedding_func=self.embedding_func,
-        )
-
         self.full_docs: BaseKVStorage = self.key_string_value_json_storage_cls(  # type: ignore
             namespace=NameSpace.KV_STORE_FULL_DOCS,
             workspace=self.workspace,
@@ -399,11 +378,6 @@ class LightRAG:
             embedding_func=None,
         )
 
-        self.llm_model_func = partial(
-            self.llm_model_func,  # type: ignore
-            hashing_kv=self.llm_response_cache,
-        )
-
         self._storages_status = StoragesStatus.CREATED
 
     async def initialize_storages(self):
@@ -418,7 +392,6 @@ class LightRAG:
                 self.relationships_vdb,
                 self.chunks_vdb,
                 self.chunk_entity_relation_graph,
-                self.llm_response_cache,
                 self.doc_status,
             ):
                 if storage:
@@ -441,7 +414,6 @@ class LightRAG:
                 self.relationships_vdb,
                 self.chunks_vdb,
                 self.chunk_entity_relation_graph,
-                self.llm_response_cache,
                 self.doc_status,
             ):
                 if storage:

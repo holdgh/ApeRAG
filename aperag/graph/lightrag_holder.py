@@ -331,7 +331,6 @@ async def create_and_initialize_lightrag(
 
         rag = LightRAG(
             workspace=collection_id,
-            working_dir=LightRAGConfig.WORKING_DIR,
             chunk_token_size=LightRAGConfig.CHUNK_TOKEN_SIZE,
             chunk_overlap_token_size=LightRAGConfig.CHUNK_OVERLAP_TOKEN_SIZE,
             llm_model_func=llm_func,

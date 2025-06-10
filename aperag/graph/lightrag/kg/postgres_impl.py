@@ -213,16 +213,7 @@ class PGKVStorage(BaseKVStorage):
         try:
             results = await self.db.query(sql, params, multirows=True)
 
-            if is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
-                result_dict = {}
-                for row in results:
-                    mode = row["mode"]
-                    if mode not in result_dict:
-                        result_dict[mode] = {}
-                    result_dict[mode][row["id"]] = row
-                return result_dict
-            else:
-                return {row["id"]: row for row in results}
+            return {row["id"]: row for row in results}
         except Exception as e:
             logger.error(f"Error retrieving all data from {self.namespace}: {e}")
             return {}
@@ -233,29 +224,9 @@ class PGKVStorage(BaseKVStorage):
         sql_key = f"get_by_id_{self.storage_type}"
         sql = SQL_TEMPLATES[sql_key]
         params = {"workspace": self.db.workspace, "id": id}
-        if is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
-            array_res = await self.db.query(sql, params, multirows=True)
-            res = {}
-            for row in array_res:
-                res[row["id"]] = row
-            return res if res else None
-        else:
-            response = await self.db.query(sql, params)
-            return response if response else None
+        response = await self.db.query(sql, params)
+        return response if response else None
 
-    async def get_by_mode_and_id(self, mode: str, id: str) -> Union[dict, None]:
-        """Specifically for llm_response_cache."""
-        sql_key = f"get_by_mode_id_{self.storage_type}"
-        sql = SQL_TEMPLATES[sql_key]
-        params = {"workspace": self.db.workspace, "mode": mode, "id": id}
-        if is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
-            array_res = await self.db.query(sql, params, multirows=True)
-            res = {}
-            for row in array_res:
-                res[row["id"]] = row
-            return res
-        else:
-            return None
 
     # Query by id
     async def get_by_ids(self, ids: list[str]) -> list[dict[str, Any]]:
@@ -265,27 +236,8 @@ class PGKVStorage(BaseKVStorage):
             ids=",".join([f"'{id}'" for id in ids])
         )
         params = {"workspace": self.db.workspace}
-        if is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
-            array_res = await self.db.query(sql, params, multirows=True)
-            modes = set()
-            dict_res: dict[str, dict] = {}
-            for row in array_res:
-                modes.add(row["mode"])
-            for mode in modes:
-                if mode not in dict_res:
-                    dict_res[mode] = {}
-            for row in array_res:
-                dict_res[row["mode"]][row["id"]] = row
-            return [{k: v} for k, v in dict_res.items()]
-        else:
-            return await self.db.query(sql, params, multirows=True)
-
-    async def get_by_status(self, status: str) -> Union[list[dict[str, Any]], None]:
-        """Specifically for llm_response_cache."""
-        sql_key = f"get_by_status_{self.storage_type}"
-        sql = SQL_TEMPLATES[sql_key]
-        params = {"workspace": self.db.workspace, "status": status}
         return await self.db.query(sql, params, multirows=True)
+
 
     async def filter_keys(self, keys: set[str]) -> set[str]:
         """Filter out duplicated content"""
@@ -325,19 +277,6 @@ class PGKVStorage(BaseKVStorage):
                     "workspace": self.db.workspace,
                 }
                 await self.db.execute(upsert_sql, _data)
-        elif is_namespace(self.namespace, NameSpace.KV_STORE_LLM_RESPONSE_CACHE):
-            for mode, items in data.items():
-                for k, v in items.items():
-                    upsert_sql = SQL_TEMPLATES["upsert_llm_response_cache"]
-                    _data = {
-                        "workspace": self.db.workspace,
-                        "id": k,
-                        "original_prompt": v["original_prompt"],
-                        "return_value": v["return"],
-                        "mode": mode,
-                    }
-
-                    await self.db.execute(upsert_sql, _data)
 
     async def delete(self, ids: list[str]) -> None:
         """Delete specific records from storage by their IDs
@@ -948,7 +887,6 @@ NAMESPACE_TABLE_MAP = {
     NameSpace.VECTOR_STORE_ENTITIES: "LIGHTRAG_VDB_ENTITY",
     NameSpace.VECTOR_STORE_RELATIONSHIPS: "LIGHTRAG_VDB_RELATION",
     NameSpace.DOC_STATUS: "LIGHTRAG_DOC_STATUS",
-    NameSpace.KV_STORE_LLM_RESPONSE_CACHE: "LIGHTRAG_LLM_CACHE",
 }
 
 
@@ -967,12 +905,6 @@ SQL_TEMPLATES = {
                                 chunk_order_index, full_doc_id, file_path
                                 FROM LIGHTRAG_DOC_CHUNKS WHERE workspace=$1 AND id=$2
                             """,
-    "get_by_id_llm_response_cache": """SELECT id, original_prompt, COALESCE(return_value, '') as "return", mode
-                                FROM LIGHTRAG_LLM_CACHE WHERE workspace=$1 AND mode=$2
-                               """,
-    "get_by_mode_id_llm_response_cache": """SELECT id, original_prompt, COALESCE(return_value, '') as "return", mode
-                           FROM LIGHTRAG_LLM_CACHE WHERE workspace=$1 AND mode=$2 AND id=$3
-                          """,
     "get_by_ids_full_docs": """SELECT id, COALESCE(content, '') as content
                                  FROM LIGHTRAG_DOC_FULL WHERE workspace=$1 AND id IN ({ids})
                             """,
@@ -980,23 +912,12 @@ SQL_TEMPLATES = {
                                   chunk_order_index, full_doc_id, file_path
                                    FROM LIGHTRAG_DOC_CHUNKS WHERE workspace=$1 AND id IN ({ids})
                                 """,
-    "get_by_ids_llm_response_cache": """SELECT id, original_prompt, COALESCE(return_value, '') as "return", mode
-                                 FROM LIGHTRAG_LLM_CACHE WHERE workspace=$1 AND mode= IN ({ids})
-                                """,
     "filter_keys": "SELECT id FROM {table_name} WHERE workspace=$1 AND id IN ({ids})",
     "upsert_doc_full": """INSERT INTO LIGHTRAG_DOC_FULL (id, content, workspace)
                         VALUES ($1, $2, $3)
                         ON CONFLICT (workspace,id) DO UPDATE
                            SET content = $2, update_time = CURRENT_TIMESTAMP
                        """,
-    "upsert_llm_response_cache": """INSERT INTO LIGHTRAG_LLM_CACHE(workspace,id,original_prompt,return_value,mode)
-                                      VALUES ($1, $2, $3, $4, $5)
-                                      ON CONFLICT (workspace,mode,id) DO UPDATE
-                                      SET original_prompt = EXCLUDED.original_prompt,
-                                      return_value=EXCLUDED.return_value,
-                                      mode=EXCLUDED.mode,
-                                      update_time = CURRENT_TIMESTAMP
-                                     """,
     "upsert_chunk": """INSERT INTO LIGHTRAG_DOC_CHUNKS (workspace, id, tokens,
                       chunk_order_index, full_doc_id, content, content_vector, file_path,
                       create_time, update_time)
