@@ -48,10 +48,7 @@ class PGSyncKVStorage(BaseKVStorage):
             raise RuntimeError("PostgreSQL sync connection manager is not available")
         
         # Initialize in thread to avoid blocking
-        await asyncio.to_thread(
-            PostgreSQLSyncConnectionManager.initialize,
-            workspace=self.workspace
-        )
+        await asyncio.to_thread(PostgreSQLSyncConnectionManager.initialize)
         logger.info(f"PGSyncKVStorage initialized for workspace '{self.workspace}'")
 
     async def finalize(self):
@@ -67,10 +64,9 @@ class PGSyncKVStorage(BaseKVStorage):
                 logger.error(f"Unknown namespace for get_all: {self.namespace}")
                 return {}
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = f"SELECT * FROM {table_name} WHERE workspace=%s"
             results = PostgreSQLSyncConnectionManager.execute_query(
-                sql, (workspace,), fetch_all=True
+                sql, (self.workspace,), fetch_all=True
             )
             return {row["id"]: row for row in results}
         
@@ -79,11 +75,10 @@ class PGSyncKVStorage(BaseKVStorage):
     async def get_by_id(self, id: str) -> dict[str, Any] | None:
         """Get doc_full data by id."""
         def _sync_get_by_id():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql_key = f"get_by_id_{self.storage_type}"
             sql = SQL_TEMPLATES[sql_key]
             result = PostgreSQLSyncConnectionManager.execute_query(
-                sql, (workspace, id), fetch_one=True
+                sql, (self.workspace, id), fetch_one=True
             )
             return result
         
@@ -94,14 +89,13 @@ class PGSyncKVStorage(BaseKVStorage):
         def _sync_get_by_ids():
             if not ids:
                 return []
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             # Build IN clause with placeholders
             placeholders = ",".join(["%s"] * len(ids))
             sql_key = f"get_by_ids_{self.storage_type}"
             sql = SQL_TEMPLATES[sql_key].format(ids=placeholders)
             
             results = PostgreSQLSyncConnectionManager.execute_query(
-                sql, (workspace, *ids), fetch_all=True
+                sql, (self.workspace, *ids), fetch_all=True
             )
             return results
         
@@ -112,14 +106,13 @@ class PGSyncKVStorage(BaseKVStorage):
         def _sync_filter_keys():
             if not keys:
                 return set()
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             # Build IN clause with placeholders
             placeholders = ",".join(["%s"] * len(keys))
             sql = f"SELECT id FROM {table_name} WHERE workspace=%s AND id IN ({placeholders})"
             
             results = PostgreSQLSyncConnectionManager.execute_query(
-                sql, (workspace, *list(keys)), fetch_all=True
+                sql, (self.workspace, *list(keys)), fetch_all=True
             )
             
             exist_keys = [row["id"] for row in results]
@@ -135,8 +128,6 @@ class PGSyncKVStorage(BaseKVStorage):
             if not data:
                 return
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
-
             if is_namespace(self.namespace, NameSpace.KV_STORE_TEXT_CHUNKS):
                 # Handle text chunks if needed
                 pass
@@ -144,7 +135,7 @@ class PGSyncKVStorage(BaseKVStorage):
                 upsert_sql = SQL_TEMPLATES["upsert_doc_full"]
                 for k, v in data.items():
                     PostgreSQLSyncConnectionManager.execute_query(
-                        upsert_sql, (k, v["content"], workspace)
+                        upsert_sql, (k, v["content"], self.workspace)
                     )
         
         await asyncio.to_thread(_sync_upsert)
@@ -155,7 +146,6 @@ class PGSyncKVStorage(BaseKVStorage):
             if not ids:
                 return
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             if not table_name:
                 logger.error(f"Unknown namespace for deletion: {self.namespace}")
@@ -163,7 +153,7 @@ class PGSyncKVStorage(BaseKVStorage):
 
             # Use ANY for PostgreSQL array operations
             sql = f"DELETE FROM {table_name} WHERE workspace=%s AND id = ANY(%s)"
-            PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, ids))
+            PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, ids))
             logger.debug(f"Successfully deleted {len(ids)} records from {self.namespace}")
         
         await asyncio.to_thread(_sync_delete)
@@ -172,7 +162,6 @@ class PGSyncKVStorage(BaseKVStorage):
         """Drop the storage"""
         def _sync_drop():
             try:
-                workspace = PostgreSQLSyncConnectionManager.get_workspace()
                 table_name = namespace_to_table_name(self.namespace)
                 if not table_name:
                     return {
@@ -181,7 +170,7 @@ class PGSyncKVStorage(BaseKVStorage):
                     }
 
                 sql = f"DELETE FROM {table_name} WHERE workspace=%s"
-                PostgreSQLSyncConnectionManager.execute_query(sql, (workspace,))
+                PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace,))
                 return {"status": "success", "message": "data dropped"}
             except Exception as e:
                 return {"status": "error", "message": str(e)}
@@ -203,10 +192,7 @@ class PGSyncVectorStorage(BaseVectorStorage):
         if PostgreSQLSyncConnectionManager is None:
             raise RuntimeError("PostgreSQL sync connection manager is not available")
         
-        await asyncio.to_thread(
-            PostgreSQLSyncConnectionManager.initialize,
-            workspace=self.workspace
-        )
+        await asyncio.to_thread(PostgreSQLSyncConnectionManager.initialize)
         logger.info(f"PGSyncVectorStorage initialized for workspace '{self.workspace}'")
 
     async def finalize(self):
@@ -215,12 +201,10 @@ class PGSyncVectorStorage(BaseVectorStorage):
 
     def _prepare_upsert_data(self, item: dict[str, Any], current_time: datetime.datetime) -> tuple[str, tuple]:
         """Prepare upsert SQL and data based on namespace."""
-        workspace = PostgreSQLSyncConnectionManager.get_workspace()
-        
         if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
             sql = SQL_TEMPLATES["upsert_chunk"]
             data = (
-                workspace, item["__id__"], item["tokens"],
+                self.workspace, item["__id__"], item["tokens"],
                 item["chunk_order_index"], item["full_doc_id"], item["content"],
                 json.dumps(item["__vector__"].tolist()), item["file_path"],
                 current_time, current_time
@@ -230,7 +214,7 @@ class PGSyncVectorStorage(BaseVectorStorage):
             chunk_ids = source_id.split("<SEP>") if isinstance(source_id, str) and "<SEP>" in source_id else [source_id]
             sql = SQL_TEMPLATES["upsert_entity"]
             data = (
-                workspace, item["__id__"], item["entity_name"], item["content"],
+                self.workspace, item["__id__"], item["entity_name"], item["content"],
                 json.dumps(item["__vector__"].tolist()), chunk_ids, 
                 item.get("file_path"), current_time, current_time
             )
@@ -239,7 +223,7 @@ class PGSyncVectorStorage(BaseVectorStorage):
             chunk_ids = source_id.split("<SEP>") if isinstance(source_id, str) and "<SEP>" in source_id else [source_id]
             sql = SQL_TEMPLATES["upsert_relationship"]
             data = (
-                workspace, item["__id__"], item["src_id"], item["tgt_id"], item["content"],
+                self.workspace, item["__id__"], item["src_id"], item["tgt_id"], item["content"],
                 json.dumps(item["__vector__"].tolist()), chunk_ids,
                 item.get("file_path"), current_time, current_time
             )
@@ -294,9 +278,8 @@ class PGSyncVectorStorage(BaseVectorStorage):
         embedding_string = ",".join(map(str, embedding))
         
         def _sync_query():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = SQL_TEMPLATES[self.storage_type].format(embedding_string=embedding_string)
-            params = (workspace, ids, self.cosine_better_than_threshold, top_k)
+            params = (self.workspace, ids, self.cosine_better_than_threshold, top_k)
             results = PostgreSQLSyncConnectionManager.execute_query(sql, params, fetch_all=True)
             return results
         
@@ -308,14 +291,13 @@ class PGSyncVectorStorage(BaseVectorStorage):
             if not ids:
                 return
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             if not table_name:
                 logger.error(f"Unknown namespace for vector deletion: {self.namespace}")
                 return
 
             sql = f"DELETE FROM {table_name} WHERE workspace=%s AND id = ANY(%s)"
-            PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, ids))
+            PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, ids))
             logger.debug(f"Successfully deleted {len(ids)} vectors from {self.namespace}")
         
         await asyncio.to_thread(_sync_delete)
@@ -323,9 +305,8 @@ class PGSyncVectorStorage(BaseVectorStorage):
     async def delete_entity(self, entity_name: str) -> None:
         """Delete an entity by its name from the vector storage."""
         def _sync_delete_entity():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = "DELETE FROM LIGHTRAG_VDB_ENTITY WHERE workspace=%s AND entity_name=%s"
-            PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, entity_name))
+            PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, entity_name))
             logger.debug(f"Successfully deleted entity {entity_name}")
         
         await asyncio.to_thread(_sync_delete_entity)
@@ -333,9 +314,8 @@ class PGSyncVectorStorage(BaseVectorStorage):
     async def delete_entity_relation(self, entity_name: str) -> None:
         """Delete all relations associated with an entity."""
         def _sync_delete_entity_relation():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = "DELETE FROM LIGHTRAG_VDB_RELATION WHERE workspace=%s AND (source_id=%s OR target_id=%s)"
-            PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, entity_name, entity_name))
+            PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, entity_name, entity_name))
             logger.debug(f"Successfully deleted relations for entity {entity_name}")
         
         await asyncio.to_thread(_sync_delete_entity_relation)
@@ -343,14 +323,13 @@ class PGSyncVectorStorage(BaseVectorStorage):
     async def get_by_id(self, id: str) -> dict[str, Any] | None:
         """Get vector data by its ID"""
         def _sync_get_by_id():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             if not table_name:
                 logger.error(f"Unknown namespace for ID lookup: {self.namespace}")
                 return None
 
             sql = f"SELECT *, EXTRACT(EPOCH FROM create_time)::BIGINT as created_at FROM {table_name} WHERE workspace=%s AND id=%s"
-            result = PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, id), fetch_one=True)
+            result = PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, id), fetch_one=True)
             return result
         
         return await asyncio.to_thread(_sync_get_by_id)
@@ -361,7 +340,6 @@ class PGSyncVectorStorage(BaseVectorStorage):
             if not ids:
                 return []
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             if not table_name:
                 logger.error(f"Unknown namespace for IDs lookup: {self.namespace}")
@@ -369,7 +347,7 @@ class PGSyncVectorStorage(BaseVectorStorage):
 
             placeholders = ",".join(["%s"] * len(ids))
             sql = f"SELECT *, EXTRACT(EPOCH FROM create_time)::BIGINT as created_at FROM {table_name} WHERE workspace=%s AND id IN ({placeholders})"
-            results = PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, *ids), fetch_all=True)
+            results = PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, *ids), fetch_all=True)
             return results
         
         return await asyncio.to_thread(_sync_get_by_ids)
@@ -378,7 +356,6 @@ class PGSyncVectorStorage(BaseVectorStorage):
         """Drop the storage"""
         def _sync_drop():
             try:
-                workspace = PostgreSQLSyncConnectionManager.get_workspace()
                 table_name = namespace_to_table_name(self.namespace)
                 if not table_name:
                     return {
@@ -387,7 +364,7 @@ class PGSyncVectorStorage(BaseVectorStorage):
                     }
 
                 sql = f"DELETE FROM {table_name} WHERE workspace=%s"
-                PostgreSQLSyncConnectionManager.execute_query(sql, (workspace,))
+                PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace,))
                 return {"status": "success", "message": "data dropped"}
             except Exception as e:
                 return {"status": "error", "message": str(e)}
@@ -405,10 +382,7 @@ class PGSyncDocStatusStorage(DocStatusStorage):
         if PostgreSQLSyncConnectionManager is None:
             raise RuntimeError("PostgreSQL sync connection manager is not available")
         
-        await asyncio.to_thread(
-            PostgreSQLSyncConnectionManager.initialize,
-            workspace=self.workspace
-        )
+        await asyncio.to_thread(PostgreSQLSyncConnectionManager.initialize)
 
     async def finalize(self):
         """Clean up resources."""
@@ -419,13 +393,12 @@ class PGSyncDocStatusStorage(DocStatusStorage):
         def _sync_filter_keys():
             if not keys:
                 return set()
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             placeholders = ",".join(["%s"] * len(keys))
             sql = f"SELECT id FROM {table_name} WHERE workspace=%s AND id IN ({placeholders})"
             
             results = PostgreSQLSyncConnectionManager.execute_query(
-                sql, (workspace, *list(keys)), fetch_all=True
+                sql, (self.workspace, *list(keys)), fetch_all=True
             )
             
             exist_keys = [row["id"] for row in results]
@@ -438,9 +411,8 @@ class PGSyncDocStatusStorage(DocStatusStorage):
 
     async def get_by_id(self, id: str) -> Union[dict[str, Any], None]:
         def _sync_get_by_id():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = "SELECT * FROM LIGHTRAG_DOC_STATUS WHERE workspace=%s AND id=%s"
-            result = PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, id), fetch_one=True)
+            result = PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, id), fetch_one=True)
             
             if not result:
                 return None
@@ -464,10 +436,9 @@ class PGSyncDocStatusStorage(DocStatusStorage):
             if not ids:
                 return []
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             placeholders = ",".join(["%s"] * len(ids))
             sql = f"SELECT * FROM LIGHTRAG_DOC_STATUS WHERE workspace=%s AND id IN ({placeholders})"
-            results = PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, *ids), fetch_all=True)
+            results = PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, *ids), fetch_all=True)
 
             return [
                 {
@@ -488,9 +459,8 @@ class PGSyncDocStatusStorage(DocStatusStorage):
     async def get_status_counts(self) -> dict[str, int]:
         """Get counts of documents in each status"""
         def _sync_get_status_counts():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = 'SELECT status, COUNT(1) as count FROM LIGHTRAG_DOC_STATUS WHERE workspace=%s GROUP BY status'
-            results = PostgreSQLSyncConnectionManager.execute_query(sql, (workspace,), fetch_all=True)
+            results = PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace,), fetch_all=True)
             
             counts = {}
             for row in results:
@@ -502,9 +472,8 @@ class PGSyncDocStatusStorage(DocStatusStorage):
     async def get_docs_by_status(self, status: DocStatus) -> dict[str, DocProcessingStatus]:
         """Get all documents with a specific status"""
         def _sync_get_docs_by_status():
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             sql = "SELECT * FROM LIGHTRAG_DOC_STATUS WHERE workspace=%s AND status=%s"
-            results = PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, status.value), fetch_all=True)
+            results = PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, status.value), fetch_all=True)
             
             docs_by_status = {
                 row["id"]: DocProcessingStatus(
@@ -529,14 +498,13 @@ class PGSyncDocStatusStorage(DocStatusStorage):
             if not ids:
                 return
 
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
             table_name = namespace_to_table_name(self.namespace)
             if not table_name:
                 logger.error(f"Unknown namespace for deletion: {self.namespace}")
                 return
 
             sql = f"DELETE FROM {table_name} WHERE workspace=%s AND id = ANY(%s)"
-            PostgreSQLSyncConnectionManager.execute_query(sql, (workspace, ids))
+            PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace, ids))
             logger.debug(f"Successfully deleted {len(ids)} records from {self.namespace}")
         
         await asyncio.to_thread(_sync_delete)
@@ -547,8 +515,6 @@ class PGSyncDocStatusStorage(DocStatusStorage):
             logger.debug(f"Inserting {len(data)} to {self.namespace}")
             if not data:
                 return
-
-            workspace = PostgreSQLSyncConnectionManager.get_workspace()
 
             def parse_datetime(dt_str):
                 if dt_str is None:
@@ -583,7 +549,7 @@ class PGSyncDocStatusStorage(DocStatusStorage):
                 PostgreSQLSyncConnectionManager.execute_query(
                     sql,
                     (
-                        workspace, k, v["content"], v["content_summary"],
+                        self.workspace, k, v["content"], v["content_summary"],
                         v["content_length"], v.get("chunks_count", -1),
                         v["status"], v["file_path"],
                         created_at, updated_at
@@ -596,7 +562,6 @@ class PGSyncDocStatusStorage(DocStatusStorage):
         """Drop the storage"""
         def _sync_drop():
             try:
-                workspace = PostgreSQLSyncConnectionManager.get_workspace()
                 table_name = namespace_to_table_name(self.namespace)
                 if not table_name:
                     return {
@@ -605,7 +570,7 @@ class PGSyncDocStatusStorage(DocStatusStorage):
                     }
 
                 sql = f"DELETE FROM {table_name} WHERE workspace=%s"
-                PostgreSQLSyncConnectionManager.execute_query(sql, (workspace,))
+                PostgreSQLSyncConnectionManager.execute_query(sql, (self.workspace,))
                 return {"status": "success", "message": "data dropped"}
             except Exception as e:
                 return {"status": "error", "message": str(e)}

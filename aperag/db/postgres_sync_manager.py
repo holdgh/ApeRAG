@@ -14,16 +14,16 @@ class PostgreSQLSyncConnectionManager:
     """
     Worker-level PostgreSQL connection manager using sync driver with connection pooling.
     This avoids event loop issues and provides true connection reuse across Celery tasks.
+    Note: workspace is per-instance, not global.
     """
     
     # Class-level storage for worker-scoped connection pool
     _pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None
     _lock = threading.Lock()
     _config: Optional[Dict[str, Any]] = None
-    _workspace: Optional[str] = None
     
     @classmethod
-    def initialize(cls, config: Optional[Dict[str, Any]] = None, workspace: str = "default"):
+    def initialize(cls, config: Optional[Dict[str, Any]] = None):
         """Initialize the connection manager with configuration."""
         with cls._lock:
             if cls._pool is None:
@@ -40,8 +40,6 @@ class PostgreSQLSyncConnectionManager:
                         "minconn": int(os.environ.get("POSTGRES_MIN_CONNECTIONS", 2)),
                         "maxconn": int(os.environ.get("POSTGRES_MAX_CONNECTIONS", 20)),
                     }
-                
-                cls._workspace = workspace
                 
                 if not all([cls._config["user"], cls._config["password"], cls._config["database"]]):
                     raise ValueError("Missing required PostgreSQL configuration: user, password, or database")
@@ -87,10 +85,7 @@ class PostgreSQLSyncConnectionManager:
             if conn:
                 cls._pool.putconn(conn)
     
-    @classmethod
-    def get_workspace(cls) -> str:
-        """Get the current workspace."""
-        return cls._workspace or "default"
+
     
     @classmethod
     def execute_query(
@@ -136,7 +131,6 @@ class PostgreSQLSyncConnectionManager:
                 cls._pool.closeall()
                 cls._pool = None
                 cls._config = None
-                cls._workspace = None
 
 
 # Celery signal handlers for worker lifecycle
