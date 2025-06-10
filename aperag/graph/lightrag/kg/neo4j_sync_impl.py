@@ -23,12 +23,6 @@ try:
 except ImportError:
     Neo4jSyncConnectionManager = None
 
-# use the .env that is inside the current folder
-load_dotenv(dotenv_path=".env", override=False)
-
-# Get maximum number of graph nodes from environment variable
-MAX_GRAPH_NODES = int(os.getenv("MAX_GRAPH_NODES", 1000))
-
 # Set neo4j logger level to ERROR to suppress warning logs
 logging.getLogger("neo4j").setLevel(logging.ERROR)
 
@@ -420,7 +414,7 @@ class Neo4JSyncStorage(BaseGraphStorage):
         self,
         node_label: str,
         max_depth: int = 3,
-        max_nodes: int = MAX_GRAPH_NODES,
+        max_nodes: int = 1000,
     ) -> KnowledgeGraph:
         """Retrieve a connected subgraph."""
         # For brevity, I'll implement a simplified version

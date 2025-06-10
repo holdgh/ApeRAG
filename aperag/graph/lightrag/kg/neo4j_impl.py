@@ -32,14 +32,6 @@ except ImportError:
     Neo4jConnectionFactory = None
     BorrowedConnection = None
 
-# use the .env that is inside the current folder
-# allows to use different .env file for each lightrag instance
-# the OS environment variables take precedence over the .env file
-load_dotenv(dotenv_path=".env", override=False)
-
-# Get maximum number of graph nodes from environment variable, default is 1000
-MAX_GRAPH_NODES = int(os.getenv("MAX_GRAPH_NODES", 1000))
-
 # Set neo4j logger level to ERROR to suppress warning logs
 logging.getLogger("neo4j").setLevel(logging.ERROR)
 
@@ -729,7 +721,7 @@ class Neo4JStorage(BaseGraphStorage):
         self,
         node_label: str,
         max_depth: int = 3,
-        max_nodes: int = MAX_GRAPH_NODES,
+        max_nodes: int = 1000,
     ) -> KnowledgeGraph:
         """
         Retrieve a connected subgraph of nodes where the label includes the specified `node_label`.
