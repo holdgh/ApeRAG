@@ -48,7 +48,7 @@
 
 #### 1. 创建全局 Driver 管理器
 
-我们需要一个地方来统一管理全局的 `AsyncDriver` 实例。这可以是一个新的模块，例如 `aperag/db/neo4j_manager.py`。
+我们需要一个地方来统一管理全局的 `AsyncDriver` 实例。这个管理器必须能够处理好多事件循环的问题，避免在模块加载时就创建与特定事件循环绑定的锁。
 
 ```python
 # aperag/db/neo4j_manager.py
@@ -56,34 +56,51 @@
 import os
 import asyncio
 from neo4j import AsyncGraphDatabase, AsyncDriver
+from typing import Optional
 
-_driver: Optional[AsyncDriver] = None
-_lock = asyncio.Lock()
+class Neo4jDriverManager:
+    _driver: Optional[AsyncDriver] = None
+    _lock: Optional[asyncio.Lock] = None
 
-async def get_driver() -> AsyncDriver:
-    """获取全局共享的 Neo4j Driver 实例，如果不存在则初始化。"""
-    global _driver
-    if _driver is None:
-        async with _lock:
-            if _driver is None:
-                # 从环境变量或配置文件加载URI、用户和密码
-                uri = os.environ.get("NEO4J_URI")
-                user = os.environ.get("NEO4J_USERNAME")
-                password = os.environ.get("NEO4J_PASSWORD")
-                
-                _driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
-                # 可以选择性地在这里验证连接
-                await _driver.verify_connectivity()
-    return _driver
+    @classmethod
+    def _get_lock(cls) -> asyncio.Lock:
+        """惰性加载锁，确保它在正确的事件循环中被创建。"""
+        if cls._lock is None:
+            # 这里的 asyncio.Lock() 会在当前运行的事件循环中创建
+            cls._lock = asyncio.Lock()
+        return cls._lock
 
-async def close_driver():
-    """关闭全局的 Neo4j Driver 实例。"""
-    global _driver
-    if _driver:
-        async with _lock:
-            if _driver:
-                await _driver.close()
-                _driver = None
+    @classmethod
+    async def get_driver(cls) -> AsyncDriver:
+        """获取全局共享的 Neo4j Driver 实例，如果不存在则初始化。"""
+        if cls._driver is None:
+            lock = cls._get_lock()
+            async with lock:
+                # Double-check locking
+                if cls._driver is None:
+                    uri = os.environ.get("NEO4J_URI")
+                    user = os.environ.get("NEO4J_USERNAME")
+                    password = os.environ.get("NEO4J_PASSWORD")
+                    
+                    cls._driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
+                    # 可以选择性地在这里验证连接
+                    await cls._driver.verify_connectivity()
+        return cls._driver
+
+    @classmethod
+    async def close_driver(cls):
+        """关闭全局的 Neo4j Driver 实例。"""
+        if cls._driver:
+            lock = cls._get_lock()
+            async with lock:
+                if cls._driver:
+                    await cls._driver.close()
+                    cls._driver = None
+                    # 关闭后也重置锁，以便下次在新的事件循环中可以重新创建
+                    cls._lock = None
+
+# 单例实例
+neo4j_manager = Neo4jDriverManager()
 ```
 
 #### 2. 改造 `Neo4JStorage`
@@ -158,8 +175,10 @@ def shutdown_celery_worker(**kwargs):
 
 #### 4. 最终效果
 
--   `LightRAG` 实例在创建和销毁时，不再触及 Neo4j Driver 的生命周期。
--   在 `stateless_task_wrapper.py` 中创建的临时事件循环里，`Neo4JStorage.initialize()` 只是获取一个已经存在的、与主事件循环绑定的 Driver 引用，不会再创建任何新的后台任务。
--   因此，`finally` 块中的 `all_tasks()` 不会再看到任何挥之不去的后台 I/O 任务，卡死问题从根源上得到解决。
+-   **无事件循环冲突**：`asyncio.Lock` 在 `get_driver` 首次被调用时才创建，确保它属于当前正在运行的事件循环（FastAPI的或Celery的），而不是模块导入时的默认循环。
+-   **性能更优**：避免了为每个任务重复创建和销毁 TCP 连接及驱动实例的巨大开销。
+-   **资源高效**：整个进程共享一个连接池，资源利用率更高。
+-   **架构清晰**：资源生命周期管理和业务逻辑彻底解耦。
+-   **根除问题**：不再有"临时事件循环"和"常驻后台任务"的生命周期冲突，问题被彻底根除。
 
 这个方案不仅优雅地解决了问题，还提升了应用的整体性能和健壮性，非常出色。
