@@ -53,13 +53,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
         client.create_collection(collection_name, **kwargs)
 
     def __post_init__(self):
-        kwargs = self.global_config.get("vector_db_storage_cls_kwargs", {})
-        cosine_threshold = kwargs.get("cosine_better_than_threshold")
-        if cosine_threshold is None:
-            raise ValueError(
-                "cosine_better_than_threshold must be specified in vector_db_storage_cls_kwargs"
-            )
-        self.cosine_better_than_threshold = cosine_threshold
+        self.cosine_better_than_threshold = os.getenv("COSINE_THRESHOLD", 0.2)
 
         self._client = QdrantClient(
             url=os.environ.get(
@@ -69,7 +63,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
                 "QDRANT_API_KEY"
             ),
         )
-        self._max_batch_size = self.global_config["embedding_batch_num"]
+        self._max_batch_size = os.getenv("EMBEDDING_BATCH_NUM", 32)
         # Use workspace and storage_type to create collection name for proper isolation
         self._collection_name = f"{self.workspace}_{self.storage_type}"
         QdrantVectorDBStorage.create_collection_if_not_exist(

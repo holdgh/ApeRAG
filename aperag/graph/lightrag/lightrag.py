@@ -16,7 +16,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    cast,
     final,
 )
 
@@ -31,7 +30,6 @@ from aperag.graph.lightrag.kg import (
     verify_storage_implementation,
 )
 from aperag.graph.lightrag.utils import get_env_value, LightRAGLogger
-
 from .base import (
     BaseGraphStorage,
     BaseKVStorage,
@@ -40,10 +38,9 @@ from .base import (
     DocStatus,
     DocStatusStorage,
     QueryParam,
-    StorageNameSpace,
     StoragesStatus,
 )
-from .namespace import NameSpace, is_namespace
+from .namespace import NameSpace
 from .operate import (
     chunking_by_token_size,
     extract_entities,
