@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import warnings
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import partial
 from typing import (
