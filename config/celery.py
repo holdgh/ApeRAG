@@ -14,7 +14,15 @@
 
 import os
 from celery import Celery
+from celery.signals import worker_process_init, worker_process_shutdown
 from aperag.config import settings
+
+# Import Neo4j configuration signal handlers
+try:
+    from aperag.db.neo4j_manager import setup_worker_neo4j_config, cleanup_worker_neo4j_config
+    neo4j_signals_available = True
+except ImportError:
+    neo4j_signals_available = False
 
 # Create celery app instance
 app = Celery("aperag")
@@ -40,6 +48,11 @@ if settings.local_queue_name:
     app.conf.task_routes = {
         "aperag.tasks.index.add_index_for_local_document": {"queue": f"{settings.local_queue_name}"},
     }
+
+# Connect Neo4j worker lifecycle signals
+if neo4j_signals_available:
+    worker_process_init.connect(setup_worker_neo4j_config)
+    worker_process_shutdown.connect(cleanup_worker_neo4j_config)
 
 if __name__ == "__main__":
     app.start()

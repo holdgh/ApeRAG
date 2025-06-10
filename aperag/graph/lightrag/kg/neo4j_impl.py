@@ -25,11 +25,12 @@ from neo4j import (
     exceptions as neo4jExceptions,
 )
 
-# Import global Neo4j manager
+# Import Neo4j connection manager
 try:
-    from aperag.db.neo4j_manager import neo4j_manager
+    from aperag.db.neo4j_manager import Neo4jConnectionManager, Neo4jConnectionFactory
 except ImportError:
-    neo4j_manager = None
+    Neo4jConnectionManager = None
+    Neo4jConnectionFactory = None
 
 # use the .env that is inside the current folder
 # allows to use different .env file for each lightrag instance
@@ -53,21 +54,46 @@ class Neo4JStorage(BaseGraphStorage):
             global_config=global_config,
             embedding_func=embedding_func,
         )
-        self._driver = None  # Will be set from global manager in initialize()
+        self._driver = None
+        self._connection_manager = None
+        self._DATABASE = None
 
     async def initialize(self):
-        # Get global Neo4j driver instance (no fallback)
-        if neo4j_manager is None:
-            raise RuntimeError("Global Neo4j manager is not available")
+        """
+        Initialize Neo4j storage by creating a connection manager in the current event loop.
+        This ensures no event loop conflicts with Celery tasks.
+        """
+        if Neo4jConnectionManager is None:
+            raise RuntimeError("Neo4j connection manager is not available")
         
-        self._driver = await neo4j_manager.get_driver()
+        # Create connection manager in current event loop (event-loop safe)
+        try:
+            if Neo4jConnectionFactory is not None:
+                # Use factory for Celery environments (shares config, creates new connections)
+                self._connection_manager = await Neo4jConnectionFactory.get_connection_manager()
+                logger.info(f"Neo4jStorage using event-loop-safe connection factory for workspace '{self.workspace}'")
+            else:
+                # Fallback: create new connection manager for this instance
+                self._connection_manager = Neo4jConnectionManager()
+                logger.info(f"Neo4jStorage created new connection manager for workspace '{self.workspace}'")
+        except Exception as e:
+            logger.warning(f"Failed to get connection manager from factory: {e}. Creating new connection manager.")
+            self._connection_manager = Neo4jConnectionManager()
         
-        # Prepare database and get database name
-        self._DATABASE = await neo4j_manager.prepare_neo4j_database(self.workspace)
+        # Get driver from connection manager
+        self._driver = await self._connection_manager.get_driver()
+        
+        # Prepare database and get database name  
+        self._DATABASE = await Neo4jConnectionManager.prepare_database(self._driver, self.workspace)
+        logger.info(f"Neo4jStorage initialized for workspace '{self.workspace}', database '{self._DATABASE}'")
 
     async def finalize(self):
-        """Clean up resources - driver is managed globally, so nothing to do"""
+        """Clean up resources - close the connection manager for this storage instance"""
         self._driver = None
+        if self._connection_manager:
+            await self._connection_manager.close()
+            self._connection_manager = None
+            logger.debug(f"Neo4jStorage closed connection manager for workspace '{self.workspace}'")
 
     async def __aexit__(self, exc_type, exc, tb):
         """Ensure driver is closed when context manager exits"""
