@@ -323,7 +323,6 @@ async def create_and_initialize_lightrag(
         LIGHTRAG_DOC_STATUS_STORAGE = os.environ.get("LIGHTRAG_DOC_STATUS_STORAGE")
 
         # default values for kg storage
-        os.environ["MAX_GRAPH_NODES"] = 1000
         os.environ["EMBEDDING_BATCH_NUM"] = 32
         os.environ["COSINE_THRESHOLD"] = 0.2
 
