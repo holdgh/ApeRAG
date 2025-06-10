@@ -8,7 +8,6 @@ from datetime import timezone
 from typing import Any, Union, final
 
 import numpy as np
-import pipmaster as pm
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -28,9 +27,6 @@ from ..base import (
 )
 from ..namespace import NameSpace, is_namespace
 from ..utils import logger
-
-if not pm.is_installed("asyncpg"):
-    pm.install("asyncpg")
 
 import asyncpg  # type: ignore
 from asyncpg import Pool  # type: ignore

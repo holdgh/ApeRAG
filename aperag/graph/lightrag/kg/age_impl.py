@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, Dict, List, NamedTuple, Optional, Union, final
 
-import pipmaster as pm
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -26,12 +25,6 @@ if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-if not pm.is_installed("psycopg-pool"):
-    pm.install("psycopg-pool")
-    pm.install("psycopg[binary,pool]")
-
-if not pm.is_installed("asyncpg"):
-    pm.install("asyncpg")
 
 import psycopg  # type: ignore
 from psycopg.rows import namedtuple_row  # type: ignore

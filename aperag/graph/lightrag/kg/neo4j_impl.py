@@ -6,7 +6,6 @@ import re
 from dataclasses import dataclass
 from typing import final
 
-import pipmaster as pm
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -17,9 +16,6 @@ from tenacity import (
 from ..base import BaseGraphStorage
 from ..types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
 from ..utils import logger
-
-if not pm.is_installed("neo4j"):
-    pm.install("neo4j")
 
 from dotenv import load_dotenv
 from neo4j import (  # type: ignore

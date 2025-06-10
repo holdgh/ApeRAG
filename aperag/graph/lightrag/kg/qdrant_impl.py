@@ -7,13 +7,9 @@ from dataclasses import dataclass
 from typing import Any, List, final
 
 import numpy as np
-import pipmaster as pm
 
 from ..base import BaseVectorStorage
 from ..utils import logger
-
-if not pm.is_installed("qdrant-client"):
-    pm.install("qdrant-client")
 
 from qdrant_client import QdrantClient, models  # type: ignore
 

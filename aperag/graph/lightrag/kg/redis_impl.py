@@ -4,11 +4,6 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, final
 
-import pipmaster as pm
-
-if not pm.is_installed("redis"):
-    pm.install("redis")
-
 # aioredis is a depricated library, replaced with redis
 import json
 
