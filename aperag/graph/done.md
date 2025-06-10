@@ -178,4 +178,205 @@ nano_vector_db_impl.py
 json_kv_impl.py
 json_doc_status_impl.py
 
+---
+
+## 删除pipeline_status全局状态系统
+
+### 已完成的改动
+
+1. **删除全局状态变量** (shared_storage.py)
+   - 删除 `pipeline_status` 字典及相关数据结构
+   - 删除 `_pipeline_status_lock` 全局锁
+   - 删除 `get_pipeline_status_lock()` 函数
+   - 删除 `initialize_pipeline_status()` 函数
+
+2. **新增统一日志记录系统** (utils.py)
+   - 创建 `LightRAGLogger` 类，提供结构化日志记录
+   - 支持自定义前缀和workspace标识
+   - 提供专门的进度记录方法：
+     - `log_extraction_progress()` - 记录实体关系抽取进度
+     - `log_stage_progress()` - 记录文件处理阶段进度
+     - `log_entity_merge()` / `log_relation_merge()` - 记录合并操作
+   - 添加 `create_lightrag_logger()` 便捷函数
+
+3. **修改核心处理函数** (operate.py)
+   - **extract_entities()**：删除pipeline_status参数，使用lightrag_logger记录进度
+   - **merge_nodes_and_edges()**：删除pipeline_status参数，使用lightrag_logger记录合并操作
+   - **_merge_nodes_then_upsert()** / **_merge_edges_then_upsert()**：删除pipeline_status参数
+   - **_handle_entity_relation_summary()**：删除pipeline_status参数
+
+4. **修改主要接口** (lightrag.py)
+   - **aprocess_graph_indexing()**：删除pipeline_status使用，创建LightRAGLogger实例
+   - **apipeline_process_enqueue_documents()**：重构为使用LightRAGLogger的清晰日志记录
+   - 删除所有pipeline_status相关的导入和引用
+
+5. **清理相关函数** (shared_storage.py)
+   - 删除 `clean_up_pipeline_status()`
+   - 删除 `finalize_storage_data()` 中的pipeline_status处理
+   - 删除 `cleanup_namespace_data()` 中的pipeline_status清理
+
+### 核心改变
+
+- **从全局状态改为无状态日志**：不再依赖共享的pipeline_status字典，使用独立的日志记录器
+- **消除并发瓶颈**：删除_pipeline_status_lock全局锁，允许真正的并发处理
+- **统一日志格式**：所有进度信息使用一致的格式和前缀，便于监控和调试
+- **可配置的日志前缀**：支持自定义日志前缀，适应不同的使用场景
+
+### 日志示例
+
+```python
+# 创建日志记录器
+lightrag_logger = create_lightrag_logger(prefix="LightRAG-GraphIndex", workspace="collection_123")
+
+# 记录不同类型的进度
+lightrag_logger.log_extraction_progress(1, 10, 5, 3)  # 块进度
+lightrag_logger.log_entity_merge("Person", 3, 1, True)  # 实体合并
+lightrag_logger.error("Processing failed", exc_info=True)  # 错误信息
+```
+
+### 优势
+
+- **真正的并发支持**：删除全局锁后，多个collection可以并发处理
+- **更好的监控能力**：结构化日志便于集成监控系统
+- **简化的代码**：移除复杂的全局状态管理逻辑
+- **更好的调试体验**：清晰的日志格式和workspace隔离
+
+---
+
+## 清理shared_storage.py全局状态管理
+
+### 已完成的改动
+
+1. **删除废弃的全局变量**
+   - `_shared_dicts` - 命名空间共享字典管理
+   - `_init_flags` / `_update_flags` - 初始化和更新标志
+   - `_internal_lock` / `_data_init_lock` - 已不再使用的锁
+   - `_workers` / `_manager` - 多进程管理相关变量
+
+2. **删除废弃的函数**
+   - `get_internal_lock()` / `get_data_init_lock()` - 锁获取函数
+   - `get_namespace_data()` / `reset_namespace_data()` - 命名空间数据管理
+   - `cleanup_namespace_data()` / `finalize_storage_data()` - 清理函数
+   - 所有pipeline_status相关的管理函数
+
+3. **简化UnifiedLock类**
+   - 移除复杂的多层锁机制（async_lock辅助锁）
+   - 简化为单一锁的统一接口
+   - 保留向后兼容的同步上下文管理器支持
+
+4. **精简initialize_share_data()函数**
+   - 只初始化必要的存储锁和图数据库锁
+   - 移除复杂的共享数据管理逻辑
+   - 保持单进程/多进程模式的兼容性
+
+### 保留的核心功能
+
+- **_storage_lock** - 文件存储操作保护（JsonKVStorage等）
+- **_graph_db_lock** - 图数据库原子操作保护
+- **get_storage_lock()** / **get_graph_db_lock()** - 锁获取接口
+- **UnifiedLock类** - 统一的异步/同步锁接口
+- **initialize_share_data()** - 基础锁初始化
+
+### 核心改变
+
+- **最小化全局状态**：只保留必要的数据保护锁，删除所有管道状态管理
+- **简化锁机制**：从复杂的多层锁简化为直接的单一锁机制
+- **移除命名空间管理**：所有相关的全局共享数据管理都已移除
+- **代码大幅精简**：从310行减少到约150行，移除了近50%的代码
+
+### 清理效果
+
+- **文件大小减少**：shared_storage.py从310行减少到约150行
+- **更清晰的职责**：文件现在只负责基础的锁管理，职责单一
+- **更好的维护性**：删除了复杂的全局状态管理，降低了维护成本
+- **保持兼容性**：核心的锁接口保持不变，不影响现有功能
+
+### 当前架构
+
+```python
+# 现在的shared_storage.py只包含：
+- 基础锁类型定义
+- UnifiedLock统一锁接口
+- 两个数据保护锁：storage_lock, graph_db_lock  
+- 基础的锁初始化函数
+- 直接的日志记录工具
+```
+
+这次清理彻底移除了LightRAG中的复杂全局状态管理，实现了真正的无状态架构。
+
+## 进一步简化shared_storage.py架构
+
+### 已完成的改动
+
+1. **完全删除UnifiedLock抽象类**
+   - 移除了复杂的统一锁接口
+   - 删除了对多进程锁和异步锁的抽象封装
+   - 简化为直接使用`asyncio.Lock`
+
+2. **移除多进程支持**
+   - 删除所有`multiprocessing.Manager`相关代码
+   - 移除`workers`参数和多进程判断逻辑
+   - 删除`ProcessLock`和相关类型定义
+   - 统一使用`asyncio.Lock`进行并发控制
+
+3. **精简函数接口**
+   - `get_graph_db_lock()` 直接返回`asyncio.Lock`对象
+   - 删除`enable_logging`参数，简化函数签名
+   - `initialize_share_data()` 不再需要`workers`参数
+
+4. **代码大幅简化**
+   - 文件从183行减少到约50行，减少了70%以上的代码
+   - 移除了100+行的UnifiedLock类定义
+   - 删除了复杂的多进程初始化逻辑
+
+5. **更新所有调用点**
+   - 修改`utils_graph.py`中7个函数的锁获取调用
+   - 修改`operate.py`中的锁获取调用
+   - 删除所有`enable_logging=False`参数传递
+
+### 简化后的架构
+
+```python
+# 现在的shared_storage.py只包含：
+- 一个全局asyncio.Lock: _graph_db_lock
+- 一个简单的获取函数: get_graph_db_lock()
+- 一个基础初始化函数: initialize_share_data()
+- 直接的日志记录工具: direct_log()
+```
+
+### 使用方式对比
+
+**之前（复杂）：**
+```python
+graph_db_lock = get_graph_db_lock(enable_logging=False)
+async with graph_db_lock:  # UnifiedLock.__aenter__()
+    # 数据库操作
+```
+
+**现在（简洁）：**
+```python
+graph_db_lock = get_graph_db_lock()  
+async with graph_db_lock:  # 直接使用asyncio.Lock
+    # 数据库操作
+```
+
+### 核心优势
+
+- **极简架构**：移除所有不必要的抽象层，直接使用标准库
+- **单一职责**：文件现在只负责基础的图数据库锁管理
+- **更好的性能**：去除抽象层开销，直接使用asyncio.Lock
+- **易于维护**：代码减少70%，逻辑清晰简单
+- **完全异步**：统一使用async/await模式，无同步兼容包袱
+
+### 删除的复杂特性
+
+- ❌ 多进程支持（Manager, ProcessLock）
+- ❌ 统一锁接口（UnifiedLock类）
+- ❌ 同步锁兼容（__enter__/__exit__）
+- ❌ 调试日志选项（enable_logging参数）
+- ❌ 复杂的锁层级（辅助锁、内部锁等）
+
+现在LightRAG的锁管理变得极其简洁，只保留了必要的图数据库操作保护，完全符合单进程异步架构的需求。
+
+--- 
 

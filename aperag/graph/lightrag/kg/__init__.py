@@ -1,7 +1,6 @@
 STORAGE_IMPLEMENTATIONS = {
     "KV_STORAGE": {
         "implementations": [
-            "JsonKVStorage",
             "RedisKVStorage",
             "PGKVStorage",
         ],
@@ -9,7 +8,6 @@ STORAGE_IMPLEMENTATIONS = {
     },
     "GRAPH_STORAGE": {
         "implementations": [
-            "NetworkXStorage",
             "Neo4JStorage",
             "PGGraphStorage",
             "AGEStorage",
@@ -18,7 +16,6 @@ STORAGE_IMPLEMENTATIONS = {
     },
     "VECTOR_STORAGE": {
         "implementations": [
-            "NanoVectorDBStorage",
             "PGVectorStorage",
             "QdrantVectorDBStorage",
         ],
@@ -26,7 +23,6 @@ STORAGE_IMPLEMENTATIONS = {
     },
     "DOC_STATUS_STORAGE": {
         "implementations": [
-            "JsonDocStatusStorage",
             "PGDocStatusStorage",
         ],
         "required_methods": ["get_docs_by_status"],
@@ -36,11 +32,9 @@ STORAGE_IMPLEMENTATIONS = {
 # Storage implementation environment variable without default value
 STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # KV Storage Implementations
-    "JsonKVStorage": [],
     "RedisKVStorage": ["REDIS_URI"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     # Graph Storage Implementations
-    "NetworkXStorage": [],
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "AGEStorage": [
         "AGE_POSTGRES_DB",
@@ -53,20 +47,14 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
         "POSTGRES_DATABASE",
     ],
     # Vector Storage Implementations
-    "NanoVectorDBStorage": [],
     "PGVectorStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "QdrantVectorDBStorage": ["QDRANT_URL"],  # QDRANT_API_KEY has default value None
     # Document Status Storage Implementations
-    "JsonDocStatusStorage": [],
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
 }
 
 # Storage implementation module mapping
 STORAGES = {
-    "NetworkXStorage": ".kg.networkx_impl",
-    "JsonKVStorage": ".kg.json_kv_impl",
-    "NanoVectorDBStorage": ".kg.nano_vector_db_impl",
-    "JsonDocStatusStorage": ".kg.json_doc_status_impl",
     "Neo4JStorage": ".kg.neo4j_impl",
     "RedisKVStorage": ".kg.redis_impl",
     "PGKVStorage": ".kg.postgres_impl",

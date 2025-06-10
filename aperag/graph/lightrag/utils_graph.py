@@ -21,7 +21,7 @@ async def adelete_by_entity(
         relationships_vdb: Vector database storage for relationships
         entity_name: Name of the entity to delete
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -69,7 +69,7 @@ async def adelete_by_relation(
         source_entity: Name of the source entity
         target_entity: Name of the target entity
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -140,7 +140,7 @@ async def aedit_entity(
     Returns:
         Dictionary containing updated entity information
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -352,7 +352,7 @@ async def aedit_relation(
     Returns:
         Dictionary containing updated relation information
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -466,7 +466,7 @@ async def acreate_entity(
     Returns:
         Dictionary containing created entity information
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -552,7 +552,7 @@ async def acreate_relation(
     Returns:
         Dictionary containing created relation information
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -672,7 +672,7 @@ async def amerge_entities(
     Returns:
         Dictionary containing the merged entity information
     """
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:

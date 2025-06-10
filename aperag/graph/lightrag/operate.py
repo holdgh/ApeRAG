@@ -536,7 +536,7 @@ async def merge_nodes_and_edges(
 
     # Merge nodes and edges
     # Use graph database lock to ensure atomic merges and updates
-    graph_db_lock = get_graph_db_lock(enable_logging=False)
+    graph_db_lock = get_graph_db_lock()
     async with graph_db_lock:
         if lightrag_logger:
             lightrag_logger.log_stage_progress("Merging", current_file_number, total_files, file_path)
