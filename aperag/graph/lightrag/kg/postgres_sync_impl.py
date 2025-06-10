@@ -1001,3 +1001,274 @@ class PGOpsSyncKVStorage(BaseKVStorage):
     async def drop(self) -> dict[str, str]:
         """Drop the storage - not implemented for safety"""
         return {"status": "error", "message": "Drop operation not supported for database-backed storage"} 
+
+
+@final
+@dataclass 
+class PGOpsSyncVectorStorage(BaseVectorStorage):
+    """PostgreSQL Vector Storage using DatabaseOps with sync interface."""
+    
+    def __post_init__(self):
+        self._max_batch_size = int(os.getenv("EMBEDDING_BATCH_NUM", 32))
+        self.cosine_better_than_threshold = float(os.getenv("COSINE_THRESHOLD", 0.2))
+
+    async def initialize(self):
+        """Initialize storage."""
+        logger.info(f"PGOpsSyncVectorStorage initialized for workspace '{self.workspace}'")
+
+    async def finalize(self):
+        """Clean up resources."""
+        logger.debug(f"PGOpsSyncVectorStorage finalized for workspace '{self.workspace}'")
+
+    def _prepare_vector_data(self, item: dict[str, Any], current_time: datetime.datetime) -> dict[str, Any]:
+        """Prepare vector data based on namespace."""
+        from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+        
+        if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+            return {
+                "tokens": item["tokens"],
+                "chunk_order_index": item["chunk_order_index"],
+                "full_doc_id": item["full_doc_id"],
+                "content": item["content"],
+                "content_vector": item["__vector__"].tolist() if hasattr(item["__vector__"], 'tolist') else item["__vector__"],
+                "file_path": item.get("file_path"),
+            }
+        elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+            source_id = item["source_id"]
+            chunk_ids = source_id.split("<SEP>") if isinstance(source_id, str) and "<SEP>" in source_id else [source_id]
+            return {
+                "entity_name": item["entity_name"],
+                "content": item["content"],
+                "content_vector": item["__vector__"].tolist() if hasattr(item["__vector__"], 'tolist') else item["__vector__"],
+                "chunk_ids": chunk_ids,
+                "file_path": item.get("file_path"),
+            }
+        elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+            source_id = item["source_id"]
+            chunk_ids = source_id.split("<SEP>") if isinstance(source_id, str) and "<SEP>" in source_id else [source_id]
+            return {
+                "source_id": item["src_id"],
+                "target_id": item["tgt_id"],
+                "content": item["content"],
+                "content_vector": item["__vector__"].tolist() if hasattr(item["__vector__"], 'tolist') else item["__vector__"],
+                "chunk_ids": chunk_ids,
+                "file_path": item.get("file_path"),
+            }
+        else:
+            raise ValueError(f"{self.namespace} is not supported")
+
+    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
+        """Insert or update vector data"""
+        logger.debug(f"Inserting {len(data)} to {self.namespace}")
+        if not data:
+            return
+
+        # Get current time with UTC timezone
+        current_time = datetime.datetime.now(timezone.utc)
+        list_data = [
+            {
+                "__id__": k,
+                **{k1: v1 for k1, v1 in v.items()},
+            }
+            for k, v in data.items()
+        ]
+        
+        # Compute embeddings first (async)
+        contents = [v["content"] for v in data.values()]
+        batches = [
+            contents[i : i + self._max_batch_size]
+            for i in range(0, len(contents), self._max_batch_size)
+        ]
+
+        embedding_tasks = [self.embedding_func(batch) for batch in batches]
+        embeddings_list = await asyncio.gather(*embedding_tasks)
+        embeddings = np.concatenate(embeddings_list)
+        
+        for i, d in enumerate(list_data):
+            d["__vector__"] = embeddings[i]
+
+        def _sync_upsert_with_vectors():
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+            
+            # Prepare data for each item
+            vector_data = {}
+            for item in list_data:
+                item_id = item["__id__"]
+                prepared_data = self._prepare_vector_data(item, current_time)
+                vector_data[item_id] = prepared_data
+            
+            # Use appropriate DatabaseOps method based on namespace
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+                db_ops.upsert_lightrag_doc_chunks(self.workspace, vector_data)
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+                db_ops.upsert_lightrag_vdb_entity(self.workspace, vector_data)
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+                db_ops.upsert_lightrag_vdb_relation(self.workspace, vector_data)
+            else:
+                raise ValueError(f"{self.namespace} is not supported")
+        
+        await asyncio.to_thread(_sync_upsert_with_vectors)
+
+    async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:
+        """Query vectors by similarity"""
+        # Compute embedding for query
+        embeddings = await self.embedding_func([query])
+        embedding = embeddings[0]
+
+        def _sync_query():
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+            
+            # For now, return empty list as we need to implement vector similarity search in DatabaseOps
+            # This would require adding vector similarity query methods to db_ops
+            logger.warning(f"Vector similarity query not yet implemented for DatabaseOps-based storage")
+            return []
+        
+        return await asyncio.to_thread(_sync_query)
+
+    async def delete(self, ids: list[str]) -> None:
+        """Delete vectors with specified IDs from the storage."""
+        def _sync_delete():
+            if not ids:
+                return
+
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+                deleted_count = db_ops.delete_lightrag_doc_chunks(self.workspace, ids)
+                logger.debug(f"Successfully deleted {deleted_count} vectors from {self.namespace}")
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+                deleted_count = db_ops.delete_lightrag_vdb_entity(self.workspace, ids)
+                logger.debug(f"Successfully deleted {deleted_count} vectors from {self.namespace}")
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+                deleted_count = db_ops.delete_lightrag_vdb_relation(self.workspace, ids)
+                logger.debug(f"Successfully deleted {deleted_count} vectors from {self.namespace}")
+            else:
+                logger.error(f"Unknown namespace for vector deletion: {self.namespace}")
+        
+        await asyncio.to_thread(_sync_delete)
+
+    async def delete_entity(self, entity_name: str) -> None:
+        """Delete an entity by its name from the vector storage."""
+        def _sync_delete_entity():
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            
+            # Query entity by entity_name and delete by ID
+            # Note: We need to add a method to query by entity_name in DatabaseOps
+            logger.warning(f"Delete entity by name not yet fully implemented for DatabaseOps-based storage")
+            
+        await asyncio.to_thread(_sync_delete_entity)
+
+    async def delete_entity_relation(self, entity_name: str) -> None:
+        """Delete all relations associated with an entity."""
+        def _sync_delete_entity_relation():
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            
+            # Query relations where source_id or target_id matches entity_name and delete by IDs
+            # Note: We need to add methods to query relations by entity names in DatabaseOps
+            logger.warning(f"Delete entity relations not yet fully implemented for DatabaseOps-based storage")
+            
+        await asyncio.to_thread(_sync_delete_entity_relation)
+
+    async def get_by_id(self, id: str) -> dict[str, Any] | None:
+        """Get vector data by its ID"""
+        def _sync_get_by_id():
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+                model = db_ops.query_lightrag_doc_chunks_by_id(self.workspace, id)
+                if not model:
+                    return None
+                return {
+                    "id": model.id,
+                    "tokens": model.tokens,
+                    "content": model.content or "",
+                    "chunk_order_index": model.chunk_order_index,
+                    "full_doc_id": model.full_doc_id,
+                    "content_vector": model.content_vector,
+                    "file_path": model.file_path,
+                    "created_at": int(model.create_time.timestamp()) if model.create_time else None,
+                }
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+                model = db_ops.query_lightrag_vdb_entity_by_id(self.workspace, id)
+                if not model:
+                    return None
+                return {
+                    "id": model.id,
+                    "entity_name": model.entity_name,
+                    "content": model.content or "",
+                    "content_vector": model.content_vector,
+                    "chunk_ids": model.chunk_ids,
+                    "file_path": model.file_path,
+                    "created_at": int(model.create_time.timestamp()) if model.create_time else None,
+                }
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+                model = db_ops.query_lightrag_vdb_relation_by_id(self.workspace, id)
+                if not model:
+                    return None
+                return {
+                    "id": model.id,
+                    "source_id": model.source_id,
+                    "target_id": model.target_id,
+                    "content": model.content or "",
+                    "content_vector": model.content_vector,
+                    "chunk_ids": model.chunk_ids,
+                    "file_path": model.file_path,
+                    "created_at": int(model.create_time.timestamp()) if model.create_time else None,
+                }
+            else:
+                logger.error(f"Unknown namespace for ID lookup: {self.namespace}")
+                return None
+        
+        return await asyncio.to_thread(_sync_get_by_id)
+
+    async def get_by_ids(self, ids: list[str]) -> list[dict[str, Any]]:
+        """Get multiple vector data by their IDs"""
+        def _sync_get_by_ids():
+            if not ids:
+                return []
+
+            # Import here to avoid circular imports
+            from aperag.db.ops import db_ops
+            from aperag.graph.lightrag.namespace import NameSpace, is_namespace
+
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+                models = db_ops.query_lightrag_doc_chunks_by_ids(self.workspace, ids)
+                return [
+                    {
+                        "id": model.id,
+                        "tokens": model.tokens,
+                        "content": model.content or "",
+                        "chunk_order_index": model.chunk_order_index,
+                        "full_doc_id": model.full_doc_id,
+                        "content_vector": model.content_vector,
+                        "file_path": model.file_path,
+                        "created_at": int(model.create_time.timestamp()) if model.create_time else None,
+                    } for model in models
+                ]
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+                # Note: We need to add query_lightrag_vdb_entity_by_ids method to DatabaseOps
+                logger.warning(f"Batch query by IDs not yet implemented for entities in DatabaseOps")
+                return []
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+                # Note: We need to add query_lightrag_vdb_relation_by_ids method to DatabaseOps
+                logger.warning(f"Batch query by IDs not yet implemented for relations in DatabaseOps")
+                return []
+            else:
+                logger.error(f"Unknown namespace for IDs lookup: {self.namespace}")
+                return []
+        
+        return await asyncio.to_thread(_sync_get_by_ids)
+
+    async def drop(self) -> dict[str, str]:
+        """Drop the storage - not implemented for safety"""
+        return {"status": "error", "message": "Drop operation not supported for database-backed storage"} 
