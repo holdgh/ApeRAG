@@ -1,28 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-import csv
 import html
 import json
 import logging
-import logging.handlers
 import os
 import re
-import weakref
 from dataclasses import dataclass
-from functools import wraps
 from hashlib import md5
 from typing import TYPE_CHECKING, Any, Callable, List, Protocol
 
 import numpy as np
 from dotenv import load_dotenv
-
-from aperag.graph.lightrag.constants import (
-    DEFAULT_LOG_BACKUP_COUNT,
-    DEFAULT_LOG_FILENAME,
-    DEFAULT_LOG_MAX_BYTES,
-)
-from aperag.graph.lightrag.prompt import PROMPTS
 
 
 def get_env_value(
@@ -65,40 +54,6 @@ if TYPE_CHECKING:
 # the OS environment variables take precedence over the .env file
 load_dotenv(dotenv_path=".env", override=False)
 
-VERBOSE_DEBUG = os.getenv("VERBOSE", "false").lower() == "true"
-
-
-def verbose_debug(msg: str, *args, **kwargs):
-    """Function for outputting detailed debug information.
-    When VERBOSE_DEBUG=True, outputs the complete message.
-    When VERBOSE_DEBUG=False, outputs only the first 50 characters.
-
-    Args:
-        msg: The message format string
-        *args: Arguments to be formatted into the message
-        **kwargs: Keyword arguments passed to logger.debug()
-    """
-    if VERBOSE_DEBUG:
-        logger.debug(msg, *args, **kwargs)
-    else:
-        # Format the message with args first
-        if args:
-            formatted_msg = msg % args
-        else:
-            formatted_msg = msg
-        # Then truncate the formatted message
-        truncated_msg = (
-            formatted_msg[:100] + "..." if len(formatted_msg) > 100 else formatted_msg
-        )
-        logger.debug(truncated_msg, **kwargs)
-
-
-def set_verbose_debug(enabled: bool):
-    """Enable or disable verbose debug output"""
-    global VERBOSE_DEBUG
-    VERBOSE_DEBUG = enabled
-
-
 # Initialize logger
 logger = logging.getLogger("lightrag")
 logger.propagate = False  # prevent log message send to root loggger
@@ -107,119 +62,6 @@ logger.setLevel(logging.INFO)
 
 # Set httpx logging level to WARNING
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
-
-class LightragPathFilter(logging.Filter):
-    """Filter for lightrag logger to filter out frequent path access logs"""
-
-    def __init__(self):
-        super().__init__()
-        # Define paths to be filtered
-        self.filtered_paths = [
-            "/documents",
-            "/health",
-            "/webui/",
-            "/documents/processing_status",
-            "/documents/stats",
-        ]
-        # self.filtered_paths = ["/health", "/webui/"]
-
-    def filter(self, record):
-        try:
-            # Check if record has the required attributes for an access log
-            if not hasattr(record, "args") or not isinstance(record.args, tuple):
-                return True
-            if len(record.args) < 5:
-                return True
-
-            # Extract method, path and status from the record args
-            method = record.args[1]
-            path = record.args[2]
-            status = record.args[4]
-
-            # Filter out successful GET requests to filtered paths
-            if (
-                method == "GET"
-                and (status == 200 or status == 304)
-                and path in self.filtered_paths
-            ):
-                return False
-
-            return True
-        except Exception:
-            # In case of any error, let the message through
-            return True
-
-
-def setup_logger(
-    logger_name: str,
-    level: str = "INFO",
-    add_filter: bool = False,
-    log_file_path: str | None = None,
-    enable_file_logging: bool = True,
-):
-    """Set up a logger with console and optionally file handlers
-
-    Args:
-        logger_name: Name of the logger to set up
-        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        add_filter: Whether to add LightragPathFilter to the logger
-        log_file_path: Path to the log file. If None and file logging is enabled, defaults to lightrag.log in LOG_DIR or cwd
-        enable_file_logging: Whether to enable logging to a file (defaults to True)
-    """
-    # Configure formatters
-    detailed_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    simple_formatter = logging.Formatter("%(levelname)s: %(message)s")
-
-    logger_instance = logging.getLogger(logger_name)
-    logger_instance.setLevel(level)
-    logger_instance.handlers = []  # Clear existing handlers
-    logger_instance.propagate = False
-
-    # Add console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(simple_formatter)
-    console_handler.setLevel(level)
-    logger_instance.addHandler(console_handler)
-
-    # Add file handler by default unless explicitly disabled
-    if enable_file_logging:
-        # Get log file path
-        if log_file_path is None:
-            log_dir = os.getenv("LOG_DIR", os.getcwd())
-            log_file_path = os.path.abspath(os.path.join(log_dir, DEFAULT_LOG_FILENAME))
-
-        # Ensure log directory exists
-        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-
-        # Get log file max size and backup count from environment variables
-        log_max_bytes = get_env_value("LOG_MAX_BYTES", DEFAULT_LOG_MAX_BYTES, int)
-        log_backup_count = get_env_value(
-            "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT, int
-        )
-
-        try:
-            # Add file handler
-            file_handler = logging.handlers.RotatingFileHandler(
-                filename=log_file_path,
-                maxBytes=log_max_bytes,
-                backupCount=log_backup_count,
-                encoding="utf-8",
-            )
-            file_handler.setFormatter(detailed_formatter)
-            file_handler.setLevel(level)
-            logger_instance.addHandler(file_handler)
-        except PermissionError as e:
-            logger.warning(f"Could not create log file at {log_file_path}: {str(e)}")
-            logger.warning("Continuing with console logging only")
-
-    # Add path filter if requested
-    if add_filter:
-        path_filter = LightragPathFilter()
-        logger_instance.addFilter(path_filter)
-
 
 
 @dataclass
@@ -406,13 +248,6 @@ def process_combine_contexts(*context_lists):
         item["id"] = str(i + 1)
 
     return combined_data
-
-def cosine_similarity(v1, v2):
-    """Calculate cosine similarity between two vectors"""
-    dot_product = np.dot(v1, v2)
-    norm1 = np.linalg.norm(v1)
-    norm2 = np.linalg.norm(v2)
-    return dot_product / (norm1 * norm2)
 
 
 def get_conversation_turns(
@@ -620,63 +455,6 @@ def check_storage_env_vars(storage_name: str) -> None:
         raise ValueError(
             f"Storage implementation '{storage_name}' requires the following "
             f"environment variables: {', '.join(missing_vars)}"
-        )
-
-
-class TokenTracker:
-    """Track token usage for LLM calls."""
-
-    def __init__(self):
-        self.reset()
-
-    def __enter__(self):
-        self.reset()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print(self)
-
-    def reset(self):
-        self.prompt_tokens = 0
-        self.completion_tokens = 0
-        self.total_tokens = 0
-        self.call_count = 0
-
-    def add_usage(self, token_counts):
-        """Add token usage from one LLM call.
-
-        Args:
-            token_counts: A dictionary containing prompt_tokens, completion_tokens, total_tokens
-        """
-        self.prompt_tokens += token_counts.get("prompt_tokens", 0)
-        self.completion_tokens += token_counts.get("completion_tokens", 0)
-
-        # If total_tokens is provided, use it directly; otherwise calculate the sum
-        if "total_tokens" in token_counts:
-            self.total_tokens += token_counts["total_tokens"]
-        else:
-            self.total_tokens += token_counts.get(
-                "prompt_tokens", 0
-            ) + token_counts.get("completion_tokens", 0)
-
-        self.call_count += 1
-
-    def get_usage(self):
-        """Get current usage statistics."""
-        return {
-            "prompt_tokens": self.prompt_tokens,
-            "completion_tokens": self.completion_tokens,
-            "total_tokens": self.total_tokens,
-            "call_count": self.call_count,
-        }
-
-    def __str__(self):
-        usage = self.get_usage()
-        return (
-            f"LLM call count: {usage['call_count']}, "
-            f"Prompt tokens: {usage['prompt_tokens']}, "
-            f"Completion tokens: {usage['completion_tokens']}, "
-            f"Total tokens: {usage['total_tokens']}"
         )
 
 

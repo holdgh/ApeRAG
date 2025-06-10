@@ -322,6 +322,11 @@ async def create_and_initialize_lightrag(
         LIGHTRAG_GRAPH_STORAGE = os.environ.get("LIGHTRAG_GRAPH_STORAGE")
         LIGHTRAG_DOC_STATUS_STORAGE = os.environ.get("LIGHTRAG_DOC_STATUS_STORAGE")
 
+        # default values for kg storage
+        os.environ["MAX_GRAPH_NODES"] = 1000
+        os.environ["EMBEDDING_BATCH_NUM"] = 32
+        os.environ["COSINE_THRESHOLD"] = 0.2
+
         await checkAndConfigureNeo4jStorage(LIGHTRAG_GRAPH_STORAGE)
 
         await checkAndConfigurePostgresqlStorage(
