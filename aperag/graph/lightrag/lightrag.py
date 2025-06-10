@@ -50,7 +50,6 @@ from .operate import (
     kg_query,
     merge_nodes_and_edges,
     naive_query,
-    query_with_keywords,
 )
 from .prompt import GRAPH_FIELD_SEP
 from .types import KnowledgeGraph
