@@ -103,7 +103,11 @@ def chunking_by_token_size(
 async def _handle_entity_relation_summary(
     entity_or_relation_name: str,
     description: str,
-    global_config: dict,
+    llm_model_func: callable,
+    tokenizer: Tokenizer,
+    llm_model_max_token_size: int,
+    summary_to_max_tokens: int,
+    language: str,
     llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ) -> str:
@@ -111,15 +115,7 @@ async def _handle_entity_relation_summary(
     For each entity or relation, input is the combined description of already existing description and new description.
     If too long, use LLM to summarize.
     """
-    use_llm_func: callable = global_config["llm_model_func"]
-
-    tokenizer: Tokenizer = global_config["tokenizer"]
-    llm_max_tokens = global_config["llm_model_max_token_size"]
-    summary_max_tokens = global_config["summary_to_max_tokens"]
-
-    language = global_config["addon_params"].get(
-        "language", PROMPTS["DEFAULT_LANGUAGE"]
-    )
+    use_llm_func: callable = llm_model_func
 
     tokens = tokenizer.encode(description)
 
@@ -128,7 +124,7 @@ async def _handle_entity_relation_summary(
     #     return description
 
     prompt_template = PROMPTS["summarize_entity_descriptions"]
-    use_description = tokenizer.decode(tokens[:llm_max_tokens])
+    use_description = tokenizer.decode(tokens[:llm_model_max_token_size])
     context_base = dict(
         entity_name=entity_or_relation_name,
         description_list=use_description.split(GRAPH_FIELD_SEP),
@@ -146,7 +142,7 @@ async def _handle_entity_relation_summary(
         use_prompt,
         use_llm_func,
         llm_response_cache=llm_response_cache,
-        max_tokens=summary_max_tokens,
+        max_tokens=summary_to_max_tokens,
         cache_type="extract",
     )
     return summary
@@ -247,7 +243,12 @@ async def _merge_nodes_then_upsert(
     entity_name: str,
     nodes_data: list[dict],
     knowledge_graph_inst: BaseGraphStorage,
-    global_config: dict,
+    llm_model_func: callable,
+    tokenizer: Tokenizer,
+    llm_model_max_token_size: int,
+    summary_to_max_tokens: int,
+    language: str,
+    force_llm_summary_on_merge: int,
     llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ):
@@ -285,8 +286,6 @@ async def _merge_nodes_then_upsert(
         set([dp["file_path"] for dp in nodes_data] + already_file_paths)
     )
 
-    force_llm_summary_on_merge = global_config["force_llm_summary_on_merge"]
-
     num_fragment = description.count(GRAPH_FIELD_SEP) + 1
     num_new_fragment = len(set([dp["description"] for dp in nodes_data]))
 
@@ -300,7 +299,11 @@ async def _merge_nodes_then_upsert(
             description = await _handle_entity_relation_summary(
                 entity_name,
                 description,
-                global_config,
+                llm_model_func,
+                tokenizer,
+                llm_model_max_token_size,
+                summary_to_max_tokens,
+                language,
                 llm_response_cache,
                 lightrag_logger,
             )
@@ -331,7 +334,12 @@ async def _merge_edges_then_upsert(
     tgt_id: str,
     edges_data: list[dict],
     knowledge_graph_inst: BaseGraphStorage,
-    global_config: dict,
+    llm_model_func: callable,
+    tokenizer: Tokenizer,
+    llm_model_max_token_size: int,
+    summary_to_max_tokens: int,
+    language: str,
+    force_llm_summary_on_merge: int,
     llm_response_cache: BaseKVStorage | None = None,
     lightrag_logger: LightRAGLogger | None = None,
 ):
@@ -432,8 +440,6 @@ async def _merge_edges_then_upsert(
                 },
             )
 
-    force_llm_summary_on_merge = global_config["force_llm_summary_on_merge"]
-
     num_fragment = description.count(GRAPH_FIELD_SEP) + 1
     num_new_fragment = len(
         set([dp["description"] for dp in edges_data if dp.get("description")])
@@ -449,7 +455,11 @@ async def _merge_edges_then_upsert(
             description = await _handle_entity_relation_summary(
                 f"({src_id}, {tgt_id})",
                 description,
-                global_config,
+                llm_model_func,
+                tokenizer,
+                llm_model_max_token_size,
+                summary_to_max_tokens,
+                language,
                 llm_response_cache,
                 lightrag_logger,
             )
@@ -548,7 +558,12 @@ async def merge_nodes_and_edges(
                     entity_name,
                     entities,
                     knowledge_graph_inst,
-                    global_config,
+                    global_config["llm_model_func"],
+                    global_config["tokenizer"],
+                    global_config["llm_model_max_token_size"],
+                    global_config["summary_to_max_tokens"],
+                    global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
+                    global_config["force_llm_summary_on_merge"],
                     llm_response_cache,
                     lightrag_logger,
                 )
@@ -561,7 +576,12 @@ async def merge_nodes_and_edges(
                     edge_key[1],
                     edges,
                     knowledge_graph_inst,
-                    global_config,
+                    global_config["llm_model_func"],
+                    global_config["tokenizer"],
+                    global_config["llm_model_max_token_size"],
+                    global_config["summary_to_max_tokens"],
+                    global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
+                    global_config["force_llm_summary_on_merge"],
                     llm_response_cache,
                     lightrag_logger,
                 )
@@ -625,7 +645,12 @@ async def merge_nodes_and_edges(
                 entity_name,
                 entities,
                 knowledge_graph_inst,
-                global_config,
+                global_config["llm_model_func"],
+                global_config["tokenizer"],
+                global_config["llm_model_max_token_size"],
+                global_config["summary_to_max_tokens"],
+                global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
+                global_config["force_llm_summary_on_merge"],
                 llm_response_cache,
                 lightrag_logger,
             )
@@ -638,7 +663,12 @@ async def merge_nodes_and_edges(
                 edge_key[1],
                 edges,
                 knowledge_graph_inst,
-                global_config,
+                global_config["llm_model_func"],
+                global_config["tokenizer"],
+                global_config["llm_model_max_token_size"],
+                global_config["summary_to_max_tokens"],
+                global_config["addon_params"].get("language", PROMPTS["DEFAULT_LANGUAGE"]),
+                global_config["force_llm_summary_on_merge"],
                 llm_response_cache,
                 lightrag_logger,
             )
