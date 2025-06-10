@@ -504,10 +504,6 @@ class PGKVStorage(BaseKVStorage):
 
                     await self.db.execute(upsert_sql, _data)
 
-    async def index_done_callback(self) -> None:
-        # PG handles persistence automatically
-        pass
-
     async def delete(self, ids: list[str]) -> None:
         """Delete specific records from storage by their IDs
 
@@ -740,10 +736,6 @@ class PGVectorStorage(BaseVectorStorage):
         }
         results = await self.db.query(sql, params=params, multirows=True)
         return results
-
-    async def index_done_callback(self) -> None:
-        # PG handles persistence automatically
-        pass
 
     async def delete(self, ids: list[str]) -> None:
         """Delete vectors with specified IDs from the storage.
@@ -995,10 +987,6 @@ class PGDocStatusStorage(DocStatusStorage):
         }
         return docs_by_status
 
-    async def index_done_callback(self) -> None:
-        # PG handles persistence automatically
-        pass
-
     async def delete(self, ids: list[str]) -> None:
         """Delete specific records from storage by their IDs
 
@@ -1194,10 +1182,6 @@ class PGGraphStorage(BaseGraphStorage):
         if self.db is not None:
             await ClientManager.release_client(self.db)
             self.db = None
-
-    async def index_done_callback(self) -> None:
-        # PG handles persistence automatically
-        pass
 
     @staticmethod
     def _record_to_dict(record: asyncpg.Record) -> dict[str, Any]:

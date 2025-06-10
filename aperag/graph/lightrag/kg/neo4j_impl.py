@@ -199,10 +199,6 @@ class Neo4JStorage(BaseGraphStorage):
         """Ensure driver is closed when context manager exits"""
         await self.finalize()
 
-    async def index_done_callback(self) -> None:
-        # Noe4J handles persistence automatically
-        pass
-
     async def has_node(self, node_id: str) -> bool:
         """
         Check if a node with the given label exists in the database

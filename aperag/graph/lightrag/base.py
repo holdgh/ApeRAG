@@ -123,10 +123,6 @@ class StorageNameSpace(ABC):
         pass
 
     @abstractmethod
-    async def index_done_callback(self) -> None:
-        """Commit the storage operations after indexing"""
-
-    @abstractmethod
     async def drop(self) -> dict[str, str]:
         """Drop all data from storage and clean up resources
 

@@ -128,10 +128,6 @@ class RedisKVStorage(BaseKVStorage):
                 logger.error(f"JSON encode error during upsert: {e}")
                 raise
 
-    async def index_done_callback(self) -> None:
-        # Redis handles persistence automatically
-        pass
-
     async def delete(self, ids: list[str]) -> None:
         """Delete entries with specified IDs"""
         if not ids:

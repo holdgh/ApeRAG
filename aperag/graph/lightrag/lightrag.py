@@ -957,9 +957,6 @@ class LightRAG:
             
             lightrag_logger.info("Completed merging entities and relations")
             
-            # 3. Call index done callbacks
-            await self._insert_done()
-            
             # Count results
             entity_count = sum(len(nodes) for nodes, _ in chunk_results)
             relation_count = sum(len(edges) for _, edges in chunk_results)
@@ -1022,78 +1019,6 @@ class LightRAG:
             if chunk_data:
                 chunks[chunk_id] = chunk_data
         return chunks
-
-    # TODO: deprecated, use insert instead
-    def insert_custom_chunks(
-        self,
-        full_text: str,
-        text_chunks: list[str],
-        doc_id: str | list[str] | None = None,
-    ) -> None:
-        loop = always_get_an_event_loop()
-        loop.run_until_complete(
-            self.ainsert_custom_chunks(full_text, text_chunks, doc_id)
-        )
-
-    # TODO: deprecated, use ainsert instead
-    async def ainsert_custom_chunks(
-        self, full_text: str, text_chunks: list[str], doc_id: str | None = None
-    ) -> None:
-        update_storage = False
-        try:
-            # Clean input texts
-            full_text = clean_text(full_text)
-            text_chunks = [clean_text(chunk) for chunk in text_chunks]
-            file_path = ""
-
-            # Process cleaned texts
-            if doc_id is None:
-                doc_key = compute_mdhash_id(full_text, prefix="doc-")
-            else:
-                doc_key = doc_id
-            new_docs = {doc_key: {"content": full_text}}
-
-            _add_doc_keys = await self.full_docs.filter_keys({doc_key})
-            new_docs = {k: v for k, v in new_docs.items() if k in _add_doc_keys}
-            if not len(new_docs):
-                logger.warning("This document is already in the storage.")
-                return
-
-            update_storage = True
-            logger.info(f"Inserting {len(new_docs)} docs")
-
-            inserting_chunks: dict[str, Any] = {}
-            for index, chunk_text in enumerate(text_chunks):
-                chunk_key = compute_mdhash_id(chunk_text, prefix="chunk-")
-                tokens = len(self.tokenizer.encode(chunk_text))
-                inserting_chunks[chunk_key] = {
-                    "content": chunk_text,
-                    "full_doc_id": doc_key,
-                    "tokens": tokens,
-                    "chunk_order_index": index,
-                    "file_path": file_path,
-                }
-
-            doc_ids = set(inserting_chunks.keys())
-            add_chunk_keys = await self.text_chunks.filter_keys(doc_ids)
-            inserting_chunks = {
-                k: v for k, v in inserting_chunks.items() if k in add_chunk_keys
-            }
-            if not len(inserting_chunks):
-                logger.warning("All chunks are already in the storage.")
-                return
-
-            tasks = [
-                self.chunks_vdb.upsert(inserting_chunks),
-                self._process_entity_relation_graph(inserting_chunks),
-                self.full_docs.upsert(new_docs),
-                self.text_chunks.upsert(inserting_chunks),
-            ]
-            await asyncio.gather(*tasks)
-
-        finally:
-            if update_storage:
-                await self._insert_done()
 
     async def apipeline_enqueue_documents(
         self,
@@ -1447,9 +1372,6 @@ class LightRAG:
                                 }
                             )
 
-                            # Call _insert_done after processing each file
-                            await self._insert_done()
-
                             lightrag_logger.info(f"Completed processing file {current_file_number}/{total_files}: {file_path}")
 
                         except Exception as e:
@@ -1540,30 +1462,6 @@ class LightRAG:
             if lightrag_logger:
                 lightrag_logger.error(error_msg)
             raise e
-
-    async def _insert_done(
-        self, lightrag_logger: LightRAGLogger | None = None
-    ) -> None:
-        tasks = [
-            cast(StorageNameSpace, storage_inst).index_done_callback()
-            for storage_inst in [  # type: ignore
-                self.full_docs,
-                self.text_chunks,
-                self.llm_response_cache,
-                self.entities_vdb,
-                self.relationships_vdb,
-                self.chunks_vdb,
-                self.chunk_entity_relation_graph,
-            ]
-            if storage_inst is not None
-        ]
-        await asyncio.gather(*tasks)
-
-        log_message = "In memory DB persist to disk"
-        logger.info(log_message)
-
-        if lightrag_logger:
-            lightrag_logger.info(log_message)
 
     def query(
         self,
@@ -1947,9 +1845,6 @@ class LightRAG:
             # 6. Delete original document and status
             await self.full_docs.delete([doc_id])
             await self.doc_status.delete([doc_id])
-
-            # 7. Ensure all indexes are updated
-            await self._insert_done()
 
             logger.info(
                 f"Successfully deleted document {doc_id} and related data. "

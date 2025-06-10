@@ -156,10 +156,6 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             for dp in results
         ]
 
-    async def index_done_callback(self) -> None:
-        # Qdrant handles persistence automatically
-        pass
-
     async def delete(self, ids: List[str]) -> None:
         """Delete vectors with specified IDs
 

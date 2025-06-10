@@ -845,10 +845,6 @@ class AGEStorage(BaseGraphStorage):
         )
         return result
 
-    async def index_done_callback(self) -> None:
-        # AGES handles persistence automatically
-        pass
-
     async def drop(self) -> dict[str, str]:
         """Drop the storage by removing all nodes and relationships in the graph.
 
