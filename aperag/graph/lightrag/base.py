@@ -105,7 +105,6 @@ class QueryParam:
 class StorageNameSpace(ABC):
     namespace: str
     workspace: str
-    global_config: dict[str, Any]
 
     @property
     def storage_type(self) -> str:

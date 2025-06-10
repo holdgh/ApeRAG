@@ -268,9 +268,6 @@ class LightRAG:
 
         # Initialize instance-level graph database lock
         self._graph_db_lock = asyncio.Lock()
-        
-        # Initialize instance-level database connection management lock 
-        self._db_conn_lock = asyncio.Lock()
 
         # Verify storage implementation compatibility and environment variables
         storage_configs = [
@@ -300,16 +297,6 @@ class LightRAG:
             else:
                 self.tokenizer = TiktokenTokenizer()
 
-        # Fix global_config now
-        global_config = asdict(self)
-        # Add instance-level locks to global_config for storage classes to use
-        global_config["_db_conn_lock"] = self._db_conn_lock
-        global_config["_graph_db_lock"] = self._graph_db_lock
-        _print_config = ",\n  ".join([f"{k} = {v}" for k, v in global_config.items()])
-        logger.debug(f"LightRAG init with param:\n  {_print_config}\n")
-
-        # Init Embedding - no need for priority limit decorator since service-side handles rate limiting
-
         # Initialize all storages
         self.key_string_value_json_storage_cls: type[BaseKVStorage] = (
             self._get_storage_class(self.kv_storage)
@@ -321,10 +308,10 @@ class LightRAG:
             self.graph_storage
         )  # type: ignore
         self.key_string_value_json_storage_cls = partial(  # type: ignore
-            self.key_string_value_json_storage_cls, global_config=global_config
+            self.key_string_value_json_storage_cls
         )
         self.vector_db_storage_cls = partial(  # type: ignore
-            self.vector_db_storage_cls, global_config=global_config
+            self.vector_db_storage_cls
         )
         self.graph_storage_cls = partial(  # type: ignore
             self.graph_storage_cls
@@ -374,7 +361,6 @@ class LightRAG:
         self.doc_status: DocStatusStorage = self.doc_status_storage_cls(
             namespace=NameSpace.DOC_STATUS,
             workspace=self.workspace,
-            global_config=global_config,
             embedding_func=None,
         )
 

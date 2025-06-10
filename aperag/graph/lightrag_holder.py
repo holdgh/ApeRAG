@@ -39,7 +39,6 @@ class LightRAGConfig:
 
     # Storage Configuration
     WORKING_DIR = "./documents"
-    ENABLE_LLM_CACHE = False
 
     # Chunking Configuration
     CHUNK_TOKEN_SIZE = 3000
@@ -339,7 +338,6 @@ async def create_and_initialize_lightrag(
                 max_token_size=LightRAGConfig.EMBEDDING_MAX_TOKEN_SIZE,
                 func=embed_impl,
             ),
-            enable_llm_cache=LightRAGConfig.ENABLE_LLM_CACHE,
             max_parallel_insert=LightRAGConfig.MAX_PARALLEL_INSERT,
             llm_model_max_async=LightRAGConfig.LLM_MODEL_MAX_ASYNC,
             entity_extract_max_gleaning=LightRAGConfig.ENTITY_EXTRACT_MAX_GLEANING,

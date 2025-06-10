@@ -180,18 +180,16 @@ class PGKVStorage(BaseKVStorage):
     db: PostgreSQLDB = field(default=None)
 
     def __post_init__(self):
-        self._max_batch_size = self.global_config["embedding_batch_num"]
+        self._max_batch_size = int(os.getenv("EMBEDDING_BATCH_NUM", 32))
 
     async def initialize(self):
         if self.db is None:
-            # Get the database connection lock from global_config
-            db_conn_lock = self.global_config.get("_db_conn_lock")
+            db_conn_lock = asyncio.Lock()
             self.db = await ClientManager.get_client(db_conn_lock)
 
     async def finalize(self):
         if self.db is not None:
-            # Get the database connection lock from global_config
-            db_conn_lock = self.global_config.get("_db_conn_lock")
+            db_conn_lock = asyncio.Lock()
             await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
@@ -365,25 +363,17 @@ class PGVectorStorage(BaseVectorStorage):
     db: PostgreSQLDB | None = field(default=None)
 
     def __post_init__(self):
-        self._max_batch_size = self.global_config["embedding_batch_num"]
-        config = self.global_config.get("vector_db_storage_cls_kwargs", {})
-        cosine_threshold = config.get("cosine_better_than_threshold")
-        if cosine_threshold is None:
-            raise ValueError(
-                "cosine_better_than_threshold must be specified in vector_db_storage_cls_kwargs"
-            )
-        self.cosine_better_than_threshold = cosine_threshold
+        self._max_batch_size = int(os.getenv("EMBEDDING_BATCH_NUM", 32))
+        self.cosine_better_than_threshold = float(os.getenv("COSINE_THRESHOLD", 0.2))
 
     async def initialize(self):
         if self.db is None:
-            # Get the database connection lock from global_config
-            db_conn_lock = self.global_config.get("_db_conn_lock")
+            db_conn_lock = asyncio.Lock()
             self.db = await ClientManager.get_client(db_conn_lock)
 
     async def finalize(self):
         if self.db is not None:
-            # Get the database connection lock from global_config
-            db_conn_lock = self.global_config.get("_db_conn_lock")
+            db_conn_lock = asyncio.Lock()
             await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
@@ -657,14 +647,12 @@ class PGDocStatusStorage(DocStatusStorage):
 
     async def initialize(self):
         if self.db is None:
-            # Get the database connection lock from global_config
-            db_conn_lock = self.global_config.get("_db_conn_lock")
+            db_conn_lock = asyncio.Lock()
             self.db = await ClientManager.get_client(db_conn_lock)
 
     async def finalize(self):
         if self.db is not None:
-            # Get the database connection lock from global_config
-            db_conn_lock = self.global_config.get("_db_conn_lock")
+            db_conn_lock = asyncio.Lock()
             await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
