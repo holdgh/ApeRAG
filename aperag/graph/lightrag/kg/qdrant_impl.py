@@ -135,7 +135,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
         self, query: str, top_k: int, ids: list[str] | None = None
     ) -> list[dict[str, Any]]:
         embedding = await self.embedding_func(
-            [query], _priority=5
+            [query]
         )  # higher priority for query
         results = self._client.search(
             collection_name=self._collection_name,

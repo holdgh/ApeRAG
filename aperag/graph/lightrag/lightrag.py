@@ -68,7 +68,6 @@ from .utils import (
     get_content_summary,
     lazy_external_import,
     logger,
-    priority_limit_async_func_call,
     create_lightrag_logger,
 )
 
@@ -333,10 +332,7 @@ class LightRAG:
         _print_config = ",\n  ".join([f"{k} = {v}" for k, v in global_config.items()])
         logger.debug(f"LightRAG init with param:\n  {_print_config}\n")
 
-        # Init Embedding
-        self.embedding_func = priority_limit_async_func_call(
-            self.embedding_func_max_async
-        )(self.embedding_func)
+        # Init Embedding - no need for priority limit decorator since service-side handles rate limiting
 
         # Initialize all storages
         self.key_string_value_json_storage_cls: type[BaseKVStorage] = (
@@ -415,11 +411,9 @@ class LightRAG:
             embedding_func=None,
         )
 
-        self.llm_model_func = priority_limit_async_func_call(self.llm_model_max_async)(
-            partial(
-                self.llm_model_func,  # type: ignore
-                hashing_kv=self.llm_response_cache,
-            )
+        self.llm_model_func = partial(
+            self.llm_model_func,  # type: ignore
+            hashing_kv=self.llm_response_cache,
         )
 
         self._storages_status = StoragesStatus.CREATED
@@ -1320,8 +1314,6 @@ class LightRAG:
         elif param.mode == "bypass":
             # Bypass mode: directly use LLM without knowledge retrieval
             use_llm_func = param.model_func or global_config["llm_model_func"]
-            # Apply higher priority (8) to entity/relation summary tasks
-            use_llm_func = partial(use_llm_func, _priority=8)
 
             param.stream = True if param.stream is None else param.stream
             response = await use_llm_func(

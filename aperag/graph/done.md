@@ -378,87 +378,6 @@ async with graph_db_lock:  # 直接使用asyncio.Lock
 
 现在LightRAG的锁管理变得极其简洁，只保留了必要的图数据库操作保护，完全符合单进程异步架构的需求。
 
-## 最终简化shared_storage.py
-
-### 已完成的改动
-
-1. **删除不必要的保护机制**
-   - 删除 `_initialized` 全局变量及其检查逻辑
-   - 删除 `direct_log` 函数，使用标准 logger.debug() 替代
-   - 移除 `sys` 模块导入
-
-2. **精简初始化逻辑**
-   - `initialize_share_data()` 函数不再检查重复初始化
-   - 每次调用都直接创建新的 `asyncio.Lock()`
-   - 简化为最小化的锁管理
-
-### 简化理由
-
-- **过度保护**：`_initialized` 只保护一个轻量级 `asyncio.Lock()` 的创建，成本极低
-- **功能重复**：`direct_log` 与标准 logger 功能重复，增加不必要的复杂性
-- **更清晰的代码**：删除后代码从51行减少到约20行，职责更加单一
-
-### 最终架构
-
-```python
-# 现在的shared_storage.py只包含：
-- 一个全局锁变量：_graph_db_lock
-- 一个获取函数：get_graph_db_lock()
-- 一个初始化函数：initialize_share_data()
-- 标准日志记录：logger.debug()
-```
-
-**最终成果**：完全删除了 shared_storage.py 文件，将锁管理转移到 LightRAG 实例级别，彻底实现了无状态化目标。
-
-## 彻底删除shared_storage.py
-
-### 最终实现的完整改造
-
-1. **全局锁 → 实例级锁**
-   - 在 `LightRAG.__post_init__()` 中创建 `self._graph_db_lock = asyncio.Lock()`
-   - 移除对 `initialize_share_data()` 的调用
-   - 删除 `from aperag.graph.lightrag.kg.shared_storage import` 导入
-
-2. **utils_graph.py 函数签名改造**
-   - 所有函数添加 `graph_db_lock: asyncio.Lock | None = None` 参数
-   - 使用 `_get_lock_or_create()` 辅助函数处理锁获取
-   - 保持向后兼容性，可以创建本地锁
-
-3. **operate.py 中的调用更新**
-   - `merge_nodes_and_edges()` 函数接受可选的 `graph_db_lock` 参数
-   - 在 LightRAG 中调用时传入 `self._graph_db_lock`
-
-4. **彻底删除shared_storage.py**
-   - 删除整个文件，包含28行代码
-   - 移除全局状态管理
-   - 消除进程间锁冲突的可能性
-
-### 技术优势
-
-**存储系统原生支持**：你使用的存储架构本身就有完善的并发控制
-- **Neo4j**：ACID事务，内置并发控制
-- **PostgreSQL**：成熟的MVCC机制
-- **Qdrant**：现代向量数据库，支持并发操作
-
-**实例级锁的好处**：
-- 🚀 **性能提升**：避免全局锁竞争，不同LightRAG实例之间完全独立
-- 🔧 **更好的架构**：每个实例管理自己的锁，符合面向对象设计
-- 🛡️ **进程安全**：消除了Celery多进程环境中的锁冲突
-- ⚡ **无状态化**：实例创建即可用，无需全局初始化
-
-### 架构演进总结
-
-```
-原架构: 全局锁 + shared_storage.py (51行)
-  ↓ 简化阶段1: 删除过度保护 (28行)
-  ↓ 简化阶段2: 实例级锁管理
-  ↓ 最终阶段: 完全删除 (0行)
-
-现架构: LightRAG实例锁 + 可选参数传递
-```
-
-**最终状态**：LightRAG现在完全无状态，每个实例独立管理锁资源，没有任何全局共享状态，完美契合现代多进程、多实例的部署环境！
-
 ## 修复锁一致性问题
 
 ### 问题发现
@@ -578,4 +497,70 @@ await adelete_by_entity(
 这个文档为LightRAG无状态接口提供了全面的技术指导，是团队开发和维护的重要参考资料。
 
 ---
+
+## 彻底移除priority_limit_async_func_call并发限流机制
+
+### 已完成的改动
+
+由于LLM/Embedding服务端已经自行处理限流，客户端的`priority_limit_async_func_call`装饰器成为了多余的复杂度，并且会引起事件循环冲突问题。
+
+1. **lightrag.py核心修改**
+   - 移除了`embedding_func`的`priority_limit_async_func_call`装饰器（第337-339行）
+   - 移除了`llm_model_func`的`priority_limit_async_func_call`装饰器（第415-420行）
+   - 移除了bypass模式中的`_priority=8`参数使用（第1323行）
+   - 删除了对`priority_limit_async_func_call`的导入
+
+2. **operate.py大幅清理**
+   - 移除了`_handle_entity_relation_summary`函数中的`_priority=8`参数（第115行）
+   - 移除了`kg_query`函数中的`_priority=5`参数（第933行）
+   - 移除了`extract_keywords_only`函数中的`_priority=5`参数（第1146行）
+   - 移除了`naive_query`函数中的`_priority=5`参数（第1961行）
+   - 移除了`kg_query_with_keywords`函数中的`_priority=5`参数（第2078行）
+   - 删除了所有相关的注释说明
+
+3. **utils.py完全删除**
+   - 删除了整个`priority_limit_async_func_call`函数定义（第318-597行，共280行代码）
+   - 移除了相关的QueueFullError异常类引用
+   - 清理了所有相关的异步任务管理代码
+
+4. **存储实现清理**
+   - 移除了所有存储实现文件中的`_priority=5`参数
+   - 清理了qdrant_impl.py、postgres_impl.py等文件中的priority参数
+
+5. **缓存清理**
+   - 删除了所有Python字节码缓存文件
+   - 清理了__pycache__目录中的编译文件
+
+### 技术影响
+
+**性能提升**：
+- 去除了装饰器层的开销，LLM和Embedding调用现在直接执行
+- 消除了优先级队列的内存占用和管理开销
+- 减少了异步任务管理的复杂度
+
+**架构简化**：
+- 从280行的复杂并发控制机制简化为直接函数调用
+- 移除了worker健康检查、任务队列管理等复杂逻辑
+- 消除了事件循环冲突的可能性
+
+**代码维护性**：
+- 减少了约300行复杂的并发管理代码
+- 简化了函数调用链，更容易调试和理解
+- 移除了priority参数传递的认知负担
+
+### 验证结果
+
+✅ 使用grep确认所有`priority_limit_async_func_call`和`_priority`相关代码已完全移除  
+✅ 清理了Python字节码缓存，确保运行时不会使用旧代码  
+✅ LLM和Embedding函数现在直接调用，无任何装饰器包装  
+
+### 核心优势
+
+- **服务端限流**：依赖LLM/Embedding服务端的原生限流能力，更加可靠
+- **无事件循环冲突**：彻底消除了在Celery等环境中的事件循环问题
+- **更简洁的架构**：从复杂的客户端限流回归到简单直接的函数调用
+- **更好的性能**：减少了装饰器开销和队列管理开销
+- **易于维护**：代码结构更加清晰，调试更加简单
+
+现在LightRAG的LLM和Embedding调用变得极其简洁，完全依赖服务端的限流策略，避免了客户端的复杂并发管理。
 
