@@ -190,15 +190,22 @@ class StatelessLightRAGWrapper:
             return result
             
         finally:
-            # Clean up the event loop
+            # Clean up the event loop without waiting for potentially stuck tasks
             try:
-                # Wait for any remaining tasks to complete
-                pending = asyncio.all_tasks(loop)
+                # Cancel all pending tasks
+                pending = [task for task in asyncio.all_tasks(loop) if not task.done()]
                 if pending:
-                    logger.warning("Pending tasks found during cleanup, waiting for them to finish")
-                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-            except Exception:
-                pass
+                    logger.info(f"Cancelling {len(pending)} pending tasks during cleanup")
+                    for task in pending:
+                        task.cancel()
+                    
+                    # Wait briefly for cancellation to take effect, but don't block indefinitely
+                    try:
+                        loop.run_until_complete(asyncio.wait(pending, timeout=1.0))
+                    except Exception as e:
+                        logger.debug(f"Some tasks didn't cancel cleanly: {e}")
+            except Exception as e:
+                logger.debug(f"Exception during task cleanup: {e}")
             finally:
                 loop.close()
                 asyncio.set_event_loop(None)
@@ -262,13 +269,22 @@ class StatelessLightRAGWrapper:
             return result
             
         finally:
-            # Clean up the event loop
+            # Clean up the event loop without waiting for potentially stuck tasks
             try:
-                pending = asyncio.all_tasks(loop)
+                # Cancel all pending tasks
+                pending = [task for task in asyncio.all_tasks(loop) if not task.done()]
                 if pending:
-                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-            except Exception:
-                pass
+                    logger.info(f"Cancelling {len(pending)} pending tasks during cleanup")
+                    for task in pending:
+                        task.cancel()
+                    
+                    # Wait briefly for cancellation to take effect, but don't block indefinitely
+                    try:
+                        loop.run_until_complete(asyncio.wait(pending, timeout=1.0))
+                    except Exception as e:
+                        logger.debug(f"Some tasks didn't cancel cleanly: {e}")
+            except Exception as e:
+                logger.debug(f"Exception during task cleanup: {e}")
             finally:
                 loop.close()
                 asyncio.set_event_loop(None)

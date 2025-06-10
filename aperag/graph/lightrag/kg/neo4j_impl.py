@@ -27,6 +27,12 @@ from neo4j import (
     exceptions as neo4jExceptions,
 )
 
+# Import global Neo4j manager
+try:
+    from aperag.db.neo4j_manager import neo4j_manager
+except ImportError:
+    neo4j_manager = None
+
 # use the .env that is inside the current folder
 # allows to use different .env file for each lightrag instance
 # the OS environment variables take precedence over the .env file
@@ -53,143 +59,21 @@ class Neo4JStorage(BaseGraphStorage):
             global_config=global_config,
             embedding_func=embedding_func,
         )
-        self._driver = None
+        self._driver = None  # Will be set from global manager in initialize()
 
     async def initialize(self):
-        URI = os.environ.get("NEO4J_URI", config.get("neo4j", "uri", fallback=None))
-        USERNAME = os.environ.get(
-            "NEO4J_USERNAME", config.get("neo4j", "username", fallback=None)
-        )
-        PASSWORD = os.environ.get(
-            "NEO4J_PASSWORD", config.get("neo4j", "password", fallback=None)
-        )
-        MAX_CONNECTION_POOL_SIZE = int(
-            os.environ.get(
-                "NEO4J_MAX_CONNECTION_POOL_SIZE",
-                config.get("neo4j", "connection_pool_size", fallback=50),
-            )
-        )
-        CONNECTION_TIMEOUT = float(
-            os.environ.get(
-                "NEO4J_CONNECTION_TIMEOUT",
-                config.get("neo4j", "connection_timeout", fallback=30.0),
-            ),
-        )
-        CONNECTION_ACQUISITION_TIMEOUT = float(
-            os.environ.get(
-                "NEO4J_CONNECTION_ACQUISITION_TIMEOUT",
-                config.get("neo4j", "connection_acquisition_timeout", fallback=30.0),
-            ),
-        )
-        MAX_TRANSACTION_RETRY_TIME = float(
-            os.environ.get(
-                "NEO4J_MAX_TRANSACTION_RETRY_TIME",
-                config.get("neo4j", "max_transaction_retry_time", fallback=30.0),
-            ),
-        )
-        DATABASE = os.environ.get(
-            "NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", self.workspace)
-        )
-
-        self._driver: AsyncDriver = AsyncGraphDatabase.driver(
-            URI,
-            auth=(USERNAME, PASSWORD),
-            max_connection_pool_size=MAX_CONNECTION_POOL_SIZE,
-            connection_timeout=CONNECTION_TIMEOUT,
-            connection_acquisition_timeout=CONNECTION_ACQUISITION_TIMEOUT,
-            max_transaction_retry_time=MAX_TRANSACTION_RETRY_TIME,
-        )
-
-        # Try to connect to the database and create it if it doesn't exist
-        for database in (DATABASE, None):
-            self._DATABASE = database
-            connected = False
-
-            try:
-                async with self._driver.session(database=database) as session:
-                    try:
-                        result = await session.run("MATCH (n) RETURN n LIMIT 0")
-                        await result.consume()  # Ensure result is consumed
-                        logger.info(f"Connected to {database} at {URI}")
-                        connected = True
-                    except neo4jExceptions.ServiceUnavailable as e:
-                        logger.error(
-                            f"{database} at {URI} is not available".capitalize()
-                        )
-                        raise e
-            except neo4jExceptions.AuthError as e:
-                logger.error(f"Authentication failed for {database} at {URI}")
-                raise e
-            except neo4jExceptions.ClientError as e:
-                if e.code == "Neo.ClientError.Database.DatabaseNotFound":
-                    logger.info(
-                        f"{database} at {URI} not found. Try to create specified database.".capitalize()
-                    )
-                    try:
-                        async with self._driver.session() as session:
-                            result = await session.run(
-                                f"CREATE DATABASE `{database}` IF NOT EXISTS"
-                            )
-                            await result.consume()  # Ensure result is consumed
-                            logger.info(f"{database} at {URI} created".capitalize())
-                            connected = True
-                    except (
-                        neo4jExceptions.ClientError,
-                        neo4jExceptions.DatabaseError,
-                    ) as e:
-                        if (
-                            e.code
-                            == "Neo.ClientError.Statement.UnsupportedAdministrationCommand"
-                        ) or (e.code == "Neo.DatabaseError.Statement.ExecutionFailed"):
-                            if database is not None:
-                                logger.warning(
-                                    "This Neo4j instance does not support creating databases. Try to use Neo4j Desktop/Enterprise version or DozerDB instead. Fallback to use the default database."
-                                )
-                        if database is None:
-                            logger.error(f"Failed to create {database} at {URI}")
-                            raise e
-
-            if connected:
-                # Create index for base nodes on entity_id if it doesn't exist
-                try:
-                    async with self._driver.session(database=database) as session:
-                        # Check if index exists first
-                        check_query = """
-                        CALL db.indexes() YIELD name, labelsOrTypes, properties
-                        WHERE labelsOrTypes = ['base'] AND properties = ['entity_id']
-                        RETURN count(*) > 0 AS exists
-                        """
-                        try:
-                            check_result = await session.run(check_query)
-                            record = await check_result.single()
-                            await check_result.consume()
-
-                            index_exists = record and record.get("exists", False)
-
-                            if not index_exists:
-                                # Create index only if it doesn't exist
-                                result = await session.run(
-                                    "CREATE INDEX FOR (n:base) ON (n.entity_id)"
-                                )
-                                await result.consume()
-                                logger.info(
-                                    f"Created index for base nodes on entity_id in {database}"
-                                )
-                        except Exception:
-                            # Fallback if db.indexes() is not supported in this Neo4j version
-                            result = await session.run(
-                                "CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)"
-                            )
-                            await result.consume()
-                except Exception as e:
-                    logger.warning(f"Failed to create index: {str(e)}")
-                break
+        # Get global Neo4j driver instance (no fallback)
+        if neo4j_manager is None:
+            raise RuntimeError("Global Neo4j manager is not available")
+        
+        self._driver = await neo4j_manager.get_driver()
+        
+        # Prepare database and get database name
+        self._DATABASE = await neo4j_manager.prepare_neo4j_database(self.workspace)
 
     async def finalize(self):
-        """Close the Neo4j driver and release all resources"""
-        if self._driver:
-            await self._driver.close()
-            self._driver = None
+        """Clean up resources - driver is managed globally, so nothing to do"""
+        self._driver = None
 
     async def __aexit__(self, exc_type, exc, tb):
         """Ensure driver is closed when context manager exits"""
