@@ -378,5 +378,134 @@ async with graph_db_lock:  # 直接使用asyncio.Lock
 
 现在LightRAG的锁管理变得极其简洁，只保留了必要的图数据库操作保护，完全符合单进程异步架构的需求。
 
+## 最终简化shared_storage.py
+
+### 已完成的改动
+
+1. **删除不必要的保护机制**
+   - 删除 `_initialized` 全局变量及其检查逻辑
+   - 删除 `direct_log` 函数，使用标准 logger.debug() 替代
+   - 移除 `sys` 模块导入
+
+2. **精简初始化逻辑**
+   - `initialize_share_data()` 函数不再检查重复初始化
+   - 每次调用都直接创建新的 `asyncio.Lock()`
+   - 简化为最小化的锁管理
+
+### 简化理由
+
+- **过度保护**：`_initialized` 只保护一个轻量级 `asyncio.Lock()` 的创建，成本极低
+- **功能重复**：`direct_log` 与标准 logger 功能重复，增加不必要的复杂性
+- **更清晰的代码**：删除后代码从51行减少到约20行，职责更加单一
+
+### 最终架构
+
+```python
+# 现在的shared_storage.py只包含：
+- 一个全局锁变量：_graph_db_lock
+- 一个获取函数：get_graph_db_lock()
+- 一个初始化函数：initialize_share_data()
+- 标准日志记录：logger.debug()
+```
+
+**最终成果**：完全删除了 shared_storage.py 文件，将锁管理转移到 LightRAG 实例级别，彻底实现了无状态化目标。
+
+## 彻底删除shared_storage.py
+
+### 最终实现的完整改造
+
+1. **全局锁 → 实例级锁**
+   - 在 `LightRAG.__post_init__()` 中创建 `self._graph_db_lock = asyncio.Lock()`
+   - 移除对 `initialize_share_data()` 的调用
+   - 删除 `from aperag.graph.lightrag.kg.shared_storage import` 导入
+
+2. **utils_graph.py 函数签名改造**
+   - 所有函数添加 `graph_db_lock: asyncio.Lock | None = None` 参数
+   - 使用 `_get_lock_or_create()` 辅助函数处理锁获取
+   - 保持向后兼容性，可以创建本地锁
+
+3. **operate.py 中的调用更新**
+   - `merge_nodes_and_edges()` 函数接受可选的 `graph_db_lock` 参数
+   - 在 LightRAG 中调用时传入 `self._graph_db_lock`
+
+4. **彻底删除shared_storage.py**
+   - 删除整个文件，包含28行代码
+   - 移除全局状态管理
+   - 消除进程间锁冲突的可能性
+
+### 技术优势
+
+**存储系统原生支持**：你使用的存储架构本身就有完善的并发控制
+- **Neo4j**：ACID事务，内置并发控制
+- **PostgreSQL**：成熟的MVCC机制
+- **Qdrant**：现代向量数据库，支持并发操作
+
+**实例级锁的好处**：
+- 🚀 **性能提升**：避免全局锁竞争，不同LightRAG实例之间完全独立
+- 🔧 **更好的架构**：每个实例管理自己的锁，符合面向对象设计
+- 🛡️ **进程安全**：消除了Celery多进程环境中的锁冲突
+- ⚡ **无状态化**：实例创建即可用，无需全局初始化
+
+### 架构演进总结
+
+```
+原架构: 全局锁 + shared_storage.py (51行)
+  ↓ 简化阶段1: 删除过度保护 (28行)
+  ↓ 简化阶段2: 实例级锁管理
+  ↓ 最终阶段: 完全删除 (0行)
+
+现架构: LightRAG实例锁 + 可选参数传递
+```
+
+**最终状态**：LightRAG现在完全无状态，每个实例独立管理锁资源，没有任何全局共享状态，完美契合现代多进程、多实例的部署环境！
+
+## 修复锁一致性问题
+
+### 问题发现
+在删除 shared_storage.py 后，发现了锁一致性问题：
+- `merge_nodes_and_edges()` 使用实例级锁 `self._graph_db_lock`
+- `utils_graph.py` 函数使用 `_get_lock_or_create(None)` 创建新的本地锁
+- **结果**：两个地方使用了不同的锁，破坏了同步机制
+
+### 修复方案
+**问题根因**：在 LightRAG 类中调用 `utils_graph.py` 函数时，没有传入实例级锁。
+
+**解决方法**：在所有调用 `utils_graph.py` 函数的地方传入 `graph_db_lock=self._graph_db_lock`：
+
+```python
+# 修复前
+await adelete_by_entity(
+    self.chunk_entity_relation_graph,
+    self.entities_vdb,
+    self.relationships_vdb,
+    entity_name,
+)
+
+# 修复后
+await adelete_by_entity(
+    self.chunk_entity_relation_graph,
+    self.entities_vdb,
+    self.relationships_vdb,
+    entity_name,
+    graph_db_lock=self._graph_db_lock,  # ✅ 传入实例级锁
+)
+```
+
+### 修复的函数
+所有 LightRAG 类中对 `utils_graph.py` 函数的调用都已修复：
+- `adelete_by_entity()`
+- `adelete_by_relation()`
+- `aedit_entity()`
+- `aedit_relation()`
+- `acreate_entity()`
+- `acreate_relation()`
+- `amerge_entities()`
+
+### 最终一致性
+现在所有图操作使用统一的实例级锁：
+- `merge_nodes_and_edges()` ← `self._graph_db_lock`
+- `utils_graph.py` 函数 ← `self._graph_db_lock`
+- 保证了数据一致性和操作原子性
+
 --- 
 

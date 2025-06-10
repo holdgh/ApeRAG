@@ -5,13 +5,13 @@ import time
 from typing import Any, cast
 
 from .base import StorageNameSpace
-from .kg.shared_storage import get_graph_db_lock
 from .prompt import GRAPH_FIELD_SEP
 from .utils import compute_mdhash_id, logger
 
 
 async def adelete_by_entity(
-    chunk_entity_relation_graph, entities_vdb, relationships_vdb, entity_name: str
+    chunk_entity_relation_graph, entities_vdb, relationships_vdb, entity_name: str,
+    graph_db_lock: asyncio.Lock | None = None
 ) -> None:
     """Asynchronously delete an entity and all its relationships.
 
@@ -21,7 +21,7 @@ async def adelete_by_entity(
         relationships_vdb: Vector database storage for relationships
         entity_name: Name of the entity to delete
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -60,6 +60,7 @@ async def adelete_by_relation(
     relationships_vdb,
     source_entity: str,
     target_entity: str,
+    graph_db_lock: asyncio.Lock | None = None,
 ) -> None:
     """Asynchronously delete a relation between two entities.
 
@@ -68,8 +69,9 @@ async def adelete_by_relation(
         relationships_vdb: Vector database storage for relationships
         source_entity: Name of the source entity
         target_entity: Name of the target entity
+        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -124,6 +126,7 @@ async def aedit_entity(
     entity_name: str,
     updated_data: dict[str, str],
     allow_rename: bool = True,
+    graph_db_lock: asyncio.Lock | None = None,
 ) -> dict[str, Any]:
     """Asynchronously edit entity information.
 
@@ -136,11 +139,12 @@ async def aedit_entity(
         entity_name: Name of the entity to edit
         updated_data: Dictionary containing updated attributes, e.g. {"description": "new description", "entity_type": "new type"}
         allow_rename: Whether to allow entity renaming, defaults to True
+        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
 
     Returns:
         Dictionary containing updated entity information
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -336,6 +340,7 @@ async def aedit_relation(
     source_entity: str,
     target_entity: str,
     updated_data: dict[str, Any],
+    graph_db_lock: asyncio.Lock | None = None,
 ) -> dict[str, Any]:
     """Asynchronously edit relation information.
 
@@ -348,11 +353,12 @@ async def aedit_relation(
         source_entity: Name of the source entity
         target_entity: Name of the target entity
         updated_data: Dictionary containing updated attributes, e.g. {"description": "new description", "keywords": "new keywords"}
+        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
 
     Returns:
         Dictionary containing updated relation information
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -451,6 +457,7 @@ async def acreate_entity(
     relationships_vdb,
     entity_name: str,
     entity_data: dict[str, Any],
+    graph_db_lock: asyncio.Lock | None = None,
 ) -> dict[str, Any]:
     """Asynchronously create a new entity.
 
@@ -462,11 +469,12 @@ async def acreate_entity(
         relationships_vdb: Vector database storage for relationships
         entity_name: Name of the new entity
         entity_data: Dictionary containing entity attributes, e.g. {"description": "description", "entity_type": "type"}
+        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
 
     Returns:
         Dictionary containing created entity information
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -536,6 +544,7 @@ async def acreate_relation(
     source_entity: str,
     target_entity: str,
     relation_data: dict[str, Any],
+    graph_db_lock: asyncio.Lock | None = None,
 ) -> dict[str, Any]:
     """Asynchronously create a new relation between entities.
 
@@ -548,11 +557,12 @@ async def acreate_relation(
         source_entity: Name of the source entity
         target_entity: Name of the target entity
         relation_data: Dictionary containing relation attributes, e.g. {"description": "description", "keywords": "keywords"}
+        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
 
     Returns:
         Dictionary containing created relation information
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:
@@ -648,6 +658,7 @@ async def amerge_entities(
     target_entity: str,
     merge_strategy: dict[str, str] = None,
     target_entity_data: dict[str, Any] = None,
+    graph_db_lock: asyncio.Lock | None = None,
 ) -> dict[str, Any]:
     """Asynchronously merge multiple entities into one entity.
 
@@ -668,11 +679,12 @@ async def amerge_entities(
             - "join_unique": Join all unique values (for fields separated by delimiter)
         target_entity_data: Dictionary of specific values to set for the target entity,
             overriding any merged values, e.g. {"description": "custom description", "entity_type": "PERSON"}
+        graph_db_lock: Optional lock for ensuring atomic graph and vector db operations
 
     Returns:
         Dictionary containing the merged entity information
     """
-    graph_db_lock = get_graph_db_lock()
+    
     # Use graph database lock to ensure atomic graph and vector db operations
     async with graph_db_lock:
         try:

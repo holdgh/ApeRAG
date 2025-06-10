@@ -279,10 +279,6 @@ class LightRAG:
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)
 
     def __post_init__(self):
-        from aperag.graph.lightrag.kg.shared_storage import (
-            initialize_share_data,
-        )
-
         # Handle deprecated parameters
         if self.log_level is not None:
             warnings.warn(
@@ -303,7 +299,8 @@ class LightRAG:
         if hasattr(self, "log_file_path"):
             delattr(self, "log_file_path")
 
-        initialize_share_data()
+        # Initialize instance-level graph database lock
+        self._graph_db_lock = asyncio.Lock()
 
         if not os.path.exists(self.working_dir):
             logger.info(f"Creating working directory {self.working_dir}")
@@ -943,7 +940,7 @@ class LightRAG:
             
             lightrag_logger.info(f"Extracted entities and relations from {len(chunks)} chunks")
             
-            # 2. Merge nodes and edges (this already uses graph_db_lock internally)
+            # 2. Merge nodes and edges (using instance-level lock)
             await merge_nodes_and_edges(
                 chunk_results=chunk_results,
                 knowledge_graph_inst=self.chunk_entity_relation_graph,
@@ -955,6 +952,7 @@ class LightRAG:
                 total_files=0,
                 file_path="stateless_processing",
                 lightrag_logger=lightrag_logger,
+                graph_db_lock=self._graph_db_lock,
             )
             
             lightrag_logger.info("Completed merging entities and relations")
@@ -1429,6 +1427,7 @@ class LightRAG:
                                 total_files=total_files,
                                 file_path=file_path,
                                 lightrag_logger=lightrag_logger,
+                                graph_db_lock=self._graph_db_lock,
                             )
 
                             await self.doc_status.upsert(
@@ -2285,6 +2284,7 @@ class LightRAG:
             self.entities_vdb,
             self.relationships_vdb,
             entity_name,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def delete_by_entity(self, entity_name: str) -> None:
@@ -2305,6 +2305,7 @@ class LightRAG:
             self.relationships_vdb,
             source_entity,
             target_entity,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def delete_by_relation(self, source_entity: str, target_entity: str) -> None:
@@ -2372,6 +2373,7 @@ class LightRAG:
             entity_name,
             updated_data,
             allow_rename,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def edit_entity(
@@ -2406,6 +2408,7 @@ class LightRAG:
             source_entity,
             target_entity,
             updated_data,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def edit_relation(
@@ -2438,6 +2441,7 @@ class LightRAG:
             self.relationships_vdb,
             entity_name,
             entity_data,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def create_entity(
@@ -2470,6 +2474,7 @@ class LightRAG:
             source_entity,
             target_entity,
             relation_data,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def create_relation(
@@ -2517,6 +2522,7 @@ class LightRAG:
             target_entity,
             merge_strategy,
             target_entity_data,
+            graph_db_lock=self._graph_db_lock,
         )
 
     def merge_entities(
