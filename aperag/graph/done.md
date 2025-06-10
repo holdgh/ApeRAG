@@ -498,69 +498,78 @@ await adelete_by_entity(
 
 ---
 
-## 彻底移除priority_limit_async_func_call并发限流机制
+## 彻底移除priority_limit_async_func_call机制
 
-### 已完成的改动
+### 背景问题
+在Celery等多事件循环环境中，`priority_limit_async_func_call`装饰器创建的全局锁与新事件循环产生冲突：
+- 装饰器在模块导入时创建的`asyncio.Lock()`绑定到默认事件循环
+- 在`process_document_sync`中创建新事件循环时，尝试使用不同事件循环的锁导致冲突
+- 导致任务永远挂起，事件循环无法正常关闭
 
-由于LLM/Embedding服务端已经自行处理限流，客户端的`priority_limit_async_func_call`装饰器成为了多余的复杂度，并且会引起事件循环冲突问题。
+### 完成的清理工作
+1. **删除复杂的并发控制机制**：移除了`priority_limit_async_func_call`函数（280行代码）
+2. **简化LLM/Embedding调用**：移除装饰器包装，恢复直接函数调用
+3. **清理_priority参数**：删除所有`operate.py`中的优先级参数使用
+4. **清理存储实现**：移除所有存储文件中的`_priority=5`参数
 
-1. **lightrag.py核心修改**
-   - 移除了`embedding_func`的`priority_limit_async_func_call`装饰器（第337-339行）
-   - 移除了`llm_model_func`的`priority_limit_async_func_call`装饰器（第415-420行）
-   - 移除了bypass模式中的`_priority=8`参数使用（第1323行）
-   - 删除了对`priority_limit_async_func_call`的导入
+### 性能优势
+- **零装饰器开销**：LLM和Embedding调用现在直接执行
+- **无事件循环冲突**：彻底消除多事件循环环境中的锁冲突问题  
+- **简化架构**：减少了约300行复杂并发控制代码
+- **更好的可维护性**：调试和维护变得更简单
 
-2. **operate.py大幅清理**
-   - 移除了`_handle_entity_relation_summary`函数中的`_priority=8`参数（第115行）
-   - 移除了`kg_query`函数中的`_priority=5`参数（第933行）
-   - 移除了`extract_keywords_only`函数中的`_priority=5`参数（第1146行）
-   - 移除了`naive_query`函数中的`_priority=5`参数（第1961行）
-   - 移除了`kg_query_with_keywords`函数中的`_priority=5`参数（第2078行）
-   - 删除了所有相关的注释说明
+## 解决数据库连接锁的事件循环冲突
 
-3. **utils.py完全删除**
-   - 删除了整个`priority_limit_async_func_call`函数定义（第318-597行，共280行代码）
-   - 移除了相关的QueueFullError异常类引用
-   - 清理了所有相关的异步任务管理代码
+### 核心问题识别
+经过深入调试发现，真正的问题不是`priority_limit_async_func_call`，而是：
+- `ClientManager`类的`_lock = asyncio.Lock()`在模块导入时创建，绑定到默认事件循环
+- 在`process_document_sync`中创建新事件循环时，PostgreSQL存储类初始化会调用`ClientManager.get_client()`
+- 由于锁绑定到不同的事件循环，导致`PGKVStorage.initialize()`、`Neo4JStorage.initialize()`等任务永远挂起
 
-4. **存储实现清理**
-   - 移除了所有存储实现文件中的`_priority=5`参数
-   - 清理了qdrant_impl.py、postgres_impl.py等文件中的priority参数
+### 解决方案设计
+采用实例级锁替代类级锁的方案：
 
-5. **缓存清理**
-   - 删除了所有Python字节码缓存文件
-   - 清理了__pycache__目录中的编译文件
+1. **删除ClientManager的类级锁**：
+   ```python
+   # 删除: _lock = asyncio.Lock()
+   ```
 
-### 技术影响
+2. **修改ClientManager接口**：
+   ```python
+   @classmethod 
+   async def get_client(cls, lock: asyncio.Lock = None) -> PostgreSQLDB:
+       # 使用传入的锁，向后兼容
+   
+   @classmethod
+   async def release_client(cls, db: PostgreSQLDB, lock: asyncio.Lock = None):
+       # 使用传入的锁，向后兼容
+   ```
 
-**性能提升**：
-- 去除了装饰器层的开销，LLM和Embedding调用现在直接执行
-- 消除了优先级队列的内存占用和管理开销
-- 减少了异步任务管理的复杂度
+3. **在LightRAG中添加实例级锁**：
+   ```python
+   # 在__post_init__中
+   self._db_conn_lock = asyncio.Lock()
+   
+   # 通过global_config传递给存储类
+   global_config["_db_conn_lock"] = self._db_conn_lock
+   ```
 
-**架构简化**：
-- 从280行的复杂并发控制机制简化为直接函数调用
-- 移除了worker健康检查、任务队列管理等复杂逻辑
-- 消除了事件循环冲突的可能性
+4. **修改所有PostgreSQL存储类**：
+   - PGKVStorage、PGVectorStorage、PGDocStatusStorage、PGGraphStorage
+   - 从global_config获取锁并传给ClientManager
+   ```python
+   async def initialize(self):
+       if self.db is None:
+           db_conn_lock = self.global_config.get("_db_conn_lock")  
+           self.db = await ClientManager.get_client(db_conn_lock)
+   ```
 
-**代码维护性**：
-- 减少了约300行复杂的并发管理代码
-- 简化了函数调用链，更容易调试和理解
-- 移除了priority参数传递的认知负担
+### 关键优势
+- **事件循环一致性**：锁与事件循环在同一个LightRAG实例中创建和使用
+- **向后兼容**：ClientManager保持向后兼容，未传入锁时创建临时锁
+- **无侵入式**：通过existing global_config机制传递锁，无需修改存储类构造函数
+- **彻底解决**：消除了多事件循环环境中的所有锁冲突问题
 
-### 验证结果
-
-✅ 使用grep确认所有`priority_limit_async_func_call`和`_priority`相关代码已完全移除  
-✅ 清理了Python字节码缓存，确保运行时不会使用旧代码  
-✅ LLM和Embedding函数现在直接调用，无任何装饰器包装  
-
-### 核心优势
-
-- **服务端限流**：依赖LLM/Embedding服务端的原生限流能力，更加可靠
-- **无事件循环冲突**：彻底消除了在Celery等环境中的事件循环问题
-- **更简洁的架构**：从复杂的客户端限流回归到简单直接的函数调用
-- **更好的性能**：减少了装饰器开销和队列管理开销
-- **易于维护**：代码结构更加清晰，调试更加简单
-
-现在LightRAG的LLM和Embedding调用变得极其简洁，完全依赖服务端的限流策略，避免了客户端的复杂并发管理。
+### 最终效果
+现在`process_document_sync`可以正常运行，不再出现pending任务导致的事件循环阻塞问题。LightRAG真正实现了无状态调用，适用于Celery等多进程异步环境。
 

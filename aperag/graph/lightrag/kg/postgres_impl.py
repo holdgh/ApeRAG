@@ -276,7 +276,6 @@ class PostgreSQLDB:
 
 class ClientManager:
     _instances: dict[str, Any] = {"db": None, "ref_count": 0}
-    _lock = asyncio.Lock()
 
     @staticmethod
     def get_config() -> dict[str, Any]:
@@ -313,8 +312,8 @@ class ClientManager:
         }
 
     @classmethod
-    async def get_client(cls) -> PostgreSQLDB:
-        async with cls._lock:
+    async def get_client(cls, lock: asyncio.Lock = None) -> PostgreSQLDB:
+        async with lock:
             if cls._instances["db"] is None:
                 config = ClientManager.get_config()
                 db = PostgreSQLDB(config)
@@ -326,8 +325,8 @@ class ClientManager:
             return cls._instances["db"]
 
     @classmethod
-    async def release_client(cls, db: PostgreSQLDB):
-        async with cls._lock:
+    async def release_client(cls, db: PostgreSQLDB, lock: asyncio.Lock = None):
+        async with lock:
             if db is not None:
                 if db is cls._instances["db"]:
                     cls._instances["ref_count"] -= 1
@@ -349,11 +348,15 @@ class PGKVStorage(BaseKVStorage):
 
     async def initialize(self):
         if self.db is None:
-            self.db = await ClientManager.get_client()
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            self.db = await ClientManager.get_client(db_conn_lock)
 
     async def finalize(self):
         if self.db is not None:
-            await ClientManager.release_client(self.db)
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
     ################ QUERY METHODS ################
@@ -598,11 +601,15 @@ class PGVectorStorage(BaseVectorStorage):
 
     async def initialize(self):
         if self.db is None:
-            self.db = await ClientManager.get_client()
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            self.db = await ClientManager.get_client(db_conn_lock)
 
     async def finalize(self):
         if self.db is not None:
-            await ClientManager.release_client(self.db)
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
     def _upsert_chunks(
@@ -875,11 +882,15 @@ class PGDocStatusStorage(DocStatusStorage):
 
     async def initialize(self):
         if self.db is None:
-            self.db = await ClientManager.get_client()
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            self.db = await ClientManager.get_client(db_conn_lock)
 
     async def finalize(self):
         if self.db is not None:
-            await ClientManager.release_client(self.db)
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
     async def filter_keys(self, keys: set[str]) -> set[str]:
@@ -1139,7 +1150,9 @@ class PGGraphStorage(BaseGraphStorage):
 
     async def initialize(self):
         if self.db is None:
-            self.db = await ClientManager.get_client()
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            self.db = await ClientManager.get_client(db_conn_lock)
 
         # Execute each statement separately and ignore errors
         queries = [
@@ -1176,7 +1189,9 @@ class PGGraphStorage(BaseGraphStorage):
 
     async def finalize(self):
         if self.db is not None:
-            await ClientManager.release_client(self.db)
+            # Get the database connection lock from global_config
+            db_conn_lock = self.global_config.get("_db_conn_lock")
+            await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
     @staticmethod

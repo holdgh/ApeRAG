@@ -294,6 +294,9 @@ class LightRAG:
 
         # Initialize instance-level graph database lock
         self._graph_db_lock = asyncio.Lock()
+        
+        # Initialize instance-level database connection management lock 
+        self._db_conn_lock = asyncio.Lock()
 
         if not os.path.exists(self.working_dir):
             logger.info(f"Creating working directory {self.working_dir}")
@@ -329,6 +332,9 @@ class LightRAG:
 
         # Fix global_config now
         global_config = asdict(self)
+        # Add instance-level locks to global_config for storage classes to use
+        global_config["_db_conn_lock"] = self._db_conn_lock
+        global_config["_graph_db_lock"] = self._graph_db_lock
         _print_config = ",\n  ".join([f"{k} = {v}" for k, v in global_config.items()])
         logger.debug(f"LightRAG init with param:\n  {_print_config}\n")
 
