@@ -155,7 +155,6 @@ class ClientManager:
                 config = ClientManager.get_config()
                 db = PostgreSQLDB(config)
                 await db.initdb()
-                await db.check_tables()
                 cls._instances["db"] = db
                 cls._instances["ref_count"] = 0
             cls._instances["ref_count"] += 1
