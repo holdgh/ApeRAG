@@ -318,10 +318,10 @@ async def create_and_initialize_lightrag(
     logger.info(f"Creating and initializing LightRAG object for collection: '{collection_id}'")
 
     try:
-        LIGHTRAG_KV_STORAGE = os.environ.get("LIGHTRAG_KV_STORAGE", "JsonKVStorage")
-        LIGHTRAG_VECTOR_STORAGE = os.environ.get("LIGHTRAG_VECTOR_STORAGE", "NanoVectorDBStorage")
-        LIGHTRAG_GRAPH_STORAGE = os.environ.get("LIGHTRAG_GRAPH_STORAGE", "NetworkXStorage")
-        LIGHTRAG_DOC_STATUS_STORAGE = os.environ.get("LIGHTRAG_DOC_STATUS_STORAGE", "JsonDocStatusStorage")
+        LIGHTRAG_KV_STORAGE = os.environ.get("LIGHTRAG_KV_STORAGE")
+        LIGHTRAG_VECTOR_STORAGE = os.environ.get("LIGHTRAG_VECTOR_STORAGE")
+        LIGHTRAG_GRAPH_STORAGE = os.environ.get("LIGHTRAG_GRAPH_STORAGE")
+        LIGHTRAG_DOC_STATUS_STORAGE = os.environ.get("LIGHTRAG_DOC_STATUS_STORAGE")
 
         await checkAndConfigureNeo4jStorage(LIGHTRAG_GRAPH_STORAGE)
 
@@ -329,17 +329,8 @@ async def create_and_initialize_lightrag(
             LIGHTRAG_DOC_STATUS_STORAGE, LIGHTRAG_GRAPH_STORAGE, LIGHTRAG_KV_STORAGE, LIGHTRAG_VECTOR_STORAGE
         )
 
-        using_local_storage = any(
-            [
-                LIGHTRAG_KV_STORAGE == "JsonKVStorage",
-                LIGHTRAG_VECTOR_STORAGE == "NanoVectorDBStorage",
-                LIGHTRAG_GRAPH_STORAGE == "NetworkXStorage",
-                LIGHTRAG_DOC_STATUS_STORAGE == "JsonDocStatusStorage",
-            ]
-        )
-
         rag = LightRAG(
-            workspace=collection_id if using_local_storage else os.environ.get("POSTGRES_WORKSPACE", "default"),
+            workspace=collection_id,
             working_dir=LightRAGConfig.WORKING_DIR,
             chunk_token_size=LightRAGConfig.CHUNK_TOKEN_SIZE,
             chunk_overlap_token_size=LightRAGConfig.CHUNK_OVERLAP_TOKEN_SIZE,
