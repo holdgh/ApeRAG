@@ -380,7 +380,6 @@ async def checkAndConfigurePostgresqlStorage(
         POSTGRES_USER = os.environ.get("POSTGRES_USER")
         POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD")
         POSTGRES_DATABASE = os.environ.get("POSTGRES_DB")
-        POSTGRES_WORKSPACE = os.environ.get("POSTGRES_WORKSPACE", "default")
 
         # Validate required PostgreSQL environment variables
         missing_pg_vars = []
@@ -404,7 +403,6 @@ async def checkAndConfigurePostgresqlStorage(
         os.environ["POSTGRES_USER"] = POSTGRES_USER
         os.environ["POSTGRES_PASSWORD"] = POSTGRES_PASSWORD
         os.environ["POSTGRES_DATABASE"] = POSTGRES_DATABASE
-        os.environ["POSTGRES_WORKSPACE"] = POSTGRES_WORKSPACE
 
         # Log which storage types are using PostgreSQL
         pg_storage_in_use = []
@@ -420,7 +418,6 @@ async def checkAndConfigurePostgresqlStorage(
         logger.info(
             f"PostgreSQL configuration: Host={POSTGRES_HOST}:{POSTGRES_PORT}, "
             f"Database={POSTGRES_DATABASE}, User={POSTGRES_USER}, "
-            f"Workspace={POSTGRES_WORKSPACE}, Storage types: {', '.join(pg_storage_in_use)}"
         )
 
 
