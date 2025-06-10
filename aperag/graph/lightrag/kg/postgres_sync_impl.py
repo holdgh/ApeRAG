@@ -128,28 +128,7 @@ class PGSyncKVStorage(BaseKVStorage):
             if not data:
                 return
 
-            if is_namespace(self.namespace, NameSpace.KV_STORE_TEXT_CHUNKS):
-                # Handle text chunks - insert without vectors (vectors will be added by VectorStorage)
-                upsert_sql = """INSERT INTO LIGHTRAG_DOC_CHUNKS (workspace, id, tokens,
-                              chunk_order_index, full_doc_id, content, file_path, create_time, update_time)
-                              VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                              ON CONFLICT (workspace,id) DO UPDATE
-                              SET tokens=EXCLUDED.tokens,
-                              chunk_order_index=EXCLUDED.chunk_order_index,
-                              full_doc_id=EXCLUDED.full_doc_id,
-                              content = EXCLUDED.content,
-                              file_path=EXCLUDED.file_path,
-                              update_time = CURRENT_TIMESTAMP
-                             """
-                for k, v in data.items():
-                    PostgreSQLSyncConnectionManager.execute_query(
-                        upsert_sql, (
-                            self.workspace, k, v.get("tokens", 0),
-                            v.get("chunk_order_index", 0), v.get("full_doc_id", ""),
-                            v.get("content", ""), v.get("file_path", "")
-                        )
-                    )
-            elif is_namespace(self.namespace, NameSpace.KV_STORE_FULL_DOCS):
+            if is_namespace(self.namespace, NameSpace.KV_STORE_FULL_DOCS):
                 upsert_sql = SQL_TEMPLATES["upsert_doc_full"]
                 for k, v in data.items():
                     PostgreSQLSyncConnectionManager.execute_query(

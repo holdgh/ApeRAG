@@ -262,9 +262,7 @@ class PGKVStorage(BaseKVStorage):
         if not data:
             return
 
-        if is_namespace(self.namespace, NameSpace.KV_STORE_TEXT_CHUNKS):
-            pass
-        elif is_namespace(self.namespace, NameSpace.KV_STORE_FULL_DOCS):
+        if is_namespace(self.namespace, NameSpace.KV_STORE_FULL_DOCS):
             for k, v in data.items():
                 upsert_sql = SQL_TEMPLATES["upsert_doc_full"]
                 _data = {

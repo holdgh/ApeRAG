@@ -1,17 +1,40 @@
-# Import sync storage implementations  
+# Import all storage implementations with conditional handling
+try:
+    from .neo4j_impl import Neo4JStorage
+except ImportError:
+    Neo4JStorage = None
+
 try:
     from .neo4j_sync_impl import Neo4JSyncStorage
 except ImportError:
     Neo4JSyncStorage = None
 
 try:
-    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGOpsDocStatusStorage, PGOpsSyncKVStorage
+    from .redis_impl import RedisKVStorage
+except ImportError:
+    RedisKVStorage = None
+
+try:
+    from .postgres_impl import PGKVStorage, PGVectorStorage, PGDocStatusStorage
+except ImportError:
+    PGKVStorage = None
+    PGVectorStorage = None
+    PGDocStatusStorage = None
+
+try:
+    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGOpsDocStatusStorage, PGOpsSyncKVStorage, PGOpsSyncVectorStorage
 except ImportError:
     PGSyncKVStorage = None
     PGSyncVectorStorage = None 
     PGSyncDocStatusStorage = None
     PGOpsDocStatusStorage = None
     PGOpsSyncKVStorage = None
+    PGOpsSyncVectorStorage = None
+
+try:
+    from .qdrant_impl import QdrantVectorDBStorage
+except ImportError:
+    QdrantVectorDBStorage = None
 
 STORAGE_IMPLEMENTATIONS = {
     "KV_STORAGE": {
@@ -58,7 +81,6 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "RedisKVStorage": ["REDIS_URI"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "PGSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    # PGOpsSyncKVStorage uses DatabaseOps, no direct env vars needed
     # Graph Storage Implementations
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
@@ -75,35 +97,33 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # Document Status Storage Implementations
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "PGSyncDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    # PGOpsDocStatusStorage uses DatabaseOps, no direct env vars needed
 }
 
-# Storage implementation module mapping
-STORAGES = {
-    "Neo4JStorage": ".kg.neo4j_impl",
-    "Neo4JSyncStorage": ".kg.neo4j_sync_impl",
+# Storage implementation module mapping - build conditionally
+STORAGES = {}
 
-    "RedisKVStorage": ".kg.redis_impl",
+# Add Neo4J implementations
+if Neo4JStorage is not None:
+    STORAGES["Neo4JStorage"] = ".kg.neo4j_impl"
 
-    "PGKVStorage": ".kg.postgres_impl",
-    "PGVectorStorage": ".kg.postgres_impl",
-    "PGDocStatusStorage": ".kg.postgres_impl",
-
-    "PGSyncDocStatusStorage": ".kg.postgres_sync_impl",
-    "PGSyncKVStorage": ".kg.postgres_sync_impl",
-    "PGSyncVectorStorage": ".kg.postgres_sync_impl",
-
-    "PGOpsDocStatusStorage": ".kg.postgres_sync_impl",
-    "PGOpsSyncKVStorage": ".kg.postgres_sync_impl",
-    "PGOpsSyncVectorStorage": ".kg.postgres_sync_impl",
-
-    "QdrantVectorDBStorage": ".kg.qdrant_impl",
-}
-
-# Add sync implementations to storage_dict
 if Neo4JSyncStorage is not None:
     STORAGES["Neo4JSyncStorage"] = ".kg.neo4j_sync_impl"
 
+# Add Redis implementations
+if RedisKVStorage is not None:
+    STORAGES["RedisKVStorage"] = ".kg.redis_impl"
+
+# Add PostgreSQL async implementations
+if PGKVStorage is not None:
+    STORAGES["PGKVStorage"] = ".kg.postgres_impl"
+
+if PGVectorStorage is not None:
+    STORAGES["PGVectorStorage"] = ".kg.postgres_impl"
+
+if PGDocStatusStorage is not None:
+    STORAGES["PGDocStatusStorage"] = ".kg.postgres_impl"
+
+# Add PostgreSQL sync implementations
 if PGSyncKVStorage is not None:
     STORAGES["PGSyncKVStorage"] = ".kg.postgres_sync_impl"
     
@@ -118,6 +138,13 @@ if PGOpsDocStatusStorage is not None:
 
 if PGOpsSyncKVStorage is not None:
     STORAGES["PGOpsSyncKVStorage"] = ".kg.postgres_sync_impl"
+
+if PGOpsSyncVectorStorage is not None:
+    STORAGES["PGOpsSyncVectorStorage"] = ".kg.postgres_sync_impl"
+
+# Add Qdrant implementations
+if QdrantVectorDBStorage is not None:
+    STORAGES["QdrantVectorDBStorage"] = ".kg.qdrant_impl"
 
 def verify_storage_implementation(storage_type: str, storage_name: str) -> None:
     """Verify if storage implementation is compatible with specified storage type
