@@ -492,56 +492,6 @@ class LightRAG:
         storage_class = lazy_external_import(import_path, storage_name)
         return storage_class
 
-    def insert(
-        self,
-        input: str | list[str],
-        split_by_character: str | None = None,
-        split_by_character_only: bool = False,
-        ids: str | list[str] | None = None,
-        file_paths: str | list[str] | None = None,
-    ) -> None:
-        """Sync Insert documents with checkpoint support
-
-        Args:
-            input: Single document string or list of document strings
-            split_by_character: if split_by_character is not None, split the string by character, if chunk longer than
-            chunk_token_size, it will be split again by token size.
-            split_by_character_only: if split_by_character_only is True, split the string by character only, when
-            split_by_character is None, this parameter is ignored.
-            ids: single string of the document ID or list of unique document IDs, if not provided, MD5 hash IDs will be generated
-            file_paths: single string of the file path or list of file paths, used for citation
-        """
-        loop = always_get_an_event_loop()
-        loop.run_until_complete(
-            self.ainsert(
-                input, split_by_character, split_by_character_only, ids, file_paths
-            )
-        )
-
-    async def ainsert(
-        self,
-        input: str | list[str],
-        split_by_character: str | None = None,
-        split_by_character_only: bool = False,
-        ids: str | list[str] | None = None,
-        file_paths: str | list[str] | None = None,
-    ) -> None:
-        """Async Insert documents with checkpoint support
-
-        Args:
-            input: Single document string or list of document strings
-            split_by_character: if split_by_character is not None, split the string by character, if chunk longer than
-            chunk_token_size, it will be split again by token size.
-            split_by_character_only: if split_by_character_only is True, split the string by character only, when
-            split_by_character is None, this parameter is ignored.
-            ids: list of unique document IDs, if not provided, MD5 hash IDs will be generated
-            file_paths: list of file paths corresponding to each document, used for citation
-        """
-        await self.apipeline_enqueue_documents(input, ids, file_paths)
-        await self.apipeline_process_enqueue_documents(
-            split_by_character, split_by_character_only
-        )
-
     # ============= New Stateless Interfaces =============
     
     async def ainsert_and_chunk_document(

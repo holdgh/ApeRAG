@@ -58,11 +58,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # Graph Storage Implementations
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
-    "AGEStorage": [
-        "AGE_POSTGRES_DB",
-        "AGE_POSTGRES_USER",
-        "AGE_POSTGRES_PASSWORD",
-    ],
+
     "PGGraphStorage": [
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
@@ -89,7 +85,6 @@ STORAGES = {
     "RedisKVStorage": ".kg.redis_impl",
     "PGKVStorage": ".kg.postgres_impl",
     "PGVectorStorage": ".kg.postgres_impl",
-    "AGEStorage": ".kg.age_impl",
     "PGGraphStorage": ".kg.postgres_impl",
     "PGDocStatusStorage": ".kg.postgres_impl",
     "QdrantVectorDBStorage": ".kg.qdrant_impl",
