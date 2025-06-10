@@ -475,6 +475,14 @@ class APIType(str, Enum):
     RERANK = "rerank"
 
 
+class LightRAGDocStatus(str, Enum):
+    """LightRAG Document processing status"""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+
+
 class LLMProviderModel(SQLModel, table=True):
     """LLM Provider Model configuration
 
@@ -599,3 +607,20 @@ class SearchTestHistory(SQLModel, table=True):
     items: Optional[list] = Field(default_factory=list, sa_column=Column(JSON))
     gmt_created: datetime = Field(default_factory=datetime.utcnow)
     gmt_deleted: Optional[datetime] = None
+
+
+class LightRAGDocStatusModel(SQLModel, table=True):
+    """LightRAG Document Status Storage Model"""
+    __tablename__ = "lightrag_doc_status"
+    __table_args__ = (UniqueConstraint("workspace", "id", name="uq_lightrag_doc_status_workspace_id"),)
+    
+    workspace: str = Field(primary_key=True, max_length=255)
+    id: str = Field(primary_key=True, max_length=255)
+    content: Optional[str] = None
+    content_summary: Optional[str] = Field(default=None, max_length=255)
+    content_length: Optional[int] = None
+    chunks_count: Optional[int] = None
+    status: Optional[LightRAGDocStatus] = None
+    file_path: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

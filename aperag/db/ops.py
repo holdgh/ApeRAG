@@ -35,6 +35,8 @@ from aperag.db.models import (
     Document,
     DocumentStatus,
     Invitation,
+    LightRAGDocStatus,
+    LightRAGDocStatusModel,
     LLMProvider,
     LLMProviderModel,
     MessageFeedback,
@@ -125,6 +127,97 @@ class DatabaseOps:
             return result.scalars().first()
 
         return self._execute_query(_query)
+
+    # LightRAG Document Status Operations
+    def upsert_lightrag_doc_status(self, workspace: str, doc_status_data: dict):
+        """Upsert LightRAG document status records"""
+        def _operation(session):
+            from sqlalchemy.dialects.postgresql import insert
+            
+            for doc_id, status_data in doc_status_data.items():
+                # Convert datetime strings to datetime objects if needed
+                created_at = status_data.get("created_at")
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                elif created_at is None:
+                    created_at = datetime.utcnow()
+                
+                updated_at = status_data.get("updated_at")
+                if isinstance(updated_at, str):
+                    updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                elif updated_at is None:
+                    updated_at = datetime.utcnow()
+
+                stmt = insert(LightRAGDocStatusModel).values(
+                    workspace=workspace,
+                    id=doc_id,
+                    content=status_data.get("content"),
+                    content_summary=status_data.get("content_summary"),
+                    content_length=status_data.get("content_length"),
+                    chunks_count=status_data.get("chunks_count", -1),
+                    status=status_data.get("status"),
+                    file_path=status_data.get("file_path"),
+                    created_at=created_at,
+                    updated_at=updated_at,
+                )
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=['workspace', 'id'],
+                    set_={
+                        'content': stmt.excluded.content,
+                        'content_summary': stmt.excluded.content_summary,
+                        'content_length': stmt.excluded.content_length,
+                        'chunks_count': stmt.excluded.chunks_count,
+                        'status': stmt.excluded.status,
+                        'file_path': stmt.excluded.file_path,
+                        'created_at': stmt.excluded.created_at,
+                        'updated_at': stmt.excluded.updated_at,
+                    }
+                )
+                session.execute(stmt)
+            session.commit()
+
+        return self._execute_transaction(_operation)
+
+    def query_lightrag_docs_by_status(self, workspace: str, status: LightRAGDocStatus):
+        """Query LightRAG documents by status"""
+        def _query(session):
+            stmt = select(LightRAGDocStatusModel).where(
+                LightRAGDocStatusModel.workspace == workspace,
+                LightRAGDocStatusModel.status == status
+            )
+            result = session.execute(stmt)
+            return {doc.id: doc for doc in result.scalars().all()}
+
+        return self._execute_query(_query)
+
+    def query_lightrag_doc_status_by_id(self, workspace: str, doc_id: str):
+        """Query LightRAG document status by ID"""
+        def _query(session):
+            stmt = select(LightRAGDocStatusModel).where(
+                LightRAGDocStatusModel.workspace == workspace,
+                LightRAGDocStatusModel.id == doc_id
+            )
+            result = session.execute(stmt)
+            return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def delete_lightrag_doc_status(self, workspace: str, doc_ids: list):
+        """Delete LightRAG document status records"""
+        def _operation(session):
+            stmt = select(LightRAGDocStatusModel).where(
+                LightRAGDocStatusModel.workspace == workspace,
+                LightRAGDocStatusModel.id.in_(doc_ids)
+            )
+            result = session.execute(stmt)
+            docs = result.scalars().all()
+            
+            for doc in docs:
+                session.delete(doc)
+            session.commit()
+            return len(docs)
+
+        return self._execute_transaction(_operation)
 
 
 class AsyncDatabaseOps:

@@ -5,11 +5,12 @@ except ImportError:
     Neo4JSyncStorage = None
 
 try:
-    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage
+    from .postgres_sync_impl import PGSyncKVStorage, PGSyncVectorStorage, PGSyncDocStatusStorage, PGOpsDocStatusStorage
 except ImportError:
     PGSyncKVStorage = None
     PGSyncVectorStorage = None 
     PGSyncDocStatusStorage = None
+    PGOpsDocStatusStorage = None
 
 STORAGE_IMPLEMENTATIONS = {
     "KV_STORAGE": {
@@ -42,6 +43,7 @@ STORAGE_IMPLEMENTATIONS = {
         "implementations": [
             "PGDocStatusStorage",
             "PGSyncDocStatusStorage",
+            "PGOpsDocStatusStorage",
         ],
         "required_methods": ["get_docs_by_status"],
     },
@@ -69,6 +71,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # Document Status Storage Implementations
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "PGSyncDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
+    "PGOpsDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
 }
 
 # Storage implementation module mapping
@@ -95,6 +98,9 @@ if PGSyncVectorStorage is not None:
     
 if PGSyncDocStatusStorage is not None:
     STORAGES["PGSyncDocStatusStorage"] = ".kg.postgres_sync_impl"
+
+if PGOpsDocStatusStorage is not None:
+    STORAGES["PGOpsDocStatusStorage"] = ".kg.postgres_sync_impl"
 
 def verify_storage_implementation(storage_type: str, storage_name: str) -> None:
     """Verify if storage implementation is compatible with specified storage type
