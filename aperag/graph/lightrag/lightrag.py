@@ -347,7 +347,7 @@ class LightRAG:
             self.vector_db_storage_cls, global_config=global_config
         )
         self.graph_storage_cls = partial(  # type: ignore
-            self.graph_storage_cls, global_config=global_config
+            self.graph_storage_cls
         )
 
         # Initialize document status storage
