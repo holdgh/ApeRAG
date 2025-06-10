@@ -305,6 +305,7 @@ class PGKVStorage(BaseKVStorage):
         except Exception as e:
             logger.error(f"Error while deleting records from {self.namespace}: {e}")
 
+    # todo deprecated: LIGHTRAG_LLM_CACHE is not needed
     async def drop_cache_by_modes(self, modes: list[str] | None = None) -> bool:
         """Delete specific records from storage by cache mode
 
