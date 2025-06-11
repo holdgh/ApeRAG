@@ -36,6 +36,8 @@ class LightRAGConfig:
     CHUNK_OVERLAP_TOKEN_SIZE = 100
     MAX_PARALLEL_INSERT = 2
     LLM_MODEL_MAX_ASYNC = 20
+    COSINE_BETTER_THAN_THRESHOLD=0.2
+    MAX_BATCH_SIZE=32
     ENTITY_EXTRACT_MAX_GLEANING = 0
     EMBEDDING_MAX_TOKEN_SIZE = 8192
     DEFAULT_LANGUAGE = "Simplified Chinese"
@@ -79,7 +81,8 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:
                 max_token_size=LightRAGConfig.EMBEDDING_MAX_TOKEN_SIZE,
                 func=embed_func,
             ),
-            cosine_better_than_threshold=0.2,
+            cosine_better_than_threshold=LightRAGConfig.COSINE_BETTER_THAN_THRESHOLD,
+            max_batch_size=LightRAGConfig.MAX_BATCH_SIZE,
             max_parallel_insert=LightRAGConfig.MAX_PARALLEL_INSERT,
             llm_model_max_async=LightRAGConfig.LLM_MODEL_MAX_ASYNC,
             entity_extract_max_gleaning=LightRAGConfig.ENTITY_EXTRACT_MAX_GLEANING,
@@ -303,9 +306,6 @@ async def _gen_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]
 
 async def _configure_storage_backends(kv_storage, vector_storage, graph_storage, doc_status_storage):
     """Configure storage backends based on environment variables"""
-    # Set default environment variables
-    os.environ["EMBEDDING_BATCH_NUM"] = "32"
-    os.environ["COSINE_THRESHOLD"] = "0.2"
 
     # Configure PostgreSQL if needed
     using_pg = any([
