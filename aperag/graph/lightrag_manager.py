@@ -22,7 +22,7 @@ import numpy
 from aperag.db.models import Collection
 from aperag.db.ops import db_ops
 from aperag.embed.base_embedding import get_collection_embedding_service
-from aperag.graph.lightrag import LightRAG, QueryParam
+from aperag.graph.lightrag import LightRAG
 from aperag.graph.lightrag.utils import EmbeddingFunc
 from aperag.schema.utils import parseCollectionConfig
 
@@ -265,7 +265,6 @@ async def _gen_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]
         api_key = msp.api_key
         
         # Get base_url from LLMProvider
-        from aperag.db.models import LLMProvider
         llm_provider = db_ops.query_llm_provider_by_name(msp_name)
         base_url = llm_provider.base_url
         

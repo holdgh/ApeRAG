@@ -21,18 +21,16 @@ from pathlib import Path
 from typing import Any
 
 from celery import Task
-from sqlmodel import select
 
 from aperag.config import settings
 from aperag.context.full_text import insert_document, remove_document
 from aperag.db.models import (
-    Collection,
     CollectionStatus,
     Document,
     DocumentIndexStatus,
     DocumentStatus,
 )
-from aperag.db.ops import db_ops, async_db_ops
+from aperag.db.ops import db_ops
 from aperag.docparser.doc_parser import DocParser
 from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.embed.embedding_utils import create_embeddings_and_store
