@@ -16,10 +16,9 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, sessionmaker
-from sqlmodel import select
 
 from aperag.config import async_engine, get_async_session, get_sync_session, sync_engine
 from aperag.db.models import (
@@ -989,29 +988,6 @@ class AsyncDatabaseOps:
     def __init__(self, session: Optional[AsyncSession] = None):
         self._session = session
 
-    async def _get_session(self) -> AsyncSession:
-        """Get database session, create new one if not provided
-
-        This method is primarily used for write operations (create, update, delete)
-        where you need full control over transaction boundaries and explicit session management.
-
-        Usage pattern for write operations:
-        1. Call this method to get a session
-        2. Perform database operations (add, delete, modify)
-        3. Manually call session.flush(), session.commit(), session.refresh() as needed
-        4. Handle transaction rollback if errors occur
-
-        The caller is responsible for session lifecycle management when using this method.
-        """
-        if self._session:
-            return self._session
-
-        # This should not be used directly for global instance
-        # Instead, use execute_with_transaction for proper session management
-        raise RuntimeError(
-            "Cannot create session without explicit session management. Use execute_with_transaction instead."
-        )
-
     async def _execute_query(self, query_func):
         """Execute a read-only query with proper session management
 
@@ -1545,15 +1521,16 @@ class AsyncDatabaseOps:
             )
             result = await session.execute(stmt)
             api_key = result.scalars().first()
-            if api_key:
-                api_key.status = ApiKeyStatus.DELETED
-                from datetime import datetime as dt
+            if not api_key:
+                return None
 
-                api_key.gmt_deleted = dt.utcnow()
-                session.add(api_key)
-                await session.flush()
-                return True
-            return False
+            from datetime import datetime as dt
+
+            api_key.status = ApiKeyStatus.DELETED
+            api_key.gmt_deleted = dt.utcnow()
+            session.add(api_key)
+            await session.flush()
+            return api_key
 
         return await self.execute_with_transaction(_operation)
 
@@ -2372,7 +2349,5 @@ class AsyncDatabaseOps:
         return await self.execute_with_transaction(_operation)
 
 
-# Create a global instance for backwards compatibility and easy access
-# This can be used in places where session dependency injection is not available
 async_db_ops = AsyncDatabaseOps()
 db_ops = DatabaseOps()

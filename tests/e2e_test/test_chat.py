@@ -21,12 +21,11 @@ class APITestHelper:
         self.client = client
         self.base_url = base_url
         self.api_key = api_key
-        self.openai_client = OpenAI(base_url=f"{base_url}/v1", api_key=api_key)
+        # Set longer timeout for non-streaming requests
+        self.openai_client = OpenAI(base_url=f"{base_url}/v1", api_key=api_key, timeout=120.0)
 
-    def test_openai_api(self, bot_id: str, chat_id: str, message: str, test_name: str) -> None:
-        """Test OpenAI-compatible API for both streaming and non-streaming"""
-
-        # Test non-streaming mode
+    def test_openai_api_non_streaming(self, bot_id: str, chat_id: str, message: str, test_name: str) -> None:
+        """Test OpenAI-compatible API for non-streaming mode"""
         try:
             response = self.openai_client.chat.completions.create(
                 model="aperag",
@@ -55,7 +54,8 @@ class APITestHelper:
         except Exception as e:
             pytest.fail(f"{test_name} non-streaming request failed: {e}")
 
-        # Test streaming mode
+    def test_openai_api_streaming(self, bot_id: str, chat_id: str, message: str, test_name: str) -> None:
+        """Test OpenAI-compatible API for streaming mode"""
         try:
             stream = self.openai_client.chat.completions.create(
                 model="aperag",
@@ -88,21 +88,21 @@ class APITestHelper:
         except Exception as e:
             pytest.fail(f"{test_name} streaming request failed: {e}")
 
-    def test_frontend_api(
+    def test_frontend_api_non_streaming(
         self, bot_id: str, chat_id: str, message: str, test_name: str, is_knowledge_bot: bool = False
     ) -> None:
-        """Test frontend-specific API for both streaming and non-streaming"""
-        # Test non-streaming mode
+        """Test frontend-specific API for non-streaming mode"""
         try:
             msg_id = f"{test_name.lower().replace(' ', '_')}_msg_001"
             response = self.client.post(
                 "/api/v1/chat/completions/frontend",
-                data=message,
+                content=message,
                 params={"stream": "false", "bot_id": bot_id, "chat_id": chat_id},
                 headers={"msg_id": msg_id, "Content-Type": "text/plain"},
+                timeout=120.0,  # Set longer timeout for non-streaming requests
             )
 
-            assert response.status_code == HTTPStatus.OK
+            assert response.status_code == HTTPStatus.OK, response.text
             response_data = response.json()
 
             # Validate frontend response inline
@@ -122,17 +122,21 @@ class APITestHelper:
         except Exception as e:
             pytest.fail(f"{test_name} frontend non-streaming request failed: {e}")
 
-        # Test streaming mode
+    def test_frontend_api_streaming(
+        self, bot_id: str, chat_id: str, message: str, test_name: str, is_knowledge_bot: bool = False
+    ) -> None:
+        """Test frontend-specific API for streaming mode"""
         try:
             msg_id = f"{test_name.lower().replace(' ', '_')}_msg_002"
             response = self.client.post(
                 "/api/v1/chat/completions/frontend",
-                data=f"{message} (streaming)",
+                content=f"{message} (streaming)",
                 params={"stream": "true", "bot_id": bot_id, "chat_id": chat_id},
                 headers={"msg_id": msg_id, "Content-Type": "text/plain"},
+                timeout=120.0,  # Set longer timeout for streaming requests as well
             )
 
-            assert response.status_code == HTTPStatus.OK
+            assert response.status_code == HTTPStatus.OK, response.text
             assert response.headers.get("content-type").startswith("text/event-stream")
 
             # Parse SSE response
@@ -216,7 +220,7 @@ def create_and_configure_bot(
     }
 
     resp = client.post("/api/v1/bots", json=create_data)
-    assert resp.status_code == HTTPStatus.OK
+    assert resp.status_code == HTTPStatus.OK, resp.text
     bot = resp.json()
 
     # Configure flow if specified
@@ -234,9 +238,9 @@ def create_and_configure_bot(
 
         flow_json = json.dumps(flow)
         resp = client.put(
-            f"/api/v1/bots/{bot['id']}/flow", data=flow_json, headers={"Content-Type": "application/json"}
+            f"/api/v1/bots/{bot['id']}/flow", content=flow_json, headers={"Content-Type": "application/json"}
         )
-        assert resp.status_code == HTTPStatus.OK
+        assert resp.status_code == HTTPStatus.OK, resp.text
 
     return bot
 
@@ -249,7 +253,7 @@ def knowledge_bot(client, collection):
     )
     yield bot
     resp = client.delete(f"/api/v1/bots/{bot['id']}")
-    assert resp.status_code in (200, 204)
+    assert resp.status_code in (200, 204), f"Failed to delete bot: {resp.status_code}, {resp.text}"
 
 
 @pytest.fixture
@@ -258,14 +262,14 @@ def basic_bot(client):
     bot = create_and_configure_bot(client, bot_type="common", flow_file="basic-flow.yaml")
     yield bot
     resp = client.delete(f"/api/v1/bots/{bot['id']}")
-    assert resp.status_code in (200, 204)
+    assert resp.status_code in (200, 204), f"Failed to delete bot: {resp.status_code}, {resp.text}"
 
 
 def create_chat(client, bot_id: str, title: str) -> Dict[str, Any]:
     """Create a chat for the given bot"""
     data = {"title": title}
     resp = client.post(f"/api/v1/bots/{bot_id}/chats", json=data)
-    assert resp.status_code == HTTPStatus.OK
+    assert resp.status_code == HTTPStatus.OK, resp.text
     return resp.json()
 
 
@@ -275,7 +279,9 @@ def knowledge_chat(client, knowledge_bot):
     chat = create_chat(client, knowledge_bot["id"], "E2E Knowledge Test Chat")
     yield chat
     delete_resp = client.delete(f"/api/v1/bots/{knowledge_bot['id']}/chats/{chat['id']}")
-    assert delete_resp.status_code in (200, 204, 404)
+    assert delete_resp.status_code in (200, 204, 404), (
+        f"Failed to delete chat: {delete_resp.status_code}, {delete_resp.text}"
+    )
 
 
 @pytest.fixture
@@ -284,7 +290,9 @@ def basic_chat(client, basic_bot):
     chat = create_chat(client, basic_bot["id"], "E2E Basic Test Chat")
     yield chat
     delete_resp = client.delete(f"/api/v1/bots/{basic_bot['id']}/chats/{chat['id']}")
-    assert delete_resp.status_code in (200, 204, 404)
+    assert delete_resp.status_code in (200, 204, 404), (
+        f"Failed to delete chat: {delete_resp.status_code}, {delete_resp.text}"
+    )
 
 
 @pytest.fixture
@@ -301,7 +309,7 @@ def test_get_chat_detail(client, bot_type, request):
     chat = request.getfixturevalue(f"{bot_type}_chat")
 
     resp = client.get(f"/api/v1/bots/{bot['id']}/chats/{chat['id']}")
-    assert resp.status_code == HTTPStatus.OK
+    assert resp.status_code == HTTPStatus.OK, resp.text
     detail = resp.json()
     assert detail["id"] == chat["id"]
     assert detail["title"] == chat["title"]
@@ -316,7 +324,7 @@ def test_update_chat(client, bot_type, request):
     new_title = f"E2E {bot_type.title()} Test Chat Updated"
     update_data = {"title": new_title}
     resp = client.put(f"/api/v1/bots/{bot['id']}/chats/{chat['id']}", json=update_data)
-    assert resp.status_code == HTTPStatus.OK
+    assert resp.status_code == HTTPStatus.OK, resp.text
     updated = resp.json()
     assert updated["title"] == new_title
 
@@ -328,12 +336,27 @@ def test_update_chat(client, bot_type, request):
         ("basic", "Hello, how are you today?"),
     ],
 )
-def test_chat_message_openai_api(api_helper, bot_type, message, request):
-    """Test OpenAI-compatible chat completions API"""
+def test_chat_message_openai_api_non_streaming(api_helper, bot_type, message, request):
+    """Test OpenAI-compatible chat completions API - Non-streaming mode"""
     bot = request.getfixturevalue(f"{bot_type}_bot")
     chat = request.getfixturevalue(f"{bot_type}_chat")
 
-    api_helper.test_openai_api(bot["id"], chat["id"], message, f"{bot_type} bot")
+    api_helper.test_openai_api_non_streaming(bot["id"], chat["id"], message, f"{bot_type} bot")
+
+
+@pytest.mark.parametrize(
+    "bot_type,message",
+    [
+        ("knowledge", "What is ApeRAG?"),
+        ("basic", "Hello, how are you today?"),
+    ],
+)
+def test_chat_message_openai_api_streaming(api_helper, bot_type, message, request):
+    """Test OpenAI-compatible chat completions API - Streaming mode"""
+    bot = request.getfixturevalue(f"{bot_type}_bot")
+    chat = request.getfixturevalue(f"{bot_type}_chat")
+
+    api_helper.test_openai_api_streaming(bot["id"], chat["id"], message, f"{bot_type} bot")
 
 
 @pytest.mark.parametrize(
@@ -343,13 +366,29 @@ def test_chat_message_openai_api(api_helper, bot_type, message, request):
         ("basic", "Hello, this is a test message for frontend API"),
     ],
 )
-def test_chat_message_frontend_api(api_helper, bot_type, message, request):
-    """Test frontend-specific chat completions API"""
+def test_chat_message_frontend_api_non_streaming(api_helper, bot_type, message, request):
+    """Test frontend-specific chat completions API - Non-streaming mode"""
     bot = request.getfixturevalue(f"{bot_type}_bot")
     chat = request.getfixturevalue(f"{bot_type}_chat")
 
     is_knowledge_bot = bot_type == "knowledge"
-    api_helper.test_frontend_api(bot["id"], chat["id"], message, f"{bot_type} bot", is_knowledge_bot)
+    api_helper.test_frontend_api_non_streaming(bot["id"], chat["id"], message, f"{bot_type} bot", is_knowledge_bot)
+
+
+@pytest.mark.parametrize(
+    "bot_type,message",
+    [
+        ("knowledge", "What is ApeRAG? Please tell me about this knowledge base system."),
+        ("basic", "Hello, this is a test message for frontend API"),
+    ],
+)
+def test_chat_message_frontend_api_streaming(api_helper, bot_type, message, request):
+    """Test frontend-specific chat completions API - Streaming mode"""
+    bot = request.getfixturevalue(f"{bot_type}_bot")
+    chat = request.getfixturevalue(f"{bot_type}_chat")
+
+    is_knowledge_bot = bot_type == "knowledge"
+    api_helper.test_frontend_api_streaming(bot["id"], chat["id"], message, f"{bot_type} bot", is_knowledge_bot)
 
 
 def test_openai_api_error_handling(api_helper, basic_chat):
@@ -403,12 +442,13 @@ def test_frontend_api_error_handling(client, basic_chat):
         message = "Test message"
         response = client.post(
             "/api/v1/chat/completions/frontend",
-            data=message,
+            content=message,
             params={"stream": "false", "bot_id": "invalid_bot_id", "chat_id": basic_chat["id"]},
             headers={"msg_id": "test_msg_003", "Content-Type": "text/plain"},
+            timeout=120.0,
         )
 
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.OK, response.text
         response_data = response.json()
         assert response_data.get("type") == "error"
         error_message = response_data.get("data", "")
@@ -424,9 +464,10 @@ def test_frontend_api_error_handling(client, basic_chat):
         message = "Test message"
         response = client.post(
             "/api/v1/chat/completions/frontend",
-            data=message,
+            content=message,
             params={"stream": "false", "chat_id": basic_chat["id"]},
             headers={"msg_id": "test_msg_004", "Content-Type": "text/plain"},
+            timeout=120.0,
         )
 
         if response.status_code == HTTPStatus.OK:
