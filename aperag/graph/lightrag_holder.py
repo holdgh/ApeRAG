@@ -32,6 +32,11 @@ from aperag.schema.utils import parseCollectionConfig
 
 logger = logging.getLogger(__name__)
 
+def get_graph_cache_lock():
+    """Get the global lock for LightRAG cache operations"""
+    return get_or_create_lock("lightrag_cache_operations")
+
+
 
 # Configuration constants
 class LightRAGConfig:
@@ -602,8 +607,3 @@ async def get_cache_stats() -> Dict[str, Any]:
 async def clear_all_cache() -> None:
     """Clear all cached LightRAG instances"""
     await _cache.clear()
-
-
-def get_graph_cache_lock():
-    """Get the global lock for LightRAG cache operations"""
-    return get_or_create_lock("lightrag_cache_operations")
