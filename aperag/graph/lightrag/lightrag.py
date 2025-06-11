@@ -191,6 +191,16 @@ class LightRAG:
     - use_llm_check: If True, validates cached embeddings using an LLM.
     """
 
+    cosine_better_than_threshold: float = field(default=0.2)
+    """
+    Threshold for cosine similarity to determine if two embeddings are similar enough to be considered the same.
+    """
+
+    max_batch_size: int = field(default=32)
+    """
+    Maximum batch size for embedding computations.
+    """
+
     # LLM Configuration
     # ---
 
@@ -233,10 +243,6 @@ class LightRAG:
     # Storages Management
     # ---
 
-    cosine_better_than_threshold: float = field(
-        default=0.2
-    )
-
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)
 
     def __post_init__(self):
@@ -256,12 +262,6 @@ class LightRAG:
             verify_storage_implementation(storage_type, storage_name)
             # Check environment variables
             check_storage_env_vars(storage_name)
-
-        # Ensure vector_db_storage_cls_kwargs has required fields
-        self.vector_db_storage_cls_kwargs = {
-            "cosine_better_than_threshold": self.cosine_better_than_threshold,
-            **self.vector_db_storage_cls_kwargs,
-        }
 
         # Init Tokenizer
         # Post-initialization hook to handle backward compatabile tokenizer initialization based on provided parameters
@@ -316,18 +316,24 @@ class LightRAG:
             namespace=NameSpace.VECTOR_STORE_ENTITIES,
             workspace=self.workspace,
             embedding_func=self.embedding_func,
+            cosine_better_than_threshold=self.cosine_better_than_threshold,
+            _max_batch_size=self.max_batch_size,
             meta_fields={"entity_name", "source_id", "content", "file_path"},
         )
         self.relationships_vdb: BaseVectorStorage = self.vector_db_storage_cls(  # type: ignore
             namespace=NameSpace.VECTOR_STORE_RELATIONSHIPS,
             workspace=self.workspace,
             embedding_func=self.embedding_func,
+            cosine_better_than_threshold=self.cosine_better_than_threshold,
+            _max_batch_size=self.max_batch_size,
             meta_fields={"src_id", "tgt_id", "source_id", "content", "file_path"},
         )
         self.chunks_vdb: BaseVectorStorage = self.vector_db_storage_cls(  # type: ignore
             namespace=NameSpace.VECTOR_STORE_CHUNKS,
             workspace=self.workspace,
             embedding_func=self.embedding_func,
+            cosine_better_than_threshold=self.cosine_better_than_threshold,
+            _max_batch_size=self.max_batch_size,
             meta_fields={"full_doc_id", "content", "file_path"},
         )
 

@@ -187,9 +187,6 @@ class ClientManager:
 class PGKVStorage(BaseKVStorage):
     db: PostgreSQLDB = field(default=None)
 
-    def __post_init__(self):
-        self._max_batch_size = int(os.getenv("EMBEDDING_BATCH_NUM", 32))
-
     async def initialize(self):
         if self.db is None:
             db_conn_lock = asyncio.Lock()
@@ -334,10 +331,6 @@ class PGKVStorage(BaseKVStorage):
 @dataclass
 class PGVectorStorage(BaseVectorStorage):
     db: PostgreSQLDB | None = field(default=None)
-
-    def __post_init__(self):
-        self._max_batch_size = int(os.getenv("EMBEDDING_BATCH_NUM", 32))
-        self.cosine_better_than_threshold = float(os.getenv("COSINE_THRESHOLD", 0.2))
 
     async def initialize(self):
         if self.db is None:
