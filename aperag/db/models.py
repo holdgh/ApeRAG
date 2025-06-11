@@ -16,7 +16,6 @@ import random
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -148,6 +147,21 @@ class ModelServiceProviderStatus(str, Enum):
 class ApiKeyStatus(str, Enum):
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
+
+
+class APIType(str, Enum):
+    COMPLETION = "completion"
+    EMBEDDING = "embedding"
+    RERANK = "rerank"
+
+
+class LightRAGDocStatus(str, Enum):
+    """LightRAG Document processing status"""
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
 
 
 # Models
@@ -442,22 +456,7 @@ class LLMProvider(Base):
         return f"LLMProvider(name={self.name}, label={self.label})"
 
 
-class APIType(str, Enum):
-    COMPLETION = "completion"
-    EMBEDDING = "embedding"
-    RERANK = "rerank"
-
-
-class LightRAGDocStatus(str, Enum):
-    """LightRAG Document processing status"""
-
-    PENDING = "pending"
-    PROCESSING = "processing"
-    PROCESSED = "processed"
-    FAILED = "failed"
-
-
-class LLMProviderModel(SQLModel, table=True):
+class LLMProviderModel(Base):
     """LLM Provider Model configuration
 
     This model stores individual model configurations for each provider.
@@ -587,97 +586,97 @@ class SearchTestHistory(Base):
     gmt_deleted = Column(DateTime(timezone=True), nullable=True, index=True)  # Add index for soft delete queries
 
 
-class LightRAGDocStatusModel(SQLModel, table=True):
+class LightRAGDocStatusModel(Base):
     """LightRAG Document Status Storage Model"""
 
     __tablename__ = "lightrag_doc_status"
     __table_args__ = (UniqueConstraint("workspace", "id", name="uq_lightrag_doc_status_workspace_id"),)
 
-    workspace: str = Field(primary_key=True, max_length=255)
-    id: str = Field(primary_key=True, max_length=255)
-    content: Optional[str] = None
-    content_summary: Optional[str] = Field(default=None, max_length=255)
-    content_length: Optional[int] = None
-    chunks_count: Optional[int] = None
-    status: Optional[LightRAGDocStatus] = None
-    file_path: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    workspace = Column(String(255), primary_key=True)
+    id = Column(String(255), primary_key=True)
+    content = Column(Text, nullable=True)
+    content_summary = Column(String(255), nullable=True)
+    content_length = Column(Integer, nullable=True)
+    chunks_count = Column(Integer, nullable=True)
+    status = Column(EnumColumn(LightRAGDocStatus), nullable=True)
+    file_path = Column(String(512), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class LightRAGDocFullModel(SQLModel, table=True):
+class LightRAGDocFullModel(Base):
     """LightRAG Document Full Storage Model"""
 
     __tablename__ = "lightrag_doc_full"
 
-    id: str = Field(primary_key=True, max_length=255)
-    workspace: str = Field(primary_key=True, max_length=255)
-    doc_name: Optional[str] = Field(default=None, max_length=1024)
-    content: Optional[str] = Field(default=None, sa_column=Column(Text))
-    meta: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    create_time: datetime = Field(default_factory=datetime.utcnow)
-    update_time: datetime = Field(default_factory=datetime.utcnow)
+    id = Column(String(255), primary_key=True)
+    workspace = Column(String(255), primary_key=True)
+    doc_name = Column(String(1024), nullable=True)
+    content = Column(Text, nullable=True)
+    meta = Column(JSON, nullable=True)
+    create_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    update_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class LightRAGDocChunksModel(SQLModel, table=True):
+class LightRAGDocChunksModel(Base):
     """LightRAG Document Chunks Storage Model"""
 
     __tablename__ = "lightrag_doc_chunks"
 
-    id: str = Field(primary_key=True, max_length=255)
-    workspace: str = Field(primary_key=True, max_length=255)
-    full_doc_id: Optional[str] = Field(default=None, max_length=256)
-    chunk_order_index: Optional[int] = None
-    tokens: Optional[int] = None
-    content: Optional[str] = Field(default=None, sa_column=Column(Text))
-    content_vector: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
-    file_path: Optional[str] = Field(default=None, max_length=256)
-    create_time: datetime = Field(default_factory=datetime.utcnow)
-    update_time: datetime = Field(default_factory=datetime.utcnow)
+    id = Column(String(255), primary_key=True)
+    workspace = Column(String(255), primary_key=True)
+    full_doc_id = Column(String(256), nullable=True)
+    chunk_order_index = Column(Integer, nullable=True)
+    tokens = Column(Integer, nullable=True)
+    content = Column(Text, nullable=True)
+    content_vector = Column(Vector(), nullable=True)
+    file_path = Column(String(256), nullable=True)
+    create_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    update_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class LightRAGVDBEntityModel(SQLModel, table=True):
+class LightRAGVDBEntityModel(Base):
     """LightRAG VDB Entity Storage Model"""
 
     __tablename__ = "lightrag_vdb_entity"
 
-    id: str = Field(primary_key=True, max_length=255)
-    workspace: str = Field(primary_key=True, max_length=255)
-    entity_name: Optional[str] = Field(default=None, max_length=255)
-    content: Optional[str] = Field(default=None, sa_column=Column(Text))
-    content_vector: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
-    create_time: datetime = Field(default_factory=datetime.utcnow)
-    update_time: datetime = Field(default_factory=datetime.utcnow)
-    chunk_ids: Optional[list[str]] = Field(default=None, sa_column=Column(ARRAY(String)))
-    file_path: Optional[str] = Field(default=None, sa_column=Column(Text))
+    id = Column(String(255), primary_key=True)
+    workspace = Column(String(255), primary_key=True)
+    entity_name = Column(String(255), nullable=True)
+    content = Column(Text, nullable=True)
+    content_vector = Column(Vector(), nullable=True)
+    create_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    update_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    chunk_ids = Column(ARRAY(String), nullable=True)
+    file_path = Column(Text, nullable=True)
 
 
-class LightRAGVDBRelationModel(SQLModel, table=True):
+class LightRAGVDBRelationModel(Base):
     """LightRAG VDB Relation Storage Model"""
 
     __tablename__ = "lightrag_vdb_relation"
 
-    id: str = Field(primary_key=True, max_length=255)
-    workspace: str = Field(primary_key=True, max_length=255)
-    source_id: Optional[str] = Field(default=None, max_length=256)
-    target_id: Optional[str] = Field(default=None, max_length=256)
-    content: Optional[str] = Field(default=None, sa_column=Column(Text))
-    content_vector: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
-    create_time: datetime = Field(default_factory=datetime.utcnow)
-    update_time: datetime = Field(default_factory=datetime.utcnow)
-    chunk_ids: Optional[list[str]] = Field(default=None, sa_column=Column(ARRAY(String)))
-    file_path: Optional[str] = Field(default=None, sa_column=Column(Text))
+    id = Column(String(255), primary_key=True)
+    workspace = Column(String(255), primary_key=True)
+    source_id = Column(String(256), nullable=True)
+    target_id = Column(String(256), nullable=True)
+    content = Column(Text, nullable=True)
+    content_vector = Column(Vector(), nullable=True)
+    create_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    update_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    chunk_ids = Column(ARRAY(String), nullable=True)
+    file_path = Column(Text, nullable=True)
 
 
-class LightRAGLLMCacheModel(SQLModel, table=True):
+class LightRAGLLMCacheModel(Base):
     """LightRAG LLM Cache Storage Model"""
 
     __tablename__ = "lightrag_llm_cache"
 
-    workspace: str = Field(primary_key=True, max_length=255)
-    id: str = Field(primary_key=True, max_length=255)
-    mode: str = Field(primary_key=True, max_length=32)
-    original_prompt: Optional[str] = Field(default=None, sa_column=Column(Text))
-    return_value: Optional[str] = Field(default=None, sa_column=Column(Text))
-    create_time: datetime = Field(default_factory=datetime.utcnow)
-    update_time: Optional[datetime] = None
+    workspace = Column(String(255), primary_key=True)
+    id = Column(String(255), primary_key=True)
+    mode = Column(String(32), primary_key=True)
+    original_prompt = Column(Text, nullable=True)
+    return_value = Column(Text, nullable=True)
+    create_time = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    update_time = Column(DateTime(timezone=True), nullable=True)
