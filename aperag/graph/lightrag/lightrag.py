@@ -17,7 +17,6 @@ from typing import (
     final,
 )
 
-from dotenv import load_dotenv
 
 from aperag.graph.lightrag.constants import (
     DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE,
@@ -62,10 +61,6 @@ from .utils import (
     create_lightrag_logger,
 )
 
-# use the .env that is inside the current folder
-# allows to use different .env file for each lightrag instance
-# the OS environment variables take precedence over the .env file
-load_dotenv(dotenv_path=".env", override=False)
 
 
 @final

@@ -15,7 +15,6 @@ from ..base import BaseGraphStorage
 from ..types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
 from ..utils import logger
 
-from dotenv import load_dotenv
 from neo4j import (  # type: ignore
     AsyncDriver,
     AsyncGraphDatabase,

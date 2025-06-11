@@ -8,7 +8,6 @@ import time
 from collections import Counter, defaultdict
 from typing import Any, AsyncIterator
 
-from dotenv import load_dotenv
 
 from .base import (
     BaseGraphStorage,

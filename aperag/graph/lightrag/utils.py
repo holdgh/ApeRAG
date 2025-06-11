@@ -11,7 +11,6 @@ from hashlib import md5
 from typing import TYPE_CHECKING, Any, Callable, List, Protocol
 
 import numpy as np
-from dotenv import load_dotenv
 
 
 def get_env_value(

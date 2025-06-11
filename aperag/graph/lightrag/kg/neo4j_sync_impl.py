@@ -4,7 +4,6 @@ import os
 from dataclasses import dataclass
 from typing import final
 
-from dotenv import load_dotenv
 from neo4j import exceptions as neo4jExceptions
 from tenacity import (
     retry,
