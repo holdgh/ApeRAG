@@ -482,7 +482,7 @@ async def merge_nodes_and_edges(
     total_files: int = 0,
     file_path: str = "unknown_source",
     lightrag_logger: LightRAGLogger | None = None,
-    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
+    graph_db_lock: "LockProtocol | None" = None,
 ) -> None:
     """Merge nodes and edges from extraction results"""
 

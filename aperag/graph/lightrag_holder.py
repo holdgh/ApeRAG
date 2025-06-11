@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import asyncio
 import logging
 import os
 from datetime import datetime
@@ -20,6 +19,7 @@ from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
 import numpy
 
+from aperag.concurrent_control import get_or_create_lock
 from aperag.db.models import Collection
 from aperag.db.ops import (
     db_ops,
@@ -474,7 +474,8 @@ class LightRAGCache:
 
     def __init__(self):
         self._instances: Dict[str, LightRagHolder] = {}
-        self._lock = asyncio.Lock()
+        # Use the new concurrent control system
+        self._lock = get_graph_cache_lock()
 
     async def get(self, collection_id: str) -> Optional[LightRagHolder]:
         """Get cached instance"""
@@ -601,3 +602,8 @@ async def get_cache_stats() -> Dict[str, Any]:
 async def clear_all_cache() -> None:
     """Clear all cached LightRAG instances"""
     await _cache.clear()
+
+
+def get_graph_cache_lock():
+    """Get the global lock for LightRAG cache operations"""
+    return get_or_create_lock("lightrag_cache_operations")
