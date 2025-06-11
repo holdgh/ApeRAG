@@ -442,7 +442,7 @@ MinIO/S3:
 # 1. Asynchronous LightRAG task
 async def _async_add_lightrag_index():
     # Get LightRAG instance
-    rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
+    rag_holder = await lightrag_holder.get_lightrag_holder(collection)
     
     # 2. Insert document into LightRAG
     await rag_holder.ainsert(

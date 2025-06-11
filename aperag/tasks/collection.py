@@ -78,7 +78,7 @@ def _delete_collection_logic(collection_id: str):
 
         async def _delete_lightrag():
             # Create new LightRAG instance without using cache for Celery tasks
-            rag = await lightrag_manager.get_lightrag_holder(collection, use_cache=False)
+            rag = await lightrag_manager.create_lightrag_instance(collection)
             
             # Get all document IDs in this collection
             document_ids = db_ops.query_documents(collection_id).values_list("id", flat=True)

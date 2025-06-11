@@ -73,7 +73,7 @@ class GraphSearchService:
         from aperag.graph.lightrag import QueryParam
         from aperag.graph import lightrag_manager
         
-        rag = await lightrag_manager.get_lightrag_holder(collection)
+        rag = await lightrag_manager.create_lightrag_instance(collection)
         param: QueryParam = QueryParam(
             mode="hybrid",
             only_need_context=True,

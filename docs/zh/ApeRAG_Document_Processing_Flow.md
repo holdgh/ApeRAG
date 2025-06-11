@@ -442,7 +442,7 @@ MinIO/S3:
 # 1. 异步LightRAG任务
 async def _async_add_lightrag_index():
     # 获取LightRAG实例
-    rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
+    rag_holder = await lightrag_holder.get_lightrag_holder(collection)
     
     # 2. 插入文档到LightRAG
     await rag_holder.ainsert(

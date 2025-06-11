@@ -38,7 +38,6 @@ STORAGE_IMPLEMENTATIONS = {
         "implementations": [
             "RedisKVStorage",
             "PGKVStorage",
-            "PGSyncKVStorage",
             "PGOpsSyncKVStorage",
         ],
         "required_methods": ["get_by_id", "upsert"],
@@ -56,7 +55,6 @@ STORAGE_IMPLEMENTATIONS = {
     "VECTOR_STORAGE": {
         "implementations": [
             "PGVectorStorage",
-            "PGSyncVectorStorage",
             "PGOpsSyncVectorStorage",
             "QdrantVectorDBStorage",
         ],
@@ -65,7 +63,6 @@ STORAGE_IMPLEMENTATIONS = {
     "DOC_STATUS_STORAGE": {
         "implementations": [
             "PGDocStatusStorage",
-            "PGSyncDocStatusStorage",
             "PGOpsSyncDocStatusStorage",
         ],
         "required_methods": ["get_docs_by_status"],
@@ -77,23 +74,11 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # KV Storage Implementations
     "RedisKVStorage": ["REDIS_URI"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    "PGSyncKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    # Graph Storage Implementations
-    "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
-    "Neo4JSyncStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
-
-    "PGGraphStorage": [
-        "POSTGRES_USER",
-        "POSTGRES_PASSWORD",
-        "POSTGRES_DATABASE",
-    ],
     # Vector Storage Implementations
     "PGVectorStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    "PGSyncVectorStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "QdrantVectorDBStorage": ["QDRANT_URL"],  # QDRANT_API_KEY has default value None
     # Document Status Storage Implementations
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
-    "PGSyncDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
 }
 
 # Storage implementation module mapping - build conditionally

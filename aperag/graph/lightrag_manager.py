@@ -15,7 +15,6 @@
 import asyncio
 import logging
 import os
-from datetime import datetime
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import numpy
@@ -328,18 +327,3 @@ def _configure_postgresql():
     
     if missing_vars:
         raise LightRAGError(f"PostgreSQL storage requires: {', '.join(missing_vars)}")
-    
-    # Environment variables are already set, LightRAG will use them directly
-
-
-# --- Backward Compatibility ---
-# These functions maintain compatibility with existing code
-
-async def get_lightrag_holder(collection: Collection, use_cache: bool = True) -> LightRAG:
-    """
-    Backward compatibility function.
-    Since we no longer use caching, the use_cache parameter is ignored.
-    Returns a LightRAG instance directly instead of a holder.
-    """
-    return await create_lightrag_instance(collection)
-
