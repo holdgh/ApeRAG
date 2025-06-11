@@ -250,7 +250,17 @@ class LightRAG:
             delattr(self, "log_file_path")
 
         # Initialize instance-level graph database lock
-        self._graph_db_lock = asyncio.Lock()
+        # Use the new universal concurrent control system
+        try:
+            from aperag.concurrent_control import create_lock
+            # Create a dedicated lock for this LightRAG instance with workspace as identifier
+            lock_name = f"lightrag_graph_lock_{self.workspace}"
+            self._graph_db_lock = create_lock("threading", name=lock_name)
+            logger.info(f"Using ThreadingLock for graph concurrent control: {lock_name}")
+        except ImportError:
+            # Fallback to asyncio.Lock if concurrent_control module is not available
+            logger.warning("concurrent_control module not available, falling back to asyncio.Lock")
+            self._graph_db_lock = asyncio.Lock()
 
         # Verify storage implementation compatibility and environment variables
         storage_configs = [

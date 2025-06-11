@@ -11,7 +11,7 @@ from .utils import compute_mdhash_id, logger
 
 async def adelete_by_entity(
     chunk_entity_relation_graph, entities_vdb, relationships_vdb, entity_name: str,
-    graph_db_lock: asyncio.Lock | None = None
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None
 ) -> None:
     """Asynchronously delete an entity and all its relationships.
 
@@ -40,7 +40,7 @@ async def adelete_by_relation(
     relationships_vdb,
     source_entity: str,
     target_entity: str,
-    graph_db_lock: asyncio.Lock | None = None,
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
 ) -> None:
     """Asynchronously delete a relation between two entities.
 
@@ -91,7 +91,7 @@ async def aedit_entity(
     entity_name: str,
     updated_data: dict[str, str],
     allow_rename: bool = True,
-    graph_db_lock: asyncio.Lock | None = None,
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
 ) -> dict[str, Any]:
     """Asynchronously edit entity information.
 
@@ -283,7 +283,7 @@ async def aedit_relation(
     source_entity: str,
     target_entity: str,
     updated_data: dict[str, Any],
-    graph_db_lock: asyncio.Lock | None = None,
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
 ) -> dict[str, Any]:
     """Asynchronously edit relation information.
 
@@ -385,7 +385,7 @@ async def acreate_entity(
     relationships_vdb,
     entity_name: str,
     entity_data: dict[str, Any],
-    graph_db_lock: asyncio.Lock | None = None,
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
 ) -> dict[str, Any]:
     """Asynchronously create a new entity.
 
@@ -467,7 +467,7 @@ async def acreate_relation(
     source_entity: str,
     target_entity: str,
     relation_data: dict[str, Any],
-    graph_db_lock: asyncio.Lock | None = None,
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
 ) -> dict[str, Any]:
     """Asynchronously create a new relation between entities.
 
@@ -578,7 +578,7 @@ async def amerge_entities(
     target_entity: str,
     merge_strategy: dict[str, str] = None,
     target_entity_data: dict[str, Any] = None,
-    graph_db_lock: asyncio.Lock | None = None,
+    graph_db_lock: "LockProtocol | asyncio.Lock | None" = None,
 ) -> dict[str, Any]:
     """Asynchronously merge multiple entities into one entity.
 
