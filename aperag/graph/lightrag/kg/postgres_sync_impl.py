@@ -19,16 +19,16 @@ from ..utils import logger
 
 @final
 @dataclass 
-class PGOpsDocStatusStorage(DocStatusStorage):
+class PGOpsSyncDocStatusStorage(DocStatusStorage):
     """PostgreSQL Document Status Storage using DatabaseOps with sync interface."""
     
     async def initialize(self):
         """Initialize storage."""
-        logger.info(f"PGOpsDocStatusStorage initialized for workspace '{self.workspace}'")
+        logger.info(f"PGOpsSyncDocStatusStorage initialized for workspace '{self.workspace}'")
 
     async def finalize(self):
         """Clean up resources."""
-        logger.debug(f"PGOpsDocStatusStorage finalized for workspace '{self.workspace}'")
+        logger.debug(f"PGOpsSyncDocStatusStorage finalized for workspace '{self.workspace}'")
 
     async def filter_keys(self, keys: set[str]) -> set[str]:
         """Filter out existing keys"""

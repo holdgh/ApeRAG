@@ -22,9 +22,9 @@ except ImportError:
     PGDocStatusStorage = None
 
 try:
-    from .postgres_sync_impl import PGOpsDocStatusStorage, PGOpsSyncKVStorage, PGOpsSyncVectorStorage
+    from .postgres_sync_impl import PGOpsSyncDocStatusStorage, PGOpsSyncKVStorage, PGOpsSyncVectorStorage
 except ImportError:
-    PGOpsDocStatusStorage = None
+    PGOpsSyncDocStatusStorage = None
     PGOpsSyncKVStorage = None
     PGOpsSyncVectorStorage = None
 
@@ -66,7 +66,7 @@ STORAGE_IMPLEMENTATIONS = {
         "implementations": [
             "PGDocStatusStorage",
             "PGSyncDocStatusStorage",
-            "PGOpsDocStatusStorage",
+            "PGOpsSyncDocStatusStorage",
         ],
         "required_methods": ["get_docs_by_status"],
     },
@@ -120,8 +120,8 @@ if PGVectorStorage is not None:
 if PGDocStatusStorage is not None:
     STORAGES["PGDocStatusStorage"] = ".kg.postgres_impl"
 
-if PGOpsDocStatusStorage is not None:
-    STORAGES["PGOpsDocStatusStorage"] = ".kg.postgres_sync_impl"
+if PGOpsSyncDocStatusStorage is not None:
+    STORAGES["PGOpsSyncDocStatusStorage"] = ".kg.postgres_sync_impl"
 
 if PGOpsSyncKVStorage is not None:
     STORAGES["PGOpsSyncKVStorage"] = ".kg.postgres_sync_impl"

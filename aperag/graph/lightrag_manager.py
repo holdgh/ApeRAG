@@ -314,7 +314,7 @@ async def _configure_storage_backends(kv_storage, vector_storage, graph_storage,
         kv_storage in ["PGKVStorage", "PGSyncKVStorage", "PGOpsSyncKVStorage"],
         vector_storage in ["PGVectorStorage", "PGSyncVectorStorage", "PGOpsSyncVectorStorage"],
         graph_storage == "PGGraphStorage",
-        doc_status_storage in ["PGDocStatusStorage", "PGSyncDocStatusStorage", "PGOpsDocStatusStorage"],
+        doc_status_storage in ["PGDocStatusStorage", "PGSyncDocStatusStorage", "PGOpsSyncDocStatusStorage"],
     ])
     
     if using_pg:
