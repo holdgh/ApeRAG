@@ -472,29 +472,86 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
             
             # Use appropriate similarity search method based on namespace
             if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
-                return db_ops.query_lightrag_doc_chunks_similarity(
+                results = db_ops.query_lightrag_doc_chunks_similarity(
                     self.workspace, 
                     embedding_list, 
                     top_k, 
                     ids, 
                     self.cosine_better_than_threshold
                 )
+                # Convert results to expected format for chunks
+                formatted_results = []
+                for result in results:
+                    if hasattr(result, '_asdict'):
+                        # Handle NamedTuple or Row objects
+                        row_dict = result._asdict()
+                    elif isinstance(result, dict):
+                        row_dict = result
+                    else:
+                        # Convert Row object to dict manually
+                        row_dict = {key: getattr(result, key) for key in result.keys()}
+                    
+                    formatted_results.append({
+                        "id": row_dict.get("id"),
+                        "content": row_dict.get("content", ""),
+                        "file_path": row_dict.get("file_path"),
+                        "created_at": row_dict.get("created_at")
+                    })
+                return formatted_results
+                
             elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
-                return db_ops.query_lightrag_vdb_entity_similarity(
+                results = db_ops.query_lightrag_vdb_entity_similarity(
                     self.workspace, 
                     embedding_list, 
                     top_k, 
                     ids, 
                     self.cosine_better_than_threshold
                 )
+                # Convert results to expected format for entities
+                formatted_results = []
+                for result in results:
+                    if hasattr(result, '_asdict'):
+                        # Handle NamedTuple or Row objects
+                        row_dict = result._asdict()
+                    elif isinstance(result, dict):
+                        row_dict = result
+                    else:
+                        # Convert Row object to dict manually
+                        row_dict = {key: getattr(result, key) for key in result.keys()}
+                    
+                    formatted_results.append({
+                        "entity_name": row_dict.get("entity_name"),
+                        "created_at": row_dict.get("created_at")
+                    })
+                return formatted_results
+                
             elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
-                return db_ops.query_lightrag_vdb_relation_similarity(
+                results = db_ops.query_lightrag_vdb_relation_similarity(
                     self.workspace, 
                     embedding_list, 
                     top_k, 
                     ids, 
                     self.cosine_better_than_threshold
                 )
+                # Convert results to expected format for relationships
+                formatted_results = []
+                for result in results:
+                    if hasattr(result, '_asdict'):
+                        # Handle NamedTuple or Row objects
+                        row_dict = result._asdict()
+                    elif isinstance(result, dict):
+                        row_dict = result
+                    else:
+                        # Convert Row object to dict manually
+                        row_dict = {key: getattr(result, key) for key in result.keys()}
+                    
+                    formatted_results.append({
+                        "src_id": row_dict.get("src_id"),
+                        "tgt_id": row_dict.get("tgt_id"),
+                        "created_at": row_dict.get("created_at")
+                    })
+                return formatted_results
+                
             else:
                 logger.error(f"Unknown namespace for vector similarity query: {self.namespace}")
                 return []

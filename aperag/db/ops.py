@@ -730,7 +730,8 @@ class DatabaseOps:
                     'top_k': top_k
                 })
             
-            return [dict(row) for row in result]
+            # Properly convert SQLAlchemy Row objects to dictionaries
+            return [dict(row._mapping) for row in result]
 
         return self._execute_query(_query)
 
@@ -787,7 +788,8 @@ class DatabaseOps:
                     'top_k': top_k
                 })
             
-            return [dict(row) for row in result]
+            # Properly convert SQLAlchemy Row objects to dictionaries
+            return [dict(row._mapping) for row in result]
 
         return self._execute_query(_query)
 
@@ -846,7 +848,8 @@ class DatabaseOps:
                     'top_k': top_k
                 })
             
-            return [dict(row) for row in result]
+            # Properly convert SQLAlchemy Row objects to dictionaries
+            return [dict(row._mapping) for row in result]
 
         return self._execute_query(_query)
 
