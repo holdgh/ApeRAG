@@ -21,7 +21,7 @@ from aperag.context.full_text import create_index, delete_index
 from aperag.db.models import CollectionStatus
 from aperag.db.ops import db_ops
 from aperag.embed.base_embedding import get_collection_embedding_service_sync
-from aperag.graph import lightrag_holder
+from aperag.graph import lightrag_manager
 from aperag.tasks.index import get_collection_config_settings
 from aperag.utils.utils import (
     generate_fulltext_index_name,
@@ -78,8 +78,33 @@ def _delete_collection_logic(collection_id: str):
 
         async def _delete_lightrag():
             # Create new LightRAG instance without using cache for Celery tasks
-            rag_holder = await lightrag_holder.get_lightrag_holder(collection, use_cache=False)
-            await rag_holder.adelete_by_collection(collection_id)
+            rag = await lightrag_manager.create_lightrag_instance(collection)
+
+            # Get all document IDs in this collection
+            document_ids = db_ops.query_documents(collection_id).values_list("id", flat=True)
+
+            if document_ids:
+                deleted_count = 0
+                failed_count = 0
+
+                for document_id in document_ids:
+                    try:
+                        await rag.adelete_by_doc_id(str(document_id))
+                        deleted_count += 1
+                        logger.debug(f"Successfully deleted lightrag document for document ID: {document_id}")
+                    except Exception as e:
+                        failed_count += 1
+                        logger.warning(f"Failed to delete lightrag document for document ID {document_id}: {str(e)}")
+
+                logger.info(
+                    f"Completed lightrag document deletion for collection {collection_id}: "
+                    f"{deleted_count} deleted, {failed_count} failed"
+                )
+            else:
+                logger.info(f"No documents found for collection {collection_id}, skipping deletion")
+
+            # Clean up resources
+            await rag.finalize_storages()
 
         # Execute async deletion
         async_to_sync(_delete_lightrag)()

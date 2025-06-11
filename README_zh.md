@@ -1,6 +1,6 @@
 # ApeRAG
 
-ApeRAG 是一个全面的 RAG（Retrieval-Augmented Generation，检索增强生成）平台，专为构建先进的企业级人工智能应用而设计。它集成了 **LightRAG** 以增强其功能，特别是实现了强大的**基于图的查询和知识检索**。主要特性包括：
+ApeRAG 是一个全面的 RAG（Retrieval-Augmented Generation，检索增强生成）平台，专为构建先进的企业级人工智能应用而设计。它集成了 **[LightRAG](https://github.com/HKUDS/LightRAG)** 以增强其功能，特别是实现了强大的**基于图的查询和知识检索**。主要特性包括：
 
 *   **多样化的文档处理**：高效解析各种文档类型。
 *   **灵活的数据管理**：后端采用 FastAPI 和 Celery 进行异步任务处理，支持 PostgreSQL、Qdrant、Neo4j 和 Elasticsearch 等多种数据库。
@@ -356,6 +356,18 @@ make run-frontend
 
 对于自定义部署，您需要调整这些方法或将构建的容器镜像与您选择的编排平台一起使用。确保所有必需的服务（数据库、后端、前端、Celery worker）都已正确配置并且可以相互通信。
 
+
+## 致谢
+
+ApeRAG 集成并基于多个优秀的开源项目构建：
+
+### LightRAG
+ApeRAG 中的基于图的知识检索功能由深度修改版的 [LightRAG](https://github.com/HKUDS/LightRAG) 提供支持：
+- **论文**："LightRAG: Simple and Fast Retrieval-Augmented Generation"（[arXiv:2410.05779](https://arxiv.org/abs/2410.05779)）
+- **作者**：Zirui Guo, Lianghao Xia, Yanhua Yu, Tu Ao, Chao Huang
+- **许可证**：MIT License
+
+我们对 LightRAG 进行了大量修改，以支持生产级并发处理、分布式任务队列（Celery/Prefect）和无状态操作。详细信息请参阅我们的 [LightRAG 修改日志](./aperag/graph/changelog.md)。
 
 ## 许可证
 

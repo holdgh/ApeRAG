@@ -21,7 +21,6 @@ from aperag.db import models as db_models
 from aperag.db.ops import AsyncDatabaseOps, async_db_ops
 from aperag.flow.base.models import Edge, FlowInstance, NodeInstance
 from aperag.flow.engine import FlowEngine
-from aperag.graph.lightrag_holder import delete_lightrag_holder, reload_lightrag_holder
 from aperag.schema import view_models
 from aperag.schema.utils import dumpCollectionConfig, parseCollectionConfig
 from aperag.schema.view_models import (
@@ -87,10 +86,6 @@ class CollectionService:
                 config=config_str,
             )
 
-            # Handle knowledge graph initialization
-            if getattr(collection_config, "enable_knowledge_graph", False):
-                await reload_lightrag_holder(instance)
-
             # Initialize collection based on type
             if instance.type == db_models.CollectionType.DOCUMENT:
                 document_user_quota = await self.db_ops.query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
@@ -145,10 +140,6 @@ class CollectionService:
             if not updated_instance:
                 raise ValueError("Collection not found")
 
-            # Handle knowledge graph reload
-            if getattr(collection.config, "enable_knowledge_graph", False):
-                await reload_lightrag_holder(updated_instance)
-
             return self.build_collection_response(updated_instance)
 
         try:
@@ -174,7 +165,6 @@ class CollectionService:
                 raise ValueError("Collection not found")
 
             # Clean up related resources
-            await delete_lightrag_holder(deleted_instance)
             delete_collection_task.delay(collection_id)
 
             return self.build_collection_response(deleted_instance)

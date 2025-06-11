@@ -2,7 +2,7 @@
 
 [阅读中文文档](./README_zh.md)
 
-ApeRAG is a comprehensive RAG (Retrieval-Augmented Generation) platform designed for building advanced, enterprise-grade AI applications. It integrates **LightRAG** to enhance its capabilities, notably enabling powerful **graph-based query and knowledge retrieval**. Key features include:
+ApeRAG is a comprehensive RAG (Retrieval-Augmented Generation) platform designed for building advanced, enterprise-grade AI applications. It integrates **[LightRAG](https://github.com/HKUDS/LightRAG)** to enhance its capabilities, notably enabling powerful **graph-based query and knowledge retrieval**. Key features include:
 
 *   **Versatile Document Processing**: Efficiently parses various document types.
 *   **Flexible Data Management**: Utilizes FastAPI backend with Celery for asynchronous tasks, supporting databases like PostgreSQL, Qdrant, Neo4j, and Elasticsearch.
@@ -358,6 +358,18 @@ Refer to the "Getting Started" section for common deployment methods:
 
 For custom deployments, you will need to adapt these methods or use the built container images with your chosen orchestration platform. Ensure all required services (databases, backend, frontend, Celery workers) are correctly configured and can communicate with each other.
 
+
+## Acknowledgments
+
+ApeRAG integrates and builds upon several excellent open-source projects:
+
+### LightRAG
+The graph-based knowledge retrieval capabilities in ApeRAG are powered by a deeply modified version of [LightRAG](https://github.com/HKUDS/LightRAG):
+- **Paper**: "LightRAG: Simple and Fast Retrieval-Augmented Generation" ([arXiv:2410.05779](https://arxiv.org/abs/2410.05779))
+- **Authors**: Zirui Guo, Lianghao Xia, Yanhua Yu, Tu Ao, Chao Huang
+- **License**: MIT License
+
+We have extensively modified LightRAG to support production-grade concurrent processing, distributed task queues (Celery/Prefect), and stateless operations. See our [LightRAG modifications changelog](./aperag/graph/changelog.md) for details.
 
 ## License
 

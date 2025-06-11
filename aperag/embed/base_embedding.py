@@ -20,7 +20,7 @@ from threading import Lock
 from langchain_core.embeddings import Embeddings
 
 from aperag.config import settings
-from aperag.db.ops import async_db_ops, db_ops
+from aperag.db.ops import db_ops
 from aperag.embed.embedding_service import EmbeddingService
 from aperag.schema.utils import parseCollectionConfig
 
@@ -81,14 +81,14 @@ async def get_collection_embedding_service(collection) -> tuple[Embeddings | Non
     custom_llm_provider = config.embedding.custom_llm_provider
     logging.info("get_collection_embedding_model %s %s", embedding_msp, embedding_model_name)
 
-    msp_dict = await async_db_ops.query_msp_dict(collection.user)
+    msp_dict = db_ops.query_msp_dict(collection.user)
     if embedding_msp in msp_dict:
         msp = msp_dict[embedding_msp]
         embedding_service_api_key = msp.api_key
 
         # Get base_url from LLMProvider
         try:
-            llm_provider = await async_db_ops.query_llm_provider_by_name(embedding_msp)
+            llm_provider = db_ops.query_llm_provider_by_name(embedding_msp)
             embedding_service_url = llm_provider.base_url
         except Exception:
             raise ValueError(f"LLMProvider '{embedding_msp}' not found")

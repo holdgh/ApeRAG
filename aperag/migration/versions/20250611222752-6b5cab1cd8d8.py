@@ -1,18 +1,18 @@
 """empty message
 
-Revision ID: 8739d13cc4be
-Revises: 
-Create Date: 2025-06-10 17:35:45.002181
+Revision ID: 6b5cab1cd8d8
+Revises: be090f06152e
+Create Date: 2025-06-11 22:27:52.828110
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from pgvector.sqlalchemy import Vector
 
 # revision identifiers, used by Alembic.
-revision: str = '8739d13cc4be'
+revision: str = '6b5cab1cd8d8'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -138,6 +138,78 @@ def upgrade() -> None:
     sa.Column('role', sa.Enum('admin', 'rw', 'ro', name='role'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('token')
+    )
+    op.create_table('lightrag_doc_chunks',
+    sa.Column('id', sa.String(length=255), nullable=False),
+    sa.Column('workspace', sa.String(length=255), nullable=False),
+    sa.Column('full_doc_id', sa.String(length=256), nullable=True),
+    sa.Column('chunk_order_index', sa.Integer(), nullable=True),
+    sa.Column('tokens', sa.Integer(), nullable=True),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('content_vector', Vector(), nullable=True),
+    sa.Column('file_path', sa.String(length=256), nullable=True),
+    sa.Column('create_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('update_time', sa.DateTime(timezone=True), nullable=False),
+    sa.PrimaryKeyConstraint('id', 'workspace')
+    )
+    op.create_table('lightrag_doc_full',
+    sa.Column('id', sa.String(length=255), nullable=False),
+    sa.Column('workspace', sa.String(length=255), nullable=False),
+    sa.Column('doc_name', sa.String(length=1024), nullable=True),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('meta', sa.JSON(), nullable=True),
+    sa.Column('create_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('update_time', sa.DateTime(timezone=True), nullable=False),
+    sa.PrimaryKeyConstraint('id', 'workspace')
+    )
+    op.create_table('lightrag_doc_status',
+    sa.Column('workspace', sa.String(length=255), nullable=False),
+    sa.Column('id', sa.String(length=255), nullable=False),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('content_summary', sa.String(length=255), nullable=True),
+    sa.Column('content_length', sa.Integer(), nullable=True),
+    sa.Column('chunks_count', sa.Integer(), nullable=True),
+    sa.Column('status', sa.Enum('pending', 'processing', 'processed', 'failed', name='lightragdocstatus'), nullable=True),
+    sa.Column('file_path', sa.String(length=512), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.PrimaryKeyConstraint('workspace', 'id'),
+    sa.UniqueConstraint('workspace', 'id', name='uq_lightrag_doc_status_workspace_id')
+    )
+    op.create_table('lightrag_llm_cache',
+    sa.Column('workspace', sa.String(length=255), nullable=False),
+    sa.Column('id', sa.String(length=255), nullable=False),
+    sa.Column('mode', sa.String(length=32), nullable=False),
+    sa.Column('original_prompt', sa.Text(), nullable=True),
+    sa.Column('return_value', sa.Text(), nullable=True),
+    sa.Column('create_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('update_time', sa.DateTime(timezone=True), nullable=True),
+    sa.PrimaryKeyConstraint('workspace', 'id', 'mode')
+    )
+    op.create_table('lightrag_vdb_entity',
+    sa.Column('id', sa.String(length=255), nullable=False),
+    sa.Column('workspace', sa.String(length=255), nullable=False),
+    sa.Column('entity_name', sa.String(length=255), nullable=True),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('content_vector', Vector(), nullable=True),
+    sa.Column('create_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('update_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('chunk_ids', sa.ARRAY(sa.String()), nullable=True),
+    sa.Column('file_path', sa.Text(), nullable=True),
+    sa.PrimaryKeyConstraint('id', 'workspace')
+    )
+    op.create_table('lightrag_vdb_relation',
+    sa.Column('id', sa.String(length=255), nullable=False),
+    sa.Column('workspace', sa.String(length=255), nullable=False),
+    sa.Column('source_id', sa.String(length=256), nullable=True),
+    sa.Column('target_id', sa.String(length=256), nullable=True),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('content_vector', Vector(), nullable=True),
+    sa.Column('create_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('update_time', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('chunk_ids', sa.ARRAY(sa.String()), nullable=True),
+    sa.Column('file_path', sa.Text(), nullable=True),
+    sa.PrimaryKeyConstraint('id', 'workspace')
     )
     op.create_table('llm_provider',
     sa.Column('name', sa.String(length=128), nullable=False),
@@ -268,6 +340,12 @@ def downgrade() -> None:
     op.drop_table('message_feedback')
     op.drop_table('llm_provider_models')
     op.drop_table('llm_provider')
+    op.drop_table('lightrag_vdb_relation')
+    op.drop_table('lightrag_vdb_entity')
+    op.drop_table('lightrag_llm_cache')
+    op.drop_table('lightrag_doc_status')
+    op.drop_table('lightrag_doc_full')
+    op.drop_table('lightrag_doc_chunks')
     op.drop_table('invitation')
     op.drop_index(op.f('ix_document_user'), table_name='document')
     op.drop_index(op.f('ix_document_status'), table_name='document')
