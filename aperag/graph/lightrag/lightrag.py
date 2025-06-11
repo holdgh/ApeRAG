@@ -60,7 +60,7 @@ from .utils import (
     logger,
     create_lightrag_logger,
 )
-
+from .utils_graph import get_graph_db_lock
 
 
 @final
@@ -82,11 +82,6 @@ class LightRAG:
 
     doc_status_storage: str = field(default="JsonDocStatusStorage")
     """Storage type for tracking document processing statuses."""
-
-    # Logging (Deprecated, use setup_logger in utils.py instead)
-    # ---
-    log_level: int | None = field(default=None)
-    log_file_path: str | None = field(default=None)
 
     # Entity extraction
     # ---
@@ -229,29 +224,6 @@ class LightRAG:
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)
 
     def __post_init__(self):
-        # Handle deprecated parameters
-        if self.log_level is not None:
-            warnings.warn(
-                "WARNING: log_level parameter is deprecated, use setup_logger in utils.py instead",
-                UserWarning,
-                stacklevel=2,
-            )
-        if self.log_file_path is not None:
-            warnings.warn(
-                "WARNING: log_file_path parameter is deprecated, use setup_logger in utils.py instead",
-                UserWarning,
-                stacklevel=2,
-            )
-
-        # Remove these attributes to prevent their use
-        if hasattr(self, "log_level"):
-            delattr(self, "log_level")
-        if hasattr(self, "log_file_path"):
-            delattr(self, "log_file_path")
-
-        # Initialize instance-level graph database lock
-        # Use the new universal concurrent control system
-        from .utils_graph import get_graph_db_lock
         self._graph_db_lock = get_graph_db_lock(self.workspace)
         logger.info(f"Using universal concurrent control for graph operations: workspace={self.workspace}")
 
