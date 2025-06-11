@@ -28,20 +28,18 @@ Quick Start:
 """
 
 from .core import (
-    # Main factory functions
-    create_lock,            # Create new locks 
-    get_lock,               # Retrieve existing locks
-    get_or_create_lock,     # Get existing or create new (recommended)
-    
-    # Utility functions
-    lock_context,           # Async context manager with timeout support
-    get_default_lock_manager,  # Access default manager for advanced operations
-    
+    LockManager,
+    LockProtocol,
+    RedisLock,
     # Internal classes (for testing and advanced usage only - not in __all__)
     ThreadingLock,
-    RedisLock,
-    LockProtocol,
-    LockManager,
+    # Main factory functions
+    create_lock,  # Create new locks 
+    get_default_lock_manager,  # Access default manager for advanced operations
+    get_lock,  # Retrieve existing locks
+    get_or_create_lock,  # Get existing or create new (recommended)
+    # Utility functions
+    lock_context,  # Async context manager with timeout support
 )
 
 __all__ = [

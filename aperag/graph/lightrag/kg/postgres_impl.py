@@ -25,7 +25,10 @@ from dataclasses import dataclass, field
 from datetime import timezone
 from typing import Any, Union, final
 
+import asyncpg  # type: ignore
 import numpy as np
+from asyncpg import Pool  # type: ignore
+
 from ..base import (
     BaseKVStorage,
     BaseVectorStorage,
@@ -35,9 +38,6 @@ from ..base import (
 )
 from ..namespace import NameSpace, is_namespace
 from ..utils import logger
-
-import asyncpg  # type: ignore
-from asyncpg import Pool  # type: ignore
 
 
 class PostgreSQLDB:

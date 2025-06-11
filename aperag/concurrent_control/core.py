@@ -7,13 +7,12 @@ This module contains the main lock implementations and management classes.
 from __future__ import annotations
 
 import asyncio
-import threading
-import time
 import logging
+import threading
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional, AsyncContextManager, Any, Dict, Union
 from contextlib import asynccontextmanager
+from typing import Any, AsyncContextManager, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

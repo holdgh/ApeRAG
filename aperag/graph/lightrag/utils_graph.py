@@ -20,17 +20,16 @@ Modifications by ApeRAG Team:
 from __future__ import annotations
 
 import time
-from typing import Any, cast
+from typing import Any
 
-from .base import StorageNameSpace
+from ...concurrent_control import LockProtocol, get_or_create_lock
 from .prompt import GRAPH_FIELD_SEP
 from .utils import compute_mdhash_id, logger
-from ...concurrent_control import get_or_create_lock
 
 
 async def adelete_by_entity(
     chunk_entity_relation_graph, entities_vdb, relationships_vdb, entity_name: str,
-    graph_db_lock: "LockProtocol | None" = None
+    graph_db_lock: LockProtocol = None
 ) -> None:
     """Asynchronously delete an entity and all its relationships.
 
@@ -59,7 +58,7 @@ async def adelete_by_relation(
     relationships_vdb,
     source_entity: str,
     target_entity: str,
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> None:
     """Asynchronously delete a relation between two entities.
 
@@ -110,7 +109,7 @@ async def aedit_entity(
     entity_name: str,
     updated_data: dict[str, str],
     allow_rename: bool = True,
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> dict[str, Any]:
     """Asynchronously edit entity information.
 
@@ -302,7 +301,7 @@ async def aedit_relation(
     source_entity: str,
     target_entity: str,
     updated_data: dict[str, Any],
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> dict[str, Any]:
     """Asynchronously edit relation information.
 
@@ -404,7 +403,7 @@ async def acreate_entity(
     relationships_vdb,
     entity_name: str,
     entity_data: dict[str, Any],
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> dict[str, Any]:
     """Asynchronously create a new entity.
 
@@ -486,7 +485,7 @@ async def acreate_relation(
     source_entity: str,
     target_entity: str,
     relation_data: dict[str, Any],
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> dict[str, Any]:
     """Asynchronously create a new relation between entities.
 
@@ -597,7 +596,7 @@ async def amerge_entities(
     target_entity: str,
     merge_strategy: dict[str, str] = None,
     target_entity_data: dict[str, Any] = None,
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> dict[str, Any]:
     """Asynchronously merge multiple entities into one entity.
 

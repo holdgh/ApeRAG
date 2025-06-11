@@ -19,8 +19,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Type
 
-from sqlalchemy import JSON, Column, String, TypeDecorator, Text, ARRAY
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import ARRAY, JSON, Column, String, Text, TypeDecorator
 from sqlmodel import Field, SQLModel, UniqueConstraint, select
 
 from aperag.config import AsyncSessionDep

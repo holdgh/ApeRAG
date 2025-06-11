@@ -25,11 +25,10 @@ from dataclasses import dataclass
 from typing import Any, List, final
 
 import numpy as np
+from qdrant_client import QdrantClient, models  # type: ignore
 
 from ..base import BaseVectorStorage
 from ..utils import logger
-
-from qdrant_client import QdrantClient, models  # type: ignore
 
 
 def compute_mdhash_id_for_qdrant(

@@ -34,7 +34,7 @@ except ImportError:
     RedisKVStorage = None
 
 try:
-    from .postgres_impl import PGKVStorage, PGVectorStorage, PGDocStatusStorage
+    from .postgres_impl import PGDocStatusStorage, PGKVStorage, PGVectorStorage
 except ImportError:
     PGKVStorage = None
     PGVectorStorage = None

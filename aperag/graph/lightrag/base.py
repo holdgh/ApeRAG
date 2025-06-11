@@ -31,10 +31,8 @@ from typing import (
     TypeVar,
 )
 
-
 from .types import KnowledgeGraph
 from .utils import EmbeddingFunc
-
 
 
 class TextChunkSchema(TypedDict):

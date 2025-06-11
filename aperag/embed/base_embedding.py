@@ -20,7 +20,7 @@ from threading import Lock
 from langchain_core.embeddings import Embeddings
 
 from aperag.config import settings
-from aperag.db.ops import async_db_ops, db_ops
+from aperag.db.ops import db_ops
 from aperag.embed.embedding_service import EmbeddingService
 from aperag.schema.utils import parseCollectionConfig
 

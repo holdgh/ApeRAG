@@ -1,12 +1,11 @@
-import os
-import re
 import asyncio
 import logging
+import os
+import re
 import weakref
-from typing import Optional, Dict, Any, Set
-from contextlib import asynccontextmanager
-from collections import defaultdict
-from neo4j import AsyncGraphDatabase, AsyncDriver
+from typing import Any, Dict, Optional, Set
+
+from neo4j import AsyncDriver, AsyncGraphDatabase
 from neo4j import exceptions as neo4jExceptions
 
 logger = logging.getLogger(__name__)
@@ -134,8 +133,8 @@ class PooledConnectionManager:
                     if (e.code == "Neo.ClientError.Statement.UnsupportedAdministrationCommand") or \
                        (e.code == "Neo.DatabaseError.Statement.ExecutionFailed"):
                         logger.warning(
-                            f"This Neo4j instance does not support creating databases. "
-                            f"Using default database instead."
+                            "This Neo4j instance does not support creating databases. "
+                            "Using default database instead."
                         )
                         return await self._prepare_default_database(driver)
                     else:

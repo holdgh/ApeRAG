@@ -17,13 +17,12 @@ Modifications by ApeRAG Team:
 - See changelog.md for detailed modifications
 """
 
+# aioredis is a depricated library, replaced with redis
+import json
 import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, final
-
-# aioredis is a depricated library, replaced with redis
-import json
 
 from redis.asyncio import ConnectionPool, Redis  # type: ignore
 from redis.exceptions import ConnectionError, RedisError  # type: ignore

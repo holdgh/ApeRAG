@@ -5,16 +5,10 @@ This module tests the LockManager functionality including lock creation,
 management, and lifecycle operations.
 """
 
-import pytest
-from typing import Dict, Any
 
-from aperag.concurrent_control import (
-    LockManager, 
-    ThreadingLock, 
-    RedisLock, 
-    get_default_lock_manager,
-    LockProtocol
-)
+import pytest
+
+from aperag.concurrent_control import LockManager, RedisLock, ThreadingLock, get_default_lock_manager
 
 
 class TestLockManager:
@@ -129,8 +123,8 @@ class TestLockManager:
         manager = LockManager()
         
         # Create some locks
-        lock1 = manager.get_or_create_lock("lock1", "threading")
-        lock2 = manager.get_or_create_lock("lock2", "threading")
+        manager.get_or_create_lock("lock1", "threading")
+        manager.get_or_create_lock("lock2", "threading")
         
         assert len(manager._locks) == 2
         

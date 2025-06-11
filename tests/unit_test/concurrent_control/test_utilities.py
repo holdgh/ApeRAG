@@ -6,17 +6,16 @@ lock_context context manager, and other helper functions.
 """
 
 import asyncio
-import pytest
 import time
-from typing import Any
+
+import pytest
 
 from aperag.concurrent_control import (
-    create_lock,
-    lock_context,
-    ThreadingLock,
     RedisLock,
-    LockProtocol,
-    get_default_lock_manager
+    ThreadingLock,
+    create_lock,
+    get_default_lock_manager,
+    lock_context,
 )
 
 

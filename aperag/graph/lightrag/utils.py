@@ -21,13 +21,12 @@ from __future__ import annotations
 
 import asyncio
 import html
-import json
 import logging
 import os
 import re
 from dataclasses import dataclass
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Callable, List, Protocol
+from typing import Any, Callable, List, Protocol
 
 import numpy as np
 
@@ -63,9 +62,9 @@ def get_env_value(
         return default
 
 
-# Use TYPE_CHECKING to avoid circular imports
-if TYPE_CHECKING:
-    from aperag.graph.lightrag.base import BaseKVStorage
+# # Use TYPE_CHECKING to avoid circular imports
+# if TYPE_CHECKING:
+#     from aperag.graph.lightrag.base import BaseKVStorage
 
 # Initialize logger
 logger = logging.getLogger("lightrag")

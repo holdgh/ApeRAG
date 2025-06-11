@@ -7,6 +7,7 @@ interface compliance and expected error behaviors.
 """
 
 import pytest
+
 from aperag.concurrent_control import RedisLock, create_lock
 
 

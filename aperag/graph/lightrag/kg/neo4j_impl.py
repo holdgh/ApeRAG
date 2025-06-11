@@ -23,6 +23,12 @@ import os
 from dataclasses import dataclass
 from typing import final
 
+from neo4j import (  # type: ignore
+    AsyncManagedTransaction,
+)
+from neo4j import (
+    exceptions as neo4jExceptions,
+)
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -34,18 +40,9 @@ from ..base import BaseGraphStorage
 from ..types import KnowledgeGraph, KnowledgeGraphEdge, KnowledgeGraphNode
 from ..utils import logger
 
-from neo4j import (  # type: ignore
-    AsyncDriver,
-    AsyncGraphDatabase,
-    AsyncManagedTransaction,
-)
-from neo4j import (
-    exceptions as neo4jExceptions,
-)
-
 # Import Neo4j connection manager
 try:
-    from aperag.db.neo4j_manager import Neo4jConnectionFactory, BorrowedConnection
+    from aperag.db.neo4j_manager import BorrowedConnection, Neo4jConnectionFactory
 except ImportError:
     Neo4jConnectionFactory = None
     BorrowedConnection = None

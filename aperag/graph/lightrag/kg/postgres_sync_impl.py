@@ -19,7 +19,6 @@ Modifications by ApeRAG Team:
 
 import asyncio
 import datetime
-import os
 from dataclasses import dataclass
 from datetime import timezone
 from typing import Any, Union, final
@@ -138,8 +137,8 @@ class PGOpsSyncDocStatusStorage(DocStatusStorage):
         """Get all documents with a specific status"""
         def _sync_get_docs_by_status():
             # Import here to avoid circular imports
-            from aperag.db.ops import db_ops
             from aperag.db.models import LightRAGDocStatus
+            from aperag.db.ops import db_ops
             
             # Convert DocStatus to LightRAGDocStatus
             lightrag_status = LightRAGDocStatus(status.value)

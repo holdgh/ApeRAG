@@ -1,10 +1,11 @@
+import logging
 import os
 import re
-import logging
 import threading
-from typing import Optional, Dict, Any
 from contextlib import contextmanager
-from neo4j import GraphDatabase, Driver, Session
+from typing import Any, Dict, Optional
+
+from neo4j import Driver, GraphDatabase, Session
 from neo4j import exceptions as neo4jExceptions
 
 logger = logging.getLogger(__name__)

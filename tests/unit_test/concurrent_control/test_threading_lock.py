@@ -6,10 +6,9 @@ acquire/release operations, context manager usage, and concurrent behavior.
 """
 
 import asyncio
-import pytest
 import time
-import threading
-from typing import List
+
+import pytest
 
 from aperag.concurrent_control import ThreadingLock, create_lock
 

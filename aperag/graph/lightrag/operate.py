@@ -27,7 +27,7 @@ import time
 from collections import Counter, defaultdict
 from typing import Any, AsyncIterator
 
-
+from ...concurrent_control import LockProtocol
 from .base import (
     BaseGraphStorage,
     BaseKVStorage,
@@ -37,6 +37,7 @@ from .base import (
 )
 from .prompt import GRAPH_FIELD_SEP, PROMPTS
 from .utils import (
+    LightRAGLogger,
     Tokenizer,
     clean_str,
     compute_mdhash_id,
@@ -48,7 +49,6 @@ from .utils import (
     process_combine_contexts,
     split_string_by_multi_markers,
     truncate_list_by_token_size,
-    LightRAGLogger,
 )
 
 
@@ -501,7 +501,7 @@ async def merge_nodes_and_edges(
     total_files: int = 0,
     file_path: str = "unknown_source",
     lightrag_logger: LightRAGLogger | None = None,
-    graph_db_lock: "LockProtocol | None" = None,
+    graph_db_lock: LockProtocol = None,
 ) -> None:
     """Merge nodes and edges from extraction results"""
 
@@ -1092,13 +1092,6 @@ async def extract_keywords_only(
 
     hl_keywords = keywords_data.get("high_level_keywords", [])
     ll_keywords = keywords_data.get("low_level_keywords", [])
-
-    # 7. Cache only the processed keywords with cache type
-    if hl_keywords or ll_keywords:
-        cache_data = {
-            "high_level_keywords": hl_keywords,
-            "low_level_keywords": ll_keywords,
-        }
 
     return hl_keywords, ll_keywords
 
