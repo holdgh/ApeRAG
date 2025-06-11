@@ -210,17 +210,36 @@ class TestLockContext:
         """Test lock_context timeout edge cases."""
         lock = create_lock("threading", name="timeout_edge_test")
         
-        # Timeout of 0 should fail immediately if lock is held
-        async with lock:
-            with pytest.raises(TimeoutError):
-                async with lock_context(lock, timeout=0):
-                    pass
-        
-        # Very small timeout
-        with pytest.raises(TimeoutError):
+        # Test timeout with competing task (not reentrant lock)
+        async def blocking_task():
             async with lock:
-                async with lock_context(lock, timeout=0.001):
-                    pass
+                await asyncio.sleep(0.2)  # Hold lock for a while
+        
+        # Start blocking task
+        blocking_task_handle = asyncio.create_task(blocking_task())
+        await asyncio.sleep(0.05)  # Ensure blocking task gets the lock
+        
+        # Very small timeout should fail immediately
+        with pytest.raises(TimeoutError):
+            async with lock_context(lock, timeout=0.001):
+                pass
+        
+        # Wait for blocking task to complete
+        await blocking_task_handle
+        
+        # Test that timeout of 0 fails immediately when lock is held
+        async def another_blocking_task():
+            async with lock:
+                await asyncio.sleep(0.1)
+        
+        blocking_task_handle2 = asyncio.create_task(another_blocking_task())
+        await asyncio.sleep(0.02)  # Ensure task gets the lock
+        
+        with pytest.raises(TimeoutError):
+            async with lock_context(lock, timeout=0):
+                pass
+        
+        await blocking_task_handle2
 
     @pytest.mark.asyncio
     async def test_lock_context_without_timeout(self):

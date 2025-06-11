@@ -1,34 +1,61 @@
 """
 Universal Concurrent Control Module
 
-This module provides unified concurrent control mechanisms for any application.
-It supports different lock implementations based on deployment scenarios:
+A flexible and reusable concurrent control system that provides unified locking
+mechanisms for any Python application. Designed to handle different deployment
+scenarios and task queue environments.
 
-- ThreadingLock: For single-process environments (solo, threads, gevent)
-- RedisLock: For multi-process environments (prefork, distributed deployment)
+Features:
+- Auto-managed locks with default manager
+- Flexible timeout support
+- Universal applicability  
+- Easy extensibility
+- Production ready with comprehensive error handling
 
-The lock choice and configuration are passed as parameters rather than environment variables,
-making it more flexible and reusable across different projects and components.
+Quick Start:
+    from aperag.concurrent_control import get_or_create_lock, lock_context
+    
+    # Create/get a managed lock (most common usage)
+    my_lock = get_or_create_lock("database_operations")
+    
+    # Use with default behavior
+    async with my_lock:
+        await critical_work()
+    
+    # Use with timeout
+    async with lock_context(my_lock, timeout=5.0):
+        await critical_work()
 """
 
 from .core import (
-    LockProtocol,
+    # Main factory functions
+    create_lock,            # Create new locks 
+    get_lock,               # Retrieve existing locks
+    get_or_create_lock,     # Get existing or create new (recommended)
+    
+    # Utility functions
+    lock_context,           # Async context manager with timeout support
+    get_default_lock_manager,  # Access default manager for advanced operations
+    
+    # Internal classes (for testing and advanced usage only - not in __all__)
     ThreadingLock,
     RedisLock,
+    LockProtocol,
     LockManager,
-    create_lock,
-    lock_context,
-    get_default_lock_manager,
 )
 
 __all__ = [
-    "LockProtocol",
-    "ThreadingLock", 
-    "RedisLock",
-    "LockManager",
-    "create_lock",
-    "lock_context",
-    "get_default_lock_manager",
+    # Main interface (recommended)
+    "get_or_create_lock",   # ⭐ Primary function - get existing or create new
+    "get_lock",             # Get existing lock only
+    "create_lock",          # Create new locks 
+    "lock_context",         # ⭐ Timeout support for locks
+    
+    # Advanced/internal (use sparingly)
+    "get_default_lock_manager",  # Advanced lock management
 ]
+
+# Note: ThreadingLock, RedisLock, LockProtocol, LockManager are available 
+# for testing and advanced usage but not in __all__ to keep public API simple
 
 __version__ = "1.0.0" 

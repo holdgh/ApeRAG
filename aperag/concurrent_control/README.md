@@ -4,9 +4,10 @@ A flexible and reusable concurrent control system that provides unified locking 
 
 ## Features
 
-- **Parameter-based Configuration**: No environment variable dependencies, fully configurable through parameters
-- **Multi-instance Support**: Each component can have dedicated locks with unique identifiers
-- **Universal Applicability**: Not limited to any specific use case (LightRAG, database operations, etc.)
+- **Simple Interface**: `get_or_create_lock()` function covers 90% of use cases
+- **Auto-managed Locks**: Named locks are automatically registered for later retrieval
+- **Flexible Timeout Support**: Use `lock_context()` for timeout control in async contexts
+- **Universal Applicability**: Works with any Python application requiring concurrent control
 - **Easy Extensibility**: Clear protocol interface for implementing new lock types
 - **Production Ready**: Organized management and comprehensive error handling
 
@@ -17,7 +18,7 @@ A flexible and reusable concurrent control system that provides unified locking 
 - **Implementation**: `threading.Lock` wrapped with `asyncio.to_thread`
 - **Features**: 
   - Works with both coroutine and thread concurrency
-  - Non-blocking for event loop
+  - Non-blocking for the event loop
   - Lower overhead than distributed locks
 - **Limitations**: Does NOT work across multiple processes
 
@@ -32,161 +33,146 @@ A flexible and reusable concurrent control system that provides unified locking 
 
 ## Quick Start
 
-### Basic Usage
+### Basic Usage (90% of use cases)
 
 ```python
-from aperag.concurrent_control import create_lock
+from aperag.concurrent_control import get_or_create_lock, lock_context
 
-# Create a threading lock
-lock = create_lock("threading", name="my_operation")
+# Create/get a managed lock (recommended for most cases)
+my_lock = get_or_create_lock("database_operations")
 
+# Use with default behavior
 async def critical_operation():
-    async with lock:
+    async with my_lock:
         # Your protected operations here
+        await some_critical_work()
+
+# Use with timeout support
+async def operation_with_timeout():
+    async with lock_context(my_lock, timeout=5.0):
         await some_critical_work()
 ```
 
-### Lock Manager
+### Advanced Usage (10% of use cases)
 
 ```python
-from aperag.concurrent_control import LockManager
+from aperag.concurrent_control import create_lock, get_lock, get_or_create_lock
 
-# Create a manager for organized lock management
-manager = LockManager()
+# Create a named lock (automatically managed)
+create_lock("threading", name="database_ops")
 
-# Create different locks for different purposes
-db_lock = manager.get_or_create_lock("database_ops", "threading")
-file_lock = manager.get_or_create_lock("file_ops", "threading")
-
-async def database_operation():
-    async with db_lock:
+# Later retrieve the same lock instance
+lock = get_lock("database_ops")
+if lock:
+    async with lock:
         await execute_query()
 
-async def file_operation():
-    async with file_lock:
-        await write_file()
+# Or get existing/create new in one call (recommended)
+lock = get_or_create_lock("cache_ops")
+async with lock:
+    await update_cache()
 ```
 
-### Global Lock Manager
+## Default Lock Manager
+
+The module uses a **default global lock manager** to automatically manage named locks. This provides several benefits:
+
+### Automatic Registration
+```python
+# When you create a named lock, it's automatically registered
+lock1 = create_lock("threading", name="shared_resource")
+
+# Later, anywhere in your application, get the same instance
+lock2 = get_lock("shared_resource") 
+assert lock1 is lock2  # True - same lock instance
+```
+
+### Cross-Module Consistency
+```python
+# In module A
+from aperag.concurrent_control import get_or_create_lock
+db_lock = get_or_create_lock("database_operations")
+
+# In module B  
+from aperag.concurrent_control import get_or_create_lock
+same_db_lock = get_or_create_lock("database_operations")
+# Gets the exact same lock instance - no coordination needed
+```
+
+### Workspace Isolation
+```python
+# Different workspaces automatically get different locks
+workspace_a_lock = get_or_create_lock("operations_workspace_a")
+workspace_b_lock = get_or_create_lock("operations_workspace_b")
+# These are completely independent locks
+```
+
+### Lock Lifecycle
+- **Creation**: Named locks are automatically registered when created
+- **Retrieval**: Use `get_lock()` or `get_or_create_lock()` to access
+- **Cleanup**: Locks persist for the lifetime of the application
+- **Thread Safety**: The default manager is thread-safe
+
+## API Reference
+
+### Primary Interface (Recommended)
+
+#### `get_or_create_lock(name: str, lock_type: str = "threading", **kwargs) -> LockProtocol`
+**⭐ Main function for most use cases.** Get existing lock or create new one.
+
+```python
+# Simple usage (covers 90% of scenarios)
+my_lock = get_or_create_lock("database_operations")
+
+# With specific lock type  
+redis_lock = get_or_create_lock("distributed_ops", "redis", key="my_key")
+```
+
+#### `lock_context(lock: LockProtocol, timeout: float = None)`
+**⭐ Timeout support for async contexts.**
+
+```python
+# With timeout
+async with lock_context(my_lock, timeout=10.0):
+    await long_operation()
+```
+
+### Secondary Interface (Special Cases)
+
+#### `get_lock(name: str) -> Optional[LockProtocol]`
+Get existing lock only. Returns None if not found.
+
+```python
+# Check if lock exists
+existing = get_lock("my_operation")
+if existing:
+    async with existing:
+        await work()
+```
+
+#### `create_lock(lock_type: str = "threading", **kwargs) -> LockProtocol`
+Create a new lock. If `name` is provided, it will be auto-registered.
+
+```python
+# Create anonymous lock (not managed)
+temp_lock = create_lock("threading")
+
+# Create named lock (automatically managed)
+managed_lock = create_lock("threading", name="my_lock")
+```
+
+### Advanced Access
+
+#### `get_default_lock_manager() -> LockManager`
+Access the default lock manager for advanced operations.
 
 ```python
 from aperag.concurrent_control import get_default_lock_manager
 
-# Use the default global manager
-global_manager = get_default_lock_manager()
-lock = global_manager.get_or_create_lock("resource_name", "threading")
+manager = get_default_lock_manager()
+print("Managed locks:", manager.list_locks())
+manager.remove_lock("some_lock_name")
 ```
-
-### Timeout Handling
-
-```python
-from aperag.concurrent_control import lock_context
-
-async def operation_with_timeout():
-    try:
-        async with lock_context(my_lock, timeout=5.0):
-            await some_operation()
-    except TimeoutError:
-        print("Operation timed out waiting for lock")
-```
-
-## Integration Examples
-
-### LightRAG Integration
-
-```python
-from aperag.concurrent_control import create_lock
-
-class LightRAGWorkspaceManager:
-    def __init__(self, workspace: str):
-        self.workspace = workspace
-        # Create workspace-specific lock
-        lock_name = f"lightrag_graph_lock_{workspace}"
-        self.graph_lock = create_lock("threading", name=lock_name)
-    
-    async def process_documents(self, documents):
-        async with self.graph_lock:
-            await self._chunking_operation(documents)
-            await self._graph_indexing_operation(documents)
-```
-
-### Database Operations
-
-```python
-from aperag.concurrent_control import LockManager
-
-class DatabaseManager:
-    def __init__(self):
-        self.lock_manager = LockManager()
-    
-    async def migrate_schema(self, table_name: str):
-        lock = self.lock_manager.get_or_create_lock(f"schema_{table_name}", "threading")
-        async with lock:
-            await self._perform_migration(table_name)
-    
-    async def batch_insert(self, table_name: str, data):
-        lock = self.lock_manager.get_or_create_lock(f"insert_{table_name}", "threading")
-        async with lock:
-            await self._batch_insert_operation(table_name, data)
-```
-
-### File System Operations
-
-```python
-from aperag.concurrent_control import create_lock
-
-# Global locks for file system operations
-file_locks = {}
-
-async def safe_file_operation(file_path: str):
-    # Create lock per file path
-    if file_path not in file_locks:
-        file_locks[file_path] = create_lock("threading", name=f"file_{file_path}")
-    
-    lock = file_locks[file_path]
-    async with lock:
-        await modify_file(file_path)
-```
-
-## API Reference
-
-### Core Functions
-
-#### `create_lock(lock_type: str = "threading", **kwargs) -> LockProtocol`
-Factory function to create appropriate lock implementation.
-
-**Parameters:**
-- `lock_type`: Type of lock ("threading" or "redis")
-- `**kwargs`: Additional arguments for lock constructor
-
-**Threading Lock Arguments:**
-- `name`: Optional descriptive name for the lock
-
-**Redis Lock Arguments (Future):**
-- `key`: Redis key for the lock (required)
-- `redis_url`: Redis connection URL
-- `expire_time`: Lock expiration time in seconds
-- `retry_times`: Number of retry attempts
-- `retry_delay`: Delay between retries
-
-#### `lock_context(lock: LockProtocol, timeout: float = None)`
-Async context manager with timeout support.
-
-### LockManager Class
-
-#### `get_or_create_lock(lock_id: str, lock_type: str = "threading", **kwargs) -> LockProtocol`
-Get existing lock or create new one with the given identifier.
-
-#### `list_locks() -> Dict[str, str]`
-List all managed locks with their types.
-
-#### `remove_lock(lock_id: str) -> bool`
-Remove a lock from the manager.
-
-### Global Manager
-
-#### `get_default_lock_manager() -> LockManager`
-Get the default global lock manager instance.
 
 ## Deployment Recommendations
 
@@ -199,14 +185,76 @@ Get the default global lock manager instance.
 | `--pool=gevent` | `ThreadingLock` | Single-process async |
 | `--pool=solo` | `ThreadingLock` | Development/testing |
 
-### Configuration Examples
+## Usage Patterns
+
+### Simple Operations (Most Common)
 
 ```python
-# For development (single process)
-lock = create_lock("threading", name="dev_lock")
+from aperag.concurrent_control import get_or_create_lock
 
-# For production (multi-process) - Future
-# lock = create_lock("redis", key="prod:my_app:lock", redis_url="redis://redis-cluster:6379")
+# One-liner for simple cases
+my_lock = get_or_create_lock("file_operations")
+async with my_lock:
+    await process_file()
+```
+
+### With Timeout Control
+
+```python
+from aperag.concurrent_control import get_or_create_lock, lock_context
+
+migration_lock = get_or_create_lock("database_migration")
+
+async def migration_with_timeout():
+    try:
+        async with lock_context(migration_lock, timeout=30.0):
+            await run_migration()
+    except TimeoutError:
+        print("Migration timed out, will retry later")
+```
+
+### Multi-component Applications
+
+```python
+from aperag.concurrent_control import get_or_create_lock, lock_context
+
+# Different components use the same lock names
+database_lock = get_or_create_lock("database_operations")
+cache_lock = get_or_create_lock("cache_operations")
+
+async def update_user_data(user_id):
+    # Operations can run in parallel since they use different locks
+    async with database_lock:
+        await update_user_in_db(user_id)
+    
+    async with cache_lock:
+        await invalidate_user_cache(user_id)
+
+async def batch_operation():
+    # But batch operations serialize properly
+    async with lock_context(database_lock, timeout=60):
+        await process_large_batch()
+```
+
+### Workspace/Tenant Isolation
+
+```python
+from aperag.concurrent_control import get_or_create_lock
+
+class WorkspaceManager:
+    def __init__(self, workspace_id: str):
+        self.workspace_id = workspace_id
+        # Each workspace gets its own lock automatically
+        self.processing_lock = get_or_create_lock(f"processing_{workspace_id}")
+    
+    async def process_data(self, data):
+        async with self.processing_lock:
+            await self._process_data_for_workspace(data)
+
+# Different workspaces get different locks automatically
+manager_a = WorkspaceManager("tenant_a")
+manager_b = WorkspaceManager("tenant_b")
+# Their locks are completely independent
 ```
 
 ## Error Handling
@@ -214,14 +262,14 @@ lock = create_lock("threading", name="dev_lock")
 The module provides comprehensive error handling:
 
 ```python
-from aperag.concurrent_control import create_lock, lock_context
+from aperag.concurrent_control import get_or_create_lock, lock_context
 
-lock = create_lock("threading")
+my_lock = get_or_create_lock("critical_section")
 
 # Automatic lock release on exceptions
 async def operation_with_error():
     try:
-        async with lock:
+        async with my_lock:
             await some_operation()
             raise ValueError("Something went wrong")
     except ValueError:
@@ -231,7 +279,7 @@ async def operation_with_error():
 # Timeout handling
 async def operation_with_timeout():
     try:
-        async with lock_context(lock, timeout=10.0):
+        async with lock_context(my_lock, timeout=10.0):
             await long_operation()
     except TimeoutError:
         print("Operation timed out")
@@ -254,32 +302,64 @@ async def operation_with_timeout():
 ```python
 # Before
 import asyncio
-lock = asyncio.Lock()
+old_lock = asyncio.Lock()
 
-# After
-from aperag.concurrent_control import create_lock
-lock = create_lock("threading")
+async with old_lock:
+    # No timeout support
+    await work()
+
+# After  
+from aperag.concurrent_control import get_or_create_lock, lock_context
+
+new_lock = get_or_create_lock("my_operation")
+
+# Default behavior
+async with new_lock:
+    await work()
+
+# With timeout
+async with lock_context(new_lock, timeout=5.0):
+    await work()
 ```
 
-### From threading.Lock
+## Why This Design?
 
+### Main Interface Simplicity
 ```python
-# Before
-import threading
-lock = threading.Lock()
-
-def sync_operation():
-    with lock:
-        # sync code
-
-# After
-from aperag.concurrent_control import create_lock
-lock = create_lock("threading")
-
-async def async_operation():
-    async with lock:
-        # async code
+# 90% of use cases - clear and explicit function name
+my_lock = get_or_create_lock("my_operation")
+async with my_lock:
+    await work()
 ```
+
+### `lock_context()` Value
+```python
+# Without lock_context, timeout requires verbose code:
+if await my_lock.acquire(timeout=5.0):
+    try:
+        await work()
+    finally:
+        await my_lock.release()
+
+# With lock_context - clean and safe:
+async with lock_context(my_lock, timeout=5.0):
+    await work()
+```
+
+### Auto-managed Locks
+```python
+# Create once, use anywhere
+create_lock("threading", name="database_ops")
+
+# Later in any module
+same_lock = get_lock("database_ops")  # Gets the same instance
+```
+
+### Single Source of Truth
+- All named locks automatically managed by default manager
+- No need to pass lock instances around
+- Consistent naming across application
+- Workspace isolation through naming conventions
 
 ## Testing
 
@@ -292,9 +372,8 @@ pytest tests/unit_test/concurrent_control/
 ## Future Enhancements
 
 1. **RedisLock Implementation**: Complete Redis-based distributed locking
-2. **Additional Lock Types**: Database-based locks, file-based locks
-3. **Monitoring**: Lock usage metrics and performance monitoring
-4. **Advanced Features**: Lock priorities, deadlock detection
+2. **Lock Monitoring**: Usage metrics and performance monitoring
+3. **Advanced Features**: Lock priorities, deadlock detection
 
 ## License
 

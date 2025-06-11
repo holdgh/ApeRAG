@@ -98,34 +98,27 @@ class ThreadingLock(LockProtocol):
         
         Args:
             timeout: Maximum time to wait for the lock (seconds).
-                    Note: timeout support depends on threading.Lock implementation.
+                    None means wait indefinitely.
         
         Returns:
             True if lock was acquired, False if timeout occurred.
         """
-        start_time = time.time()
-        
         def _sync_acquire():
-            # For now, we use blocking acquire
-            # TODO: Consider implementing timeout support if needed
-            acquired = self._lock.acquire(blocking=True)
+            # Use threading.Lock.acquire with timeout parameter
+            if timeout is not None:
+                acquired = self._lock.acquire(blocking=True, timeout=timeout)
+            else:
+                acquired = self._lock.acquire(blocking=True)
+            
             if acquired:
                 self._holder_info = f"Thread-{threading.get_ident()}"
                 logger.debug(f"Lock '{self._name}' acquired by {self._holder_info}")
+            
             return acquired
         
         try:
-            # Use asyncio.to_thread to run the blocking acquire in background thread
+            # Use asyncio.to_thread to run the acquire in background thread
             result = await asyncio.to_thread(_sync_acquire)
-            
-            if result and timeout is not None:
-                elapsed = time.time() - start_time
-                if elapsed > timeout:
-                    # If we exceeded timeout, release and return False
-                    await self.release()
-                    logger.warning(f"Lock '{self._name}' acquisition exceeded timeout ({timeout}s)")
-                    return False
-            
             return result
             
         except Exception as e:
@@ -364,28 +357,97 @@ class LockManager:
 
 def create_lock(lock_type: str = "threading", **kwargs) -> LockProtocol:
     """
-    Factory function to create appropriate lock implementation.
+    Create a new lock instance.
+    
+    If a 'name' is provided, the lock will be automatically registered 
+    in the default lock manager for later retrieval.
     
     Args:
         lock_type: Type of lock to create ('threading' or 'redis')
+        name: Optional lock name (if provided, auto-registered for retrieval)
         **kwargs: Additional arguments passed to lock constructor
     
     Returns:
         LockProtocol: Lock implementation instance
         
     Examples:
-        # Create a threading lock
-        lock = create_lock("threading", name="my_lock")
+        # Create anonymous lock (not managed)
+        temp_lock = create_lock("threading")
         
-        # Create a Redis lock
-        lock = create_lock("redis", key="my_app:lock", redis_url="redis://localhost:6379")
+        # Create named lock (automatically managed)
+        managed_lock = create_lock("threading", name="my_lock")
+        same_lock = get_lock("my_lock")  # Returns same instance
+        
+        # Create Redis lock
+        redis_lock = create_lock("redis", key="my_app:lock", redis_url="redis://localhost:6379")
     """
     if lock_type == "threading":
-        return ThreadingLock(**kwargs)
+        lock_instance = ThreadingLock(**kwargs)
     elif lock_type == "redis":
-        return RedisLock(**kwargs)
+        lock_instance = RedisLock(**kwargs)
     else:
         raise ValueError(f"Unknown lock type: {lock_type}. Use 'threading' or 'redis'.")
+    
+    # Auto-register named locks in default manager
+    lock_name = kwargs.get('name') or getattr(lock_instance, '_name', None)
+    if lock_name and hasattr(lock_instance, '_name'):
+        default_lock_manager._locks[lock_instance._name] = lock_instance
+    
+    return lock_instance
+
+
+def get_lock(name: str) -> Optional[LockProtocol]:
+    """
+    Get a lock from the default manager by name.
+    
+    Args:
+        name: Name of the lock to retrieve
+    
+    Returns:
+        The lock instance if found, None otherwise
+        
+    Examples:
+        # Create a named lock
+        create_lock("threading", name="my_operation")
+        
+        # Later retrieve it
+        lock = get_lock("my_operation")
+        if lock:
+            async with lock:
+                await work()
+    """
+    return default_lock_manager._locks.get(name)
+
+
+def get_or_create_lock(name: str, lock_type: str = "threading", **kwargs) -> LockProtocol:
+    """
+    Get an existing lock by name or create a new one.
+    
+    This is a convenience function that combines get_lock and create_lock.
+    
+    Args:
+        name: Name of the lock
+        lock_type: Type of lock to create if not found
+        **kwargs: Additional arguments for lock creation
+    
+    Returns:
+        Lock instance (existing or newly created)
+        
+    Examples:
+        # Get existing or create new
+        lock = get_or_create_lock("database_ops", "threading")
+        
+        # All subsequent calls return the same instance
+        same_lock = get_or_create_lock("database_ops", "threading")
+        assert lock is same_lock
+    """
+    existing_lock = get_lock(name)
+    if existing_lock:
+        return existing_lock
+    
+    # Create new lock with the specified name
+    kwargs['name'] = name
+    return create_lock(lock_type, **kwargs)
 
 
 @asynccontextmanager
