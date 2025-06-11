@@ -87,16 +87,16 @@ class LightRAG:
     # Storage
     # ---
 
-    kv_storage: str = field(default="JsonKVStorage")
+    kv_storage: str = field(default="PGOpsSyncKVStorage")
     """Storage backend for key-value data."""
 
-    vector_storage: str = field(default="NanoVectorDBStorage")
+    vector_storage: str = field(default="PGOpsSyncVectorStorage")
     """Storage backend for vector embeddings."""
 
-    graph_storage: str = field(default="NetworkXStorage")
+    graph_storage: str = field(default="Neo4JSyncStorage")
     """Storage backend for knowledge graphs."""
 
-    doc_status_storage: str = field(default="JsonDocStatusStorage")
+    doc_status_storage: str = field(default="PGOpsSyncDocStatusStorage")
     """Storage type for tracking document processing statuses."""
 
     # Entity extraction
