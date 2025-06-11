@@ -106,14 +106,10 @@ class LightRAG:
     entity_extract_max_gleaning: int = field(default=1)
     """Maximum number of entity extraction attempts for ambiguous content."""
 
-    summary_to_max_tokens: int = field(
-        default=get_env_value("MAX_TOKEN_SUMMARY", DEFAULT_MAX_TOKEN_SUMMARY, int)
-    )
+    summary_to_max_tokens: int = field(default=get_env_value("MAX_TOKEN_SUMMARY", DEFAULT_MAX_TOKEN_SUMMARY, int))
 
     force_llm_summary_on_merge: int = field(
-        default=get_env_value(
-            "FORCE_LLM_SUMMARY_ON_MERGE", DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE, int
-        )
+        default=get_env_value("FORCE_LLM_SUMMARY_ON_MERGE", DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE, int)
     )
 
     # Text chunking
@@ -174,9 +170,7 @@ class LightRAG:
     embedding_batch_num: int = field(default=32)
     """Batch size for embedding computations."""
 
-    embedding_func_max_async: int = field(
-        default=16
-    )
+    embedding_func_max_async: int = field(default=16)
     """Maximum number of concurrent embedding function calls."""
 
     embedding_cache_config: dict[str, Any] = field(
@@ -236,9 +230,7 @@ class LightRAG:
     """Maximum number of parallel insert operations."""
 
     addon_params: dict[str, Any] = field(
-        default_factory=lambda: {
-            "language": get_env_value("SUMMARY_LANGUAGE", "English", str)
-        }
+        default_factory=lambda: {"language": get_env_value("SUMMARY_LANGUAGE", "English", str)}
     )
 
     # Storages Management
@@ -273,15 +265,9 @@ class LightRAG:
                 self.tokenizer = TiktokenTokenizer()
 
         # Initialize all storages
-        self.key_string_value_json_storage_cls: type[BaseKVStorage] = (
-            self._get_storage_class(self.kv_storage)
-        )  # type: ignore
-        self.vector_db_storage_cls: type[BaseVectorStorage] = self._get_storage_class(
-            self.vector_storage
-        )  # type: ignore
-        self.graph_storage_cls: type[BaseGraphStorage] = self._get_storage_class(
-            self.graph_storage
-        )  # type: ignore
+        self.key_string_value_json_storage_cls: type[BaseKVStorage] = self._get_storage_class(self.kv_storage)  # type: ignore
+        self.vector_db_storage_cls: type[BaseVectorStorage] = self._get_storage_class(self.vector_storage)  # type: ignore
+        self.graph_storage_cls: type[BaseGraphStorage] = self._get_storage_class(self.graph_storage)  # type: ignore
         self.key_string_value_json_storage_cls = partial(  # type: ignore
             self.key_string_value_json_storage_cls
         )
@@ -412,9 +398,7 @@ class LightRAG:
             KnowledgeGraph: Knowledge graph containing nodes and edges
         """
 
-        return await self.chunk_entity_relation_graph.get_knowledge_graph(
-            node_label, max_depth, max_nodes
-        )
+        return await self.chunk_entity_relation_graph.get_knowledge_graph(node_label, max_depth, max_nodes)
 
     def _get_storage_class(self, storage_name: str) -> Callable[..., Any]:
         import_path = STORAGES[storage_name]
@@ -422,7 +406,7 @@ class LightRAG:
         return storage_class
 
     # ============= New Stateless Interfaces =============
-    
+
     async def ainsert_and_chunk_document(
         self,
         documents: list[str],
@@ -433,14 +417,14 @@ class LightRAG:
     ) -> dict[str, Any]:
         """
         Stateless document insertion and chunking - inserts documents and performs chunking in one step.
-        
+
         Args:
             documents: List of document contents
             doc_ids: Optional list of document IDs (will generate if not provided)
             file_paths: Optional list of file paths for citation
             split_by_character: Optional character to split by
             split_by_character_only: If True, only split by character
-            
+
         Returns:
             Dict with document metadata and chunks
         """
@@ -451,36 +435,33 @@ class LightRAG:
             doc_ids = [doc_ids]
         if isinstance(file_paths, str):
             file_paths = [file_paths]
-            
+
         # Validate inputs
         if file_paths and len(file_paths) != len(documents):
             raise ValueError("Number of file paths must match number of documents")
         if doc_ids and len(doc_ids) != len(documents):
             raise ValueError("Number of doc IDs must match number of documents")
-            
+
         # Use default file paths if not provided
         if not file_paths:
             file_paths = ["unknown_source"] * len(documents)
-            
+
         # Generate or validate IDs
         if not doc_ids:
-            doc_ids = [
-                compute_mdhash_id(clean_text(doc), prefix="doc-") 
-                for doc in documents
-            ]
+            doc_ids = [compute_mdhash_id(clean_text(doc), prefix="doc-") for doc in documents]
         else:
             # Check uniqueness
             if len(doc_ids) != len(set(doc_ids)):
                 raise ValueError("Document IDs must be unique")
-                
+
         results = []
-        
+
         for doc_id, content, file_path in zip(doc_ids, documents, file_paths):
             cleaned_content = clean_text(content)
-            
+
             if not cleaned_content.strip():
                 raise ValueError(f"Document {doc_id} content is empty after cleaning")
-            
+
             # Perform chunking
             chunk_list = self.chunking_func(
                 self.tokenizer,
@@ -490,11 +471,11 @@ class LightRAG:
                 self.chunk_overlap_token_size,
                 self.chunk_token_size,
             )
-            
+
             # Validate chunk_list format
             if not chunk_list:
                 raise ValueError(f"Chunking returned empty list for document {doc_id}")
-                
+
             # Create chunk data with IDs and validate each chunk
             chunks = {}
             for i, chunk_data in enumerate(chunk_list):
@@ -506,17 +487,17 @@ class LightRAG:
                 if not chunk_data["content"]:
                     logger.warning(f"Chunk {i} has empty content, skipping")
                     continue
-                    
+
                 chunk_id = compute_mdhash_id(chunk_data["content"], prefix="chunk-")
                 chunks[chunk_id] = {
                     **chunk_data,
                     "full_doc_id": doc_id,
                     "file_path": file_path,
                 }
-                
+
             if not chunks:
                 raise ValueError(f"No valid chunks created for document {doc_id}")
-            
+
             # Prepare complete status data
             status_data = {
                 "status": DocStatus.PROCESSING,
@@ -528,7 +509,7 @@ class LightRAG:
                 "updated_at": datetime.now(timezone.utc).isoformat(),
                 "file_path": file_path,
             }
-            
+
             # Write to storage (avoid concurrent operations on same connection)
             doc_data = {doc_id: {"content": cleaned_content}}
             logger.info(f"LightRAG: About to upsert {len(chunks)} chunks to storages")
@@ -539,25 +520,26 @@ class LightRAG:
             await self.text_chunks.upsert(chunks)
             await self.doc_status.upsert({doc_id: status_data})
             logger.info(f"LightRAG: Completed all upsert operations for {doc_id}")
-            
+
             logger.info(f"Inserted and chunked document {doc_id}: {len(chunks)} chunks")
-            
-            results.append({
-                "doc_id": doc_id,
-                "chunks": list(chunks.keys()),
-                "chunk_count": len(chunks),
-                "chunks_data": chunks,
-                "status": "processed"
-            })
-        
+
+            results.append(
+                {
+                    "doc_id": doc_id,
+                    "chunks": list(chunks.keys()),
+                    "chunk_count": len(chunks),
+                    "chunks_data": chunks,
+                    "status": "processed",
+                }
+            )
+
         return {
             "results": results,
             "total_documents": len(doc_ids),
             "total_chunks": sum(len(r["chunks"]) for r in results),
-            "status": "success"
+            "status": "success",
         }
 
-    
     async def aprocess_graph_indexing(
         self,
         chunks: dict[str, Any],
@@ -565,23 +547,23 @@ class LightRAG:
     ) -> dict[str, Any]:
         """
         Stateless graph indexing - extracts entities/relations and builds graph index.
-        
+
         Args:
             chunks: Dict of chunk_id -> chunk_data
             collection_id: Optional collection ID for logging
-            
+
         Returns:
             Dict with extraction results
         """
         # Create logger for this processing session
         workspace = self.workspace if self.workspace else "default"
         lightrag_logger = create_lightrag_logger(prefix="LightRAG-GraphIndex", workspace=workspace)
-        
+
         try:
             # Validate chunks input
             if not chunks:
                 raise ValueError("No chunks provided for graph indexing")
-                
+
             # Validate each chunk has required fields
             for chunk_id, chunk_data in chunks.items():
                 if not isinstance(chunk_data, dict):
@@ -590,9 +572,9 @@ class LightRAG:
                     raise ValueError(f"Chunk {chunk_id} missing 'content' key")
                 if not chunk_data["content"]:
                     raise ValueError(f"Chunk {chunk_id} has empty content")
-                    
+
             lightrag_logger.info(f"Starting graph indexing for {len(chunks)} chunks")
-            
+
             # 1. Extract entities and relations from chunks
             chunk_results = await extract_entities(
                 chunks,
@@ -602,9 +584,9 @@ class LightRAG:
                 llm_model_max_async=self.llm_model_max_async,
                 lightrag_logger=lightrag_logger,
             )
-            
+
             lightrag_logger.info(f"Extracted entities and relations from {len(chunks)} chunks")
-            
+
             # 2. Merge nodes and edges (using instance-level lock)
             await merge_nodes_and_edges(
                 chunk_results=chunk_results,
@@ -623,15 +605,15 @@ class LightRAG:
                 lightrag_logger=lightrag_logger,
                 graph_db_lock=self._graph_db_lock,
             )
-            
+
             lightrag_logger.info("Completed merging entities and relations")
-            
+
             # Count results
             entity_count = sum(len(nodes) for nodes, _ in chunk_results)
             relation_count = sum(len(edges) for _, edges in chunk_results)
-            
+
             lightrag_logger.info(f"Graph indexing completed: {entity_count} entities, {relation_count} relations")
-            
+
             return {
                 "status": "success",
                 "chunks_processed": len(chunks),
@@ -639,9 +621,9 @@ class LightRAG:
                 "relations_extracted": relation_count,
                 "collection_id": collection_id,
             }
-            
+
         except Exception as e:
-            if 'lightrag_logger' in locals():
+            if "lightrag_logger" in locals():
                 lightrag_logger.error(f"Graph indexing failed: {str(e)}")
             else:
                 logger.error(f"Graph indexing failed: {str(e)}", exc_info=True)
@@ -653,8 +635,6 @@ class LightRAG:
             }
 
     # ============= End of New Stateless Interfaces =============
-
-
 
     def query(
         self,
@@ -736,9 +716,7 @@ class LightRAG:
             raise ValueError(f"Unknown mode {param.mode}")
         return response
 
-    async def get_docs_by_status(
-        self, status: DocStatus
-    ) -> dict[str, DocProcessingStatus]:
+    async def get_docs_by_status(self, status: DocStatus) -> dict[str, DocProcessingStatus]:
         """Get documents by status
 
         Returns:
@@ -746,9 +724,7 @@ class LightRAG:
         """
         return await self.doc_status.get_docs_by_status(status)
 
-    async def aget_docs_by_ids(
-        self, ids: str | list[str]
-    ) -> dict[str, DocProcessingStatus]:
+    async def aget_docs_by_ids(self, ids: str | list[str]) -> dict[str, DocProcessingStatus]:
         """Retrieves the processing status for one or more documents by their IDs.
 
         Args:
@@ -762,12 +738,8 @@ class LightRAG:
         if isinstance(ids, str):
             # Ensure input is always a list of IDs for uniform processing
             id_list = [ids]
-        elif (
-            ids is None
-        ):  # Handle potential None input gracefully, although type hint suggests str/list
-            logger.warning(
-                "aget_docs_by_ids called with None input, returning empty dict."
-            )
+        elif ids is None:  # Handle potential None input gracefully, although type hint suggests str/list
+            logger.warning("aget_docs_by_ids called with None input, returning empty dict.")
             return {}
         else:
             # Assume input is already a list if not a string
@@ -791,9 +763,7 @@ class LightRAG:
 
         # Iterate through the results, correlating them back to the original IDs
         for i, status_obj in enumerate(results_list):
-            doc_id = id_list[
-                i
-            ]  # Get the original ID corresponding to this result index
+            doc_id = id_list[i]  # Get the original ID corresponding to this result index
             if status_obj:
                 # If a status object was returned (not None), add it to the result dict
                 found_statuses[doc_id] = status_obj
@@ -803,9 +773,7 @@ class LightRAG:
 
         # Log a warning if any of the requested document IDs were not found
         if not_found_ids:
-            logger.warning(
-                f"Document statuses not found for the following IDs: {not_found_ids}"
-            )
+            logger.warning(f"Document statuses not found for the following IDs: {not_found_ids}")
 
         # Return the dictionary containing statuses only for the found document IDs
         return found_statuses
@@ -832,8 +800,7 @@ class LightRAG:
             related_chunks = {
                 chunk_id: chunk_data
                 for chunk_id, chunk_data in all_chunks.items()
-                if isinstance(chunk_data, dict)
-                and chunk_data.get("full_doc_id") == doc_id
+                if isinstance(chunk_data, dict) and chunk_data.get("full_doc_id") == doc_id
             }
 
             if not related_chunks:
@@ -850,20 +817,12 @@ class LightRAG:
             for chunk_id in chunk_ids:
                 # Check entities
                 entities_storage = await self.entities_vdb.client_storage
-                entities = [
-                    dp
-                    for dp in entities_storage["data"]
-                    if chunk_id in dp.get("source_id")
-                ]
+                entities = [dp for dp in entities_storage["data"] if chunk_id in dp.get("source_id")]
                 logger.debug(f"Chunk {chunk_id} has {len(entities)} related entities")
 
                 # Check relationships
                 relationships_storage = await self.relationships_vdb.client_storage
-                relations = [
-                    dp
-                    for dp in relationships_storage["data"]
-                    if chunk_id in dp.get("source_id")
-                ]
+                relations = [dp for dp in relationships_storage["data"] if chunk_id in dp.get("source_id")]
                 logger.debug(f"Chunk {chunk_id} has {len(relations)} related relations")
 
             # Continue with the original deletion process...
@@ -890,35 +849,25 @@ class LightRAG:
                     sources.difference_update(chunk_ids)
                     if not sources:
                         entities_to_delete.add(node_label)
-                        logger.debug(
-                            f"Entity {node_label} marked for deletion - no remaining sources"
-                        )
+                        logger.debug(f"Entity {node_label} marked for deletion - no remaining sources")
                     else:
                         new_source_id = GRAPH_FIELD_SEP.join(sources)
                         entities_to_update[node_label] = new_source_id
-                        logger.debug(
-                            f"Entity {node_label} will be updated with new source_id: {new_source_id}"
-                        )
+                        logger.debug(f"Entity {node_label} will be updated with new source_id: {new_source_id}")
 
             # Process relationships
             for node_label in all_labels:
-                node_edges = await self.chunk_entity_relation_graph.get_node_edges(
-                    node_label
-                )
+                node_edges = await self.chunk_entity_relation_graph.get_node_edges(node_label)
                 if node_edges:
                     for src, tgt in node_edges:
-                        edge_data = await self.chunk_entity_relation_graph.get_edge(
-                            src, tgt
-                        )
+                        edge_data = await self.chunk_entity_relation_graph.get_edge(src, tgt)
                         if edge_data and "source_id" in edge_data:
                             # Split source_id using GRAPH_FIELD_SEP
                             sources = set(edge_data["source_id"].split(GRAPH_FIELD_SEP))
                             sources.difference_update(chunk_ids)
                             if not sources:
                                 relationships_to_delete.add((src, tgt))
-                                logger.debug(
-                                    f"Relationship {src}-{tgt} marked for deletion - no remaining sources"
-                                )
+                                logger.debug(f"Relationship {src}-{tgt} marked for deletion - no remaining sources")
                             else:
                                 new_source_id = GRAPH_FIELD_SEP.join(sources)
                                 relationships_to_update[(src, tgt)] = new_source_id
@@ -931,9 +880,7 @@ class LightRAG:
                 for entity in entities_to_delete:
                     await self.entities_vdb.delete_entity(entity)
                     logger.debug(f"Deleted entity {entity} from vector DB")
-                await self.chunk_entity_relation_graph.remove_nodes(
-                    list(entities_to_delete)
-                )
+                await self.chunk_entity_relation_graph.remove_nodes(list(entities_to_delete))
                 logger.debug(f"Deleted {len(entities_to_delete)} entities from graph")
 
             # Update entities
@@ -941,12 +888,8 @@ class LightRAG:
                 node_data = await self.chunk_entity_relation_graph.get_node(entity)
                 if node_data:
                     node_data["source_id"] = new_source_id
-                    await self.chunk_entity_relation_graph.upsert_node(
-                        entity, node_data
-                    )
-                    logger.debug(
-                        f"Updated entity {entity} with new source_id: {new_source_id}"
-                    )
+                    await self.chunk_entity_relation_graph.upsert_node(entity, node_data)
+                    logger.debug(f"Updated entity {entity} with new source_id: {new_source_id}")
 
             # Delete relationships
             if relationships_to_delete:
@@ -955,24 +898,16 @@ class LightRAG:
                     rel_id_1 = compute_mdhash_id(tgt + src, prefix="rel-")
                     await self.relationships_vdb.delete([rel_id_0, rel_id_1])
                     logger.debug(f"Deleted relationship {src}-{tgt} from vector DB")
-                await self.chunk_entity_relation_graph.remove_edges(
-                    list(relationships_to_delete)
-                )
-                logger.debug(
-                    f"Deleted {len(relationships_to_delete)} relationships from graph"
-                )
+                await self.chunk_entity_relation_graph.remove_edges(list(relationships_to_delete))
+                logger.debug(f"Deleted {len(relationships_to_delete)} relationships from graph")
 
             # Update relationships
             for (src, tgt), new_source_id in relationships_to_update.items():
                 edge_data = await self.chunk_entity_relation_graph.get_edge(src, tgt)
                 if edge_data:
                     edge_data["source_id"] = new_source_id
-                    await self.chunk_entity_relation_graph.upsert_edge(
-                        src, tgt, edge_data
-                    )
-                    logger.debug(
-                        f"Updated relationship {src}-{tgt} with new source_id: {new_source_id}"
-                    )
+                    await self.chunk_entity_relation_graph.upsert_edge(src, tgt, edge_data)
+                    logger.debug(f"Updated relationship {src}-{tgt} with new source_id: {new_source_id}")
 
             # 6. Delete original document and status
             await self.full_docs.delete([doc_id])
@@ -988,16 +923,12 @@ class LightRAG:
                 # Check data (entities or relationships)
                 storage = await vdb.client_storage
                 data_with_chunk = [
-                    dp
-                    for dp in storage["data"]
-                    if chunk_id in (dp.get("source_id") or "").split(GRAPH_FIELD_SEP)
+                    dp for dp in storage["data"] if chunk_id in (dp.get("source_id") or "").split(GRAPH_FIELD_SEP)
                 ]
 
                 data_for_vdb = {}
                 if data_with_chunk:
-                    logger.warning(
-                        f"found {len(data_with_chunk)} {data_type} still referencing chunk {chunk_id}"
-                    )
+                    logger.warning(f"found {len(data_with_chunk)} {data_type} still referencing chunk {chunk_id}")
 
                     for item in data_with_chunk:
                         old_sources = item["source_id"].split(GRAPH_FIELD_SEP)
@@ -1013,16 +944,11 @@ class LightRAG:
                             item_id = item["__id__"]
                             data_for_vdb[item_id] = item.copy()
                             if data_type == "entities":
-                                data_for_vdb[item_id]["content"] = data_for_vdb[
-                                    item_id
-                                ].get("content") or (
-                                    item.get("entity_name", "")
-                                    + (item.get("description") or "")
+                                data_for_vdb[item_id]["content"] = data_for_vdb[item_id].get("content") or (
+                                    item.get("entity_name", "") + (item.get("description") or "")
                                 )
                             else:  # relationships
-                                data_for_vdb[item_id]["content"] = data_for_vdb[
-                                    item_id
-                                ].get("content") or (
+                                data_for_vdb[item_id]["content"] = data_for_vdb[item_id].get("content") or (
                                     (item.get("keywords") or "")
                                     + (item.get("src_id") or "")
                                     + (item.get("tgt_id") or "")
@@ -1044,21 +970,16 @@ class LightRAG:
                 remaining_related_chunks = {
                     chunk_id: chunk_data
                     for chunk_id, chunk_data in all_remaining_chunks.items()
-                    if isinstance(chunk_data, dict)
-                    and chunk_data.get("full_doc_id") == doc_id
+                    if isinstance(chunk_data, dict) and chunk_data.get("full_doc_id") == doc_id
                 }
 
                 if remaining_related_chunks:
-                    logger.warning(
-                        f"Found {len(remaining_related_chunks)} remaining chunks"
-                    )
+                    logger.warning(f"Found {len(remaining_related_chunks)} remaining chunks")
 
                 # Verify entities and relationships
                 for chunk_id in chunk_ids:
                     await process_data("entities", self.entities_vdb, chunk_id)
-                    await process_data(
-                        "relationships", self.relationships_vdb, chunk_id
-                    )
+                    await process_data("relationships", self.relationships_vdb, chunk_id)
 
             await verify_deletion()
 
@@ -1104,10 +1025,7 @@ class LightRAG:
 
     def delete_by_relation(self, source_entity: str, target_entity: str) -> None:
         loop = always_get_an_event_loop()
-        return loop.run_until_complete(
-            self.adelete_by_relation(source_entity, target_entity)
-        )
-
+        return loop.run_until_complete(self.adelete_by_relation(source_entity, target_entity))
 
     async def get_entity_info(
         self, entity_name: str, include_vector_data: bool = False
@@ -1163,13 +1081,9 @@ class LightRAG:
             graph_db_lock=self._graph_db_lock,
         )
 
-    def edit_entity(
-        self, entity_name: str, updated_data: dict[str, str], allow_rename: bool = True
-    ) -> dict[str, Any]:
+    def edit_entity(self, entity_name: str, updated_data: dict[str, str], allow_rename: bool = True) -> dict[str, Any]:
         loop = always_get_an_event_loop()
-        return loop.run_until_complete(
-            self.aedit_entity(entity_name, updated_data, allow_rename)
-        )
+        return loop.run_until_complete(self.aedit_entity(entity_name, updated_data, allow_rename))
 
     async def aedit_relation(
         self, source_entity: str, target_entity: str, updated_data: dict[str, Any]
@@ -1198,17 +1112,11 @@ class LightRAG:
             graph_db_lock=self._graph_db_lock,
         )
 
-    def edit_relation(
-        self, source_entity: str, target_entity: str, updated_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    def edit_relation(self, source_entity: str, target_entity: str, updated_data: dict[str, Any]) -> dict[str, Any]:
         loop = always_get_an_event_loop()
-        return loop.run_until_complete(
-            self.aedit_relation(source_entity, target_entity, updated_data)
-        )
+        return loop.run_until_complete(self.aedit_relation(source_entity, target_entity, updated_data))
 
-    async def acreate_entity(
-        self, entity_name: str, entity_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def acreate_entity(self, entity_name: str, entity_data: dict[str, Any]) -> dict[str, Any]:
         """Asynchronously create a new entity.
 
         Creates a new entity in the knowledge graph and adds it to the vector database.
@@ -1231,9 +1139,7 @@ class LightRAG:
             graph_db_lock=self._graph_db_lock,
         )
 
-    def create_entity(
-        self, entity_name: str, entity_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    def create_entity(self, entity_name: str, entity_data: dict[str, Any]) -> dict[str, Any]:
         loop = always_get_an_event_loop()
         return loop.run_until_complete(self.acreate_entity(entity_name, entity_data))
 
@@ -1264,13 +1170,9 @@ class LightRAG:
             graph_db_lock=self._graph_db_lock,
         )
 
-    def create_relation(
-        self, source_entity: str, target_entity: str, relation_data: dict[str, Any]
-    ) -> dict[str, Any]:
+    def create_relation(self, source_entity: str, target_entity: str, relation_data: dict[str, Any]) -> dict[str, Any]:
         loop = always_get_an_event_loop()
-        return loop.run_until_complete(
-            self.acreate_relation(source_entity, target_entity, relation_data)
-        )
+        return loop.run_until_complete(self.acreate_relation(source_entity, target_entity, relation_data))
 
     async def amerge_entities(
         self,
@@ -1321,7 +1223,5 @@ class LightRAG:
     ) -> dict[str, Any]:
         loop = always_get_an_event_loop()
         return loop.run_until_complete(
-            self.amerge_entities(
-                source_entities, target_entity, merge_strategy, target_entity_data
-            )
+            self.amerge_entities(source_entities, target_entity, merge_strategy, target_entity_data)
         )

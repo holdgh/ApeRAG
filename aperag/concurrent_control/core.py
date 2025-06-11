@@ -20,40 +20,40 @@ logger = logging.getLogger(__name__)
 class LockProtocol(ABC):
     """
     Abstract interface for concurrent locks.
-    
+
     This protocol defines the common interface that all lock implementations
     must follow to ensure compatibility across different deployment scenarios.
     """
-    
+
     @abstractmethod
     async def acquire(self, timeout: Optional[float] = None) -> bool:
         """
         Acquire the lock asynchronously.
-        
+
         Args:
             timeout: Maximum time to wait for the lock (seconds).
                     None means wait indefinitely.
-        
+
         Returns:
             True if lock was acquired successfully, False if timeout occurred.
         """
         pass
-    
+
     @abstractmethod
     async def release(self) -> None:
         """Release the lock asynchronously."""
         pass
-    
+
     @abstractmethod
     def is_locked(self) -> bool:
         """Check if the lock is currently held."""
         pass
-    
+
     @abstractmethod
     async def __aenter__(self) -> LockProtocol:
         """Async context manager entry."""
         pass
-    
+
     @abstractmethod
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
@@ -63,69 +63,71 @@ class LockProtocol(ABC):
 class ThreadingLock(LockProtocol):
     """
     Threading-based lock implementation using asyncio.to_thread wrapper.
-    
+
     This implementation uses a threading.Lock wrapped with asyncio.to_thread
     to provide async compatibility while supporting both coroutine and thread
     concurrency scenarios within a single process.
-    
+
     Features:
     - Works in single-process multi-coroutine environments (celery --pool=solo)
     - Works in single-process multi-thread environments (celery --pool=threads)
     - Does NOT work across multiple processes (celery --pool=prefork)
     - Non-blocking for the event loop (uses background thread pool)
-    
+
     Performance:
     - Higher overhead than asyncio.Lock but supports broader concurrency models
     - Lower overhead than distributed locks for single-process scenarios
     """
-    
+
     def __init__(self, name: str = None):
         """
         Initialize the threading lock.
-        
+
         Args:
-            name: Descriptive name for the lock (used in logging). 
+            name: Descriptive name for the lock (used in logging).
                  If None, a UUID will be generated.
         """
         self._lock = threading.Lock()
         self._name = name or f"threading_lock_{uuid.uuid4().hex[:8]}"
         self._holder_info: Optional[str] = None
-        
+
     async def acquire(self, timeout: Optional[float] = None) -> bool:
         """
         Acquire the lock using asyncio.to_thread to avoid blocking the event loop.
-        
+
         Args:
             timeout: Maximum time to wait for the lock (seconds).
                     None means wait indefinitely.
-        
+
         Returns:
             True if lock was acquired, False if timeout occurred.
         """
+
         def _sync_acquire():
             # Use threading.Lock.acquire with timeout parameter
             if timeout is not None:
                 acquired = self._lock.acquire(blocking=True, timeout=timeout)
             else:
                 acquired = self._lock.acquire(blocking=True)
-            
+
             if acquired:
                 self._holder_info = f"Thread-{threading.get_ident()}"
                 logger.debug(f"Lock '{self._name}' acquired by {self._holder_info}")
-            
+
             return acquired
-        
+
         try:
             # Use asyncio.to_thread to run the acquire in background thread
             result = await asyncio.to_thread(_sync_acquire)
             return result
-            
+
         except Exception as e:
             logger.error(f"Error acquiring lock '{self._name}': {e}")
             return False
-    
+
     async def release(self) -> None:
         """Release the lock using asyncio.to_thread."""
+
         def _sync_release():
             try:
                 self._lock.release()
@@ -135,20 +137,20 @@ class ThreadingLock(LockProtocol):
             except Exception as e:
                 logger.error(f"Error releasing lock '{self._name}': {e}")
                 return False
-        
+
         await asyncio.to_thread(_sync_release)
-    
+
     def is_locked(self) -> bool:
         """Check if the lock is currently held."""
         return self._lock.locked()
-    
+
     async def __aenter__(self) -> ThreadingLock:
         """Async context manager entry."""
         success = await self.acquire()
         if not success:
             raise RuntimeError(f"Failed to acquire lock '{self._name}'")
         return self
-    
+
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         await self.release()
@@ -157,34 +159,36 @@ class ThreadingLock(LockProtocol):
 class RedisLock(LockProtocol):
     """
     Redis-based distributed lock implementation.
-    
+
     This implementation will use Redis for distributed locking across
     multiple processes, containers, or machines.
-    
+
     TODO: Implement Redis-based distributed locking
-    
+
     Features (when implemented):
     - Works across multiple processes (celery --pool=prefork)
     - Works across multiple machines/containers
     - Works with any task queue (Celery, Prefect, etc.)
     - Automatic lock expiration to prevent deadlocks
     - Retry mechanisms for lock acquisition
-    
+
     Performance considerations:
     - Network round-trip overhead for each lock operation
     - Redis server becomes a critical dependency
     - Higher latency compared to in-process locks
     """
-    
-    def __init__(self, 
-                 key: str,
-                 redis_url: str = "redis://localhost:6379",
-                 expire_time: int = 30,
-                 retry_times: int = 3,
-                 retry_delay: float = 0.1):
+
+    def __init__(
+        self,
+        key: str,
+        redis_url: str = "redis://localhost:6379",
+        expire_time: int = 30,
+        retry_times: int = 3,
+        retry_delay: float = 0.1,
+    ):
         """
         Initialize the Redis lock.
-        
+
         Args:
             key: Redis key for the lock (required)
             redis_url: Redis connection URL
@@ -194,7 +198,7 @@ class RedisLock(LockProtocol):
         """
         if not key:
             raise ValueError("Redis lock key is required")
-            
+
         self._key = key
         self._redis_url = redis_url
         self._expire_time = expire_time
@@ -202,41 +206,41 @@ class RedisLock(LockProtocol):
         self._retry_delay = retry_delay
         self._redis_client = None
         self._lock_value: Optional[str] = None
-        
+
         # TODO: Initialize Redis client
         logger.warning("RedisLock is not yet implemented. Use ThreadingLock instead.")
-    
+
     async def acquire(self, timeout: Optional[float] = None) -> bool:
         """
         Acquire the distributed lock from Redis.
-        
+
         TODO: Implement Redis SET NX EX pattern for distributed locking
         """
         raise NotImplementedError("RedisLock is not yet implemented")
-    
+
     async def release(self) -> None:
         """
         Release the distributed lock from Redis.
-        
+
         TODO: Implement safe lock release using Lua script
         """
         raise NotImplementedError("RedisLock is not yet implemented")
-    
+
     def is_locked(self) -> bool:
         """
         Check if the lock is currently held.
-        
+
         TODO: Implement Redis EXISTS check
         """
         raise NotImplementedError("RedisLock is not yet implemented")
-    
+
     async def __aenter__(self) -> RedisLock:
         """Async context manager entry."""
         success = await self.acquire()
         if not success:
             raise RuntimeError(f"Failed to acquire Redis lock '{self._key}'")
         return self
-    
+
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         await self.release()
@@ -245,49 +249,46 @@ class RedisLock(LockProtocol):
 class LockManager:
     """
     Lock manager for creating and managing lock instances.
-    
+
     This class provides a centralized way to create and manage different types
     of locks with consistent configuration and naming conventions.
     """
-    
+
     def __init__(self, default_redis_url: str = "redis://localhost:6379"):
         """
         Initialize the lock manager.
-        
+
         Args:
             default_redis_url: Default Redis URL for distributed locks
         """
         self.default_redis_url = default_redis_url
         self._locks: Dict[str, LockProtocol] = {}
-    
+
     def create_threading_lock(self, name: str = None) -> ThreadingLock:
         """
         Create a threading lock for single-process scenarios.
-        
+
         Args:
             name: Optional name for the lock
-            
+
         Returns:
             ThreadingLock instance
         """
         return ThreadingLock(name=name)
-    
-    def create_redis_lock(self, 
-                         key: str,
-                         redis_url: str = None,
-                         expire_time: int = 30,
-                         retry_times: int = 3,
-                         retry_delay: float = 0.1) -> RedisLock:
+
+    def create_redis_lock(
+        self, key: str, redis_url: str = None, expire_time: int = 30, retry_times: int = 3, retry_delay: float = 0.1
+    ) -> RedisLock:
         """
         Create a Redis lock for distributed scenarios.
-        
+
         Args:
             key: Redis key for the lock (required)
             redis_url: Redis connection URL (uses default if None)
             expire_time: Lock expiration time in seconds
             retry_times: Number of retry attempts
             retry_delay: Delay between retry attempts
-            
+
         Returns:
             RedisLock instance
         """
@@ -296,46 +297,43 @@ class LockManager:
             redis_url=redis_url or self.default_redis_url,
             expire_time=expire_time,
             retry_times=retry_times,
-            retry_delay=retry_delay
+            retry_delay=retry_delay,
         )
-    
-    def get_or_create_lock(self, 
-                          lock_id: str,
-                          lock_type: str = "threading",
-                          **kwargs) -> LockProtocol:
+
+    def get_or_create_lock(self, lock_id: str, lock_type: str = "threading", **kwargs) -> LockProtocol:
         """
         Get an existing lock or create a new one.
-        
+
         Args:
             lock_id: Unique identifier for the lock
             lock_type: Type of lock ('threading' or 'redis')
             **kwargs: Additional arguments for lock creation
-            
+
         Returns:
             Lock instance
         """
         if lock_id in self._locks:
             return self._locks[lock_id]
-        
+
         if lock_type == "threading":
-            lock = self.create_threading_lock(name=kwargs.get('name', lock_id))
+            lock = self.create_threading_lock(name=kwargs.get("name", lock_id))
         elif lock_type == "redis":
             # For Redis locks, use lock_id as the key if no key is provided
-            key = kwargs.get('key', lock_id)
-            lock = self.create_redis_lock(key=key, **{k: v for k, v in kwargs.items() if k != 'key'})
+            key = kwargs.get("key", lock_id)
+            lock = self.create_redis_lock(key=key, **{k: v for k, v in kwargs.items() if k != "key"})
         else:
             raise ValueError(f"Unknown lock type: {lock_type}")
-        
+
         self._locks[lock_id] = lock
         return lock
-    
+
     def remove_lock(self, lock_id: str) -> bool:
         """
         Remove a lock from the manager.
-        
+
         Args:
             lock_id: Unique identifier for the lock
-            
+
         Returns:
             True if lock was removed, False if not found
         """
@@ -343,11 +341,11 @@ class LockManager:
             del self._locks[lock_id]
             return True
         return False
-    
+
     def list_locks(self) -> Dict[str, str]:
         """
         List all managed locks.
-        
+
         Returns:
             Dict mapping lock_id to lock type
         """
@@ -357,26 +355,26 @@ class LockManager:
 def create_lock(lock_type: str = "threading", **kwargs) -> LockProtocol:
     """
     Create a new lock instance.
-    
-    If a 'name' is provided, the lock will be automatically registered 
+
+    If a 'name' is provided, the lock will be automatically registered
     in the default lock manager for later retrieval.
-    
+
     Args:
         lock_type: Type of lock to create ('threading' or 'redis')
         name: Optional lock name (if provided, auto-registered for retrieval)
         **kwargs: Additional arguments passed to lock constructor
-    
+
     Returns:
         LockProtocol: Lock implementation instance
-        
+
     Examples:
         # Create anonymous lock (not managed)
         temp_lock = create_lock("threading")
-        
+
         # Create named lock (automatically managed)
         managed_lock = create_lock("threading", name="my_lock")
         same_lock = get_lock("my_lock")  # Returns same instance
-        
+
         # Create Redis lock
         redis_lock = create_lock("redis", key="my_app:lock", redis_url="redis://localhost:6379")
     """
@@ -386,29 +384,29 @@ def create_lock(lock_type: str = "threading", **kwargs) -> LockProtocol:
         lock_instance = RedisLock(**kwargs)
     else:
         raise ValueError(f"Unknown lock type: {lock_type}. Use 'threading' or 'redis'.")
-    
+
     # Auto-register named locks in default manager
-    lock_name = kwargs.get('name') or getattr(lock_instance, '_name', None)
-    if lock_name and hasattr(lock_instance, '_name'):
+    lock_name = kwargs.get("name") or getattr(lock_instance, "_name", None)
+    if lock_name and hasattr(lock_instance, "_name"):
         default_lock_manager._locks[lock_instance._name] = lock_instance
-    
+
     return lock_instance
 
 
 def get_lock(name: str) -> Optional[LockProtocol]:
     """
     Get a lock from the default manager by name.
-    
+
     Args:
         name: Name of the lock to retrieve
-    
+
     Returns:
         The lock instance if found, None otherwise
-        
+
     Examples:
         # Create a named lock
         create_lock("threading", name="my_operation")
-        
+
         # Later retrieve it
         lock = get_lock("my_operation")
         if lock:
@@ -421,21 +419,21 @@ def get_lock(name: str) -> Optional[LockProtocol]:
 def get_or_create_lock(name: str, lock_type: str = "threading", **kwargs) -> LockProtocol:
     """
     Get an existing lock by name or create a new one.
-    
+
     This is a convenience function that combines get_lock and create_lock.
-    
+
     Args:
         name: Name of the lock
         lock_type: Type of lock to create if not found
         **kwargs: Additional arguments for lock creation
-    
+
     Returns:
         Lock instance (existing or newly created)
-        
+
     Examples:
         # Get existing or create new
         lock = get_or_create_lock("database_ops", "threading")
-        
+
         # All subsequent calls return the same instance
         same_lock = get_or_create_lock("database_ops", "threading")
         assert lock is same_lock
@@ -443,9 +441,9 @@ def get_or_create_lock(name: str, lock_type: str = "threading", **kwargs) -> Loc
     existing_lock = get_lock(name)
     if existing_lock:
         return existing_lock
-    
+
     # Create new lock with the specified name
-    kwargs['name'] = name
+    kwargs["name"] = name
     return create_lock(lock_type, **kwargs)
 
 
@@ -453,12 +451,12 @@ def get_or_create_lock(name: str, lock_type: str = "threading", **kwargs) -> Loc
 async def lock_context(lock: LockProtocol, timeout: Optional[float] = None) -> AsyncContextManager[None]:
     """
     Convenient async context manager for operations that need locking.
-    
+
     Usage:
         async with lock_context(my_lock):
             # Your protected operations here
             await some_critical_operation()
-    
+
     Args:
         lock: Lock instance to use
         timeout: Maximum time to wait for lock acquisition
@@ -466,7 +464,7 @@ async def lock_context(lock: LockProtocol, timeout: Optional[float] = None) -> A
     success = await lock.acquire(timeout=timeout)
     if not success:
         raise TimeoutError(f"Failed to acquire lock within {timeout} seconds")
-    
+
     try:
         yield
     finally:
@@ -480,8 +478,8 @@ default_lock_manager = LockManager()
 def get_default_lock_manager() -> LockManager:
     """
     Get the default global lock manager instance.
-    
+
     Returns:
         LockManager: Default lock manager instance
     """
-    return default_lock_manager 
+    return default_lock_manager

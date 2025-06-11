@@ -40,9 +40,7 @@ SOCKET_CONNECT_TIMEOUT = 3.0
 @dataclass
 class RedisKVStorage(BaseKVStorage):
     def __post_init__(self):
-        redis_url = os.environ.get(
-            "REDIS_URI", "redis://localhost:6379"
-        )
+        redis_url = os.environ.get("REDIS_URI", "redis://localhost:6379")
         # Create a connection pool with limits
         self._pool = ConnectionPool.from_url(
             redis_url,
@@ -68,9 +66,7 @@ class RedisKVStorage(BaseKVStorage):
             logger.error(f"Redis operation error in {self.workspace}:{self.storage_type}: {e}")
             raise
         except Exception as e:
-            logger.error(
-                f"Unexpected error in Redis operation for {self.workspace}:{self.storage_type}: {e}"
-            )
+            logger.error(f"Unexpected error in Redis operation for {self.workspace}:{self.storage_type}: {e}")
             raise
 
     async def close(self):
@@ -149,10 +145,7 @@ class RedisKVStorage(BaseKVStorage):
 
             results = await pipe.execute()
             deleted_count = sum(results)
-            logger.info(
-                f"Deleted {deleted_count} of {len(ids)} entries from {self.workspace}:{self.storage_type}"
-            )
-
+            logger.info(f"Deleted {deleted_count} of {len(ids)} entries from {self.workspace}:{self.storage_type}")
 
     async def drop(self) -> dict[str, str]:
         """Drop the storage by removing all keys under the current workspace:storage_type.

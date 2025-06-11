@@ -31,9 +31,7 @@ from ..base import BaseVectorStorage
 from ..utils import logger
 
 
-def compute_mdhash_id_for_qdrant(
-    content: str, prefix: str = "", style: str = "simple"
-) -> str:
+def compute_mdhash_id_for_qdrant(content: str, prefix: str = "", style: str = "simple") -> str:
     """
     Generate a UUID based on the content and support multiple formats.
 
@@ -63,30 +61,22 @@ def compute_mdhash_id_for_qdrant(
 @dataclass
 class QdrantVectorDBStorage(BaseVectorStorage):
     @staticmethod
-    def create_collection_if_not_exist(
-        client: QdrantClient, collection_name: str, **kwargs
-    ):
+    def create_collection_if_not_exist(client: QdrantClient, collection_name: str, **kwargs):
         if client.collection_exists(collection_name):
             return
         client.create_collection(collection_name, **kwargs)
 
     def __post_init__(self):
         self._client = QdrantClient(
-            url=os.environ.get(
-                "QDRANT_URL"
-            ),
-            api_key=os.environ.get(
-                "QDRANT_API_KEY"
-            ),
+            url=os.environ.get("QDRANT_URL"),
+            api_key=os.environ.get("QDRANT_API_KEY"),
         )
         # Use workspace and storage_type to create collection name for proper isolation
         self._collection_name = f"{self.workspace}_{self.storage_type}"
         QdrantVectorDBStorage.create_collection_if_not_exist(
             self._client,
             self._collection_name,
-            vectors_config=models.VectorParams(
-                size=self.embedding_func.embedding_dim, distance=models.Distance.COSINE
-            ),
+            vectors_config=models.VectorParams(size=self.embedding_func.embedding_dim, distance=models.Distance.COSINE),
         )
 
     async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
@@ -107,10 +97,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
             for k, v in data.items()
         ]
         contents = [v["content"] for v in data.values()]
-        batches = [
-            contents[i : i + self._max_batch_size]
-            for i in range(0, len(contents), self._max_batch_size)
-        ]
+        batches = [contents[i : i + self._max_batch_size] for i in range(0, len(contents), self._max_batch_size)]
 
         embedding_tasks = [self.embedding_func(batch) for batch in batches]
         embeddings_list = await asyncio.gather(*embedding_tasks)
@@ -127,17 +114,11 @@ class QdrantVectorDBStorage(BaseVectorStorage):
                 )
             )
 
-        results = self._client.upsert(
-            collection_name=self._collection_name, points=list_points, wait=True
-        )
+        results = self._client.upsert(collection_name=self._collection_name, points=list_points, wait=True)
         return results
 
-    async def query(
-        self, query: str, top_k: int, ids: list[str] | None = None
-    ) -> list[dict[str, Any]]:
-        embedding = await self.embedding_func(
-            [query]
-        )  # higher priority for query
+    async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:
+        embedding = await self.embedding_func([query])  # higher priority for query
         results = self._client.search(
             collection_name=self._collection_name,
             query_vector=embedding[0],
@@ -174,9 +155,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
                 ),
                 wait=True,
             )
-            logger.debug(
-                f"Successfully deleted {len(ids)} vectors from {self._collection_name}"
-            )
+            logger.debug(f"Successfully deleted {len(ids)} vectors from {self._collection_name}")
         except Exception as e:
             logger.error(f"Error while deleting vectors from {self._collection_name}: {e}")
 
@@ -189,9 +168,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
         try:
             # Generate the entity ID
             entity_id = compute_mdhash_id_for_qdrant(entity_name, prefix="ent-")
-            logger.debug(
-                f"Attempting to delete entity {entity_name} with ID {entity_id}"
-            )
+            logger.debug(f"Attempting to delete entity {entity_name} with ID {entity_id}")
 
             # Delete the entity point from the collection
             self._client.delete(
@@ -217,12 +194,8 @@ class QdrantVectorDBStorage(BaseVectorStorage):
                 collection_name=self._collection_name,
                 scroll_filter=models.Filter(
                     should=[
-                        models.FieldCondition(
-                            key="src_id", match=models.MatchValue(value=entity_name)
-                        ),
-                        models.FieldCondition(
-                            key="tgt_id", match=models.MatchValue(value=entity_name)
-                        ),
+                        models.FieldCondition(key="src_id", match=models.MatchValue(value=entity_name)),
+                        models.FieldCondition(key="tgt_id", match=models.MatchValue(value=entity_name)),
                     ]
                 ),
                 with_payload=True,
@@ -242,9 +215,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
                     ),
                     wait=True,
                 )
-                logger.debug(
-                    f"Deleted {len(ids_to_delete)} relations for {entity_name}"
-                )
+                logger.debug(f"Deleted {len(ids_to_delete)} relations for {entity_name}")
             else:
                 logger.debug(f"No relations found for entity {entity_name}")
         except Exception as e:
@@ -344,9 +315,7 @@ class QdrantVectorDBStorage(BaseVectorStorage):
                 ),
             )
 
-            logger.info(
-                f"Process {os.getpid()} drop Qdrant collection {self._collection_name}"
-            )
+            logger.info(f"Process {os.getpid()} drop Qdrant collection {self._collection_name}")
             return {"status": "success", "message": "data dropped"}
         except Exception as e:
             logger.error(f"Error dropping Qdrant collection {self._collection_name}: {e}")

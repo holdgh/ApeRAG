@@ -213,9 +213,7 @@ It appears some entities may have still been missed.
 Answer ONLY by `YES` OR `NO` if there are still entities that need to be added.
 """.strip()
 
-PROMPTS["fail_response"] = (
-    "Sorry, I'm not able to provide an answer to that question.[no-context]"
-)
+PROMPTS["fail_response"] = "Sorry, I'm not able to provide an answer to that question.[no-context]"
 
 PROMPTS["rag_response"] = """---Role---
 
@@ -352,9 +350,7 @@ When handling content with timestamps:
 Response:"""
 
 # TODO: deprecated
-PROMPTS[
-    "similarity_check"
-] = """Please analyze the similarity between these two questions:
+PROMPTS["similarity_check"] = """Please analyze the similarity between these two questions:
 
 Question 1: {original_prompt}
 Question 2: {cached_prompt}

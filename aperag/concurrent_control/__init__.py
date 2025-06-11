@@ -8,33 +8,33 @@ scenarios and task queue environments.
 Features:
 - Auto-managed locks with default manager
 - Flexible timeout support
-- Universal applicability  
+- Universal applicability
 - Easy extensibility
 - Production ready with comprehensive error handling
 
 Quick Start:
     from aperag.concurrent_control import get_or_create_lock, lock_context
-    
+
     # Create/get a managed lock (most common usage)
     my_lock = get_or_create_lock("database_operations")
-    
+
     # Use with default behavior
     async with my_lock:
         await critical_work()
-    
+
     # Use with timeout
     async with lock_context(my_lock, timeout=5.0):
         await critical_work()
 """
 
 from .core import (
-    LockManager,
-    LockProtocol,
-    RedisLock,
+    LockManager,  # noqa: F401  # Available for testing and advanced usage
+    LockProtocol,  # noqa: F401  # Available for testing and advanced usage
+    RedisLock,  # noqa: F401  # Available for testing and advanced usage
     # Internal classes (for testing and advanced usage only - not in __all__)
-    ThreadingLock,
+    ThreadingLock,  # noqa: F401  # Available for testing and advanced usage
     # Main factory functions
-    create_lock,  # Create new locks 
+    create_lock,  # Create new locks
     get_default_lock_manager,  # Access default manager for advanced operations
     get_lock,  # Retrieve existing locks
     get_or_create_lock,  # Get existing or create new (recommended)
@@ -44,16 +44,15 @@ from .core import (
 
 __all__ = [
     # Main interface (recommended)
-    "get_or_create_lock",   # ⭐ Primary function - get existing or create new
-    "get_lock",             # Get existing lock only
-    "create_lock",          # Create new locks 
-    "lock_context",         # ⭐ Timeout support for locks
-    
+    "get_or_create_lock",  # ⭐ Primary function - get existing or create new
+    "get_lock",  # Get existing lock only
+    "create_lock",  # Create new locks
+    "lock_context",  # ⭐ Timeout support for locks
     # Advanced/internal (use sparingly)
     "get_default_lock_manager",  # Advanced lock management
 ]
 
-# Note: ThreadingLock, RedisLock, LockProtocol, LockManager are available 
+# Note: ThreadingLock, RedisLock, LockProtocol, LockManager are available
 # for testing and advanced usage but not in __all__ to keep public API simple
 
-__version__ = "1.0.0" 
+__version__ = "1.0.0"

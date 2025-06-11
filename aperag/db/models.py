@@ -478,6 +478,7 @@ class APIType(str, Enum):
 
 class LightRAGDocStatus(str, Enum):
     """LightRAG Document processing status"""
+
     PENDING = "pending"
     PROCESSING = "processing"
     PROCESSED = "processed"
@@ -612,9 +613,10 @@ class SearchTestHistory(SQLModel, table=True):
 
 class LightRAGDocStatusModel(SQLModel, table=True):
     """LightRAG Document Status Storage Model"""
+
     __tablename__ = "lightrag_doc_status"
     __table_args__ = (UniqueConstraint("workspace", "id", name="uq_lightrag_doc_status_workspace_id"),)
-    
+
     workspace: str = Field(primary_key=True, max_length=255)
     id: str = Field(primary_key=True, max_length=255)
     content: Optional[str] = None
@@ -629,8 +631,9 @@ class LightRAGDocStatusModel(SQLModel, table=True):
 
 class LightRAGDocFullModel(SQLModel, table=True):
     """LightRAG Document Full Storage Model"""
+
     __tablename__ = "lightrag_doc_full"
-    
+
     id: str = Field(primary_key=True, max_length=255)
     workspace: str = Field(primary_key=True, max_length=255)
     doc_name: Optional[str] = Field(default=None, max_length=1024)
@@ -642,8 +645,9 @@ class LightRAGDocFullModel(SQLModel, table=True):
 
 class LightRAGDocChunksModel(SQLModel, table=True):
     """LightRAG Document Chunks Storage Model"""
+
     __tablename__ = "lightrag_doc_chunks"
-    
+
     id: str = Field(primary_key=True, max_length=255)
     workspace: str = Field(primary_key=True, max_length=255)
     full_doc_id: Optional[str] = Field(default=None, max_length=256)
@@ -658,8 +662,9 @@ class LightRAGDocChunksModel(SQLModel, table=True):
 
 class LightRAGVDBEntityModel(SQLModel, table=True):
     """LightRAG VDB Entity Storage Model"""
+
     __tablename__ = "lightrag_vdb_entity"
-    
+
     id: str = Field(primary_key=True, max_length=255)
     workspace: str = Field(primary_key=True, max_length=255)
     entity_name: Optional[str] = Field(default=None, max_length=255)
@@ -673,8 +678,9 @@ class LightRAGVDBEntityModel(SQLModel, table=True):
 
 class LightRAGVDBRelationModel(SQLModel, table=True):
     """LightRAG VDB Relation Storage Model"""
+
     __tablename__ = "lightrag_vdb_relation"
-    
+
     id: str = Field(primary_key=True, max_length=255)
     workspace: str = Field(primary_key=True, max_length=255)
     source_id: Optional[str] = Field(default=None, max_length=256)
@@ -689,8 +695,9 @@ class LightRAGVDBRelationModel(SQLModel, table=True):
 
 class LightRAGLLMCacheModel(SQLModel, table=True):
     """LightRAG LLM Cache Storage Model"""
+
     __tablename__ = "lightrag_llm_cache"
-    
+
     workspace: str = Field(primary_key=True, max_length=255)
     id: str = Field(primary_key=True, max_length=255)
     mode: str = Field(primary_key=True, max_length=32)

@@ -137,6 +137,7 @@ if PGOpsSyncVectorStorage is not None:
 if QdrantVectorDBStorage is not None:
     STORAGES["QdrantVectorDBStorage"] = ".kg.qdrant_impl"
 
+
 def verify_storage_implementation(storage_type: str, storage_name: str) -> None:
     """Verify if storage implementation is compatible with specified storage type
 

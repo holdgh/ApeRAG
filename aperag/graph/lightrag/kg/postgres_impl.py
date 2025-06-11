@@ -66,13 +66,9 @@ class PostgreSQLDB:
                 max_size=self.max,
             )
 
-            logger.info(
-                f"PostgreSQL, Connected to database at {self.host}:{self.port}/{self.database}"
-            )
+            logger.info(f"PostgreSQL, Connected to database at {self.host}:{self.port}/{self.database}")
         except Exception as e:
-            logger.error(
-                f"PostgreSQL, Failed to connect database at {self.host}:{self.port}/{self.database}, Got:{e}"
-            )
+            logger.error(f"PostgreSQL, Failed to connect database at {self.host}:{self.port}/{self.database}, Got:{e}")
             raise
 
     async def query(
@@ -230,17 +226,13 @@ class PGKVStorage(BaseKVStorage):
         response = await self.db.query(sql, params)
         return response if response else None
 
-
     # Query by id
     async def get_by_ids(self, ids: list[str]) -> list[dict[str, Any]]:
         """Get doc_chunks data by id"""
         sql_key = f"get_by_ids_{self.storage_type}"
-        sql = SQL_TEMPLATES[sql_key].format(
-            ids=",".join([f"'{id}'" for id in ids])
-        )
+        sql = SQL_TEMPLATES[sql_key].format(ids=",".join([f"'{id}'" for id in ids]))
         params = {"workspace": self.workspace}
         return await self.db.query(sql, params, multirows=True)
-
 
     async def filter_keys(self, keys: set[str]) -> set[str]:
         """Filter out duplicated content"""
@@ -258,9 +250,7 @@ class PGKVStorage(BaseKVStorage):
             new_keys = set([s for s in keys if s not in exist_keys])
             return new_keys
         except Exception as e:
-            logger.error(
-                f"PostgreSQL database,\nsql:{sql},\nparams:{params},\nerror:{e}"
-            )
+            logger.error(f"PostgreSQL database,\nsql:{sql},\nparams:{params},\nerror:{e}")
             raise
 
     ################ INSERT METHODS ################
@@ -299,12 +289,8 @@ class PGKVStorage(BaseKVStorage):
         delete_sql = f"DELETE FROM {table_name} WHERE workspace=$1 AND id = ANY($2)"
 
         try:
-            await self.db.execute(
-                delete_sql, {"workspace": self.workspace, "ids": ids}
-            )
-            logger.debug(
-                f"Successfully deleted {len(ids)} records from {self.namespace}"
-            )
+            await self.db.execute(delete_sql, {"workspace": self.workspace, "ids": ids})
+            logger.debug(f"Successfully deleted {len(ids)} records from {self.namespace}")
         except Exception as e:
             logger.error(f"Error while deleting records from {self.namespace}: {e}")
 
@@ -318,9 +304,7 @@ class PGKVStorage(BaseKVStorage):
                     "message": f"Unknown namespace: {self.namespace}",
                 }
 
-            drop_sql = SQL_TEMPLATES["drop_specifiy_table_workspace"].format(
-                table_name=table_name
-            )
+            drop_sql = SQL_TEMPLATES["drop_specifiy_table_workspace"].format(table_name=table_name)
             await self.db.execute(drop_sql, {"workspace": self.workspace})
             return {"status": "success", "message": "data dropped"}
         except Exception as e:
@@ -343,9 +327,7 @@ class PGVectorStorage(BaseVectorStorage):
             await ClientManager.release_client(self.db, db_conn_lock)
             self.db = None
 
-    def _upsert_chunks(
-        self, item: dict[str, Any], current_time: datetime.datetime
-    ) -> tuple[str, dict[str, Any]]:
+    def _upsert_chunks(self, item: dict[str, Any], current_time: datetime.datetime) -> tuple[str, dict[str, Any]]:
         try:
             upsert_sql = SQL_TEMPLATES["upsert_chunk"]
             data: dict[str, Any] = {
@@ -366,9 +348,7 @@ class PGVectorStorage(BaseVectorStorage):
 
         return upsert_sql, data
 
-    def _upsert_entities(
-        self, item: dict[str, Any], current_time: datetime.datetime
-    ) -> tuple[str, dict[str, Any]]:
+    def _upsert_entities(self, item: dict[str, Any], current_time: datetime.datetime) -> tuple[str, dict[str, Any]]:
         upsert_sql = SQL_TEMPLATES["upsert_entity"]
         source_id = item["source_id"]
         if isinstance(source_id, str) and "<SEP>" in source_id:
@@ -428,10 +408,7 @@ class PGVectorStorage(BaseVectorStorage):
             for k, v in data.items()
         ]
         contents = [v["content"] for v in data.values()]
-        batches = [
-            contents[i : i + self._max_batch_size]
-            for i in range(0, len(contents), self._max_batch_size)
-        ]
+        batches = [contents[i : i + self._max_batch_size] for i in range(0, len(contents), self._max_batch_size)]
 
         embedding_tasks = [self.embedding_func(batch) for batch in batches]
         embeddings_list = await asyncio.gather(*embedding_tasks)
@@ -452,12 +429,8 @@ class PGVectorStorage(BaseVectorStorage):
             await self.db.execute(upsert_sql, data)
 
     #################### query method ###############
-    async def query(
-        self, query: str, top_k: int, ids: list[str] | None = None
-    ) -> list[dict[str, Any]]:
-        embeddings = await self.embedding_func(
-            [query]
-        )  # higher priority for query
+    async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:
+        embeddings = await self.embedding_func([query])  # higher priority for query
         embedding = embeddings[0]
         embedding_string = ",".join(map(str, embedding))
         # Use parameterized document IDs (None means search across all documents)
@@ -488,12 +461,8 @@ class PGVectorStorage(BaseVectorStorage):
         delete_sql = f"DELETE FROM {table_name} WHERE workspace=$1 AND id = ANY($2)"
 
         try:
-            await self.db.execute(
-                delete_sql, {"workspace": self.workspace, "ids": ids}
-            )
-            logger.debug(
-                f"Successfully deleted {len(ids)} vectors from {self.namespace}"
-            )
+            await self.db.execute(delete_sql, {"workspace": self.workspace, "ids": ids})
+            logger.debug(f"Successfully deleted {len(ids)} vectors from {self.namespace}")
         except Exception as e:
             logger.error(f"Error while deleting vectors from {self.namespace}: {e}")
 
@@ -508,9 +477,7 @@ class PGVectorStorage(BaseVectorStorage):
             delete_sql = """DELETE FROM LIGHTRAG_VDB_ENTITY
                             WHERE workspace=$1 AND entity_name=$2"""
 
-            await self.db.execute(
-                delete_sql, {"workspace": self.workspace, "entity_name": entity_name}
-            )
+            await self.db.execute(delete_sql, {"workspace": self.workspace, "entity_name": entity_name})
             logger.debug(f"Successfully deleted entity {entity_name}")
         except Exception as e:
             logger.error(f"Error deleting entity {entity_name}: {e}")
@@ -526,9 +493,7 @@ class PGVectorStorage(BaseVectorStorage):
             delete_sql = """DELETE FROM LIGHTRAG_VDB_RELATION
                             WHERE workspace=$1 AND (source_id=$2 OR target_id=$2)"""
 
-            await self.db.execute(
-                delete_sql, {"workspace": self.workspace, "entity_name": entity_name}
-            )
+            await self.db.execute(delete_sql, {"workspace": self.workspace, "entity_name": entity_name})
             logger.debug(f"Successfully deleted relations for entity {entity_name}")
         except Exception as e:
             logger.error(f"Error deleting relations for entity {entity_name}: {e}")
@@ -597,9 +562,7 @@ class PGVectorStorage(BaseVectorStorage):
                     "message": f"Unknown namespace: {self.namespace}",
                 }
 
-            drop_sql = SQL_TEMPLATES["drop_specifiy_table_workspace"].format(
-                table_name=table_name
-            )
+            drop_sql = SQL_TEMPLATES["drop_specifiy_table_workspace"].format(table_name=table_name)
             await self.db.execute(drop_sql, {"workspace": self.workspace})
             return {"status": "success", "message": "data dropped"}
         except Exception as e:
@@ -640,9 +603,7 @@ class PGDocStatusStorage(DocStatusStorage):
             print(f"new_keys: {new_keys}")
             return new_keys
         except Exception as e:
-            logger.error(
-                f"PostgreSQL database,\nsql:{sql},\nparams:{params},\nerror:{e}"
-            )
+            logger.error(f"PostgreSQL database,\nsql:{sql},\nparams:{params},\nerror:{e}")
             raise
 
     async def get_by_id(self, id: str) -> Union[dict[str, Any], None]:
@@ -701,9 +662,7 @@ class PGDocStatusStorage(DocStatusStorage):
             counts[doc["status"]] = doc["count"]
         return counts
 
-    async def get_docs_by_status(
-        self, status: DocStatus
-    ) -> dict[str, DocProcessingStatus]:
+    async def get_docs_by_status(self, status: DocStatus) -> dict[str, DocProcessingStatus]:
         """all documents with a specific status"""
         sql = "select * from LIGHTRAG_DOC_STATUS where workspace=$1 and status=$2"
         params = {"workspace": self.workspace, "status": status.value}
@@ -743,12 +702,8 @@ class PGDocStatusStorage(DocStatusStorage):
         delete_sql = f"DELETE FROM {table_name} WHERE workspace=$1 AND id = ANY($2)"
 
         try:
-            await self.db.execute(
-                delete_sql, {"workspace": self.workspace, "ids": ids}
-            )
-            logger.debug(
-                f"Successfully deleted {len(ids)} records from {self.namespace}"
-            )
+            await self.db.execute(delete_sql, {"workspace": self.workspace, "ids": ids})
+            logger.debug(f"Successfully deleted {len(ids)} records from {self.namespace}")
         except Exception as e:
             logger.error(f"Error while deleting records from {self.namespace}: {e}")
 
@@ -825,9 +780,7 @@ class PGDocStatusStorage(DocStatusStorage):
                     "message": f"Unknown namespace: {self.namespace}",
                 }
 
-            drop_sql = SQL_TEMPLATES["drop_specifiy_table_workspace"].format(
-                table_name=table_name
-            )
+            drop_sql = SQL_TEMPLATES["drop_specifiy_table_workspace"].format(table_name=table_name)
             await self.db.execute(drop_sql, {"workspace": self.workspace})
             return {"status": "success", "message": "data dropped"}
         except Exception as e:

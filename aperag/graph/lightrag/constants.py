@@ -17,7 +17,6 @@ Modifications by ApeRAG Team:
 - See changelog.md for detailed modifications
 """
 
-
 """
 Centralized configuration constants for LightRAG.
 

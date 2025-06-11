@@ -16,12 +16,12 @@ class Neo4jSyncConnectionManager:
     Worker-level Neo4j connection manager using sync driver.
     This avoids event loop issues and provides true connection reuse across Celery tasks.
     """
-    
+
     # Class-level storage for worker-scoped driver
     _driver: Optional[Driver] = None
     _lock = threading.Lock()
     _config: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def initialize(cls, config: Optional[Dict[str, Any]] = None):
         """Initialize the connection manager with configuration."""
@@ -39,7 +39,7 @@ class Neo4jSyncConnectionManager:
                         "connection_timeout": 30.0,
                         "max_transaction_retry_time": 30.0,
                     }
-                
+
                 logger.info(f"Initializing Neo4j sync driver for worker {os.getpid()}")
                 cls._driver = GraphDatabase.driver(
                     cls._config["uri"],
@@ -48,18 +48,18 @@ class Neo4jSyncConnectionManager:
                     connection_timeout=cls._config["connection_timeout"],
                     max_transaction_retry_time=cls._config["max_transaction_retry_time"],
                 )
-                
+
                 # Verify connectivity
                 cls._driver.verify_connectivity()
                 logger.info(f"Neo4j sync driver initialized successfully for worker {os.getpid()}")
-    
+
     @classmethod
     def get_driver(cls) -> Driver:
         """Get the shared driver instance."""
         if cls._driver is None:
             cls.initialize()
         return cls._driver
-    
+
     @classmethod
     @contextmanager
     def get_session(cls, database: Optional[str] = None) -> Session:
@@ -70,35 +70,31 @@ class Neo4jSyncConnectionManager:
             yield session
         finally:
             session.close()
-    
+
     @classmethod
     def prepare_database(cls, workspace: str) -> str:
         """Prepare database and return database name."""
-        DATABASE = os.environ.get(
-            "NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", workspace)
-        )
-        
+        DATABASE = os.environ.get("NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", workspace))
+
         driver = cls.get_driver()
-        
+
         # Try to connect to the target database first
         try:
             with driver.session(database=DATABASE) as session:
                 result = session.run("MATCH (n) RETURN n LIMIT 0")
                 result.consume()
                 logger.debug(f"Connected to existing database: {DATABASE}")
-                
+
                 # Create indexes
                 try:
-                    result = session.run(
-                        "CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)"
-                    )
+                    result = session.run("CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)")
                     result.consume()
                     logger.debug(f"Ensured index exists in database: {DATABASE}")
                 except Exception as e:
                     logger.warning(f"Could not create index: {e}")
-                
+
                 return DATABASE
-                
+
         except neo4jExceptions.ClientError as e:
             if e.code == "Neo.ClientError.Database.DatabaseNotFound":
                 logger.info(f"Database {DATABASE} not found, attempting to create")
@@ -107,19 +103,17 @@ class Neo4jSyncConnectionManager:
                         result = session.run(f"CREATE DATABASE `{DATABASE}` IF NOT EXISTS")
                         result.consume()
                         logger.info(f"Database {DATABASE} created successfully")
-                        
+
                     # Create indexes in new database
                     with driver.session(database=DATABASE) as session:
                         try:
-                            result = session.run(
-                                "CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)"
-                            )
+                            result = session.run("CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)")
                             result.consume()
                         except Exception as e:
                             logger.warning(f"Could not create index: {e}")
-                    
+
                     return DATABASE
-                    
+
                 except (neo4jExceptions.ClientError, neo4jExceptions.DatabaseError) as e:
                     if "UnsupportedAdministrationCommand" in str(e) or "ExecutionFailed" in str(e):
                         logger.warning("Database creation not supported, using default")
@@ -127,7 +121,7 @@ class Neo4jSyncConnectionManager:
                     raise
             else:
                 raise
-    
+
     @classmethod
     def close(cls):
         """Close the driver and clean up resources."""
@@ -149,4 +143,4 @@ def setup_worker_neo4j(**kwargs):
 def cleanup_worker_neo4j(**kwargs):
     """Cleanup Neo4j when worker shuts down."""
     Neo4jSyncConnectionManager.close()
-    logger.info(f"Worker {os.getpid()}: Neo4j sync connection closed") 
+    logger.info(f"Worker {os.getpid()}: Neo4j sync connection closed")

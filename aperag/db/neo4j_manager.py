@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 class Neo4jConnectionConfig:
     """Neo4j connection configuration"""
-    
+
     def __init__(
         self,
         uri: str = None,
-        username: str = None, 
+        username: str = None,
         password: str = None,
         max_connection_pool_size: int = 50,
         connection_timeout: float = 30.0,
@@ -25,7 +25,7 @@ class Neo4jConnectionConfig:
         max_transaction_retry_time: float = 30.0,
         # Pool specific settings
         pool_max_size: int = 10,  # Maximum connections per event loop
-        pool_min_size: int = 2,   # Minimum connections to maintain
+        pool_min_size: int = 2,  # Minimum connections to maintain
     ):
         self.uri = uri or os.environ.get("NEO4J_URI", "neo4j://localhost:7687")
         self.username = username or os.environ.get("NEO4J_USERNAME", "neo4j")
@@ -52,8 +52,8 @@ class PooledConnectionManager:
     Pooled connection manager that can be borrowed and returned.
     Each instance is tied to a specific event loop.
     """
-    
-    def __init__(self, config: Neo4jConnectionConfig, pool: 'EventLoopConnectionPool'):
+
+    def __init__(self, config: Neo4jConnectionConfig, pool: "EventLoopConnectionPool"):
         self.config = config
         self.pool = pool
         self._driver: Optional[AsyncDriver] = None
@@ -71,15 +71,13 @@ class PooledConnectionManager:
         """Initialize the Neo4j driver"""
         if self._driver is not None:
             return
-            
+
         logger.debug(f"Initializing pooled Neo4j driver: {self.config.uri}")
-        
+
         self._driver = AsyncGraphDatabase.driver(
-            self.config.uri,
-            auth=(self.config.username, self.config.password),
-            **self.config.to_driver_config()
+            self.config.uri, auth=(self.config.username, self.config.password), **self.config.to_driver_config()
         )
-        
+
         # Verify connectivity
         await self._driver.verify_connectivity()
         self._is_initialized = True
@@ -93,24 +91,22 @@ class PooledConnectionManager:
 
     async def _prepare_database_impl(self, workspace: str) -> str:
         """Implementation of database preparation."""
-        DATABASE = os.environ.get(
-            "NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", workspace)
-        )
-        
+        DATABASE = os.environ.get("NEO4J_DATABASE", re.sub(r"[^a-zA-Z0-9-]", "-", workspace))
+
         logger.debug(f"Preparing Neo4j database: {DATABASE}")
         driver = await self.get_driver()
-        
+
         # Try to connect to the target database first
         try:
             async with driver.session(database=DATABASE) as session:
                 result = await session.run("MATCH (n) RETURN n LIMIT 0")
                 await result.consume()
                 logger.debug(f"Connected to existing database: {DATABASE}")
-                
+
                 # Create indexes (idempotent operation)
                 await self._create_indexes(driver, DATABASE)
                 return DATABASE
-                
+
         except neo4jExceptions.AuthError as e:
             logger.error(f"Authentication failed for {DATABASE}")
             raise e
@@ -125,16 +121,16 @@ class PooledConnectionManager:
                         result = await session.run(f"CREATE DATABASE `{DATABASE}` IF NOT EXISTS")
                         await result.consume()
                         logger.info(f"Database {DATABASE} created successfully")
-                        
+
                     await self._create_indexes(driver, DATABASE)
                     return DATABASE
-                    
+
                 except (neo4jExceptions.ClientError, neo4jExceptions.DatabaseError) as e:
-                    if (e.code == "Neo.ClientError.Statement.UnsupportedAdministrationCommand") or \
-                       (e.code == "Neo.DatabaseError.Statement.ExecutionFailed"):
+                    if (e.code == "Neo.ClientError.Statement.UnsupportedAdministrationCommand") or (
+                        e.code == "Neo.DatabaseError.Statement.ExecutionFailed"
+                    ):
                         logger.warning(
-                            "This Neo4j instance does not support creating databases. "
-                            "Using default database instead."
+                            "This Neo4j instance does not support creating databases. Using default database instead."
                         )
                         return await self._prepare_default_database(driver)
                     else:
@@ -151,10 +147,10 @@ class PooledConnectionManager:
                 result = await session.run("MATCH (n) RETURN n LIMIT 0")
                 await result.consume()
                 logger.info("Connected to default database")
-                
+
             await self._create_indexes(driver, None)
             return "neo4j"
-            
+
         except Exception as e:
             logger.error(f"Failed to connect to default database: {e}")
             raise RuntimeError("Failed to connect to any database") from e
@@ -163,9 +159,7 @@ class PooledConnectionManager:
         """Create necessary indexes."""
         async with driver.session(database=database) as session:
             try:
-                result = await session.run(
-                    "CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)"
-                )
+                result = await session.run("CREATE INDEX IF NOT EXISTS FOR (n:base) ON (n.entity_id)")
                 await result.consume()
                 logger.debug(f"Ensured index exists for base nodes on entity_id in database: {database or 'default'}")
             except Exception as e:
@@ -199,7 +193,7 @@ class EventLoopConnectionPool:
     Connection pool for a specific event loop.
     Manages borrowing and returning of connections.
     """
-    
+
     def __init__(self, config: Neo4jConnectionConfig, loop_id: str):
         self.config = config
         self.loop_id = loop_id
@@ -218,7 +212,7 @@ class EventLoopConnectionPool:
                 self._in_use_connections.add(connection)
                 logger.debug(f"Borrowed existing connection from pool (loop: {self.loop_id})")
                 return connection
-            
+
             # Create new connection if under limit
             if self._total_connections < self.config.pool_max_size:
                 connection = PooledConnectionManager(self.config, self)
@@ -228,7 +222,7 @@ class EventLoopConnectionPool:
                 self._total_connections += 1
                 logger.debug(f"Created new pooled connection (loop: {self.loop_id}, total: {self._total_connections})")
                 return connection
-            
+
             # Pool is full, wait for a connection to be returned
             # For now, create a temporary connection (could be improved with waiting logic)
             logger.warning(f"Connection pool full (loop: {self.loop_id}), creating temporary connection")
@@ -243,7 +237,7 @@ class EventLoopConnectionPool:
             if connection in self._in_use_connections:
                 self._in_use_connections.remove(connection)
                 connection.mark_available()
-                
+
                 # Only keep connections if under max and they're healthy
                 if len(self._available_connections) < self.config.pool_max_size:
                     self._available_connections.append(connection)
@@ -265,12 +259,12 @@ class EventLoopConnectionPool:
             for connection in self._available_connections:
                 await connection.close()
             self._available_connections.clear()
-            
+
             # Close in-use connections
             for connection in self._in_use_connections:
                 await connection.close()
             self._in_use_connections.clear()
-            
+
             self._total_connections = 0
             logger.info(f"Closed all connections in pool (loop: {self.loop_id})")
 
@@ -281,7 +275,7 @@ class EventLoopConnectionPool:
             "available": len(self._available_connections),
             "in_use": len(self._in_use_connections),
             "total": self._total_connections,
-            "max_size": self.config.pool_max_size
+            "max_size": self.config.pool_max_size,
         }
 
 
@@ -290,32 +284,32 @@ class GlobalNeo4jConnectionPool:
     Global connection pool manager for Neo4j connections.
     Maintains separate pools for each event loop to avoid conflicts.
     """
-    
-    _instance: Optional['GlobalNeo4jConnectionPool'] = None
+
+    _instance: Optional["GlobalNeo4jConnectionPool"] = None
     _config: Optional[Neo4jConnectionConfig] = None
-    
+
     def __init__(self):
         self._pools: Dict[str, EventLoopConnectionPool] = {}
         self._loop_refs: Dict[str, weakref.ReferenceType] = {}
         self._lock = asyncio.Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     @classmethod
     def set_config(cls, config: Neo4jConnectionConfig):
         """Set the global configuration."""
         cls._config = config
-    
+
     @classmethod
     def get_config(cls) -> Neo4jConnectionConfig:
         """Get the global configuration."""
         if cls._config is None:
             cls._config = Neo4jConnectionConfig()
         return cls._config
-    
+
     def _get_loop_id(self) -> str:
         """Get a unique identifier for the current event loop."""
         try:
@@ -323,33 +317,33 @@ class GlobalNeo4jConnectionPool:
             return f"{id(loop)}"
         except RuntimeError:
             raise RuntimeError("No running event loop found")
-    
+
     async def get_pool(self) -> EventLoopConnectionPool:
         """Get or create a connection pool for the current event loop."""
         loop_id = self._get_loop_id()
-        
+
         # Check if we have a pool for this event loop
         if loop_id in self._pools:
             return self._pools[loop_id]
-        
+
         # Create new pool for this event loop
         async with self._lock:
             # Double check after acquiring lock
             if loop_id in self._pools:
                 return self._pools[loop_id]
-            
+
             # Create new pool
             config = self.get_config()
             pool = EventLoopConnectionPool(config, loop_id)
             self._pools[loop_id] = pool
-            
+
             # Store weak reference to detect when event loop is garbage collected
             loop = asyncio.get_running_loop()
             self._loop_refs[loop_id] = weakref.ref(loop, lambda ref: self._cleanup_pool(loop_id))
-            
+
             logger.info(f"Created new connection pool for event loop {loop_id}")
             return pool
-    
+
     def _cleanup_pool(self, loop_id: str):
         """Cleanup pool when event loop is garbage collected."""
         if loop_id in self._pools:
@@ -359,16 +353,16 @@ class GlobalNeo4jConnectionPool:
             if loop_id in self._loop_refs:
                 del self._loop_refs[loop_id]
             logger.info(f"Cleaned up connection pool for event loop {loop_id}")
-    
+
     async def borrow_connection(self) -> PooledConnectionManager:
         """Borrow a connection from the appropriate pool."""
         pool = await self.get_pool()
         return await pool.borrow_connection()
-    
+
     async def return_connection(self, connection: PooledConnectionManager):
         """Return a connection to the appropriate pool."""
         await connection.pool.return_connection(connection)
-    
+
     async def close_all_pools(self):
         """Close all connection pools."""
         async with self._lock:
@@ -377,7 +371,7 @@ class GlobalNeo4jConnectionPool:
             self._pools.clear()
             self._loop_refs.clear()
             logger.info("Closed all connection pools")
-    
+
     def get_all_stats(self) -> Dict[str, Dict[str, int]]:
         """Get statistics for all pools."""
         return {loop_id: pool.stats for loop_id, pool in self._pools.items()}
@@ -388,36 +382,36 @@ class BorrowedConnection:
     """
     Context manager for safely borrowing and returning connections.
     """
-    
+
     def __init__(self, pool_manager: GlobalNeo4jConnectionPool):
         self.pool_manager = pool_manager
         self.connection: Optional[PooledConnectionManager] = None
         self._database_cache: Dict[str, str] = {}
-    
-    async def __aenter__(self) -> 'BorrowedConnection':
+
+    async def __aenter__(self) -> "BorrowedConnection":
         self.connection = await self.pool_manager.borrow_connection()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.connection:
             await self.pool_manager.return_connection(self.connection)
             self.connection = None
-    
+
     async def get_driver(self) -> AsyncDriver:
         """Get the driver from the borrowed connection."""
         if not self.connection:
             raise RuntimeError("No connection borrowed")
         return await self.connection.get_driver()
-    
+
     async def prepare_database(self, workspace: str) -> str:
         """Prepare database using the borrowed connection."""
         if not self.connection:
             raise RuntimeError("No connection borrowed")
-        
+
         # Use cache to avoid repeated database preparation
         if workspace in self._database_cache:
             return self._database_cache[workspace]
-        
+
         database_name = await self.connection.prepare_database(workspace)
         self._database_cache[workspace] = database_name
         return database_name
@@ -428,18 +422,18 @@ class Neo4jConnectionFactory:
     """
     Event-loop-safe connection factory with global connection pooling.
     """
-    
+
     @classmethod
     def get_global_pool(cls) -> GlobalNeo4jConnectionPool:
         """Get the global connection pool instance."""
         return GlobalNeo4jConnectionPool()
-    
+
     @classmethod
     def borrow_connection(cls) -> BorrowedConnection:
         """Borrow a connection from the global pool."""
         pool = cls.get_global_pool()
         return BorrowedConnection(pool)
-    
+
     @classmethod
     async def get_pool_stats(cls) -> Dict[str, Dict[str, int]]:
         """Get statistics for all connection pools."""
@@ -471,4 +465,4 @@ def cleanup_worker_neo4j_config(**kwargs):
         loop.create_task(cleanup_worker_neo4j_config_async(**kwargs))
     except RuntimeError:
         # No running loop, run in new one
-        asyncio.run(cleanup_worker_neo4j_config_async(**kwargs)) 
+        asyncio.run(cleanup_worker_neo4j_config_async(**kwargs))

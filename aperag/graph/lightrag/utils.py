@@ -31,9 +31,7 @@ from typing import Any, Callable, List, Protocol
 import numpy as np
 
 
-def get_env_value(
-    env_key: str, default: any, value_type: type = str, special_none: bool = False
-) -> any:
+def get_env_value(env_key: str, default: any, value_type: type = str, special_none: bool = False) -> any:
     """
     Get value from environment variable with type conversion
 
@@ -183,9 +181,7 @@ class TiktokenTokenizer(Tokenizer):
 
 def pack_user_ass_to_openai_messages(*args: str):
     roles = ["user", "assistant"]
-    return [
-        {"role": roles[i % 2], "content": content} for i, content in enumerate(args)
-    ]
+    return [{"role": roles[i % 2], "content": content} for i, content in enumerate(args)]
 
 
 def split_string_by_multi_markers(content: str, markers: list[str]) -> list[str]:
@@ -262,9 +258,7 @@ def process_combine_contexts(*context_lists):
     return combined_data
 
 
-def get_conversation_turns(
-    conversation_history: list[dict[str, Any]], num_turns: int
-) -> str:
+def get_conversation_turns(conversation_history: list[dict[str, Any]], num_turns: int) -> str:
     """
     Process conversation history to get the specified number of complete turns.
 
@@ -286,8 +280,7 @@ def get_conversation_turns(
     # First, filter out keyword extraction messages
     for msg in conversation_history:
         if msg["role"] == "assistant" and (
-            msg["content"].startswith('{ "high_level_keywords"')
-            or msg["content"].startswith("{'high_level_keywords'")
+            msg["content"].startswith('{ "high_level_keywords"') or msg["content"].startswith("{'high_level_keywords'")
         ):
             continue
         messages.append(msg)
@@ -317,9 +310,7 @@ def get_conversation_turns(
     # Format the turns into a string
     formatted_turns: list[str] = []
     for turn in turns:
-        formatted_turns.extend(
-            [f"user: {turn[0]['content']}", f"assistant: {turn[1]['content']}"]
-        )
+        formatted_turns.extend([f"user: {turn[0]['content']}", f"assistant: {turn[1]['content']}"])
 
     return "\n".join(formatted_turns)
 
@@ -347,6 +338,7 @@ def always_get_an_event_loop() -> asyncio.AbstractEventLoop:
         new_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(new_loop)
         return new_loop
+
 
 def lazy_external_import(module_name: str, class_name: str) -> Callable[..., Any]:
     """Lazily import a class from an external module based on the package of the caller."""
@@ -414,12 +406,8 @@ def normalize_extracted_info(name: str, is_entity=False) -> str:
     name = re.sub(r"(?<=[\u4e00-\u9fa5])\s+(?=[\u4e00-\u9fa5])", "", name)
 
     # Remove spaces between Chinese and English/numbers/symbols
-    name = re.sub(
-        r"(?<=[\u4e00-\u9fa5])\s+(?=[a-zA-Z0-9\(\)\[\]@#$%!&\*\-=+_])", "", name
-    )
-    name = re.sub(
-        r"(?<=[a-zA-Z0-9\(\)\[\]@#$%!&\*\-=+_])\s+(?=[\u4e00-\u9fa5])", "", name
-    )
+    name = re.sub(r"(?<=[\u4e00-\u9fa5])\s+(?=[a-zA-Z0-9\(\)\[\]@#$%!&\*\-=+_])", "", name)
+    name = re.sub(r"(?<=[a-zA-Z0-9\(\)\[\]@#$%!&\*\-=+_])\s+(?=[\u4e00-\u9fa5])", "", name)
 
     # Remove English quotation marks from the beginning and end
     if len(name) >= 2 and name.startswith('"') and name.endswith('"'):
@@ -475,11 +463,11 @@ class LightRAGLogger:
     Unified logger for LightRAG processing progress.
     Replaces the legacy pipeline_status system with structured logging.
     """
-    
+
     def __init__(self, prefix: str = "LightRAG", workspace: str = "default"):
         """
         Initialize the logger with custom prefix and workspace.
-        
+
         Args:
             prefix: Log message prefix (default: "LightRAG")
             workspace: Workspace identifier for multi-tenant logging
@@ -488,7 +476,7 @@ class LightRAGLogger:
         self.workspace = workspace
         self._current_job = None
         self._current_progress = {"current": 0, "total": 0}
-    
+
     def _format_message(self, message: str, level: str = "INFO") -> str:
         """Format log message with prefix and workspace."""
         workspace_info = f"[{self.workspace}]" if self.workspace != "default" else ""
@@ -496,74 +484,78 @@ class LightRAGLogger:
         progress_info = ""
         if self._current_progress["total"] > 0:
             progress_info = f"[{self._current_progress['current']}/{self._current_progress['total']}]"
-        
+
         return f"{self.prefix}{workspace_info}{job_info}{progress_info} {message}"
-    
+
     def info(self, message: str):
         """Log info level message."""
         formatted_msg = self._format_message(message, "INFO")
         logger.info(formatted_msg)
-    
+
     def warning(self, message: str):
         """Log warning level message."""
         formatted_msg = self._format_message(message, "WARNING")
         logger.warning(formatted_msg)
-    
+
     def error(self, message: str):
         """Log error level message."""
         formatted_msg = self._format_message(message, "ERROR")
         logger.error(formatted_msg)
-    
+
     def debug(self, message: str):
         """Log debug level message."""
         formatted_msg = self._format_message(message, "DEBUG")
         logger.debug(formatted_msg)
-    
+
     def start_job(self, job_name: str, total_items: int = 0):
         """Start a new job with progress tracking."""
         self._current_job = job_name
         self._current_progress = {"current": 0, "total": total_items}
         self.info(f"Starting job: {job_name}" + (f" ({total_items} items)" if total_items > 0 else ""))
-    
+
     def update_progress(self, current: int, message: str = ""):
         """Update current progress."""
         self._current_progress["current"] = current
         if message:
             self.info(message)
-    
+
     def increment_progress(self, message: str = ""):
         """Increment progress by 1."""
         self._current_progress["current"] += 1
         if message:
             self.info(message)
-    
+
     def finish_job(self, message: str = ""):
         """Finish current job."""
         final_message = message or f"Completed job: {self._current_job}"
         self.info(final_message)
         self._current_job = None
         self._current_progress = {"current": 0, "total": 0}
-    
+
     def log_extraction_progress(self, current_chunk: int, total_chunks: int, entities_count: int, relations_count: int):
         """Log chunk extraction progress."""
         message = f"Chunk {current_chunk} of {total_chunks} extracted {entities_count} Ent + {relations_count} Rel"
         self.info(message)
-    
+
     def log_stage_progress(self, stage: str, current_file: int, total_files: int, file_path: str):
         """Log stage progress for file processing."""
         message = f"{stage} stage {current_file}/{total_files}: {file_path}"
         self.info(message)
-    
-    def log_entity_merge(self, entity_name: str, total_fragments: int, new_fragments: int, is_llm_summary: bool = False):
+
+    def log_entity_merge(
+        self, entity_name: str, total_fragments: int, new_fragments: int, is_llm_summary: bool = False
+    ):
         """Log entity merge operations."""
         prefix = "LLM merge N" if is_llm_summary else "Merge N"
-        message = f"{prefix}: {entity_name} | {new_fragments}+{total_fragments-new_fragments}"
+        message = f"{prefix}: {entity_name} | {new_fragments}+{total_fragments - new_fragments}"
         self.info(message)
-    
-    def log_relation_merge(self, src_id: str, tgt_id: str, total_fragments: int, new_fragments: int, is_llm_summary: bool = False):
+
+    def log_relation_merge(
+        self, src_id: str, tgt_id: str, total_fragments: int, new_fragments: int, is_llm_summary: bool = False
+    ):
         """Log relation merge operations."""
         prefix = "LLM merge E" if is_llm_summary else "Merge E"
-        message = f"{prefix}: {src_id} - {tgt_id} | {new_fragments}+{total_fragments-new_fragments}"
+        message = f"{prefix}: {src_id} - {tgt_id} | {new_fragments}+{total_fragments - new_fragments}"
         self.info(message)
 
 

@@ -610,15 +610,12 @@ def add_lightrag_index_task(self, content, document_id, file_path):
     try:
         # Use the new stateless wrapper for document processing
         from aperag.graph.lightrag_manager import process_document_for_celery
-        
+
         # Process the document using stateless interfaces
         result = process_document_for_celery(
-            collection=collection,
-            content=content,
-            doc_id=str(document_id),
-            file_path=file_path
+            collection=collection, content=content, doc_id=str(document_id), file_path=file_path
         )
-        
+
         # Check if processing was successful
         if result.get("status") == "success":
             # Update graph index status to complete
@@ -639,9 +636,7 @@ def add_lightrag_index_task(self, content, document_id, file_path):
         else:
             # Unexpected status
             document.graph_index_status = DocumentIndexStatus.FAILED
-            logger.error(
-                f"Unexpected status for document (ID: {document_id}): {result.get('status', 'unknown')}"
-            )
+            logger.error(f"Unexpected status for document (ID: {document_id}): {result.get('status', 'unknown')}")
     except Exception as e:
         logger.error(f"LightRAG indexing failed for document (ID: {document_id}): {str(e)}")
         # Update graph index status to failed
@@ -669,25 +664,21 @@ def remove_lightrag_index_task(self, document_id, collection_id):
         if not collection:
             logger.error(f"Collection {collection_id} not found for document deletion")
             raise Exception(f"Collection {collection_id} not found")
-        
+
         # Use the new stateless wrapper for document deletion
         from aperag.graph.lightrag_manager import delete_document_for_celery
-        
+
         # Delete the document using stateless interface
-        result = delete_document_for_celery(
-            collection=collection,
-            doc_id=str(document_id)
-        )
-        
+        result = delete_document_for_celery(collection=collection, doc_id=str(document_id))
+
         if result.get("status") == "success":
             logger.info(f"Successfully completed LightRAG deletion for document (ID: {document_id})")
         else:
             logger.error(
-                f"LightRAG deletion failed for document (ID: {document_id}): "
-                f"{result.get('message', 'Unknown error')}"
+                f"LightRAG deletion failed for document (ID: {document_id}): {result.get('message', 'Unknown error')}"
             )
             raise Exception(f"Deletion failed: {result.get('message', 'Unknown error')}")
-            
+
     except Exception as e:
         logger.error(f"LightRAG deletion failed for document (ID: {document_id}): {str(e)}")
         raise self.retry(

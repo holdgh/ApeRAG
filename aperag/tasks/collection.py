@@ -79,14 +79,14 @@ def _delete_collection_logic(collection_id: str):
         async def _delete_lightrag():
             # Create new LightRAG instance without using cache for Celery tasks
             rag = await lightrag_manager.create_lightrag_instance(collection)
-            
+
             # Get all document IDs in this collection
             document_ids = db_ops.query_documents(collection_id).values_list("id", flat=True)
-            
+
             if document_ids:
                 deleted_count = 0
                 failed_count = 0
-                
+
                 for document_id in document_ids:
                     try:
                         await rag.adelete_by_doc_id(str(document_id))
@@ -95,14 +95,14 @@ def _delete_collection_logic(collection_id: str):
                     except Exception as e:
                         failed_count += 1
                         logger.warning(f"Failed to delete lightrag document for document ID {document_id}: {str(e)}")
-                
+
                 logger.info(
                     f"Completed lightrag document deletion for collection {collection_id}: "
                     f"{deleted_count} deleted, {failed_count} failed"
                 )
             else:
                 logger.info(f"No documents found for collection {collection_id}, skipping deletion")
-            
+
             # Clean up resources
             await rag.finalize_storages()
 

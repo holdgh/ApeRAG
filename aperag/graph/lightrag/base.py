@@ -76,9 +76,7 @@ class QueryParam:
     max_token_for_text_unit: int = int(os.getenv("MAX_TOKEN_TEXT_CHUNK", "4000"))
     """Maximum number of tokens allowed for each retrieved text chunk."""
 
-    max_token_for_global_context: int = int(
-        os.getenv("MAX_TOKEN_RELATION_DESC", "4000")
-    )
+    max_token_for_global_context: int = int(os.getenv("MAX_TOKEN_RELATION_DESC", "4000"))
     """Maximum number of tokens allocated for relationship descriptions in global retrieval."""
 
     max_token_for_local_context: int = int(os.getenv("MAX_TOKEN_ENTITY_DESC", "4000"))
@@ -168,9 +166,7 @@ class BaseVectorStorage(StorageNameSpace, ABC):
     meta_fields: set[str] = field(default_factory=set)
 
     @abstractmethod
-    async def query(
-        self, query: str, top_k: int, ids: list[str] | None = None
-    ) -> list[dict[str, Any]]:
+    async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:
         """Query the vector storage and retrieve top_k results."""
 
     @abstractmethod
@@ -282,7 +278,6 @@ class BaseKVStorage(StorageNameSpace, ABC):
         """
 
 
-
 @dataclass
 class BaseGraphStorage(StorageNameSpace, ABC):
     embedding_func: EmbeddingFunc
@@ -345,9 +340,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
         """
 
     @abstractmethod
-    async def get_edge(
-        self, source_node_id: str, target_node_id: str
-    ) -> dict[str, str] | None:
+    async def get_edge(self, source_node_id: str, target_node_id: str) -> dict[str, str] | None:
         """Get edge properties between two nodes.
 
         Args:
@@ -397,9 +390,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
             result[node_id] = degree
         return result
 
-    async def edge_degrees_batch(
-        self, edge_pairs: list[tuple[str, str]]
-    ) -> dict[tuple[str, str], int]:
+    async def edge_degrees_batch(self, edge_pairs: list[tuple[str, str]]) -> dict[tuple[str, str], int]:
         """Edge degrees as a batch using UNWIND also uses node_degrees_batch
 
         Default implementation calculates edge degrees one by one.
@@ -412,9 +403,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
             result[(src_id, tgt_id)] = degree
         return result
 
-    async def get_edges_batch(
-        self, pairs: list[dict[str, str]]
-    ) -> dict[tuple[str, str], dict]:
+    async def get_edges_batch(self, pairs: list[dict[str, str]]) -> dict[tuple[str, str], dict]:
         """Get edges as a batch using UNWIND
 
         Default implementation fetches edges one by one.
@@ -430,9 +419,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
                 result[(src_id, tgt_id)] = edge
         return result
 
-    async def get_nodes_edges_batch(
-        self, node_ids: list[str]
-    ) -> dict[str, list[tuple[str, str]]]:
+    async def get_nodes_edges_batch(self, node_ids: list[str]) -> dict[str, list[tuple[str, str]]]:
         """Get nodes edges as a batch using UNWIND
 
         Default implementation fetches node edges one by one.
@@ -460,9 +447,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
         """
 
     @abstractmethod
-    async def upsert_edge(
-        self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]
-    ) -> None:
+    async def upsert_edge(self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]) -> None:
         """Insert a new edge or update an existing edge in the graph.
 
         Importance notes for in-memory storage:
@@ -524,9 +509,7 @@ class BaseGraphStorage(StorageNameSpace, ABC):
         """
 
     @abstractmethod
-    async def get_knowledge_graph(
-        self, node_label: str, max_depth: int = 3, max_nodes: int = 1000
-    ) -> KnowledgeGraph:
+    async def get_knowledge_graph(self, node_label: str, max_depth: int = 3, max_nodes: int = 1000) -> KnowledgeGraph:
         """
         Retrieve a connected subgraph of nodes where the label includes the specified `node_label`.
 
@@ -581,11 +564,8 @@ class DocStatusStorage(BaseKVStorage, ABC):
     """Base class for document status storage"""
 
     @abstractmethod
-    async def get_docs_by_status(
-        self, status: DocStatus
-    ) -> dict[str, DocProcessingStatus]:
+    async def get_docs_by_status(self, status: DocStatus) -> dict[str, DocProcessingStatus]:
         """Get all documents with a specific status"""
-
 
 
 class StoragesStatus(str, Enum):
