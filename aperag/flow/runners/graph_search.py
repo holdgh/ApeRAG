@@ -70,12 +70,10 @@ class GraphSearchService:
             return []
 
         # Import LightRAG and run as in _run_light_rag
-        from lightrag import QueryParam
-
-        from aperag.graph import lightrag_holder
-        from aperag.graph.lightrag_holder import LightRagHolder
-
-        rag: LightRagHolder = await lightrag_holder.get_lightrag_holder(collection)
+        from aperag.graph.lightrag import QueryParam
+        from aperag.graph import lightrag_manager
+        
+        rag = await lightrag_manager.get_lightrag_holder(collection)
         param: QueryParam = QueryParam(
             mode="hybrid",
             only_need_context=True,

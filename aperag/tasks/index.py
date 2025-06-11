@@ -611,7 +611,7 @@ def add_lightrag_index_task(self, content, document_id, file_path):
 
     try:
         # Use the new stateless wrapper for document processing
-        from aperag.graph.stateless_task_wrapper import process_document_for_celery
+        from aperag.graph.lightrag_manager import process_document_for_celery
         
         # Process the document using stateless interfaces
         result = process_document_for_celery(
@@ -673,7 +673,7 @@ def remove_lightrag_index_task(self, document_id, collection_id):
             raise Exception(f"Collection {collection_id} not found")
         
         # Use the new stateless wrapper for document deletion
-        from aperag.graph.stateless_task_wrapper import delete_document_for_celery
+        from aperag.graph.lightrag_manager import delete_document_for_celery
         
         # Delete the document using stateless interface
         result = delete_document_for_celery(
