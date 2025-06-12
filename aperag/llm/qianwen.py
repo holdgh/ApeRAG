@@ -19,7 +19,7 @@ from http import HTTPStatus
 import aiohttp
 from dashscope import Generation
 
-from aperag.llm.base import LLMAPIError, LLMConfigError, Predictor
+from aperag.llm.base import LLMAPIError, Predictor
 
 
 class QianWenPredictor(Predictor):
@@ -28,12 +28,6 @@ class QianWenPredictor(Predictor):
 
         self.url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
         self.model = kwargs.get("model", "qwen-turbo")
-        if self.model not in ["qwen-turbo", "qwen-plus", "qwen-max"]:
-            raise LLMConfigError("Please specify the correct model")
-
-        self.api_key = kwargs.get("api_key", os.environ.get("QIANWEN_API_KEY", ""))
-        if not self.api_key:
-            raise LLMConfigError("Please specify the API KEY")
 
         self.url = self.url.strip()
         self.api_key = self.api_key.strip()
