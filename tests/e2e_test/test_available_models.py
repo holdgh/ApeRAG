@@ -17,7 +17,7 @@ from http import HTTPStatus
 import pytest
 
 
-def test_get_available_models_default(benchmark, client):
+def test_get_available_models_default(benchmark, client, setup_model_service_provider):
     """Test GET available models with default behavior (recommend tag only)"""
     # Test with empty body - should return recommend models only
     resp = benchmark(client.post, "/api/v1/available_models", json={})
@@ -27,7 +27,7 @@ def test_get_available_models_default(benchmark, client):
     assert "items" in data
     assert isinstance(data["items"], list)
 
-    # Verify that returned models have recommend tag
+    # Verify that ALL returned models have recommend tag
     for provider in data["items"]:
         for model_type in ["completion", "embedding", "rerank"]:
             models = provider.get(model_type, [])
@@ -35,12 +35,16 @@ def test_get_available_models_default(benchmark, client):
                 for model in models:
                     if model and isinstance(model, dict):
                         tags = model.get("tags", [])
-                        if tags and "recommend" in tags:
-                            break
-        # Note: We don't assert provider_has_recommend here as the fixture might not have recommend tags
+                        assert tags is not None, f"Model {model.get('model')} has None tags"
+                        assert isinstance(tags, list), (
+                            f"Model {model.get('model')} tags should be list, got {type(tags)}"
+                        )
+                        assert "recommend" in tags, (
+                            f"Model {model.get('model')} should have 'recommend' tag, but has tags: {tags}"
+                        )
 
 
-def test_get_available_models_no_filter(benchmark, client):
+def test_get_available_models_no_filter(benchmark, client, setup_model_service_provider):
     """Test GET available models with empty tag_filters (all models)"""
     request_data = {"tag_filters": []}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -50,8 +54,45 @@ def test_get_available_models_no_filter(benchmark, client):
     assert "items" in data
     assert isinstance(data["items"], list)
 
+    # Store results for comparison with default (recommend-only) behavior
+    all_models_count = 0
+    recommend_models_count = 0
 
-def test_get_available_models_and_filter(benchmark, client):
+    for provider in data["items"]:
+        for model_type in ["completion", "embedding", "rerank"]:
+            models = provider.get(model_type, [])
+            if models:
+                for model in models:
+                    if model and isinstance(model, dict):
+                        all_models_count += 1
+                        tags = model.get("tags", [])
+                        if tags and "recommend" in tags:
+                            recommend_models_count += 1
+
+    # Verify we got some models
+    assert all_models_count > 0, "Should return at least some models when no filter is applied"
+
+    # Compare with default behavior (recommend only)
+    default_resp = client.post("/api/v1/available_models", json={})
+    default_data = default_resp.json()
+    default_models_count = 0
+
+    for provider in default_data["items"]:
+        for model_type in ["completion", "embedding", "rerank"]:
+            models = provider.get(model_type, [])
+            if models:
+                for model in models:
+                    if model and isinstance(model, dict):
+                        default_models_count += 1
+
+    # With no filter, we should get at least as many models as with recommend filter
+    # (and likely more, unless all models have recommend tag)
+    assert all_models_count >= default_models_count, (
+        f"No filter should return at least as many models as recommend filter. Got {all_models_count} vs {default_models_count}"
+    )
+
+
+def test_get_available_models_and_filter(benchmark, client, setup_model_service_provider):
     """Test GET available models with AND filter"""
     request_data = {"tag_filters": [{"operation": "AND", "tags": ["free", "recommend"]}]}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -73,7 +114,7 @@ def test_get_available_models_and_filter(benchmark, client):
                             break
 
 
-def test_get_available_models_or_filter(benchmark, client):
+def test_get_available_models_or_filter(benchmark, client, setup_model_service_provider):
     """Test GET available models with OR filter"""
     request_data = {"tag_filters": [{"operation": "OR", "tags": ["openai", "gpt"]}]}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -84,7 +125,7 @@ def test_get_available_models_or_filter(benchmark, client):
     assert isinstance(data["items"], list)
 
 
-def test_get_available_models_multiple_conditions(benchmark, client):
+def test_get_available_models_multiple_conditions(benchmark, client, setup_model_service_provider):
     """Test GET available models with multiple filter conditions (OR relationship)"""
     request_data = {
         "tag_filters": [{"operation": "AND", "tags": ["free", "recommend"]}, {"operation": "OR", "tags": ["openai"]}]
@@ -97,7 +138,7 @@ def test_get_available_models_multiple_conditions(benchmark, client):
     assert isinstance(data["items"], list)
 
 
-def test_get_available_models_single_tag(benchmark, client):
+def test_get_available_models_single_tag(benchmark, client, setup_model_service_provider):
     """Test GET available models with single tag filter"""
     request_data = {"tag_filters": [{"operation": "OR", "tags": ["recommend"]}]}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -108,7 +149,7 @@ def test_get_available_models_single_tag(benchmark, client):
     assert isinstance(data["items"], list)
 
 
-def test_get_available_models_nonexistent_tag(benchmark, client):
+def test_get_available_models_nonexistent_tag(benchmark, client, setup_model_service_provider):
     """Test GET available models with nonexistent tag (should return empty)"""
     request_data = {"tag_filters": [{"operation": "OR", "tags": ["nonexistent_tag_12345"]}]}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -121,7 +162,7 @@ def test_get_available_models_nonexistent_tag(benchmark, client):
     assert len(data["items"]) >= 0
 
 
-def test_get_available_models_invalid_operation(benchmark, client):
+def test_get_available_models_invalid_operation(benchmark, client, setup_model_service_provider):
     """Test GET available models with invalid operation (should return validation error)"""
     request_data = {"tag_filters": [{"operation": "INVALID", "tags": ["recommend"]}]}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -139,7 +180,7 @@ def test_get_available_models_invalid_operation(benchmark, client):
     assert "literal_error" == error.get("type")
 
 
-def test_get_available_models_empty_tags(benchmark, client):
+def test_get_available_models_empty_tags(benchmark, client, setup_model_service_provider):
     """Test GET available models with empty tags list"""
     request_data = {"tag_filters": [{"operation": "OR", "tags": []}]}
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
@@ -169,7 +210,7 @@ def test_get_available_models_empty_tags(benchmark, client):
     ],
     ids=["empty_body", "empty_filters", "single_and", "single_or", "multiple_conditions"],
 )
-def test_available_models_parametrized(benchmark, client, request_data, description):
+def test_available_models_parametrized(benchmark, client, setup_model_service_provider, request_data, description):
     """Parametrized test for various available_models scenarios"""
     resp = benchmark(client.post, "/api/v1/available_models", json=request_data)
     assert resp.status_code == HTTPStatus.OK, resp.text
@@ -188,7 +229,7 @@ def test_available_models_parametrized(benchmark, client, request_data, descript
                 assert isinstance(provider[model_type], list)
 
 
-def test_get_available_models_response_structure(benchmark, client):
+def test_get_available_models_response_structure(benchmark, client, setup_model_service_provider):
     """Test that available_models response has the correct structure"""
     resp = benchmark(client.post, "/api/v1/available_models", json={})
     assert resp.status_code == HTTPStatus.OK, resp.text

@@ -160,45 +160,33 @@ async def get_available_models(
 def _filter_providers_by_tags(
     providers: List[view_models.ModelConfig], tag_filters: List[view_models.TagFilterCondition]
 ) -> List[view_models.ModelConfig]:
-    """Helper function to filter providers by tags"""
-    # Convert providers to dictionaries for filtering
-    provider_dicts = []
+    """Helper function to filter providers by tags - filters at model level"""
+    filtered_providers = []
+
     for provider in providers:
         provider_dict = provider.model_dump()
-        # Flatten model tags for filtering
-        all_models = []
+
+        # Filter each model type separately
+        has_any_models = False
         for model_type in ["completion", "embedding", "rerank"]:
             models = provider_dict.get(model_type, [])
             if models:
                 # Filter out None values and ensure we only process valid models
                 valid_models = [model for model in models if model is not None]
-                all_models.extend(valid_models)
 
-        # Extract unique tags from all models in this provider
-        provider_tags = set()
-        for model in all_models:
-            if isinstance(model, dict) and model is not None:
-                # Safely get tags, ensuring the result is always a list
-                model_tags = model.get("tags", [])
-                if model_tags is not None:
-                    # Handle both list and string cases
-                    if isinstance(model_tags, list):
-                        provider_tags.update(model_tags)
-                    elif isinstance(model_tags, str):
-                        provider_tags.add(model_tags)
+                # Apply tag filtering to each model
+                filtered_models = filter_models_by_tags(valid_models, tag_filters)
 
-        provider_dict["tags"] = list(provider_tags)
-        provider_dicts.append(provider_dict)
+                # Update the provider with filtered models
+                provider_dict[model_type] = filtered_models
 
-    # Filter providers based on tags
-    filtered_provider_dicts = filter_models_by_tags(provider_dicts, tag_filters)
+                # Track if we have any models left
+                if filtered_models:
+                    has_any_models = True
 
-    # Convert back to ModelConfig objects
-    filtered_providers = []
-    for provider_dict in filtered_provider_dicts:
-        # Remove the temporary 'tags' field
-        provider_dict.pop("tags", None)
-        filtered_providers.append(view_models.ModelConfig(**provider_dict))
+        # Only include provider if it has at least one matching model
+        if has_any_models:
+            filtered_providers.append(view_models.ModelConfig(**provider_dict))
 
     return filtered_providers
 

@@ -145,10 +145,10 @@ class TestFilterProvidersByTags:
         return mock_provider
 
     def test_filter_providers_by_tags_basic(self):
-        """Test basic provider filtering"""
+        """Test basic provider filtering - should filter at model level"""
         completion_models = [
             {"model": "gpt-4", "tags": ["recommend", "premium"]},
-            {"model": "gpt-3.5", "tags": ["free", "recommend"]},
+            {"model": "gpt-3.5", "tags": ["free"]},  # This model should be filtered out
         ]
 
         provider = self.create_mock_provider("openai", completion_models=completion_models)
@@ -156,12 +156,18 @@ class TestFilterProvidersByTags:
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=["recommend"])
         result = _filter_providers_by_tags([provider], [tag_filter])
 
-        # Should return the provider since it has models with "recommend" tag
+        # Should return provider with only the models that match the filter
         assert len(result) == 1
-        assert isinstance(result[0], view_models.ModelConfig)
+        provider_result = result[0]
+
+        # Verify the provider was reconstructed correctly
+        assert isinstance(provider_result, view_models.ModelConfig)
+
+        # Verify that provider.model_dump was called to get the original data
+        provider.model_dump.assert_called_once()
 
     def test_filter_providers_by_tags_no_match(self):
-        """Test provider filtering with no matching tags"""
+        """Test provider filtering with no matching tags - should return empty list"""
         completion_models = [
             {"model": "model1", "tags": ["premium"]},
             {"model": "model2", "tags": ["enterprise"]},
@@ -175,10 +181,30 @@ class TestFilterProvidersByTags:
         # Should return empty list since no models match
         assert result == []
 
+    def test_filter_providers_by_tags_partial_match(self):
+        """Test provider filtering where only some models match"""
+        completion_models = [
+            {"model": "model1", "tags": ["recommend"]},
+            {"model": "model2", "tags": ["premium"]},
+            {"model": "model3", "tags": ["free", "recommend"]},
+        ]
+
+        provider = self.create_mock_provider("provider1", completion_models=completion_models)
+
+        tag_filter = view_models.TagFilterCondition(operation="OR", tags=["recommend"])
+        result = _filter_providers_by_tags([provider], [tag_filter])
+
+        # Should return provider but verify it was processed
+        assert len(result) == 1
+        provider.model_dump.assert_called_once()
+
     def test_filter_providers_by_tags_multiple_model_types(self):
-        """Test provider with multiple model types"""
+        """Test provider with multiple model types - filter each type separately"""
         completion_models = [{"model": "comp1", "tags": ["premium"]}]
-        embedding_models = [{"model": "embed1", "tags": ["free", "recommend"]}]
+        embedding_models = [
+            {"model": "embed1", "tags": ["free", "recommend"]},
+            {"model": "embed2", "tags": ["premium"]},
+        ]
         rerank_models = [{"model": "rerank1", "tags": ["enterprise"]}]
 
         provider = self.create_mock_provider(
@@ -191,7 +217,7 @@ class TestFilterProvidersByTags:
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=["recommend"])
         result = _filter_providers_by_tags([provider], [tag_filter])
 
-        # Should return the provider since embedding model has "recommend" tag
+        # Should return the provider since one embedding model has "recommend" tag
         assert len(result) == 1
 
     def test_filter_providers_by_tags_empty_providers(self):
@@ -213,5 +239,25 @@ class TestFilterProvidersByTags:
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=["recommend"])
         result = _filter_providers_by_tags([provider], [tag_filter])
 
-        # Should still work and find model2
+        # Should still work and return provider (with model2 matching)
         assert len(result) == 1
+
+    def test_filter_providers_by_tags_all_models_filtered_out(self):
+        """Test when all models in a provider are filtered out"""
+        completion_models = [
+            {"model": "model1", "tags": ["premium"]},
+            {"model": "model2", "tags": ["enterprise"]},
+        ]
+        embedding_models = [
+            {"model": "embed1", "tags": ["premium"]},
+        ]
+
+        provider = self.create_mock_provider(
+            "provider1", completion_models=completion_models, embedding_models=embedding_models
+        )
+
+        tag_filter = view_models.TagFilterCondition(operation="OR", tags=["free"])
+        result = _filter_providers_by_tags([provider], [tag_filter])
+
+        # Should return empty list since no models match the filter
+        assert result == []
