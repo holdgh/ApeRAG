@@ -1,5 +1,5 @@
 -- Model configuration initialization SQL script
--- Generated directly from configuration data on 2025-06-12 13:57:13
+-- Generated directly from configuration data on 2025-06-12 14:05:09
 -- This script populates llm_provider and llm_provider_models tables
 
 BEGIN;
@@ -3044,7 +3044,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'siliconflow', 'completion', 'Qwen/QwQ-32B', 'openai', NULL, '[]'::jsonb,
+    'siliconflow', 'completion', 'Qwen/Qwen3-8B', 'openai', NULL, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -3123,19 +3123,6 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'siliconflow', 'embedding', 'Pro/BAAI/bge-m3', 'openai', NULL, '[]'::jsonb,
-    NOW(), NOW()
-)
-ON CONFLICT (provider_name, api, model) DO UPDATE SET
-    custom_llm_provider = EXCLUDED.custom_llm_provider,
-    max_tokens = EXCLUDED.max_tokens,
-    tags = EXCLUDED.tags,
-    gmt_updated = NOW();
-
-INSERT INTO llm_provider_models (
-    provider_name, api, model, custom_llm_provider, max_tokens, tags,
-    gmt_created, gmt_updated
-) VALUES (
     'siliconflow', 'embedding', 'netease-youdao/bce-embedding-base_v1', 'openai', NULL, '[]'::jsonb,
     NOW(), NOW()
 )
@@ -3151,19 +3138,6 @@ INSERT INTO llm_provider_models (
     gmt_created, gmt_updated
 ) VALUES (
     'siliconflow', 'rerank', 'BAAI/bge-reranker-v2-m3', 'jina_ai', NULL, '[]'::jsonb,
-    NOW(), NOW()
-)
-ON CONFLICT (provider_name, api, model) DO UPDATE SET
-    custom_llm_provider = EXCLUDED.custom_llm_provider,
-    max_tokens = EXCLUDED.max_tokens,
-    tags = EXCLUDED.tags,
-    gmt_updated = NOW();
-
-INSERT INTO llm_provider_models (
-    provider_name, api, model, custom_llm_provider, max_tokens, tags,
-    gmt_created, gmt_updated
-) VALUES (
-    'siliconflow', 'rerank', 'Pro/BAAI/bge-reranker-v2-m3', 'jina_ai', NULL, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -7400,6 +7374,6 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
 
 COMMIT;
 
--- Script completed. Generated on 2025-06-12 13:57:13
+-- Script completed. Generated on 2025-06-12 14:05:09
 -- Total providers: 8
--- Total models: 557
+-- Total models: 555
