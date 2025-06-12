@@ -418,17 +418,13 @@ def create_siliconflow_config():
                 "custom_llm_provider": "openai"
             },
             {
-                "model": "Pro/BAAI/bge-m3",
-                "custom_llm_provider": "openai"
-            },
-            {
                 "model": "netease-youdao/bce-embedding-base_v1",
                 "custom_llm_provider": "openai"
             }
         ],
         "completion": [
             {
-                "model": "Qwen/QwQ-32B",
+                "model": "Qwen/Qwen3-8B",
                 "custom_llm_provider": "openai"
             },
             {
@@ -443,10 +439,6 @@ def create_siliconflow_config():
         "rerank": [
             {
                 "model": "BAAI/bge-reranker-v2-m3",
-                "custom_llm_provider": "jina_ai"
-            },
-            {
-                "model": "Pro/BAAI/bge-reranker-v2-m3",
                 "custom_llm_provider": "jina_ai"
             },
             {
