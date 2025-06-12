@@ -75,6 +75,13 @@ modelSpec:
       description: Number of top results to return when reranking documents
       minimum: 1
       # Only for rerank API
+    tags:
+      type: array
+      items:
+        type: string
+      description: Tags for model categorization
+      example: ["free", "recommend"]
+      default: []
 
 
 

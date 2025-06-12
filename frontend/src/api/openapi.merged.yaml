@@ -2050,6 +2050,15 @@ components:
           type: integer
           description: Number of top results to return when reranking documents
           minimum: 1
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags for model categorization
+          example:
+            - free
+            - recommend
+          default: []
     collectionConfig:
       type: object
       properties:
