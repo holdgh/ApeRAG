@@ -311,7 +311,74 @@ def create_xai_config(enable_whitelist=False, model_whitelist=None):
     return config
 
 
+def parse_bailian_models(file_path: str) -> List[Dict[str, Any]]:
+    """Parse Alibaba Bailian models from JSON file"""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    models = []
+    
+    # Navigate through the nested JSON structure
+    model_list_path = data.get("data", {}).get("DataV2", {}).get("data", {}).get("data", {})
+    model_groups = model_list_path.get("list", [])
+    
+    processed_models = set()
+    
+    for group in model_groups:
+        for model_info in group.get("items", []):
+            model_id = model_info.get("model")
+            if not model_id or model_id in processed_models:
+                continue
+            
+            # Only include models that support inference
+            if not model_info.get("supports", {}).get("inference", False):
+                continue
+            
+            processed_models.add(model_id)
+            
+            spec = {
+                "model": model_id,
+                "custom_llm_provider": "openai"
+            }
+            
+            # Add context window as max_tokens if available
+            context_window = model_info.get("contextWindow")
+            if context_window:
+                spec["max_tokens"] = context_window
+            
+            models.append(spec)
+    
+    return models
+
+
 def create_alibabacloud_config():
+    # Setup file paths
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    completion_file = os.path.join(project_root, "models", "alibaba_bailian_models_completion.json")
+    embedding_file = os.path.join(project_root, "models", "alibaba_bailian_models_embedding.json")
+    rerank_file = os.path.join(project_root, "models", "alibaba_bailian_models_rerank.json")
+    
+    print(f"📁 Reading Alibaba Bailian models from multiple files...")
+    
+    # Parse completion models
+    print(f"  - Reading completion models from: {completion_file}")
+    completion_models = parse_bailian_models(completion_file)
+    
+    # Parse embedding models
+    print(f"  - Reading embedding models from: {embedding_file}")
+    embedding_models = parse_bailian_models(embedding_file)
+    
+    # Parse rerank models
+    print(f"  - Reading rerank models from: {rerank_file}")
+    rerank_models = parse_bailian_models(rerank_file)
+    
+    # Sort model lists
+    completion_models.sort(key=lambda x: x["model"])
+    embedding_models.sort(key=lambda x: x["model"])
+    rerank_models.sort(key=lambda x: x["model"])
+    
+    print(f"✅ Found {len(completion_models)} completion, {len(embedding_models)} embedding, and {len(rerank_models)} rerank models from Alibaba Bailian")
+    
     config = {
         "name": "alibabacloud",
         "label": "AlibabaCloud",
@@ -320,78 +387,11 @@ def create_alibabacloud_config():
         "rerank_dialect": "jina_ai",
         "allow_custom_base_url": False,
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "embedding": [
-            {
-                "model": "text-embedding-v1",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "text-embedding-v2",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "text-embedding-v3",
-                "custom_llm_provider": "openai"
-            }
-        ],
-        "completion": [
-            {
-                "model": "deepseek-r1",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "deepseek-v3",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-max",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-long",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-plus",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-plus-latest",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-turbo",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwq-32b",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwq-plus",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwq-plus-latest",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-vl-max",
-                "custom_llm_provider": "openai"
-            },
-            {
-                "model": "qwen-vl-plus",
-                "custom_llm_provider": "openai"
-            }
-        ],
-        "rerank": []
+        "embedding": embedding_models,
+        "completion": completion_models,
+        "rerank": rerank_models
     }
-
-    # Sort model lists
-    config["completion"].sort(key=lambda x: x["model"])
-    config["embedding"].sort(key=lambda x: x["model"])
-    config["rerank"].sort(key=lambda x: x["model"])
-
+    
     return config
 
 
@@ -467,7 +467,7 @@ def create_siliconflow_config():
 def create_openrouter_config():
     # Setup file paths
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    downloads_dir = os.path.join(project_root, "downloads")
+    downloads_dir = os.path.join(project_root, "models")
     openrouter_file = os.path.join(downloads_dir, "openrouter_models.json")
     
     # Ensure downloads directory exists
@@ -482,7 +482,7 @@ def create_openrouter_config():
         response = requests.get(
             "https://openrouter.ai/api/v1/models",
             headers={},
-            timeout=30  # Add timeout
+            timeout=10  # Add timeout
         )
         
         if response.status_code == 200:

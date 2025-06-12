@@ -1,5 +1,5 @@
 -- Model configuration initialization SQL script
--- Generated directly from configuration data on 2025-06-12 13:15:11
+-- Generated directly from configuration data on 2025-06-12 13:57:13
 -- This script populates llm_provider and llm_provider_models tables
 
 BEGIN;
@@ -1988,7 +1988,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'deepseek-r1', 'openai', NULL, '["recommend"]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1', 'openai', 65536, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2001,7 +2001,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'deepseek-v3', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-0528', 'openai', 65536, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2014,7 +2014,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-long', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-distill-llama-70b', 'openai', 32768, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2027,7 +2027,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-max', 'openai', NULL, '["recommend"]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-distill-llama-8b', 'openai', 32768, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2040,7 +2040,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-plus', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-distill-qwen-1.5b', 'openai', 32768, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2053,7 +2053,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-plus-latest', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-distill-qwen-14b', 'openai', 32768, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2066,7 +2066,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-turbo', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-distill-qwen-32b', 'openai', 32768, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2079,7 +2079,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-vl-max', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-r1-distill-qwen-7b', 'openai', 32768, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2092,7 +2092,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwen-vl-plus', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'deepseek-v3', 'openai', 65536, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2105,7 +2105,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwq-32b', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'qvq-max', 'openai', 131072, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2118,7 +2118,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwq-plus', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'qvq-max-2025-03-25', 'openai', 131072, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2131,7 +2131,800 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'completion', 'qwq-plus-latest', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'completion', 'qvq-max-2025-05-15', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qvq-max-latest', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qvq-plus', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qvq-plus-2025-05-15', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qvq-plus-latest', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-max', 'openai', 32768, '["recommend"]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-max-0403', 'openai', 8000, '["recommend"]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-max-0428', 'openai', 8000, '["recommend"]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-max-0919', 'openai', 32768, '["recommend"]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-max-2025-01-25', 'openai', 131072, '["recommend"]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-max-latest', 'openai', 131072, '["recommend"]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo-2025-01-19', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo-2025-03-26', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo-latest', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo-realtime', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo-realtime-2025-05-08', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-omni-turbo-realtime-latest', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-0112', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-0723', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-0806', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-0919', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-1125', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-1127', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-1220', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-2025-01-25', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-2025-04-28', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-plus-latest', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo', 'openai', 1000000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo-0624', 'openai', 8000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo-0919', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo-1101', 'openai', 1000000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo-2025-02-11', 'openai', 1000000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo-2025-04-28', 'openai', 1000000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-turbo-latest', 'openai', 1000000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-0809', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-1030', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-1119', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-1230', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-2025-01-25', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-2025-04-02', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-2025-04-08', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-max-latest', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-plus', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-plus-0102', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-plus-0809', 'openai', 32000, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-plus-2025-01-25', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-plus-2025-05-07', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen-vl-plus-latest', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-0.6b', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-1.7b', 'openai', 32768, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-14b', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-235b-a22b', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-30b-a3b', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-32b', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-4b', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwen3-8b', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwq-plus', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwq-plus-2025-03-05', 'openai', 131072, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'completion', 'qwq-plus-latest', 'openai', 131072, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -2141,6 +2934,45 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
     gmt_updated = NOW();
 
 -- Embedding models for alibabacloud
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'embedding', 'multimodal-embedding-v1', 'openai', NULL, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'embedding', 'text-embedding-async-v1', 'openai', NULL, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'embedding', 'text-embedding-async-v2', 'openai', NULL, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
 INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
@@ -2172,6 +3004,33 @@ INSERT INTO llm_provider_models (
     gmt_created, gmt_updated
 ) VALUES (
     'alibabacloud', 'embedding', 'text-embedding-v3', 'openai', NULL, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'embedding', 'text-embedding-v4', 'openai', NULL, '[]'::jsonb,
+    NOW(), NOW()
+)
+ON CONFLICT (provider_name, api, model) DO UPDATE SET
+    custom_llm_provider = EXCLUDED.custom_llm_provider,
+    max_tokens = EXCLUDED.max_tokens,
+    tags = EXCLUDED.tags,
+    gmt_updated = NOW();
+
+-- Rerank models for alibabacloud
+INSERT INTO llm_provider_models (
+    provider_name, api, model, custom_llm_provider, max_tokens, tags,
+    gmt_created, gmt_updated
+) VALUES (
+    'alibabacloud', 'rerank', 'gte-rerank-v2', 'openai', 30000, '[]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -6541,6 +7400,6 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
 
 COMMIT;
 
--- Script completed. Generated on 2025-06-12 13:15:11
+-- Script completed. Generated on 2025-06-12 13:57:13
 -- Total providers: 8
--- Total models: 491
+-- Total models: 557
