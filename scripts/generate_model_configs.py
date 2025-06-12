@@ -607,7 +607,7 @@ def create_provider_config():
     # Sort xai whitelist
     xai_whitelist.sort()
 
-    enable_whitelist = True
+    enable_whitelist = False
     
     result = [
         create_openai_config(enable_whitelist, openai_whitelist),
