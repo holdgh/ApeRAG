@@ -371,3 +371,37 @@ llmConfigurationResponse:
     - providers
     - models
 
+# Tag filtering schemas for available_models API
+tagFilterCondition:
+  type: object
+  properties:
+    operation:
+      type: string
+      enum: [AND, OR]
+      description: Logical operation for tags in this condition
+      example: "AND"
+    tags:
+      type: array
+      items:
+        type: string
+      description: List of tags for this condition
+      example: ["free", "recommend"]
+  required:
+    - operation
+    - tags
+
+tagFilterRequest:
+  type: object
+  properties:
+    tag_filters:
+      type: array
+      items:
+        $ref: '#/tagFilterCondition'
+      description: List of tag filter conditions (OR relationship between conditions). If not provided or empty, returns models with "recommend" tag by default.
+      example:
+        - operation: "AND"
+          tags: ["free", "recommend"]
+        - operation: "OR"
+          tags: ["openai", "gpt"]
+  description: "Tag filtering request. Empty request body or empty tag_filters returns recommend models by default."
+

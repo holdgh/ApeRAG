@@ -964,3 +964,30 @@ class ChangePassword(BaseModel):
     new_password: Optional[str] = Field(
         None, description='The new password of the user'
     )
+
+
+class TagFilterCondition(BaseModel):
+    """Single tag filter condition"""
+    operation: Literal['AND', 'OR'] = Field(
+        ..., description='Logical operation for tags in this condition'
+    )
+    tags: list[str] = Field(
+        ..., description='List of tags for this condition'
+    )
+
+
+class TagFilterRequest(BaseModel):
+    """Tag filtering request for available models"""
+    tag_filters: Optional[list[TagFilterCondition]] = Field(
+        None, description='List of tag filter conditions (OR relationship between conditions). If None or empty, returns recommend models by default.'
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "tag_filters": [
+                    {"operation": "AND", "tags": ["free", "recommend"]},
+                    {"operation": "OR", "tags": ["openai", "gpt"]}
+                ]
+            }
+        }

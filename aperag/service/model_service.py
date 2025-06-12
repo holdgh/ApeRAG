@@ -14,7 +14,7 @@
 
 from datetime import datetime
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 import aperag.db.models as db_models
 from aperag.db.ops import async_db_ops
@@ -87,7 +87,57 @@ async def delete_model_service_provider(user: str, provider: str):
     return success({})
 
 
-async def list_available_models(user: str) -> view_models.ModelConfigList:
+def filter_models_by_tags(
+    models: List[dict], tag_filters: Optional[List[view_models.TagFilterCondition]]
+) -> List[dict]:
+    """Filter models by tag conditions
+
+    Args:
+        models: List of model dictionaries with 'tags' field
+        tag_filters: List of TagFilterCondition objects
+
+    Returns:
+        Filtered list of models
+    """
+    if not tag_filters:
+        return models
+
+    filtered_models = []
+
+    for model in models:
+        model_tags = set(model.get("tags", []) or [])
+
+        # Check if model matches any of the filter conditions (OR between conditions)
+        matches_any_condition = False
+
+        for condition in tag_filters:
+            operation = condition.operation.upper() if condition.operation else "AND"
+            required_tags = set(condition.tags or [])
+
+            if not required_tags:
+                continue
+
+            if operation == "AND":
+                # All tags must be present
+                if required_tags.issubset(model_tags):
+                    matches_any_condition = True
+                    break
+            elif operation == "OR":
+                # At least one tag must be present
+                if required_tags.intersection(model_tags):
+                    matches_any_condition = True
+                    break
+
+        if matches_any_condition:
+            filtered_models.append(model)
+
+    return filtered_models
+
+
+async def get_available_models(
+    user: str, tag_filter_request: view_models.TagFilterRequest
+) -> view_models.ModelConfigList:
+    """Get available models with optional tag filtering"""
     supported_providers = await get_model_config_objects()
     supported_msp_dict = {provider.name: provider for provider in supported_providers}
     msp_list = await async_db_ops.query_msp_list(user)
@@ -95,9 +145,62 @@ async def list_available_models(user: str) -> view_models.ModelConfigList:
     for msp in msp_list:
         if msp.name in supported_msp_dict:
             available_providers.append(supported_msp_dict[msp.name])
-    return success(
-        view_models.ModelConfigList(items=available_providers, pageResult=None).model_dump(exclude_none=True)
-    )
+
+    # Apply tag filtering based on request
+    if tag_filter_request.tag_filters is None or len(tag_filter_request.tag_filters) == 0:
+        # Default behavior: only return models with "recommend" tag
+        default_filter = view_models.TagFilterCondition(operation="OR", tags=["recommend"])
+        filtered_providers = _filter_providers_by_tags(available_providers, [default_filter])
+    else:
+        filtered_providers = _filter_providers_by_tags(available_providers, tag_filter_request.tag_filters)
+
+    return success(view_models.ModelConfigList(items=filtered_providers, pageResult=None).model_dump(exclude_none=True))
+
+
+def _filter_providers_by_tags(
+    providers: List[view_models.ModelConfig], tag_filters: List[view_models.TagFilterCondition]
+) -> List[view_models.ModelConfig]:
+    """Helper function to filter providers by tags"""
+    # Convert providers to dictionaries for filtering
+    provider_dicts = []
+    for provider in providers:
+        provider_dict = provider.model_dump()
+        # Flatten model tags for filtering
+        all_models = []
+        for model_type in ["completion", "embedding", "rerank"]:
+            models = provider_dict.get(model_type, [])
+            if models:
+                # Filter out None values and ensure we only process valid models
+                valid_models = [model for model in models if model is not None]
+                all_models.extend(valid_models)
+
+        # Extract unique tags from all models in this provider
+        provider_tags = set()
+        for model in all_models:
+            if isinstance(model, dict) and model is not None:
+                # Safely get tags, ensuring the result is always a list
+                model_tags = model.get("tags", [])
+                if model_tags is not None:
+                    # Handle both list and string cases
+                    if isinstance(model_tags, list):
+                        provider_tags.update(model_tags)
+                    elif isinstance(model_tags, str):
+                        provider_tags.add(model_tags)
+
+        provider_dict["tags"] = list(provider_tags)
+        provider_dicts.append(provider_dict)
+
+    # Filter providers based on tags
+    filtered_provider_dicts = filter_models_by_tags(provider_dicts, tag_filters)
+
+    # Convert back to ModelConfig objects
+    filtered_providers = []
+    for provider_dict in filtered_provider_dicts:
+        # Remove the temporary 'tags' field
+        provider_dict.pop("tags", None)
+        filtered_providers.append(view_models.ModelConfig(**provider_dict))
+
+    return filtered_providers
 
 
 async def list_supported_model_service_providers() -> view_models.ModelServiceProviderList:

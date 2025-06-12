@@ -80,6 +80,8 @@ export * from './search-test-request';
 export * from './search-test-result';
 export * from './search-test-result-item';
 export * from './search-test-result-list';
+export * from './tag-filter-condition';
+export * from './tag-filter-request';
 export * from './user';
 export * from './user-list';
 export * from './vector-search-params';
