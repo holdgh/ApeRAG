@@ -35,7 +35,6 @@ class LightRAGConfig:
 
     CHUNK_TOKEN_SIZE = 3000
     CHUNK_OVERLAP_TOKEN_SIZE = 100
-    MAX_PARALLEL_INSERT = 2
     LLM_MODEL_MAX_ASYNC = 20
     COSINE_BETTER_THAN_THRESHOLD = 0.2
     MAX_BATCH_SIZE = 32
@@ -85,7 +84,6 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:
             ),
             cosine_better_than_threshold=LightRAGConfig.COSINE_BETTER_THAN_THRESHOLD,
             max_batch_size=LightRAGConfig.MAX_BATCH_SIZE,
-            max_parallel_insert=LightRAGConfig.MAX_PARALLEL_INSERT,
             llm_model_max_async=LightRAGConfig.LLM_MODEL_MAX_ASYNC,
             entity_extract_max_gleaning=LightRAGConfig.ENTITY_EXTRACT_MAX_GLEANING,
             addon_params={"language": LightRAGConfig.DEFAULT_LANGUAGE},
