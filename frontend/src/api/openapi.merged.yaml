@@ -2535,30 +2535,6 @@ components:
           type: string
         api_key:
           type: string
-    modelInfo:
-      type: object
-      properties:
-        input_cost_per_token:
-          type: number
-          description: Input cost per token for single requests
-          example: 0.0000025
-        output_cost_per_token:
-          type: number
-          description: Output cost per token for single requests
-          example: 0.00001
-        input_cost_per_token_batches:
-          type: number
-          description: Input cost per token for batch requests
-          example: 0.00000125
-        output_cost_per_token_batches:
-          type: number
-          description: Output cost per token for batch requests
-          example: 0.000005
-    modelDefinition:
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/modelSpec'
-        - $ref: '#/components/schemas/modelInfo'
     modelConfig:
       type: object
       properties:
@@ -2579,15 +2555,15 @@ components:
         embedding:
           type: array
           items:
-            $ref: '#/components/schemas/modelDefinition'
+            $ref: '#/components/schemas/modelSpec'
         completion:
           type: array
           items:
-            $ref: '#/components/schemas/modelDefinition'
+            $ref: '#/components/schemas/modelSpec'
         rerank:
           type: array
           items:
-            $ref: '#/components/schemas/modelDefinition'
+            $ref: '#/components/schemas/modelSpec'
     modelConfigList:
       type: object
       properties:
@@ -2920,7 +2896,7 @@ components:
           type: string
           description: The token of the invitation
         created_by:
-          type: integer
+          type: string
           description: The ID of the user who created the invitation
         created_at:
           type: string

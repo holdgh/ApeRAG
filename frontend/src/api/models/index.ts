@@ -60,8 +60,6 @@ export * from './llm-provider-update';
 export * from './login';
 export * from './model-config';
 export * from './model-config-list';
-export * from './model-definition';
-export * from './model-info';
 export * from './model-service-provider';
 export * from './model-service-provider-list';
 export * from './model-service-provider-update';

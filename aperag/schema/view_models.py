@@ -680,22 +680,7 @@ class ModelServiceProviderUpdate(BaseModel):
     api_key: Optional[str] = None
 
 
-class ModelInfo(BaseModel):
-    input_cost_per_token: Optional[float] = Field(
-        None, description='Input cost per token for single requests', example=2.5e-06
-    )
-    output_cost_per_token: Optional[float] = Field(
-        None, description='Output cost per token for single requests', example=1e-05
-    )
-    input_cost_per_token_batches: Optional[float] = Field(
-        None, description='Input cost per token for batch requests', example=1.25e-06
-    )
-    output_cost_per_token_batches: Optional[float] = Field(
-        None, description='Output cost per token for batch requests', example=5e-06
-    )
-
-
-class ModelDefinition(ModelSpec, ModelInfo):
+class ModelDefinition(ModelSpec):
     pass
 
 
