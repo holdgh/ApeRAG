@@ -149,9 +149,9 @@ async def get_available_models(
     # Apply tag filtering based on request
     if tag_filter_request.tag_filters is None or len(tag_filter_request.tag_filters) == 0:
         # Default behavior: only return models with "recommend" tag
-        # default_filter = view_models.TagFilterCondition(operation="OR", tags=["recommend"])
+        # default_filter = [view_models.TagFilterCondition(operation="OR", tags=["recommend"])]
         default_filter = None
-        filtered_providers = _filter_providers_by_tags(available_providers, [default_filter])
+        filtered_providers = _filter_providers_by_tags(available_providers, default_filter)
     else:
         filtered_providers = _filter_providers_by_tags(available_providers, tag_filter_request.tag_filters)
 
