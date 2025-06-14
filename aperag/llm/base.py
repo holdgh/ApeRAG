@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import logging
 from abc import ABC, abstractmethod
+
+from aperag.llm.completion_service import CompletionService
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class LLMAPIError(Exception):
     """
 
 
+# TODO: remove Predictor, just use CompletionService
 class Predictor(ABC):
     def __init__(self, **kwargs):
         self.max_tokens = kwargs.get("max_tokens", 4096)
@@ -45,46 +47,9 @@ class Predictor(ABC):
         pass
 
     @staticmethod
-    def match_predictor(model_service_provider, model_name, base_url, api_key, kwargs):
+    def get_completion_service(model_service_provider, model_name, base_url, api_key, **kwargs):
         kwargs["model"] = model_name
         kwargs["api_key"] = api_key
         kwargs["base_url"] = base_url
-
-        if model_service_provider == "alibabacloud":
-            from aperag.llm.qianwen import QianWenPredictor
-
-            return QianWenPredictor
-
-        from aperag.llm.completion_service import CompletionService
-
-        return CompletionService
-
-    @staticmethod
-    def get_completion_service(model_service_provider, model_name, base_url, api_key, **kwargs):
-        predictor = Predictor.match_predictor(model_service_provider, model_name, base_url, api_key, kwargs)
+        predictor = CompletionService(model_service_provider, model_name, base_url, api_key, kwargs)
         return predictor(**kwargs)
-
-    def get_latest_history(self, messages, limit_length, limit_count, use_ai_memory) -> str:
-        latest_history = []
-        length = 0
-        count = 0
-
-        for message in reversed(messages):
-            if message.additional_kwargs["role"] == "human":
-                history = {"role": "user", "content": json.loads(message.content)["query"] + "\n"}
-            else:
-                if not use_ai_memory:
-                    continue
-                history = {"role": "assistant", "content": json.loads(message.content)["response"] + "\n"}
-            count += 1
-
-            if count >= limit_count or length + len(history["content"]) > limit_length:
-                break
-
-            latest_history.append(history)
-            length += len(history["content"])
-
-        if len(latest_history) > 0 and latest_history[-1]["role"] == "assistant":
-            latest_history = latest_history[:-1]
-
-        return latest_history[::-1]

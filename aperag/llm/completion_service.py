@@ -18,6 +18,7 @@ from aperag.llm.base import LLMConfigError, Predictor
 
 
 class CompletionService(Predictor):
+    # todo: universal params should not be passed in by kwargs, but by specific params
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.kwargs = kwargs
