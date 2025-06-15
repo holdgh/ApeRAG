@@ -20,8 +20,8 @@ from asgiref.sync import async_to_sync
 from aperag.context.full_text import create_index, delete_index
 from aperag.db.models import CollectionStatus
 from aperag.db.ops import db_ops
-from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.graph import lightrag_manager
+from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.tasks.index import get_collection_config_settings
 from aperag.utils.utils import (
     generate_fulltext_index_name,
