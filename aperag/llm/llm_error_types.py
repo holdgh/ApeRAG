@@ -206,8 +206,11 @@ class EmbeddingError(LLMError):
 class TextTooLongError(EmbeddingError):
     """Raised when input text exceeds the model's token limit"""
 
-    def __init__(self, text_length: int, max_length: int, model_name: str = None):
-        message = f"Text too long: {text_length} tokens exceeds maximum {max_length} tokens"
+    def __init__(self, text_length: Optional[int] = None, max_length: Optional[int] = None, model_name: str = None):
+        if text_length is not None and max_length is not None:
+            message = f"Text too long: {text_length} tokens exceeds maximum {max_length} tokens"
+        else:
+            message = "Text too long: input text exceeds model's token limit"
         if model_name:
             message += f" for model '{model_name}'"
         super().__init__(message, {"text_length": text_length, "max_length": max_length, "model_name": model_name})
@@ -276,8 +279,13 @@ class InvalidDocumentError(RerankError):
 class TooManyDocumentsError(RerankError):
     """Raised when too many documents are provided for reranking"""
 
-    def __init__(self, document_count: int, max_documents: int, model_name: str = None):
-        message = f"Too many documents for reranking: {document_count} exceeds maximum {max_documents}"
+    def __init__(
+        self, document_count: Optional[int] = None, max_documents: Optional[int] = None, model_name: str = None
+    ):
+        if document_count is not None and max_documents is not None:
+            message = f"Too many documents for reranking: {document_count} exceeds maximum {max_documents}"
+        else:
+            message = "Too many documents for reranking: document count exceeds model's limit"
         if model_name:
             message += f" for model '{model_name}'"
         super().__init__(
@@ -352,13 +360,13 @@ def wrap_litellm_error(
     # Service-specific errors
     if service_type == "embedding":
         if any(keyword in error_msg for keyword in ["text too long", "token limit", "input too large"]):
-            return TextTooLongError(0, 0, model_name)  # We don't have exact lengths from litellm
+            return TextTooLongError(None, None, model_name)  # Pass None when exact lengths are unavailable
         if any(keyword in error_msg for keyword in ["empty text", "no input"]):
             return EmptyTextError()
 
     elif service_type == "rerank":
         if any(keyword in error_msg for keyword in ["too many documents", "document limit"]):
-            return TooManyDocumentsError(0, 0, model_name)  # We don't have exact counts from litellm
+            return TooManyDocumentsError(None, None, model_name)  # Pass None when exact counts are unavailable
         if any(keyword in error_msg for keyword in ["invalid document", "document format"]):
             return InvalidDocumentError("Invalid document format detected")
 
