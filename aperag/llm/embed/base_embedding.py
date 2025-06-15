@@ -21,7 +21,7 @@ from langchain_core.embeddings import Embeddings
 
 from aperag.config import settings
 from aperag.db.ops import db_ops
-from aperag.embed.embedding_service import EmbeddingService
+from aperag.llm.embed.embedding_service import EmbeddingService
 from aperag.llm.llm_error_types import (
     EmbeddingError,
     InvalidConfigurationError,

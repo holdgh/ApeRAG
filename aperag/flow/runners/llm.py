@@ -22,7 +22,7 @@ from pydantic import Field
 
 from aperag.db.ops import async_db_ops
 from aperag.flow.base.models import BaseNodeRunner, SystemInput, register_node_runner
-from aperag.llm.completion_service import CompletionService
+from aperag.llm.completion.completion_service import CompletionService
 from aperag.query.query import DocumentWithScore
 from aperag.utils.constant import DOC_QA_REFERENCES
 from aperag.utils.history import BaseChatMessageHistory

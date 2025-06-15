@@ -14,7 +14,8 @@
 
 # Export all LLM error types for easy access
 # Export services
-from aperag.llm.completion_service import CompletionService
+from aperag.llm.completion.completion_service import CompletionService
+from aperag.llm.embed.embedding_service import EmbeddingService
 from aperag.llm.llm_error_types import (
     # API errors
     AuthenticationError,
@@ -48,6 +49,7 @@ from aperag.llm.llm_error_types import (
     # Utility functions
     wrap_litellm_error,
 )
+from aperag.llm.rerank.rerank_service import RerankService
 
 __all__ = [
     # Error classes
@@ -79,4 +81,6 @@ __all__ = [
     "is_retryable_error",
     # Services
     "CompletionService",
+    "EmbeddingService",
+    "RerankService",
 ]

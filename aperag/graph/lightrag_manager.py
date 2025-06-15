@@ -21,9 +21,9 @@ import numpy
 
 from aperag.db.models import Collection
 from aperag.db.ops import db_ops
-from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.graph.lightrag import LightRAG
 from aperag.graph.lightrag.utils import EmbeddingFunc
+from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.llm.llm_error_types import (
     EmbeddingError,
     ProviderNotFoundError,
@@ -263,7 +263,7 @@ async def _gen_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]
             history_messages: List = [],
             **kwargs,
         ) -> str:
-            from aperag.llm.completion_service import CompletionService
+            from aperag.llm.completion.completion_service import CompletionService
 
             completion_service = CompletionService(
                 provider=config.completion.custom_llm_provider,

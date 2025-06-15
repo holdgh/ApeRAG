@@ -24,8 +24,8 @@ from aperag.llm.llm_error_types import (
     ProviderNotFoundError,
     RerankError,
 )
+from aperag.llm.rerank.rerank_service import RerankService
 from aperag.query.query import DocumentWithScore
-from aperag.rerank.rerank_service import RerankService
 
 logger = logging.getLogger(__name__)
 
