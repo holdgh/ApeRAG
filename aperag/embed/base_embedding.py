@@ -102,5 +102,4 @@ def get_collection_embedding_service_sync(collection) -> tuple[Embeddings, int]:
         )
 
     logger.warning("get_collection_embedding_model_sync cannot find model service provider %s", embedding_msp)
-    return None, 0
     raise ValueError(f"cannot find model service provider {embedding_msp}")

@@ -220,7 +220,7 @@ async def _gen_embed_func(
 ) -> Tuple[Callable[[list[str]], Awaitable[numpy.ndarray]], int]:
     """Generate embedding function for LightRAG"""
     try:
-        embedding_svc, dim = await get_collection_embedding_service_sync(collection)
+        embedding_svc, dim = get_collection_embedding_service_sync(collection)
 
         async def embed_func(texts: list[str]) -> numpy.ndarray:
             embeddings = await embedding_svc.aembed_documents(texts)
