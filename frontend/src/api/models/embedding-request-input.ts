@@ -14,6 +14,10 @@
 
 
 
-export * from './apis/default-api';
-export * from './apis/llmapi';
+/**
+ * @type EmbeddingRequestInput
+ * @export
+ */
+export type EmbeddingRequestInput = Array<string> | string;
+
 
