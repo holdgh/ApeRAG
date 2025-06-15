@@ -41,6 +41,7 @@ class CompletionService:
                 model=self.model,
                 api_base=self.api_base,
                 api_key=self.api_key,
+                temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 messages=history + [{"role": "user", "content": prompt}]
                 if memory
@@ -64,6 +65,7 @@ class CompletionService:
                 model=self.model,
                 api_base=self.api_base,
                 api_key=self.api_key,
+                temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 messages=history + [{"role": "user", "content": prompt}]
                 if memory
@@ -91,6 +93,7 @@ class CompletionService:
                 model=self.model,
                 api_base=self.api_base,
                 api_key=self.api_key,
+                temperature=self.temperature,
                 max_tokens=self.max_tokens,
                 messages=[{"role": "user", "content": prompt}],
                 tools=tools,
