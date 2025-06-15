@@ -24,6 +24,10 @@ from aperag.db.ops import db_ops
 from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.graph.lightrag import LightRAG
 from aperag.graph.lightrag.utils import EmbeddingFunc
+from aperag.llm.llm_error_types import (
+    EmbeddingError,
+    ProviderNotFoundError,
+)
 from aperag.schema.utils import parseCollectionConfig
 
 logger = logging.getLogger(__name__)
@@ -227,6 +231,10 @@ async def _gen_embed_func(
             return numpy.array(embeddings)
 
         return embed_func, dim
+    except (ProviderNotFoundError, EmbeddingError) as e:
+        # Configuration or embedding-specific errors
+        logger.error(f"Failed to create embedding function - configuration error: {str(e)}")
+        raise LightRAGError(f"Embedding configuration error: {str(e)}") from e
     except Exception as e:
         logger.error(f"Failed to create embedding function: {str(e)}")
         raise LightRAGError(f"Failed to create embedding function: {str(e)}") from e

@@ -11,9 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from typing import Optional
 
 import litellm
+
+from aperag.llm.llm_error_types import (
+    CompletionError,
+    InvalidPromptError,
+    ResponseParsingError,
+    ToolCallError,
+    wrap_litellm_error,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class CompletionService:
@@ -36,6 +47,10 @@ class CompletionService:
 
     async def _agenerate_stream(self, history, prompt, memory=False):
         try:
+            # Validate inputs
+            if not prompt or not prompt.strip():
+                raise InvalidPromptError("Prompt cannot be empty", prompt[:100] if prompt else "")
+
             response = await litellm.acompletion(
                 custom_llm_provider=self.provider,
                 model=self.model,
@@ -54,12 +69,19 @@ class CompletionService:
                 choice = chunk.choices[0]
                 if choice.finish_reason == "stop":
                     return
-                yield choice.delta.content
+                if choice.delta and choice.delta.content:
+                    yield choice.delta.content
         except Exception as e:
-            raise e
+            logger.error(f"Completion streaming failed: {str(e)}")
+            # Convert litellm exceptions to our custom types
+            raise wrap_litellm_error(e, "completion", self.provider, self.model) from e
 
     def _generate_stream(self, history, prompt, memory=False):
         try:
+            # Validate inputs
+            if not prompt or not prompt.strip():
+                raise InvalidPromptError("Prompt cannot be empty", prompt[:100] if prompt else "")
+
             response = litellm.completion(
                 custom_llm_provider=self.provider,
                 model=self.model,
@@ -78,16 +100,33 @@ class CompletionService:
                 choice = chunk.choices[0]
                 if choice.finish_reason == "stop":
                     return
-                yield choice.delta.content
+                if choice.delta and choice.delta.content:
+                    yield choice.delta.content
         except Exception as e:
-            raise e
+            logger.error(f"Completion streaming failed: {str(e)}")
+            # Convert litellm exceptions to our custom types
+            raise wrap_litellm_error(e, "completion", self.provider, self.model) from e
 
     async def agenerate_stream(self, history, prompt, memory=False):
-        async for tokens in self._agenerate_stream(history, prompt, memory):
-            yield tokens
+        try:
+            async for tokens in self._agenerate_stream(history, prompt, memory):
+                yield tokens
+        except CompletionError:
+            # Re-raise our custom completion errors
+            raise
+        except Exception as e:
+            logger.error(f"Async completion generation failed: {str(e)}")
+            raise wrap_litellm_error(e, "completion", self.provider, self.model) from e
 
     async def agenerate_by_tools(self, prompt, tools):
         try:
+            # Validate inputs
+            if not prompt or not prompt.strip():
+                raise InvalidPromptError("Prompt cannot be empty", prompt[:100] if prompt else "")
+
+            if not tools or not isinstance(tools, list):
+                raise ToolCallError(reason="Tools parameter must be a non-empty list")
+
             response = await litellm.acompletion(
                 custom_llm_provider=self.provider,
                 model=self.model,
@@ -99,11 +138,29 @@ class CompletionService:
                 tools=tools,
                 tool_choice="auto",
             )
-            tool_calls = response.choices[0].message.tool_calls
-            return tool_calls, response.choices[0].message.content
+
+            if not response.choices or not response.choices[0].message:
+                raise ResponseParsingError("No valid response received from completion API")
+
+            message = response.choices[0].message
+            tool_calls = getattr(message, "tool_calls", None)
+            content = getattr(message, "content", None)
+
+            return tool_calls, content
+        except (InvalidPromptError, ToolCallError, ResponseParsingError):
+            # Re-raise our custom errors
+            raise
         except Exception as e:
-            raise e
+            logger.error(f"Tool-based completion failed: {str(e)}")
+            raise wrap_litellm_error(e, "completion", self.provider, self.model) from e
 
     def generate_stream(self, history, prompt, memory=False):
-        for tokens in self._generate_stream(history, prompt, memory):
-            yield tokens
+        try:
+            for tokens in self._generate_stream(history, prompt, memory):
+                yield tokens
+        except CompletionError:
+            # Re-raise our custom completion errors
+            raise
+        except Exception as e:
+            logger.error(f"Sync completion generation failed: {str(e)}")
+            raise wrap_litellm_error(e, "completion", self.provider, self.model) from e
