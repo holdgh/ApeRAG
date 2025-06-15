@@ -32,7 +32,7 @@ class CompletionService:
         self,
         provider: str,
         model: str,
-        api_base: str,
+        base_url: str,
         api_key: str,
         temperature: float = 0.1,
         max_tokens: Optional[int] = None,
@@ -40,7 +40,7 @@ class CompletionService:
         super().__init__()
         self.provider = provider
         self.model = model
-        self.api_base = api_base
+        self.base_url = base_url
         self.api_key = api_key
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -54,7 +54,7 @@ class CompletionService:
             response = await litellm.acompletion(
                 custom_llm_provider=self.provider,
                 model=self.model,
-                api_base=self.api_base,
+                base_url=self.base_url,
                 api_key=self.api_key,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -85,7 +85,7 @@ class CompletionService:
             response = litellm.completion(
                 custom_llm_provider=self.provider,
                 model=self.model,
-                api_base=self.api_base,
+                base_url=self.base_url,
                 api_key=self.api_key,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
@@ -130,7 +130,7 @@ class CompletionService:
             response = await litellm.acompletion(
                 custom_llm_provider=self.provider,
                 model=self.model,
-                api_base=self.api_base,
+                base_url=self.base_url,
                 api_key=self.api_key,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
