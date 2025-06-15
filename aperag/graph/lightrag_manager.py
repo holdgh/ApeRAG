@@ -21,7 +21,7 @@ import numpy
 
 from aperag.db.models import Collection
 from aperag.db.ops import db_ops
-from aperag.embed.base_embedding import get_collection_embedding_service
+from aperag.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.graph.lightrag import LightRAG
 from aperag.graph.lightrag.utils import EmbeddingFunc
 from aperag.schema.utils import parseCollectionConfig
@@ -220,7 +220,7 @@ async def _gen_embed_func(
 ) -> Tuple[Callable[[list[str]], Awaitable[numpy.ndarray]], int]:
     """Generate embedding function for LightRAG"""
     try:
-        embedding_svc, dim = await get_collection_embedding_service(collection)
+        embedding_svc, dim = await get_collection_embedding_service_sync(collection)
 
         async def embed_func(texts: list[str]) -> numpy.ndarray:
             embeddings = await embedding_svc.aembed_documents(texts)

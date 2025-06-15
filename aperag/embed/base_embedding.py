@@ -55,7 +55,7 @@ def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_provider
 
 
 @synchronized
-def get_embedding_model(
+def _get_embedding_model(
     embedding_provider: str,
     embedding_model: str,
     embedding_service_url: str,
@@ -74,40 +74,7 @@ def get_embedding_model(
     return embedding_svc, embedding_dim
 
 
-async def get_collection_embedding_service(collection) -> tuple[Embeddings | None, int]:
-    config = parseCollectionConfig(collection.config)
-    embedding_msp = config.embedding.model_service_provider
-    embedding_model_name = config.embedding.model
-    custom_llm_provider = config.embedding.custom_llm_provider
-    logging.info("get_collection_embedding_model %s %s", embedding_msp, embedding_model_name)
-
-    msp_dict = db_ops.query_msp_dict(collection.user)
-    if embedding_msp in msp_dict:
-        msp = msp_dict[embedding_msp]
-        embedding_service_api_key = msp.api_key
-
-        # Get base_url from LLMProvider
-        try:
-            llm_provider = db_ops.query_llm_provider_by_name(embedding_msp)
-            embedding_service_url = llm_provider.base_url
-        except Exception:
-            raise ValueError(f"LLMProvider '{embedding_msp}' not found")
-
-        logging.info("get_collection_embedding_model %s %s", embedding_service_url, embedding_service_api_key)
-
-        return get_embedding_model(
-            embedding_provider=custom_llm_provider,
-            embedding_model=embedding_model_name,
-            embedding_service_url=embedding_service_url,
-            embedding_service_api_key=embedding_service_api_key,
-        )
-
-    logging.warning("get_collection_embedding_model cannot find model service provider %s", embedding_msp)
-    return None, 0
-
-
-def get_collection_embedding_service_sync(collection) -> tuple[object, int]:
-    """Synchronous version of get_collection_embedding_service for Celery tasks"""
+def get_collection_embedding_service_sync(collection) -> tuple[Embeddings, int]:
     config = parseCollectionConfig(collection.config)
     embedding_msp = config.embedding.model_service_provider
     embedding_model_name = config.embedding.model
@@ -125,7 +92,9 @@ def get_collection_embedding_service_sync(collection) -> tuple[object, int]:
         except Exception:
             raise ValueError(f"LLMProvider '{embedding_msp}' not found")
 
-        return get_embedding_model(
+        logging.info("get_collection_embedding_model %s %s", embedding_service_url, embedding_service_api_key)
+
+        return _get_embedding_model(
             embedding_provider=custom_llm_provider,
             embedding_model=embedding_model_name,
             embedding_service_url=embedding_service_url,
@@ -134,3 +103,4 @@ def get_collection_embedding_service_sync(collection) -> tuple[object, int]:
 
     logger.warning("get_collection_embedding_model_sync cannot find model service provider %s", embedding_msp)
     return None, 0
+    raise ValueError(f"cannot find model service provider {embedding_msp}")
