@@ -1384,7 +1384,7 @@ class AsyncDatabaseOps:
 
         return await self._execute_query(_query)
 
-    async def query_msp(self, user: str = None, provider: str = None, filterDeletion: bool = True):
+    async def query_provider_api_key(self, provider: str = None, filterDeletion: bool = True):
         async def _query(session):
             stmt = select(ModelServiceProvider).where(ModelServiceProvider.name == provider)
             if filterDeletion:
@@ -2146,6 +2146,18 @@ class AsyncDatabaseOps:
 
         async def _query(session):
             stmt = select(LLMProvider).where(LLMProvider.name == name, LLMProvider.gmt_deleted.is_(None))
+            result = await session.execute(stmt)
+            return result.scalars().first()
+
+        return await self._execute_query(_query)
+
+    async def query_llm_provider_by_name_user(self, name: str, user_id: str):
+        """Get LLM provider by name and user_id"""
+
+        async def _query(session):
+            stmt = select(LLMProvider).where(
+                LLMProvider.name == name, LLMProvider.user_id == user_id, LLMProvider.gmt_deleted.is_(None)
+            )
             result = await session.execute(stmt)
             return result.scalars().first()
 

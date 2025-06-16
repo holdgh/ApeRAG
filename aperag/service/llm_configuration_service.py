@@ -162,7 +162,7 @@ async def create_llm_provider(provider_data: dict, user_id: str):
 async def get_llm_provider(provider_name: str, user_id: str = None):
     """Get a specific LLM provider by name"""
     try:
-        provider = await async_db_ops.query_llm_provider_by_name(provider_name)
+        provider = await async_db_ops.query_llm_provider_by_name_user(provider_name, user_id)
 
         if not provider:
             return fail(HTTPStatus.NOT_FOUND, f"Provider '{provider_name}' not found")
@@ -182,10 +182,9 @@ async def get_llm_provider(provider_name: str, user_id: str = None):
         }
 
         # Get masked API key if user_id is provided (for security)
-        if user_id:
-            msp = await async_db_ops.query_msp(user_id, provider_name)
-            if msp:
-                provider_data["api_key"] = mask_api_key(msp.api_key)
+        msp = await async_db_ops.query_provider_api_key(provider_name)
+        if msp:
+            provider_data["api_key"] = mask_api_key(msp.api_key)
 
         return success(provider_data)
     except Exception as e:
