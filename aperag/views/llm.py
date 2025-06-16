@@ -130,15 +130,9 @@ async def _get_provider_info(provider: str, model: str, user_id: str, api_type: 
             raise ModelNotFoundError(model, provider, api_type)
 
         # 3. Get user's API key from MSP
-        msp_dict = await async_db_ops.query_msp_dict(user_id)
-        if provider not in msp_dict:
-            available_providers = list(msp_dict.keys())
-            logger.warning(f"Provider {provider} not configured for user {user_id}. Available: {available_providers}")
-            raise ProviderNotFoundError(provider, api_type)
-
-        msp = msp_dict[provider]
-        if not msp.api_key:
-            raise InvalidConfigurationError("api_key", None, f"API key not configured for provider '{provider}'")
+        api_key = await async_db_ops.query_provider_api_key(provider, user_id)
+        if not api_key:
+            raise Exception(f"API KEY not found for LLM Provider:{provider}")
 
         # 4. Validate base URL
         if not llm_provider.base_url:
@@ -147,7 +141,7 @@ async def _get_provider_info(provider: str, model: str, user_id: str, api_type: 
             )
 
         return {
-            "api_key": msp.api_key,
+            "api_key": api_key,
             "base_url": llm_provider.base_url,
             "custom_llm_provider": llm_model.custom_llm_provider,
         }

@@ -92,9 +92,7 @@ class LLMOutput(BaseModel):
 class LLMRepository:
     """Repository interface for LLM database operations"""
 
-    async def get_msp_dict(self, user) -> Dict:
-        """Get model service provider dictionary for the user"""
-        return await async_db_ops.query_msp_dict(user)
+    pass
 
 
 # Business logic service
@@ -119,12 +117,9 @@ class LLMService:
         docs: Optional[List[DocumentWithScore]] = None,
     ) -> Tuple[str, Dict]:
         """Generate LLM response with given parameters"""
-        msp_dict = await async_db_ops.query_msp_dict(user)
-        if model_service_provider not in msp_dict:
-            raise Exception(f"Model service provider {model_service_provider} not found")
-
-        msp = msp_dict[model_service_provider]
-        api_key = msp.api_key
+        api_key = await async_db_ops.query_provider_api_key(model_service_provider, user)
+        if not api_key:
+            raise Exception(f"API KEY not found for LLM Provider:{model_service_provider}")
 
         try:
             llm_provider = await async_db_ops.query_llm_provider_by_name(model_service_provider)

@@ -76,25 +76,9 @@ class RerankNodeRunner(BaseNodeRunner):
                 )
 
             # Get API key and base URL from user's model service provider settings
-            try:
-                msp_dict = await async_db_ops.query_msp_dict(si.user)
-            except Exception as e:
-                logger.error(f"Failed to query model service providers: {str(e)}")
-                raise RerankError(f"Failed to query model service providers: {str(e)}") from e
-
-            if ui.model_service_provider not in msp_dict:
-                available_providers = list(msp_dict.keys())
-                logger.error(
-                    f"Model service provider '{ui.model_service_provider}' not configured. Available: {available_providers}"
-                )
-                raise ProviderNotFoundError(ui.model_service_provider, "Rerank")
-
-            msp = msp_dict[ui.model_service_provider]
-
-            if not msp.api_key:
-                raise InvalidConfigurationError(
-                    "api_key", None, f"API key not configured for provider '{ui.model_service_provider}'"
-                )
+            api_key = await async_db_ops.query_provider_api_key(ui.model_service_provider, si.user)
+            if not api_key:
+                raise InvalidConfigurationError(f"API KEY not found for LLM Provider:{ui.model_service_provider}")
 
             # Get base_url from LLMProvider
             try:
@@ -116,7 +100,7 @@ class RerankNodeRunner(BaseNodeRunner):
                 rerank_provider=ui.custom_llm_provider,
                 rerank_model=ui.model,
                 rerank_service_url=base_url,
-                rerank_service_api_key=msp.api_key,
+                rerank_service_api_key=api_key,
             )
 
             # Validate the service configuration

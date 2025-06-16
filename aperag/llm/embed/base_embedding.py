@@ -92,7 +92,6 @@ def _get_embedding_model(
     embedding_service_url: str,
     embedding_service_api_key: str,
     embedding_max_chunks_in_batch: int = settings.embedding_max_chunks_in_batch,
-    **kwargs,
 ) -> tuple[Embeddings | None, int]:
     """
     Create and configure an embedding model instance.
@@ -175,27 +174,9 @@ def get_collection_embedding_service_sync(collection) -> tuple[Embeddings, int]:
             "embedding.custom_llm_provider", custom_llm_provider, "Custom LLM provider cannot be empty"
         )
 
-    try:
-        msp_dict = db_ops.query_msp_dict(collection.user)
-    except Exception as e:
-        logger.error(f"Failed to query model service providers: {str(e)}")
-        raise EmbeddingError(f"Failed to query model service providers: {str(e)}") from e
-
-    if embedding_msp not in msp_dict:
-        available_providers = list(msp_dict.keys())
-        logger.warning(
-            "get_collection_embedding_model_sync cannot find model service provider %s. Available: %s",
-            embedding_msp,
-            available_providers,
-        )
-        raise ProviderNotFoundError(embedding_msp, "Embedding")
-
-    msp = msp_dict[embedding_msp]
-
-    if not msp.api_key:
-        raise InvalidConfigurationError("api_key", None, f"API key not configured for provider '{embedding_msp}'")
-
-    embedding_service_api_key = msp.api_key
+    embedding_service_api_key = db_ops.query_provider_api_key(embedding_msp, collection.user)
+    if not embedding_service_api_key:
+        raise Exception(f"API KEY not found for LLM Provider:{embedding_msp}")
 
     try:
         llm_provider = db_ops.query_llm_provider_by_name(embedding_msp)

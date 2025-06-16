@@ -138,7 +138,7 @@ async def create_llm_provider(provider_data: dict, user_id: str):
         api_key = provider_data.get("api_key")
         if api_key and api_key.strip():  # Only create/update if non-empty API key is provided
             # Create or update API key for this provider
-            await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_data["name"], api_key=api_key)
+            await async_db_ops.upsert_msp(name=provider_data["name"], api_key=api_key)
 
         return success(
             {
@@ -182,9 +182,9 @@ async def get_llm_provider(provider_name: str, user_id: str = None):
         }
 
         # Get masked API key if user_id is provided (for security)
-        msp = await async_db_ops.query_provider_api_key(provider_name)
-        if msp:
-            provider_data["api_key"] = mask_api_key(msp.api_key)
+        api_key = await async_db_ops.query_provider_api_key(provider_name, user_id)
+        if api_key:
+            provider_data["api_key"] = mask_api_key(api_key)
 
         return success(provider_data)
     except Exception as e:
@@ -215,7 +215,7 @@ async def update_llm_provider(provider_name: str, update_data: dict, user_id: st
         api_key = update_data.get("api_key")
         if api_key and api_key.strip():  # Only update if non-empty API key is provided
             # Create or update API key for this provider
-            await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_name, api_key=api_key)
+            await async_db_ops.upsert_msp(name=provider_name, api_key=api_key)
 
         return success(
             {
