@@ -16,7 +16,7 @@ from http import HTTPStatus
 from typing import Optional
 
 from aperag.db.ops import async_db_ops
-from aperag.views.utils import fail, success
+from aperag.views.utils import fail, generate_random_provider_name, mask_api_key, success
 
 
 async def get_llm_configuration(user_id: str = None):
@@ -48,9 +48,9 @@ async def get_llm_configuration(user_id: str = None):
                 "updated": provider.gmt_updated,
             }
 
-            # Add API key if available
+            # Add masked API key if available (for security)
             if provider.name in api_keys:
-                provider_data["api_key"] = api_keys[provider.name]
+                provider_data["api_key"] = mask_api_key(api_keys[provider.name])
 
             providers_data.append(provider_data)
 
@@ -110,9 +110,9 @@ async def list_llm_providers(user_id: str = None):
                 "updated": provider.gmt_updated,
             }
 
-            # Add API key if available
+            # Add masked API key if available (for security)
             if provider.name in api_keys:
-                provider_data["api_key"] = api_keys[provider.name]
+                provider_data["api_key"] = mask_api_key(api_keys[provider.name])
 
             providers_data.append(provider_data)
 
@@ -133,6 +133,19 @@ async def list_llm_providers(user_id: str = None):
 async def create_llm_provider(provider_data: dict, user_id: str):
     """Create a new LLM provider or restore a soft-deleted one with the same name"""
     try:
+        # Generate a random provider name if not provided
+        if "name" not in provider_data or not provider_data["name"]:
+            # Generate random name and ensure it doesn't conflict
+            max_attempts = 10
+            for _ in range(max_attempts):
+                generated_name = generate_random_provider_name()
+                existing = await async_db_ops.query_llm_provider_by_name(generated_name)
+                if not existing:
+                    provider_data["name"] = generated_name
+                    break
+            else:
+                return fail(HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to generate unique provider name")
+
         # First check if there's an active provider with the same name
         active_existing = await async_db_ops.query_llm_provider_by_name(provider_data["name"])
 
@@ -171,7 +184,7 @@ async def create_llm_provider(provider_data: dict, user_id: str):
 
         # Handle API key if provided
         api_key = provider_data.get("api_key")
-        if api_key:
+        if api_key and api_key.strip():  # Only create/update if non-empty API key is provided
             # Create or update API key for this provider
             await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_data["name"], api_key=api_key)
 
@@ -216,11 +229,11 @@ async def get_llm_provider(provider_name: str, user_id: str = None):
             "updated": provider.gmt_updated,
         }
 
-        # Get API key if user_id is provided
+        # Get masked API key if user_id is provided (for security)
         if user_id:
             msp = await async_db_ops.query_msp(user_id, provider_name)
             if msp:
-                provider_data["api_key"] = msp.api_key
+                provider_data["api_key"] = mask_api_key(msp.api_key)
 
         return success(provider_data)
     except Exception as e:
@@ -249,7 +262,7 @@ async def update_llm_provider(provider_name: str, update_data: dict, user_id: st
 
         # Handle API key if provided
         api_key = update_data.get("api_key")
-        if api_key:
+        if api_key and api_key.strip():  # Only update if non-empty API key is provided
             # Create or update API key for this provider
             await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_name, api_key=api_key)
 

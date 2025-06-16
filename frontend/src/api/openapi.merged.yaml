@@ -3078,7 +3078,7 @@ components:
       properties:
         name:
           type: string
-          description: Unique provider name identifier
+          description: Unique provider name identifier (auto-generated if not provided)
         label:
           type: string
           description: Human-readable provider display name
@@ -3108,7 +3108,6 @@ components:
           type: string
           description: Optional API key for this provider
       required:
-        - name
         - label
         - base_url
     llmProviderUpdateWithApiKey:
