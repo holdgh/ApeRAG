@@ -141,9 +141,11 @@ class DatabaseOps:
 
         def _query(session):
             # Join LLMProvider and ModelServiceProvider tables
+            from sqlalchemy import join
+
             stmt = (
                 select(ModelServiceProvider.api_key)
-                .select_from(LLMProvider.join(ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
+                .select_from(join(LLMProvider, ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
                 .where(
                     LLMProvider.name == provider_name,
                     LLMProvider.gmt_deleted.is_(None),
@@ -1418,9 +1420,11 @@ class AsyncDatabaseOps:
 
         async def _query(session):
             # Join LLMProvider and ModelServiceProvider tables
+            from sqlalchemy import join
+
             stmt = (
                 select(ModelServiceProvider.api_key)
-                .select_from(LLMProvider.join(ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
+                .select_from(join(LLMProvider, ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
                 .where(
                     LLMProvider.name == provider_name,
                     LLMProvider.gmt_deleted.is_(None),
