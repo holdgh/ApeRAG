@@ -76,7 +76,6 @@ class DocumentStatus(str, Enum):
     RUNNING = "RUNNING"
     COMPLETE = "COMPLETE"
     FAILED = "FAILED"
-    DELETING = "DELETING"
     DELETED = "DELETED"
 
 
@@ -240,6 +239,7 @@ class Document(Base):
         stmt = select(DocumentIndex).where(DocumentIndex.document_id == self.id)
         result = session.execute(stmt)
         return result.scalars().all()
+    
 
     def get_overall_index_status(self, session) -> "DocumentStatus":
         """Calculate overall status based on document indexes"""
@@ -247,7 +247,7 @@ class Document(Base):
 
         if not document_indexes:
             return DocumentStatus.PENDING
-
+        
         states = [idx.actual_state for idx in document_indexes]
 
         if any(state == IndexActualState.FAILED for state in states):
