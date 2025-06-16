@@ -1,4 +1,4 @@
-import { LlmConfigurationResponse, LlmProvider, LlmProviderModel, LlmProviderCreateWithApiKey, LlmProviderUpdateWithApiKey } from '@/api';
+import { LlmConfigurationResponse, LlmProvider, LlmProviderModel } from '@/api';
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { api } from '@/services';
 import {
@@ -94,6 +94,7 @@ export default () => {
       embedding_dialect: 'openai',
       rerank_dialect: 'jina_ai',
       allow_custom_base_url: false,
+      api_key: '', // Explicitly clear API key field to prevent sharing between providers
     });
     setProviderModalVisible(true);
   }, [providerForm]);
@@ -105,7 +106,11 @@ export default () => {
       // 加载provider数据
       const providerData: any = { ...provider };
       
-      // API key现在直接在provider中管理，不需要单独加载
+      // API key现在直接在provider中管理，但出于安全考虑，
+      // 后端通常不会在GET请求中返回API key，需要明确处理
+      if (!providerData.api_key) {
+        providerData.api_key = ''; // Clear API key field if not provided by backend
+      }
       
       providerForm.setFieldsValue(providerData);
       setProviderModalVisible(true);
@@ -131,6 +136,7 @@ export default () => {
         message.success(formatMessage({ id: 'model.provider.create.success' }));
       }
 
+      providerForm.resetFields(); // Clear form state after successful save
       setProviderModalVisible(false);
       await fetchConfiguration();
     } catch (error) {
@@ -603,7 +609,10 @@ export default () => {
           </Space>
         }
         open={providerModalVisible}
-        onCancel={() => setProviderModalVisible(false)}
+        onCancel={() => {
+          providerForm.resetFields(); // Clear form state when closing modal
+          setProviderModalVisible(false);
+        }}
         onOk={handleSaveProvider}
         width={650}
         confirmLoading={loading}
