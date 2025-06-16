@@ -24,24 +24,35 @@ async def get_llm_configuration(user_id: str = None):
     try:
         # Get providers (public + user's private if user_id provided)
         providers = await async_db_ops.query_llm_providers(user_id)
+
+        # Get user's API keys
+        api_keys = {}
+        if user_id:
+            msp_list = await async_db_ops.query_msp_list(user_id)
+            api_keys = {msp.name: msp.api_key for msp in msp_list}
+
         providers_data = []
 
         for provider in providers:
-            providers_data.append(
-                {
-                    "name": provider.name,
-                    "user_id": provider.user_id,
-                    "label": provider.label,
-                    "completion_dialect": provider.completion_dialect,
-                    "embedding_dialect": provider.embedding_dialect,
-                    "rerank_dialect": provider.rerank_dialect,
-                    "allow_custom_base_url": provider.allow_custom_base_url,
-                    "base_url": provider.base_url,
-                    "extra": provider.extra,
-                    "created": provider.gmt_created,
-                    "updated": provider.gmt_updated,
-                }
-            )
+            provider_data = {
+                "name": provider.name,
+                "user_id": provider.user_id,
+                "label": provider.label,
+                "completion_dialect": provider.completion_dialect,
+                "embedding_dialect": provider.embedding_dialect,
+                "rerank_dialect": provider.rerank_dialect,
+                "allow_custom_base_url": provider.allow_custom_base_url,
+                "base_url": provider.base_url,
+                "extra": provider.extra,
+                "created": provider.gmt_created,
+                "updated": provider.gmt_updated,
+            }
+
+            # Add API key if available
+            if provider.name in api_keys:
+                provider_data["api_key"] = api_keys[provider.name]
+
+            providers_data.append(provider_data)
 
         # Get all models
         models = await async_db_ops.query_llm_provider_models()
@@ -75,24 +86,35 @@ async def list_llm_providers(user_id: str = None):
     """List all LLM providers"""
     try:
         providers = await async_db_ops.query_llm_providers(user_id)
+
+        # Get user's API keys
+        api_keys = {}
+        if user_id:
+            msp_list = await async_db_ops.query_msp_list(user_id)
+            api_keys = {msp.name: msp.api_key for msp in msp_list}
+
         providers_data = []
 
         for provider in providers:
-            providers_data.append(
-                {
-                    "name": provider.name,
-                    "user_id": provider.user_id,
-                    "label": provider.label,
-                    "completion_dialect": provider.completion_dialect,
-                    "embedding_dialect": provider.embedding_dialect,
-                    "rerank_dialect": provider.rerank_dialect,
-                    "allow_custom_base_url": provider.allow_custom_base_url,
-                    "base_url": provider.base_url,
-                    "extra": provider.extra,
-                    "created": provider.gmt_created,
-                    "updated": provider.gmt_updated,
-                }
-            )
+            provider_data = {
+                "name": provider.name,
+                "user_id": provider.user_id,
+                "label": provider.label,
+                "completion_dialect": provider.completion_dialect,
+                "embedding_dialect": provider.embedding_dialect,
+                "rerank_dialect": provider.rerank_dialect,
+                "allow_custom_base_url": provider.allow_custom_base_url,
+                "base_url": provider.base_url,
+                "extra": provider.extra,
+                "created": provider.gmt_created,
+                "updated": provider.gmt_updated,
+            }
+
+            # Add API key if available
+            if provider.name in api_keys:
+                provider_data["api_key"] = api_keys[provider.name]
+
+            providers_data.append(provider_data)
 
         return success(
             {
@@ -147,6 +169,12 @@ async def create_llm_provider(provider_data: dict, user_id: str):
                 extra=provider_data.get("extra"),
             )
 
+        # Handle API key if provided
+        api_key = provider_data.get("api_key")
+        if api_key:
+            # Create or update API key for this provider
+            await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_data["name"], api_key=api_key)
+
         return success(
             {
                 "name": provider.name,
@@ -166,7 +194,7 @@ async def create_llm_provider(provider_data: dict, user_id: str):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to create LLM provider: {str(e)}")
 
 
-async def get_llm_provider(provider_name: str):
+async def get_llm_provider(provider_name: str, user_id: str = None):
     """Get a specific LLM provider by name"""
     try:
         provider = await async_db_ops.query_llm_provider_by_name(provider_name)
@@ -174,26 +202,32 @@ async def get_llm_provider(provider_name: str):
         if not provider:
             return fail(HTTPStatus.NOT_FOUND, f"Provider '{provider_name}' not found")
 
-        return success(
-            {
-                "name": provider.name,
-                "user_id": provider.user_id,
-                "label": provider.label,
-                "completion_dialect": provider.completion_dialect,
-                "embedding_dialect": provider.embedding_dialect,
-                "rerank_dialect": provider.rerank_dialect,
-                "allow_custom_base_url": provider.allow_custom_base_url,
-                "base_url": provider.base_url,
-                "extra": provider.extra,
-                "created": provider.gmt_created,
-                "updated": provider.gmt_updated,
-            }
-        )
+        provider_data = {
+            "name": provider.name,
+            "user_id": provider.user_id,
+            "label": provider.label,
+            "completion_dialect": provider.completion_dialect,
+            "embedding_dialect": provider.embedding_dialect,
+            "rerank_dialect": provider.rerank_dialect,
+            "allow_custom_base_url": provider.allow_custom_base_url,
+            "base_url": provider.base_url,
+            "extra": provider.extra,
+            "created": provider.gmt_created,
+            "updated": provider.gmt_updated,
+        }
+
+        # Get API key if user_id is provided
+        if user_id:
+            msp = await async_db_ops.query_msp(user_id, provider_name)
+            if msp:
+                provider_data["api_key"] = msp.api_key
+
+        return success(provider_data)
     except Exception as e:
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to get LLM provider: {str(e)}")
 
 
-async def update_llm_provider(provider_name: str, update_data: dict):
+async def update_llm_provider(provider_name: str, update_data: dict, user_id: str):
     """Update an existing LLM provider"""
     try:
         existing_provider = await async_db_ops.query_llm_provider_by_name(provider_name)
@@ -212,6 +246,12 @@ async def update_llm_provider(provider_name: str, update_data: dict):
             base_url=update_data.get("base_url"),
             extra=update_data.get("extra"),
         )
+
+        # Handle API key if provided
+        api_key = update_data.get("api_key")
+        if api_key:
+            # Create or update API key for this provider
+            await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_name, api_key=api_key)
 
         return success(
             {
@@ -242,6 +282,9 @@ async def delete_llm_provider(provider_name: str):
 
         # Soft delete the provider and its models
         await async_db_ops.delete_llm_provider(provider_name)
+
+        # Physical delete the API key for this provider
+        await async_db_ops.delete_msp_by_name(provider_name)
 
         return success(None)
     except Exception as e:

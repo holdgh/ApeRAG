@@ -1,4 +1,4 @@
-import { LlmConfigurationResponse, LlmProvider, LlmProviderModel, ModelServiceProvider } from '@/api';
+import { LlmConfigurationResponse, LlmProvider, LlmProviderModel, LlmProviderCreateWithApiKey, LlmProviderUpdateWithApiKey } from '@/api';
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { api } from '@/services';
 import {
@@ -35,10 +35,7 @@ const { Title, Text } = Typography;
 // 弹窗内容视图类型
 type ModalViewType = 'list' | 'add' | 'edit';
 
-// API Key配置相关类型
-type ListModelProvider = ModelServiceProvider & {
-  enabled: boolean;
-};
+// API Key配置相关类型 - 已移除，API Key现在直接在LLM Provider中管理
 
 export default () => {
   const { loading, setLoading } = useModel('global');
@@ -56,9 +53,7 @@ export default () => {
     null,
   );
 
-  // API Key配置相关状态
-  const [supportedModelProviders, setSupportedModelProviders] = useState<ModelServiceProvider[]>();
-  const [modelProviders, setModelProviders] = useState<ModelServiceProvider[]>();
+  // API Key配置相关状态 - 已移除，API Key现在直接在LLM Provider中管理
 
   // Model management modal state
   const [modelManagementVisible, setModelManagementVisible] = useState(false);
@@ -86,24 +81,7 @@ export default () => {
     }
   }, [setLoading, formatMessage]);
 
-  // API Key配置相关方法
-  const getSupportedModelProviders = useCallback(async () => {
-    try {
-      const res = await api.supportedModelServiceProvidersGet();
-      setSupportedModelProviders(res.data.items);
-    } catch (error) {
-      message.error(formatMessage({ id: 'model.provider.fetch.failed' }));
-    }
-  }, [formatMessage]);
-
-  const getModelProviders = useCallback(async () => {
-    try {
-      const res = await api.modelServiceProvidersGet();
-      setModelProviders(res.data.items);
-    } catch (error) {
-      message.error(formatMessage({ id: 'model.provider.fetch.failed' }));
-    }
-  }, [formatMessage]);
+  // API Key配置相关方法 - 已移除，API Key现在直接在LLM Provider中管理
 
 
 
@@ -127,20 +105,12 @@ export default () => {
       // 加载provider数据
       const providerData: any = { ...provider };
       
-      // 尝试加载现有的API key
-      try {
-        const existingMsp = modelProviders?.find(mp => mp.name === provider.name);
-        if (existingMsp) {
-          providerData.api_key = existingMsp.api_key;
-        }
-      } catch (error) {
-        // 忽略API key加载错误
-      }
+      // API key现在直接在provider中管理，不需要单独加载
       
       providerForm.setFieldsValue(providerData);
       setProviderModalVisible(true);
     },
-    [providerForm, modelProviders],
+    [providerForm],
   );
 
   const handleSaveProvider = useCallback(async () => {
@@ -148,41 +118,21 @@ export default () => {
       const values = await providerForm.validateFields();
       setLoading(true);
 
-      // 分离provider数据和API key数据
-      const { api_key, ...providerData } = values;
-
       if (editingProvider) {
         await api.llmProvidersProviderNamePut({
           providerName: editingProvider.name,
-          llmProviderUpdate: providerData,
+          llmProviderUpdateWithApiKey: values,
         });
         message.success(formatMessage({ id: 'model.provider.update.success' }));
       } else {
         await api.llmProvidersPost({
-          llmProviderCreate: providerData,
+          llmProviderCreateWithApiKey: values,
         });
         message.success(formatMessage({ id: 'model.provider.create.success' }));
       }
 
-      // 如果提供了API key，则保存或更新API key
-      if (api_key && api_key.trim()) {
-        try {
-          await api.modelServiceProvidersProviderPut({
-            provider: providerData.name,
-            modelServiceProviderUpdate: {
-              name: providerData.name,
-              api_key: api_key.trim(),
-            },
-          });
-          message.success(formatMessage({ id: 'model.provider.api_key.update.success' }));
-        } catch (error) {
-          message.warning(formatMessage({ id: 'model.provider.api_key.update.failed' }));
-        }
-      }
-
       setProviderModalVisible(false);
       await fetchConfiguration();
-      await getModelProviders(); // 刷新API key数据
     } catch (error) {
       message.error(formatMessage({ id: 'model.provider.save.failed' }));
     } finally {
@@ -193,7 +143,6 @@ export default () => {
     providerForm,
     setLoading,
     fetchConfiguration,
-    getModelProviders,
     formatMessage,
   ]);
 
@@ -619,9 +568,7 @@ export default () => {
 
   useEffect(() => {
     fetchConfiguration();
-    getSupportedModelProviders();
-    getModelProviders();
-  }, [fetchConfiguration, getSupportedModelProviders, getModelProviders]);
+  }, [fetchConfiguration]);
 
   return (
     <PageContainer>

@@ -859,88 +859,6 @@ paths:
                 $ref: '#/components/schemas/failResponse'
         '404':
           description: API key not found
-  /supported_model_service_providers:
-    get:
-      summary: Get model service providers
-      description: Get model service providers
-      responses:
-        '200':
-          description: Model service providers
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/modelServiceProviderList'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
-  /model_service_providers:
-    get:
-      summary: Get model service providers
-      description: Get model service providers
-      responses:
-        '200':
-          description: Model service providers
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/modelServiceProviderList'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
-  /model_service_providers/{provider}:
-    put:
-      summary: Update model service provider
-      description: Update model service provider
-      parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/modelServiceProviderUpdate'
-      responses:
-        '200':
-          description: Model service provider
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
-    delete:
-      summary: Delete model service provider
-      description: Delete model service provider
-      parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Model service provider
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
-        '404':
-          description: Model service provider not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
   /available_models:
     post:
       summary: Get available models with filtering
@@ -1057,13 +975,13 @@ paths:
                 $ref: '#/components/schemas/failResponse'
     post:
       summary: Create a new LLM provider
-      description: Create a new LLM provider
+      description: Create a new LLM provider with optional API key
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/llmProviderCreate'
+              $ref: '#/components/schemas/llmProviderCreateWithApiKey'
       responses:
         '200':
           description: LLM provider created successfully
@@ -1115,7 +1033,7 @@ paths:
                 $ref: '#/components/schemas/failResponse'
     put:
       summary: Update an LLM provider
-      description: Update an existing LLM provider
+      description: Update an existing LLM provider with optional API key
       parameters:
         - name: provider_name
           in: path
@@ -1128,7 +1046,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/llmProviderUpdate'
+              $ref: '#/components/schemas/llmProviderUpdateWithApiKey'
       responses:
         '200':
           description: LLM provider updated successfully
@@ -2950,31 +2868,6 @@ components:
       properties:
         description:
           type: string
-    modelServiceProvider:
-      type: object
-      properties:
-        name:
-          type: string
-        label:
-          type: string
-        api_key:
-          type: string
-    modelServiceProviderList:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/modelServiceProvider'
-        pageResult:
-          $ref: '#/components/schemas/pageResult'
-    modelServiceProviderUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-        api_key:
-          type: string
     tagFilterCondition:
       type: object
       properties:
@@ -3089,6 +2982,9 @@ components:
         extra:
           type: string
           description: Additional configuration data in JSON format
+        api_key:
+          type: string
+          description: API key for this provider (if configured by user)
         created:
           type: string
           format: date-time
@@ -3177,7 +3073,7 @@ components:
             $ref: '#/components/schemas/llmProvider'
         pageResult:
           $ref: '#/components/schemas/pageResult'
-    llmProviderCreate:
+    llmProviderCreateWithApiKey:
       type: object
       properties:
         name:
@@ -3208,11 +3104,14 @@ components:
         extra:
           type: string
           description: Additional configuration data in JSON format
+        api_key:
+          type: string
+          description: Optional API key for this provider
       required:
         - name
         - label
         - base_url
-    llmProviderUpdate:
+    llmProviderUpdateWithApiKey:
       type: object
       properties:
         label:
@@ -3236,6 +3135,9 @@ components:
         extra:
           type: string
           description: Additional configuration data in JSON format
+        api_key:
+          type: string
+          description: Optional API key for this provider
     llmProviderModelList:
       type: object
       properties:

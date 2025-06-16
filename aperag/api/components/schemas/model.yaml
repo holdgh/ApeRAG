@@ -167,6 +167,9 @@ llmProvider:
     extra:
       type: string
       description: Additional configuration data in JSON format
+    api_key:
+      type: string
+      description: API key for this provider (if configured by user)
     created:
       type: string
       format: date-time
@@ -226,6 +229,45 @@ llmProviderCreate:
     - label
     - base_url
 
+llmProviderCreateWithApiKey:
+  type: object
+  properties:
+    name:
+      type: string
+      description: Unique provider name identifier
+    label:
+      type: string
+      description: Human-readable provider display name
+    completion_dialect:
+      type: string
+      description: API dialect for completion/chat APIs
+      default: "openai"
+    embedding_dialect:
+      type: string
+      description: API dialect for embedding APIs
+      default: "openai"
+    rerank_dialect:
+      type: string
+      description: API dialect for rerank APIs
+      default: "jina_ai"
+    allow_custom_base_url:
+      type: boolean
+      description: Whether custom base URLs are allowed
+      default: false
+    base_url:
+      type: string
+      description: Default API base URL for this provider
+    extra:
+      type: string
+      description: Additional configuration data in JSON format
+    api_key:
+      type: string
+      description: Optional API key for this provider
+  required:
+    - name
+    - label
+    - base_url
+
 llmProviderUpdate:
   type: object
   properties:
@@ -250,6 +292,34 @@ llmProviderUpdate:
     extra:
       type: string
       description: Additional configuration data in JSON format
+
+llmProviderUpdateWithApiKey:
+  type: object
+  properties:
+    label:
+      type: string
+      description: Human-readable provider display name
+    completion_dialect:
+      type: string
+      description: API dialect for completion/chat APIs
+    embedding_dialect:
+      type: string
+      description: API dialect for embedding APIs
+    rerank_dialect:
+      type: string
+      description: API dialect for rerank APIs
+    allow_custom_base_url:
+      type: boolean
+      description: Whether custom base URLs are allowed
+    base_url:
+      type: string
+      description: Default API base URL for this provider
+    extra:
+      type: string
+      description: Additional configuration data in JSON format
+    api_key:
+      type: string
+      description: Optional API key for this provider
 
 llmProviderModel:
   type: object

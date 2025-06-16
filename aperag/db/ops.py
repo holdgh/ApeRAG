@@ -1406,13 +1406,59 @@ class AsyncDatabaseOps:
 
         return await self.execute_with_transaction(_operation)
 
-    async def delete_msp(self, msp: ModelServiceProvider):
+    async def upsert_model_service_provider(self, user: str, name: str, api_key: str):
+        """Create or update model service provider API key"""
+
         async def _operation(session):
-            msp.status = ModelServiceProviderStatus.DELETED
-            msp.gmt_deleted = datetime.utcnow()
-            session.add(msp)
+            # Try to find existing MSP
+            stmt = select(ModelServiceProvider).where(
+                ModelServiceProvider.name == name, ModelServiceProvider.gmt_deleted.is_(None)
+            )
+            result = await session.execute(stmt)
+            msp = result.scalars().first()
+
+            if msp:
+                # Update existing
+                msp.api_key = api_key
+                msp.gmt_updated = datetime.utcnow()
+                session.add(msp)
+            else:
+                # Create new
+                from aperag.db.models import ModelServiceProviderStatus
+
+                msp = ModelServiceProvider(name=name, status=ModelServiceProviderStatus.ACTIVE, api_key=api_key)
+                session.add(msp)
+
             await session.flush()
+            await session.refresh(msp)
             return msp
+
+        return await self.execute_with_transaction(_operation)
+
+    async def delete_msp(self, msp: ModelServiceProvider):
+        """Physical delete model service provider"""
+
+        async def _operation(session):
+            await session.delete(msp)
+            await session.flush()
+
+        return await self.execute_with_transaction(_operation)
+
+    async def delete_msp_by_name(self, name: str):
+        """Physical delete model service provider by name"""
+
+        async def _operation(session):
+            stmt = select(ModelServiceProvider).where(
+                ModelServiceProvider.name == name, ModelServiceProvider.gmt_deleted.is_(None)
+            )
+            result = await session.execute(stmt)
+            msp = result.scalars().first()
+
+            if msp:
+                await session.delete(msp)
+                await session.flush()
+                return True
+            return False
 
         return await self.execute_with_transaction(_operation)
 

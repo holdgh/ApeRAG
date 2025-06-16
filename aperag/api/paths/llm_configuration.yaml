@@ -37,13 +37,13 @@ llmProviders:
               $ref: '../components/schemas/common.yaml#/failResponse'
   post:
     summary: Create a new LLM provider
-    description: Create a new LLM provider
+    description: Create a new LLM provider with optional API key
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/model.yaml#/llmProviderCreate'
+            $ref: '../components/schemas/model.yaml#/llmProviderCreateWithApiKey'
     responses:
       '200':
         description: LLM provider created successfully
@@ -96,7 +96,7 @@ llmProvider:
               $ref: '../components/schemas/common.yaml#/failResponse'
   put:
     summary: Update an LLM provider
-    description: Update an existing LLM provider
+    description: Update an existing LLM provider with optional API key
     parameters:
       - name: provider_name
         in: path
@@ -109,7 +109,7 @@ llmProvider:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/model.yaml#/llmProviderUpdate'
+            $ref: '../components/schemas/model.yaml#/llmProviderUpdateWithApiKey'
     responses:
       '200':
         description: LLM provider updated successfully

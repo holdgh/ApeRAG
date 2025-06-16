@@ -24,7 +24,6 @@ from aperag.service.chat_service import chat_service_global
 from aperag.service.collection_service import collection_service
 from aperag.service.document_service import document_service
 from aperag.service.flow_service import flow_service_global
-from aperag.service.llm_config_service import get_model_config_objects
 from aperag.service.llm_configuration_service import (
     create_llm_provider,
     create_llm_provider_model,
@@ -37,13 +36,7 @@ from aperag.service.llm_configuration_service import (
     update_llm_provider,
     update_llm_provider_model,
 )
-from aperag.service.model_service import (
-    delete_model_service_provider,
-    get_available_models,
-    list_model_service_providers,
-    list_supported_model_service_providers,
-    update_model_service_provider,
-)
+from aperag.service.model_service import get_available_models
 from aperag.service.prompt_template_service import list_prompt_templates
 
 # Import authentication dependencies
@@ -241,36 +234,6 @@ async def delete_bot_view(request: Request, bot_id: str, user: User = Depends(cu
     return await bot_service.delete_bot(str(user.id), bot_id)
 
 
-@router.get("/supported_model_service_providers")
-async def list_supported_model_service_providers_view(
-    request: Request, user: User = Depends(current_user)
-) -> view_models.ModelServiceProviderList:
-    return await list_supported_model_service_providers()
-
-
-@router.get("/model_service_providers")
-async def list_model_service_providers_view(
-    request: Request, user: User = Depends(current_user)
-) -> view_models.ModelServiceProviderList:
-    return await list_model_service_providers(str(user.id))
-
-
-@router.put("/model_service_providers/{provider}")
-async def update_model_service_provider_view(
-    request: Request,
-    provider: str,
-    mspIn: view_models.ModelServiceProviderUpdate,
-    user: User = Depends(current_user),
-):
-    supported_providers = await get_model_config_objects()
-    return await update_model_service_provider(str(user.id), provider, mspIn, supported_providers)
-
-
-@router.delete("/model_service_providers/{provider}")
-async def delete_model_service_provider_view(request: Request, provider: str, user: User = Depends(current_user)):
-    return await delete_model_service_provider(str(user.id), provider)
-
-
 @router.post("/available_models")
 async def get_available_models_view(
     request: Request,
@@ -364,29 +327,30 @@ async def list_llm_providers_view(request: Request, user: User = Depends(current
 
 
 @router.post("/llm_providers")
-async def create_llm_provider_view(request: Request, user: User = Depends(current_user)):
-    """Create a new LLM provider"""
-    import json
-
-    body = await request.body()
-    data = json.loads(body.decode("utf-8"))
-    return await create_llm_provider(data, str(user.id))
+async def create_llm_provider_view(
+    request: Request,
+    provider_data: view_models.LlmProviderCreateWithApiKey,
+    user: User = Depends(current_user),
+):
+    """Create a new LLM provider with optional API key"""
+    return await create_llm_provider(provider_data.model_dump(), str(user.id))
 
 
 @router.get("/llm_providers/{provider_name}")
 async def get_llm_provider_view(request: Request, provider_name: str, user: User = Depends(current_user)):
     """Get a specific LLM provider"""
-    return await get_llm_provider(provider_name)
+    return await get_llm_provider(provider_name, str(user.id))
 
 
 @router.put("/llm_providers/{provider_name}")
-async def update_llm_provider_view(request: Request, provider_name: str, user: User = Depends(current_user)):
-    """Update an existing LLM provider"""
-    import json
-
-    body = await request.body()
-    data = json.loads(body.decode("utf-8"))
-    return await update_llm_provider(provider_name, data)
+async def update_llm_provider_view(
+    request: Request,
+    provider_name: str,
+    provider_data: view_models.LlmProviderUpdateWithApiKey,
+    user: User = Depends(current_user),
+):
+    """Update an existing LLM provider with optional API key"""
+    return await update_llm_provider(provider_name, provider_data.model_dump(), str(user.id))
 
 
 @router.delete("/llm_providers/{provider_name}")
