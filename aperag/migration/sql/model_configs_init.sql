@@ -1,5 +1,5 @@
 -- Model configuration initialization SQL script
--- Generated directly from configuration data on 2025-06-16 15:00:12
+-- Generated directly from configuration data on 2025-06-16 15:06:47
 -- This script populates llm_provider and llm_provider_models tables
 
 BEGIN;
@@ -982,7 +982,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'openai', 'embedding', 'text-embedding-ada-002', 'openai', 8191, '[]'::jsonb,
+    'openai', 'embedding', 'text-embedding-ada-002', 'openai', 8191, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -995,7 +995,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'openai', 'embedding', 'text-embedding-ada-002-v2', 'openai', 8191, '[]'::jsonb,
+    'openai', 'embedding', 'text-embedding-ada-002-v2', 'openai', 8191, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -3003,7 +3003,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'embedding', 'text-embedding-v4', 'openai', NULL, '[]'::jsonb,
+    'alibabacloud', 'embedding', 'text-embedding-v4', 'openai', NULL, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -3017,7 +3017,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'rerank', 'gte-rerank-v2', 'openai', 30000, '[]'::jsonb,
+    'alibabacloud', 'rerank', 'gte-rerank-v2', 'openai', 30000, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -3098,7 +3098,7 @@ INSERT INTO llm_provider_models (
     provider_name, api, model, custom_llm_provider, max_tokens, tags,
     gmt_created, gmt_updated
 ) VALUES (
-    'siliconflow', 'rerank', 'netease-youdao/bce-reranker-base_v1', 'jina_ai', NULL, '[]'::jsonb,
+    'siliconflow', 'rerank', 'netease-youdao/bce-reranker-base_v1', 'jina_ai', NULL, '["recommend"]'::jsonb,
     NOW(), NOW()
 )
 ON CONFLICT (provider_name, api, model) DO UPDATE SET
@@ -7322,6 +7322,6 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
 
 COMMIT;
 
--- Script completed. Generated on 2025-06-16 15:00:12
+-- Script completed. Generated on 2025-06-16 15:06:47
 -- Total providers: 8
 -- Total models: 551

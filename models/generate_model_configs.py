@@ -162,8 +162,13 @@ def apply_model_tags(model_specs: List[Dict[str, Any]], tag_rules: Dict[str, Lis
                     if tag not in tags:
                         tags.append(tag)
                     break
+                # Wildcard pattern to match all models
+                elif pattern == '*':
+                    if tag not in tags:
+                        tags.append(tag)
+                    break
                 # Exact matching for all other patterns (especially recommend tags)
-                elif pattern != ':free' and pattern == model_name:
+                elif pattern != ':free' and pattern != '*' and pattern == model_name:
                     if tag not in tags:
                         tags.append(tag)
                     break
@@ -246,9 +251,11 @@ def create_openai_config():
         'free': []  # No free models for OpenAI
     }
     embedding_tag_rules = {
-        'recommend': ['text-embedding-3-small', 'text-embedding-3-large']
+        'recommend': ['*']  # All embedding models get recommend tag
     }
-    rerank_tag_rules = {}
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     config = {
         "name": provider,
@@ -285,8 +292,12 @@ def create_anthropic_config():
     completion_tag_rules = {
         'recommend': ['claude-3-7-sonnet-20250219', 'claude-opus-4-20250514', 'claude-sonnet-4-20250514']
     }
-    embedding_tag_rules = {}
-    rerank_tag_rules = {}
+    embedding_tag_rules = {
+        'recommend': ['*']  # All embedding models get recommend tag
+    }
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     config = {
         "name": provider,
@@ -321,6 +332,12 @@ def create_deepseek_config():
     completion_tag_rules = {
         'recommend': ['deepseek-r1', 'deepseek-v3']
     }
+    embedding_tag_rules = {
+        'recommend': ['*']  # All embedding models get recommend tag
+    }
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     config = {
         "name": "deepseek",
@@ -353,6 +370,8 @@ def create_deepseek_config():
     
     # Apply tag rules
     config["completion"] = apply_model_tags(config["completion"], completion_tag_rules)
+    config["embedding"] = apply_model_tags(config["embedding"], embedding_tag_rules)
+    config["rerank"] = apply_model_tags(config["rerank"], rerank_tag_rules)
     
     # Sort model lists
     config["completion"].sort(key=lambda x: x["model"])
@@ -374,8 +393,12 @@ def create_gemini_config():
     completion_tag_rules = {
         'recommend': ['gemini/gemini-2.0-flash', 'gemini/gemini-2.5-flash-preview-05-20', 'gemini/gemini-2.5-pro-preview-06-05']
     }
-    embedding_tag_rules = {}
-    rerank_tag_rules = {}
+    embedding_tag_rules = {
+        'recommend': ['*']  # All embedding models get recommend tag
+    }
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     config = {
         "name": provider,
@@ -412,8 +435,12 @@ def create_xai_config():
     completion_tag_rules = {
         'recommend': ['xai/grok-3', 'xai/grok-3-mini']
     }
-    embedding_tag_rules = {}
-    rerank_tag_rules = {}
+    embedding_tag_rules = {
+        'recommend': ['*']  # All embedding models get recommend tag
+    }
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     config = {
         "name": provider,
@@ -489,9 +516,11 @@ def create_alibabacloud_config():
         'recommend': ['deepseek-r1-distill-qwen-32b', 'qwen-max']
     }
     embedding_tag_rules = {
-        'recommend': ['text-embedding-v3']
+        'recommend': ['*']  # All embedding models get recommend tag
     }
-    rerank_tag_rules = {}
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     # Setup file paths - now that the script is in models directory, use current directory
     models_dir = os.path.dirname(__file__)
@@ -561,10 +590,10 @@ def create_siliconflow_config():
         'recommend': ['deepseek-ai/Deepseek-R1', 'deepseek-ai/Deepseek-V3']
     }
     embedding_tag_rules = {
-        'recommend': ['BAAI/bge-m3']
+        'recommend': ['*']  # All embedding models get recommend tag
     }
     rerank_tag_rules = {
-        'recommend': ['BAAI/bge-reranker-v2-m3']
+        'recommend': ['*']  # All rerank models get recommend tag
     }
     
     config = {
@@ -674,8 +703,12 @@ def create_openrouter_config():
             'x-ai/grok-3-mini-beta'
         ]
     }
-    embedding_tag_rules = {}
-    rerank_tag_rules = {}
+    embedding_tag_rules = {
+        'recommend': ['*']  # All embedding models get recommend tag
+    }
+    rerank_tag_rules = {
+        'recommend': ['*']  # All rerank models get recommend tag
+    }
     
     # Setup file paths - now that the script is in models directory, use current directory
     models_dir = os.path.dirname(__file__)
