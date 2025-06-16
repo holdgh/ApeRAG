@@ -75,5 +75,14 @@ class MyCustomHandler(CustomLogger):
             logger.error(f"{self.prefix} Error in log_success_event", exc_info=e)
 
 
-def register_llm_track():
+def register_custom_llm_track():
     litellm.callbacks = [MyCustomHandler()]
+
+
+def register_opik_llm_track():
+    from litellm.integrations.opik.opik import OpikLogger
+
+    from config.settings import OPIK_API_KEY, OPIK_WORKSPACE
+
+    if OPIK_API_KEY and OPIK_WORKSPACE:
+        litellm.callbacks = [OpikLogger()]

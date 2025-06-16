@@ -34,7 +34,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import httpx
 import yaml
@@ -52,28 +52,24 @@ TEST_CONFIGS = [
         "model": "deepseek/deepseek-v3-base:free",
         "prompts": [
             "Hello, how are you today?",
-            "What is artificial intelligence?",
-            "Write a short poem about coding.",
-            "Explain the concept of machine learning in simple terms.",
         ],
         "config_overrides": {
             "temperature": 0.7,
             "context_window": 3500,
-        }
+        },
     },
     {
         "name": "GPT-4o Mini Test",
-        "provider": "openrouter", 
+        "provider": "openrouter",
         "model": "openai/gpt-4o-mini",
         "prompts": [
             "Tell me a joke about programming.",
             "What are the benefits of using RAG systems?",
-            "Summarize the key principles of software engineering.",
         ],
         "config_overrides": {
             "temperature": 0.8,
             "context_window": 8000,
-        }
+        },
     },
     # Add more test configurations here as needed
 ]
@@ -117,18 +113,20 @@ def create_bot_config(provider: str, model: str, config_overrides: Dict[str, Any
             "temperature": 0.7,
         },
     }
-    
+
     if config_overrides:
         base_config["llm"].update(config_overrides)
-    
+
     return base_config
 
 
-def create_common_bot(client: httpx.Client, name: str, provider: str, model: str, config_overrides: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
+def create_common_bot(
+    client: httpx.Client, name: str, provider: str, model: str, config_overrides: Dict[str, Any] = None
+) -> Optional[Dict[str, Any]]:
     """Create a common bot with the specified model configuration."""
     try:
         config = create_bot_config(provider, model, config_overrides)
-        
+
         create_data = {
             "title": f"{name} - Test Bot",
             "description": f"Test bot for {provider}/{model}",
@@ -142,12 +140,12 @@ def create_common_bot(client: httpx.Client, name: str, provider: str, model: str
 
         bot = response.json()
         print(f"Created bot: {bot['id']} - {bot['title']}")
-        
+
         # Configure flow for the bot
-        if not configure_bot_flow(client, bot['id'], provider, model):
+        if not configure_bot_flow(client, bot["id"], provider, model):
             print(f"Warning: Failed to configure flow for bot {bot['id']}")
             # Don't fail here, as the bot is created but may not work properly
-        
+
         return bot
 
     except httpx.HTTPError as e:
@@ -179,12 +177,10 @@ def configure_bot_flow(client: httpx.Client, bot_id: str, provider: str, model: 
 
         flow_json = json.dumps(flow)
         response = client.put(
-            f"/api/v1/bots/{bot_id}/flow", 
-            content=flow_json, 
-            headers={"Content-Type": "application/json"}
+            f"/api/v1/bots/{bot_id}/flow", content=flow_json, headers={"Content-Type": "application/json"}
         )
         response.raise_for_status()
-        
+
         print(f"Configured flow for bot: {bot_id}")
         return True
 
@@ -212,7 +208,6 @@ def create_chat(client: httpx.Client, bot_id: str, title: str) -> Optional[Dict[
     except Exception as e:
         print(f"Unexpected error creating chat: {e}")
         return None
-
 
 
 def test_completion_via_openai_api(
@@ -259,7 +254,9 @@ def test_completion_via_openai_api(
                     "response_length": len(response_content),
                     "response_time_seconds": round(end_time - start_time, 2),
                     "error_message": None,
-                    "response_data": response_content[:200] + "..." if len(response_content) > 200 else response_content,
+                    "response_data": response_content[:200] + "..."
+                    if len(response_content) > 200
+                    else response_content,
                 }
 
         return {
@@ -337,7 +334,7 @@ def main():
 
     try:
         all_results = []
-        
+
         for config_idx, test_config in enumerate(TEST_CONFIGS, 1):
             print(f"\n[{config_idx}/{len(TEST_CONFIGS)}] Testing: {test_config['name']}")
             print(f"Provider: {test_config['provider']}")
@@ -347,11 +344,11 @@ def main():
 
             # Create bot for this configuration
             bot = create_common_bot(
-                client, 
-                test_config['name'], 
-                test_config['provider'], 
-                test_config['model'],
-                test_config.get('config_overrides', {})
+                client,
+                test_config["name"],
+                test_config["provider"],
+                test_config["model"],
+                test_config.get("config_overrides", {}),
             )
 
             if not bot:
@@ -359,39 +356,39 @@ def main():
                 continue
 
             # Create chat
-            chat = create_chat(client, bot['id'], f"Test Chat for {test_config['name']}")
+            chat = create_chat(client, bot["id"], f"Test Chat for {test_config['name']}")
             if not chat:
                 print(f"❌ Failed to create chat for {test_config['name']}")
-                cleanup_resources(client, bot['id'])
+                cleanup_resources(client, bot["id"])
                 continue
 
             # Test each prompt
             config_results = {
-                "config_name": test_config['name'],
-                "provider": test_config['provider'],
-                "model": test_config['model'],
-                "config_overrides": test_config.get('config_overrides', {}),
-                "bot_id": bot['id'],
-                "chat_id": chat['id'],
+                "config_name": test_config["name"],
+                "provider": test_config["provider"],
+                "model": test_config["model"],
+                "config_overrides": test_config.get("config_overrides", {}),
+                "bot_id": bot["id"],
+                "chat_id": chat["id"],
                 "prompt_results": [],
                 "summary": {
-                    "total_prompts": len(test_config['prompts']),
+                    "total_prompts": len(test_config["prompts"]),
                     "openai_api_passed": 0,
                     "avg_response_time": 0,
                     "avg_response_length": 0,
-                }
+                },
             }
 
             total_response_time = 0
             total_response_length = 0
             total_successful_responses = 0
 
-            for prompt_idx, prompt in enumerate(test_config['prompts'], 1):
+            for prompt_idx, prompt in enumerate(test_config["prompts"], 1):
                 print(f"  [{prompt_idx}/{len(test_config['prompts'])}] Testing prompt: {prompt[:50]}...")
 
                 # Test OpenAI API only
                 openai_result = test_completion_via_openai_api(
-                    client, bot['id'], chat['id'], prompt, f"{test_config['name']}_prompt_{prompt_idx}"
+                    client, bot["id"], chat["id"], prompt, f"{test_config['name']}_prompt_{prompt_idx}"
                 )
 
                 # Aggregate results
@@ -416,10 +413,8 @@ def main():
                 print(f"    OpenAI API: {openai_status}")
 
             # Calculate averages
-            config_results["summary"]["avg_response_time"] = round(
-                total_response_time / len(test_config['prompts']), 2
-            )
-            
+            config_results["summary"]["avg_response_time"] = round(total_response_time / len(test_config["prompts"]), 2)
+
             if total_successful_responses > 0:
                 config_results["summary"]["avg_response_length"] = round(
                     total_response_length / total_successful_responses, 0
@@ -428,13 +423,15 @@ def main():
             all_results.append(config_results)
 
             # Print configuration summary
-            print(f"\n  Configuration Summary:")
-            print(f"  OpenAI API: {config_results['summary']['openai_api_passed']}/{config_results['summary']['total_prompts']} passed")
+            print("\n  Configuration Summary:")
+            print(
+                f"  OpenAI API: {config_results['summary']['openai_api_passed']}/{config_results['summary']['total_prompts']} passed"
+            )
             print(f"  Avg Response Time: {config_results['summary']['avg_response_time']}s")
             print(f"  Avg Response Length: {config_results['summary']['avg_response_length']} chars")
 
             # Cleanup resources
-            cleanup_resources(client, bot['id'], chat['id'])
+            cleanup_resources(client, bot["id"], chat["id"])
             print(f"  ✅ Completed testing {test_config['name']}")
 
         # Generate overall summary
@@ -447,7 +444,9 @@ def main():
         print("=" * 80)
         print(f"Configurations Tested: {total_configs}")
         print(f"Total Prompts Tested: {total_prompts}")
-        print(f"OpenAI API Success: {total_openai_passed}/{total_prompts} ({total_openai_passed/total_prompts*100:.1f}%)")
+        print(
+            f"OpenAI API Success: {total_openai_passed}/{total_prompts} ({total_openai_passed / total_prompts * 100:.1f}%)"
+        )
 
         # Save report to file
         try:
@@ -456,7 +455,9 @@ def main():
                     "total_configurations": total_configs,
                     "total_prompts": total_prompts,
                     "openai_api_success": total_openai_passed,
-                    "openai_api_success_rate": round(total_openai_passed / total_prompts * 100, 1) if total_prompts > 0 else 0,
+                    "openai_api_success_rate": round(total_openai_passed / total_prompts * 100, 1)
+                    if total_prompts > 0
+                    else 0,
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 },
                 "configurations": all_results,
@@ -475,4 +476,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
