@@ -82,54 +82,6 @@ async def get_llm_configuration(user_id: str = None):
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to get LLM configuration: {str(e)}")
 
 
-async def list_llm_providers(user_id: str = None):
-    """List all LLM providers"""
-    try:
-        providers = await async_db_ops.query_llm_providers(user_id)
-
-        # Get user's API keys
-        api_keys = {}
-        if user_id:
-            msp_list = await async_db_ops.query_msp_list(user_id)
-            api_keys = {msp.name: msp.api_key for msp in msp_list}
-
-        providers_data = []
-
-        for provider in providers:
-            provider_data = {
-                "name": provider.name,
-                "user_id": provider.user_id,
-                "label": provider.label,
-                "completion_dialect": provider.completion_dialect,
-                "embedding_dialect": provider.embedding_dialect,
-                "rerank_dialect": provider.rerank_dialect,
-                "allow_custom_base_url": provider.allow_custom_base_url,
-                "base_url": provider.base_url,
-                "extra": provider.extra,
-                "created": provider.gmt_created,
-                "updated": provider.gmt_updated,
-            }
-
-            # Add masked API key if available (for security)
-            if provider.name in api_keys:
-                provider_data["api_key"] = mask_api_key(api_keys[provider.name])
-
-            providers_data.append(provider_data)
-
-        return success(
-            {
-                "items": providers_data,
-                "pageResult": {
-                    "page_number": 1,
-                    "page_size": len(providers_data),
-                    "count": len(providers_data),
-                },
-            }
-        )
-    except Exception as e:
-        return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to list LLM providers: {str(e)}")
-
-
 async def create_llm_provider(provider_data: dict, user_id: str):
     """Create a new LLM provider or restore a soft-deleted one with the same name"""
     try:

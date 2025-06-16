@@ -957,22 +957,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/failResponse'
   /llm_providers:
-    get:
-      summary: List all LLM providers
-      description: List all LLM providers
-      responses:
-        '200':
-          description: List of LLM providers
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/llmProviderList'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/failResponse'
     post:
       summary: Create a new LLM provider
       description: Create a new LLM provider with optional API key
@@ -3064,15 +3048,6 @@ components:
       required:
         - providers
         - models
-    llmProviderList:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/llmProvider'
-        pageResult:
-          $ref: '#/components/schemas/pageResult'
     llmProviderCreateWithApiKey:
       type: object
       properties:

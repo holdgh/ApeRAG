@@ -86,8 +86,6 @@ import type { LlmProvider } from '../models';
 // @ts-ignore
 import type { LlmProviderCreateWithApiKey } from '../models';
 // @ts-ignore
-import type { LlmProviderList } from '../models';
-// @ts-ignore
 import type { LlmProviderModel } from '../models';
 // @ts-ignore
 import type { LlmProviderModelCreate } from '../models';
@@ -1659,36 +1657,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * List all LLM providers
-         * @summary List all LLM providers
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        llmProvidersGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/llm_providers`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
          * Create a new LLM provider with optional API key
          * @summary Create a new LLM provider
          * @param {LlmProviderCreateWithApiKey} llmProviderCreateWithApiKey 
@@ -2749,18 +2717,6 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * List all LLM providers
-         * @summary List all LLM providers
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async llmProvidersGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<LlmProviderList>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.llmProvidersGet(options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.llmProvidersGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
          * Create a new LLM provider with optional API key
          * @summary Create a new LLM provider
          * @param {LlmProviderCreateWithApiKey} llmProviderCreateWithApiKey 
@@ -3345,15 +3301,6 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.llmProviderModelsGet(requestParameters.providerName, options).then((request) => request(axios, basePath));
         },
         /**
-         * List all LLM providers
-         * @summary List all LLM providers
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        llmProvidersGet(options?: RawAxiosRequestConfig): AxiosPromise<LlmProviderList> {
-            return localVarFp.llmProvidersGet(options).then((request) => request(axios, basePath));
-        },
-        /**
          * Create a new LLM provider with optional API key
          * @summary Create a new LLM provider
          * @param {DefaultApiLlmProvidersPostRequest} requestParameters Request parameters.
@@ -3883,15 +3830,6 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     llmProviderModelsGet(requestParameters?: DefaultApiLlmProviderModelsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<LlmProviderModelList>;
-
-    /**
-     * List all LLM providers
-     * @summary List all LLM providers
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApiInterface
-     */
-    llmProvidersGet(options?: RawAxiosRequestConfig): AxiosPromise<LlmProviderList>;
 
     /**
      * Create a new LLM provider with optional API key
@@ -5359,17 +5297,6 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public llmProviderModelsGet(requestParameters: DefaultApiLlmProviderModelsGetRequest = {}, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).llmProviderModelsGet(requestParameters.providerName, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * List all LLM providers
-     * @summary List all LLM providers
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public llmProvidersGet(options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).llmProvidersGet(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

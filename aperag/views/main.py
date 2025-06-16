@@ -32,7 +32,6 @@ from aperag.service.llm_configuration_service import (
     get_llm_configuration,
     get_llm_provider,
     list_llm_provider_models,
-    list_llm_providers,
     update_llm_provider,
     update_llm_provider_model,
 )
@@ -318,12 +317,6 @@ async def websocket_chat_endpoint(
 async def get_llm_configuration_view(request: Request, user: User = Depends(current_user)):
     """Get complete LLM configuration including providers and models"""
     return await get_llm_configuration(str(user.id))
-
-
-@router.get("/llm_providers")
-async def list_llm_providers_view(request: Request, user: User = Depends(current_user)):
-    """List all LLM providers"""
-    return await list_llm_providers(str(user.id))
 
 
 @router.post("/llm_providers")

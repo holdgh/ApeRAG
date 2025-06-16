@@ -2105,14 +2105,37 @@ class AsyncDatabaseOps:
         return await self.execute_with_transaction(_operation)
 
     # LLM Provider Operations
-    async def query_llm_providers(self, user_id: str = None):
-        """Get all active LLM providers, optionally filtered by user"""
+    async def query_llm_providers(self, user_id: str = None, need_public: bool = True):
+        """Get all active LLM providers, optionally filtered by user and public providers
+
+        Args:
+            user_id: User ID to filter by user's private providers
+            need_public: Whether to include public providers
+        """
 
         async def _query(session):
             stmt = select(LLMProvider).where(LLMProvider.gmt_deleted.is_(None))
+
+            conditions = []
+
+            # Add public providers condition if needed
+            if need_public:
+                conditions.append(LLMProvider.user_id == "public")
+
+            # Add user's private providers condition if user_id is provided
             if user_id:
-                # Get both public providers and user's private providers
-                stmt = stmt.where((LLMProvider.user_id == "public") | (LLMProvider.user_id == user_id))
+                conditions.append(LLMProvider.user_id == user_id)
+
+            # Apply conditions
+            if conditions:
+                if len(conditions) == 1:
+                    stmt = stmt.where(conditions[0])
+                else:
+                    from sqlalchemy import or_
+
+                    stmt = stmt.where(or_(*conditions))
+            # If no conditions (user_id=None, need_public=False), return all providers
+
             result = await session.execute(stmt)
             return result.scalars().all()
 

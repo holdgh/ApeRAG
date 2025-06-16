@@ -19,22 +19,6 @@ llmConfiguration:
               $ref: '../components/schemas/common.yaml#/failResponse'
 
 llmProviders:
-  get:
-    summary: List all LLM providers
-    description: List all LLM providers
-    responses:
-      '200':
-        description: List of LLM providers
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/model.yaml#/llmProviderList'
-      '401':
-        description: Unauthorized
-        content:
-          application/json:
-            schema:
-              $ref: '../components/schemas/common.yaml#/failResponse'
   post:
     summary: Create a new LLM provider
     description: Create a new LLM provider with optional API key

@@ -56,7 +56,6 @@ export * from './invitation-list';
 export * from './llm-configuration-response';
 export * from './llm-provider';
 export * from './llm-provider-create-with-api-key';
-export * from './llm-provider-list';
 export * from './llm-provider-model';
 export * from './llm-provider-model-create';
 export * from './llm-provider-model-list';
