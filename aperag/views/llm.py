@@ -204,8 +204,13 @@ async def create_rerank(request: RerankRequest, user: User = Depends(current_use
             input_documents.append(doc_obj)
 
         # Create rerank service
+        # For alibabacloud, pass the actual provider name instead of custom_llm_provider
+        effective_provider = (
+            request.provider if request.provider == "alibabacloud" else provider_info["custom_llm_provider"]
+        )
+
         rerank_service = RerankService(
-            rerank_provider=provider_info["custom_llm_provider"],
+            rerank_provider=effective_provider,
             rerank_model=request.model,
             rerank_service_url=provider_info["base_url"],
             rerank_service_api_key=provider_info["api_key"],

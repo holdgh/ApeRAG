@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 from typing import List
 
+import httpx
 import litellm
 
 from aperag.llm.llm_error_types import (
@@ -105,16 +107,21 @@ class RerankService:
                 if len(invalid_indices) == len(results):
                     raise InvalidDocumentError("All documents are empty or invalid", document_count=len(results))
 
-            # Call litellm rerank API
-            resp = await litellm.arerank(
-                custom_llm_provider=self.rerank_provider,
-                model=self.model,
-                query=query,
-                documents=documents,
-                api_key=self.api_key,
-                api_base=self.api_base,
-                return_documents=False,
-            )
+            # Handle different providers
+            if self.rerank_provider == "alibabacloud" or "alibabacloud" in self.rerank_provider.lower():
+                # Use Alibaba Cloud DashScope API format
+                resp = await self._call_alibabacloud_rerank_api(query, documents)
+            else:
+                # Use litellm for other providers
+                resp = await litellm.arerank(
+                    custom_llm_provider=self.rerank_provider,
+                    model=self.model,
+                    query=query,
+                    documents=documents,
+                    api_key=self.api_key,
+                    api_base=self.api_base,
+                    return_documents=False,
+                )
 
             # Validate response
             if not resp or "results" not in resp:
@@ -166,6 +173,97 @@ class RerankService:
             logger.error(f"Rerank operation failed: {str(e)}")
             # Convert litellm errors to our custom types
             raise wrap_litellm_error(e, "rerank", self.rerank_provider, self.model) from e
+
+    async def _call_alibabacloud_rerank_api(self, query: str, documents: List[str]) -> dict:
+        """
+        Call Alibaba Cloud DashScope rerank API with their specific format.
+
+        Args:
+            query: The search query
+            documents: List of documents to rerank
+
+        Returns:
+            Response in litellm-compatible format
+
+        Raises:
+            RerankError: If the API call fails
+        """
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                url = "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
+                headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+
+                payload = {
+                    "model": self.model,
+                    "input": {"query": query, "documents": documents},
+                    "parameters": {"return_documents": False, "top_n": len(documents)},
+                }
+
+                logger.debug(f"Alibaba Cloud rerank API request to {url} with {len(documents)} documents")
+
+                response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+
+                result = response.json()
+
+                # Convert Alibaba Cloud response format to litellm format
+                # Alibaba Cloud response structure:
+                # {
+                #   "output": {
+                #     "results": [
+                #       {
+                #         "index": 0,
+                #         "relevance_score": 0.95,
+                #         "document": {...}  # if return_documents=true
+                #       }
+                #     ]
+                #   }
+                # }
+
+                if "output" in result and "results" in result["output"]:
+                    # Convert to litellm format
+                    return {
+                        "results": [
+                            {"index": item.get("index", i), "relevance_score": item.get("relevance_score", 0.0)}
+                            for i, item in enumerate(result["output"]["results"])
+                        ]
+                    }
+                else:
+                    raise RerankError(
+                        "Unexpected response format from Alibaba Cloud rerank API",
+                        {
+                            "provider": self.rerank_provider,
+                            "model": self.model,
+                            "response_keys": list(result.keys()) if isinstance(result, dict) else "non-dict",
+                        },
+                    )
+
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"HTTP error during Alibaba Cloud rerank API call: {e.response.status_code} - {e.response.text}"
+            )
+            raise RerankError(
+                f"Alibaba Cloud rerank API returned {e.response.status_code}: {e.response.text}",
+                {"provider": self.rerank_provider, "model": self.model, "status_code": e.response.status_code},
+            ) from e
+        except httpx.RequestError as e:
+            logger.error(f"Request error during Alibaba Cloud rerank API call: {str(e)}")
+            raise RerankError(
+                f"Failed to connect to Alibaba Cloud rerank API: {str(e)}",
+                {"provider": self.rerank_provider, "model": self.model, "api_base": self.api_base},
+            ) from e
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse Alibaba Cloud rerank API response as JSON: {str(e)}")
+            raise RerankError(
+                f"Invalid JSON response from Alibaba Cloud rerank API: {str(e)}",
+                {"provider": self.rerank_provider, "model": self.model},
+            ) from e
+        except Exception as e:
+            logger.error(f"Unexpected error during Alibaba Cloud rerank API call: {str(e)}")
+            raise RerankError(
+                f"Unexpected error during Alibaba Cloud rerank API call: {str(e)}",
+                {"provider": self.rerank_provider, "model": self.model},
+            ) from e
 
     def validate_configuration(self) -> None:
         """
