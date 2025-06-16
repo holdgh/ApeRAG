@@ -1395,30 +1395,6 @@ class AsyncDatabaseOps:
 
         return await self._execute_query(_query)
 
-    async def query_msp_list(self, user: str = None):
-        async def _query(session):
-            stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
-                ModelServiceProvider.gmt_deleted.is_(None),
-            )
-            # For now, return all MSPs since we removed user column
-            result = await session.execute(stmt)
-            return result.scalars().all()
-
-        return await self._execute_query(_query)
-
-    async def query_msp_dict(self, user: str = None):
-        async def _query(session):
-            stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
-                ModelServiceProvider.gmt_deleted.is_(None),
-            )
-            # For now, return all MSPs since we removed user column
-            result = await session.execute(stmt)
-            return {msp.name: msp for msp in result.scalars().all()}
-
-        return await self._execute_query(_query)
-
     async def query_provider_api_key(self, provider_name: str, user_id: str = None, need_public: bool = True) -> str:
         """Query provider API key with user access control using single SQL JOIN
 

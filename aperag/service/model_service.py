@@ -26,14 +26,11 @@ async def get_available_models(
     # Get all supported providers from model configs
     supported_providers = await _build_model_config_objects()
 
-    # Get user's configured API keys from model_service_provider table
-    msp_list = await async_db_ops.query_msp_list(user)
-    configured_provider_names = {msp.name for msp in msp_list}
-
-    # Only include providers that have API keys configured
+    # Check which providers have API keys configured
     available_providers = []
     for provider in supported_providers:
-        if provider.name in configured_provider_names:
+        api_key = await async_db_ops.query_provider_api_key(provider.name, user)
+        if api_key:  # Only include providers that have API keys configured
             available_providers.append(provider)
 
     # Apply tag filtering based on request

@@ -25,12 +25,6 @@ async def get_llm_configuration(user_id: str = None):
         # Get providers (public + user's private if user_id provided)
         providers = await async_db_ops.query_llm_providers(user_id)
 
-        # Get user's API keys
-        api_keys = {}
-        if user_id:
-            msp_list = await async_db_ops.query_msp_list(user_id)
-            api_keys = {msp.name: msp.api_key for msp in msp_list}
-
         providers_data = []
 
         for provider in providers:
@@ -49,8 +43,10 @@ async def get_llm_configuration(user_id: str = None):
             }
 
             # Add masked API key if available (for security)
-            if provider.name in api_keys:
-                provider_data["api_key"] = mask_api_key(api_keys[provider.name])
+            if user_id:
+                api_key = await async_db_ops.query_provider_api_key(provider.name, user_id)
+                if api_key:
+                    provider_data["api_key"] = mask_api_key(api_key)
 
             providers_data.append(provider_data)
 
