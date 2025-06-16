@@ -20,7 +20,6 @@ from sqlalchemy import and_, select
 
 from aperag.config import settings
 from aperag.index.base import BaseIndexer, IndexResult, IndexType
-
 from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.llm.embed.embedding_utils import create_embeddings_and_store
 from aperag.utils.tokenizer import get_default_tokenizer

@@ -60,7 +60,6 @@ async def update_model_service_provider(
     msp = await async_db_ops.query_msp(user, provider, filterDeletion=False)
     if msp is None:
         msp = db_models.ModelServiceProvider(
-            user=user,
             name=provider,
             api_key=mspIn.api_key,
             status=db_models.ModelServiceProviderStatus.ACTIVE,

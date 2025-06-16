@@ -27,6 +27,10 @@ import type { EmbeddingRequest } from '../models';
 import type { EmbeddingResponse } from '../models';
 // @ts-ignore
 import type { FailResponse } from '../models';
+// @ts-ignore
+import type { RerankRequest } from '../models';
+// @ts-ignore
+import type { RerankResponse } from '../models';
 /**
  * LLMApi - axios parameter creator
  * @export
@@ -75,6 +79,48 @@ export const LLMApiAxiosParamCreator = function (configuration?: Configuration) 
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Rerank a list of documents based on their relevance to a given query using the specified  provider and model. This endpoint follows the industry-standard rerank API format used by providers like Cohere, Jina AI, and others.  The endpoint supports both simple text lists and structured document objects with metadata. Documents are returned ordered by relevance score (highest first), with optional top_k  filtering to limit the number of results.  The provider must be configured in the user\'s Model Service Provider (MSP) settings with a valid API key and support rerank functionality. 
+         * @summary Rerank documents
+         * @param {RerankRequest} rerankRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        rerankPost: async (rerankRequest: RerankRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'rerankRequest' is not null or undefined
+            assertParamExists('rerankPost', 'rerankRequest', rerankRequest)
+            const localVarPath = `/rerank`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication CookieAuth required
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(rerankRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -98,6 +144,19 @@ export const LLMApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['LLMApi.embeddingsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Rerank a list of documents based on their relevance to a given query using the specified  provider and model. This endpoint follows the industry-standard rerank API format used by providers like Cohere, Jina AI, and others.  The endpoint supports both simple text lists and structured document objects with metadata. Documents are returned ordered by relevance score (highest first), with optional top_k  filtering to limit the number of results.  The provider must be configured in the user\'s Model Service Provider (MSP) settings with a valid API key and support rerank functionality. 
+         * @summary Rerank documents
+         * @param {RerankRequest} rerankRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async rerankPost(rerankRequest: RerankRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RerankResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.rerankPost(rerankRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['LLMApi.rerankPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -118,6 +177,16 @@ export const LLMApiFactory = function (configuration?: Configuration, basePath?:
         embeddingsPost(requestParameters: LLMApiEmbeddingsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<EmbeddingResponse> {
             return localVarFp.embeddingsPost(requestParameters.embeddingRequest, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Rerank a list of documents based on their relevance to a given query using the specified  provider and model. This endpoint follows the industry-standard rerank API format used by providers like Cohere, Jina AI, and others.  The endpoint supports both simple text lists and structured document objects with metadata. Documents are returned ordered by relevance score (highest first), with optional top_k  filtering to limit the number of results.  The provider must be configured in the user\'s Model Service Provider (MSP) settings with a valid API key and support rerank functionality. 
+         * @summary Rerank documents
+         * @param {LLMApiRerankPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        rerankPost(requestParameters: LLMApiRerankPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<RerankResponse> {
+            return localVarFp.rerankPost(requestParameters.rerankRequest, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -137,6 +206,16 @@ export interface LLMApiInterface {
      */
     embeddingsPost(requestParameters: LLMApiEmbeddingsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<EmbeddingResponse>;
 
+    /**
+     * Rerank a list of documents based on their relevance to a given query using the specified  provider and model. This endpoint follows the industry-standard rerank API format used by providers like Cohere, Jina AI, and others.  The endpoint supports both simple text lists and structured document objects with metadata. Documents are returned ordered by relevance score (highest first), with optional top_k  filtering to limit the number of results.  The provider must be configured in the user\'s Model Service Provider (MSP) settings with a valid API key and support rerank functionality. 
+     * @summary Rerank documents
+     * @param {LLMApiRerankPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof LLMApiInterface
+     */
+    rerankPost(requestParameters: LLMApiRerankPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<RerankResponse>;
+
 }
 
 /**
@@ -151,6 +230,20 @@ export interface LLMApiEmbeddingsPostRequest {
      * @memberof LLMApiEmbeddingsPost
      */
     readonly embeddingRequest: EmbeddingRequest
+}
+
+/**
+ * Request parameters for rerankPost operation in LLMApi.
+ * @export
+ * @interface LLMApiRerankPostRequest
+ */
+export interface LLMApiRerankPostRequest {
+    /**
+     * 
+     * @type {RerankRequest}
+     * @memberof LLMApiRerankPost
+     */
+    readonly rerankRequest: RerankRequest
 }
 
 /**
@@ -170,6 +263,18 @@ export class LLMApi extends BaseAPI implements LLMApiInterface {
      */
     public embeddingsPost(requestParameters: LLMApiEmbeddingsPostRequest, options?: RawAxiosRequestConfig) {
         return LLMApiFp(this.configuration).embeddingsPost(requestParameters.embeddingRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Rerank a list of documents based on their relevance to a given query using the specified  provider and model. This endpoint follows the industry-standard rerank API format used by providers like Cohere, Jina AI, and others.  The endpoint supports both simple text lists and structured document objects with metadata. Documents are returned ordered by relevance score (highest first), with optional top_k  filtering to limit the number of results.  The provider must be configured in the user\'s Model Service Provider (MSP) settings with a valid API key and support rerank functionality. 
+     * @summary Rerank documents
+     * @param {LLMApiRerankPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof LLMApi
+     */
+    public rerankPost(requestParameters: LLMApiRerankPostRequest, options?: RawAxiosRequestConfig) {
+        return LLMApiFp(this.configuration).rerankPost(requestParameters.rerankRequest, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

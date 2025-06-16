@@ -19,17 +19,18 @@ from aperag.db.ops import async_db_ops
 from aperag.views.utils import fail, success
 
 
-async def get_llm_configuration():
+async def get_llm_configuration(user_id: str = None):
     """Get complete LLM configuration including providers and models"""
     try:
-        # Get all providers
-        providers = await async_db_ops.query_llm_providers()
+        # Get providers (public + user's private if user_id provided)
+        providers = await async_db_ops.query_llm_providers(user_id)
         providers_data = []
 
         for provider in providers:
             providers_data.append(
                 {
                     "name": provider.name,
+                    "user_id": provider.user_id,
                     "label": provider.label,
                     "completion_dialect": provider.completion_dialect,
                     "embedding_dialect": provider.embedding_dialect,
@@ -70,16 +71,17 @@ async def get_llm_configuration():
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to get LLM configuration: {str(e)}")
 
 
-async def list_llm_providers():
+async def list_llm_providers(user_id: str = None):
     """List all LLM providers"""
     try:
-        providers = await async_db_ops.query_llm_providers()
+        providers = await async_db_ops.query_llm_providers(user_id)
         providers_data = []
 
         for provider in providers:
             providers_data.append(
                 {
                     "name": provider.name,
+                    "user_id": provider.user_id,
                     "label": provider.label,
                     "completion_dialect": provider.completion_dialect,
                     "embedding_dialect": provider.embedding_dialect,
@@ -106,7 +108,7 @@ async def list_llm_providers():
         return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to list LLM providers: {str(e)}")
 
 
-async def create_llm_provider(provider_data: dict):
+async def create_llm_provider(provider_data: dict, user_id: str):
     """Create a new LLM provider or restore a soft-deleted one with the same name"""
     try:
         # First check if there's an active provider with the same name
@@ -122,6 +124,7 @@ async def create_llm_provider(provider_data: dict):
             # Update the restored provider with new data
             provider = await async_db_ops.update_llm_provider(
                 name=provider_data["name"],
+                user_id=user_id,
                 label=provider_data["label"],
                 completion_dialect=provider_data.get("completion_dialect", "openai"),
                 embedding_dialect=provider_data.get("embedding_dialect", "openai"),
@@ -134,6 +137,7 @@ async def create_llm_provider(provider_data: dict):
             # Create new provider
             provider = await async_db_ops.create_llm_provider(
                 name=provider_data["name"],
+                user_id=user_id,
                 label=provider_data["label"],
                 completion_dialect=provider_data.get("completion_dialect", "openai"),
                 embedding_dialect=provider_data.get("embedding_dialect", "openai"),
@@ -146,6 +150,7 @@ async def create_llm_provider(provider_data: dict):
         return success(
             {
                 "name": provider.name,
+                "user_id": provider.user_id,
                 "label": provider.label,
                 "completion_dialect": provider.completion_dialect,
                 "embedding_dialect": provider.embedding_dialect,
@@ -172,6 +177,7 @@ async def get_llm_provider(provider_name: str):
         return success(
             {
                 "name": provider.name,
+                "user_id": provider.user_id,
                 "label": provider.label,
                 "completion_dialect": provider.completion_dialect,
                 "embedding_dialect": provider.embedding_dialect,
@@ -210,6 +216,7 @@ async def update_llm_provider(provider_name: str, update_data: dict):
         return success(
             {
                 "name": provider.name,
+                "user_id": provider.user_id,
                 "label": provider.label,
                 "completion_dialect": provider.completion_dialect,
                 "embedding_dialect": provider.embedding_dialect,

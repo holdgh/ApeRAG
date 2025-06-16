@@ -354,7 +354,7 @@ async def websocket_chat_endpoint(
 @router.get("/llm_configuration")
 async def get_llm_configuration_view(request: Request, user: User = Depends(current_user)):
     """Get complete LLM configuration including providers and models"""
-    return await get_llm_configuration()
+    return await get_llm_configuration(str(user.id))
 
 
 @router.get("/llm_providers")
@@ -370,7 +370,7 @@ async def create_llm_provider_view(request: Request, user: User = Depends(curren
 
     body = await request.body()
     data = json.loads(body.decode("utf-8"))
-    return await create_llm_provider(data)
+    return await create_llm_provider(data, str(user.id))
 
 
 @router.get("/llm_providers/{provider_name}")

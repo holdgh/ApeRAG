@@ -101,4 +101,16 @@ export const model_provider = {
   'model.provider.api_key': 'Provider API Key',
   'model.provider.api_key.required': 'Provider API Key is required',
   'model.provider.add': 'Add Provider',
+  
+  // API Key management related
+  'model.provider.api_key.manage': 'Manage API Keys',
+  'model.provider.api_key.description': 'Configure API keys for model service providers to enable model services',
+  'model.provider.api_key.settings': 'API Key Settings',
+  'model.provider.api_key.help': 'Optional: Configure API key for this provider to enable model services',
+  'model.provider.api_key.placeholder': 'Enter API key',
+  'model.provider.api_key.update.success': 'API key updated successfully',
+  'model.provider.api_key.update.failed': 'Failed to update API key',
+  'model.provider.disable.success': 'Provider disabled successfully',
+  'model.provider.disable.failed': 'Failed to disable provider',
+  'model.provider.fetch.failed': 'Failed to fetch provider information',
 };

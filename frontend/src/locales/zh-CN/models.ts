@@ -98,6 +98,18 @@ export const model_provider = {
   'model.provider.api_key': '模型服务商API Key',
   'model.provider.api_key.required': '请输入模型服务商API Key',
   'model.provider.add': '添加服务商',
+  
+  // API Key管理相关
+  'model.provider.api_key.manage': '管理API密钥',
+  'model.provider.api_key.description': '配置模型服务商的API密钥以启用模型服务',
+  'model.provider.api_key.settings': 'API密钥设置',
+  'model.provider.api_key.help': '可选：配置此服务商的API密钥以启用模型服务',
+  'model.provider.api_key.placeholder': '输入API密钥',
+  'model.provider.api_key.update.success': 'API密钥更新成功',
+  'model.provider.api_key.update.failed': 'API密钥更新失败',
+  'model.provider.disable.success': '服务商禁用成功',
+  'model.provider.disable.failed': '服务商禁用失败',
+  'model.provider.fetch.failed': '获取服务商信息失败',
 };
 
 export const model_configuration = {

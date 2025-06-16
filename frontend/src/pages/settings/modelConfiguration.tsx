@@ -1,4 +1,4 @@
-import { LlmConfigurationResponse, LlmProvider, LlmProviderModel } from '@/api';
+import { LlmConfigurationResponse, LlmProvider, LlmProviderModel, ModelServiceProvider } from '@/api';
 import { PageContainer, PageHeader, RefreshButton } from '@/components';
 import { api } from '@/services';
 import {
@@ -35,6 +35,11 @@ const { Title, Text } = Typography;
 // 弹窗内容视图类型
 type ModalViewType = 'list' | 'add' | 'edit';
 
+// API Key配置相关类型
+type ListModelProvider = ModelServiceProvider & {
+  enabled: boolean;
+};
+
 export default () => {
   const { loading, setLoading } = useModel('global');
   const { formatMessage } = useIntl();
@@ -50,6 +55,10 @@ export default () => {
   const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(
     null,
   );
+
+  // API Key配置相关状态
+  const [supportedModelProviders, setSupportedModelProviders] = useState<ModelServiceProvider[]>();
+  const [modelProviders, setModelProviders] = useState<ModelServiceProvider[]>();
 
   // Model management modal state
   const [modelManagementVisible, setModelManagementVisible] = useState(false);
@@ -77,6 +86,27 @@ export default () => {
     }
   }, [setLoading, formatMessage]);
 
+  // API Key配置相关方法
+  const getSupportedModelProviders = useCallback(async () => {
+    try {
+      const res = await api.supportedModelServiceProvidersGet();
+      setSupportedModelProviders(res.data.items);
+    } catch (error) {
+      message.error(formatMessage({ id: 'model.provider.fetch.failed' }));
+    }
+  }, [formatMessage]);
+
+  const getModelProviders = useCallback(async () => {
+    try {
+      const res = await api.modelServiceProvidersGet();
+      setModelProviders(res.data.items);
+    } catch (error) {
+      message.error(formatMessage({ id: 'model.provider.fetch.failed' }));
+    }
+  }, [formatMessage]);
+
+
+
   // Provider operations
   const handleCreateProvider = useCallback(() => {
     setEditingProvider(null);
@@ -91,12 +121,26 @@ export default () => {
   }, [providerForm]);
 
   const handleEditProvider = useCallback(
-    (provider: LlmProvider) => {
+    async (provider: LlmProvider) => {
       setEditingProvider(provider);
-      providerForm.setFieldsValue(provider);
+      
+      // 加载provider数据
+      const providerData: any = { ...provider };
+      
+      // 尝试加载现有的API key
+      try {
+        const existingMsp = modelProviders?.find(mp => mp.name === provider.name);
+        if (existingMsp) {
+          providerData.api_key = existingMsp.api_key;
+        }
+      } catch (error) {
+        // 忽略API key加载错误
+      }
+      
+      providerForm.setFieldsValue(providerData);
       setProviderModalVisible(true);
     },
-    [providerForm],
+    [providerForm, modelProviders],
   );
 
   const handleSaveProvider = useCallback(async () => {
@@ -104,21 +148,41 @@ export default () => {
       const values = await providerForm.validateFields();
       setLoading(true);
 
+      // 分离provider数据和API key数据
+      const { api_key, ...providerData } = values;
+
       if (editingProvider) {
         await api.llmProvidersProviderNamePut({
           providerName: editingProvider.name,
-          llmProviderUpdate: values,
+          llmProviderUpdate: providerData,
         });
         message.success(formatMessage({ id: 'model.provider.update.success' }));
       } else {
         await api.llmProvidersPost({
-          llmProviderCreate: values,
+          llmProviderCreate: providerData,
         });
         message.success(formatMessage({ id: 'model.provider.create.success' }));
       }
 
+      // 如果提供了API key，则保存或更新API key
+      if (api_key && api_key.trim()) {
+        try {
+          await api.modelServiceProvidersProviderPut({
+            provider: providerData.name,
+            modelServiceProviderUpdate: {
+              name: providerData.name,
+              api_key: api_key.trim(),
+            },
+          });
+          message.success(formatMessage({ id: 'model.provider.api_key.update.success' }));
+        } catch (error) {
+          message.warning(formatMessage({ id: 'model.provider.api_key.update.failed' }));
+        }
+      }
+
       setProviderModalVisible(false);
       await fetchConfiguration();
+      await getModelProviders(); // 刷新API key数据
     } catch (error) {
       message.error(formatMessage({ id: 'model.provider.save.failed' }));
     } finally {
@@ -129,6 +193,7 @@ export default () => {
     providerForm,
     setLoading,
     fetchConfiguration,
+    getModelProviders,
     formatMessage,
   ]);
 
@@ -325,6 +390,8 @@ export default () => {
     },
     [configuration.models],
   );
+
+
 
   // Provider table columns
   const providerColumns: TableProps<LlmProvider>['columns'] = [
@@ -552,7 +619,9 @@ export default () => {
 
   useEffect(() => {
     fetchConfiguration();
-  }, [fetchConfiguration]);
+    getSupportedModelProviders();
+    getModelProviders();
+  }, [fetchConfiguration, getSupportedModelProviders, getModelProviders]);
 
   return (
     <PageContainer>
@@ -754,6 +823,21 @@ export default () => {
             <Input.TextArea
               placeholder={'{"key": "value"}'}
               rows={3}
+              style={{ borderRadius: '6px' }}
+            />
+          </Form.Item>
+
+          <Divider orientation="left">
+            {formatMessage({ id: 'model.provider.api_key.settings' })}
+          </Divider>
+
+          <Form.Item
+            name="api_key"
+            label={formatMessage({ id: 'model.provider.api_key' })}
+            help={formatMessage({ id: 'model.provider.api_key.help' })}
+          >
+            <Input.Password
+              placeholder={formatMessage({ id: 'model.provider.api_key.placeholder' })}
               style={{ borderRadius: '6px' }}
             />
           </Form.Item>
@@ -1000,6 +1084,8 @@ export default () => {
           </div>
         )}
       </Modal>
+
+
     </PageContainer>
   );
 };
