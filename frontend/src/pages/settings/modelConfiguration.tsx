@@ -421,7 +421,7 @@ export default () => {
             {count}
           </Text>
         );
-      },
+            },
     },
     {
       title: formatMessage({ id: 'action.name' }),
@@ -535,7 +535,7 @@ export default () => {
             </Tag>
           ))}
         </Space>
-      ),
+            ),
     },
     {
       title: formatMessage({ id: 'action.name' }),
