@@ -1023,6 +1023,24 @@ class DatabaseOps:
 
         return self._execute_query(_query)
 
+    def query_documents(self, users: List[str], collection_id: str):
+        """Query documents by users and collection ID (sync version)"""
+
+        def _query(session):
+            stmt = (
+                select(Document)
+                .where(
+                    Document.user.in_(users),
+                    Document.collection_id == collection_id,
+                    Document.status != DocumentStatus.DELETED,
+                )
+                .order_by(desc(Document.gmt_created))
+            )
+            result = session.execute(stmt)
+            return result.scalars().all()
+
+        return self._execute_query(_query)
+
 
 class AsyncDatabaseOps:
     """Database operations manager that handles session management"""
