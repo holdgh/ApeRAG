@@ -85,6 +85,8 @@ paths:
   # llm services  
   /embeddings:
     $ref: './paths/llm.yaml#/embeddings'
+  /rerank:
+    $ref: './paths/llm.yaml#/rerank'
   
   # config
   /config:

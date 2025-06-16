@@ -366,3 +366,6 @@ DEFAULT_FROM_EMAIL = env.str('DEFAULT_FROM_EMAIL', default='noreply@aperag.com')
 SITE_URL = env.str('SITE_URL', default='http://localhost:8000')
 
 REGISTER_MODE = env.str('REGISTER_MODE', default='unlimited')
+
+OPIK_API_KEY = env.str('OPIK_API_KEY', default='')
+OPIK_WORKSPACE = env.str('OPIK_WORKSPACE', default='')
