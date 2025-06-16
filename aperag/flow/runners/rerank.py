@@ -78,7 +78,9 @@ class RerankNodeRunner(BaseNodeRunner):
             # Get API key and base URL from user's model service provider settings
             api_key = await async_db_ops.query_provider_api_key(ui.model_service_provider, si.user)
             if not api_key:
-                raise InvalidConfigurationError(f"API KEY not found for LLM Provider:{ui.model_service_provider}")
+                raise InvalidConfigurationError(
+                    "api_key", api_key, f"API KEY not found for LLM Provider:{ui.model_service_provider}"
+                )
 
             # Get base_url from LLMProvider
             try:

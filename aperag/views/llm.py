@@ -132,7 +132,7 @@ async def _get_provider_info(provider: str, model: str, user_id: str, api_type: 
         # 3. Get user's API key from MSP
         api_key = await async_db_ops.query_provider_api_key(provider, user_id)
         if not api_key:
-            raise Exception(f"API KEY not found for LLM Provider:{provider}")
+            raise InvalidConfigurationError("api_key", None, f"API KEY not found for LLM Provider: {provider}")
 
         # 4. Validate base URL
         if not llm_provider.base_url:

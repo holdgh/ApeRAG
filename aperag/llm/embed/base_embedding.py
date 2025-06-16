@@ -176,7 +176,7 @@ def get_collection_embedding_service_sync(collection) -> tuple[Embeddings, int]:
 
     embedding_service_api_key = db_ops.query_provider_api_key(embedding_msp, collection.user)
     if not embedding_service_api_key:
-        raise Exception(f"API KEY not found for LLM Provider:{embedding_msp}")
+        raise InvalidConfigurationError("api_key", None, f"API KEY not found for LLM Provider: {embedding_msp}")
 
     try:
         llm_provider = db_ops.query_llm_provider_by_name(embedding_msp)
