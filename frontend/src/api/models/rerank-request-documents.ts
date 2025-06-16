@@ -13,24 +13,14 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { RerankRequestDocumentsOneOfInner } from './rerank-request-documents-one-of-inner';
 
 /**
- * 
+ * @type RerankRequestDocuments
  * @export
- * @interface ModelServiceProviderUpdate
  */
-export interface ModelServiceProviderUpdate {
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProviderUpdate
-     */
-    'name'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProviderUpdate
-     */
-    'api_key'?: string;
-}
+export type RerankRequestDocuments = Array<RerankRequestDocumentsOneOfInner> | Array<string>;
+
 

@@ -69,6 +69,12 @@ export interface LlmProvider {
      */
     'extra'?: string;
     /**
+     * API key for this provider (if configured by user)
+     * @type {string}
+     * @memberof LlmProvider
+     */
+    'api_key'?: string;
+    /**
      * Creation timestamp
      * @type {string}
      * @memberof LlmProvider

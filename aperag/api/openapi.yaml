@@ -59,12 +59,6 @@ paths:
     $ref: './paths/apikeys.yaml#/apikey'
 
   # models
-  /supported_model_service_providers:
-    $ref: './paths/models.yaml#/modelServiceProviders'
-  /model_service_providers:
-    $ref: './paths/models.yaml#/modelServiceProviders'
-  /model_service_providers/{provider}:
-    $ref: './paths/models.yaml#/modelServiceProvider'
   /available_models:
     $ref: './paths/models.yaml#/availableModels'
   

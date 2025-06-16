@@ -1,5 +1,5 @@
 -- Model configuration initialization SQL script
--- Generated directly from configuration data on 2025-06-16 15:06:47
+-- Generated directly from configuration data on 2025-06-16 17:53:51
 -- This script populates llm_provider and llm_provider_models tables
 
 BEGIN;
@@ -8,13 +8,14 @@ BEGIN;
 
 -- Provider: openai
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'openai', 'OpenAI', 'openai', 'openai', 'jina_ai', 
+    'openai', 'public', 'OpenAI', 'openai', 'openai', 'jina_ai', 
     FALSE, 'https://api.openai.com/v1', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -25,13 +26,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: anthropic
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'anthropic', 'Anthropic', 'anthropic', 'openai', 'jina_ai', 
+    'anthropic', 'public', 'Anthropic', 'anthropic', 'openai', 'jina_ai', 
     FALSE, 'https://api.anthropic.com', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -42,13 +44,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: gemini
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'gemini', 'Google Gemini', 'google', 'openai', 'jina_ai', 
+    'gemini', 'public', 'Google Gemini', 'google', 'openai', 'jina_ai', 
     FALSE, 'https://generativelanguage.googleapis.com', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -59,13 +62,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: xai
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'xai', 'xAI', 'openai', 'openai', 'jina_ai', 
+    'xai', 'public', 'xAI', 'openai', 'openai', 'jina_ai', 
     FALSE, 'https://api.xai.com/v1', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -76,13 +80,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: deepseek
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'deepseek', 'DeepSeek', 'openai', 'openai', 'jina_ai', 
+    'deepseek', 'public', 'DeepSeek', 'openai', 'openai', 'jina_ai', 
     FALSE, 'https://api.deepseek.com/v1', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -93,13 +98,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: alibabacloud
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'alibabacloud', 'AlibabaCloud', 'openai', 'openai', 'jina_ai', 
+    'alibabacloud', 'public', 'AlibabaCloud', 'openai', 'openai', 'jina_ai', 
     FALSE, 'https://dashscope.aliyuncs.com/compatible-mode/v1', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -110,13 +116,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: siliconflow
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'siliconflow', 'SiliconFlow', 'openai', 'openai', 'jina_ai', 
+    'siliconflow', 'public', 'SiliconFlow', 'openai', 'openai', 'jina_ai', 
     FALSE, 'https://api.siliconflow.cn/v1', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -127,13 +134,14 @@ ON CONFLICT (name) DO UPDATE SET
 
 -- Provider: openrouter
 INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    'openrouter', 'OpenRouter', 'openai', 'openai', 'jina_ai', 
+    'openrouter', 'public', 'OpenRouter', 'openai', 'openai', 'jina_ai', 
     FALSE, 'https://openrouter.ai/api/v1', NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,
@@ -7322,6 +7330,6 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
 
 COMMIT;
 
--- Script completed. Generated on 2025-06-16 15:06:47
+-- Script completed. Generated on 2025-06-16 17:53:51
 -- Total providers: 8
 -- Total models: 551

@@ -239,7 +239,6 @@ class Document(Base):
         stmt = select(DocumentIndex).where(DocumentIndex.document_id == self.id)
         result = session.execute(stmt)
         return result.scalars().all()
-    
 
     def get_overall_index_status(self, session) -> "DocumentStatus":
         """Calculate overall status based on document indexes"""
@@ -247,7 +246,7 @@ class Document(Base):
 
         if not document_indexes:
             return DocumentStatus.PENDING
-        
+
         states = [idx.actual_state for idx in document_indexes]
 
         if any(state == IndexActualState.FAILED for state in states):
@@ -440,13 +439,10 @@ class ApiKey(Base):
 
 class ModelServiceProvider(Base):
     __tablename__ = "model_service_provider"
-    __table_args__ = (
-        UniqueConstraint("name", "user", "gmt_deleted", name="uq_model_service_provider_name_user_deleted"),
-    )
+    __table_args__ = (UniqueConstraint("name", "gmt_deleted", name="uq_model_service_provider_name_deleted"),)
 
     id = Column(String(24), primary_key=True, default=lambda: "msp" + random_id())
-    name = Column(String(256), nullable=False)
-    user = Column(String(256), nullable=False, index=True)  # Add index for user queries
+    name = Column(String(256), nullable=False, index=True)  # Reference to LLMProvider.name
     status = Column(EnumColumn(ModelServiceProviderStatus), nullable=False, index=True)  # Add index for status queries
     api_key = Column(String(256), nullable=False)
     gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
@@ -465,6 +461,7 @@ class LLMProvider(Base):
     __tablename__ = "llm_provider"
 
     name = Column(String(128), primary_key=True)  # Unique provider name identifier
+    user_id = Column(String(256), nullable=False, index=True)  # Owner of the provider config, "public" for global
     label = Column(String(256), nullable=False)  # Human-readable provider display name
     completion_dialect = Column(String(64), nullable=False)  # API dialect for completion/chat APIs
     embedding_dialect = Column(String(64), nullable=False)  # API dialect for embedding APIs
@@ -477,7 +474,7 @@ class LLMProvider(Base):
     gmt_deleted = Column(DateTime(timezone=True), nullable=True)
 
     def __str__(self):
-        return f"LLMProvider(name={self.name}, label={self.label})"
+        return f"LLMProvider(name={self.name}, label={self.label}, user_id={self.user_id})"
 
 
 class LLMProviderModel(Base):

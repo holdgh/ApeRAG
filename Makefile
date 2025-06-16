@@ -36,7 +36,7 @@ install-uv:
 venv: install-uv
 	@if [ ! -d ".venv" ]; then \
 		echo "Creating virtual environment..."; \
-		uv venv -p 3.11; \
+		uv venv -p 3.11.12; \
 	fi
 
 install: venv

@@ -14,9 +14,11 @@ export const model = {
   'model.provider.delete': 'Delete Provider',
   'model.provider.manage': 'Manage Models',
   'model.provider.id': 'Provider ID',
-  'model.provider.name': 'Provider Name',
+  'model.provider.name': 'Name',
   'model.provider.label': 'Display Name',
+  'model.provider.url': 'URL',
   'model.provider.base_url': 'API Base URL',
+  'model.provider.api_key_short': 'API KEY',
   'model.provider.model_count': 'Model Count',
   'model.provider.completion_dialect': 'Completion API Dialect',
   'model.provider.embedding_dialect': 'Embedding API Dialect',
@@ -29,6 +31,7 @@ export const model = {
   // Model related
   'model.management.title': '{provider} - Model Management',
   'model.list.title': 'Model List',
+  'model.search.placeholder': 'Search model name...',
   'model.add': 'Add Model',
   'model.add.title': 'Add New Model',
   'model.edit': 'Edit Model',
@@ -44,7 +47,7 @@ export const model = {
 
   // Form placeholders and validation
   'model.provider.name.placeholder': 'e.g: openai',
-  'model.provider.name.required': 'Please enter provider name',
+  'model.provider.name.required': 'Please enter provider ID',
   'model.provider.label.placeholder': 'e.g: OpenAI',
   'model.provider.label.required': 'Please enter display name',
   'model.provider.base_url.placeholder': 'https://api.openai.com/v1',
@@ -101,4 +104,20 @@ export const model_provider = {
   'model.provider.api_key': 'Provider API Key',
   'model.provider.api_key.required': 'Provider API Key is required',
   'model.provider.add': 'Add Provider',
+  
+  // API Key management related
+  'model.provider.api_key.manage': 'Manage API Keys',
+  'model.provider.api_key.description': 'Configure API keys for model service providers to enable model services',
+  'model.provider.api_key.settings': 'API Key Settings',
+  'model.provider.api_key.help': 'Optional: Configure API key for this provider to enable model services',
+  'model.provider.api_key.placeholder': 'Enter API key',
+  'model.provider.api_key.edit.help': 'API key is currently configured. Leave empty to keep unchanged, enter new key to update',
+  'model.provider.api_key.edit.placeholder': 'Enter new API key (leave empty to keep unchanged)',
+  'model.provider.api_key.configured': 'Configured',
+  'model.provider.api_key.not_configured': 'Not Configured',
+  'model.provider.api_key.update.success': 'API key updated successfully',
+  'model.provider.api_key.update.failed': 'Failed to update API key',
+  'model.provider.disable.success': 'Provider disabled successfully',
+  'model.provider.disable.failed': 'Failed to disable provider',
+  'model.provider.fetch.failed': 'Failed to fetch provider information',
 };

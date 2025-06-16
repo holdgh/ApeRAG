@@ -19,10 +19,6 @@ export const NavbarSettings = () => {
         key: `/settings/modelConfiguration`,
       },
       {
-        label: <FormattedMessage id="model.provider" />,
-        key: `/settings/modelProviders`,
-      },
-      {
         label: <FormattedMessage id="apiKeys.title" />,
         key: `/settings/apiKeys`,
       },

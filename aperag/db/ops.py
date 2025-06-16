@@ -116,17 +116,22 @@ class DatabaseOps:
         session.refresh(collection)
         return collection
 
-    def query_msp_dict(self, user: str):
+    def query_msp_dict(self, user: str = None):
         def _query(session):
-            stmt = select(ModelServiceProvider).where(ModelServiceProvider.user == user)
+            stmt = select(ModelServiceProvider).where(ModelServiceProvider.gmt_deleted.is_(None))
+            # For now, return all MSPs since we removed user column
+            # In the future, we might want to filter by provider ownership
             result = session.execute(stmt)
             return {msp.name: msp for msp in result.scalars().all()}
 
         return self._execute_query(_query)
 
-    def query_llm_provider_by_name(self, name: str):
+    def query_llm_provider_by_name(self, name: str, user_id: str = None):
         def _query(session):
-            stmt = select(LLMProvider).where(LLMProvider.name == name)
+            stmt = select(LLMProvider).where(LLMProvider.name == name, LLMProvider.gmt_deleted.is_(None))
+            if user_id:
+                # Get both public providers and user's private providers
+                stmt = stmt.where((LLMProvider.user_id == "public") | (LLMProvider.user_id == user_id))
             result = session.execute(stmt)
             return result.scalars().first()
 
@@ -1355,33 +1360,38 @@ class AsyncDatabaseOps:
 
         return await self._execute_query(_query)
 
-    async def query_msp_list(self, user: str):
+    async def query_msp_list(self, user: str = None):
         async def _query(session):
             stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.user == user, ModelServiceProvider.status != ModelServiceProviderStatus.DELETED
+                ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
+                ModelServiceProvider.gmt_deleted.is_(None),
             )
+            # For now, return all MSPs since we removed user column
             result = await session.execute(stmt)
             return result.scalars().all()
 
         return await self._execute_query(_query)
 
-    async def query_msp_dict(self, user: str):
+    async def query_msp_dict(self, user: str = None):
         async def _query(session):
             stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.user == user, ModelServiceProvider.status != ModelServiceProviderStatus.DELETED
+                ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
+                ModelServiceProvider.gmt_deleted.is_(None),
             )
+            # For now, return all MSPs since we removed user column
             result = await session.execute(stmt)
             return {msp.name: msp for msp in result.scalars().all()}
 
         return await self._execute_query(_query)
 
-    async def query_msp(self, user: str, provider: str, filterDeletion: bool = True):
+    async def query_msp(self, user: str = None, provider: str = None, filterDeletion: bool = True):
         async def _query(session):
-            stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.user == user, ModelServiceProvider.name == provider
-            )
+            stmt = select(ModelServiceProvider).where(ModelServiceProvider.name == provider)
             if filterDeletion:
-                stmt = stmt.where(ModelServiceProvider.status != ModelServiceProviderStatus.DELETED)
+                stmt = stmt.where(
+                    ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
+                    ModelServiceProvider.gmt_deleted.is_(None),
+                )
             result = await session.execute(stmt)
             return result.scalars().first()
 
@@ -1396,13 +1406,59 @@ class AsyncDatabaseOps:
 
         return await self.execute_with_transaction(_operation)
 
-    async def delete_msp(self, msp: ModelServiceProvider):
+    async def upsert_model_service_provider(self, user: str, name: str, api_key: str):
+        """Create or update model service provider API key"""
+
         async def _operation(session):
-            msp.status = ModelServiceProviderStatus.DELETED
-            msp.gmt_deleted = datetime.utcnow()
-            session.add(msp)
+            # Try to find existing MSP
+            stmt = select(ModelServiceProvider).where(
+                ModelServiceProvider.name == name, ModelServiceProvider.gmt_deleted.is_(None)
+            )
+            result = await session.execute(stmt)
+            msp = result.scalars().first()
+
+            if msp:
+                # Update existing
+                msp.api_key = api_key
+                msp.gmt_updated = datetime.utcnow()
+                session.add(msp)
+            else:
+                # Create new
+                from aperag.db.models import ModelServiceProviderStatus
+
+                msp = ModelServiceProvider(name=name, status=ModelServiceProviderStatus.ACTIVE, api_key=api_key)
+                session.add(msp)
+
             await session.flush()
+            await session.refresh(msp)
             return msp
+
+        return await self.execute_with_transaction(_operation)
+
+    async def delete_msp(self, msp: ModelServiceProvider):
+        """Physical delete model service provider"""
+
+        async def _operation(session):
+            await session.delete(msp)
+            await session.flush()
+
+        return await self.execute_with_transaction(_operation)
+
+    async def delete_msp_by_name(self, name: str):
+        """Physical delete model service provider by name"""
+
+        async def _operation(session):
+            stmt = select(ModelServiceProvider).where(
+                ModelServiceProvider.name == name, ModelServiceProvider.gmt_deleted.is_(None)
+            )
+            result = await session.execute(stmt)
+            msp = result.scalars().first()
+
+            if msp:
+                await session.delete(msp)
+                await session.flush()
+                return True
+            return False
 
         return await self.execute_with_transaction(_operation)
 
@@ -1758,6 +1814,7 @@ class AsyncDatabaseOps:
 
             if instance:
                 from aperag.db.models import utc_now
+
                 instance.status = DocumentStatus.DELETED
                 instance.gmt_deleted = utc_now()
                 session.add(instance)
@@ -1786,6 +1843,7 @@ class AsyncDatabaseOps:
             for doc in documents:
                 try:
                     from aperag.db.models import utc_now
+
                     doc.status = DocumentStatus.DELETED
                     doc.gmt_deleted = utc_now()
                     session.add(doc)
@@ -2047,11 +2105,37 @@ class AsyncDatabaseOps:
         return await self.execute_with_transaction(_operation)
 
     # LLM Provider Operations
-    async def query_llm_providers(self):
-        """Get all active LLM providers"""
+    async def query_llm_providers(self, user_id: str = None, need_public: bool = True):
+        """Get all active LLM providers, optionally filtered by user and public providers
+
+        Args:
+            user_id: User ID to filter by user's private providers
+            need_public: Whether to include public providers
+        """
 
         async def _query(session):
             stmt = select(LLMProvider).where(LLMProvider.gmt_deleted.is_(None))
+
+            conditions = []
+
+            # Add public providers condition if needed
+            if need_public:
+                conditions.append(LLMProvider.user_id == "public")
+
+            # Add user's private providers condition if user_id is provided
+            if user_id:
+                conditions.append(LLMProvider.user_id == user_id)
+
+            # Apply conditions
+            if conditions:
+                if len(conditions) == 1:
+                    stmt = stmt.where(conditions[0])
+                else:
+                    from sqlalchemy import or_
+
+                    stmt = stmt.where(or_(*conditions))
+            # If no conditions (user_id=None, need_public=False), return all providers
+
             result = await session.execute(stmt)
             return result.scalars().all()
 
@@ -2070,6 +2154,7 @@ class AsyncDatabaseOps:
     async def create_llm_provider(
         self,
         name: str,
+        user_id: str,
         label: str,
         completion_dialect: str = "openai",
         embedding_dialect: str = "openai",
@@ -2083,6 +2168,7 @@ class AsyncDatabaseOps:
         async def _operation(session):
             provider = LLMProvider(
                 name=name,
+                user_id=user_id,
                 label=label,
                 completion_dialect=completion_dialect,
                 embedding_dialect=embedding_dialect,
@@ -2101,6 +2187,7 @@ class AsyncDatabaseOps:
     async def update_llm_provider(
         self,
         name: str,
+        user_id: str = None,
         label: str = None,
         completion_dialect: str = None,
         embedding_dialect: str = None,
@@ -2117,6 +2204,8 @@ class AsyncDatabaseOps:
             provider = result.scalars().first()
 
             if provider:
+                if user_id is not None:
+                    provider.user_id = user_id
                 if label is not None:
                     provider.label = label
                 if completion_dialect is not None:

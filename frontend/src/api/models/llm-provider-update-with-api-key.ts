@@ -17,56 +17,56 @@
 /**
  * 
  * @export
- * @interface LlmProviderCreate
+ * @interface LlmProviderUpdateWithApiKey
  */
-export interface LlmProviderCreate {
-    /**
-     * Unique provider name identifier
-     * @type {string}
-     * @memberof LlmProviderCreate
-     */
-    'name': string;
+export interface LlmProviderUpdateWithApiKey {
     /**
      * Human-readable provider display name
      * @type {string}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
-    'label': string;
+    'label'?: string;
     /**
      * API dialect for completion/chat APIs
      * @type {string}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
     'completion_dialect'?: string;
     /**
      * API dialect for embedding APIs
      * @type {string}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
     'embedding_dialect'?: string;
     /**
      * API dialect for rerank APIs
      * @type {string}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
     'rerank_dialect'?: string;
     /**
      * Whether custom base URLs are allowed
      * @type {boolean}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
     'allow_custom_base_url'?: boolean;
     /**
      * Default API base URL for this provider
      * @type {string}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
-    'base_url': string;
+    'base_url'?: string;
     /**
      * Additional configuration data in JSON format
      * @type {string}
-     * @memberof LlmProviderCreate
+     * @memberof LlmProviderUpdateWithApiKey
      */
     'extra'?: string;
+    /**
+     * Optional API key for this provider
+     * @type {string}
+     * @memberof LlmProviderUpdateWithApiKey
+     */
+    'api_key'?: string;
 }
 

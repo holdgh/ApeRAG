@@ -160,9 +160,7 @@ class CollectionTask:
                         logger.debug(f"Deleted lightrag document for document ID: {document_id}")
                     except Exception as e:
                         failed_count += 1
-                        logger.warning(
-                            f"Failed to delete lightrag document for document ID {document_id}: {str(e)}"
-                        )
+                        logger.warning(f"Failed to delete lightrag document for document ID {document_id}: {str(e)}")
 
                 logger.info(
                     f"Completed lightrag document deletion for collection {collection.id}: "

@@ -17,26 +17,20 @@
 /**
  * 
  * @export
- * @interface ModelServiceProvider
+ * @interface RerankRequestDocumentsOneOfInner
  */
-export interface ModelServiceProvider {
+export interface RerankRequestDocumentsOneOfInner {
     /**
-     * 
+     * Document text content
      * @type {string}
-     * @memberof ModelServiceProvider
+     * @memberof RerankRequestDocumentsOneOfInner
      */
-    'name'?: string;
+    'text': string;
     /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProvider
+     * Optional document metadata
+     * @type {{ [key: string]: any; }}
+     * @memberof RerankRequestDocumentsOneOfInner
      */
-    'label'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelServiceProvider
-     */
-    'api_key'?: string;
+    'metadata'?: { [key: string]: any; };
 }
 

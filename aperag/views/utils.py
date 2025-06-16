@@ -14,6 +14,7 @@
 
 import json
 import logging
+import uuid
 from http import HTTPStatus
 from typing import Dict, Tuple
 
@@ -158,3 +159,46 @@ def validation_errors(request: Request, exc: ValidationError) -> Response:
 def auth_errors(request: Request, exc: HTTPException) -> Response:
     status, content = fail(HTTPStatus.UNAUTHORIZED, "Unauthorized", raise_exception=False)
     return Response(status_code=status, content=content.model_dump_json())
+
+
+def mask_api_key(api_key: str) -> str:
+    """
+    Mask API key for security, showing only first 4 and last 4 characters.
+    The number of mask characters reflects the actual length of the hidden part.
+
+    Args:
+        api_key: The original API key
+
+    Returns:
+        Masked API key string
+
+    Examples:
+        - sk-1234567890abcdef -> sk-1********cdef (16 chars total, 8 masked)
+        - short_key -> short_key (if length <= 8, return as-is)
+        - very_long_api_key_123456789 -> very********************6789 (25 chars total, 17 masked)
+    """
+    if not api_key or len(api_key) <= 8:
+        return api_key
+
+    # Calculate the number of characters to mask (total - first 4 - last 4)
+    masked_length = len(api_key) - 8
+    mask_chars = "*" * masked_length
+
+    # Show first 4 and last 4 characters, mask the middle with actual length
+    return f"{api_key[:4]}{mask_chars}{api_key[-4:]}"
+
+
+def generate_random_provider_name() -> str:
+    """
+    Generate a random provider name using UUID.
+
+    Returns:
+        A random provider name in the format: provider_xxxxxxxx
+
+    Examples:
+        - provider_a1b2c3d4
+        - provider_f7e8d9c0
+    """
+    # Generate a short UUID (first 8 characters)
+    short_uuid = str(uuid.uuid4()).replace("-", "")[:8]
+    return f"provider_{short_uuid}"

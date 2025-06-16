@@ -66,6 +66,7 @@ def generate_provider_upsert(provider: Dict[str, Any]) -> str:
     """Generate upsert statement for llm_provider table"""
     
     name = escape_sql_string(provider['name'])
+    user_id = escape_sql_string(provider.get('user_id', 'public'))  # Default to 'public' for global providers
     label = escape_sql_string(provider['label'])
     completion_dialect = escape_sql_string(provider['completion_dialect'])
     embedding_dialect = escape_sql_string(provider['embedding_dialect'])
@@ -74,13 +75,14 @@ def generate_provider_upsert(provider: Dict[str, Any]) -> str:
     base_url = escape_sql_string(provider['base_url'])
     
     return f"""INSERT INTO llm_provider (
-    name, label, completion_dialect, embedding_dialect, rerank_dialect, 
+    name, user_id, label, completion_dialect, embedding_dialect, rerank_dialect, 
     allow_custom_base_url, base_url, gmt_created, gmt_updated
 ) VALUES (
-    {name}, {label}, {completion_dialect}, {embedding_dialect}, {rerank_dialect}, 
+    {name}, {user_id}, {label}, {completion_dialect}, {embedding_dialect}, {rerank_dialect}, 
     {allow_custom_base_url}, {base_url}, NOW(), NOW()
 )
 ON CONFLICT (name) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
     label = EXCLUDED.label,
     completion_dialect = EXCLUDED.completion_dialect,
     embedding_dialect = EXCLUDED.embedding_dialect,

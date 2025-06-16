@@ -14,9 +14,11 @@ export const model = {
   'model.provider.delete': '删除提供商',
   'model.provider.manage': '管理模型',
   'model.provider.id': '服务商ID',
-  'model.provider.name': '提供商名称',
+  'model.provider.name': '名称',
   'model.provider.label': '显示名称',
+  'model.provider.url': 'URL',
   'model.provider.base_url': 'API基础URL',
+  'model.provider.api_key_short': 'API KEY',
   'model.provider.model_count': '模型数量',
   'model.provider.completion_dialect': '对话API方言',
   'model.provider.embedding_dialect': '嵌入API方言',
@@ -29,6 +31,7 @@ export const model = {
   // Model related
   'model.management.title': '{provider} - 模型管理',
   'model.list.title': '模型列表',
+  'model.search.placeholder': '搜索模型名称...',
   'model.add': '添加模型',
   'model.add.title': '添加新模型',
   'model.edit': '编辑模型',
@@ -44,7 +47,7 @@ export const model = {
 
   // Form placeholders and validation
   'model.provider.name.placeholder': '例如: openai',
-  'model.provider.name.required': '请输入提供商名称',
+  'model.provider.name.required': '请输入提供商ID',
   'model.provider.label.placeholder': '例如: OpenAI',
   'model.provider.label.required': '请输入显示名称',
   'model.provider.base_url.placeholder': 'https://api.openai.com/v1',
@@ -98,6 +101,22 @@ export const model_provider = {
   'model.provider.api_key': '模型服务商API Key',
   'model.provider.api_key.required': '请输入模型服务商API Key',
   'model.provider.add': '添加服务商',
+  
+  // API Key管理相关
+  'model.provider.api_key.manage': '管理API密钥',
+  'model.provider.api_key.description': '配置模型服务商的API密钥以启用模型服务',
+  'model.provider.api_key.settings': 'API密钥设置',
+  'model.provider.api_key.help': '可选：配置此服务商的API密钥以启用模型服务',
+  'model.provider.api_key.placeholder': '输入API密钥',
+  'model.provider.api_key.edit.help': '当前已配置API密钥。留空保持不变，输入新密钥以更新',
+  'model.provider.api_key.edit.placeholder': '输入新的API密钥（留空保持不变）',
+  'model.provider.api_key.configured': '已配置',
+  'model.provider.api_key.not_configured': '未配置',
+  'model.provider.api_key.update.success': 'API密钥更新成功',
+  'model.provider.api_key.update.failed': 'API密钥更新失败',
+  'model.provider.disable.success': '服务商禁用成功',
+  'model.provider.disable.failed': '服务商禁用失败',
+  'model.provider.fetch.failed': '获取服务商信息失败',
 };
 
 export const model_configuration = {

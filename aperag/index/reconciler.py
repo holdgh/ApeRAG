@@ -15,7 +15,7 @@
 import logging
 from typing import List, Optional
 
-from sqlalchemy import and_, not_, select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from aperag.config import get_sync_session
