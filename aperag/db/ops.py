@@ -116,16 +116,6 @@ class DatabaseOps:
         session.refresh(collection)
         return collection
 
-    def query_msp_dict(self, user: str = None):
-        def _query(session):
-            stmt = select(ModelServiceProvider).where(ModelServiceProvider.gmt_deleted.is_(None))
-            # For now, return all MSPs since we removed user column
-            # In the future, we might want to filter by provider ownership
-            result = session.execute(stmt)
-            return {msp.name: msp for msp in result.scalars().all()}
-
-        return self._execute_query(_query)
-
     def query_llm_provider_by_name(self, name: str, user_id: str = None):
         def _query(session):
             stmt = select(LLMProvider).where(LLMProvider.name == name, LLMProvider.gmt_deleted.is_(None))
@@ -134,6 +124,53 @@ class DatabaseOps:
                 stmt = stmt.where((LLMProvider.user_id == "public") | (LLMProvider.user_id == user_id))
             result = session.execute(stmt)
             return result.scalars().first()
+
+        return self._execute_query(_query)
+
+    def query_provider_api_key(self, provider_name: str, user_id: str = None, need_public: bool = True) -> str:
+        """Query provider API key with user access control using single SQL JOIN (sync version)
+
+        Args:
+            provider_name: Provider name to query
+            user_id: User ID for private provider access
+            need_public: Whether to include public providers
+
+        Returns:
+            API key string if found, None otherwise
+        """
+
+        def _query(session):
+            # Join LLMProvider and ModelServiceProvider tables
+            from sqlalchemy import join
+
+            stmt = (
+                select(ModelServiceProvider.api_key)
+                .select_from(join(LLMProvider, ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
+                .where(
+                    LLMProvider.name == provider_name,
+                    LLMProvider.gmt_deleted.is_(None),
+                    ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
+                    ModelServiceProvider.gmt_deleted.is_(None),
+                )
+            )
+
+            # Add user access control conditions
+            conditions = []
+            if need_public:
+                conditions.append(LLMProvider.user_id == "public")
+            if user_id:
+                conditions.append(LLMProvider.user_id == user_id)
+
+            if conditions:
+                if len(conditions) == 1:
+                    stmt = stmt.where(conditions[0])
+                else:
+                    from sqlalchemy import or_
+
+                    stmt = stmt.where(or_(*conditions))
+
+            result = session.execute(stmt)
+            return result.scalar()
 
         return self._execute_query(_query)
 
@@ -1360,53 +1397,63 @@ class AsyncDatabaseOps:
 
         return await self._execute_query(_query)
 
-    async def query_msp_list(self, user: str = None):
+    async def query_provider_api_key(self, provider_name: str, user_id: str = None, need_public: bool = True) -> str:
+        """Query provider API key with user access control using single SQL JOIN
+
+        Args:
+            provider_name: Provider name to query
+            user_id: User ID for private provider access
+            need_public: Whether to include public providers
+
+        Returns:
+            API key string if found, None otherwise
+
+            SELECT model_service_provider.api_key
+                FROM llm_provider
+                JOIN model_service_provider ON llm_provider.name = model_service_provider.name
+                WHERE llm_provider.name = :provider_name
+                AND llm_provider.gmt_deleted IS NULL
+                AND model_service_provider.status != 'DELETED'
+                AND model_service_provider.gmt_deleted IS NULL
+                AND (llm_provider.user_id = 'public' OR llm_provider.user_id = :user_id)
+        """
+
         async def _query(session):
-            stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
-                ModelServiceProvider.gmt_deleted.is_(None),
-            )
-            # For now, return all MSPs since we removed user column
-            result = await session.execute(stmt)
-            return result.scalars().all()
+            # Join LLMProvider and ModelServiceProvider tables
+            from sqlalchemy import join
 
-        return await self._execute_query(_query)
-
-    async def query_msp_dict(self, user: str = None):
-        async def _query(session):
-            stmt = select(ModelServiceProvider).where(
-                ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
-                ModelServiceProvider.gmt_deleted.is_(None),
-            )
-            # For now, return all MSPs since we removed user column
-            result = await session.execute(stmt)
-            return {msp.name: msp for msp in result.scalars().all()}
-
-        return await self._execute_query(_query)
-
-    async def query_msp(self, user: str = None, provider: str = None, filterDeletion: bool = True):
-        async def _query(session):
-            stmt = select(ModelServiceProvider).where(ModelServiceProvider.name == provider)
-            if filterDeletion:
-                stmt = stmt.where(
+            stmt = (
+                select(ModelServiceProvider.api_key)
+                .select_from(join(LLMProvider, ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
+                .where(
+                    LLMProvider.name == provider_name,
+                    LLMProvider.gmt_deleted.is_(None),
                     ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
                     ModelServiceProvider.gmt_deleted.is_(None),
                 )
+            )
+
+            # Add user access control conditions
+            conditions = []
+            if need_public:
+                conditions.append(LLMProvider.user_id == "public")
+            if user_id:
+                conditions.append(LLMProvider.user_id == user_id)
+
+            if conditions:
+                if len(conditions) == 1:
+                    stmt = stmt.where(conditions[0])
+                else:
+                    from sqlalchemy import or_
+
+                    stmt = stmt.where(or_(*conditions))
+
             result = await session.execute(stmt)
-            return result.scalars().first()
+            return result.scalar()
 
         return await self._execute_query(_query)
 
-    async def update_msp(self, msp: ModelServiceProvider):
-        async def _operation(session):
-            session.add(msp)
-            await session.flush()
-            await session.refresh(msp)
-            return msp
-
-        return await self.execute_with_transaction(_operation)
-
-    async def upsert_model_service_provider(self, user: str, name: str, api_key: str):
+    async def upsert_msp(self, name: str, api_key: str):
         """Create or update model service provider API key"""
 
         async def _operation(session):
@@ -1432,15 +1479,6 @@ class AsyncDatabaseOps:
             await session.flush()
             await session.refresh(msp)
             return msp
-
-        return await self.execute_with_transaction(_operation)
-
-    async def delete_msp(self, msp: ModelServiceProvider):
-        """Physical delete model service provider"""
-
-        async def _operation(session):
-            await session.delete(msp)
-            await session.flush()
 
         return await self.execute_with_transaction(_operation)
 
@@ -2146,6 +2184,18 @@ class AsyncDatabaseOps:
 
         async def _query(session):
             stmt = select(LLMProvider).where(LLMProvider.name == name, LLMProvider.gmt_deleted.is_(None))
+            result = await session.execute(stmt)
+            return result.scalars().first()
+
+        return await self._execute_query(_query)
+
+    async def query_llm_provider_by_name_user(self, name: str, user_id: str) -> LLMProvider:
+        """Get LLM provider by name and user_id"""
+
+        async def _query(session):
+            stmt = select(LLMProvider).where(
+                LLMProvider.name == name, LLMProvider.user_id == user_id, LLMProvider.gmt_deleted.is_(None)
+            )
             result = await session.execute(stmt)
             return result.scalars().first()
 

@@ -19,7 +19,32 @@ from aperag.schema import view_models
 from aperag.views.utils import success
 
 
-def filter_models_by_tags(
+async def get_available_models(
+    user: str, tag_filter_request: view_models.TagFilterRequest
+) -> view_models.ModelConfigList:
+    """Get available models with optional tag filtering"""
+    # Get all supported providers from model configs
+    supported_providers = await _build_model_config_objects()
+
+    # Check which providers have API keys configured
+    available_providers = []
+    for provider in supported_providers:
+        api_key = await async_db_ops.query_provider_api_key(provider.name, user)
+        if api_key:  # Only include providers that have API keys configured
+            available_providers.append(provider)
+
+    # Apply tag filtering based on request
+    if tag_filter_request.tag_filters is None or len(tag_filter_request.tag_filters) == 0:
+        # Default to showing only models with 'recommend' tag when no filters are provided
+        default_filter = [view_models.TagFilterCondition(tags=["recommend"], operation="AND")]
+        filtered_providers = _filter_providers_by_tags(available_providers, default_filter)
+    else:
+        filtered_providers = _filter_providers_by_tags(available_providers, tag_filter_request.tag_filters)
+
+    return success(view_models.ModelConfigList(items=filtered_providers, pageResult=None).model_dump(exclude_none=True))
+
+
+def _filter_models_by_tags(
     models: List[dict], tag_filters: Optional[List[view_models.TagFilterCondition]]
 ) -> List[dict]:
     """Filter models by tag conditions
@@ -117,34 +142,6 @@ async def _build_model_config_objects() -> List[view_models.ModelConfig]:
     return [view_models.ModelConfig(**config) for config in config_list]
 
 
-async def get_available_models(
-    user: str, tag_filter_request: view_models.TagFilterRequest
-) -> view_models.ModelConfigList:
-    """Get available models with optional tag filtering"""
-    # Get all supported providers from model configs
-    supported_providers = await _build_model_config_objects()
-
-    # Get user's configured API keys from model_service_provider table
-    msp_list = await async_db_ops.query_msp_list(user)
-    configured_provider_names = {msp.name for msp in msp_list}
-
-    # Only include providers that have API keys configured
-    available_providers = []
-    for provider in supported_providers:
-        if provider.name in configured_provider_names:
-            available_providers.append(provider)
-
-    # Apply tag filtering based on request
-    if tag_filter_request.tag_filters is None or len(tag_filter_request.tag_filters) == 0:
-        # Default to showing only models with 'recommend' tag when no filters are provided
-        default_filter = [view_models.TagFilterCondition(tags=["recommend"], operation="AND")]
-        filtered_providers = _filter_providers_by_tags(available_providers, default_filter)
-    else:
-        filtered_providers = _filter_providers_by_tags(available_providers, tag_filter_request.tag_filters)
-
-    return success(view_models.ModelConfigList(items=filtered_providers, pageResult=None).model_dump(exclude_none=True))
-
-
 def _filter_providers_by_tags(
     providers: List[view_models.ModelConfig], tag_filters: Optional[List[view_models.TagFilterCondition]]
 ) -> List[view_models.ModelConfig]:
@@ -163,7 +160,7 @@ def _filter_providers_by_tags(
                 valid_models = [model for model in models if model is not None]
 
                 # Apply tag filtering to each model
-                filtered_models = filter_models_by_tags(valid_models, tag_filters)
+                filtered_models = _filter_models_by_tags(valid_models, tag_filters)
 
                 # Update the provider with filtered models
                 provider_dict[model_type] = filtered_models
@@ -177,6 +174,3 @@ def _filter_providers_by_tags(
             filtered_providers.append(view_models.ModelConfig(**provider_dict))
 
     return filtered_providers
-
-
-# list_supported_model_service_providers function removed - API key management now integrated into LLM providers

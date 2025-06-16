@@ -142,23 +142,23 @@ class BotService:
         memory = new_config.get("memory", False)
         llm_config = new_config.get("llm")
 
-        msp_dict = await self.db_ops.query_msp_dict(user)
-        if model_service_provider in msp_dict:
-            msp = msp_dict[model_service_provider]
-            api_key = msp.api_key
-            # Get base_url from LLMProvider
-            try:
-                llm_provider = await async_db_ops.query_llm_provider_by_name(model_service_provider)
-                base_url = llm_provider.base_url
-            except Exception:
-                return fail(HTTPStatus.BAD_REQUEST, f"LLMProvider {model_service_provider} not found")
-            valid, msg = validate_bot_config(
-                model_service_provider, model_name, base_url, api_key, llm_config, bot_in.type, memory
-            )
-            if not valid:
-                return fail(HTTPStatus.BAD_REQUEST, msg)
-        else:
-            return fail(HTTPStatus.BAD_REQUEST, "Model service provider not found")
+        # Get API key for the model service provider
+        api_key = await async_db_ops.query_provider_api_key(model_service_provider, user)
+        if not api_key:
+            return fail(HTTPStatus.BAD_REQUEST, f"API KEY not found for LLM Provider: {model_service_provider}")
+
+        # Get base_url from LLMProvider
+        try:
+            llm_provider = await async_db_ops.query_llm_provider_by_name(model_service_provider)
+            base_url = llm_provider.base_url
+        except Exception:
+            return fail(HTTPStatus.BAD_REQUEST, f"LLMProvider {model_service_provider} not found")
+
+        valid, msg = validate_bot_config(
+            model_service_provider, model_name, base_url, api_key, llm_config, bot_in.type, memory
+        )
+        if not valid:
+            return fail(HTTPStatus.BAD_REQUEST, msg)
 
         async def _update_operation(session):
             # Use DatabaseOps to update bot

@@ -23,6 +23,7 @@ from pydantic import Field
 from aperag.db.ops import async_db_ops
 from aperag.flow.base.models import BaseNodeRunner, SystemInput, register_node_runner
 from aperag.llm.completion.completion_service import CompletionService
+from aperag.llm.llm_error_types import InvalidConfigurationError
 from aperag.query.query import DocumentWithScore
 from aperag.utils.constant import DOC_QA_REFERENCES
 from aperag.utils.history import BaseChatMessageHistory
@@ -92,9 +93,7 @@ class LLMOutput(BaseModel):
 class LLMRepository:
     """Repository interface for LLM database operations"""
 
-    async def get_msp_dict(self, user) -> Dict:
-        """Get model service provider dictionary for the user"""
-        return await async_db_ops.query_msp_dict(user)
+    pass
 
 
 # Business logic service
@@ -119,12 +118,11 @@ class LLMService:
         docs: Optional[List[DocumentWithScore]] = None,
     ) -> Tuple[str, Dict]:
         """Generate LLM response with given parameters"""
-        msp_dict = await async_db_ops.query_msp_dict(user)
-        if model_service_provider not in msp_dict:
-            raise Exception(f"Model service provider {model_service_provider} not found")
-
-        msp = msp_dict[model_service_provider]
-        api_key = msp.api_key
+        api_key = await async_db_ops.query_provider_api_key(model_service_provider, user)
+        if not api_key:
+            raise InvalidConfigurationError(
+                "api_key", None, f"API KEY not found for LLM Provider: {model_service_provider}"
+            )
 
         try:
             llm_provider = await async_db_ops.query_llm_provider_by_name(model_service_provider)

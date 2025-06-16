@@ -15,7 +15,7 @@
 from unittest.mock import MagicMock
 
 from aperag.schema import view_models
-from aperag.service.model_service import _filter_providers_by_tags, filter_models_by_tags
+from aperag.service.model_service import _filter_models_by_tags, _filter_providers_by_tags
 
 
 class TestFilterModelsByTags:
@@ -27,10 +27,10 @@ class TestFilterModelsByTags:
             {"name": "model1", "tags": ["free", "recommend"]},
             {"name": "model2", "tags": ["premium"]},
         ]
-        result = filter_models_by_tags(models, None)
+        result = _filter_models_by_tags(models, None)
         assert result == models
 
-        result = filter_models_by_tags(models, [])
+        result = _filter_models_by_tags(models, [])
         assert result == models
 
     def test_filter_models_by_tags_and_operation(self):
@@ -43,7 +43,7 @@ class TestFilterModelsByTags:
         ]
 
         tag_filter = view_models.TagFilterCondition(operation="AND", tags=["free", "recommend"])
-        result = filter_models_by_tags(models, [tag_filter])
+        result = _filter_models_by_tags(models, [tag_filter])
 
         # Should return models that have both "free" and "recommend" tags
         expected_models = [models[0], models[3]]  # model1 and model4
@@ -59,7 +59,7 @@ class TestFilterModelsByTags:
         ]
 
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=["free", "recommend"])
-        result = filter_models_by_tags(models, [tag_filter])
+        result = _filter_models_by_tags(models, [tag_filter])
 
         # Should return models that have either "free" or "recommend" tags
         expected_models = [models[0], models[1], models[3]]  # model1, model2, model4
@@ -78,7 +78,7 @@ class TestFilterModelsByTags:
             view_models.TagFilterCondition(operation="AND", tags=["free", "recommend"]),
             view_models.TagFilterCondition(operation="OR", tags=["openai"]),
         ]
-        result = filter_models_by_tags(models, filters)
+        result = _filter_models_by_tags(models, filters)
 
         # Should return models that match either condition
         expected_models = [models[0], models[1]]  # model1 (free AND recommend), model2 (openai)
@@ -93,7 +93,7 @@ class TestFilterModelsByTags:
         ]
 
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=["free"])
-        result = filter_models_by_tags(models, [tag_filter])
+        result = _filter_models_by_tags(models, [tag_filter])
 
         # Should only return model2
         expected_models = [models[1]]
@@ -107,7 +107,7 @@ class TestFilterModelsByTags:
         ]
 
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=[])
-        result = filter_models_by_tags(models, [tag_filter])
+        result = _filter_models_by_tags(models, [tag_filter])
 
         # Should return empty list since no tags to match
         assert result == []
@@ -120,7 +120,7 @@ class TestFilterModelsByTags:
         ]
 
         tag_filter = view_models.TagFilterCondition(operation="OR", tags=["free"])
-        result = filter_models_by_tags(models, [tag_filter])
+        result = _filter_models_by_tags(models, [tag_filter])
 
         # Should only return model2 (case sensitive match)
         expected_models = [models[1]]

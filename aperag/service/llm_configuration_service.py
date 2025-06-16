@@ -25,12 +25,6 @@ async def get_llm_configuration(user_id: str = None):
         # Get providers (public + user's private if user_id provided)
         providers = await async_db_ops.query_llm_providers(user_id)
 
-        # Get user's API keys
-        api_keys = {}
-        if user_id:
-            msp_list = await async_db_ops.query_msp_list(user_id)
-            api_keys = {msp.name: msp.api_key for msp in msp_list}
-
         providers_data = []
 
         for provider in providers:
@@ -49,8 +43,10 @@ async def get_llm_configuration(user_id: str = None):
             }
 
             # Add masked API key if available (for security)
-            if provider.name in api_keys:
-                provider_data["api_key"] = mask_api_key(api_keys[provider.name])
+            if user_id:
+                api_key = await async_db_ops.query_provider_api_key(provider.name, user_id)
+                if api_key:
+                    provider_data["api_key"] = mask_api_key(api_key)
 
             providers_data.append(provider_data)
 
@@ -138,7 +134,7 @@ async def create_llm_provider(provider_data: dict, user_id: str):
         api_key = provider_data.get("api_key")
         if api_key and api_key.strip():  # Only create/update if non-empty API key is provided
             # Create or update API key for this provider
-            await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_data["name"], api_key=api_key)
+            await async_db_ops.upsert_msp(name=provider_data["name"], api_key=api_key)
 
         return success(
             {
@@ -162,7 +158,7 @@ async def create_llm_provider(provider_data: dict, user_id: str):
 async def get_llm_provider(provider_name: str, user_id: str = None):
     """Get a specific LLM provider by name"""
     try:
-        provider = await async_db_ops.query_llm_provider_by_name(provider_name)
+        provider = await async_db_ops.query_llm_provider_by_name_user(provider_name, user_id)
 
         if not provider:
             return fail(HTTPStatus.NOT_FOUND, f"Provider '{provider_name}' not found")
@@ -182,10 +178,9 @@ async def get_llm_provider(provider_name: str, user_id: str = None):
         }
 
         # Get masked API key if user_id is provided (for security)
-        if user_id:
-            msp = await async_db_ops.query_msp(user_id, provider_name)
-            if msp:
-                provider_data["api_key"] = mask_api_key(msp.api_key)
+        api_key = await async_db_ops.query_provider_api_key(provider_name, user_id)
+        if api_key:
+            provider_data["api_key"] = mask_api_key(api_key)
 
         return success(provider_data)
     except Exception as e:
@@ -216,7 +211,7 @@ async def update_llm_provider(provider_name: str, update_data: dict, user_id: st
         api_key = update_data.get("api_key")
         if api_key and api_key.strip():  # Only update if non-empty API key is provided
             # Create or update API key for this provider
-            await async_db_ops.upsert_model_service_provider(user=user_id, name=provider_name, api_key=api_key)
+            await async_db_ops.upsert_msp(name=provider_name, api_key=api_key)
 
         return success(
             {

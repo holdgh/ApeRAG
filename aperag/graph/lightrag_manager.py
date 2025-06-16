@@ -244,17 +244,13 @@ async def _gen_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]
     """Generate LLM function for LightRAG"""
     try:
         config = parseCollectionConfig(collection.config)
-        msp_name = config.completion.model_service_provider
-        msp_dict = db_ops.query_msp_dict(collection.user)
-
-        if msp_name not in msp_dict:
-            raise LightRAGError(f"Model service provider '{msp_name}' not found")
-
-        msp = msp_dict[msp_name]
-        api_key = msp.api_key
+        llm_provider_name = config.completion.model_service_provider
+        api_key = db_ops.query_provider_api_key(llm_provider_name, collection.user)
+        if not api_key:
+            raise Exception(f"API KEY not found for LLM Provider:{llm_provider_name}")
 
         # Get base_url from LLMProvider
-        llm_provider = db_ops.query_llm_provider_by_name(msp_name)
+        llm_provider = db_ops.query_llm_provider_by_name(llm_provider_name)
         base_url = llm_provider.base_url
 
         async def llm_func(
