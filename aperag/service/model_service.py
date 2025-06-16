@@ -16,7 +16,6 @@ from typing import List, Optional
 
 from aperag.db.ops import async_db_ops
 from aperag.schema import view_models
-from aperag.service.llm_config_service import get_model_config_objects
 from aperag.views.utils import success
 
 
@@ -67,12 +66,63 @@ def filter_models_by_tags(
     return filtered_models
 
 
+async def _build_model_config_objects() -> List[view_models.ModelConfig]:
+    """Build ModelConfig objects from database data
+
+    This function replaces the functionality from llm_config_service.py
+    """
+    # Get providers and provider models from database
+    providers = await async_db_ops.query_llm_providers()
+    provider_models = await async_db_ops.query_llm_provider_models()
+
+    # Group models by provider and API type
+    provider_model_map = {}
+    for model in provider_models:
+        if model.provider_name not in provider_model_map:
+            provider_model_map[model.provider_name] = {"completion": [], "embedding": [], "rerank": []}
+
+        model_dict = {
+            "model": model.model,
+            "custom_llm_provider": model.custom_llm_provider,
+        }
+        if model.max_tokens:
+            model_dict["max_tokens"] = model.max_tokens
+        if model.tags:
+            model_dict["tags"] = model.tags
+
+        provider_model_map[model.provider_name][model.api].append(model_dict)
+
+    # Build the final configuration list
+    config_list = []
+    for provider in providers:
+        provider_config = {
+            "name": provider.name,
+            "label": provider.label,
+            "completion_dialect": provider.completion_dialect,
+            "embedding_dialect": provider.embedding_dialect,
+            "rerank_dialect": provider.rerank_dialect,
+            "allow_custom_base_url": provider.allow_custom_base_url,
+            "base_url": provider.base_url,
+        }
+
+        # Add model configurations
+        if provider.name in provider_model_map:
+            provider_config.update(provider_model_map[provider.name])
+        else:
+            # Ensure these keys exist even if no models
+            provider_config.update({"completion": [], "embedding": [], "rerank": []})
+
+        config_list.append(provider_config)
+
+    return [view_models.ModelConfig(**config) for config in config_list]
+
+
 async def get_available_models(
     user: str, tag_filter_request: view_models.TagFilterRequest
 ) -> view_models.ModelConfigList:
     """Get available models with optional tag filtering"""
     # Get all supported providers from model configs
-    supported_providers = await get_model_config_objects()
+    supported_providers = await _build_model_config_objects()
 
     # Get user's configured API keys from model_service_provider table
     msp_list = await async_db_ops.query_msp_list(user)
