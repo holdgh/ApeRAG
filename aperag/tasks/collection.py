@@ -21,9 +21,9 @@ from aperag.db.models import CollectionStatus
 from aperag.db.ops import db_ops
 from aperag.graph import lightrag_manager
 from aperag.index.fulltext_index import create_index, delete_index
+from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.schema.utils import parseCollectionConfig
 from aperag.tasks.models import TaskResult
-from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.utils.utils import (
     generate_fulltext_index_name,
     generate_qa_vector_db_collection_name,
