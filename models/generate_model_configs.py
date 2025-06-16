@@ -101,21 +101,8 @@ def generate_model_upserts(provider_name: str, api_type: str, models: List[Dict[
         custom_llm_provider_sql = escape_sql_string(model['custom_llm_provider'])
         max_tokens_sql = format_nullable_int(model.get('max_tokens'))
         
-        # Handle tags - for now, we'll set reasonable defaults based on provider and model
+        # Use tags from model specification
         tags = model.get('tags', [])
-        if not tags:
-            # Set default tags based on model characteristics
-            tags = []
-            model_name = model['model'].lower()
-            
-            # Add 'free' tag for free models
-            if ':free' in model_name or provider_name in ['openrouter']:
-                tags.append('free')
-            
-            # Add 'recommend' tag for popular models
-            if any(keyword in model_name for keyword in ['gpt-4o', 'claude-3-5', 'gemini-2.5', 'qwen-max', 'deepseek-r1']):
-                tags.append('recommend')
-        
         tags_sql = format_json_array(tags)
         
         upsert = f"""INSERT INTO llm_provider_models (
@@ -138,105 +125,80 @@ ON CONFLICT (provider_name, api, model) DO UPDATE SET
 
 # Model Configuration Functions
 
-class ModelBlockList:
-    """
-    Model filtering system using block lists for different API types (completion, embedding, rerank)
-    """
-    
-    def __init__(self, 
-                 completion_blocklist=None, 
-                 embedding_blocklist=None, 
-                 rerank_blocklist=None):
-        """
-        Initialize model filter with block lists for each API type
-        
-        Args:
-            completion_blocklist: List of forbidden completion models (these models will be excluded)
-            embedding_blocklist: List of forbidden embedding models (these models will be excluded)
-            rerank_blocklist: List of forbidden rerank models (these models will be excluded)
-        """
-        self.completion_blocklist = completion_blocklist or []
-        self.embedding_blocklist = embedding_blocklist or []
-        self.rerank_blocklist = rerank_blocklist or []
-    
-    def filter_models(self, models, api_type):
-        """
-        Filter models based on block list for the given API type
-        
-        Args:
-            models: List of model names to filter
-            api_type: API type ("completion", "embedding", "rerank")
-            
-        Returns:
-            Filtered list of model names (with blocked models removed)
-        """
-        # Select appropriate block list based on API type
-        if api_type == "completion":
-            blocklist = self.completion_blocklist
-        elif api_type == "embedding":
-            blocklist = self.embedding_blocklist
-        elif api_type == "rerank":
-            blocklist = self.rerank_blocklist
-        else:
-            return models
-        
-        # Apply block list filter (exclude blocked models)
-        if blocklist:
-            filtered = [model for model in models if model not in blocklist]
-            blocked_count = len(models) - len(filtered)
-            if blocked_count > 0:
-                print(f"  📋 Blocked {blocked_count} {api_type} models from block list")
-            return filtered
-        
+def filter_models_by_blocklist(models: List[str], blocklist: List[str]) -> List[str]:
+    """Filter models by removing those in the blocklist"""
+    if not blocklist:
         return models
-
-    def filter_model_specs(self, model_specs, api_type):
-        """
-        Filter model specifications based on model names
-        
-        Args:
-            model_specs: List of model specification dicts with 'model' key
-            api_type: API type ("completion", "embedding", "rerank")
-            
-        Returns:
-            Filtered list of model specifications (with blocked models removed)
-        """
-        model_names = [spec['model'] for spec in model_specs]
-        filtered_names = self.filter_models(model_names, api_type)
-        filtered_names_set = set(filtered_names)
-        
-        return [spec for spec in model_specs if spec['model'] in filtered_names_set]
+    
+    filtered = [model for model in models if model not in blocklist]
+    blocked_count = len(models) - len(filtered)
+    if blocked_count > 0:
+        print(f"  📋 Blocked {blocked_count} models from blocklist")
+    return filtered
 
 
-def generate_model_specs(models, provider, mode, model_blocklist=None):
+def apply_model_tags(model_specs: List[Dict[str, Any]], tag_rules: Dict[str, List[str]]) -> List[Dict[str, Any]]:
+    """Apply tags to model specifications based on tag rules
+    
+    Args:
+        model_specs: List of model specifications
+        tag_rules: Dict mapping tag names to lists of model name patterns
+    
+    Returns:
+        Model specifications with tags applied
     """
-    Generate model specifications for a provider and mode, with optional block list filtering
+    if not tag_rules:
+        return model_specs
+    
+    for spec in model_specs:
+        model_name = spec['model']
+        tags = spec.get('tags', [])
+        
+        # Apply tag rules
+        for tag, model_patterns in tag_rules.items():
+            for pattern in model_patterns:
+                # Special handling for :free suffix (OpenRouter specific)
+                if pattern == ':free' and model_name.endswith(':free'):
+                    if tag not in tags:
+                        tags.append(tag)
+                    break
+                # Exact matching for all other patterns (especially recommend tags)
+                elif pattern != ':free' and pattern == model_name:
+                    if tag not in tags:
+                        tags.append(tag)
+                    break
+        
+        spec['tags'] = tags
+    
+    return model_specs
+
+
+def generate_model_specs(models, provider, mode, blocklist=None, tag_rules=None):
+    """
+    Generate model specifications for a provider and mode, with optional blocklist filtering and tagging
     
     Args:
         models: List of model names
         provider: Provider name
         mode: Model mode ("chat", "embedding", "rerank")
-        model_blocklist: Optional ModelBlockList instance for filtering
+        blocklist: Optional list of model names to exclude
+        tag_rules: Optional dict mapping tag names to model name patterns
         
     Returns:
         List of model specifications
     """
     specs = []
     
-    # Apply model block list if provided
-    filtered_models = models
-    if model_blocklist:
-        # Map mode to API type
-        api_type_map = {"chat": "completion", "embedding": "embedding", "rerank": "rerank"}
-        api_type = api_type_map.get(mode, mode)
-        filtered_models = model_blocklist.filter_models(models, api_type)
+    # Apply blocklist filtering
+    filtered_models = filter_models_by_blocklist(models, blocklist or [])
     
     for model in filtered_models:
         try:
             info = litellm.get_model_info(model, provider)
             spec = {
                 "model": model,
-                "custom_llm_provider": provider
+                "custom_llm_provider": provider,
+                "tags": []  # Initialize empty tags list
             }
 
             if info.get('mode') != mode:
@@ -262,13 +224,32 @@ def generate_model_specs(models, provider, mode, model_blocklist=None):
             print(f"Error processing {model}: {str(e)}")
             continue
     
+    # Apply tag rules
+    specs = apply_model_tags(specs, tag_rules or {})
+    
     # Sort by model name
     specs.sort(key=lambda x: x["model"])
     return specs
 
 
-def create_openai_config(model_blocklist=None):
+def create_openai_config():
     provider = "openai"
+    
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['chatgpt-4o-latest', 'gpt-4o-mini', 'o3', 'o3-mini', 'o4-mini'],
+        'free': []  # No free models for OpenAI
+    }
+    embedding_tag_rules = {
+        'recommend': ['text-embedding-3-small', 'text-embedding-3-large']
+    }
+    rerank_tag_rules = {}
+    
     config = {
         "name": provider,
         "label": "OpenAI",
@@ -281,9 +262,9 @@ def create_openai_config(model_blocklist=None):
     
     provider_models = litellm.models_by_provider.get(provider, [])
     
-    completion_models = generate_model_specs(provider_models, provider, "chat", model_blocklist)
-    embedding_models = generate_model_specs(provider_models, provider, "embedding", model_blocklist)
-    rerank_models = generate_model_specs(provider_models, provider, "rerank", model_blocklist)
+    completion_models = generate_model_specs(provider_models, provider, "chat", completion_blocklist, completion_tag_rules)
+    embedding_models = generate_model_specs(provider_models, provider, "embedding", embedding_blocklist, embedding_tag_rules)
+    rerank_models = generate_model_specs(provider_models, provider, "rerank", rerank_blocklist, rerank_tag_rules)
 
     config["completion"] = completion_models
     config["embedding"] = embedding_models
@@ -292,8 +273,21 @@ def create_openai_config(model_blocklist=None):
     return config
 
 
-def create_anthropic_config(model_blocklist=None):
+def create_anthropic_config():
     provider = "anthropic"
+    
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['claude-3-7-sonnet-20250219', 'claude-opus-4-20250514', 'claude-sonnet-4-20250514']
+    }
+    embedding_tag_rules = {}
+    rerank_tag_rules = {}
+    
     config = {
         "name": provider,
         "label": "Anthropic",
@@ -306,9 +300,9 @@ def create_anthropic_config(model_blocklist=None):
     
     provider_models = litellm.models_by_provider.get(provider, [])
     
-    completion_models = generate_model_specs(provider_models, provider, "chat", model_blocklist)
-    embedding_models = generate_model_specs(provider_models, provider, "embedding", model_blocklist)
-    rerank_models = generate_model_specs(provider_models, provider, "rerank", model_blocklist)
+    completion_models = generate_model_specs(provider_models, provider, "chat", completion_blocklist, completion_tag_rules)
+    embedding_models = generate_model_specs(provider_models, provider, "embedding", embedding_blocklist, embedding_tag_rules)
+    rerank_models = generate_model_specs(provider_models, provider, "rerank", rerank_blocklist, rerank_tag_rules)
 
     config["completion"] = completion_models
     config["embedding"] = embedding_models
@@ -317,7 +311,17 @@ def create_anthropic_config(model_blocklist=None):
     return config
 
 
-def create_deepseek_config(model_blocklist=None):
+def create_deepseek_config():
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['deepseek-r1', 'deepseek-v3']
+    }
+    
     config = {
         "name": "deepseek",
         "label": "DeepSeek",
@@ -330,21 +334,25 @@ def create_deepseek_config(model_blocklist=None):
         "completion": [
             {
                 "model": "deepseek-r1",
-                "custom_llm_provider": "openai"
+                "custom_llm_provider": "openai",
+                "tags": []
             },
             {
                 "model": "deepseek-v3",
-                "custom_llm_provider": "openai"
+                "custom_llm_provider": "openai",
+                "tags": []
             }
         ],
         "rerank": []
     }
     
-    # Apply model block list if provided
-    if model_blocklist:
-        config["completion"] = model_blocklist.filter_model_specs(config["completion"], "completion")
-        config["embedding"] = model_blocklist.filter_model_specs(config["embedding"], "embedding")
-        config["rerank"] = model_blocklist.filter_model_specs(config["rerank"], "rerank")
+    # Apply blocklist filtering
+    config["completion"] = [m for m in config["completion"] if m["model"] not in completion_blocklist]
+    config["embedding"] = [m for m in config["embedding"] if m["model"] not in embedding_blocklist]
+    config["rerank"] = [m for m in config["rerank"] if m["model"] not in rerank_blocklist]
+    
+    # Apply tag rules
+    config["completion"] = apply_model_tags(config["completion"], completion_tag_rules)
     
     # Sort model lists
     config["completion"].sort(key=lambda x: x["model"])
@@ -354,8 +362,21 @@ def create_deepseek_config(model_blocklist=None):
     return config
 
 
-def create_gemini_config(model_blocklist=None):
+def create_gemini_config():
     provider = "gemini"
+    
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['gemini/gemini-2.0-flash', 'gemini/gemini-2.5-flash-preview-05-20', 'gemini/gemini-2.5-pro-preview-06-05']
+    }
+    embedding_tag_rules = {}
+    rerank_tag_rules = {}
+    
     config = {
         "name": provider,
         "label": "Google Gemini",
@@ -368,9 +389,9 @@ def create_gemini_config(model_blocklist=None):
     
     provider_models = litellm.models_by_provider.get(provider, [])
     
-    completion_models = generate_model_specs(provider_models, provider, "chat", model_blocklist)
-    embedding_models = generate_model_specs(provider_models, provider, "embedding", model_blocklist)
-    rerank_models = generate_model_specs(provider_models, provider, "rerank", model_blocklist)
+    completion_models = generate_model_specs(provider_models, provider, "chat", completion_blocklist, completion_tag_rules)
+    embedding_models = generate_model_specs(provider_models, provider, "embedding", embedding_blocklist, embedding_tag_rules)
+    rerank_models = generate_model_specs(provider_models, provider, "rerank", rerank_blocklist, rerank_tag_rules)
 
     config["completion"] = completion_models
     config["embedding"] = embedding_models
@@ -379,8 +400,21 @@ def create_gemini_config(model_blocklist=None):
     return config
 
 
-def create_xai_config(model_blocklist=None):
+def create_xai_config():
     provider = "xai"
+    
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['xai/grok-3', 'xai/grok-3-mini']
+    }
+    embedding_tag_rules = {}
+    rerank_tag_rules = {}
+    
     config = {
         "name": provider,
         "label": "xAI",
@@ -393,9 +427,9 @@ def create_xai_config(model_blocklist=None):
     
     provider_models = litellm.models_by_provider.get(provider, [])
     
-    completion_models = generate_model_specs(provider_models, provider, "chat", model_blocklist)
-    embedding_models = generate_model_specs(provider_models, provider, "embedding", model_blocklist)
-    rerank_models = generate_model_specs(provider_models, provider, "rerank", model_blocklist)
+    completion_models = generate_model_specs(provider_models, provider, "chat", completion_blocklist, completion_tag_rules)
+    embedding_models = generate_model_specs(provider_models, provider, "embedding", embedding_blocklist, embedding_tag_rules)
+    rerank_models = generate_model_specs(provider_models, provider, "rerank", rerank_blocklist, rerank_tag_rules)
 
     config["completion"] = completion_models
     config["embedding"] = embedding_models
@@ -444,7 +478,21 @@ def parse_bailian_models(file_path: str) -> List[Dict[str, Any]]:
     return models
 
 
-def create_alibabacloud_config(model_blocklist=None):
+def create_alibabacloud_config():
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = ["multimodal-embedding-v1", "text-embedding-async-v1", "text-embedding-async-v2", "text-embedding-v1", "text-embedding-v2"]
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['deepseek-r1-distill-qwen-32b', 'qwen-max']
+    }
+    embedding_tag_rules = {
+        'recommend': ['text-embedding-v3']
+    }
+    rerank_tag_rules = {}
+    
     # Setup file paths - now that the script is in models directory, use current directory
     models_dir = os.path.dirname(__file__)
     completion_file = os.path.join(models_dir, "alibaba_bailian_models_completion.json")
@@ -465,11 +513,19 @@ def create_alibabacloud_config(model_blocklist=None):
     print(f"  - Reading rerank models from: {rerank_file}")
     rerank_models = parse_bailian_models(rerank_file)
     
-    # Apply model block list if provided
-    if model_blocklist:
-        completion_models = model_blocklist.filter_model_specs(completion_models, "completion")
-        embedding_models = model_blocklist.filter_model_specs(embedding_models, "embedding")
-        rerank_models = model_blocklist.filter_model_specs(rerank_models, "rerank")
+    # Apply blocklist filtering
+    completion_models = [m for m in completion_models if m["model"] not in completion_blocklist]
+    embedding_models = [m for m in embedding_models if m["model"] not in embedding_blocklist]
+    rerank_models = [m for m in rerank_models if m["model"] not in rerank_blocklist]
+    
+    # Initialize tags for all models
+    for model in completion_models + embedding_models + rerank_models:
+        model['tags'] = []
+    
+    # Apply tag rules
+    completion_models = apply_model_tags(completion_models, completion_tag_rules)
+    embedding_models = apply_model_tags(embedding_models, embedding_tag_rules)
+    rerank_models = apply_model_tags(rerank_models, rerank_tag_rules)
     
     # Sort model lists
     completion_models.sort(key=lambda x: x["model"])
@@ -494,7 +550,23 @@ def create_alibabacloud_config(model_blocklist=None):
     return config
 
 
-def create_siliconflow_config(model_blocklist=None):
+def create_siliconflow_config():
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules
+    completion_tag_rules = {
+        'recommend': ['deepseek-ai/Deepseek-R1', 'deepseek-ai/Deepseek-V3']
+    }
+    embedding_tag_rules = {
+        'recommend': ['BAAI/bge-m3']
+    }
+    rerank_tag_rules = {
+        'recommend': ['BAAI/bge-reranker-v2-m3']
+    }
+    
     config = {
         "name": "siliconflow",
         "label": "SiliconFlow",
@@ -506,52 +578,65 @@ def create_siliconflow_config(model_blocklist=None):
         "embedding": [
             # {
             #     "model": "BAAI/bge-large-en-v1.5",
-            #     "custom_llm_provider": "openai"
+            #     "custom_llm_provider": "openai",
+            #     "tags": []
             # },
             # {
             #     "model": "BAAI/bge-large-zh-v1.5",
-            #     "custom_llm_provider": "openai"
+            #     "custom_llm_provider": "openai",
+            #     "tags": []
             # },
             {
                 "model": "BAAI/bge-m3",
-                "custom_llm_provider": "openai"
+                "custom_llm_provider": "openai",
+                "tags": []
             },
             # {
             #     "model": "netease-youdao/bce-embedding-base_v1",
-            #     "custom_llm_provider": "openai"
+            #     "custom_llm_provider": "openai",
+            #     "tags": []
             # }
         ],
         "completion": [
             {
                 "model": "Qwen/Qwen3-8B",
-                "custom_llm_provider": "openai"
+                "custom_llm_provider": "openai",
+                "tags": []
             },
             {
                 "model": "deepseek-ai/Deepseek-R1",
-                "custom_llm_provider": "openai"
+                "custom_llm_provider": "openai",
+                "tags": []
             },
             {
                 "model": "deepseek-ai/Deepseek-V3",
-                "custom_llm_provider": "openai"
+                "custom_llm_provider": "openai",
+                "tags": []
             }
         ],
         "rerank": [
             {
                 "model": "BAAI/bge-reranker-v2-m3",
-                "custom_llm_provider": "jina_ai"
+                "custom_llm_provider": "jina_ai",
+                "tags": []
             },
             {
                 "model": "netease-youdao/bce-reranker-base_v1",
-                "custom_llm_provider": "jina_ai"
+                "custom_llm_provider": "jina_ai",
+                "tags": []
             }
         ]
     }
 
-    # Apply model block list if provided
-    if model_blocklist:
-        config["completion"] = model_blocklist.filter_model_specs(config["completion"], "completion")
-        config["embedding"] = model_blocklist.filter_model_specs(config["embedding"], "embedding")
-        config["rerank"] = model_blocklist.filter_model_specs(config["rerank"], "rerank")
+    # Apply blocklist filtering
+    config["completion"] = [m for m in config["completion"] if m["model"] not in completion_blocklist]
+    config["embedding"] = [m for m in config["embedding"] if m["model"] not in embedding_blocklist]
+    config["rerank"] = [m for m in config["rerank"] if m["model"] not in rerank_blocklist]
+
+    # Apply tag rules
+    config["completion"] = apply_model_tags(config["completion"], completion_tag_rules)
+    config["embedding"] = apply_model_tags(config["embedding"], embedding_tag_rules)
+    config["rerank"] = apply_model_tags(config["rerank"], rerank_tag_rules)
 
     # Sort model lists
     config["completion"].sort(key=lambda x: x["model"])
@@ -561,7 +646,37 @@ def create_siliconflow_config(model_blocklist=None):
     return config
 
 
-def create_openrouter_config(model_blocklist=None):
+def create_openrouter_config():
+    # Define blocklists
+    completion_blocklist = []
+    embedding_blocklist = []
+    rerank_blocklist = []
+    
+    # Define tag rules - OpenRouter models with :free are free
+    completion_tag_rules = {
+        'free': [':free'],  # Models ending with :free
+        'recommend': [
+            'anthropic/claude-3.7-sonnet',
+            'anthropic/claude-sonnet-4',
+            'deepseek/deepseek-chat-v3-0324:free',
+            'deepseek/deepseek-r1:free',
+            'deepseek/deepseek-r1-distill-qwen-32b:free',
+            'google/gemini-2.0-flash-exp:free',
+            'google/gemini-2.5-pro-preview-05-06',
+            'openai/gpt-4o',
+            'openai/gpt-4o-mini',
+            'openai/o3',
+            'openai/o3-mini',
+            'openai/o4-mini',
+            'qwen/qwen-max',
+            'qwen/qwen-plus',
+            'x-ai/grok-3-beta',
+            'x-ai/grok-3-mini-beta'
+        ]
+    }
+    embedding_tag_rules = {}
+    rerank_tag_rules = {}
+    
     # Setup file paths - now that the script is in models directory, use current directory
     models_dir = os.path.dirname(__file__)
     openrouter_file = os.path.join(models_dir, "openrouter_models.json")
@@ -627,11 +742,14 @@ def create_openrouter_config(model_blocklist=None):
                 "model": model_id,
                 "custom_llm_provider": "openrouter",
                 "max_tokens": context_length,
+                "tags": []
             })
         
-        # Apply model block list if provided
-        if model_blocklist:
-            all_models = model_blocklist.filter_model_specs(all_models, "completion")
+        # Apply blocklist filtering
+        all_models = [m for m in all_models if m["model"] not in completion_blocklist]
+        
+        # Apply tag rules
+        all_models = apply_model_tags(all_models, completion_tag_rules)
         
         # Sort by model name
         all_models.sort(key=lambda x: x["model"])
@@ -671,63 +789,32 @@ def create_openrouter_config(model_blocklist=None):
 
 def create_provider_config():
     """
-    Create provider configuration with block list filtering
+    Create provider configuration with internal block list filtering and tagging
     
-    To block specific models, you can add them to the appropriate block lists below.
-    Example block lists (uncomment and modify as needed):
+    Each provider function now defines its own block lists and tag rules internally.
+    No need to pass parameters - block lists and tag rules are defined in each provider function.
     """
     
-    # Example block lists - uncomment and modify as needed
-    # openai_completion_blocklist = ["gpt-3.5-turbo-instruct", "davinci-002"]
-    # openai_embedding_blocklist = ["text-embedding-ada-002-v2"]
-    
-    # anthropic_completion_blocklist = ["claude-instant-1", "claude-instant-1.2"]
-    
-    # gemini_completion_blocklist = ["gemini-pro", "gemini-pro-vision"]
-    
-    # xai_completion_blocklist = ["grok-beta"]
-    
-    # deepseek_completion_blocklist = ["deepseek-coder"]
-    
-    # alibabacloud_completion_blocklist = ["qwen-turbo", "qwen-plus"]
-    # alibabacloud_embedding_blocklist = ["text-embedding-v1"]
-    
-    # siliconflow_completion_blocklist = ["Qwen/Qwen2-7B-Instruct"]
-    # siliconflow_embedding_blocklist = ["BAAI/bge-small-en-v1.5"]
-    
-    # openrouter_completion_blocklist = ["openai/gpt-3.5-turbo-instruct"]
-    
-    # Create ModelBlockList instances for each provider (None = no filtering)
-    openai_blocklist = None
-    anthropic_blocklist = None  
-    gemini_blocklist = None
-    xai_blocklist = None
-    deepseek_blocklist = None
-    alibabacloud_blocklist = ModelBlockList(
-        embedding_blocklist=["multimodal-embedding-v1", "text-embedding-async-v1", "text-embedding-async-v2", "text-embedding-v1", "text-embedding-v2"]
-    )
-    siliconflow_blocklist = None
-    openrouter_blocklist = None
-    
-    # Example of creating a block list (uncomment to use):
-    # openai_blocklist = ModelBlockList(
-    #     completion_blocklist=openai_completion_blocklist,
-    #     embedding_blocklist=openai_embedding_blocklist
-    # )
+    print("\n📋 Block List Usage:")
+    print("- Block lists and tag rules are now defined internally in each provider function")
+    print("- To modify block lists or tag rules, edit the provider functions directly")
+    print("- Each provider supports completion_blocklist, embedding_blocklist, and rerank_blocklist")
+    print("- Tag rules map tag names to model name patterns")
+    print()
     
     # Generate provider configurations
     result = [
-        create_openai_config(openai_blocklist),
-        create_anthropic_config(anthropic_blocklist),
-        create_gemini_config(gemini_blocklist),
-        create_xai_config(xai_blocklist),
-        create_deepseek_config(deepseek_blocklist),
-        create_alibabacloud_config(alibabacloud_blocklist),
-        create_siliconflow_config(siliconflow_blocklist)
+        create_openai_config(),
+        create_anthropic_config(),
+        create_gemini_config(),
+        create_xai_config(),
+        create_deepseek_config(),
+        create_alibabacloud_config(),
+        create_siliconflow_config()
     ]
     
     # Add OpenRouter configuration
-    openrouter_config = create_openrouter_config(openrouter_blocklist)
+    openrouter_config = create_openrouter_config()
     if openrouter_config:
         result.append(openrouter_config)
     
@@ -881,11 +968,10 @@ def main():
     try:
         print("Generating model configuration data...")
         print("\n📋 Block List Usage:")
-        print("- To block specific models, modify the create_provider_config() function")
-        print("- Uncomment the example block lists and add model names you want to exclude")
+        print("- Block lists and tag rules are now defined internally in each provider function")
+        print("- To modify block lists or tag rules, edit the provider functions directly")
         print("- Each provider supports completion_blocklist, embedding_blocklist, and rerank_blocklist")
-        print("- Example: ModelBlockList(completion_blocklist=['model1', 'model2'])")
-        print("\n📚 For a working example, see create_provider_config_with_blocklist_example() function")
+        print("- Tag rules map tag names to model name patterns")
         print()
         
         providers_data = create_provider_config()
@@ -901,10 +987,13 @@ def main():
         print("\nOr copy the contents and run in your PostgreSQL client.")
         
         print("\n🔧 Usage Examples:")
-        print("1. To generate config with example block lists:")
-        print("   Modify main() to call create_provider_config_with_blocklist_example()")
-        print("2. To customize block lists:")
-        print("   Edit the block list variables in create_provider_config()")
+        print("1. To customize block lists or tag rules:")
+        print("   Edit the block list and tag rule variables in each provider function")
+        print("2. To add/remove models from block lists:")
+        print("   Modify the completion_blocklist, embedding_blocklist, or rerank_blocklist in provider functions")
+        print("3. To add/modify model tags:")
+        print("   Update the tag_rules dictionaries in provider functions")
+        print("   Example: completion_tag_rules = {'recommend': ['model1', 'model2'], 'free': ['model3']}")
         
     except Exception as e:
         print(f"❌ Error generating SQL script: {e}")
