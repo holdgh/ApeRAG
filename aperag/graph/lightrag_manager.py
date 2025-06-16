@@ -20,7 +20,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 import numpy
 
 from aperag.db.models import Collection
-from aperag.db.ops import async_db_ops
+from aperag.db.ops import db_ops
 from aperag.graph.lightrag import LightRAG
 from aperag.graph.lightrag.utils import EmbeddingFunc
 from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
@@ -245,12 +245,12 @@ async def _gen_llm_func(collection: Collection) -> Callable[..., Awaitable[str]]
     try:
         config = parseCollectionConfig(collection.config)
         llm_provider_name = config.completion.model_service_provider
-        api_key = await async_db_ops.query_provider_api_key(llm_provider_name, collection.user)
+        api_key = db_ops.query_provider_api_key(llm_provider_name, collection.user)
         if not api_key:
             raise Exception(f"API KEY not found for LLM Provider:{llm_provider_name}")
 
         # Get base_url from LLMProvider
-        llm_provider = await async_db_ops.query_llm_provider_by_name(llm_provider_name)
+        llm_provider = db_ops.query_llm_provider_by_name(llm_provider_name)
         base_url = llm_provider.base_url
 
         async def llm_func(
