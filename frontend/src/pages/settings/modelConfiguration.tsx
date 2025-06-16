@@ -6,6 +6,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
+  SearchOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import {
@@ -64,6 +65,8 @@ export default () => {
   const [editingModel, setEditingModel] = useState<LlmProviderModel | null>(
     null,
   );
+  // Model search state
+  const [modelSearchText, setModelSearchText] = useState<string>('');
 
   const [modal, contextHolder] = Modal.useModal();
 
@@ -301,6 +304,7 @@ export default () => {
     setModalView('list');
     setCurrentProvider(null);
     setEditingModel(null);
+    setModelSearchText(''); // Reset search state
     modelForm.resetFields();
   }, [modelForm]);
 
@@ -326,13 +330,22 @@ export default () => {
     [modelForm, currentProvider],
   );
 
-  // Get models for current provider
+  // Get models for current provider with search filter
   const getCurrentProviderModels = useCallback(() => {
     if (!currentProvider) return [];
-    return configuration.models.filter(
+    let models = configuration.models.filter(
       (model) => model.provider_name === currentProvider.name,
     );
-  }, [configuration.models, currentProvider]);
+    
+    // Apply search filter if search text exists
+    if (modelSearchText.trim()) {
+      models = models.filter((model) =>
+        model.model.toLowerCase().includes(modelSearchText.toLowerCase()),
+      );
+    }
+    
+    return models;
+  }, [configuration.models, currentProvider, modelSearchText]);
 
   // Get model count for provider
   const getProviderModelCount = useCallback(
@@ -790,11 +803,22 @@ export default () => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '0 4px',
+                gap: 16,
               }}
             >
               <Title level={5} style={{ margin: 0, fontWeight: 600 }}>
                 {formatMessage({ id: 'model.list.title' })}
               </Title>
+              <div style={{ flex: 1, maxWidth: 300 }}>
+                <Input
+                  placeholder={formatMessage({ id: 'model.search.placeholder' })}
+                  prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                  value={modelSearchText}
+                  onChange={(e) => setModelSearchText(e.target.value)}
+                  allowClear
+                  style={{ borderRadius: '6px' }}
+                />
+              </div>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

@@ -31,6 +31,7 @@ export const model = {
   // Model related
   'model.management.title': '{provider} - 模型管理',
   'model.list.title': '模型列表',
+  'model.search.placeholder': '搜索模型名称...',
   'model.add': '添加模型',
   'model.add.title': '添加新模型',
   'model.edit': '编辑模型',

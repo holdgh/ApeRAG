@@ -31,6 +31,7 @@ export const model = {
   // Model related
   'model.management.title': '{provider} - Model Management',
   'model.list.title': 'Model List',
+  'model.search.placeholder': 'Search model name...',
   'model.add': 'Add Model',
   'model.add.title': 'Add New Model',
   'model.edit': 'Edit Model',
