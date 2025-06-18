@@ -48,6 +48,7 @@ from typing import (
     final,
 )
 
+from aperag.concurrent_control import MultiLock, get_or_create_lock
 from aperag.graph.lightrag.constants import (
     DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE,
     DEFAULT_MAX_TOKEN_SUMMARY,
@@ -91,7 +92,6 @@ from .utils import (
     lazy_external_import,
     logger,
 )
-from .utils_graph import get_graph_db_lock
 
 
 @final
@@ -250,9 +250,6 @@ class LightRAG:
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)
 
     def __post_init__(self):
-        self._graph_db_lock = get_graph_db_lock(self.workspace)
-        logger.info(f"Using universal concurrent control for graph operations: workspace={self.workspace}")
-
         # Verify storage implementation compatibility and environment variables
         storage_configs = [
             ("KV_STORAGE", self.kv_storage),
@@ -417,6 +414,156 @@ class LightRAG:
         return storage_class
 
     # ============= New Stateless Interfaces =============
+
+    def _find_connected_components(self, chunk_results: List[tuple[dict, dict]]) -> List[List[str]]:
+        """
+        Find connected components in the extracted entities and relationships.
+
+        Args:
+            chunk_results: List of (nodes_dict, edges_dict) tuples from entity extraction
+
+        Returns:
+            List of entity groups, where each group is a list of connected entity names
+        """
+        # Build adjacency list
+        adjacency: Dict[str, set[str]] = {}
+
+        for nodes, edges in chunk_results:
+            # Add all nodes to adjacency list
+            for entity_name in nodes.keys():
+                if entity_name not in adjacency:
+                    adjacency[entity_name] = set()
+
+            # Add edges to create connections
+            for src, tgt in edges.keys():
+                if src not in adjacency:
+                    adjacency[src] = set()
+                if tgt not in adjacency:
+                    adjacency[tgt] = set()
+                adjacency[src].add(tgt)
+                adjacency[tgt].add(src)
+
+        # Find connected components using BFS
+        visited = set()
+        components = []
+
+        for node in adjacency:
+            if node not in visited:
+                # Start BFS from this node
+                component = []
+                queue = [node]
+                visited.add(node)
+
+                while queue:
+                    current = queue.pop(0)
+                    component.append(current)
+
+                    # Visit all neighbors
+                    for neighbor in adjacency.get(current, set()):
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append(neighbor)
+
+                components.append(component)
+
+        logger.info(f"Found {len(components)} connected components from {len(adjacency)} entities")
+        return components
+
+    async def _process_entity_groups(
+        self,
+        chunk_results: List[tuple[dict, dict]],
+        components: List[List[str]],
+        collection_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Process entities and relationships in groups based on connected components.
+
+        Args:
+            chunk_results: List of (nodes_dict, edges_dict) from entity extraction
+            components: List of entity groups (connected components)
+            collection_id: Optional collection ID for logging
+
+        Returns:
+            Dict with processing results
+        """
+        workspace = self.workspace if self.workspace else "default"
+        lightrag_logger = create_lightrag_logger(prefix="LightRAG-GraphIndex", workspace=workspace)
+
+        total_entities = 0
+        total_relations = 0
+        processed_groups = 0
+
+        for i, component in enumerate(components):
+            # Create a set for quick lookup
+            component_entities = set(component)
+
+            # Filter chunk results for this component
+            component_chunk_results = []
+
+            for nodes, edges in chunk_results:
+                # Filter nodes belonging to this component
+                filtered_nodes = {
+                    entity_name: entity_data
+                    for entity_name, entity_data in nodes.items()
+                    if entity_name in component_entities
+                }
+
+                # Filter edges where both endpoints belong to this component
+                filtered_edges = {
+                    (src, tgt): edge_data
+                    for (src, tgt), edge_data in edges.items()
+                    if src in component_entities and tgt in component_entities
+                }
+
+                if filtered_nodes or filtered_edges:
+                    component_chunk_results.append((filtered_nodes, filtered_edges))
+
+            if not component_chunk_results:
+                continue
+
+            # Create locks for all entities in this component
+            entity_locks = []
+            for entity_name in sorted(component):  # Sort to prevent deadlock
+                lock = get_or_create_lock(f"entity:{entity_name}:{self.workspace}")
+                entity_locks.append(lock)
+
+            lightrag_logger.info(f"Processing component {i + 1}/{len(components)} with {len(component)} entities")
+
+            # Use MultiLock to acquire all locks for this component
+            async with MultiLock(entity_locks):
+                # Merge nodes and edges for this component
+                await merge_nodes_and_edges(
+                    chunk_results=component_chunk_results,
+                    knowledge_graph_inst=self.chunk_entity_relation_graph,
+                    entity_vdb=self.entities_vdb,
+                    relationships_vdb=self.relationships_vdb,
+                    llm_model_func=self.llm_model_func,
+                    tokenizer=self.tokenizer,
+                    llm_model_max_token_size=self.llm_model_max_token_size,
+                    summary_to_max_tokens=self.summary_to_max_tokens,
+                    addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
+                    force_llm_summary_on_merge=self.force_llm_summary_on_merge,
+                    lightrag_logger=lightrag_logger,
+                )
+
+            # Count entities and relations in this component
+            component_entity_count = sum(len(nodes) for nodes, _ in component_chunk_results)
+            component_relation_count = sum(len(edges) for _, edges in component_chunk_results)
+
+            total_entities += component_entity_count
+            total_relations += component_relation_count
+            processed_groups += 1
+
+            lightrag_logger.info(
+                f"Completed component {i + 1}: {component_entity_count} entities, {component_relation_count} relations"
+            )
+
+        return {
+            "groups_processed": processed_groups,
+            "total_entities": total_entities,
+            "total_relations": total_relations,
+            "collection_id": collection_id,
+        }
 
     async def ainsert_and_chunk_document(
         self,
@@ -586,7 +733,7 @@ class LightRAG:
 
             lightrag_logger.info(f"Starting graph indexing for {len(chunks)} chunks")
 
-            # 1. Extract entities and relations from chunks
+            # 1. Extract entities and relations from chunks (completely parallel, no lock)
             chunk_results = await extract_entities(
                 chunks,
                 use_llm_func=self.llm_model_func,
@@ -596,40 +743,27 @@ class LightRAG:
                 lightrag_logger=lightrag_logger,
             )
 
-            lightrag_logger.info(f"Extracted entities and relations from {len(chunks)} chunks")
+            # 2. Find connected components in the extracted entities and relationships
+            components = self._find_connected_components(chunk_results)
 
-            # 2. Merge nodes and edges (using instance-level lock)
-            await merge_nodes_and_edges(
-                chunk_results=chunk_results,
-                knowledge_graph_inst=self.chunk_entity_relation_graph,
-                entity_vdb=self.entities_vdb,
-                relationships_vdb=self.relationships_vdb,
-                llm_model_func=self.llm_model_func,
-                tokenizer=self.tokenizer,
-                llm_model_max_token_size=self.llm_model_max_token_size,
-                summary_to_max_tokens=self.summary_to_max_tokens,
-                addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
-                force_llm_summary_on_merge=self.force_llm_summary_on_merge,
-                current_file_number=0,
-                total_files=0,
-                file_path="stateless_processing",
-                lightrag_logger=lightrag_logger,
-                graph_db_lock=self._graph_db_lock,
-            )
+            # 3. Process each component group with its own lock scope
+            result = await self._process_entity_groups(chunk_results, components, collection_id)
 
-            lightrag_logger.info("Completed merging entities and relations")
-
-            # Count results
+            # Count total results
             entity_count = sum(len(nodes) for nodes, _ in chunk_results)
             relation_count = sum(len(edges) for _, edges in chunk_results)
 
-            lightrag_logger.info(f"Graph indexing completed: {entity_count} entities, {relation_count} relations")
+            lightrag_logger.info(
+                f"Graph indexing completed: {entity_count} entities, {relation_count} relations "
+                f"in {result['groups_processed']} groups"
+            )
 
             return {
                 "status": "success",
                 "chunks_processed": len(chunks),
                 "entities_extracted": entity_count,
                 "relations_extracted": relation_count,
+                "groups_processed": result["groups_processed"],
                 "collection_id": collection_id,
             }
 
@@ -996,243 +1130,3 @@ class LightRAG:
 
         except Exception as e:
             logger.error(f"Error while deleting document {doc_id}: {e}")
-
-    async def adelete_by_entity(self, entity_name: str) -> None:
-        """Asynchronously delete an entity and all its relationships.
-
-        Args:
-            entity_name: Name of the entity to delete
-        """
-        from .utils_graph import adelete_by_entity
-
-        return await adelete_by_entity(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            entity_name,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def delete_by_entity(self, entity_name: str) -> None:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.adelete_by_entity(entity_name))
-
-    async def adelete_by_relation(self, source_entity: str, target_entity: str) -> None:
-        """Asynchronously delete a relation between two entities.
-
-        Args:
-            source_entity: Name of the source entity
-            target_entity: Name of the target entity
-        """
-        from .utils_graph import adelete_by_relation
-
-        return await adelete_by_relation(
-            self.chunk_entity_relation_graph,
-            self.relationships_vdb,
-            source_entity,
-            target_entity,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def delete_by_relation(self, source_entity: str, target_entity: str) -> None:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.adelete_by_relation(source_entity, target_entity))
-
-    async def get_entity_info(
-        self, entity_name: str, include_vector_data: bool = False
-    ) -> dict[str, str | None | dict[str, str]]:
-        """Get detailed information of an entity"""
-        from .utils_graph import get_entity_info
-
-        return await get_entity_info(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            entity_name,
-            include_vector_data,
-        )
-
-    async def get_relation_info(
-        self, src_entity: str, tgt_entity: str, include_vector_data: bool = False
-    ) -> dict[str, str | None | dict[str, str]]:
-        """Get detailed information of a relationship"""
-        from .utils_graph import get_relation_info
-
-        return await get_relation_info(
-            self.chunk_entity_relation_graph,
-            self.relationships_vdb,
-            src_entity,
-            tgt_entity,
-            include_vector_data,
-        )
-
-    async def aedit_entity(
-        self, entity_name: str, updated_data: dict[str, str], allow_rename: bool = True
-    ) -> dict[str, Any]:
-        """Asynchronously edit entity information.
-
-        Updates entity information in the knowledge graph and re-embeds the entity in the vector database.
-
-        Args:
-            entity_name: Name of the entity to edit
-            updated_data: Dictionary containing updated attributes, e.g. {"description": "new description", "entity_type": "new type"}
-            allow_rename: Whether to allow entity renaming, defaults to True
-
-        Returns:
-            Dictionary containing updated entity information
-        """
-        from .utils_graph import aedit_entity
-
-        return await aedit_entity(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            entity_name,
-            updated_data,
-            allow_rename,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def edit_entity(self, entity_name: str, updated_data: dict[str, str], allow_rename: bool = True) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.aedit_entity(entity_name, updated_data, allow_rename))
-
-    async def aedit_relation(
-        self, source_entity: str, target_entity: str, updated_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Asynchronously edit relation information.
-
-        Updates relation (edge) information in the knowledge graph and re-embeds the relation in the vector database.
-
-        Args:
-            source_entity: Name of the source entity
-            target_entity: Name of the target entity
-            updated_data: Dictionary containing updated attributes, e.g. {"description": "new description", "keywords": "new keywords"}
-
-        Returns:
-            Dictionary containing updated relation information
-        """
-        from .utils_graph import aedit_relation
-
-        return await aedit_relation(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            source_entity,
-            target_entity,
-            updated_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def edit_relation(self, source_entity: str, target_entity: str, updated_data: dict[str, Any]) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.aedit_relation(source_entity, target_entity, updated_data))
-
-    async def acreate_entity(self, entity_name: str, entity_data: dict[str, Any]) -> dict[str, Any]:
-        """Asynchronously create a new entity.
-
-        Creates a new entity in the knowledge graph and adds it to the vector database.
-
-        Args:
-            entity_name: Name of the new entity
-            entity_data: Dictionary containing entity attributes, e.g. {"description": "description", "entity_type": "type"}
-
-        Returns:
-            Dictionary containing created entity information
-        """
-        from .utils_graph import acreate_entity
-
-        return await acreate_entity(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            entity_name,
-            entity_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def create_entity(self, entity_name: str, entity_data: dict[str, Any]) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.acreate_entity(entity_name, entity_data))
-
-    async def acreate_relation(
-        self, source_entity: str, target_entity: str, relation_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Asynchronously create a new relation between entities.
-
-        Creates a new relation (edge) in the knowledge graph and adds it to the vector database.
-
-        Args:
-            source_entity: Name of the source entity
-            target_entity: Name of the target entity
-            relation_data: Dictionary containing relation attributes, e.g. {"description": "description", "keywords": "keywords"}
-
-        Returns:
-            Dictionary containing created relation information
-        """
-        from .utils_graph import acreate_relation
-
-        return await acreate_relation(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            source_entity,
-            target_entity,
-            relation_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def create_relation(self, source_entity: str, target_entity: str, relation_data: dict[str, Any]) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.acreate_relation(source_entity, target_entity, relation_data))
-
-    async def amerge_entities(
-        self,
-        source_entities: list[str],
-        target_entity: str,
-        merge_strategy: dict[str, str] = None,
-        target_entity_data: dict[str, Any] = None,
-    ) -> dict[str, Any]:
-        """Asynchronously merge multiple entities into one entity.
-
-        Merges multiple source entities into a target entity, handling all relationships,
-        and updating both the knowledge graph and vector database.
-
-        Args:
-            source_entities: List of source entity names to merge
-            target_entity: Name of the target entity after merging
-            merge_strategy: Merge strategy configuration, e.g. {"description": "concatenate", "entity_type": "keep_first"}
-                Supported strategies:
-                - "concatenate": Concatenate all values (for text fields)
-                - "keep_first": Keep the first non-empty value
-                - "keep_last": Keep the last non-empty value
-                - "join_unique": Join all unique values (for fields separated by delimiter)
-            target_entity_data: Dictionary of specific values to set for the target entity,
-                overriding any merged values, e.g. {"description": "custom description", "entity_type": "PERSON"}
-
-        Returns:
-            Dictionary containing the merged entity information
-        """
-        from .utils_graph import amerge_entities
-
-        return await amerge_entities(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            source_entities,
-            target_entity,
-            merge_strategy,
-            target_entity_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def merge_entities(
-        self,
-        source_entities: list[str],
-        target_entity: str,
-        merge_strategy: dict[str, str] = None,
-        target_entity_data: dict[str, Any] = None,
-    ) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(
-            self.amerge_entities(source_entities, target_entity, merge_strategy, target_entity_data)
-        )
