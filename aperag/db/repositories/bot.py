@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import desc, select
@@ -22,6 +21,7 @@ from aperag.db.models import (
     BotStatus,
 )
 from aperag.db.repositories.base import AsyncRepositoryProtocol
+from aperag.utils.utils import utc_now
 
 
 class AsyncBotRepositoryMixin(AsyncRepositoryProtocol):
@@ -95,6 +95,24 @@ class AsyncBotRepositoryMixin(AsyncRepositoryProtocol):
 
         return await self.execute_with_transaction(_operation)
 
+    async def update_bot_config_by_id(self, user: str, bot_id: str, config: str) -> Optional[Bot]:
+        """Update bot config by ID without affecting other fields"""
+
+        async def _operation(session):
+            stmt = select(Bot).where(Bot.id == bot_id, Bot.user == user, Bot.status != BotStatus.DELETED)
+            result = await session.execute(stmt)
+            instance = result.scalars().first()
+
+            if instance:
+                instance.config = config
+                session.add(instance)
+                await session.flush()
+                await session.refresh(instance)
+
+            return instance
+
+        return await self.execute_with_transaction(_operation)
+
     async def delete_bot_by_id(self, user: str, bot_id: str) -> Optional[Bot]:
         """Soft delete bot by ID"""
 
@@ -105,7 +123,7 @@ class AsyncBotRepositoryMixin(AsyncRepositoryProtocol):
 
             if instance:
                 instance.status = BotStatus.DELETED
-                instance.gmt_deleted = datetime.utcnow()
+                instance.gmt_deleted = utc_now()
                 session.add(instance)
                 await session.flush()
                 await session.refresh(instance)
@@ -137,7 +155,7 @@ class AsyncBotRepositoryMixin(AsyncRepositoryProtocol):
             result = await session.execute(stmt)
             relations = result.scalars().all()
             for rel in relations:
-                rel.gmt_deleted = datetime.utcnow()
+                rel.gmt_deleted = utc_now()
                 session.add(rel)
             await session.flush()
             return len(relations)

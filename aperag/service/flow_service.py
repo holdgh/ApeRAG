@@ -16,16 +16,15 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from http import HTTPStatus
 
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from aperag.db.ops import AsyncDatabaseOps, async_db_ops
+from aperag.exceptions import ResourceNotFoundException
 from aperag.flow.engine import FlowEngine
 from aperag.flow.parser import FlowParser
 from aperag.schema import view_models
-from aperag.views.utils import fail, success
 
 logger = logging.getLogger(__name__)
 
@@ -88,76 +87,63 @@ class FlowService:
 
     async def debug_flow_stream(self, user: str, bot_id: str, debug: view_models.DebugFlowRequest):
         """Stream debug flow events as SSE using FastAPI StreamingResponse."""
-        try:
-            bot = await self.db_ops.query_bot(user, bot_id)
-            if not bot:
-                return {"error": "Bot not found"}
+        bot = await self.db_ops.query_bot(user, bot_id)
+        if not bot:
+            raise ResourceNotFoundException("Bot", bot_id)
 
-            bot_config = json.loads(bot.config)
-            flow_config = bot_config.get("flow")
-            if not flow_config:
-                return {"error": "Bot flow config not found"}
+        bot_config = json.loads(bot.config)
+        flow_config = bot_config.get("flow")
+        if not flow_config:
+            raise ValueError("Bot flow config not found")
 
-            flow = FlowParser.parse(flow_config)
-            engine = FlowEngine()
-            initial_data = {"query": debug.query, "user": user}
-            task = asyncio.create_task(engine.execute_flow(flow, initial_data))
+        flow = FlowParser.parse(flow_config)
+        engine = FlowEngine()
+        initial_data = {"query": debug.query, "user": user}
+        task = asyncio.create_task(engine.execute_flow(flow, initial_data))
 
-            return StreamingResponse(
-                self.stream_flow_events(engine.get_events(), task, engine, flow),
-                media_type="text/event-stream",
-            )
-        except Exception as e:
-            logger.exception("Error in debug flow stream: %s", e)
-            return {"error": str(e)}
+        return StreamingResponse(
+            self.stream_flow_events(engine.get_events(), task, engine, flow),
+            media_type="text/event-stream",
+        )
 
-    async def get_flow(self, user: str, bot_id: str):
+    async def get_flow(self, user: str, bot_id: str) -> dict:
         """Get flow config for a bot"""
         bot = await self.db_ops.query_bot(user, bot_id)
         if not bot:
-            return fail(HTTPStatus.NOT_FOUND, message="Bot not found")
-        try:
-            config = json.loads(bot.config or "{}")
-            flow = config.get("flow")
+            raise ResourceNotFoundException("Bot", bot_id)
 
-            # If no flow config exists, return an empty dict
-            if not flow:
-                return success({})
+        config = json.loads(bot.config or "{}")
+        flow = config.get("flow")
 
-            return success(flow)
-        except Exception as e:
-            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, message=str(e))
+        # If no flow config exists, return an empty dict
+        if not flow:
+            return {}
 
-    async def update_flow(self, user: str, bot_id: str, data: view_models.WorkflowDefinition):
+        return flow
+
+    async def update_flow(self, user: str, bot_id: str, data: view_models.WorkflowDefinition) -> dict:
         """Update flow config for a bot"""
         # First check if bot exists
         bot = await self.db_ops.query_bot(user, bot_id)
         if not bot:
-            return fail(HTTPStatus.NOT_FOUND, message="Bot not found")
+            raise ResourceNotFoundException("Bot", bot_id)
 
-        async def _update_operation(session):
-            # Get latest bot data in transaction
-            db_ops_session = AsyncDatabaseOps(session)
-            bot = await db_ops_session.query_bot(user, bot_id)
-            if not bot:
-                raise ValueError("Bot not found")
+        # Direct operation without nested transaction
+        config = json.loads(bot.config or "{}")
+        flow = data.model_dump(exclude_unset=True, by_alias=True)
+        config["flow"] = flow
 
-            config = json.loads(bot.config or "{}")
-            flow = data.model_dump(exclude_unset=True, by_alias=True)
-            config["flow"] = flow
-            bot.config = json.dumps(config, ensure_ascii=False)
-            session.add(bot)
-            await session.flush()
-            await session.refresh(bot)
-            return flow
+        # Update only bot config to avoid overwriting concurrently updated metadata
+        updated_bot = await self.db_ops.update_bot_config_by_id(
+            user=user,
+            bot_id=bot_id,
+            config=json.dumps(config, ensure_ascii=False),
+        )
 
-        try:
-            result = await self.db_ops.execute_with_transaction(_update_operation)
-            return success(result)
-        except ValueError as e:
-            return fail(HTTPStatus.NOT_FOUND, message=str(e))
-        except Exception as e:
-            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, message=str(e))
+        if not updated_bot:
+            raise ResourceNotFoundException("Bot", bot_id)
+
+        return flow
 
 
 # Create a global service instance for easy access

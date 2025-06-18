@@ -13,18 +13,23 @@
 # limitations under the License.
 
 import json
-from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from aperag.config import settings
 from aperag.db import models as db_models
 from aperag.db.ops import AsyncDatabaseOps, async_db_ops
+from aperag.exceptions import (
+    CollectionInactiveException,
+    QuotaExceededException,
+    ResourceNotFoundException,
+    invalid_param,
+)
 from aperag.schema import view_models
 from aperag.schema.view_models import Bot, BotList
 from aperag.utils.constant import QuotaType
-from aperag.views.utils import fail, success, validate_bot_config
+from aperag.views.utils import validate_bot_config
 
 
 class BotService:
@@ -57,37 +62,47 @@ class BotService:
             if bot_limit is None:
                 bot_limit = settings.max_bot_count
             if await self.db_ops.query_bots_count(user) >= bot_limit:
-                return fail(HTTPStatus.FORBIDDEN, f"bot number has reached the limit of {bot_limit}")
+                raise QuotaExceededException("bot", bot_limit)
 
-        async def _create_operation(session):
-            # Use DatabaseOps to create bot
-            db_ops_session = AsyncDatabaseOps(session)
-            bot = await db_ops_session.create_bot(
-                user=user, title=bot_in.title, description=bot_in.description, bot_type=bot_in.type, config="{}"
+        # Validate collections before starting transaction
+        collection_ids = []
+        if bot_in.collection_ids is not None:
+            for cid in bot_in.collection_ids:
+                collection = await self.db_ops.query_collection(user, cid)
+                if not collection:
+                    raise ResourceNotFoundException("Collection", cid)
+                if collection.status == db_models.CollectionStatus.INACTIVE:
+                    raise CollectionInactiveException(cid)
+                collection_ids.append(cid)
+
+        # Create bot and collection relations atomically in a single transaction
+        async def _create_bot_atomically(session):
+            from aperag.db.models import Bot, BotCollectionRelation, BotStatus
+
+            # Create bot in database directly using session
+            bot = Bot(
+                user=user,
+                title=bot_in.title,
+                type=bot_in.type,
+                status=BotStatus.ACTIVE,
+                description=bot_in.description,
+                config="{}",
             )
+            session.add(bot)
+            await session.flush()
+            await session.refresh(bot)
 
-            collection_ids = []
-            if bot_in.collection_ids is not None:
-                for cid in bot_in.collection_ids:
-                    collection = await self.db_ops.query_collection(user, cid)
-                    if not collection:
-                        raise ValueError(f"Collection {cid} not found")
-                    if collection.status == db_models.CollectionStatus.INACTIVE:
-                        raise ValueError(f"Collection {cid} is inactive")
+            # Create collection relations
+            for cid in collection_ids:
+                relation = BotCollectionRelation(bot_id=bot.id, collection_id=cid)
+                session.add(relation)
+                await session.flush()
 
-                    await db_ops_session.create_bot_collection_relation(bot.id, cid)
-                    collection_ids.append(cid)
+            return bot
 
-            return self.build_bot_response(bot, collection_ids=collection_ids)
+        bot = await self.db_ops.execute_with_transaction(_create_bot_atomically)
 
-        try:
-            result = await self.db_ops.execute_with_transaction(_create_operation)
-            return success(result)
-        except ValueError as e:
-            status_code = HTTPStatus.NOT_FOUND if "not found" in str(e) else HTTPStatus.BAD_REQUEST
-            return fail(status_code, str(e))
-        except Exception as e:
-            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to create bot: {str(e)}")
+        return self.build_bot_response(bot, collection_ids=collection_ids)
 
     async def list_bots(self, user: str) -> view_models.BotList:
         bots = await self.db_ops.query_bots([user])
@@ -114,12 +129,12 @@ class BotService:
             return bot_responses
 
         response = await self.db_ops._execute_query(_get_bot_collections_data)
-        return success(BotList(items=response))
+        return BotList(items=response)
 
     async def get_bot(self, user: str, bot_id: str) -> view_models.Bot:
         bot = await self.db_ops.query_bot(user, bot_id)
         if bot is None:
-            return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+            raise ResourceNotFoundException("Bot", bot_id)
 
         # Use _execute_query pattern to get collection IDs safely
         async def _get_bot_collections(session):
@@ -127,13 +142,13 @@ class BotService:
             return collection_ids
 
         collection_ids = await self.db_ops._execute_query(_get_bot_collections)
-        return success(self.build_bot_response(bot, collection_ids=collection_ids))
+        return self.build_bot_response(bot, collection_ids=collection_ids)
 
     async def update_bot(self, user: str, bot_id: str, bot_in: view_models.BotUpdate) -> view_models.Bot:
         # First check if bot exists
         bot = await self.db_ops.query_bot(user, bot_id)
         if bot is None:
-            return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+            raise ResourceNotFoundException("Bot", bot_id)
 
         # Validate configuration
         new_config = json.loads(bot_in.config)
@@ -145,94 +160,142 @@ class BotService:
         # Get API key for the model service provider
         api_key = await async_db_ops.query_provider_api_key(model_service_provider, user)
         if not api_key:
-            return fail(HTTPStatus.BAD_REQUEST, f"API KEY not found for LLM Provider: {model_service_provider}")
+            raise invalid_param(
+                "model_service_provider", f"API KEY not found for LLM Provider: {model_service_provider}"
+            )
 
         # Get base_url from LLMProvider
         try:
             llm_provider = await async_db_ops.query_llm_provider_by_name(model_service_provider)
             base_url = llm_provider.base_url
         except Exception:
-            return fail(HTTPStatus.BAD_REQUEST, f"LLMProvider {model_service_provider} not found")
+            raise ResourceNotFoundException("LLMProvider", model_service_provider)
 
         valid, msg = validate_bot_config(
             model_service_provider, model_name, base_url, api_key, llm_config, bot_in.type, memory
         )
         if not valid:
-            return fail(HTTPStatus.BAD_REQUEST, msg)
+            raise invalid_param("config", msg)
 
-        async def _update_operation(session):
-            # Use DatabaseOps to update bot
-            db_ops_session = AsyncDatabaseOps(session)
+        # Validate collections before starting transaction
+        validated_collection_ids = []
+        if bot_in.collection_ids is not None:
+            for cid in bot_in.collection_ids:
+                collection = await self.db_ops.query_collection(user, cid)
+                if not collection:
+                    raise ResourceNotFoundException("Collection", cid)
+                if collection.status == db_models.CollectionStatus.INACTIVE:
+                    raise CollectionInactiveException(cid)
+                validated_collection_ids.append(cid)
 
-            old_config = json.loads(bot.config)
+        # Update bot and collection relations atomically in a single transaction
+        async def _update_bot_atomically(session):
+            from sqlalchemy import select
+
+            from aperag.db.models import Bot, BotCollectionRelation, BotStatus, utc_now
+
+            # Update bot
+            stmt = select(Bot).where(Bot.id == bot_id, Bot.user == user, Bot.status != BotStatus.DELETED)
+            result = await session.execute(stmt)
+            bot_to_update = result.scalars().first()
+
+            if not bot_to_update:
+                raise ResourceNotFoundException("Bot", bot_id)
+
+            old_config = json.loads(bot_to_update.config)
             old_config.update(new_config)
             config_str = json.dumps(old_config)
 
-            updated_bot = await db_ops_session.update_bot_by_id(
-                user=user,
-                bot_id=bot_id,
-                title=bot_in.title,
-                description=bot_in.description,
-                bot_type=bot_in.type,
-                config=config_str,
-            )
-
-            if not updated_bot:
-                raise ValueError("Bot not found")
+            bot_to_update.title = bot_in.title
+            bot_to_update.description = bot_in.description
+            bot_to_update.type = bot_in.type
+            bot_to_update.config = config_str
+            session.add(bot_to_update)
+            await session.flush()
+            await session.refresh(bot_to_update)
 
             # Handle collection relations update
+            collection_ids = []
             if bot_in.collection_ids is not None:
                 # Delete old relations
-                await db_ops_session.delete_bot_collection_relations(bot_id)
+                stmt = select(BotCollectionRelation).where(
+                    BotCollectionRelation.bot_id == bot_id, BotCollectionRelation.gmt_deleted.is_(None)
+                )
+                result = await session.execute(stmt)
+                relations = result.scalars().all()
+                for rel in relations:
+                    rel.gmt_deleted = utc_now()
+                    session.add(rel)
 
                 # Add new relations
-                for cid in bot_in.collection_ids:
-                    collection = await self.db_ops.query_collection(user, cid)
-                    if not collection:
-                        raise ValueError(f"Collection {cid} not found")
-                    if collection.status == db_models.CollectionStatus.INACTIVE:
-                        raise ValueError(f"Collection {cid} is inactive")
-                    await db_ops_session.create_bot_collection_relation(bot_id, cid)
+                for cid in validated_collection_ids:
+                    relation = BotCollectionRelation(bot_id=bot_id, collection_id=cid)
+                    session.add(relation)
+                    collection_ids.append(cid)
+                    await session.flush()
+            else:
+                # Get existing collection IDs for response
+                collection_ids = await bot_to_update.collections(session, only_ids=True)
 
-            collection_ids = await updated_bot.collections(session, only_ids=True)
-            return self.build_bot_response(updated_bot, collection_ids=collection_ids)
+            return bot_to_update, collection_ids
 
-        try:
-            result = await self.db_ops.execute_with_transaction(_update_operation)
-            return success(result)
-        except ValueError as e:
-            status_code = HTTPStatus.NOT_FOUND if "not found" in str(e) else HTTPStatus.BAD_REQUEST
-            return fail(status_code, str(e))
-        except Exception as e:
-            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to update bot: {str(e)}")
+        updated_bot, collection_ids = await self.db_ops.execute_with_transaction(_update_bot_atomically)
 
-    async def delete_bot(self, user: str, bot_id: str) -> view_models.Bot:
-        # First check if bot exists
+        return self.build_bot_response(updated_bot, collection_ids=collection_ids)
+
+    async def delete_bot(self, user: str, bot_id: str) -> Optional[view_models.Bot]:
+        """Delete bot by ID (idempotent operation)
+
+        Returns the deleted bot or None if already deleted/not found
+        """
+        # Check if bot exists - if not, silently succeed (idempotent)
         bot = await self.db_ops.query_bot(user, bot_id)
         if bot is None:
-            return fail(HTTPStatus.NOT_FOUND, "Bot not found")
+            return None
 
-        async def _delete_operation(session):
-            # Use DatabaseOps to delete bot
-            db_ops_session = AsyncDatabaseOps(session)
-            deleted_bot = await db_ops_session.delete_bot_by_id(user, bot_id)
+        # Delete bot and collection relations atomically in a single transaction
+        async def _delete_bot_atomically(session):
+            from sqlalchemy import select
 
-            if not deleted_bot:
-                raise ValueError("Bot not found")
+            from aperag.db.models import Bot, BotCollectionRelation, BotStatus, utc_now
+
+            # Get and delete bot
+            stmt = select(Bot).where(Bot.id == bot_id, Bot.user == user, Bot.status != BotStatus.DELETED)
+            result = await session.execute(stmt)
+            bot_to_delete = result.scalars().first()
+
+            if not bot_to_delete:
+                return None, []
+
+            # Get collection IDs before deleting relations
+            collection_ids = await bot_to_delete.collections(session, only_ids=True)
+
+            # Soft delete bot
+            bot_to_delete.status = BotStatus.DELETED
+            bot_to_delete.gmt_deleted = utc_now()
+            session.add(bot_to_delete)
+            await session.flush()
+            await session.refresh(bot_to_delete)
 
             # Delete all relations
-            await db_ops_session.delete_bot_collection_relations(bot_id)
+            stmt = select(BotCollectionRelation).where(
+                BotCollectionRelation.bot_id == bot_id, BotCollectionRelation.gmt_deleted.is_(None)
+            )
+            result = await session.execute(stmt)
+            relations = result.scalars().all()
+            for rel in relations:
+                rel.gmt_deleted = utc_now()
+                session.add(rel)
+            await session.flush()
 
-            collection_ids = await deleted_bot.collections(session, only_ids=True)
+            return bot_to_delete, collection_ids
+
+        deleted_bot, collection_ids = await self.db_ops.execute_with_transaction(_delete_bot_atomically)
+
+        if deleted_bot:
             return self.build_bot_response(deleted_bot, collection_ids=collection_ids)
 
-        try:
-            result = await self.db_ops.execute_with_transaction(_delete_operation)
-            return success(result)
-        except ValueError as e:
-            return fail(HTTPStatus.NOT_FOUND, str(e))
-        except Exception as e:
-            return fail(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed to delete bot: {str(e)}")
+        return None
 
 
 # Create a global service instance for easy access

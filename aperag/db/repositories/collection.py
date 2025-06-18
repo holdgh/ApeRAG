@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import desc, func, select
@@ -22,6 +21,7 @@ from aperag.db.repositories.base import (
     AsyncRepositoryProtocol,
     SyncRepositoryProtocol,
 )
+from aperag.utils.utils import utc_now
 
 
 class CollectionRepositoryMixin(SyncRepositoryProtocol):
@@ -103,7 +103,7 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
                     raise ValueError(f"Collection has related to bots {','.join(collection_bots)}, can not be deleted")
 
                 instance.status = CollectionStatus.DELETED
-                instance.gmt_deleted = datetime.utcnow()
+                instance.gmt_deleted = utc_now()
                 session.add(instance)
                 await session.flush()
                 await session.refresh(instance)

@@ -14,7 +14,6 @@
 
 import random
 import uuid
-from datetime import datetime, timezone
 from enum import Enum
 
 from pgvector.sqlalchemy import Vector
@@ -34,6 +33,8 @@ from sqlalchemy import (
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
 
+from aperag.utils.utils import utc_now
+
 # Create the declarative base
 Base = declarative_base()
 
@@ -42,12 +43,6 @@ Base = declarative_base()
 def random_id():
     """Generate a random ID string"""
     return "".join(random.sample(uuid.uuid4().hex, 16))
-
-
-# Helper function for UTC datetime
-def utc_now():
-    """Generate UTC datetime for consistency"""
-    return datetime.now(timezone.utc)
 
 
 # Helper function for creating enum columns that store values instead of names

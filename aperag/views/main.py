@@ -15,7 +15,7 @@
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile, WebSocket
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Response, UploadFile, WebSocket
 
 from aperag.db.models import User
 from aperag.schema import view_models
@@ -24,7 +24,7 @@ from aperag.service.chat_service import chat_service_global
 from aperag.service.collection_service import collection_service
 from aperag.service.document_service import document_service
 from aperag.service.flow_service import flow_service_global
-from aperag.service.llm_available_model_service import get_available_models
+from aperag.service.llm_available_model_service import llm_available_model_service
 from aperag.service.llm_provider_service import (
     create_llm_provider,
     create_llm_provider_model,
@@ -195,8 +195,9 @@ async def feedback_message_view(
 @router.delete("/bots/{bot_id}/chats/{chat_id}")
 async def delete_chat_view(
     request: Request, bot_id: str, chat_id: str, user: User = Depends(current_user)
-) -> view_models.Chat:
-    return await chat_service_global.delete_chat(str(user.id), bot_id, chat_id)
+):
+    await chat_service_global.delete_chat(str(user.id), bot_id, chat_id)
+    return Response(status_code=204)
 
 
 @router.post("/bots")
@@ -229,8 +230,9 @@ async def update_bot_view(
 
 
 @router.delete("/bots/{bot_id}")
-async def delete_bot_view(request: Request, bot_id: str, user: User = Depends(current_user)) -> view_models.Bot:
-    return await bot_service.delete_bot(str(user.id), bot_id)
+async def delete_bot_view(request: Request, bot_id: str, user: User = Depends(current_user)):
+    await bot_service.delete_bot(str(user.id), bot_id)
+    return Response(status_code=204)
 
 
 @router.post("/available_models")
@@ -244,7 +246,7 @@ async def get_available_models_view(
     if tag_filter_request is None:
         tag_filter_request = view_models.TagFilterRequest()
 
-    return await get_available_models(str(user.id), tag_filter_request)
+    return await llm_available_model_service.get_available_models(str(user.id), tag_filter_request)
 
 
 @router.post("/chat/completions/frontend")
