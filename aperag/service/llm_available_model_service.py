@@ -31,18 +31,11 @@ class LlmAvailableModelService:
             self.db_ops = AsyncDatabaseOps(session)  # Create custom instance for transaction control
 
     async def get_available_models(
-        self, user: str, tag_filter_request: view_models.TagFilterRequest
+        self, user_id: str, tag_filter_request: view_models.TagFilterRequest
     ) -> view_models.ModelConfigList:
         """Get available models with optional tag filtering"""
         # Get all supported providers from model configs
-        supported_providers = await self._build_model_config_objects()
-
-        # Check which providers have API keys configured
-        available_providers = []
-        for provider in supported_providers:
-            api_key = await self.db_ops.query_provider_api_key(provider.name, user)
-            if api_key:  # Only include providers that have API keys configured
-                available_providers.append(provider)
+        available_providers = await self._build_model_config_objects(user_id)
 
         # Apply tag filtering based on request
         if tag_filter_request.tag_filters is None or len(tag_filter_request.tag_filters) == 0:
@@ -100,55 +93,52 @@ class LlmAvailableModelService:
 
         return filtered_models
 
-    async def _build_model_config_objects(self) -> List[view_models.ModelConfig]:
-        """Build ModelConfig objects from database data
+    async def _build_model_config_objects(self, user_id: str) -> List[view_models.ModelConfig]:
+        """Build ModelConfig objects from database data using optimized single query
 
-        This function replaces the functionality from llm_config_service.py
+        This function replaces the functionality from llm_config_service.py with optimized database queries
         """
-        # Get providers and provider models from database
-        providers = await self.db_ops.query_llm_providers()
-        provider_models = await self.db_ops.query_llm_provider_models()
+        # Use optimized query to get providers with API keys and their models in single operation
+        data = await self.db_ops.query_available_providers_with_models(user_id, True)
 
-        # Group models by provider and API type
-        provider_model_map = {}
+        available_providers = data["providers"]
+        provider_models = data["models"]
+
+        # Group models by provider and API type using defaultdict for cleaner code
+        from collections import defaultdict
+
+        provider_model_map = defaultdict(lambda: {"completion": [], "embedding": [], "rerank": []})
+
         for model in provider_models:
-            if model.provider_name not in provider_model_map:
-                provider_model_map[model.provider_name] = {"completion": [], "embedding": [], "rerank": []}
-
-            model_dict = {
-                "model": model.model,
-                "custom_llm_provider": model.custom_llm_provider,
-            }
-            if model.max_tokens:
-                model_dict["max_tokens"] = model.max_tokens
-            if model.tags:
-                model_dict["tags"] = model.tags
-
+            model_dict = self._build_model_dict(model)
             provider_model_map[model.provider_name][model.api].append(model_dict)
 
         # Build the final configuration list
-        config_list = []
-        for provider in providers:
-            provider_config = {
-                "name": provider.name,
-                "label": provider.label,
-                "completion_dialect": provider.completion_dialect,
-                "embedding_dialect": provider.embedding_dialect,
-                "rerank_dialect": provider.rerank_dialect,
-                "allow_custom_base_url": provider.allow_custom_base_url,
-                "base_url": provider.base_url,
-            }
+        return [
+            view_models.ModelConfig(
+                name=provider.name,
+                label=provider.label,
+                completion_dialect=provider.completion_dialect,
+                embedding_dialect=provider.embedding_dialect,
+                rerank_dialect=provider.rerank_dialect,
+                allow_custom_base_url=provider.allow_custom_base_url,
+                base_url=provider.base_url,
+                **provider_model_map[provider.name],  # This will use default empty lists if no models
+            )
+            for provider in available_providers
+        ]
 
-            # Add model configurations
-            if provider.name in provider_model_map:
-                provider_config.update(provider_model_map[provider.name])
-            else:
-                # Ensure these keys exist even if no models
-                provider_config.update({"completion": [], "embedding": [], "rerank": []})
-
-            config_list.append(provider_config)
-
-        return [view_models.ModelConfig(**config) for config in config_list]
+    def _build_model_dict(self, model) -> dict:
+        """Build model dictionary from LLMProviderModel object"""
+        model_dict = {
+            "model": model.model,
+            "custom_llm_provider": model.custom_llm_provider,
+        }
+        if model.max_tokens:
+            model_dict["max_tokens"] = model.max_tokens
+        if model.tags:
+            model_dict["tags"] = model.tags
+        return model_dict
 
     def _filter_providers_by_tags(
         self, providers: List[view_models.ModelConfig], tag_filters: Optional[List[view_models.TagFilterCondition]]
