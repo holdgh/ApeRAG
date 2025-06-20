@@ -35,19 +35,19 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from functools import partial
 from typing import (
     Any,
     AsyncIterator,
     Callable,
     Dict,
-    Iterator,
     List,
     Optional,
+    Tuple,
     final,
 )
 
+from aperag.concurrent_control import MultiLock, get_or_create_lock
 from aperag.graph.lightrag.constants import (
     DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE,
     DEFAULT_MAX_TOKEN_SUMMARY,
@@ -62,14 +62,12 @@ from .base import (
     BaseGraphStorage,
     BaseKVStorage,
     BaseVectorStorage,
-    DocProcessingStatus,
-    DocStatus,
-    DocStatusStorage,
     QueryParam,
     StoragesStatus,
 )
 from .namespace import NameSpace
 from .operate import (
+    build_query_context,
     chunking_by_token_size,
     extract_entities,
     kg_query,
@@ -82,16 +80,13 @@ from .utils import (
     EmbeddingFunc,
     TiktokenTokenizer,
     Tokenizer,
-    always_get_an_event_loop,
     check_storage_env_vars,
     clean_text,
     compute_mdhash_id,
     create_lightrag_logger,
-    get_content_summary,
     lazy_external_import,
     logger,
 )
-from .utils_graph import get_graph_db_lock
 
 
 @final
@@ -110,9 +105,6 @@ class LightRAG:
 
     graph_storage: str = field(default="Neo4JSyncStorage")
     """Storage backend for knowledge graphs."""
-
-    doc_status_storage: str = field(default="PGOpsSyncDocStatusStorage")
-    """Storage type for tracking document processing statuses."""
 
     # Entity extraction
     # ---
@@ -250,15 +242,11 @@ class LightRAG:
     _storages_status: StoragesStatus = field(default=StoragesStatus.NOT_CREATED)
 
     def __post_init__(self):
-        self._graph_db_lock = get_graph_db_lock(self.workspace)
-        logger.info(f"Using universal concurrent control for graph operations: workspace={self.workspace}")
-
         # Verify storage implementation compatibility and environment variables
         storage_configs = [
             ("KV_STORAGE", self.kv_storage),
             ("VECTOR_STORAGE", self.vector_storage),
             ("GRAPH_STORAGE", self.graph_storage),
-            ("DOC_STATUS_STORAGE", self.doc_status_storage),
         ]
 
         for storage_type, storage_name in storage_configs:
@@ -287,15 +275,6 @@ class LightRAG:
         )
         self.graph_storage_cls = partial(  # type: ignore
             self.graph_storage_cls
-        )
-
-        # Initialize document status storage
-        self.doc_status_storage_cls = self._get_storage_class(self.doc_status_storage)
-
-        self.full_docs: BaseKVStorage = self.key_string_value_json_storage_cls(  # type: ignore
-            namespace=NameSpace.KV_STORE_FULL_DOCS,
-            workspace=self.workspace,
-            embedding_func=self.embedding_func,
         )
 
         # TODO: deprecating, text_chunks is redundant with chunks_vdb
@@ -335,13 +314,6 @@ class LightRAG:
             meta_fields={"full_doc_id", "content", "file_path"},
         )
 
-        # Initialize document status storage
-        self.doc_status: DocStatusStorage = self.doc_status_storage_cls(
-            namespace=NameSpace.DOC_STATUS,
-            workspace=self.workspace,
-            embedding_func=None,
-        )
-
         self._storages_status = StoragesStatus.CREATED
 
     async def initialize_storages(self):
@@ -350,13 +322,11 @@ class LightRAG:
             tasks = []
 
             for storage in (
-                self.full_docs,
                 self.text_chunks,
                 self.entities_vdb,
                 self.relationships_vdb,
                 self.chunks_vdb,
                 self.chunk_entity_relation_graph,
-                self.doc_status,
             ):
                 if storage:
                     tasks.append(storage.initialize())
@@ -372,13 +342,11 @@ class LightRAG:
             tasks = []
 
             for storage in (
-                self.full_docs,
                 self.text_chunks,
                 self.entities_vdb,
                 self.relationships_vdb,
                 self.chunks_vdb,
                 self.chunk_entity_relation_graph,
-                self.doc_status,
             ):
                 if storage:
                     tasks.append(storage.finalize())
@@ -417,6 +385,156 @@ class LightRAG:
         return storage_class
 
     # ============= New Stateless Interfaces =============
+
+    def _find_connected_components(self, chunk_results: List[tuple[dict, dict]]) -> List[List[str]]:
+        """
+        Find connected components in the extracted entities and relationships.
+
+        Args:
+            chunk_results: List of (nodes_dict, edges_dict) tuples from entity extraction
+
+        Returns:
+            List of entity groups, where each group is a list of connected entity names
+        """
+        # Build adjacency list
+        adjacency: Dict[str, set[str]] = {}
+
+        for nodes, edges in chunk_results:
+            # Add all nodes to adjacency list
+            for entity_name in nodes.keys():
+                if entity_name not in adjacency:
+                    adjacency[entity_name] = set()
+
+            # Add edges to create connections
+            for src, tgt in edges.keys():
+                if src not in adjacency:
+                    adjacency[src] = set()
+                if tgt not in adjacency:
+                    adjacency[tgt] = set()
+                adjacency[src].add(tgt)
+                adjacency[tgt].add(src)
+
+        # Find connected components using BFS
+        visited = set()
+        components = []
+
+        for node in adjacency:
+            if node not in visited:
+                # Start BFS from this node
+                component = []
+                queue = [node]
+                visited.add(node)
+
+                while queue:
+                    current = queue.pop(0)
+                    component.append(current)
+
+                    # Visit all neighbors
+                    for neighbor in adjacency.get(current, set()):
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append(neighbor)
+
+                components.append(component)
+
+        logger.info(f"Found {len(components)} connected components from {len(adjacency)} entities")
+        return components
+
+    async def _process_entity_groups(
+        self,
+        chunk_results: List[tuple[dict, dict]],
+        components: List[List[str]],
+        collection_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Process entities and relationships in groups based on connected components.
+
+        Args:
+            chunk_results: List of (nodes_dict, edges_dict) from entity extraction
+            components: List of entity groups (connected components)
+            collection_id: Optional collection ID for logging
+
+        Returns:
+            Dict with processing results
+        """
+        workspace = self.workspace if self.workspace else "default"
+        lightrag_logger = create_lightrag_logger(prefix="LightRAG-GraphIndex", workspace=workspace)
+
+        total_entities = 0
+        total_relations = 0
+        processed_groups = 0
+
+        for i, component in enumerate(components):
+            # Create a set for quick lookup
+            component_entities = set(component)
+
+            # Filter chunk results for this component
+            component_chunk_results = []
+
+            for nodes, edges in chunk_results:
+                # Filter nodes belonging to this component
+                filtered_nodes = {
+                    entity_name: entity_data
+                    for entity_name, entity_data in nodes.items()
+                    if entity_name in component_entities
+                }
+
+                # Filter edges where both endpoints belong to this component
+                filtered_edges = {
+                    (src, tgt): edge_data
+                    for (src, tgt), edge_data in edges.items()
+                    if src in component_entities and tgt in component_entities
+                }
+
+                if filtered_nodes or filtered_edges:
+                    component_chunk_results.append((filtered_nodes, filtered_edges))
+
+            if not component_chunk_results:
+                continue
+
+            # Create locks for all entities in this component
+            entity_locks = []
+            for entity_name in sorted(component):  # Sort to prevent deadlock
+                lock = get_or_create_lock(f"entity:{entity_name}:{self.workspace}")
+                entity_locks.append(lock)
+
+            lightrag_logger.info(f"Processing component {i + 1}/{len(components)} with {len(component)} entities")
+
+            # Use MultiLock to acquire all locks for this component
+            async with MultiLock(entity_locks):
+                # Merge nodes and edges for this component
+                await merge_nodes_and_edges(
+                    chunk_results=component_chunk_results,
+                    knowledge_graph_inst=self.chunk_entity_relation_graph,
+                    entity_vdb=self.entities_vdb,
+                    relationships_vdb=self.relationships_vdb,
+                    llm_model_func=self.llm_model_func,
+                    tokenizer=self.tokenizer,
+                    llm_model_max_token_size=self.llm_model_max_token_size,
+                    summary_to_max_tokens=self.summary_to_max_tokens,
+                    addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
+                    force_llm_summary_on_merge=self.force_llm_summary_on_merge,
+                    lightrag_logger=lightrag_logger,
+                )
+
+            # Count entities and relations in this component
+            component_entity_count = sum(len(nodes) for nodes, _ in component_chunk_results)
+            component_relation_count = sum(len(edges) for _, edges in component_chunk_results)
+
+            total_entities += component_entity_count
+            total_relations += component_relation_count
+            processed_groups += 1
+
+            lightrag_logger.info(
+                f"Completed component {i + 1}: {component_entity_count} entities, {component_relation_count} relations"
+            )
+
+        return {
+            "groups_processed": processed_groups,
+            "total_entities": total_entities,
+            "total_relations": total_relations,
+            "collection_id": collection_id,
+        }
 
     async def ainsert_and_chunk_document(
         self,
@@ -509,27 +627,12 @@ class LightRAG:
             if not chunks:
                 raise ValueError(f"No valid chunks created for document {doc_id}")
 
-            # Prepare complete status data
-            status_data = {
-                "status": DocStatus.PROCESSING,
-                "content": cleaned_content,
-                "content_summary": get_content_summary(cleaned_content),
-                "content_length": len(cleaned_content),
-                "chunks_count": len(chunks),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-                "file_path": file_path,
-            }
-
             # Write to storage (avoid concurrent operations on same connection)
-            doc_data = {doc_id: {"content": cleaned_content}}
             logger.info(f"LightRAG: About to upsert {len(chunks)} chunks to storages")
-            await self.full_docs.upsert(doc_data)
             logger.info(f"LightRAG: Calling chunks_vdb.upsert with {len(chunks)} chunks")
             await self.chunks_vdb.upsert(chunks)
             logger.info(f"LightRAG: Calling text_chunks.upsert with {len(chunks)} chunks")
             await self.text_chunks.upsert(chunks)
-            await self.doc_status.upsert({doc_id: status_data})
             logger.info(f"LightRAG: Completed all upsert operations for {doc_id}")
 
             logger.info(f"Inserted and chunked document {doc_id}: {len(chunks)} chunks")
@@ -586,7 +689,7 @@ class LightRAG:
 
             lightrag_logger.info(f"Starting graph indexing for {len(chunks)} chunks")
 
-            # 1. Extract entities and relations from chunks
+            # 1. Extract entities and relations from chunks (completely parallel, no lock)
             chunk_results = await extract_entities(
                 chunks,
                 use_llm_func=self.llm_model_func,
@@ -596,40 +699,27 @@ class LightRAG:
                 lightrag_logger=lightrag_logger,
             )
 
-            lightrag_logger.info(f"Extracted entities and relations from {len(chunks)} chunks")
+            # 2. Find connected components in the extracted entities and relationships
+            components = self._find_connected_components(chunk_results)
 
-            # 2. Merge nodes and edges (using instance-level lock)
-            await merge_nodes_and_edges(
-                chunk_results=chunk_results,
-                knowledge_graph_inst=self.chunk_entity_relation_graph,
-                entity_vdb=self.entities_vdb,
-                relationships_vdb=self.relationships_vdb,
-                llm_model_func=self.llm_model_func,
-                tokenizer=self.tokenizer,
-                llm_model_max_token_size=self.llm_model_max_token_size,
-                summary_to_max_tokens=self.summary_to_max_tokens,
-                addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
-                force_llm_summary_on_merge=self.force_llm_summary_on_merge,
-                current_file_number=0,
-                total_files=0,
-                file_path="stateless_processing",
-                lightrag_logger=lightrag_logger,
-                graph_db_lock=self._graph_db_lock,
-            )
+            # 3. Process each component group with its own lock scope
+            result = await self._process_entity_groups(chunk_results, components, collection_id)
 
-            lightrag_logger.info("Completed merging entities and relations")
-
-            # Count results
+            # Count total results
             entity_count = sum(len(nodes) for nodes, _ in chunk_results)
             relation_count = sum(len(edges) for _, edges in chunk_results)
 
-            lightrag_logger.info(f"Graph indexing completed: {entity_count} entities, {relation_count} relations")
+            lightrag_logger.info(
+                f"Graph indexing completed: {entity_count} entities, {relation_count} relations "
+                f"in {result['groups_processed']} groups"
+            )
 
             return {
                 "status": "success",
                 "chunks_processed": len(chunks),
                 "entities_extracted": entity_count,
                 "relations_extracted": relation_count,
+                "groups_processed": result["groups_processed"],
                 "collection_id": collection_id,
             }
 
@@ -647,33 +737,79 @@ class LightRAG:
 
     # ============= End of New Stateless Interfaces =============
 
-    def query(
+    async def aquery_context(
         self,
         query: str,
         param: QueryParam = QueryParam(),
-        system_prompt: str | None = None,
-    ) -> str | Iterator[str]:
-        """
-        Perform a sync query.
+    ):
+        param.original_query = query
+        entities_context, relations_context, text_units_context = await build_query_context(
+            query.strip(),
+            self.chunk_entity_relation_graph,
+            self.entities_vdb,
+            self.relationships_vdb,
+            self.text_chunks,
+            param,
+            self.tokenizer,
+            self.llm_model_func,
+            self.addon_params,
+            chunks_vdb=self.chunks_vdb,
+        )
 
-        Args:
-            query (str): The query to be executed.
-            param (QueryParam): Configuration parameters for query execution.
-            prompt (Optional[str]): Custom prompts for fine-tuned control over the system's behavior. Defaults to None, which uses PROMPTS["rag_response"].
+        # Remove file_path from all contexts before serialization
+        def remove_file_path_from_context(context_list):
+            """Remove file_path field from each item in the context list"""
+            if not context_list:
+                return context_list
 
-        Returns:
-            str: The result of the query execution.
-        """
-        loop = always_get_an_event_loop()
+            cleaned_context = []
+            for item in context_list:
+                if isinstance(item, dict) and "file_path" in item:
+                    # Create a copy without file_path
+                    cleaned_item = {k: v for k, v in item.items() if k != "file_path"}
+                    cleaned_context.append(cleaned_item)
+                else:
+                    cleaned_context.append(item)
+            return cleaned_context
 
-        return loop.run_until_complete(self.aquery(query, param, system_prompt))  # type: ignore
+        # Clean all contexts
+        entities_context = remove_file_path_from_context(entities_context)
+        relations_context = remove_file_path_from_context(relations_context)
+        text_units_context = remove_file_path_from_context(text_units_context)
+
+        import json
+
+        entities_str = json.dumps(entities_context, ensure_ascii=False)
+        relations_str = json.dumps(relations_context, ensure_ascii=False)
+        text_units_str = json.dumps(text_units_context, ensure_ascii=False)
+
+        context = f"""-----Entities(KG)-----
+
+```json
+{entities_str}
+```
+
+-----Relationships(KG)-----
+
+```json
+{relations_str}
+```
+
+-----Document Chunks(DC)-----
+
+```json
+{text_units_str}
+```
+
+"""
+        return context
 
     async def aquery(
         self,
         query: str,
         param: QueryParam = QueryParam(),
         system_prompt: str | None = None,
-    ) -> str | AsyncIterator[str]:
+    ) -> str | AsyncIterator[str] | Tuple[dict, dict, dict]:
         """
         Perform a async query.
 
@@ -727,68 +863,6 @@ class LightRAG:
             raise ValueError(f"Unknown mode {param.mode}")
         return response
 
-    async def get_docs_by_status(self, status: DocStatus) -> dict[str, DocProcessingStatus]:
-        """Get documents by status
-
-        Returns:
-            Dict with document id is keys and document status is values
-        """
-        return await self.doc_status.get_docs_by_status(status)
-
-    async def aget_docs_by_ids(self, ids: str | list[str]) -> dict[str, DocProcessingStatus]:
-        """Retrieves the processing status for one or more documents by their IDs.
-
-        Args:
-            ids: A single document ID (string) or a list of document IDs (list of strings).
-
-        Returns:
-            A dictionary where keys are the document IDs for which a status was found,
-            and values are the corresponding DocProcessingStatus objects. IDs that
-            are not found in the storage will be omitted from the result dictionary.
-        """
-        if isinstance(ids, str):
-            # Ensure input is always a list of IDs for uniform processing
-            id_list = [ids]
-        elif ids is None:  # Handle potential None input gracefully, although type hint suggests str/list
-            logger.warning("aget_docs_by_ids called with None input, returning empty dict.")
-            return {}
-        else:
-            # Assume input is already a list if not a string
-            id_list = ids
-
-        # Return early if the final list of IDs is empty
-        if not id_list:
-            logger.debug("aget_docs_by_ids called with an empty list of IDs.")
-            return {}
-
-        # Create tasks to fetch document statuses concurrently using the doc_status storage
-        tasks = [self.doc_status.get_by_id(doc_id) for doc_id in id_list]
-        # Execute tasks concurrently and gather the results. Results maintain order.
-        # Type hint indicates results can be DocProcessingStatus or None if not found.
-        results_list: list[Optional[DocProcessingStatus]] = await asyncio.gather(*tasks)
-
-        # Build the result dictionary, mapping found IDs to their statuses
-        found_statuses: dict[str, DocProcessingStatus] = {}
-        # Keep track of IDs for which no status was found (for logging purposes)
-        not_found_ids: list[str] = []
-
-        # Iterate through the results, correlating them back to the original IDs
-        for i, status_obj in enumerate(results_list):
-            doc_id = id_list[i]  # Get the original ID corresponding to this result index
-            if status_obj:
-                # If a status object was returned (not None), add it to the result dict
-                found_statuses[doc_id] = status_obj
-            else:
-                # If status_obj is None, the document ID was not found in storage
-                not_found_ids.append(doc_id)
-
-        # Log a warning if any of the requested document IDs were not found
-        if not_found_ids:
-            logger.warning(f"Document statuses not found for the following IDs: {not_found_ids}")
-
-        # Return the dictionary containing statuses only for the found document IDs
-        return found_statuses
-
     # TODO: Deprecated (Deleting documents can cause hallucinations in RAG.)
     # Document delete is not working properly for most of the storage implementations.
     async def adelete_by_doc_id(self, doc_id: str) -> None:
@@ -798,11 +872,6 @@ class LightRAG:
             doc_id: Document ID to delete
         """
         try:
-            # 1. Get the document status and related data
-            if not await self.doc_status.get_by_id(doc_id):
-                logger.warning(f"Document {doc_id} not found")
-                return
-
             logger.debug(f"Starting deletion for document {doc_id}")
 
             # 2. Get all chunks related to this document
@@ -920,10 +989,6 @@ class LightRAG:
                     await self.chunk_entity_relation_graph.upsert_edge(src, tgt, edge_data)
                     logger.debug(f"Updated relationship {src}-{tgt} with new source_id: {new_source_id}")
 
-            # 6. Delete original document and status
-            await self.full_docs.delete([doc_id])
-            await self.doc_status.delete([doc_id])
-
             logger.info(
                 f"Successfully deleted document {doc_id} and related data. "
                 f"Deleted {len(entities_to_delete)} entities and {len(relationships_to_delete)} relationships. "
@@ -972,10 +1037,6 @@ class LightRAG:
 
             # Add verification step
             async def verify_deletion():
-                # Verify if the document has been deleted
-                if await self.full_docs.get_by_id(doc_id):
-                    logger.warning(f"Document {doc_id} still exists in full_docs")
-
                 # Verify if chunks have been deleted
                 all_remaining_chunks = await self.text_chunks.get_all()
                 remaining_related_chunks = {
@@ -996,243 +1057,3 @@ class LightRAG:
 
         except Exception as e:
             logger.error(f"Error while deleting document {doc_id}: {e}")
-
-    async def adelete_by_entity(self, entity_name: str) -> None:
-        """Asynchronously delete an entity and all its relationships.
-
-        Args:
-            entity_name: Name of the entity to delete
-        """
-        from .utils_graph import adelete_by_entity
-
-        return await adelete_by_entity(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            entity_name,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def delete_by_entity(self, entity_name: str) -> None:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.adelete_by_entity(entity_name))
-
-    async def adelete_by_relation(self, source_entity: str, target_entity: str) -> None:
-        """Asynchronously delete a relation between two entities.
-
-        Args:
-            source_entity: Name of the source entity
-            target_entity: Name of the target entity
-        """
-        from .utils_graph import adelete_by_relation
-
-        return await adelete_by_relation(
-            self.chunk_entity_relation_graph,
-            self.relationships_vdb,
-            source_entity,
-            target_entity,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def delete_by_relation(self, source_entity: str, target_entity: str) -> None:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.adelete_by_relation(source_entity, target_entity))
-
-    async def get_entity_info(
-        self, entity_name: str, include_vector_data: bool = False
-    ) -> dict[str, str | None | dict[str, str]]:
-        """Get detailed information of an entity"""
-        from .utils_graph import get_entity_info
-
-        return await get_entity_info(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            entity_name,
-            include_vector_data,
-        )
-
-    async def get_relation_info(
-        self, src_entity: str, tgt_entity: str, include_vector_data: bool = False
-    ) -> dict[str, str | None | dict[str, str]]:
-        """Get detailed information of a relationship"""
-        from .utils_graph import get_relation_info
-
-        return await get_relation_info(
-            self.chunk_entity_relation_graph,
-            self.relationships_vdb,
-            src_entity,
-            tgt_entity,
-            include_vector_data,
-        )
-
-    async def aedit_entity(
-        self, entity_name: str, updated_data: dict[str, str], allow_rename: bool = True
-    ) -> dict[str, Any]:
-        """Asynchronously edit entity information.
-
-        Updates entity information in the knowledge graph and re-embeds the entity in the vector database.
-
-        Args:
-            entity_name: Name of the entity to edit
-            updated_data: Dictionary containing updated attributes, e.g. {"description": "new description", "entity_type": "new type"}
-            allow_rename: Whether to allow entity renaming, defaults to True
-
-        Returns:
-            Dictionary containing updated entity information
-        """
-        from .utils_graph import aedit_entity
-
-        return await aedit_entity(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            entity_name,
-            updated_data,
-            allow_rename,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def edit_entity(self, entity_name: str, updated_data: dict[str, str], allow_rename: bool = True) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.aedit_entity(entity_name, updated_data, allow_rename))
-
-    async def aedit_relation(
-        self, source_entity: str, target_entity: str, updated_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Asynchronously edit relation information.
-
-        Updates relation (edge) information in the knowledge graph and re-embeds the relation in the vector database.
-
-        Args:
-            source_entity: Name of the source entity
-            target_entity: Name of the target entity
-            updated_data: Dictionary containing updated attributes, e.g. {"description": "new description", "keywords": "new keywords"}
-
-        Returns:
-            Dictionary containing updated relation information
-        """
-        from .utils_graph import aedit_relation
-
-        return await aedit_relation(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            source_entity,
-            target_entity,
-            updated_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def edit_relation(self, source_entity: str, target_entity: str, updated_data: dict[str, Any]) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.aedit_relation(source_entity, target_entity, updated_data))
-
-    async def acreate_entity(self, entity_name: str, entity_data: dict[str, Any]) -> dict[str, Any]:
-        """Asynchronously create a new entity.
-
-        Creates a new entity in the knowledge graph and adds it to the vector database.
-
-        Args:
-            entity_name: Name of the new entity
-            entity_data: Dictionary containing entity attributes, e.g. {"description": "description", "entity_type": "type"}
-
-        Returns:
-            Dictionary containing created entity information
-        """
-        from .utils_graph import acreate_entity
-
-        return await acreate_entity(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            entity_name,
-            entity_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def create_entity(self, entity_name: str, entity_data: dict[str, Any]) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.acreate_entity(entity_name, entity_data))
-
-    async def acreate_relation(
-        self, source_entity: str, target_entity: str, relation_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Asynchronously create a new relation between entities.
-
-        Creates a new relation (edge) in the knowledge graph and adds it to the vector database.
-
-        Args:
-            source_entity: Name of the source entity
-            target_entity: Name of the target entity
-            relation_data: Dictionary containing relation attributes, e.g. {"description": "description", "keywords": "keywords"}
-
-        Returns:
-            Dictionary containing created relation information
-        """
-        from .utils_graph import acreate_relation
-
-        return await acreate_relation(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            source_entity,
-            target_entity,
-            relation_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def create_relation(self, source_entity: str, target_entity: str, relation_data: dict[str, Any]) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(self.acreate_relation(source_entity, target_entity, relation_data))
-
-    async def amerge_entities(
-        self,
-        source_entities: list[str],
-        target_entity: str,
-        merge_strategy: dict[str, str] = None,
-        target_entity_data: dict[str, Any] = None,
-    ) -> dict[str, Any]:
-        """Asynchronously merge multiple entities into one entity.
-
-        Merges multiple source entities into a target entity, handling all relationships,
-        and updating both the knowledge graph and vector database.
-
-        Args:
-            source_entities: List of source entity names to merge
-            target_entity: Name of the target entity after merging
-            merge_strategy: Merge strategy configuration, e.g. {"description": "concatenate", "entity_type": "keep_first"}
-                Supported strategies:
-                - "concatenate": Concatenate all values (for text fields)
-                - "keep_first": Keep the first non-empty value
-                - "keep_last": Keep the last non-empty value
-                - "join_unique": Join all unique values (for fields separated by delimiter)
-            target_entity_data: Dictionary of specific values to set for the target entity,
-                overriding any merged values, e.g. {"description": "custom description", "entity_type": "PERSON"}
-
-        Returns:
-            Dictionary containing the merged entity information
-        """
-        from .utils_graph import amerge_entities
-
-        return await amerge_entities(
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            source_entities,
-            target_entity,
-            merge_strategy,
-            target_entity_data,
-            graph_db_lock=self._graph_db_lock,
-        )
-
-    def merge_entities(
-        self,
-        source_entities: list[str],
-        target_entity: str,
-        merge_strategy: dict[str, str] = None,
-        target_entity_data: dict[str, Any] = None,
-    ) -> dict[str, Any]:
-        loop = always_get_an_event_loop()
-        return loop.run_until_complete(
-            self.amerge_entities(source_entities, target_entity, merge_strategy, target_entity_data)
-        )

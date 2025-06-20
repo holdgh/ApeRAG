@@ -24,9 +24,13 @@ from aperag.db.repositories.base import (
 
 
 class DocumentRepositoryMixin(SyncRepositoryProtocol):
-    def query_document_by_id(self, document_id: str) -> Document:
+    def query_document_by_id(self, document_id: str, ignore_deleted: bool = True) -> Document:
         def _query(session):
-            return session.get(Document, document_id)
+            stmt = select(Document).where(Document.id == document_id)
+            if ignore_deleted:
+                stmt = stmt.where(Document.status != DocumentStatus.DELETED)
+            result = session.execute(stmt)
+            return result.scalars().first()
 
         return self._execute_query(_query)
 

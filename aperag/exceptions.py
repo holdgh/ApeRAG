@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import traceback
 from enum import Enum
 from http import HTTPStatus
 from typing import Any, Dict, Optional
@@ -89,6 +90,7 @@ class BusinessException(Exception):
         self.error_code = error_code
         self.message = message or error_code.error_name.replace("_", " ").title()
         self.details = details or {}
+        traceback.print_stack()
         super().__init__(self.message)
 
     @property
@@ -178,6 +180,13 @@ class ValidationException(BusinessException):
 
     def __init__(self, message: str, details: Dict[str, Any] = None):
         super().__init__(ErrorCode.INVALID_PARAMETER, message, details)
+
+
+class PermissionDeniedError(BusinessException):
+    """Permission denied exception"""
+
+    def __init__(self, message: str = None):
+        super().__init__(ErrorCode.FORBIDDEN, message or "Permission denied")
 
 
 # Convenience functions for common exceptions

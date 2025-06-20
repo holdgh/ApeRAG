@@ -41,7 +41,6 @@ import time
 from collections import Counter, defaultdict
 from typing import Any, AsyncIterator
 
-from ...concurrent_control import LockProtocol
 from .base import (
     BaseGraphStorage,
     BaseKVStorage,
@@ -62,6 +61,7 @@ from .utils import (
     pack_user_ass_to_openai_messages,
     process_combine_contexts,
     split_string_by_multi_markers,
+    timing_wrapper,
     truncate_list_by_token_size,
 )
 
@@ -443,6 +443,7 @@ async def _merge_edges_then_upsert(
     return edge_data
 
 
+@timing_wrapper("Merge & Update")
 async def merge_nodes_and_edges(
     chunk_results: list,
     knowledge_graph_inst: BaseGraphStorage,
@@ -454,11 +455,7 @@ async def merge_nodes_and_edges(
     summary_to_max_tokens,
     addon_params,
     force_llm_summary_on_merge,
-    current_file_number: int = 0,
-    total_files: int = 0,
-    file_path: str = "unknown_source",
     lightrag_logger: LightRAGLogger | None = None,
-    graph_db_lock: LockProtocol = None,
 ) -> None:
     """Merge nodes and edges from extraction results"""
 
@@ -480,192 +477,70 @@ async def merge_nodes_and_edges(
     entities_data = []
     relationships_data = []
 
-    # Merge nodes and edges
-    # Use optional graph database lock to ensure atomic merges and updates
-    if graph_db_lock:
-        async with graph_db_lock:
-            if lightrag_logger:
-                lightrag_logger.log_stage_progress("Merging", current_file_number, total_files, file_path)
-            else:
-                log_message = f"Merging stage {current_file_number}/{total_files}: {file_path}"
-                logger.info(log_message)
+    # Process and update all entities at once
+    for entity_name, entities in all_nodes.items():
+        entity_data = await _merge_nodes_then_upsert(
+            entity_name,
+            entities,
+            knowledge_graph_inst,
+            llm_model_func,
+            tokenizer,
+            llm_model_max_token_size,
+            summary_to_max_tokens,
+            addon_params,
+            force_llm_summary_on_merge,
+            lightrag_logger,
+        )
+        entities_data.append(entity_data)
 
-            # Process and update all entities at once
-            for entity_name, entities in all_nodes.items():
-                entity_data = await _merge_nodes_then_upsert(
-                    entity_name,
-                    entities,
-                    knowledge_graph_inst,
-                    llm_model_func,
-                    tokenizer,
-                    llm_model_max_token_size,
-                    summary_to_max_tokens,
-                    addon_params,
-                    force_llm_summary_on_merge,
-                    lightrag_logger,
-                )
-                entities_data.append(entity_data)
+    # Process and update all relationships at once
+    for edge_key, edges in all_edges.items():
+        edge_data = await _merge_edges_then_upsert(
+            edge_key[0],
+            edge_key[1],
+            edges,
+            knowledge_graph_inst,
+            llm_model_func,
+            tokenizer,
+            llm_model_max_token_size,
+            summary_to_max_tokens,
+            addon_params,
+            force_llm_summary_on_merge,
+            lightrag_logger,
+        )
+        if edge_data is not None:
+            relationships_data.append(edge_data)
 
-            # Process and update all relationships at once
-            for edge_key, edges in all_edges.items():
-                edge_data = await _merge_edges_then_upsert(
-                    edge_key[0],
-                    edge_key[1],
-                    edges,
-                    knowledge_graph_inst,
-                    llm_model_func,
-                    tokenizer,
-                    llm_model_max_token_size,
-                    summary_to_max_tokens,
-                    addon_params,
-                    force_llm_summary_on_merge,
-                    lightrag_logger,
-                )
-                if edge_data is not None:
-                    relationships_data.append(edge_data)
-
-            # Update total counts
-            total_entities_count = len(entities_data)
-            total_relations_count = len(relationships_data)
-
-            if lightrag_logger:
-                lightrag_logger.info(
-                    f"Updating {total_entities_count} entities {current_file_number}/{total_files}: {file_path}"
-                )
-            else:
-                log_message = (
-                    f"Updating {total_entities_count} entities  {current_file_number}/{total_files}: {file_path}"
-                )
-                logger.info(log_message)
-
-            # Update vector databases with all collected data
-            if entity_vdb is not None and entities_data:
-                data_for_vdb = {
-                    compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
-                        "entity_name": dp["entity_name"],
-                        "entity_type": dp["entity_type"],
-                        "content": f"{dp['entity_name']}\n{dp['description']}",
-                        "source_id": dp["source_id"],
-                        "file_path": dp.get("file_path", "unknown_source"),
-                    }
-                    for dp in entities_data
-                }
-                await entity_vdb.upsert(data_for_vdb)
-
-            if lightrag_logger:
-                lightrag_logger.info(
-                    f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}"
-                )
-            else:
-                log_message = (
-                    f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}"
-                )
-                logger.info(log_message)
-
-            if relationships_vdb is not None and relationships_data:
-                data_for_vdb = {
-                    compute_mdhash_id(dp["src_id"] + dp["tgt_id"], prefix="rel-"): {
-                        "src_id": dp["src_id"],
-                        "tgt_id": dp["tgt_id"],
-                        "keywords": dp["keywords"],
-                        "content": f"{dp['src_id']}\t{dp['tgt_id']}\n{dp['keywords']}\n{dp['description']}",
-                        "source_id": dp["source_id"],
-                        "file_path": dp.get("file_path", "unknown_source"),
-                    }
-                    for dp in relationships_data
-                }
-                await relationships_vdb.upsert(data_for_vdb)
-    else:
-        # No lock provided, execute directly (rely on underlying database concurrency control)
-        if lightrag_logger:
-            lightrag_logger.log_stage_progress("Merging", current_file_number, total_files, file_path)
-        else:
-            log_message = f"Merging stage {current_file_number}/{total_files}: {file_path}"
-            logger.info(log_message)
-
-        # Process and update all entities at once
-        for entity_name, entities in all_nodes.items():
-            entity_data = await _merge_nodes_then_upsert(
-                entity_name,
-                entities,
-                knowledge_graph_inst,
-                llm_model_func,
-                tokenizer,
-                llm_model_max_token_size,
-                summary_to_max_tokens,
-                addon_params,
-                force_llm_summary_on_merge,
-                lightrag_logger,
-            )
-            entities_data.append(entity_data)
-
-        # Process and update all relationships at once
-        for edge_key, edges in all_edges.items():
-            edge_data = await _merge_edges_then_upsert(
-                edge_key[0],
-                edge_key[1],
-                edges,
-                knowledge_graph_inst,
-                llm_model_func,
-                tokenizer,
-                llm_model_max_token_size,
-                summary_to_max_tokens,
-                addon_params,
-                force_llm_summary_on_merge,
-                lightrag_logger,
-            )
-            if edge_data is not None:
-                relationships_data.append(edge_data)
-
-        # Update total counts
-        total_entities_count = len(entities_data)
-        total_relations_count = len(relationships_data)
-
-        if lightrag_logger:
-            lightrag_logger.info(
-                f"Updating {total_entities_count} entities {current_file_number}/{total_files}: {file_path}"
-            )
-        else:
-            log_message = f"Updating {total_entities_count} entities  {current_file_number}/{total_files}: {file_path}"
-            logger.info(log_message)
-
-        # Update vector databases with all collected data
-        if entity_vdb is not None and entities_data:
-            data_for_vdb = {
-                compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
-                    "entity_name": dp["entity_name"],
-                    "entity_type": dp["entity_type"],
-                    "content": f"{dp['entity_name']}\n{dp['description']}",
-                    "source_id": dp["source_id"],
-                    "file_path": dp.get("file_path", "unknown_source"),
-                }
-                for dp in entities_data
+    # Update vector databases with all collected data
+    if entity_vdb is not None and entities_data:
+        data_for_vdb = {
+            compute_mdhash_id(dp["entity_name"], prefix="ent-"): {
+                "entity_name": dp["entity_name"],
+                "entity_type": dp["entity_type"],
+                "content": f"{dp['entity_name']}\n{dp['description']}",
+                "source_id": dp["source_id"],
+                "file_path": dp.get("file_path", "unknown_source"),
             }
-            await entity_vdb.upsert(data_for_vdb)
+            for dp in entities_data
+        }
+        await entity_vdb.upsert(data_for_vdb)
 
-        if lightrag_logger:
-            lightrag_logger.info(
-                f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}"
-            )
-        else:
-            log_message = f"Updating {total_relations_count} relations {current_file_number}/{total_files}: {file_path}"
-            logger.info(log_message)
-
-        if relationships_vdb is not None and relationships_data:
-            data_for_vdb = {
-                compute_mdhash_id(dp["src_id"] + dp["tgt_id"], prefix="rel-"): {
-                    "src_id": dp["src_id"],
-                    "tgt_id": dp["tgt_id"],
-                    "keywords": dp["keywords"],
-                    "content": f"{dp['src_id']}\t{dp['tgt_id']}\n{dp['keywords']}\n{dp['description']}",
-                    "source_id": dp["source_id"],
-                    "file_path": dp.get("file_path", "unknown_source"),
-                }
-                for dp in relationships_data
+    if relationships_vdb is not None and relationships_data:
+        data_for_vdb = {
+            compute_mdhash_id(dp["src_id"] + dp["tgt_id"], prefix="rel-"): {
+                "src_id": dp["src_id"],
+                "tgt_id": dp["tgt_id"],
+                "keywords": dp["keywords"],
+                "content": f"{dp['src_id']}\t{dp['tgt_id']}\n{dp['keywords']}\n{dp['description']}",
+                "source_id": dp["source_id"],
+                "file_path": dp.get("file_path", "unknown_source"),
             }
-            await relationships_vdb.upsert(data_for_vdb)
+            for dp in relationships_data
+        }
+        await relationships_vdb.upsert(data_for_vdb)
 
 
+@timing_wrapper("Entity Extraction")
 async def extract_entities(
     chunks: dict[str, TextChunkSchema],
     use_llm_func: callable,
@@ -847,7 +722,7 @@ async def extract_entities(
     return chunk_results
 
 
-async def kg_query(
+async def build_query_context(
     query: str,
     knowledge_graph_inst: BaseGraphStorage,
     entities_vdb: BaseVectorStorage,
@@ -857,16 +732,15 @@ async def kg_query(
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-    system_prompt: str | None = None,
     chunks_vdb: BaseVectorStorage = None,
-) -> str | AsyncIterator[str]:
+):
     if query_param.model_func:
         use_model_func = query_param.model_func
     else:
         use_model_func = llm_model_func
 
     hl_keywords, ll_keywords = await get_keywords_from_query(
-        query, query_param, tokenizer, llm_model_func, addon_params
+        query, query_param, tokenizer, use_model_func, addon_params
     )
 
     logger.debug(f"High-level keywords: {hl_keywords}")
@@ -893,7 +767,7 @@ async def kg_query(
     hl_keywords_str = ", ".join(hl_keywords) if hl_keywords else ""
 
     # Build context
-    context = await _build_query_context(
+    return await _build_query_context_from_keywords(
         ll_keywords_str,
         hl_keywords_str,
         knowledge_graph_inst,
@@ -904,6 +778,64 @@ async def kg_query(
         tokenizer,
         chunks_vdb,
     )
+
+
+async def kg_query(
+    query: str,
+    knowledge_graph_inst: BaseGraphStorage,
+    entities_vdb: BaseVectorStorage,
+    relationships_vdb: BaseVectorStorage,
+    text_chunks_db: BaseKVStorage,
+    query_param: QueryParam,
+    tokenizer: Tokenizer,
+    llm_model_func: callable,
+    addon_params: dict,
+    system_prompt: str | None = None,
+    chunks_vdb: BaseVectorStorage = None,
+) -> str | AsyncIterator[str]:
+    if query_param.model_func:
+        use_model_func = query_param.model_func
+    else:
+        use_model_func = llm_model_func
+
+    # Build context
+    entities_context, relations_context, text_units_context = await build_query_context(
+        query,
+        knowledge_graph_inst,
+        entities_vdb,
+        relationships_vdb,
+        text_chunks_db,
+        query_param,
+        tokenizer,
+        llm_model_func,
+        addon_params,
+        chunks_vdb,
+    )
+
+    # 转换为 JSON 字符串
+    entities_str = json.dumps(entities_context, ensure_ascii=False)
+    relations_str = json.dumps(relations_context, ensure_ascii=False)
+    text_units_str = json.dumps(text_units_context, ensure_ascii=False)
+
+    context = f"""-----Entities(KG)-----
+
+    ```json
+    {entities_str}
+    ```
+
+    -----Relationships(KG)-----
+
+    ```json
+    {relations_str}
+    ```
+
+    -----Document Chunks(DC)-----
+
+    ```json
+    {text_units_str}
+    ```
+
+    """
 
     if query_param.only_need_context:
         return context
@@ -1110,7 +1042,7 @@ async def _get_vector_context(
         return [], [], []
 
 
-async def _build_query_context(
+async def _build_query_context_from_keywords(
     ll_keywords: str,
     hl_keywords: str,
     knowledge_graph_inst: BaseGraphStorage,
@@ -1209,31 +1141,7 @@ async def _build_query_context(
     if not entities_context and not relations_context:
         return None
 
-    # 转换为 JSON 字符串
-    entities_str = json.dumps(entities_context, ensure_ascii=False)
-    relations_str = json.dumps(relations_context, ensure_ascii=False)
-    text_units_str = json.dumps(text_units_context, ensure_ascii=False)
-
-    result = f"""-----Entities(KG)-----
-
-```json
-{entities_str}
-```
-
------Relationships(KG)-----
-
-```json
-{relations_str}
-```
-
------Document Chunks(DC)-----
-
-```json
-{text_units_str}
-```
-
-"""
-    return result
+    return entities_context, relations_context, text_units_context
 
 
 async def _get_node_data(

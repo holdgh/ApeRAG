@@ -30,6 +30,7 @@ app = Celery("aperag")
 
 # Configure celery
 app.conf.update(
+    task_acks_late=True,
     broker_url=settings.celery_broker_url,
     result_backend=settings.celery_result_backend,
     task_serializer='json',
@@ -42,8 +43,10 @@ app.conf.update(
     task_track_started=settings.celery_task_track_started,
     # Auto-discover tasks in the aperag.tasks package
     include=['config.celery_tasks'],
-    # worker_log_format='[%(asctime)s: %(levelname)s/%(processName)s] (%(filename)s:%(lineno)d) %(message)s',
-    # task_log_format='[%(asctime)s: %(levelname)s/%(processName)s] (%(filename)s:%(lineno)d) %(message)s'
+    # Enable detailed logging for celery workers
+    worker_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(name)s - %(message)s',
+    task_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(name)s - %(message)s',
+    worker_hijack_root_logger=False,  # Don't hijack root logger
 )
 
 app.conf.beat_schedule = {
