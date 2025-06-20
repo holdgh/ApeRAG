@@ -41,6 +41,8 @@ import time
 from collections import Counter, defaultdict
 from typing import Any, AsyncIterator
 
+from aperag.concurrent_control import MultiLock, get_or_create_lock
+
 from .base import (
     BaseGraphStorage,
     BaseKVStorage,
@@ -242,38 +244,86 @@ async def _merge_nodes_then_upsert(
     force_llm_summary_on_merge: int,
     lightrag_logger: LightRAGLogger | None = None,
 ):
-    """Get existing nodes from knowledge graph use name,if exists, merge data, else create, then upsert."""
+    """
+    Merge multiple entity nodes with the same name and upsert the result to knowledge graph.
+
+    This function handles entity deduplication by:
+    1. Retrieving existing entity data from knowledge graph
+    2. Merging existing data with new entity data
+    3. Determining the final entity properties through aggregation
+    4. Optionally using LLM to summarize lengthy descriptions
+    5. Upserting the merged entity back to knowledge graph
+
+    Args:
+        entity_name: The name of the entity to merge
+        nodes_data: List of new entity data dictionaries to merge
+        knowledge_graph_inst: Knowledge graph storage instance
+        llm_model_func: LLM function for description summarization
+        tokenizer: Tokenizer for text processing
+        llm_model_max_token_size: Maximum token size for LLM input
+        summary_to_max_tokens: Maximum tokens for summary output
+        language: Language for LLM summarization
+        force_llm_summary_on_merge: Threshold for triggering LLM summarization
+        lightrag_logger: Optional logger instance
+
+    Returns:
+        dict: The merged node data that was upserted
+    """
+
+    # 1. Initialize containers for collecting existing entity data
     already_entity_types = []
     already_source_ids = []
     already_description = []
     already_file_paths = []
 
+    # 2. Retrieve existing entity from knowledge graph if it exists
     already_node = await knowledge_graph_inst.get_node(entity_name)
     if already_node:
+        # 2.1. Collect existing entity type
         already_entity_types.append(already_node["entity_type"])
+
+        # 2.2. Split and collect existing source IDs (multiple IDs separated by GRAPH_FIELD_SEP)
         already_source_ids.extend(split_string_by_multi_markers(already_node["source_id"], [GRAPH_FIELD_SEP]))
+
+        # 2.3. Split and collect existing file paths (multiple paths separated by GRAPH_FIELD_SEP)
         already_file_paths.extend(split_string_by_multi_markers(already_node["file_path"], [GRAPH_FIELD_SEP]))
+
+        # 2.4. Collect existing description
         already_description.append(already_node["description"])
 
+    # 3. Merge and determine final entity properties
+
+    # 3.1. Determine entity type by frequency count (most common type wins)
     entity_type = sorted(
         Counter([dp["entity_type"] for dp in nodes_data] + already_entity_types).items(),
         key=lambda x: x[1],
         reverse=True,
     )[0][0]
+
+    # 3.2. Merge descriptions with field separator, sorted and deduplicated
     description = GRAPH_FIELD_SEP.join(sorted(set([dp["description"] for dp in nodes_data] + already_description)))
+
+    # 3.3. Merge source IDs, deduplicated
     source_id = GRAPH_FIELD_SEP.join(set([dp["source_id"] for dp in nodes_data] + already_source_ids))
+
+    # 3.4. Merge file paths, deduplicated
     file_path = GRAPH_FIELD_SEP.join(set([dp["file_path"] for dp in nodes_data] + already_file_paths))
 
-    num_fragment = description.count(GRAPH_FIELD_SEP) + 1
-    num_new_fragment = len(set([dp["description"] for dp in nodes_data]))
+    # 4. Calculate description fragment counts for summarization decision
+    num_fragment = description.count(GRAPH_FIELD_SEP) + 1  # Total description fragments
+    num_new_fragment = len(set([dp["description"] for dp in nodes_data]))  # New unique descriptions
 
+    # 5. Handle description summarization if there are multiple fragments
     if num_fragment > 1:
+        # 5.1. Check if LLM summarization is needed based on fragment count threshold
         if num_fragment >= force_llm_summary_on_merge:
+            # 5.1.1. Log LLM summarization decision
             if lightrag_logger:
                 lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=True)
             else:
                 logger.info(f"LLM merge N: {entity_name} | {num_new_fragment}+{num_fragment - num_new_fragment}")
 
+            # 5.1.2. Use LLM to summarize lengthy descriptions
             description = await _handle_entity_relation_summary(
                 entity_name,
                 description,
@@ -285,11 +335,13 @@ async def _merge_nodes_then_upsert(
                 lightrag_logger,
             )
         else:
+            # 5.2. Simple merge without LLM summarization (fragment count below threshold)
             if lightrag_logger:
                 lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=False)
             else:
                 logger.info(f"Merge N: {entity_name} | {num_new_fragment}+{num_fragment - num_new_fragment}")
 
+    # 6. Create final node data structure
     node_data = dict(
         entity_id=entity_name,
         entity_type=entity_type,
@@ -298,10 +350,14 @@ async def _merge_nodes_then_upsert(
         file_path=file_path,
         created_at=int(time.time()),
     )
+
+    # 7. Upsert the merged entity to knowledge graph
     await knowledge_graph_inst.upsert_node(
         entity_name,
         node_data=node_data,
     )
+
+    # 8. Add entity_name to returned data and return the final merged entity
     node_data["entity_name"] = entity_name
     return node_data
 
@@ -446,6 +502,8 @@ async def _merge_edges_then_upsert(
 @timing_wrapper("Merge & Update")
 async def merge_nodes_and_edges(
     chunk_results: list,
+    component: list[str],
+    workspace: str,
     knowledge_graph_inst: BaseGraphStorage,
     entity_vdb: BaseVectorStorage,
     relationships_vdb: BaseVectorStorage,
@@ -456,8 +514,65 @@ async def merge_nodes_and_edges(
     addon_params,
     force_llm_summary_on_merge,
     lightrag_logger: LightRAGLogger | None = None,
-) -> None:
-    """Merge nodes and edges from extraction results"""
+) -> dict[str, int]:
+    """Merge nodes and edges from extraction results
+
+    Args:
+        chunk_results: List of (nodes_dict, edges_dict) tuples
+        component: List of entity names in this component (for locking)
+        workspace: Workspace identifier for lock creation
+        knowledge_graph_inst: Knowledge graph storage
+        entity_vdb: Entity vector database
+        relationships_vdb: Relationships vector database
+        llm_model_func: LLM function
+        tokenizer: Tokenizer
+        llm_model_max_token_size: Max token size for LLM
+        summary_to_max_tokens: Max tokens for summary
+        addon_params: Additional parameters
+        force_llm_summary_on_merge: Force LLM summary threshold
+        lightrag_logger: Optional logger
+
+    Returns:
+        Dict with entity_count and relation_count
+    """
+
+    # Create locks for all entities in this component
+    entity_locks = []
+    for entity_name in sorted(component):  # Sort to prevent deadlock
+        lock = get_or_create_lock(f"entity:{entity_name}:{workspace}")
+        entity_locks.append(lock)
+
+    # Use MultiLock to acquire all locks for this component
+    async with MultiLock(entity_locks):
+        return await _merge_nodes_and_edges_impl(
+            chunk_results,
+            knowledge_graph_inst,
+            entity_vdb,
+            relationships_vdb,
+            llm_model_func,
+            tokenizer,
+            llm_model_max_token_size,
+            summary_to_max_tokens,
+            addon_params,
+            force_llm_summary_on_merge,
+            lightrag_logger,
+        )
+
+
+async def _merge_nodes_and_edges_impl(
+    chunk_results: list,
+    knowledge_graph_inst: BaseGraphStorage,
+    entity_vdb: BaseVectorStorage,
+    relationships_vdb: BaseVectorStorage,
+    llm_model_func,
+    tokenizer,
+    llm_model_max_token_size,
+    summary_to_max_tokens,
+    addon_params,
+    force_llm_summary_on_merge,
+    lightrag_logger: LightRAGLogger | None = None,
+) -> dict[str, int]:
+    """Internal implementation of merge_nodes_and_edges"""
 
     # Collect all nodes and edges from all chunks
     all_nodes = defaultdict(list)
@@ -538,6 +653,10 @@ async def merge_nodes_and_edges(
             for dp in relationships_data
         }
         await relationships_vdb.upsert(data_for_vdb)
+
+    entity_count = len(entities_data)
+    relation_count = len(relationships_data)
+    return {"entity_count": entity_count, "relation_count": relation_count}
 
 
 @timing_wrapper("Entity Extraction")
