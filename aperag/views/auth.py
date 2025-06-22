@@ -26,6 +26,7 @@ from aperag.config import AsyncSessionDep, settings
 from aperag.db.models import ApiKey, ApiKeyStatus, Invitation, Role, User
 from aperag.db.ops import async_db_ops
 from aperag.schema import view_models
+from aperag.utils.audit_decorator import audit
 from aperag.utils.utils import utc_now
 
 logger = logging.getLogger(__name__)
@@ -207,11 +208,13 @@ async def current_user(
     api_user = await authenticate_api_key(request, session)
     if api_user:
         request.state.user_id = api_user.id
+        request.state.username = api_user.username
         return api_user
 
     # Then try JWT/Cookie authentication
     if user:
         request.state.user_id = user.id
+        request.state.username = user.username
         return user
 
     raise HTTPException(status_code=401, detail="Unauthorized")
@@ -239,8 +242,12 @@ router = APIRouter()
 
 
 @router.post("/invite")
+@audit(resource_type="invitation", api_name="CreateInvitation")
 async def create_invitation_view(
-    data: view_models.InvitationCreate, session: AsyncSessionDep, user: User = Depends(get_current_admin)
+    request: Request,
+    data: view_models.InvitationCreate,
+    session: AsyncSessionDep,
+    user: User = Depends(get_current_admin),
 ) -> view_models.Invitation:
     # Check if user already exists
     from sqlalchemy import select
@@ -297,8 +304,12 @@ async def list_invitations_view(
 
 
 @router.post("/register")
+@audit(resource_type="user", api_name="RegisterUser")
 async def register_view(
-    data: view_models.Register, session: AsyncSessionDep, user_manager: UserManager = Depends(get_user_manager)
+    request: Request,
+    data: view_models.Register,
+    session: AsyncSessionDep,
+    user_manager: UserManager = Depends(get_user_manager),
 ) -> view_models.User:
     from sqlalchemy import select
 
@@ -438,7 +449,9 @@ async def list_users_view(session: AsyncSessionDep, user: User = Depends(get_cur
 
 
 @router.post("/change-password")
+@audit(resource_type="user", api_name="ChangePassword")
 async def change_password_view(
+    request: Request,
     data: view_models.ChangePassword,
     session: AsyncSessionDep,
     user_manager: UserManager = Depends(get_user_manager),
@@ -468,7 +481,10 @@ async def change_password_view(
 
 
 @router.delete("/users/{user_id}")
-async def delete_user_view(user_id: str, session: AsyncSessionDep, user: User = Depends(get_current_admin)):
+@audit(resource_type="user", api_name="DeleteUser")
+async def delete_user_view(
+    request: Request, user_id: str, session: AsyncSessionDep, user: User = Depends(get_current_admin)
+):
     from sqlalchemy import select
 
     result = await session.execute(select(User).where(User.id == user_id))
