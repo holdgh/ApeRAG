@@ -76,6 +76,7 @@ export * from './node-position';
 export * from './page-result';
 export * from './prompt-template';
 export * from './prompt-template-list';
+export * from './rebuild-indexes-request';
 export * from './reference';
 export * from './register';
 export * from './rerank-document';

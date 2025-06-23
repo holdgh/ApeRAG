@@ -686,6 +686,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/failResponse'
+  /collections/{collection_id}/documents/{document_id}/rebuild_indexes:
+    post:
+      summary: Rebuild document indexes
+      description: Rebuild specified types of indexes for a document
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/rebuildIndexesRequest'
+      responses:
+        '204':
+          description: Index rebuild initiated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failResponse'
   /collections/{collection_id}/searches:
     get:
       summary: Get search history
@@ -2795,6 +2833,20 @@ components:
           type: string
         source:
           type: string
+    rebuildIndexesRequest:
+      type: object
+      properties:
+        index_types:
+          type: array
+          items:
+            type: string
+            enum:
+              - vector
+              - fulltext
+              - graph
+          description: Types of indexes to rebuild
+      required:
+        - index_types
     vectorSearchParams:
       type: object
       properties:

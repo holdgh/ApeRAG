@@ -402,6 +402,71 @@ class DocumentService:
 
         return result
 
+    async def rebuild_document_indexes(
+        self, user_id: str, collection_id: str, document_id: str, index_types: List[str]
+    ) -> dict:
+        """
+        Rebuild specified indexes for a document
+        
+        Args:
+            user_id: User ID
+            collection_id: Collection ID
+            document_id: Document ID
+            index_types: List of index types to rebuild ('vector', 'fulltext', 'graph')
+        
+        Returns:
+            dict: Success response
+        """
+        if len(set(index_types)) != len(index_types):
+            raise invalid_param("index_types", "duplicate index types are not allowed")
+
+        logger.info(f"Rebuilding indexes for document {document_id} with types: {index_types}")
+        
+        # Convert index types to enum values outside transaction
+        from aperag.db.models import DocumentIndexType
+        index_type_enums = []
+        for index_type in index_types:
+            if index_type == 'vector':
+                index_type_enums.append(DocumentIndexType.VECTOR)
+            elif index_type == 'fulltext':
+                index_type_enums.append(DocumentIndexType.FULLTEXT)
+            elif index_type == 'graph':
+                index_type_enums.append(DocumentIndexType.GRAPH)
+            else:
+                raise invalid_param("index_type", f"Invalid index type: {index_type}")
+        
+        # Execute all operations atomically in a single transaction
+        async def _rebuild_document_indexes_atomically(session):
+            # Verify document exists and user has access
+            document = await self.db_ops.query_document(user_id, collection_id, document_id)
+            if not document:
+                raise DocumentNotFoundException(f"Document {document_id} not found")
+            
+            if document.collection_id != collection_id:
+                raise ResourceNotFoundException(f"Document {document_id} not found in collection {collection_id}")
+            
+            # Verify user has access to the collection
+            collection = await self.db_ops.query_collection(user_id, collection_id)
+            if not collection or collection.user != user_id:
+                raise ResourceNotFoundException(f"Collection {collection_id} not found or access denied")
+            
+            # Trigger index rebuild by incrementing version for selected index types
+            await document_index_manager.rebuild_document_indexes(session, document_id, index_type_enums)
+            
+            logger.info(f"Successfully triggered rebuild for document {document_id} indexes: {index_types}")
+            
+            return {
+                "code": "200",
+                "message": f"Index rebuild initiated for types: {', '.join(index_types)}"
+            }
+        
+        result = await self.db_ops.execute_with_transaction(_rebuild_document_indexes_atomically)
+        
+        # Trigger index reconciliation after successful rebuild initiation
+        _trigger_index_reconciliation()
+
+        return result
+
 
 # Create a global service instance for easy access
 # This uses the global db_ops instance and doesn't require session management in views
