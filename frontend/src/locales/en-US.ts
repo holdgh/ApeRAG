@@ -231,6 +231,19 @@ export default {
   'document.index.type.fulltext': 'Fulltext Index',
   'document.index.type.graph': 'Graph Index',
 
+  // Add vector index details related translations
+  'document.vector.index.details': 'Vector Index Details',
+  'document.vector.index.title': 'Vector Index Details',
+  'document.vector.index.count': 'Vector Count',
+  'document.vector.index.id': 'Vector ID',
+  'document.vector.index.created_at': 'Created At',
+  'document.vector.index.content': 'Content Chunk',
+  'document.vector.index.tokens': 'Tokens',
+  'document.vector.index.chunk_order': 'Chunk Order',
+  'document.vector.index.loading': 'Loading vector data...',
+  'document.vector.index.empty': 'No vector data found for this document',
+  'document.vector.index.error': 'Failed to load vector data',
+
   flow: '---------------',
   'flow.name': 'Workflow',
   'flow.settings': 'Workflow',

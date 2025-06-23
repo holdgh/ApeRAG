@@ -97,3 +97,4 @@ export * from './user-list';
 export * from './vector-search-params';
 export * from './workflow-definition';
 export * from './workflow-style';
+export * from './document-vector-index-details';

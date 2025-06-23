@@ -117,6 +117,8 @@ import type { User } from '../models';
 import type { UserList } from '../models';
 // @ts-ignore
 import type { WorkflowDefinition } from '../models';
+// @ts-ignore
+import { DocumentVectorIndexDetails } from '../models';
 /**
  * DefaultApi - axios parameter creator
  * @export
@@ -2190,6 +2192,48 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Get document vector index details
+         * @summary Get document vector index details
+         * @param {string} collectionId Collection ID
+         * @param {string} documentId Document ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdDocumentsDocumentIdVectorIndexGet: async (collectionId: string, documentId: string, options?: RawAxiosRequestConfig): Promise<RequestArgs> => {
+            // verify required parameter 'collectionId' is not null or undefined
+            assertParamExists('collectionsCollectionIdDocumentsDocumentIdVectorIndexGet', 'collectionId', collectionId)
+            // verify required parameter 'documentId' is not null or undefined
+            assertParamExists('collectionsCollectionIdDocumentsDocumentIdVectorIndexGet', 'documentId', documentId)
+            const localVarPath = `/collections/{collection_id}/documents/{document_id}/vector_index`
+                .replace(`{${"collection_id"}}`, encodeURIComponent(String(collectionId)))
+                .replace(`{${"document_id"}}`, encodeURIComponent(String(documentId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -2914,6 +2958,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.usersUserIdDelete']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Get document vector index details
+         * @summary Get document vector index details
+         * @param {string} collectionId Collection ID
+         * @param {string} documentId Document ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(collectionId: string, documentId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DocumentVectorIndexDetails>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(collectionId, documentId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.collectionsCollectionIdDocumentsDocumentIdVectorIndexGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -3446,6 +3504,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
         usersUserIdDelete(requestParameters: DefaultApiUsersUserIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.usersUserIdDelete(requestParameters.userId, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Get document vector index details
+         * @summary Get document vector index details
+         * @param {DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(requestParameters: DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DocumentVectorIndexDetails> {
+            return localVarFp.collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(requestParameters.collectionId, requestParameters.documentId, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -3976,6 +4044,16 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     usersUserIdDelete(requestParameters: DefaultApiUsersUserIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Get document vector index details
+     * @summary Get document vector index details
+     * @param {DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(requestParameters: DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DocumentVectorIndexDetails>;
 
 }
 
@@ -4841,6 +4919,27 @@ export interface DefaultApiUsersUserIdDeleteRequest {
 }
 
 /**
+ * Request parameters for collectionsCollectionIdDocumentsDocumentIdVectorIndexGet operation in DefaultApi.
+ * @export
+ * @interface DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest
+ */
+export interface DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGet
+     */
+    readonly collectionId: string
+
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGet
+     */
+    readonly documentId: string
+}
+
+/**
  * DefaultApi - object-oriented interface
  * @export
  * @class DefaultApi
@@ -5473,6 +5572,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public usersUserIdDelete(requestParameters: DefaultApiUsersUserIdDeleteRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).usersUserIdDelete(requestParameters.userId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get document vector index details
+     * @summary Get document vector index details
+     * @param {DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(requestParameters: DefaultApiCollectionsCollectionIdDocumentsDocumentIdVectorIndexGetRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).collectionsCollectionIdDocumentsDocumentIdVectorIndexGet(requestParameters.collectionId, requestParameters.documentId, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

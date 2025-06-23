@@ -82,3 +82,41 @@ documentUpdate:
       type: string
     source:
       type: string
+
+# Add vector index details schemas at the end of the file
+documentVectorIndexDetails:
+  type: object
+  properties:
+    document_id:
+      type: string
+      description: Document ID
+    collection_id:
+      type: string
+      description: Collection ID
+    vector_count:
+      type: integer
+      description: Total number of vectors
+    vectors:
+      type: array
+      items:
+        $ref: '#/vectorIndexItem'
+      description: List of vectors
+
+vectorIndexItem:
+  type: object
+  properties:
+    id:
+      type: string
+      description: Vector ID
+    created_at:
+      type: integer
+      description: Creation timestamp
+    content:
+      type: string
+      description: Text content of the vector chunk
+    chunk_order_index:
+      type: integer
+      description: Order index of the chunk in the document
+    tokens:
+      type: integer
+      description: Number of tokens in the chunk

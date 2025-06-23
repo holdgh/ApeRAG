@@ -229,6 +229,19 @@ export default {
   'document.index.type.fulltext': '全文索引',
   'document.index.type.graph': '图索引',
 
+  // Add vector index details related translations
+  'document.vector.index.details': '向量索引详情',
+  'document.vector.index.title': '向量索引详情',
+  'document.vector.index.count': '向量总数',
+  'document.vector.index.id': '向量ID',
+  'document.vector.index.created_at': '创建时间',
+  'document.vector.index.content': '文档片段',
+  'document.vector.index.tokens': '词元数量',
+  'document.vector.index.chunk_order': '片段序号',
+  'document.vector.index.loading': '加载向量数据中...',
+  'document.vector.index.empty': '该文档暂无向量数据',
+  'document.vector.index.error': '获取向量数据失败',
+
   flow: '---------------',
   'flow.name': '任务流',
   'flow.settings': '任务流设置',

@@ -379,3 +379,44 @@ search_detail:
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/failResponse'
+
+# Find the documents section and add a new path for vector index details
+  /collections/{collection_id}/documents/{document_id}/vector-index:
+    get:
+      tags:
+        - collections
+      summary: Get document vector index details
+      description: Get all vectors for a specific document from the vector database
+      operationId: getDocumentVectorIndex
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          description: Collection ID
+          schema:
+            type: string
+        - name: document_id
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document vector index details
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/document.yaml#/documentVectorIndexDetails'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/error'

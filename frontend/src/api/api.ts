@@ -17,4 +17,5 @@
 export * from './apis/audit-api';
 export * from './apis/default-api';
 export * from './apis/llmapi';
+import { DocumentVectorIndexDetails } from './models';
 

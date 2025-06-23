@@ -20,6 +20,7 @@ import {
   DeleteOutlined,
   MoreOutlined,
   SearchOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import {
@@ -36,6 +37,14 @@ import {
   Typography,
   Upload,
   UploadProps,
+  Drawer,
+  List,
+  Card,
+  Divider,
+  Empty,
+  Spin,
+  Tag,
+  Tooltip,
 } from 'antd';
 import byteSize from 'byte-size';
 import alpha from 'color-alpha';
@@ -68,6 +77,25 @@ export default () => {
     {
       refreshDeps: [collectionId],
       pollingInterval: 3000,
+    },
+  );
+  const [vectorIndexDrawer, setVectorIndexDrawer] = useState<{
+    visible: boolean;
+    document?: ApeDocument;
+  }>({ visible: false });
+
+  const {
+    data: vectorIndexData,
+    run: fetchVectorIndex,
+    loading: vectorIndexLoading,
+  } = useRequest(
+    (collectionId: string, documentId: string) =>
+      api.collectionsCollectionIdDocumentsDocumentIdVectorIndexGet({
+        collectionId,
+        documentId,
+      }),
+    {
+      manual: true,
     },
   );
 
@@ -145,6 +173,20 @@ export default () => {
     );
   };
 
+  const openVectorIndexDrawer = useCallback(
+    (document: ApeDocument) => {
+      setVectorIndexDrawer({ visible: true, document });
+      if (collectionId && document.id) {
+        fetchVectorIndex(collectionId, document.id);
+      }
+    },
+    [collectionId, fetchVectorIndex],
+  );
+
+  const closeVectorIndexDrawer = useCallback(() => {
+    setVectorIndexDrawer({ visible: false });
+  }, []);
+
   const columns: TableProps<ApeDocument>['columns'] = [
     {
       title: formatMessage({ id: 'document.name' }),
@@ -207,6 +249,13 @@ export default () => {
             menu={{
               items: [
                 {
+                  key: 'vector-index-details',
+                  label: formatMessage({ id: 'document.vector.index.details' }),
+                  icon: <DatabaseOutlined />,
+                  disabled: record.vector_index_status !== 'COMPLETE',
+                  onClick: () => openVectorIndexDrawer(record),
+                },
+                {
                   key: 'delete',
                   label: formatMessage({ id: 'action.delete' }),
                   danger: true,
@@ -230,7 +279,7 @@ export default () => {
                 },
               ],
             }}
-            overlayStyle={{ width: 160 }}
+            overlayStyle={{ width: 200 }}
           >
             <Button type="text" icon={<MoreOutlined />} />
           </Dropdown>
@@ -330,6 +379,93 @@ export default () => {
       </Space>
       <Table rowKey="id" bordered columns={columns} dataSource={documents} />
       {contextHolder}
+      
+      <Drawer
+        title={
+          <Space>
+            <DatabaseOutlined />
+            <span>{formatMessage({ id: 'document.vector.index.title' })}</span>
+            {vectorIndexDrawer.document && (
+              <Typography.Text type="secondary">
+                - {vectorIndexDrawer.document.name}
+              </Typography.Text>
+            )}
+          </Space>
+        }
+        placement="right"
+        size="large"
+        open={vectorIndexDrawer.visible}
+        onClose={closeVectorIndexDrawer}
+        extra={
+          <Space>
+            {vectorIndexData?.data && (
+              <Tag color="blue">
+                {formatMessage({ id: 'document.vector.index.count' })}: {vectorIndexData.data.vector_count || 0}
+              </Tag>
+            )}
+          </Space>
+        }
+      >
+        {vectorIndexLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px 0' }}>
+            <Spin size="large" />
+            <Typography.Text style={{ display: 'block', marginTop: 16 }}>
+              {formatMessage({ id: 'document.vector.index.loading' })}
+            </Typography.Text>
+          </div>
+        ) : vectorIndexData?.data?.vectors && vectorIndexData.data.vectors.length > 0 ? (
+          <List
+            dataSource={vectorIndexData.data.vectors}
+            renderItem={(vector, index) => (
+              <List.Item key={vector.id}>
+                <Card
+                  size="small"
+                  style={{ width: '100%' }}
+                  title={
+                    <Space>
+                      <Typography.Text strong>
+                        {formatMessage({ id: 'document.vector.index.id' })}: {vector.id}
+                      </Typography.Text>
+                      {vector.chunk_order_index !== undefined && (
+                        <Tag color="geekblue">
+                          #{vector.chunk_order_index + 1}
+                        </Tag>
+                      )}
+                    </Space>
+                  }
+                  extra={
+                    <Space>
+                      {vector.tokens && (
+                        <Tooltip title={formatMessage({ id: 'document.vector.index.tokens' })}>
+                          <Tag color="orange">{vector.tokens} tokens</Tag>
+                        </Tooltip>
+                      )}
+                      {vector.created_at && (
+                        <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                          {moment(vector.created_at * 1000).format(DATETIME_FORMAT)}
+                        </Typography.Text>
+                      )}
+                    </Space>
+                  }
+                  bodyStyle={{ padding: '12px' }}
+                >
+                  <Typography.Paragraph
+                    ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}
+                    style={{ margin: 0, fontSize: '13px', lineHeight: '1.5' }}
+                  >
+                    {vector.content || 'No content available'}
+                  </Typography.Paragraph>
+                </Card>
+              </List.Item>
+            )}
+          />
+        ) : (
+          <Empty
+            description={formatMessage({ id: 'document.vector.index.empty' })}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )}
+      </Drawer>
     </>
   );
 };

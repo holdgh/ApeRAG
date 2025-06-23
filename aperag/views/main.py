@@ -42,6 +42,9 @@ from aperag.utils.audit_decorator import audit
 # Import authentication dependencies
 from aperag.views.auth import UserManager, authenticate_websocket_user, current_user, get_user_manager
 
+from aperag.utils.utils import generate_vector_db_collection_name
+from config.vector_db import get_vector_db_connector
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -145,6 +148,143 @@ async def delete_document_view(
     user: User = Depends(current_user),
 ) -> view_models.Document:
     return await document_service.delete_document(str(user.id), collection_id, document_id)
+
+
+@router.get("/collections/{collection_id}/documents/{document_id}/vector-index")
+async def get_document_vector_index_view(
+    request: Request,
+    collection_id: str,
+    document_id: str,
+    user: User = Depends(current_user),
+):
+    """Get document vector index details"""
+    
+    try:
+        # Get collection and document
+        from aperag.db.ops import async_db_ops
+        
+        collection = await async_db_ops.query_collection_by_id(collection_id=collection_id)
+        if not collection:
+            raise HTTPException(status_code=404, detail="Collection not found")
+        
+        document = await async_db_ops.query_document_by_id(document_id=document_id)
+        if not document or document.collection_id != collection_id:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Get vector index data from DocumentIndex
+        from aperag.db.models import DocumentIndex, DocumentIndexType
+        from aperag.config import get_async_session
+        from sqlalchemy import and_, select
+        
+        async with get_async_session() as session:
+            stmt = select(DocumentIndex).where(
+                and_(
+                    DocumentIndex.document_id == document_id,
+                    DocumentIndex.index_type == DocumentIndexType.VECTOR
+                )
+            )
+            result = await session.execute(stmt)
+            doc_index = result.scalar_one_or_none()
+            
+            if not doc_index or not doc_index.index_data:
+                return {
+                    "document_id": document_id,
+                    "collection_id": collection_id,
+                    "vector_count": 0,
+                    "vectors": []
+                }
+            
+            # Parse vector IDs from index data
+            import json
+            index_data = json.loads(doc_index.index_data)
+            ctx_ids = index_data.get("ctx", [])
+            
+            if not ctx_ids:
+                return {
+                    "document_id": document_id,
+                    "collection_id": collection_id,
+                    "vector_count": 0,
+                    "vectors": []
+                }
+            
+            # Get vector details from vector database
+            vector_store_adaptor = get_vector_db_connector(
+                collection=generate_vector_db_collection_name(collection_id=collection.id)
+            )
+            
+            # Get vector data by IDs
+            vector_details = []
+            try:
+                # Use the connector's get_by_ids method if available
+                if hasattr(vector_store_adaptor.connector, 'get_by_ids'):
+                    vector_data_list = await vector_store_adaptor.connector.get_by_ids(ctx_ids)
+                    
+                    for vector_data in vector_data_list:
+                        if vector_data:
+                            vector_details.append({
+                                "id": vector_data.get("id", ""),
+                                "created_at": vector_data.get("created_at"),
+                                "content": vector_data.get("content", ""),
+                                "chunk_order_index": vector_data.get("chunk_order_index"),
+                                "tokens": vector_data.get("tokens")
+                            })
+                else:
+                    # Fallback: get vectors one by one
+                    for ctx_id in ctx_ids:
+                        try:
+                            if hasattr(vector_store_adaptor.connector, 'get_by_id'):
+                                vector_data = await vector_store_adaptor.connector.get_by_id(ctx_id)
+                                if vector_data:
+                                    vector_details.append({
+                                        "id": vector_data.get("id", ctx_id),
+                                        "created_at": vector_data.get("created_at"),
+                                        "content": vector_data.get("content", ""),
+                                        "chunk_order_index": vector_data.get("chunk_order_index"),
+                                        "tokens": vector_data.get("tokens")
+                                    })
+                        except Exception as e:
+                            logger.warning(f"Failed to get vector data for {ctx_id}: {e}")
+                            # Add a minimal record for missing vectors
+                            vector_details.append({
+                                "id": ctx_id,
+                                "created_at": None,
+                                "content": "Vector data not available",
+                                "chunk_order_index": None,
+                                "tokens": None
+                            })
+            
+            except Exception as e:
+                logger.error(f"Failed to get vector details: {e}")
+                # Return basic info if we can't get details
+                vector_details = [
+                    {
+                        "id": ctx_id,
+                        "created_at": None,
+                        "content": "Vector data not available",
+                        "chunk_order_index": None,
+                        "tokens": None
+                    }
+                    for ctx_id in ctx_ids
+                ]
+            
+            # Sort by created_at if available, otherwise by chunk_order_index
+            vector_details.sort(key=lambda x: (
+                x.get("created_at") or 0,
+                x.get("chunk_order_index") or 0
+            ))
+            
+            return {
+                "document_id": document_id,
+                "collection_id": collection_id,
+                "vector_count": len(vector_details),
+                "vectors": vector_details
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting document vector index: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/collections/{collection_id}/documents")
