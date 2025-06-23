@@ -2,7 +2,7 @@ export const collection = {
   'collection.name': 'Dataset',
   'collection.files': 'All files',
   'collection.settings': 'Settings',
-  'collection.search_test': 'Search Test',
+  'collection.search': 'Search',
   'collection.add': 'Add Dataset',
   'collection.select': 'Select Dataset',
   'collection.tips':
