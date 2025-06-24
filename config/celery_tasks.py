@@ -133,6 +133,17 @@ class BaseIndexTask(Task):
         except Exception as e:
             logger.warning(f"Failed to execute index success callback for {index_type} of {document_id}: {e}", exc_info=True)
 
+    def _handle_index_success_with_context(self, document_id: str, index_type: str, task_context: dict, index_data: dict = None):
+        try:
+            from aperag.index.reconciler import index_task_callbacks
+            index_data_json = json.dumps(index_data) if index_data else None
+            index_task_callbacks.on_index_created(document_id, index_type, task_context, index_data_json)
+            version = task_context.get('version', 'unknown')
+            logger.info(f"Index success callback executed for {index_type} index of document {document_id} version {version}")
+        except Exception as e:
+            version = task_context.get('version', 'unknown')
+            logger.warning(f"Failed to execute index success callback for {index_type} of {document_id} version {version}: {e}", exc_info=True)
+
     def _handle_index_deletion_success(self, document_id: str, index_type: str):
         try:
             from aperag.index.reconciler import index_task_callbacks
@@ -148,6 +159,16 @@ class BaseIndexTask(Task):
             logger.info(f"Index failure callback executed for {index_types} indexes of document {document_id}")
         except Exception as e:
             logger.warning(f"Failed to execute index failure callback for {document_id}: {e}", exc_info=True)
+
+    def _handle_index_failure_with_context(self, document_id: str, index_type: str, task_context: dict, error_msg: str):
+        try:
+            from aperag.index.reconciler import index_task_callbacks
+            index_task_callbacks.on_index_failed(document_id, index_type, task_context, error_msg)
+            version = task_context.get('version', 'unknown')
+            logger.info(f"Index failure callback executed for {index_type} index of document {document_id} version {version}")
+        except Exception as e:
+            version = task_context.get('version', 'unknown')
+            logger.warning(f"Failed to execute index failure callback for {index_type} of {document_id} version {version}: {e}", exc_info=True)
     
 # ========== Core Document Processing Tasks ==========
 
@@ -174,46 +195,52 @@ def parse_document_task(self, document_id: str) -> dict:
 
 
 @current_app.task(bind=True, base=BaseIndexTask, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
-def create_index_task(self, document_id: str, index_type: str, parsed_data_dict: dict) -> dict:
+def create_index_task(self, document_id: str, index_type: str, task_context: dict, parsed_data_dict: dict = None) -> dict:
     """
     Create a single index for a document
     
     Args:
         document_id: Document ID to process
         index_type: Type of index to create ('vector', 'fulltext', 'graph')
-        parsed_data_dict: Serialized ParsedDocumentData from parse_document_task
+        task_context: Task metadata context (version, etc.)
+        parsed_data_dict: Serialized ParsedDocumentData (optional, will parse if not provided)
         
     Returns:
         Serialized IndexTaskResult
     """
     try:
-        logger.info(f"Starting to create {index_type} index for document {document_id}")
+        version = task_context.get('version', 'unknown')
+        logger.info(f"Starting to create {index_type} index for document {document_id} version {version}")
         
-        # Convert dict back to structured data
-        parsed_data = ParsedDocumentData.from_dict(parsed_data_dict)
+        # Parse document content if not provided
+        if parsed_data_dict:
+            parsed_data = ParsedDocumentData.from_dict(parsed_data_dict)
+        else:
+            parsed_data = document_index_task.parse_document(document_id)
         
         # Execute index creation
         result = document_index_task.create_index(document_id, index_type, parsed_data)
         
-        # Handle success/failure callbacks
+        # Handle success/failure callbacks with task context
         if result.success:
-            logger.info(f"Successfully created {index_type} index for document {document_id}")
-            self._handle_index_success(document_id, index_type, result.data)
+            logger.info(f"Successfully created {index_type} index for document {document_id} version {version}")
+            self._handle_index_success_with_context(document_id, index_type, task_context, result.data)
         else:
-            logger.error(f"Failed to create {index_type} index for document {document_id}: {result.error}")
+            logger.error(f"Failed to create {index_type} index for document {document_id} version {version}: {result.error}")
             # Only mark as failed if all retries are exhausted
             if self.request.retries >= self.max_retries:
-                self._handle_index_failure(document_id, [index_type], result.error)
+                self._handle_index_failure_with_context(document_id, index_type, task_context, result.error)
         
         return result.to_dict()
         
     except Exception as e:
-        error_msg = f"Failed to create {index_type} index for document {document_id}: {str(e)}"
+        version = task_context.get('version', 'unknown')
+        error_msg = f"Failed to create {index_type} index for document {document_id} version {version}: {str(e)}"
         logger.error(error_msg, exc_info=True)
         
         # Only mark as failed if all retries are exhausted
         if self.request.retries >= self.max_retries:
-            self._handle_index_failure(document_id, [index_type], error_msg)
+            self._handle_index_failure_with_context(document_id, index_type, task_context, error_msg)
         
         raise
 

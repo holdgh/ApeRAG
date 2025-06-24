@@ -215,11 +215,13 @@ export const UI_INDEX_STATUS: {
     | 'default'
     | 'warning';
 } = {
-  PENDING: 'warning',
-  RUNNING: 'processing',
-  FAILED: 'error',
-  COMPLETE: 'success',
-  SKIPPED: 'default',
+  pending: 'warning',
+  creating: 'processing',
+  active: 'success',
+  deleting: 'warning',
+  deletion_in_progress: 'processing',
+  failed: 'error',
+  skipped: 'default',
 };
 
 export const SUPPORTED_DOC_EXTENSIONS = [

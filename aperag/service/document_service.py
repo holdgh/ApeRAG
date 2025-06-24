@@ -84,60 +84,18 @@ class DocumentService:
         # Get index status from new tables
         index_status_info = await document_index_manager.get_document_index_status(session, document.id)
 
-        # Convert new format to old API format for backward compatibility
         indexes = index_status_info.get("indexes", {})
-
-        # Map new states to old enum values for API compatibility
-        def map_state_to_old_enum(actual_state: str):
-            if actual_state == "absent":
-                return "SKIPPED"
-            elif actual_state == "creating":
-                return "RUNNING"
-            elif actual_state == "present":
-                return "COMPLETE"
-            elif actual_state == "failed":
-                return "FAILED"
-            else:
-                return "PENDING"
-
-        # Get individual index update times from DocumentIndex table
-        from sqlalchemy import select
-        from aperag.db.models import DocumentIndex, DocumentIndexType
-        
-        vector_updated = None
-        fulltext_updated = None
-        graph_updated = None
-        
-        # Query for each index type's update time
-        for index_type, var_name in [
-            (DocumentIndexType.VECTOR, 'vector_updated'),
-            (DocumentIndexType.FULLTEXT, 'fulltext_updated'),
-            (DocumentIndexType.GRAPH, 'graph_updated')
-        ]:
-            stmt = select(DocumentIndex).where(
-                DocumentIndex.document_id == document.id,
-                DocumentIndex.index_type == index_type
-            )
-            result = await session.execute(stmt)
-            index_record = result.scalar_one_or_none()
-            if index_record:
-                if var_name == 'vector_updated':
-                    vector_updated = index_record.gmt_updated
-                elif var_name == 'fulltext_updated':
-                    fulltext_updated = index_record.gmt_updated
-                elif var_name == 'graph_updated':
-                    graph_updated = index_record.gmt_updated
 
         return Document(
             id=document.id,
             name=document.name,
             status=document.status,
-            vector_index_status=map_state_to_old_enum(indexes.get("vector", {}).get("actual_state", "absent")),
-            fulltext_index_status=map_state_to_old_enum(indexes.get("fulltext", {}).get("actual_state", "absent")),
-            graph_index_status=map_state_to_old_enum(indexes.get("graph", {}).get("actual_state", "absent")),
-            vector_index_updated=vector_updated,
-            fulltext_index_updated=fulltext_updated,
-            graph_index_updated=graph_updated,
+            vector_index_status=indexes.get("vector", {}).get("status"),
+            fulltext_index_status=indexes.get("fulltext", {}).get("status"),
+            graph_index_status=indexes.get("graph", {}).get("status"),
+            vector_index_updated=indexes.get("vector", {}).get("updated_time"),
+            fulltext_index_updated=indexes.get("fulltext", {}).get("updated_time"),
+            graph_index_updated=indexes.get("graph", {}).get("updated_time"),
             size=document.size,
             created=document.gmt_created,
             updated=document.gmt_updated,

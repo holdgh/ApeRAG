@@ -33,7 +33,6 @@ class IndexStatus(Enum):
     RUNNING = "running"
     COMPLETE = "complete"
     FAILED = "failed"
-    SKIPPED = "skipped"
 
 
 @dataclass

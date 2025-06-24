@@ -2772,27 +2772,33 @@ components:
         vector_index_status:
           type: string
           enum:
-            - PENDING
-            - RUNNING
-            - COMPLETE
-            - FAILED
-            - SKIPPED
+            - pending
+            - creating
+            - active
+            - deleting
+            - deletion_in_progress
+            - failed
+            - skipped
         fulltext_index_status:
           type: string
           enum:
-            - PENDING
-            - RUNNING
-            - COMPLETE
-            - FAILED
-            - SKIPPED
+            - pending
+            - creating
+            - active
+            - deleting
+            - deletion_in_progress
+            - failed
+            - skipped
         graph_index_status:
           type: string
           enum:
-            - PENDING
-            - RUNNING
-            - COMPLETE
-            - FAILED
-            - SKIPPED
+            - pending
+            - creating
+            - active
+            - deleting
+            - deletion_in_progress
+            - failed
+            - skipped
         vector_index_updated:
           type: string
           format: date-time

@@ -112,29 +112,35 @@ export const DocumentStatusEnum = {
 
 export type DocumentStatusEnum = typeof DocumentStatusEnum[keyof typeof DocumentStatusEnum];
 export const DocumentVectorIndexStatusEnum = {
-    PENDING: 'PENDING',
-    RUNNING: 'RUNNING',
-    COMPLETE: 'COMPLETE',
-    FAILED: 'FAILED',
-    SKIPPED: 'SKIPPED'
+    pending: 'pending',
+    creating: 'creating',
+    active: 'active',
+    deleting: 'deleting',
+    deletion_in_progress: 'deletion_in_progress',
+    failed: 'failed',
+    skipped: 'skipped'
 } as const;
 
 export type DocumentVectorIndexStatusEnum = typeof DocumentVectorIndexStatusEnum[keyof typeof DocumentVectorIndexStatusEnum];
 export const DocumentFulltextIndexStatusEnum = {
-    PENDING: 'PENDING',
-    RUNNING: 'RUNNING',
-    COMPLETE: 'COMPLETE',
-    FAILED: 'FAILED',
-    SKIPPED: 'SKIPPED'
+    pending: 'pending',
+    creating: 'creating',
+    active: 'active',
+    deleting: 'deleting',
+    deletion_in_progress: 'deletion_in_progress',
+    failed: 'failed',
+    skipped: 'skipped'
 } as const;
 
 export type DocumentFulltextIndexStatusEnum = typeof DocumentFulltextIndexStatusEnum[keyof typeof DocumentFulltextIndexStatusEnum];
 export const DocumentGraphIndexStatusEnum = {
-    PENDING: 'PENDING',
-    RUNNING: 'RUNNING',
-    COMPLETE: 'COMPLETE',
-    FAILED: 'FAILED',
-    SKIPPED: 'SKIPPED'
+    pending: 'pending',
+    creating: 'creating',
+    active: 'active',
+    deleting: 'deleting',
+    deletion_in_progress: 'deletion_in_progress',
+    failed: 'failed',
+    skipped: 'skipped'
 } as const;
 
 export type DocumentGraphIndexStatusEnum = typeof DocumentGraphIndexStatusEnum[keyof typeof DocumentGraphIndexStatusEnum];

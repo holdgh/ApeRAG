@@ -11,12 +11,12 @@ graph TB
     subgraph "Frontend Chain (Synchronous Fast Response)"
         A[API Request] --> B[FrontendIndexManager]
         B --> C[Write to DocumentIndex Table]
-        C --> D[Set desired_state=PRESENT]
+        C --> D[Set status=PENDING]
     end
     
     subgraph "Backend Chain (Asynchronous Task Processing)"
         E[Periodic Task reconcile_indexes_task] --> F[BackendIndexReconciler.reconcile_all]
-        F --> G[Detect desired_state != actual_state]
+        F --> G[Detect status=pending or deleting]
         G --> H[TaskScheduler schedules async tasks]
     end
     
@@ -36,7 +36,7 @@ graph TB
     
     subgraph "State Feedback"
         Q --> R[IndexTaskCallbacks]
-        R --> S[Update actual_state=PRESENT]
+        R --> S[Update status=ACTIVE]
         S --> T[Next reconciliation check]
     end
     
@@ -60,18 +60,37 @@ graph TB
 
 ### 2. State-Driven Reconciliation
 
-Records desired and actual states for each document index through the `DocumentIndex` database table:
+Records the lifecycle status for each document index through the `DocumentIndex` database table:
 
 ```python
+class DocumentIndexStatus(str, Enum):
+    PENDING = "pending"                    # Waiting for processing (create/update)
+    CREATING = "creating"                  # Index creation/update task in progress
+    ACTIVE = "active"                      # Index is up-to-date and ready for use
+    DELETING = "deleting"                  # Deletion has been requested
+    DELETION_IN_PROGRESS = "deletion_in_progress"  # Index deletion task in progress
+    FAILED = "failed"                      # The last operation failed
+
 class DocumentIndex(BaseModel):
     document_id: str
-    index_type: DocumentIndexType  # vector/fulltext/graph
-    desired_state: IndexDesiredState  # PRESENT/ABSENT
-    actual_state: IndexActualState    # ABSENT/CREATING/PRESENT/DELETING/FAILED
-    version: int                     # Version number, increment to trigger rebuild
+    index_type: DocumentIndexType     # vector/fulltext/graph
+    status: DocumentIndexStatus       # Index lifecycle status
+    version: int                      # Version number, increment to trigger rebuild
+    observed_version: int             # Last processed version number
 ```
 
-The reconciler periodically scans all records and triggers corresponding operations when `desired_state != actual_state`.
+**State Transition Flow:**
+```
+[Non-existent] → PENDING → CREATING → ACTIVE
+                    ↑           ↓
+                PENDING ← FAILED
+
+ACTIVE → DELETING → DELETION_IN_PROGRESS → [Hard Delete]
+   ↓              ↓
+DELETING ← FAILED
+```
+
+The reconciler periodically scans all records and triggers corresponding operations when indexes are in `pending` or `deleting` states with version mismatches.
 
 ### 3. TaskScheduler Abstraction Layer Design
 
@@ -196,9 +215,9 @@ Write DocumentIndex table records:
 {
     document_id: "doc123",
     index_type: "vector", 
-    desired_state: "PRESENT",
-    actual_state: "ABSENT",
-    version: 1
+    status: "pending",
+    version: 1,
+    observed_version: 0
 }
     ↓ 
 API returns 200 immediately
@@ -208,7 +227,7 @@ Periodic task reconcile_indexes_task (executes every 30 seconds)
     ↓
 BackendIndexReconciler.reconcile_all()
     ↓
-Detects desired_state=PRESENT, actual_state=ABSENT
+Detects status=pending, observed_version < version
     ↓
 CeleryTaskScheduler.schedule_create_index(doc123, ["vector", "fulltext", "graph"])
     ↓
@@ -219,7 +238,7 @@ parse_document_task("doc123")
 ├── Download document file to local temp directory
 ├── Call docparser to parse document content  
 ├── Return ParsedDocumentData.to_dict()
-└── Update actual_state="CREATING"
+└── Update status="creating"
     ↓
 trigger_create_indexes_workflow(parsed_data, "doc123", ["vector", "fulltext", "graph"])
 ├── Create group parallel tasks
@@ -261,7 +280,7 @@ API returns immediately
 # 2. Backend Chain
 reconcile_indexes_task detects version mismatch
     ↓
-actual_state=PRESENT but version outdated, determined as needing update
+status=active but observed_version < version, determined as needing update
     ↓
 schedule_update_index() -> update_document_indexes_workflow()
 
@@ -277,12 +296,12 @@ User deletes document triggering index deletion:
 # 1. Frontend Chain  
 API Call -> FrontendIndexManager.delete_document_indexes()
     ↓
-Set desired_state="ABSENT"
+Set status="deleting"
     ↓
 API returns immediately
 
 # 2. Backend Chain
-Detects desired_state=ABSENT, actual_state=PRESENT
+Detects status=deleting
     ↓
 schedule_delete_index() -> delete_document_indexes_workflow()
 
@@ -354,7 +373,7 @@ class IndexTaskCallbacks:
     def on_index_failed(document_id: str, index_type: str, error_message: str):
         """Task failure callback"""
         # Update database state
-        doc_index.actual_state = IndexActualState.FAILED
+        doc_index.status = DocumentIndexStatus.FAILED
         doc_index.error_message = error_message
         
         # Will retry on next reconcile

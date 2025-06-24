@@ -16,6 +16,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
+from aperag.db.models import DocumentIndexType
 from aperag.tasks.utils import cleanup_local_document, parse_document_content
 
 logger = logging.getLogger(__name__)
@@ -35,14 +36,17 @@ class TaskScheduler(ABC):
     """Abstract base class for task schedulers"""
 
     @abstractmethod
-    def schedule_create_index(self, document_id: str, index_types: List[str], **kwargs) -> str:
+    def schedule_create_index(
+        self, index_types: List[DocumentIndexType], document_id: str, task_context: dict, task_id: str = None
+    ):
         """
-        Schedule single index creation task (legacy support)
+        Schedule single index creation task
 
         Args:
             document_id: Document ID to process
             index_types: List of index types (vector, fulltext, graph)
-            **kwargs: Additional arguments
+            task_context: Task metadata context (version, etc.)
+            task_id: Task ID for tracking (optional)
 
         Returns:
             Task ID for tracking
@@ -236,20 +240,32 @@ class LocalTaskScheduler(TaskScheduler):
 class CeleryTaskScheduler(TaskScheduler):
     """Celery implementation of TaskScheduler - Direct workflow execution"""
 
-    def schedule_create_index(self, document_id: str, index_types: List[str], **kwargs) -> str:
-        """Schedule index creation workflow"""
-        from config.celery_tasks import create_document_indexes_workflow
+    def schedule_create_index(
+        self, index_types: List["DocumentIndexType"], document_id: str, task_context: dict, task_id: str = None
+    ) -> str:
+        """Schedule index creation tasks - one task per index type"""
+        from config.celery_tasks import create_index_task
+        from celery import group
 
         try:
-            # Execute workflow and return AsyncResult ID (not calling .get())
-            workflow_result = create_document_indexes_workflow(document_id, index_types)
-            workflow_id = workflow_result.id  # Use .id instead of .get('workflow_id')
+            version = task_context.get('version', 'unknown')
+            
+            # Create individual tasks for each index type
+            task_signatures = []
+            for index_type in index_types:
+                task_sig = create_index_task.s(document_id, index_type.value, task_context)
+                task_signatures.append(task_sig)
+            
+            # Execute tasks in parallel using group
+            group_result = group(task_signatures).apply_async()
+            
+            index_types_str = [it.value for it in index_types]
             logger.debug(
-                f"Scheduled create indexes workflow {workflow_id} for document {document_id} with types {index_types}"
+                f"Scheduled create index group {group_result.id} for document {document_id} version {version} with types {index_types_str}"
             )
-            return workflow_id
+            return group_result.id
         except Exception as e:
-            logger.error(f"Failed to schedule create indexes workflow for document {document_id}: {str(e)}")
+            logger.error(f"Failed to schedule create index tasks for document {document_id}: {str(e)}")
             raise
 
     def schedule_update_index(self, document_id: str, index_types: List[str], **kwargs) -> str:

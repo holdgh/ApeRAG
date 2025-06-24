@@ -18,7 +18,7 @@ from typing import List, Optional
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aperag.db.models import DocumentIndex, DocumentIndexType, IndexActualState, IndexDesiredState, utc_now
+from aperag.db.models import DocumentIndex, DocumentIndexType, DocumentIndexStatus, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -51,14 +51,14 @@ class FrontendIndexManager:
 
             if existing_index:
                 # Update existing index
-                existing_index.update_spec(IndexDesiredState.PRESENT, user)
+                existing_index.update_spec(user)
                 logger.debug(f"Updated index for {document_id}:{index_type} to version {existing_index.version}")
             else:
-                # Create new index
+                # Create new index with PENDING status
                 doc_index = DocumentIndex(
                     document_id=document_id,
                     index_type=index_type,
-                    desired_state=IndexDesiredState.PRESENT,
+                    status=DocumentIndexStatus.PENDING,
                     version=1,
                     created_by=user,
                 )
@@ -79,9 +79,8 @@ class FrontendIndexManager:
         indexes = result.scalars().all()
 
         for index in indexes:
-            if index.desired_state == IndexDesiredState.PRESENT:
-                index.version += 1  # Increment version to trigger re-indexing
-                index.gmt_updated = utc_now()
+            # Reset to PENDING to trigger re-indexing for existing indexes
+            index.update_spec()
 
     async def delete_document_indexes(
         self, session: AsyncSession, document_id: str, index_types: Optional[List[DocumentIndexType]] = None
@@ -105,7 +104,7 @@ class FrontendIndexManager:
             doc_index = result.scalar_one_or_none()
 
             if doc_index:
-                doc_index.update_spec(IndexDesiredState.ABSENT)
+                doc_index.mark_for_deletion()
 
     async def rebuild_document_indexes(
         self, session: AsyncSession, document_id: str, index_types: List[DocumentIndexType]
@@ -131,13 +130,9 @@ class FrontendIndexManager:
             doc_index = result.scalar_one_or_none()
 
             if doc_index:
-                # Only rebuild if the index is present or failed
-                if doc_index.desired_state == IndexDesiredState.PRESENT:
-                    doc_index.version += 1  # Increment version to trigger re-indexing
-                    doc_index.gmt_updated = utc_now()
-                    logger.info(f"Triggered rebuild for {index_type.value} index of document {document_id}")
-                else:
-                    logger.warning(f"Cannot rebuild {index_type.value} index for document {document_id}: index not present")
+                # Reset to PENDING to trigger re-indexing
+                doc_index.update_spec()
+                logger.info(f"Triggered rebuild for {index_type.value} index of document {document_id}")
             else:
                 logger.warning(f"No {index_type.value} index found for document {document_id}")
 
@@ -150,39 +145,54 @@ class FrontendIndexManager:
             document_id: Document ID
 
         Returns:
-            Dictionary with index status information
+            Dictionary with index status information including update times
         """
         # Get all indexes for the document
         stmt = select(DocumentIndex).where(DocumentIndex.document_id == document_id)
-        result = await session.execute(stmt)
-        indexes = result.scalars().all()
+        query_result = await session.execute(stmt)
+        indexes = query_result.scalars().all()
 
-        # Build result
+        # Build result with all possible index types
         result = {"document_id": document_id, "indexes": {}, "overall_status": "complete"}
 
-        has_creating = False
+        has_active_processing = False
         has_failed = False
 
-        for index in indexes:
-            index_info = {
-                "type": index.index_type,
-                "desired_state": index.desired_state,
-                "actual_state": index.actual_state,
-                "in_sync": index.is_in_sync(),
-            }
+        # Create a map of existing indexes
+        existing_indexes = {index.index_type: index for index in indexes}
 
-            if index.actual_state == IndexActualState.CREATING:
-                has_creating = True
-            elif index.actual_state == IndexActualState.FAILED:
-                has_failed = True
-                index_info["error"] = index.error_message
+        # Process all possible index types
+        for index_type in [DocumentIndexType.VECTOR, DocumentIndexType.FULLTEXT, DocumentIndexType.GRAPH]:
+            if index_type in existing_indexes:
+                # Index exists in database
+                index = existing_indexes[index_type]
+                index_info = {
+                    "type": index.index_type,
+                    "status": index.status,
+                    "updated_time": index.gmt_updated,
+                    "needs_processing": index.is_pending_processing(),
+                }
 
-            result["indexes"][index.index_type] = index_info
+                if index.status in [DocumentIndexStatus.CREATING, DocumentIndexStatus.DELETION_IN_PROGRESS]:
+                    has_active_processing = True
+                elif index.status == DocumentIndexStatus.FAILED:
+                    has_failed = True
+                    index_info["error"] = index.error_message
+
+                result["indexes"][index.index_type] = index_info
+            else:
+                # Index doesn't exist in database - show as skipped
+                result["indexes"][index_type] = {
+                    "type": index_type,
+                    "status": "skipped",
+                    "updated_time": None,
+                    "needs_processing": False,
+                }
 
         # Determine overall status
         if has_failed:
             result["overall_status"] = "failed"
-        elif has_creating:
+        elif has_active_processing:
             result["overall_status"] = "running"
         else:
             result["overall_status"] = "complete"

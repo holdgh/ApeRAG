@@ -11,12 +11,12 @@ graph TB
     subgraph "Frontend Chain (同步快速响应)"
         A[API请求] --> B[FrontendIndexManager]
         B --> C[写入DocumentIndex表]
-        C --> D[设置desired_state=PRESENT]
+        C --> D[设置status=PENDING]
     end
     
     subgraph "Backend Chain (异步任务处理)"
         E[定时任务reconcile_indexes_task] --> F[BackendIndexReconciler.reconcile_all]
-        F --> G[检测desired_state != actual_state]
+        F --> G[检测status=pending或deleting]
         G --> H[TaskScheduler调度异步任务]
     end
     
@@ -36,7 +36,7 @@ graph TB
     
     subgraph "状态反馈"
         Q --> R[IndexTaskCallbacks]
-        R --> S[更新actual_state=PRESENT]
+        R --> S[更新status=ACTIVE]
         S --> T[下次调谐检查]
     end
     
@@ -60,18 +60,37 @@ graph TB
 
 ### 2. 状态驱动调谐
 
-通过数据库表`DocumentIndex`记录每个文档索引的期望状态和实际状态：
+通过数据库表`DocumentIndex`记录每个文档索引的生命周期状态：
 
 ```python
+class DocumentIndexStatus(str, Enum):
+    PENDING = "pending"                    # 等待处理（创建或更新）
+    CREATING = "creating"                  # 索引创建/更新任务正在进行
+    ACTIVE = "active"                      # 索引处于最新状态，可用
+    DELETING = "deleting"                  # 已请求删除
+    DELETION_IN_PROGRESS = "deletion_in_progress"  # 索引删除任务正在进行
+    FAILED = "failed"                      # 上次操作失败
+
 class DocumentIndex(BaseModel):
     document_id: str
-    index_type: DocumentIndexType  # vector/fulltext/graph
-    desired_state: IndexDesiredState  # PRESENT/ABSENT
-    actual_state: IndexActualState    # ABSENT/CREATING/PRESENT/DELETING/FAILED
-    version: int                     # 版本号，递增触发重建
+    index_type: DocumentIndexType     # vector/fulltext/graph
+    status: DocumentIndexStatus       # 索引生命周期状态
+    version: int                      # 版本号，递增触发重建
+    observed_version: int             # 最后处理的版本号
 ```
 
-调谐器定时扫描所有记录，当`desired_state != actual_state`时触发相应操作。
+**状态流转图:**
+```
+[不存在] → PENDING → CREATING → ACTIVE
+              ↑           ↓
+          PENDING ← FAILED
+
+ACTIVE → DELETING → DELETION_IN_PROGRESS → [硬删除]
+   ↓              ↓
+DELETING ← FAILED
+```
+
+调谐器定时扫描所有记录，当索引处于`pending`或`deleting`状态且版本不匹配时触发相应操作。
 
 ### 3. TaskScheduler抽象层设计
 
@@ -196,9 +215,9 @@ API调用 -> FrontendIndexManager.create_document_indexes()
 {
     document_id: "doc123",
     index_type: "vector", 
-    desired_state: "PRESENT",
-    actual_state: "ABSENT",
-    version: 1
+    status: "pending",
+    version: 1,
+    observed_version: 0
 }
     ↓ 
 API立即返回200
@@ -208,7 +227,7 @@ API立即返回200
     ↓
 BackendIndexReconciler.reconcile_all()
     ↓
-检测到desired_state=PRESENT, actual_state=ABSENT
+检测到status=pending, observed_version < version
     ↓
 CeleryTaskScheduler.schedule_create_index(doc123, ["vector", "fulltext", "graph"])
     ↓
@@ -219,7 +238,7 @@ parse_document_task("doc123")
 ├── 下载文档文件到本地临时目录
 ├── 调用docparser解析文档内容  
 ├── 返回ParsedDocumentData.to_dict()
-└── 更新actual_state="CREATING"
+└── 更新status="creating"
     ↓
 trigger_create_indexes_workflow(parsed_data, "doc123", ["vector", "fulltext", "graph"])
 ├── 创建group并行任务
@@ -261,7 +280,7 @@ API立即返回
 # 2. 后端链路
 reconcile_indexes_task检测到version不匹配
     ↓
-actual_state=PRESENT但version过期，判定为需要更新
+status=active但observed_version < version，判定为需要更新
     ↓
 schedule_update_index() -> update_document_indexes_workflow()
 
@@ -277,12 +296,12 @@ parse_document_task -> trigger_update_indexes_workflow -> 并行update_index_tas
 # 1. 前端链路  
 API调用 -> FrontendIndexManager.delete_document_indexes()
     ↓
-设置desired_state="ABSENT"
+设置status="deleting"
     ↓
 API立即返回
 
 # 2. 后端链路
-检测到desired_state=ABSENT, actual_state=PRESENT
+检测到status=deleting
     ↓
 schedule_delete_index() -> delete_document_indexes_workflow()
 
@@ -354,7 +373,7 @@ class IndexTaskCallbacks:
     def on_index_failed(document_id: str, index_type: str, error_message: str):
         """任务失败回调"""
         # 更新数据库状态
-        doc_index.actual_state = IndexActualState.FAILED
+        doc_index.status = DocumentIndexStatus.FAILED
         doc_index.error_message = error_message
         
         # 下次reconcile时会重新尝试

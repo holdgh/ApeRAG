@@ -159,22 +159,19 @@ class LightRAGDocStatus(str, Enum):
     FAILED = "failed"
 
 
-# Add new enums for K8s-inspired design
-class IndexDesiredState(str, Enum):
-    """Desired state for index - what we want"""
+# Document index status for simplified single-status model  
+class DocumentIndexStatus(str, Enum):
+    """Document index lifecycle status"""
 
-    PRESENT = "present"
-    ABSENT = "absent"
+    PENDING = "pending"                # Waiting for processing (create/update)
+    CREATING = "creating"              # Index creation/update task in progress  
+    ACTIVE = "active"                  # Index is up-to-date and ready for use
+    DELETING = "deleting"              # Deletion has been requested
+    DELETION_IN_PROGRESS = "deletion_in_progress"  # Index deletion task in progress
+    FAILED = "failed"                  # The last operation failed
 
 
-class IndexActualState(str, Enum):
-    """Actual state for index - what currently exists"""
 
-    ABSENT = "absent"
-    CREATING = "creating"
-    PRESENT = "present"
-    DELETING = "deleting"
-    FAILED = "failed"
 
 
 # Models
@@ -243,13 +240,13 @@ class Document(Base):
         if not document_indexes:
             return DocumentStatus.PENDING
 
-        states = [idx.actual_state for idx in document_indexes]
+        statuses = [idx.status for idx in document_indexes]
 
-        if any(state == IndexActualState.FAILED for state in states):
+        if any(status == DocumentIndexStatus.FAILED for status in statuses):
             return DocumentStatus.FAILED
-        elif any(state == IndexActualState.CREATING for state in states):
+        elif any(status in [DocumentIndexStatus.CREATING, DocumentIndexStatus.DELETION_IN_PROGRESS] for status in statuses):
             return DocumentStatus.RUNNING
-        elif all(state == IndexActualState.PRESENT for state in states):
+        elif all(status == DocumentIndexStatus.ACTIVE for status in statuses):
             return DocumentStatus.COMPLETE
         else:
             return DocumentStatus.PENDING
@@ -700,7 +697,7 @@ class LightRAGLLMCacheModel(Base):
 
 
 class DocumentIndex(Base):
-    """Document index - combines spec and status into single table"""
+    """Document index - simplified single status model"""
 
     __tablename__ = "document_index"
     __table_args__ = (UniqueConstraint("document_id", "index_type", name="uq_document_index"),)
@@ -709,14 +706,13 @@ class DocumentIndex(Base):
     document_id = Column(String(24), nullable=False, index=True)
     index_type = Column(EnumColumn(DocumentIndexType), nullable=False, index=True)
 
-    # Desired state (spec) fields
-    desired_state = Column(EnumColumn(IndexDesiredState), nullable=False, default=IndexDesiredState.PRESENT, index=True)
+    # Single status field for lifecycle management
+    status = Column(EnumColumn(DocumentIndexStatus), nullable=False, default=DocumentIndexStatus.PENDING, index=True)
     version = Column(Integer, nullable=False, default=1)  # Incremented on each spec change
-    created_by = Column(String(256), nullable=False)  # User who created this spec
-
-    # Actual state (status) fields
-    actual_state = Column(EnumColumn(IndexActualState), nullable=False, default=IndexActualState.ABSENT, index=True)
     observed_version = Column(Integer, nullable=False, default=0)  # Last processed spec version
+    created_by = Column(String(256), nullable=False)  # User who created this spec
+    
+    # Index-specific data and error information
     index_data = Column(Text, nullable=True)  # JSON string for index-specific data
     error_message = Column(Text, nullable=True)
 
@@ -726,26 +722,28 @@ class DocumentIndex(Base):
     gmt_last_reconciled = Column(DateTime(timezone=True), nullable=True)  # Last reconciliation attempt
 
     def __repr__(self):
-        return f"<DocumentIndex(id={self.id}, document_id={self.document_id}, type={self.index_type}, desired={self.desired_state}, actual={self.actual_state})>"
+        return f"<DocumentIndex(id={self.id}, document_id={self.document_id}, type={self.index_type}, status={self.status})>"
 
-    def is_in_sync(self) -> bool:
-        """Check if desired and actual states are in sync"""
-        if self.observed_version < self.version:
-            return False
+    def is_pending_processing(self) -> bool:
+        """Check if index needs processing (create or update)"""
+        return (self.status == DocumentIndexStatus.PENDING and 
+                self.observed_version < self.version)
 
-        if self.desired_state == IndexDesiredState.PRESENT:
-            return self.actual_state == IndexActualState.PRESENT
-        elif self.desired_state == IndexDesiredState.ABSENT:
-            return self.actual_state == IndexActualState.ABSENT
-        return False
+    def is_ready_for_deletion(self) -> bool:
+        """Check if index is ready for deletion"""
+        return self.status == DocumentIndexStatus.DELETING
 
-    def update_spec(self, desired_state: IndexDesiredState = None, created_by: str = None):
-        """Update the spec (desired state) part"""
-        if desired_state is not None:
-            self.desired_state = desired_state
+    def update_spec(self, created_by: str = None):
+        """Update the spec to trigger re-processing"""
         if created_by is not None:
             self.created_by = created_by
         self.version += 1
+        self.status = DocumentIndexStatus.PENDING  # Reset to pending for reprocessing
+        self.gmt_updated = utc_now()
+
+    def mark_for_deletion(self):
+        """Mark index for deletion"""
+        self.status = DocumentIndexStatus.DELETING
         self.gmt_updated = utc_now()
 
 
