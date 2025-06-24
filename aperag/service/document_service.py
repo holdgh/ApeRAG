@@ -15,7 +15,7 @@
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import List
 
 from asgiref.sync import sync_to_async
 from fastapi import UploadFile
@@ -38,7 +38,7 @@ from aperag.exceptions import (
 from aperag.index.manager import document_index_manager
 from aperag.objectstore.base import get_object_store
 from aperag.schema import view_models
-from aperag.schema.view_models import Document, DocumentList
+from aperag.schema.view_models import DocumentList
 from aperag.utils.constant import QuotaType
 from aperag.utils.uncompress import SUPPORTED_COMPRESSED_EXTENSIONS
 
@@ -80,64 +80,49 @@ class DocumentService:
     async def build_document_response(
         self, document: db_models.Document, session: AsyncSession
     ) -> view_models.Document:
-        """Build Document response object for API return."""
-        # Get index status from new tables
-        index_status_info = await document_index_manager.get_document_index_status(session, document.id)
-
-        # Convert new format to old API format for backward compatibility
-        indexes = index_status_info.get("indexes", {})
-
-        # Map new states to old enum values for API compatibility
-        def map_state_to_old_enum(actual_state: str):
-            if actual_state == "absent":
-                return "SKIPPED"
-            elif actual_state == "creating":
-                return "RUNNING"
-            elif actual_state == "present":
-                return "COMPLETE"
-            elif actual_state == "failed":
-                return "FAILED"
-            else:
-                return "PENDING"
-
-        # Get individual index update times from DocumentIndex table
+        """Build Document response object for API return using new status model."""
         from sqlalchemy import select
 
-        from aperag.db.models import DocumentIndex, DocumentIndexType
+        from aperag.db.models import DocumentIndex
 
-        vector_updated = None
-        fulltext_updated = None
-        graph_updated = None
-
-        # Query for each index type's update time
-        for index_type, var_name in [
-            (DocumentIndexType.VECTOR, "vector_updated"),
-            (DocumentIndexType.FULLTEXT, "fulltext_updated"),
-            (DocumentIndexType.GRAPH, "graph_updated"),
-        ]:
-            stmt = select(DocumentIndex).where(
-                DocumentIndex.document_id == document.id, DocumentIndex.index_type == index_type
+        # Get all document indexes for status calculation
+        document_indexes = await session.execute(
+            select(DocumentIndex).where(
+                DocumentIndex.document_id == document.id,
+                DocumentIndex.status != db_models.DocumentIndexStatus.DELETING,
+                DocumentIndex.status != db_models.DocumentIndexStatus.DELETION_IN_PROGRESS,
             )
-            result = await session.execute(stmt)
-            index_record = result.scalar_one_or_none()
-            if index_record:
-                if var_name == "vector_updated":
-                    vector_updated = index_record.gmt_updated
-                elif var_name == "fulltext_updated":
-                    fulltext_updated = index_record.gmt_updated
-                elif var_name == "graph_updated":
-                    graph_updated = index_record.gmt_updated
+        )
+        indexes = document_indexes.scalars().all()
 
-        return Document(
+        # Map index states to API response format
+        index_status = {}
+        index_updated = {}
+
+        # Initialize all types as SKIPPED (when no record exists)
+        all_types = [
+            db_models.DocumentIndexType.VECTOR,
+            db_models.DocumentIndexType.FULLTEXT,
+            db_models.DocumentIndexType.GRAPH,
+        ]
+        for index_type in all_types:
+            index_status[index_type] = "SKIPPED"
+
+        # Update with actual states from database
+        for index in indexes:
+            index_status[index.index_type] = index.status
+            index_updated[index.index_type] = index.gmt_updated
+
+        return view_models.Document(
             id=document.id,
             name=document.name,
             status=document.status,
-            vector_index_status=map_state_to_old_enum(indexes.get("VECTOR", {}).get("actual_state", "absent")),
-            fulltext_index_status=map_state_to_old_enum(indexes.get("FULLTEXT", {}).get("actual_state", "absent")),
-            graph_index_status=map_state_to_old_enum(indexes.get("GRAPH", {}).get("actual_state", "absent")),
-            vector_index_updated=vector_updated,
-            fulltext_index_updated=fulltext_updated,
-            graph_index_updated=graph_updated,
+            vector_index_status=index_status.get(db_models.DocumentIndexType.VECTOR, "SKIPPED"),
+            fulltext_index_status=index_status.get(db_models.DocumentIndexType.FULLTEXT, "SKIPPED"),
+            graph_index_status=index_status.get(db_models.DocumentIndexType.GRAPH, "SKIPPED"),
+            vector_index_updated=index_updated.get(db_models.DocumentIndexType.VECTOR, None),
+            fulltext_index_updated=index_updated.get(db_models.DocumentIndexType.FULLTEXT, None),
+            graph_index_updated=index_updated.get(db_models.DocumentIndexType.GRAPH, None),
             size=document.size,
             created=document.gmt_created,
             updated=document.gmt_updated,
@@ -226,8 +211,9 @@ class DocumentService:
                     if collection_config.get("enable_knowledge_graph", False):
                         index_types.append(db_models.DocumentIndexType.GRAPH)
 
-                    await document_index_manager.create_document_indexes(
-                        session, document_instance.id, user, index_types
+                    # Use index manager to create indexes with new status model
+                    await document_index_manager.create_or_update_document_indexes(
+                        document_id=document_instance.id, index_types=index_types, session=session
                     )
 
                     # Build response object
@@ -267,170 +253,65 @@ class DocumentService:
         async for session in get_async_session():
             return await self.build_document_response(document, session)
 
-    async def update_document(
-        self, user: str, collection_id: str, document_id: str, document_in: view_models.DocumentUpdate
-    ) -> view_models.Document:
-        instance = await self.db_ops.query_document(user, collection_id, document_id)
-        if instance is None:
-            raise DocumentNotFoundException(document_id)
-
-        if document_in.config:
-            try:
-                config = json.loads(document_in.config)
-                metadata = json.loads(instance.doc_metadata or "{}")
-                metadata["labels"] = config["labels"]
-                updated_metadata = json.dumps(metadata)
-
-                # Update document and indexes atomically in a single transaction
-                async def _update_document_atomically(session):
-                    from sqlalchemy import select
-
-                    from aperag.db.models import Document, DocumentStatus
-
-                    # Update document metadata
-                    stmt = select(Document).where(
-                        Document.id == document_id,
-                        Document.collection_id == collection_id,
-                        Document.user == user,
-                        Document.status != DocumentStatus.DELETED,
-                    )
-                    result = await session.execute(stmt)
-                    document = result.scalars().first()
-
-                    if not document:
-                        raise DocumentNotFoundException(document_id)
-
-                    document.doc_metadata = updated_metadata
-                    session.add(document)
-                    await session.flush()
-                    await session.refresh(document)
-
-                    # Update index specs to trigger re-indexing
-                    await document_index_manager.update_document_indexes(session, document.id)
-
-                    # Build response object
-                    return await self.build_document_response(document, session)
-
-                result = await self.db_ops.execute_with_transaction(_update_document_atomically)
-            except json.JSONDecodeError:
-                raise invalid_param("config", "invalid document config")
-        else:
-
-            async def _get_doc_response(session):
-                return await self.build_document_response(instance, session)
-
-            result = await self.db_ops._execute_query(_get_doc_response)
-
-        # Trigger index reconciliation after successful document update
-        _trigger_index_reconciliation()
-
-        return result
-
-    async def delete_document(self, user: str, collection_id: str, document_id: str) -> Optional[view_models.Document]:
-        """Delete document by ID (idempotent operation)
-
-        Returns the deleted document or None if already deleted/not found
+    async def _delete_document(self, session: AsyncSession, user: str, collection_id: str, document_id: str):
         """
+        Core logic to delete a single document and its associated resources.
+        This method is designed to be called within a transaction.
+        """
+        # Validate document existence and ownership
         document = await self.db_ops.query_document(user, collection_id, document_id)
         if document is None:
-            # Document already deleted or never existed - idempotent operation
-            return None
+            # Silently ignore if document not found, as it might have been deleted by another process
+            logger.warning(f"Document {document_id} not found for deletion, skipping.")
+            return
 
-        # Delete document and indexes atomically in a single transaction
-        async def _delete_document_atomically(session):
-            from sqlalchemy import select
+        # Use index manager to mark all related indexes for deletion
+        await document_index_manager.delete_document_indexes(document_id=document.id, index_types=None, session=session)
 
-            from aperag.db.models import Document, DocumentStatus, utc_now
+        # Delete from object store
+        obj_store = get_object_store()
+        metadata = json.loads(document.doc_metadata) if document.doc_metadata else {}
+        if metadata.get("object_path"):
+            try:
+                # Use delete_objects_by_prefix to remove all related files (original, chunks, etc.)
+                await sync_to_async(obj_store.delete_objects_by_prefix)(document.object_store_base_path())
+                logger.info(f"Deleted objects from object store with prefix: {document.object_store_base_path()}")
+            except Exception as e:
+                logger.warning(f"Failed to delete objects for document {document.id} from object store: {e}")
 
-            # Get and delete document
-            stmt = select(Document).where(
-                Document.id == document_id,
-                Document.collection_id == collection_id,
-                Document.user == user,
-                Document.status != DocumentStatus.DELETED,
-            )
-            result = await session.execute(stmt)
-            doc_to_delete = result.scalars().first()
+        # Delete the document record from the database
+        await session.delete(document)
+        await session.flush()
+        logger.info(f"Successfully marked document {document.id} and its indexes for deletion.")
 
-            if not doc_to_delete:
-                return None
+        return document
 
-            # Soft delete document
-            doc_to_delete.status = DocumentStatus.DELETED
-            doc_to_delete.gmt_deleted = utc_now()
-            session.add(doc_to_delete)
-            await session.flush()
-            await session.refresh(doc_to_delete)
+    async def delete_document(self, user: str, collection_id: str, document_id: str) -> dict:
+        """Delete a single document and trigger index reconciliation."""
 
-            # Mark index specs for deletion
-            await document_index_manager.delete_document_indexes(session, document_id)
-
-            # Build response object
-            return await self.build_document_response(doc_to_delete, session)
+        async def _delete_document_atomically(session: AsyncSession):
+            return await self._delete_document(session, user, collection_id, document_id)
 
         result = await self.db_ops.execute_with_transaction(_delete_document_atomically)
 
-        if result:
-            # Delete object storage files after successful database transaction
-            obj_store = get_object_store()
-            try:
-                await sync_to_async(obj_store.delete_objects_by_prefix)(f"{document.object_store_base_path()}/")
-            except Exception as e:
-                logger.warning(f"Failed to delete object storage files for document {document_id}: {e}")
-
-            # Trigger index reconciliation after successful document deletion
-            _trigger_index_reconciliation()
-
-            return result
-
-        return None
+        # Trigger reconciliation to process the deletion
+        _trigger_index_reconciliation()
+        return result
 
     async def delete_documents(self, user: str, collection_id: str, document_ids: List[str]) -> dict:
-        # Delete documents and indexes atomically in a single transaction
-        async def _delete_documents_atomically(session):
-            from sqlalchemy import select
+        """Delete multiple documents and trigger index reconciliation."""
 
-            from aperag.db.models import Document, DocumentStatus, utc_now
+        async def _delete_documents_atomically(session: AsyncSession):
+            deleted_ids = []
+            for doc_id in document_ids:
+                await self._delete_document(session, user, collection_id, doc_id)
+                deleted_ids.append(doc_id)
+            return {"deleted_ids": deleted_ids, "status": "success"}
 
-            # Get documents to delete
-            stmt = select(Document).where(
-                Document.id.in_(document_ids),
-                Document.collection_id == collection_id,
-                Document.user == user,
-                Document.status != DocumentStatus.DELETED,
-            )
-            result = await session.execute(stmt)
-            documents_to_delete = result.scalars().all()
+        result = await self.db_ops.execute_with_transaction(_delete_documents_atomically)
 
-            if not documents_to_delete:
-                return [], list(document_ids)
-
-            # Soft delete documents
-            success_ids = []
-            for doc in documents_to_delete:
-                doc.status = DocumentStatus.DELETED
-                doc.gmt_deleted = utc_now()
-                session.add(doc)
-                success_ids.append(doc.id)
-
-            await session.flush()
-
-            # Delete indexes for all successful deletions
-            for doc_id in success_ids:
-                await document_index_manager.delete_document_indexes(session, doc_id)
-
-            # Calculate failed IDs
-            failed_ids = list(set(document_ids) - set(success_ids))
-            return success_ids, failed_ids
-
-        success_ids, failed_ids = await self.db_ops.execute_with_transaction(_delete_documents_atomically)
-
-        result = {"success": success_ids, "failed": failed_ids}
-
-        # Trigger index reconciliation after successful batch document deletion
-        if result.get("success"):  # Only trigger if at least one document was deleted successfully
-            _trigger_index_reconciliation()
-
+        # Trigger reconciliation to process deletions
+        _trigger_index_reconciliation()
         return result
 
     async def rebuild_document_indexes(
@@ -481,9 +362,14 @@ class DocumentService:
             collection = await self.db_ops.query_collection(user_id, collection_id)
             if not collection or collection.user != user_id:
                 raise ResourceNotFoundException(f"Collection {collection_id} not found or access denied")
+            collection_config = json.loads(collection.config)
+            if not collection_config.get("enable_knowledge_graph", False):
+                # Only remove GRAPH type if it's actually in the list to avoid ValueError
+                if db_models.DocumentIndexType.GRAPH in index_type_enums:
+                    index_type_enums.remove(db_models.DocumentIndexType.GRAPH)
 
             # Trigger index rebuild by incrementing version for selected index types
-            await document_index_manager.rebuild_document_indexes(session, document_id, index_type_enums)
+            await document_index_manager.create_or_update_document_indexes(session, document_id, index_type_enums)
 
             logger.info(f"Successfully triggered rebuild for document {document_id} indexes: {index_types}")
 

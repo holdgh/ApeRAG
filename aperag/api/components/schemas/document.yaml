@@ -14,29 +14,34 @@ document:
         - FAILED
         - DELETING
         - DELETED
-        - WARNING
     vector_index_status:
       type: string
       enum:
         - PENDING
-        - RUNNING
-        - COMPLETE
+        - CREATING
+        - ACTIVE
+        - DELETING
+        - DELETION_IN_PROGRESS
         - FAILED
         - SKIPPED
     fulltext_index_status:
       type: string
       enum:
         - PENDING
-        - RUNNING
-        - COMPLETE
+        - CREATING
+        - ACTIVE
+        - DELETING
+        - DELETION_IN_PROGRESS
         - FAILED
         - SKIPPED
     graph_index_status:
       type: string
       enum:
         - PENDING
-        - RUNNING
-        - COMPLETE
+        - CREATING
+        - ACTIVE
+        - DELETING
+        - DELETION_IN_PROGRESS
         - FAILED
         - SKIPPED
     vector_index_updated:
@@ -83,16 +88,6 @@ documentCreate:
     source:
       type: string
     collection_id:
-      type: string
-
-documentUpdate:
-  type: object
-  properties:
-    title:
-      type: string
-    description:
-      type: string
-    source:
       type: string
 
 rebuildIndexesRequest:
