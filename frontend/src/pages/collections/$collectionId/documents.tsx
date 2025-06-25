@@ -21,6 +21,9 @@ import {
   MoreOutlined,
   SearchOutlined,
   ReloadOutlined,
+  FileTextOutlined,
+  SplitCellsOutlined,
+  CaretRightOutlined,
 } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import {
@@ -39,6 +42,15 @@ import {
   Upload,
   UploadProps,
   Tooltip,
+  Drawer,
+  Row,
+  Col,
+  Card,
+  Spin,
+  Alert,
+  Divider,
+  Tag,
+  Collapse,
 } from 'antd';
 import byteSize from 'byte-size';
 import alpha from 'color-alpha';
@@ -48,6 +60,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { defaultStyles, FileIcon } from 'react-file-icon';
 import { toast } from 'react-toastify';
 import { FormattedMessage, useIntl, useModel, useParams } from 'umi';
+import { getDocumentContent, getDocumentChunks } from '@/api/document-api';
 
 export default () => {
   const [searchParams, setSearchParams] = useState<{
@@ -62,6 +75,13 @@ export default () => {
   const [rebuildModalVisible, setRebuildModalVisible] = useState(false);
   const [rebuildSelectedDocument, setRebuildSelectedDocument] = useState<ApeDocument | null>(null);
   const [rebuildSelectedTypes, setRebuildSelectedTypes] = useState<string[]>([]);
+  
+  // Document detail drawer state
+  const [documentDetailVisible, setDocumentDetailVisible] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<ApeDocument | null>(null);
+  const [documentContent, setDocumentContent] = useState<any>(null);
+  const [documentChunks, setDocumentChunks] = useState<any[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
   const {
     data: documentsRes,
     run: getDocuments,
@@ -122,6 +142,46 @@ export default () => {
     }
   };
 
+  // Handle document detail view
+  const handleViewDocumentDetail = async (document: ApeDocument) => {
+    if (!collectionId || !document.id) return;
+
+    setSelectedDocument(document);
+    setDocumentDetailVisible(true);
+    setDetailLoading(true);
+    setDocumentContent(null);
+    setDocumentChunks([]);
+
+    try {
+      // Fetch document content and chunks in parallel
+      const [contentResponse, chunksResponse] = await Promise.all([
+        getDocumentContent({
+          collectionId,
+          documentId: document.id,
+        }),
+        getDocumentChunks({
+          collectionId,
+          documentId: document.id,
+        }),
+      ]);
+
+      setDocumentContent(contentResponse.data);
+      setDocumentChunks(chunksResponse.data?.chunks || []);
+    } catch (error) {
+      console.error('Failed to fetch document details:', error);
+      toast.error(formatMessage({ id: 'document.detail.fetch.failed' }));
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleCloseDocumentDetail = () => {
+    setDocumentDetailVisible(false);
+    setSelectedDocument(null);
+    setDocumentContent(null);
+    setDocumentChunks([]);
+  };
+
   const indexTypeOptions = [
     { label: formatMessage({ id: 'document.index.type.vector' }), value: 'VECTOR' },
     { label: formatMessage({ id: 'document.index.type.fulltext' }), value: 'FULLTEXT' },
@@ -172,7 +232,14 @@ export default () => {
           <Space>
             <Avatar size={36} shape="square" src={icon} />
             <div>
-              <div>{record.name}</div>
+              <div>
+                <Typography.Link
+                  onClick={() => handleViewDocumentDetail(record)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {record.name}
+                </Typography.Link>
+              </div>
               <Typography.Text type="secondary">
                 {byteSize(record.size || 0).toString()}
               </Typography.Text>
@@ -409,6 +476,212 @@ export default () => {
           style={{ display: 'flex', flexDirection: 'row', gap: 16 }}
         />
       </Modal>
+
+      {/* Document Detail Drawer */}
+      <Drawer
+        title={
+          <Space>
+            <FileTextOutlined />
+            {formatMessage({ id: 'document.detail.title' })}
+          </Space>
+        }
+        open={documentDetailVisible}
+        onClose={handleCloseDocumentDetail}
+        width="80%"
+        extra={
+          selectedDocument && (
+            <Typography.Text type="secondary">
+              {selectedDocument.name}
+            </Typography.Text>
+          )
+        }
+      >
+        {detailLoading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>
+              <Typography.Text type="secondary">
+                {formatMessage({ id: 'document.detail.loading' })}
+              </Typography.Text>
+            </div>
+          </div>
+        ) : (
+          <Row gutter={[16, 16]} style={{ height: '100%' }}>
+              {/* Left: Original Content */}
+              <Col span={12}>
+              <Card
+                title={
+                  <Space>
+                    <FileTextOutlined />
+                    {formatMessage({ id: 'document.detail.original.content' })}
+                  </Space>
+                }
+                size="small"
+                style={{ height: '100%' }}
+                bodyStyle={{ height: 'calc(100% - 57px)', overflow: 'auto' }}
+              >
+                {documentContent ? (
+                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '14px', lineHeight: '1.6' }}>
+                    {typeof documentContent?.content === 'string' ? documentContent.content : (documentContent?.content ? JSON.stringify(documentContent.content) : formatMessage({ id: 'document.detail.no.content' }))}
+                  </div>
+                ) : (
+                  <Alert
+                    message={formatMessage({ id: 'document.detail.content.unavailable' })}
+                    type="warning"
+                    showIcon
+                  />
+                )}
+              </Card>
+            </Col>
+
+            {/* Right: Chunks */}
+            <Col span={12}>
+              <Card
+                title={
+                  <Space>
+                    <SplitCellsOutlined />
+                    {formatMessage({ id: 'document.detail.chunks' })}
+                    <Tag color="blue">{documentChunks.length}</Tag>
+                  </Space>
+                }
+                size="small"
+                style={{ height: '100%' }}
+                bodyStyle={{ height: 'calc(100% - 57px)', overflow: 'auto', padding: 0 }}
+              >
+                {Array.isArray(documentChunks) && documentChunks.length > 0 ? (
+                  <Collapse
+                    size="small"
+                    expandIcon={({ isActive }) => (
+                      <CaretRightOutlined rotate={isActive ? 90 : 0} />
+                    )}
+                    style={{ border: 'none' }}
+                    defaultActiveKey={documentChunks.map((_, index) => index)}
+                    items={documentChunks.map((chunk, index) => ({
+                      key: chunk?.id || index,
+                      label: (
+                        <Space>
+                          <Typography.Text strong>
+                            {formatMessage({ id: 'document.chunk.index' }, { index: index + 1 })}
+                          </Typography.Text>
+                          {chunk?.id && (
+                            <Tag color="blue">
+                              ID: {chunk.id}
+                            </Tag>
+                          )}
+                          {chunk?.metadata?.tokens && (
+                            <Tag color="green">
+                              {formatMessage({ id: 'document.chunk.tokens' }, { count: chunk.metadata.tokens })}
+                            </Tag>
+                          )}
+                        </Space>
+                      ),
+                      children: (
+                        <div style={{ padding: '8px 12px' }}>
+                          {/* Metadata Section */}
+                          {chunk?.metadata && Object.keys(chunk.metadata).length > 0 && (
+                            <>
+                              <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                                {formatMessage({ id: 'document.chunk.metadata' })}:
+                              </Typography.Text>
+                              <div style={{ marginTop: 4, marginBottom: 12 }}>
+                                {Object.entries(chunk?.metadata || {}).map(([key, value]) => (
+                                  <Tag key={key} style={{ marginBottom: 4 }}>
+                                    {key}: {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                  </Tag>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Vector Data Section */}
+                          {chunk?.vector && Array.isArray(chunk.vector) && chunk.vector.length > 0 && (
+                            <>
+                              <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                                向量数据 (维度: {chunk.vector.length}):
+                              </Typography.Text>
+                              <div style={{ marginTop: 4, marginBottom: 12 }}>
+                                <div style={{ 
+                                  fontSize: '11px',
+                                  backgroundColor: '#f8f9fa',
+                                  padding: '8px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #e9ecef'
+                                }}>
+                                  <Typography.Text style={{ fontSize: '11px', color: '#666' }}>
+                                    前10维: [{chunk.vector.slice(0, 10).map((v: any) => Number(v).toFixed(4)).join(', ')}
+                                    {chunk.vector.length > 10 ? ', ...' : ''}]
+                                  </Typography.Text>
+                                  {chunk.vector.length > 10 && (
+                                    <Collapse
+                                      size="small"
+                                      ghost
+                                      style={{ marginTop: 8 }}
+                                      items={[
+                                        {
+                                          key: 'full-vector',
+                                          label: (
+                                            <Typography.Text style={{ fontSize: '11px', color: '#1890ff' }}>
+                                              查看完整向量 ({chunk.vector.length} 维)
+                                            </Typography.Text>
+                                          ),
+                                          children: (
+                                            <div style={{ 
+                                              maxHeight: '150px', 
+                                              overflow: 'auto',
+                                              fontSize: '10px',
+                                              fontFamily: 'monospace',
+                                              backgroundColor: '#ffffff',
+                                              padding: '8px',
+                                              borderRadius: '4px',
+                                              border: '1px solid #d9d9d9',
+                                              lineHeight: '1.4'
+                                            }}>
+                                              [{chunk.vector.map((v: any) => Number(v).toFixed(4)).join(', ')}]
+                                            </div>
+                                          )
+                                        }
+                                      ]}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Content Section */}
+                          <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                            {formatMessage({ id: 'document.chunk.content' })}:
+                          </Typography.Text>
+                          <div style={{ 
+                            whiteSpace: 'pre-wrap', 
+                            fontSize: '13px', 
+                            lineHeight: '1.5',
+                            backgroundColor: token.colorBgContainer,
+                            border: `1px solid ${token.colorBorder}`,
+                            borderRadius: '6px',
+                            padding: '12px',
+                            marginTop: '4px'
+                          }}>
+                            {typeof chunk?.content === 'string' ? chunk.content : (chunk?.content ? JSON.stringify(chunk.content) : formatMessage({ id: 'document.chunk.no.content' }))}
+                          </div>
+                        </div>
+                      ),
+                    }))}
+                  />
+                ) : (
+                  <div style={{ padding: '24px', textAlign: 'center' }}>
+                    <Alert
+                      message={formatMessage({ id: 'document.detail.chunks.empty' })}
+                      type="info"
+                      showIcon
+                    />
+                  </div>
+                )}
+              </Card>
+            </Col>
+          </Row>
+        )}
+      </Drawer>
     </>
   );
 };

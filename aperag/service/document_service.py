@@ -383,6 +383,257 @@ class DocumentService:
         return result
 
 
+    async def get_document_content(self, user: str, collection_id: str, document_id: str) -> dict:
+        """
+        Get document original content from object storage.
+
+        Args:
+            user: User ID
+            collection_id: Collection ID
+            document_id: Document ID
+
+        Returns:
+            dict: Document content and metadata
+        """
+        # Verify document exists and user has access
+        document = await self.db_ops.query_document(user, collection_id, document_id)
+        if not document:
+            raise DocumentNotFoundException(document_id)
+
+        try:
+            # Get object store and read content
+            obj_store = get_object_store()
+            
+            # Parse metadata to get object path
+            metadata = json.loads(document.doc_metadata) if document.doc_metadata else {}
+            object_path = metadata.get("object_path")
+            
+            if not object_path:
+                # Fallback to constructing path
+                file_path = f"{document.object_store_base_path()}/original"
+                # Try common extensions
+                common_extensions = ['.txt', '.md', '.pdf', '.docx', '.doc', '.html', '.json', '.csv']
+                content = None
+                file_extension = None
+                
+                for ext in common_extensions:
+                    try:
+                        test_path = file_path + ext
+                        content = await sync_to_async(obj_store.get)(test_path)
+                        if content:
+                            object_path = test_path
+                            file_extension = ext
+                            break
+                    except Exception:
+                        continue
+                
+                # If no file found with extensions, try without extension
+                if not content:
+                    try:
+                        content = await sync_to_async(obj_store.get)(file_path)
+                        object_path = file_path
+                    except Exception as e:
+                        logger.error(f"Failed to read document content for {document_id}: {str(e)}")
+                        raise ResourceNotFoundException("Document content", document_id)
+            else:
+                # Use stored object path
+                try:
+                    content = await sync_to_async(obj_store.get)(object_path)
+                    # Extract file extension from object path
+                    import os
+                    file_extension = os.path.splitext(object_path)[1] if object_path else None
+                except Exception as e:
+                    logger.error(f"Failed to read document content from {object_path} for {document_id}: {str(e)}")
+                    raise ResourceNotFoundException("Document content", document_id)
+
+            # Decode content if it's bytes
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode('utf-8')
+                except UnicodeDecodeError:
+                    # For non-text files, return base64 encoded content
+                    import base64
+                    content = base64.b64encode(content).decode('utf-8')
+                    file_extension = file_extension + "_base64" if file_extension else "base64"
+
+            return {
+                "document_id": document_id,
+                "name": document.name,
+                "content": content,
+                "size": document.size,
+                "file_extension": file_extension,
+                "object_path": object_path,
+                "created": document.gmt_created,
+                "updated": document.gmt_updated
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to get document content for {document_id}: {str(e)}")
+            if isinstance(e, (DocumentNotFoundException, ResourceNotFoundException)):
+                raise e
+            raise Exception(f"Failed to get document content: {str(e)}")
+
+    async def get_document_chunks(self, user: str, collection_id: str, document_id: str) -> List[dict]:
+        """
+        Get document chunks from vector storage.
+
+        Args:
+            user: User ID
+            collection_id: Collection ID 
+            document_id: Document ID
+
+        Returns:
+            List[dict]: List of chunks with content and metadata
+        """
+        # Verify document exists and user has access
+        document = await self.db_ops.query_document(user, collection_id, document_id)
+        if not document:
+            raise DocumentNotFoundException(document_id)
+
+        try:
+            # Get collection and chunks in transaction
+            async def _get_chunks(session: AsyncSession):
+                collection = await document.get_collection(session)
+                if not collection:
+                    raise ResourceNotFoundException("Collection", collection_id)
+
+                # Get vector index data from DocumentIndex
+                from aperag.db.models import DocumentIndex, DocumentIndexType
+                from sqlalchemy import select, and_
+
+                stmt = select(DocumentIndex).where(
+                    and_(
+                        DocumentIndex.document_id == document_id,
+                        DocumentIndex.index_type == DocumentIndexType.VECTOR
+                    )
+                )
+                result = await session.execute(stmt)
+                doc_index = result.scalar_one_or_none()
+
+                if not doc_index or not doc_index.index_data:
+                    logger.warning(f"No vector index found for document {document_id}")
+                    return []
+
+                # Parse vector IDs from index data
+                try:
+                    index_data = json.loads(doc_index.index_data)
+                    ctx_ids = index_data.get("context_ids", [])
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.error(f"Failed to parse index data for document {document_id}: {str(e)}")
+                    return []
+
+                if not ctx_ids:
+                    logger.warning(f"No context IDs found for document {document_id}")
+                    return []
+
+                # Get vector store adaptor and retrieve chunks
+                from aperag.utils.utils import generate_vector_db_collection_name
+                from config.vector_db import get_vector_db_connector
+
+                vector_store_adaptor = get_vector_db_connector(
+                    collection=generate_vector_db_collection_name(collection_id=collection.id)
+                )
+
+                # Get chunks from vector store
+                chunks = []
+                try:
+                    # For Qdrant vector store, get documents by IDs
+                    if hasattr(vector_store_adaptor.connector, 'client'):
+                        # This is Qdrant connector
+                        qdrant_client = vector_store_adaptor.connector.client
+                        collection_name = vector_store_adaptor.connector.collection_name
+                        
+                        # Retrieve points by IDs
+                        results = qdrant_client.retrieve(
+                            collection_name=collection_name,
+                            ids=ctx_ids,
+                            with_payload=True,
+                            with_vectors=True  # Include vectors for display
+                        )
+                        
+                        for i, point in enumerate(results):
+                            try:
+                                payload = point.payload or {}
+                                # Extract content from node_content if it exists
+                                node_content = payload.get("_node_content")
+                                if node_content:
+                                    node_data = json.loads(node_content)
+                                    content = node_data.get("text", "No content available")
+                                    metadata = node_data.get("metadata", {})
+                                else:
+                                    content = payload.get("text", "No content available")  
+                                    metadata = payload.get("metadata", {})
+                                
+                                chunk_data = {
+                                    "id": str(point.id),
+                                    "order": i,
+                                    "content": content,
+                                    "vector": point.vector if hasattr(point, 'vector') and point.vector else None,
+                                    "metadata": {
+                                        **metadata,
+                                        "source": document.name,
+                                        "document_id": document_id,
+                                        "chunk_order": i
+                                    }
+                                }
+                                chunks.append(chunk_data)
+                            except Exception as e:
+                                logger.warning(f"Failed to parse chunk data for {point.id}: {str(e)}")
+                                # Fallback with basic info
+                                chunks.append({
+                                    "id": str(point.id),
+                                    "order": i,
+                                    "content": f"Chunk {i+1} (ID: {point.id})",
+                                    "metadata": {
+                                        "source": document.name,
+                                        "document_id": document_id,
+                                        "chunk_order": i,
+                                        "error": "Failed to parse chunk content"
+                                    }
+                                })
+                    else:
+                        # Fallback for other vector store types
+                        logger.warning(f"Vector store type not supported for chunk retrieval: {type(vector_store_adaptor.connector)}")
+                        for i, ctx_id in enumerate(ctx_ids):
+                            chunks.append({
+                                "id": ctx_id,
+                                "order": i,
+                                "content": f"Chunk {i+1} content (ID: {ctx_id})",
+                                "metadata": {
+                                    "source": document.name,
+                                    "document_id": document_id,
+                                    "chunk_order": i,
+                                    "note": "Direct retrieval not implemented for this vector store type"
+                                }
+                            })
+                            
+                except Exception as e:
+                    logger.error(f"Failed to retrieve chunks from vector store: {str(e)}")
+                    # Fallback to basic chunk info
+                    for i, ctx_id in enumerate(ctx_ids):
+                        chunks.append({
+                            "id": ctx_id,
+                            "order": i,
+                            "content": f"Chunk {i+1} (Error retrieving content)",
+                            "metadata": {
+                                "source": document.name,
+                                "document_id": document_id,
+                                "chunk_order": i,
+                                "error": str(e)
+                            }
+                        })
+
+                return chunks
+
+            return await self.db_ops.execute_with_transaction(_get_chunks)
+
+        except Exception as e:
+            logger.error(f"Failed to get document chunks for {document_id}: {str(e)}")
+            if isinstance(e, (DocumentNotFoundException, ResourceNotFoundException)):
+                raise e
+            raise Exception(f"Failed to get document chunks: {str(e)}")
+
+
 # Create a global service instance for easy access
 # This uses the global db_ops instance and doesn't require session management in views
 document_service = DocumentService()

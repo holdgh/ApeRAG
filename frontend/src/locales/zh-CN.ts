@@ -199,6 +199,21 @@ export default {
   'feishu.doc_space.node_id': 'Node ID',
   'feishu.doc_space.node_id.required': 'Node ID 为必填项',
 
+  // Document detail
+  'document.detail.title': '文档详情',
+  'document.detail.loading': '正在加载文档内容...',
+  'document.detail.fetch.failed': '获取文档详情失败',
+  'document.detail.original.content': '原始内容',
+  'document.detail.chunks': '分块内容',
+  'document.detail.no.content': '无内容',
+  'document.detail.content.unavailable': '原始内容不可用',
+  'document.detail.chunks.empty': '暂无分块内容',
+  'document.chunk.index': '第 {index} 块',
+  'document.chunk.tokens': '{count} tokens',
+  'document.chunk.no.content': '无内容',
+  'document.chunk.metadata': '元数据',
+  'document.chunk.content': '内容',
+
   git: '----------------------------------',
   'git.repo': '仓库地址',
   'git.repo.required': '仓库地址为必填项',

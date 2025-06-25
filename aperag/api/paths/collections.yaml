@@ -294,6 +294,80 @@ rebuild_indexes:
             schema:
               $ref: '../components/schemas/common.yaml#/failResponse'
 
+document_content:
+  get:
+    summary: Get document original content
+    description: Get the original content of a document
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: collection_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Document original content
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/document.yaml#/documentContent'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '404':
+        description: Document not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+document_chunks:
+  get:
+    summary: Get document chunks
+    description: Get all chunks of a document after chunking processing
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: collection_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Document chunks
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/document.yaml#/documentChunkList'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '404':
+        description: Document not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
 searches:
   get:
     summary: Get search history

@@ -161,6 +161,33 @@ async def rebuild_document_indexes_view(
     )
 
 
+@router.get("/collections/{collection_id}/documents/{document_id}/content")
+async def get_document_content_view(
+    request: Request,
+    collection_id: str,
+    document_id: str,
+    user: User = Depends(current_user),
+):
+    """Get document original content"""
+    return await document_service.get_document_content(str(user.id), collection_id, document_id)
+
+
+@router.get("/collections/{collection_id}/documents/{document_id}/chunks")
+async def get_document_chunks_view(
+    request: Request,
+    collection_id: str,
+    document_id: str,
+    user: User = Depends(current_user),
+):
+    """Get document chunks"""
+    chunks = await document_service.get_document_chunks(str(user.id), collection_id, document_id)
+    return {
+        "document_id": document_id,
+        "chunks": chunks,
+        "total_chunks": len(chunks)
+    }
+
+
 @router.post("/bots/{bot_id}/chats")
 @audit(resource_type="chat", api_name="CreateChat")
 async def create_chat_view(request: Request, bot_id: str, user: User = Depends(current_user)) -> view_models.Chat:

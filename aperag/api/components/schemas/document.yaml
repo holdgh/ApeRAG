@@ -105,3 +105,79 @@ rebuildIndexesRequest:
       minItems: 1
   required:
     - index_types
+
+documentContent:
+  type: object
+  properties:
+    document_id:
+      type: string
+      description: Document ID
+    name:
+      type: string
+      description: Document name
+    content:
+      type: string
+      description: Original document content
+    size:
+      type: integer
+      description: Document size in bytes
+    file_extension:
+      type: string
+      description: File extension
+    object_path:
+      type: string
+      description: Object storage path
+    created:
+      type: string
+      format: date-time
+      description: Creation time
+    updated:
+      type: string
+      format: date-time
+      description: Last update time
+  required:
+    - document_id
+    - name
+    - content
+
+documentChunk:
+  type: object
+  properties:
+    id:
+      type: string
+      description: Chunk ID
+    order:
+      type: integer
+      description: Chunk order in document
+    content:
+      type: string
+      description: Chunk content
+    metadata:
+      type: object
+      description: Chunk metadata
+      additionalProperties: true
+  required:
+    - id
+    - order
+    - content
+
+documentChunkList:
+  type: object
+  properties:
+    document_id:
+      type: string
+      description: Document ID
+    chunks:
+      type: array
+      items:
+        $ref: '#/documentChunk'
+      description: List of document chunks
+    total_chunks:
+      type: integer
+      description: Total number of chunks
+  required:
+    - document_id
+    - chunks
+    - total_chunks
+
+
