@@ -17,13 +17,14 @@ import { api } from '@/services';
 import { ApeDocument } from '@/types';
 import { parseConfig } from '@/utils';
 import {
-  DeleteOutlined,
-  MoreOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  FileTextOutlined,
-  SplitCellsOutlined,
   CaretRightOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  FileTextOutlined,
+  MoreOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  SplitCellsOutlined,
 } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import {
@@ -51,6 +52,7 @@ import {
   Divider,
   Tag,
   Collapse,
+  message,
 } from 'antd';
 import byteSize from 'byte-size';
 import alpha from 'color-alpha';
@@ -506,180 +508,158 @@ export default () => {
             </div>
           </div>
         ) : (
-          <Row gutter={[16, 16]} style={{ height: '100%' }}>
+          <>
+            {/* Document Level Metadata */}
+            {selectedDocument && (
+              <Card 
+                size="small" 
+                style={{ marginBottom: 16 }}
+                bodyStyle={{ padding: '12px 16px' }}
+              >
+                <Row gutter={[24, 8]}>
+                  <Col span={12}>
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                        {formatMessage({ id: 'document.name' })}
+                      </Typography.Text>
+                      <Typography.Text strong>
+                        {selectedDocument.name}
+                      </Typography.Text>
+                    </Space>
+                  </Col>
+                  <Col span={12}>
+                    <Space direction="vertical" size={4}>
+                      <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                        {formatMessage({ id: 'document.id' })}
+                      </Typography.Text>
+                      <Typography.Text code style={{ fontSize: '13px' }}>
+                        {selectedDocument.id}
+                      </Typography.Text>
+                    </Space>
+                  </Col>
+                </Row>
+              </Card>
+            )}
+
+            {/* Content Section */}
+            <Row gutter={[16, 16]} style={{ height: 'calc(100% - 80px)' }}>
               {/* Left: Original Content */}
               <Col span={12}>
-              <Card
-                title={
-                  <Space>
-                    <FileTextOutlined />
-                    {formatMessage({ id: 'document.detail.original.content' })}
-                  </Space>
-                }
-                size="small"
-                style={{ height: '100%' }}
-                bodyStyle={{ height: 'calc(100% - 57px)', overflow: 'auto' }}
-              >
-                {documentContent ? (
-                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '14px', lineHeight: '1.6' }}>
-                    {typeof documentContent?.content === 'string' ? documentContent.content : (documentContent?.content ? JSON.stringify(documentContent.content) : formatMessage({ id: 'document.detail.no.content' }))}
-                  </div>
-                ) : (
-                  <Alert
-                    message={formatMessage({ id: 'document.detail.content.unavailable' })}
-                    type="warning"
-                    showIcon
-                  />
-                )}
-              </Card>
-            </Col>
+                <Card
+                  title={
+                    <Space>
+                      <FileTextOutlined />
+                      {formatMessage({ id: 'document.detail.original.content' })}
+                    </Space>
+                  }
+                  size="small"
+                  style={{ height: '100%' }}
+                  bodyStyle={{ height: 'calc(100% - 57px)', overflow: 'auto' }}
+                >
+                  {documentContent ? (
+                    <div style={{ whiteSpace: 'pre-wrap', fontSize: '14px', lineHeight: '1.6' }}>
+                      {typeof documentContent?.content === 'string' ? documentContent.content : (documentContent?.content ? JSON.stringify(documentContent.content) : formatMessage({ id: 'document.detail.no.content' }))}
+                    </div>
+                  ) : (
+                    <Alert
+                      message={formatMessage({ id: 'document.detail.content.unavailable' })}
+                      type="warning"
+                      showIcon
+                    />
+                  )}
+                </Card>
+              </Col>
 
-            {/* Right: Chunks */}
-            <Col span={12}>
-              <Card
-                title={
-                  <Space>
-                    <SplitCellsOutlined />
-                    {formatMessage({ id: 'document.detail.chunks' })}
-                    <Tag color="blue">{documentChunks.length}</Tag>
-                  </Space>
-                }
-                size="small"
-                style={{ height: '100%' }}
-                bodyStyle={{ height: 'calc(100% - 57px)', overflow: 'auto', padding: 0 }}
-              >
-                {Array.isArray(documentChunks) && documentChunks.length > 0 ? (
-                  <Collapse
-                    size="small"
-                    expandIcon={({ isActive }) => (
-                      <CaretRightOutlined rotate={isActive ? 90 : 0} />
-                    )}
-                    style={{ border: 'none' }}
-                    defaultActiveKey={documentChunks.map((_, index) => index)}
-                    items={documentChunks.map((chunk, index) => ({
-                      key: chunk?.id || index,
-                      label: (
-                        <Space>
-                          <Typography.Text strong>
-                            {formatMessage({ id: 'document.chunk.index' }, { index: index + 1 })}
-                          </Typography.Text>
-                          {chunk?.id && (
-                            <Tag color="blue">
-                              ID: {chunk.id}
-                            </Tag>
-                          )}
-                          {chunk?.metadata?.tokens && (
-                            <Tag color="green">
-                              {formatMessage({ id: 'document.chunk.tokens' }, { count: chunk.metadata.tokens })}
-                            </Tag>
-                          )}
-                        </Space>
-                      ),
-                      children: (
-                        <div style={{ padding: '8px 12px' }}>
-                          {/* Metadata Section */}
-                          {chunk?.metadata && Object.keys(chunk.metadata).length > 0 && (
-                            <>
-                              <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
-                                {formatMessage({ id: 'document.chunk.metadata' })}:
+              {/* Right: Chunks */}
+              <Col span={12}>
+                <Card
+                  title={
+                    <Space>
+                      <SplitCellsOutlined />
+                      {formatMessage({ id: 'document.detail.chunks' })}
+                      <Tag color="blue">{documentChunks.length}</Tag>
+                    </Space>
+                  }
+                  size="small"
+                  style={{ height: '100%' }}
+                  bodyStyle={{ height: 'calc(100% - 57px)', overflow: 'auto', padding: 0 }}
+                >
+                  {Array.isArray(documentChunks) && documentChunks.length > 0 ? (
+                    <Collapse
+                      size="small"
+                      expandIcon={({ isActive }) => (
+                        <CaretRightOutlined rotate={isActive ? 90 : 0} />
+                      )}
+                      style={{ border: 'none' }}
+                      defaultActiveKey={documentChunks.map((_, index) => index)}
+                      items={documentChunks.map((chunk, index) => ({
+                        key: chunk?.id || index,
+                        label: (
+                          <div>
+                            <Space style={{ marginBottom: 4 }}>
+                              <Typography.Text strong>
+                                {formatMessage({ id: 'document.chunk.index' }, { index: index + 1 })}
                               </Typography.Text>
-                              <div style={{ marginTop: 4, marginBottom: 12 }}>
-                                {Object.entries(chunk?.metadata || {}).map(([key, value]) => (
-                                  <Tag key={key} style={{ marginBottom: 4 }}>
-                                    {key}: {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                  </Tag>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                          
-                          {/* Vector Data Section */}
-                          {chunk?.vector && Array.isArray(chunk.vector) && chunk.vector.length > 0 && (
-                            <>
-                              <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
-                                向量数据 (维度: {chunk.vector.length}):
-                              </Typography.Text>
-                              <div style={{ marginTop: 4, marginBottom: 12 }}>
-                                <div style={{ 
-                                  fontSize: '11px',
-                                  backgroundColor: '#f8f9fa',
-                                  padding: '8px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #e9ecef'
-                                }}>
-                                  <Typography.Text style={{ fontSize: '11px', color: '#666' }}>
-                                    前10维: [{chunk.vector.slice(0, 10).map((v: any) => Number(v).toFixed(4)).join(', ')}
-                                    {chunk.vector.length > 10 ? ', ...' : ''}]
+                              {chunk?.id && (
+                                <Tag color="blue">
+                                  ID: {chunk.id}
+                                </Tag>
+                              )}
+                            </Space>
+                            {/* Vector Data Display */}
+                            {chunk?.vector && Array.isArray(chunk.vector) && chunk.vector.length > 0 && (
+                              <div>
+                                <Space>
+                                  <Typography.Text type="secondary" style={{ fontSize: '11px' }}>
+                                    {formatMessage({ id: 'document.chunk.vector' })} ({chunk.vector.length}维): 
+                                    [{chunk.vector.slice(0, 5).map((v: any) => Number(v).toFixed(3)).join(', ')}
+                                    {chunk.vector.length > 5 ? ', ...' : ''}]
                                   </Typography.Text>
-                                  {chunk.vector.length > 10 && (
-                                    <Collapse
-                                      size="small"
-                                      ghost
-                                      style={{ marginTop: 8 }}
-                                      items={[
-                                        {
-                                          key: 'full-vector',
-                                          label: (
-                                            <Typography.Text style={{ fontSize: '11px', color: '#1890ff' }}>
-                                              查看完整向量 ({chunk.vector.length} 维)
-                                            </Typography.Text>
-                                          ),
-                                          children: (
-                                            <div style={{ 
-                                              maxHeight: '150px', 
-                                              overflow: 'auto',
-                                              fontSize: '10px',
-                                              fontFamily: 'monospace',
-                                              backgroundColor: '#ffffff',
-                                              padding: '8px',
-                                              borderRadius: '4px',
-                                              border: '1px solid #d9d9d9',
-                                              lineHeight: '1.4'
-                                            }}>
-                                              [{chunk.vector.map((v: any) => Number(v).toFixed(4)).join(', ')}]
-                                            </div>
-                                          )
-                                        }
-                                      ]}
-                                    />
-                                  )}
-                                </div>
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<CopyOutlined />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const vectorText = JSON.stringify(chunk.vector);
+                                      navigator.clipboard.writeText(vectorText).then(() => {
+                                        message.success('向量数据已复制到剪贴板');
+                                      }).catch(() => {
+                                        message.error('复制失败');
+                                      });
+                                    }}
+                                    style={{ fontSize: '11px' }}
+                                  />
+                                </Space>
                               </div>
-                            </>
-                          )}
-                          
-                          {/* Content Section */}
-                          <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
-                            {formatMessage({ id: 'document.chunk.content' })}:
-                          </Typography.Text>
+                            )}
+                          </div>
+                        ),
+                        children: (
                           <div style={{ 
+                            padding: '8px 12px',
                             whiteSpace: 'pre-wrap', 
                             fontSize: '13px', 
-                            lineHeight: '1.5',
-                            backgroundColor: token.colorBgContainer,
-                            border: `1px solid ${token.colorBorder}`,
-                            borderRadius: '6px',
-                            padding: '12px',
-                            marginTop: '4px'
+                            lineHeight: '1.5'
                           }}>
                             {typeof chunk?.content === 'string' ? chunk.content : (chunk?.content ? JSON.stringify(chunk.content) : formatMessage({ id: 'document.chunk.no.content' }))}
                           </div>
-                        </div>
-                      ),
-                    }))}
-                  />
-                ) : (
-                  <div style={{ padding: '24px', textAlign: 'center' }}>
-                    <Alert
-                      message={formatMessage({ id: 'document.detail.chunks.empty' })}
-                      type="info"
-                      showIcon
+                        ),
+                      }))}
                     />
-                  </div>
-                )}
-              </Card>
-            </Col>
-          </Row>
+                  ) : (
+                    <div style={{ padding: '24px', textAlign: 'center' }}>
+                      <Alert
+                        message={formatMessage({ id: 'document.detail.chunks.empty' })}
+                        type="info"
+                        showIcon
+                      />
+                    </div>
+                  )}
+                </Card>
+              </Col>
+            </Row>
+          </>
         )}
       </Drawer>
     </>

@@ -213,6 +213,8 @@ export default {
   'document.chunk.no.content': '无内容',
   'document.chunk.metadata': '元数据',
   'document.chunk.content': '内容',
+  'document.chunk.vector': '向量数据',
+  'document.id': '文档ID',
 
   git: '----------------------------------',
   'git.repo': '仓库地址',

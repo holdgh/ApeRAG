@@ -543,7 +543,7 @@ class DocumentService:
                         qdrant_client = vector_store_adaptor.connector.client
                         collection_name = vector_store_adaptor.connector.collection_name
                         
-                        # Retrieve points by IDs
+                        # Retrieve points by IDs with vectors
                         results = qdrant_client.retrieve(
                             collection_name=collection_name,
                             ids=ctx_ids,
@@ -551,9 +551,12 @@ class DocumentService:
                             with_vectors=True  # Include vectors for display
                         )
                         
+                        logger.debug(f"Retrieved {len(results)} points from Qdrant for document {document_id}")
+                        
                         for i, point in enumerate(results):
                             try:
                                 payload = point.payload or {}
+                                
                                 # Extract content from node_content if it exists
                                 node_content = payload.get("_node_content")
                                 if node_content:
@@ -564,11 +567,21 @@ class DocumentService:
                                     content = payload.get("text", "No content available")  
                                     metadata = payload.get("metadata", {})
                                 
+                                # Extract vector data from point
+                                vector_data = getattr(point, 'vector', None)
+                                
+                                # Ensure vector_data is a list
+                                if vector_data is not None and not isinstance(vector_data, list):
+                                    if hasattr(vector_data, 'tolist'):
+                                        vector_data = vector_data.tolist()
+                                    else:
+                                        vector_data = list(vector_data)
+                                
                                 chunk_data = {
                                     "id": str(point.id),
                                     "order": i,
                                     "content": content,
-                                    "vector": point.vector if hasattr(point, 'vector') and point.vector else None,
+                                    "vector": vector_data,
                                     "metadata": {
                                         **metadata,
                                         "source": document.name,
@@ -584,6 +597,7 @@ class DocumentService:
                                     "id": str(point.id),
                                     "order": i,
                                     "content": f"Chunk {i+1} (ID: {point.id})",
+                                    "vector": None,
                                     "metadata": {
                                         "source": document.name,
                                         "document_id": document_id,

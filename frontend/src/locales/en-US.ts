@@ -252,6 +252,8 @@ export default {
   'document.chunk.no.content': 'No content',
   'document.chunk.metadata': 'Metadata',
   'document.chunk.content': 'Content',
+  'document.chunk.vector': 'Vector Data',
+  'document.id': 'Document ID',
 
   flow: '---------------',
   'flow.name': 'Workflow',
