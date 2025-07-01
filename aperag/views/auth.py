@@ -37,8 +37,8 @@ COOKIE_MAX_AGE = 86400
 
 
 class UserManager(BaseUserManager[User, str]):
-    reset_password_token_secret = "SECRET"
-    verification_token_secret = "SECRET"
+    reset_password_token_secret = settings.reset_password_token_secret
+    verification_token_secret = settings.verification_token_secret
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         pass
@@ -51,11 +51,8 @@ class UserManager(BaseUserManager[User, str]):
 
 
 # JWT Strategy
-SECRET = "SECRET"  # TODO: Use configuration
-
-
 def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=86400)
+    return JWTStrategy(secret=settings.jwt_secret, lifetime_seconds=86400)
 
 
 # Transport methods

@@ -24,7 +24,8 @@ from ninja.security.http import HttpAuthBase
 
 from aperag.auth import tv
 from aperag.config import settings
-from aperag.db.ops import get_api_key_by_key
+from aperag.db.models import ApiKeyStatus
+from aperag.db.ops import async_db_ops
 from aperag.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 
 logger = logging.getLogger(__name__)
@@ -66,10 +67,10 @@ async def get_user_from_api_key(key: str) -> Optional[str]:
     Uses Redis cache to optimize performance and avoid frequent database queries
     """
 
-    api_key = await get_api_key_by_key(key)
-    if not api_key or api_key.status == api_key.Status.DELETED:
+    api_key = await async_db_ops.get_api_key_by_key(key)
+    if not api_key or api_key.status == ApiKeyStatus.DELETED:
         return None
-    await api_key.update_last_used()
+    # Note: last_used timestamp is updated in the view layer where session context is available
 
     return api_key.user
 

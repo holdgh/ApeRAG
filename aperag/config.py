@@ -123,11 +123,25 @@ class Config(BaseSettings):
     # Register mode
     register_mode: str = Field("unlimited", alias="REGISTER_MODE")
 
+    # Security secrets
+    jwt_secret: str = Field("", alias="JWT_SECRET")
+    reset_password_token_secret: str = Field("", alias="RESET_PASSWORD_TOKEN_SECRET")
+    verification_token_secret: str = Field("", alias="VERIFICATION_TOKEN_SECRET")
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set celery_result_backend if not set
         if not self.celery_result_backend:
             self.celery_result_backend = self.celery_broker_url
+
+        # Generate secure secrets if not provided
+        import secrets
+        if not self.jwt_secret:
+            self.jwt_secret = secrets.token_urlsafe(32)
+        if not self.reset_password_token_secret:
+            self.reset_password_token_secret = secrets.token_urlsafe(32)
+        if not self.verification_token_secret:
+            self.verification_token_secret = secrets.token_urlsafe(32)
 
         # Load model configs from file
         import json

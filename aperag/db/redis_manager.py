@@ -19,7 +19,9 @@ This module provides a simple and efficient Redis connection management system
 using redis-py's built-in connection pooling capabilities for both sync and async operations.
 """
 
+import asyncio
 import logging
+import threading
 from typing import Optional
 
 import redis
@@ -47,10 +49,14 @@ class RedisConnectionManager:
     _sync_client: Optional[redis.Redis] = None
     _async_pool: Optional[async_redis.ConnectionPool] = None
     _sync_pool: Optional[redis.ConnectionPool] = None
+    _async_lock: Optional[asyncio.Lock] = None
+    _sync_lock: Optional[threading.Lock] = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._async_lock = asyncio.Lock()
+            cls._sync_lock = threading.Lock()
         return cls._instance
 
     @classmethod
@@ -65,7 +71,12 @@ class RedisConnectionManager:
             Async Redis client instance with shared connection pool
         """
         if cls._async_client is None:
-            await cls._initialize_async_client(redis_url)
+            if cls._async_lock is None:
+                cls._async_lock = asyncio.Lock()
+            async with cls._async_lock:
+                # Double-check pattern to prevent race condition
+                if cls._async_client is None:
+                    await cls._initialize_async_client(redis_url)
         return cls._async_client
 
     @classmethod
@@ -80,7 +91,12 @@ class RedisConnectionManager:
             Sync Redis client instance with shared connection pool
         """
         if cls._sync_client is None:
-            cls._initialize_sync_client(redis_url)
+            if cls._sync_lock is None:
+                cls._sync_lock = threading.Lock()
+            with cls._sync_lock:
+                # Double-check pattern to prevent race condition
+                if cls._sync_client is None:
+                    cls._initialize_sync_client(redis_url)
         return cls._sync_client
 
     @classmethod

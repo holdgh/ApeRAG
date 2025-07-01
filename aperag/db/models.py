@@ -416,6 +416,7 @@ class ApiKey(Base):
     async def update_last_used(self, session):
         """Update the last_used_at timestamp"""
         self.last_used_at = utc_now()
+        self.gmt_updated = utc_now()
         session.add(self)
         await session.commit()
 
