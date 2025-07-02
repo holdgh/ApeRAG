@@ -1,5 +1,5 @@
 # Configuration variables
-VERSION ?= dev-latest
+VERSION ?= v0.5.0-alpha.29
 VERSION_FILE ?= aperag/version/__init__.py
 BUILDX_PLATFORM ?= linux/amd64,linux/arm64
 BUILDX_ARGS ?= --sbom=false --provenance=false
@@ -57,7 +57,7 @@ run-backend: migrate
 	uvicorn aperag.app:app --host 0.0.0.0 --log-config scripts/uvicorn-log-config.yaml
 
 run-celery:
-	celery -A config.celery worker -B -l INFO --pool=solo
+	celery -A config.celery worker -B -l INFO --pool=threads --concurrency=16
 
 run-beat:
 	celery -A config.celery beat -l INFO
@@ -71,7 +71,7 @@ run-frontend:
 
 run-db:
 	@echo "Starting all database services..."
-	@$(MAKE) run-redis run-postgres run-qdrant run-es run-minio run-neo4j
+	@$(MAKE) run-redis run-postgres run-qdrant run-es run-minio
 
 # Docker Compose deployment
 
