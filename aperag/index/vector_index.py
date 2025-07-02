@@ -70,23 +70,6 @@ class VectorIndexer(BaseIndexer):
                 tokenizer=get_default_tokenizer(),
             )
 
-            # Update DocumentIndex with vector IDs
-            from aperag.config import get_sync_session
-            from aperag.db.models import DocumentIndex, DocumentIndexType
-
-            # Use sync session to update DocumentIndex
-            for session in get_sync_session():
-                stmt = select(DocumentIndex).where(
-                    and_(DocumentIndex.document_id == document_id, DocumentIndex.index_type == DocumentIndexType.VECTOR)
-                )
-                result = session.execute(stmt)
-                doc_index = result.scalar_one_or_none()
-
-                if doc_index:
-                    index_data = {"ctx": ctx_ids}
-                    doc_index.index_data = json.dumps(index_data)
-                    session.commit()
-
             logger.info(f"Vector index created for document {document_id}: {len(ctx_ids)} vectors")
 
             return IndexResult(
@@ -137,7 +120,7 @@ class VectorIndexer(BaseIndexer):
 
                 if doc_index and doc_index.index_data:
                     index_data = json.loads(doc_index.index_data)
-                    old_ctx_ids = index_data.get("ctx", [])
+                    old_ctx_ids = index_data.get("context_ids", [])
 
             # Get vector store adaptor
             vector_store_adaptor = get_vector_db_connector(
@@ -159,12 +142,6 @@ class VectorIndexer(BaseIndexer):
                 chunk_overlap=settings.chunk_overlap_size,
                 tokenizer=get_default_tokenizer(),
             )
-
-            # Update DocumentIndex with new vector IDs
-            if doc_index:
-                index_data = {"ctx": ctx_ids}
-                doc_index.index_data = json.dumps(index_data)
-                session.commit()
 
             logger.info(f"Vector index updated for document {document_id}: {len(ctx_ids)} vectors")
 
@@ -214,7 +191,7 @@ class VectorIndexer(BaseIndexer):
                     )
 
                 index_data = json.loads(doc_index.index_data)
-                ctx_ids = index_data.get("ctx", [])
+                ctx_ids = index_data.get("context_ids", [])
 
             if not ctx_ids:
                 return IndexResult(
