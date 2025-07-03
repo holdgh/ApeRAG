@@ -22,15 +22,21 @@ print "Adding and updating KubeBlocks Helm repository..."
 helm repo add kubeblocks-addons $KUBEBLOCKS_ADDONS_HELM_REPO
 helm repo update kubeblocks-addons
 
-# postgresql, redis, mongodb are enabled by default in kubeblocks-addons
-# qdrant is not enabled by default in kubeblocks-addons
-# elasticsearch is not installed by default in kubeblocks-addons
-
-# Install addons
-[ "$ENABLE_ELASTICSEARCH" = true ] && print "Installing Elasticsearch addon..." && helm upgrade --install kb-addon-elasticsearch kubeblocks-addons/elasticsearch --namespace kb-system --version 0.9.1
-
-# Enable addons
+# elasticsearch is not installed by default in kubeblocks-addons, install it first and then enable it
+helm upgrade --install kb-addon-elasticsearch kubeblocks-addons/elasticsearch --namespace kb-system --version 0.9.1
 kbcli addon enable elasticsearch
+
+# postgresql is enabled by default in kubeblocks-addons, upgrade it first and then enable it
+kbcli addon upgrade postgresql --version=0.9.5
+
+# redis is enabled by default in kubeblocks-addons, upgrade it first and then enable it
+kbcli addon upgrade redis --version=0.9.3
+
+# mongodb is enabled by default in kubeblocks-addons, upgrade it first and then enable it
+kbcli addon upgrade mongodb --version=0.9.1
+
+# qdrant is not enabled by default in kubeblocks-addons, upgrade it first and then enable it
+kbcli addon upgrade qdrant --version=0.9.2
 kbcli addon enable qdrant
 
 print_success "KubeBlocks database addons installation completed!"
