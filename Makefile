@@ -1,10 +1,9 @@
 # Configuration variables
-VERSION ?= v0.5.0-alpha.29
+VERSION ?= nightly
 VERSION_FILE ?= aperag/version/__init__.py
 BUILDX_PLATFORM ?= linux/amd64,linux/arm64
 BUILDX_ARGS ?= --sbom=false --provenance=false
 REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
-DOCRAY_VERSION ?= v0.1.1
 
 # Image names
 APERAG_IMAGE = apecloud/aperag
@@ -23,11 +22,11 @@ else
 endif
 
 ##################################################
-# Users - Local Development and Deployment
+# Environment & Dependencies
 ##################################################
 
-# Environment setup
-.PHONY: install-uv venv install
+# Python environment setup
+.PHONY: install-uv venv install clean
 install-uv:
 	@if [ -z "$$(which uv)" ]; then \
 		echo "Installing uv..."; \
@@ -44,16 +43,102 @@ install: venv
 	@echo "Installing Python dependencies..."
 	uv sync --all-groups --all-extras
 
-# Database management
+# Development environment setup
+.PHONY: dev install-hooks
+dev: install-uv venv install-addlicense install-hooks
+	@echo "Installing development tools..."
+	@command -v redocly >/dev/null || npm install @redocly/cli -g
+	@command -v openapi-generator-cli >/dev/null || npm install @openapitools/openapi-generator-cli -g
+	@command -v datamodel-codegen >/dev/null || uv tool install datamodel-code-generator
+	@echo ""
+	@echo "✅ Development environment ready!"
+	@echo "📝 Next steps:"
+	@echo "   1. Activate virtual environment: source .venv/bin/activate"
+	@echo "   2. Install dependencies: make install"
+	@echo "   3. Start databases: make compose-infra"
+	@echo "   4. Apply migrations: make migrate"
+	@echo "   5. Run services: make run-backend, make run-celery"
+
+install-hooks:
+	@echo "Installing git hooks..."
+	@./scripts/install-hooks.sh
+
+# Environment cleanup
+clean:
+	@echo "Cleaning development environment..."
+	@rm -f db.sqlite3
+	@$(MAKE) compose-down REMOVE_VOLUMES=1
+
+##################################################
+# Database & Infrastructure
+##################################################
+
+# Database schema management
 .PHONY: makemigration migrate
 makemigration:
-	@alembic -c aperag/alembic.ini revision --autogenerate
+	@uv run alembic -c aperag/alembic.ini revision --autogenerate
 
 migrate:
-	@alembic -c aperag/alembic.ini upgrade head
+	@uv run alembic -c aperag/alembic.ini upgrade head
 
-# Local services
-.PHONY: run-backend run-frontend run-db run-celery run-flower
+# Docker Compose infrastructure
+
+# Variables for compose command based on environment flags
+# Usage examples:
+#   make compose-up                              # Full application
+#   make compose-up WITH_NEO4J=1                 # Full application + Neo4j
+#   make compose-up WITH_DOCRAY=1                # Full application + DocRay
+#   make compose-up WITH_NEO4J=1 WITH_DOCRAY=1   # Full application + Neo4j + DocRay
+#   make compose-up WITH_NEO4J=1 WITH_DOCRAY=1 WITH_GPU=1  # All features
+#   make compose-infra                           # Infrastructure only (databases)
+#   make compose-infra WITH_NEO4J=1              # Infrastructure + Neo4j
+#   make compose-down                            # Stop all services
+#   make compose-down REMOVE_VOLUMES=1           # Stop and remove volumes
+_PROFILES_TO_ACTIVATE :=
+_EXTRA_ENVS :=
+_COMPOSE_DOWN_FLAGS :=
+
+# Determine which additional profiles to activate
+ifeq ($(WITH_NEO4J),1)
+    _PROFILES_TO_ACTIVATE += --profile neo4j
+endif
+
+ifeq ($(WITH_DOCRAY),1)
+    ifeq ($(WITH_GPU),1)
+        _PROFILES_TO_ACTIVATE += --profile docray-gpu
+		_EXTRA_ENVS += DOCRAY_HOST=http://aperag-docray-gpu:8639
+    else
+        _PROFILES_TO_ACTIVATE += --profile docray
+		_EXTRA_ENVS += DOCRAY_HOST=http://aperag-docray:8639
+    endif
+endif
+
+# Determine flags for 'compose-down'
+ifeq ($(REMOVE_VOLUMES),1)
+    _COMPOSE_DOWN_FLAGS += -v
+endif
+
+.PHONY: compose-up compose-down compose-logs compose-infra
+# Full application startup 
+compose-up:
+	VERSION=v0.5.0-alpha.30 DOCRAY_VERSION=v0.1.1 $(_EXTRA_ENVS) docker-compose --profile app $(_PROFILES_TO_ACTIVATE) -f docker-compose.yml up -d
+
+# Infrastructure only (databases + supporting services)
+compose-infra:
+	VERSION=v0.5.0-alpha.30 DOCRAY_VERSION=v0.1.1 docker-compose $(_PROFILES_TO_ACTIVATE) -f docker-compose.yml up -d
+
+compose-down:
+	VERSION=v0.5.0-alpha.30 DOCRAY_VERSION=v0.1.1 docker-compose --profile app --profile docray --profile docray-gpu --profile neo4j -f docker-compose.yml down $(_COMPOSE_DOWN_FLAGS)
+
+compose-logs:
+	VERSION=v0.5.0-alpha.30 DOCRAY_VERSION=v0.1.1 docker-compose -f docker-compose.yml logs -f
+
+##################################################
+# Development Services
+##################################################
+
+# Local development services
+.PHONY: run-backend run-frontend run-celery run-flower run-beat
 run-backend: migrate
 	uvicorn aperag.app:app --host 0.0.0.0 --reload --log-config scripts/uvicorn-log-config.yaml
 
@@ -70,74 +155,12 @@ run-frontend:
 	cp ./frontend/deploy/env.local.template ./frontend/.env
 	cd ./frontend && yarn dev
 
-run-db:
-	@echo "Starting all database services..."
-	@$(MAKE) run-redis run-postgres run-qdrant run-es run-minio
-
-# Docker Compose deployment
-
-# Variables for compose command based on environment flags
-# Usage examples:
-#   make compose-up
-#   make compose-up WITH_DOCRAY=1
-#   make compose-up WITH_DOCRAY=1 WITH_GPU=1
-#   make compose-down
-#   make compose-down REMOVE_VOLUMES=1
-_PROFILES_TO_ACTIVATE :=
-_EXTRA_ENVS :=
-_COMPOSE_DOWN_FLAGS :=
-
-# Determine which docray profile to use for 'compose-up'
-ifeq ($(WITH_DOCRAY),1)
-    ifeq ($(WITH_GPU),1)
-        _PROFILES_TO_ACTIVATE += --profile docray-gpu
-		_EXTRA_ENVS += DOCRAY_HOST=http://aperag-docray-gpu:8639
-    else
-        _PROFILES_TO_ACTIVATE += --profile docray
-		_EXTRA_ENVS += DOCRAY_HOST=http://aperag-docray:8639
-    endif
-endif
-
-# Determine flags for 'compose-down'
-ifeq ($(REMOVE_VOLUMES),1)
-    _COMPOSE_DOWN_FLAGS += -v
-endif
-
-.PHONY: compose-up compose-down compose-logs
-compose-up:
-	VERSION=$(VERSION) REGISTRY=$(REGISTRY) DOCRAY_VERSION=$(DOCRAY_VERSION) $(_EXTRA_ENVS) docker-compose $(_PROFILES_TO_ACTIVATE) -f docker-compose.yml up -d
-
-compose-down:
-	VERSION=$(VERSION) REGISTRY=$(REGISTRY) DOCRAY_VERSION=$(DOCRAY_VERSION) docker-compose --profile docray --profile docray-gpu -f docker-compose.yml down $(_COMPOSE_DOWN_FLAGS)
-
-compose-logs:
-	VERSION=$(VERSION) REGISTRY=$(REGISTRY) DOCRAY_VERSION=$(DOCRAY_VERSION) docker-compose -f docker-compose.yml logs -f
-
-# Environment cleanup
-.PHONY: clean
-clean:
-	@echo "Cleaning development environment..."
-	@rm -f db.sqlite3
-	@docker rm -fv aperag-postgres-dev aperag-redis-dev aperag-qdrant-dev aperag-es-dev aperag-minio-dev aperag-neo4j-dev 2>/dev/null || true
-	@if [ -f "nebula-docker-compose.yml" ]; then \
-		echo "Stopping NebulaGraph containers..."; \
-		docker-compose -f nebula-docker-compose.yml down 2>/dev/null || true; \
-	fi
-
 ##################################################
-# Developers - Code Quality and Tools
+# Code Quality & Testing
 ##################################################
-
-# Development tools installation
-.PHONY: dev install-hooks
-dev: install-uv install-addlicense install-hooks
-	@echo "Installing development tools..."
-	@command -v redocly >/dev/null || npm install @redocly/cli -g
-	@command -v openapi-generator-cli >/dev/null || npm install @openapitools/openapi-generator-cli -g
-	@command -v datamodel-codegen >/dev/null || uv tool install datamodel-code-generator
 
 # Code quality checks
-.PHONY: format lint static-check test unit-test e2e-test
+.PHONY: format lint static-check
 format:
 	uvx ruff check --fix ./aperag ./tests
 	uvx ruff format ./aperag ./tests
@@ -149,6 +172,8 @@ lint:
 static-check:
 	uvx mypy ./aperag
 
+# Testing suite
+.PHONY: test unit-test e2e-test e2e-performance-test
 test:
 	uv run pytest tests/ -v
 
@@ -169,14 +194,18 @@ e2e-performance-test:
 		--benchmark-save=benchmark-result-$$(date +%Y%m%d%H%M%S) \
 		tests/e2e_test/
 
-# Evaluation
+# RAG evaluation
 .PHONY: evaluate
 evaluate:
 	@echo "Running RAG evaluation..."
 	@python -m aperag.evaluation.run
 
-# Code generation
-.PHONY: merge-openapi generate-models generate-frontend-sdk llm_provider
+##################################################
+# Code Generation & API
+##################################################
+
+# OpenAPI and model generation
+.PHONY: merge-openapi generate-models generate-frontend-sdk
 merge-openapi:
 	@cd aperag && redocly bundle ./api/openapi.yaml > ./api/openapi.merged.yaml
 
@@ -195,10 +224,12 @@ generate-models: merge-openapi
 generate-frontend-sdk:
 	cd ./frontend && yarn api:build
 
+# LLM configuration generation
+.PHONY: llm_provider
 llm_provider:
 	python ./models/generate_model_configs.py
 
-# Version management and licensing
+# Version management
 .PHONY: version
 version:
 	@git rev-parse HEAD | cut -c1-7 > commit_id.txt
@@ -206,14 +237,93 @@ version:
 	@echo "GIT_COMMIT_ID = \"$$(cat commit_id.txt)\"" >> $(VERSION_FILE)
 	@rm commit_id.txt
 
-.PHONY: add-license
+##################################################
+# Build & Deploy
+##################################################
+
+# Docker builder setup
+.PHONY: setup-builder clean-builder
+setup-builder:
+	@if ! docker buildx inspect multi-platform >/dev/null 2>&1; then \
+		docker buildx create --name multi-platform --use --driver docker-container --bootstrap; \
+	else \
+		docker buildx use multi-platform; \
+	fi
+
+clean-builder:
+	@if docker buildx inspect multi-platform >/dev/null 2>&1; then \
+		docker buildx rm multi-platform; \
+	fi
+
+# Production builds (multi-platform with registry push)
+.PHONY: build build-aperag build-aperag-frontend
+build: build-aperag build-aperag-frontend
+
+build-aperag: setup-builder version
+	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
+		--platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push \
+		-f ./Dockerfile .
+
+build-aperag-frontend: setup-builder
+	cd frontend && BASE_PATH=/web/ yarn build
+	cd frontend && docker buildx build \
+		--platform=$(BUILDX_PLATFORM) -f Dockerfile.prod --push \
+		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
+
+# Local builds (single platform for testing)
+.PHONY: build-local build-aperag-local build-aperag-frontend-local
+build-local: build-aperag-local build-aperag-frontend-local
+
+build-aperag-local: setup-builder version
+	docker buildx build -t $(APERAG_IMAGE):$(VERSION) \
+		--platform $(LOCAL_PLATFORM) $(BUILDX_ARGS) --load \
+		-f ./Dockerfile .
+
+build-aperag-frontend-local: setup-builder
+	cd frontend && BASE_PATH=/web/ yarn build
+	cd frontend && docker buildx build \
+		--platform=$(LOCAL_PLATFORM) -f Dockerfile.prod --load \
+		-t $(APERAG_FRONTEND_IMG):$(VERSION) .
+
+# Kubernetes deployment helpers
+.PHONY: load-images-to-minikube load-images-to-kind
+load-images-to-minikube:
+	@echo "Start To Load Image To Minikube"
+	docker save $(APERAG_IMAGE):$(VERSION) -o aperag.tar
+	minikube image load aperag.tar
+	rm aperag.tar
+	docker save $(APERAG_FRONTEND_IMG):$(VERSION) -o aperag-frontend.tar
+	minikube image load aperag-frontend.tar
+	rm aperag-frontend.tar
+	@echo "Already Load Image To Minikube"
+
+load-images-to-kind:
+	@echo "Start To Load Image To KinD"
+	kind load docker-image $(APERAG_IMAGE):$(VERSION) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(APERAG_FRONTEND_IMG):$(VERSION) --name $(KIND_CLUSTER_NAME)
+	@echo "Already Load Image To KinD"
+
+##################################################
+# Utilities & Tools
+##################################################
+
+# System information
+.PHONY: info
+info:
+	@echo "VERSION: $(VERSION)"
+	@echo "BUILDX_PLATFORM: $(BUILDX_PLATFORM)"
+	@echo "LOCAL_PLATFORM: $(LOCAL_PLATFORM)"
+	@echo "REGISTRY: $(REGISTRY)"
+	@echo "HOST ARCH: $(UNAME_M)"
+
+# License management
+.PHONY: add-license check-license install-addlicense
 add-license: install-addlicense
 	./downloads/addlicense -c "ApeCloud, Inc." -y 2025 -l apache \
 		-ignore "aperag/readers/**" \
 		-ignore "aperag/vectorstore/**" \
 		aperag/**/*.py
 
-.PHONY: check-license
 check-license: install-addlicense
 	./downloads/addlicense -check \
 		-c "ApeCloud, Inc." -y 2025 -l apache \
@@ -221,7 +331,6 @@ check-license: install-addlicense
 		-ignore "aperag/vectorstore/**" \
 		aperag/**/*.py
 
-.PHONY: install-addlicense
 install-addlicense:
 	@mkdir -p ./downloads
 	@if [ ! -f ./downloads/addlicense ]; then \
@@ -249,181 +358,3 @@ install-addlicense:
 		chmod +x ./downloads/addlicense; \
 		echo "addlicense installed to ./downloads/addlicense"; \
 	fi
-
-install-hooks:
-	@echo "Installing git hooks..."
-	@./scripts/install-hooks.sh
-
-##################################################
-# Build and CI/CD
-##################################################
-
-# Docker builder setup
-.PHONY: setup-builder clean-builder
-setup-builder:
-	@if ! docker buildx inspect multi-platform >/dev/null 2>&1; then \
-		docker buildx create --name multi-platform --use --driver docker-container --bootstrap; \
-	else \
-		docker buildx use multi-platform; \
-	fi
-
-clean-builder:
-	@if docker buildx inspect multi-platform >/dev/null 2>&1; then \
-		docker buildx rm multi-platform; \
-	fi
-
-# Image builds - multi-platform
-.PHONY: build build-aperag build-aperag-frontend
-build: build-aperag build-aperag-frontend
-
-build-aperag: setup-builder version
-	docker buildx build -t $(REGISTRY)/$(APERAG_IMAGE):$(VERSION) \
-		--platform $(BUILDX_PLATFORM) $(BUILDX_ARGS) --push \
-		-f ./Dockerfile .
-
-build-aperag-frontend: setup-builder
-	cd frontend && BASE_PATH=/web/ yarn build
-	cd frontend && docker buildx build \
-		--platform=$(BUILDX_PLATFORM) -f Dockerfile.prod --push \
-		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
-
-# Image builds - local platform
-.PHONY: build-local build-aperag-local build-aperag-frontend-local
-build-local: build-aperag-local build-aperag-frontend-local
-
-build-aperag-local: setup-builder version
-	docker buildx build -t $(APERAG_IMAGE):$(VERSION) \
-		--platform $(LOCAL_PLATFORM) $(BUILDX_ARGS) --load \
-		-f ./Dockerfile .
-
-build-aperag-frontend-local: setup-builder
-	cd frontend && BASE_PATH=/web/ yarn build
-	cd frontend && docker buildx build \
-		--platform=$(LOCAL_PLATFORM) -f Dockerfile.prod --load \
-		-t $(APERAG_FRONTEND_IMG):$(VERSION) .
-
-##################################################
-# Utilities and Information
-##################################################
-
-# Configuration info
-.PHONY: info
-info:
-	@echo "VERSION: $(VERSION)"
-	@echo "DOCRAY_VERSION: $(DOCRAY_VERSION)"
-	@echo "BUILDX_PLATFORM: $(BUILDX_PLATFORM)"
-	@echo "LOCAL_PLATFORM: $(LOCAL_PLATFORM)"
-	@echo "REGISTRY: $(REGISTRY)"
-	@echo "HOST ARCH: $(UNAME_M)"
-
-# Database connection tools
-.PHONY: connect-metadb
-connect-metadb:
-	@docker exec -it aperag-postgres-dev psql -p 5432 -U postgres
-
-# Individual service startup (for advanced users)
-.PHONY: run-redis run-postgres run-qdrant run-es run-minio run-neo4j run-nebula stop-nebula
-run-redis:
-	@docker inspect aperag-redis-dev >/dev/null 2>&1 || docker run -d --name aperag-redis-dev -p 6379:6379 redis:latest
-	@docker start aperag-redis-dev
-
-run-postgres:
-	@docker inspect aperag-postgres-dev >/dev/null 2>&1 || \
-		docker run -d --name aperag-postgres-dev -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:pg16
-	@docker start aperag-postgres-dev
-	@sleep 3
-	@docker exec aperag-postgres-dev psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;" 2>/dev/null || true
-
-run-qdrant:
-	@docker inspect aperag-qdrant-dev >/dev/null 2>&1 || docker run -d --name aperag-qdrant-dev -p 6333:6333 qdrant/qdrant
-	@docker start aperag-qdrant-dev
-
-run-es:
-	@echo "Starting Elasticsearch (development mode)"
-	@docker inspect aperag-es-dev > /dev/null 2>&1 || \
-	docker run -d \
-		--name aperag-es-dev \
-		-p 9200:9200 \
-		-e discovery.type=single-node \
-		-e ES_JAVA_OPTS="-Xms1g -Xmx1g" \
-		-e xpack.security.enabled=false \
-		-v esdata:/usr/share/elasticsearch/data \
-		apecloud/elasticsearch:8.8.2
-	@docker start aperag-es-dev || true
-	@echo "Checking if IK Analyzer is installed..."
-	@docker exec aperag-es-dev bash -c \
-		"if [ ! -d plugins/analysis-ik ]; then \
-			echo 'Installing IK Analyzer from get.infini.cloud...'; \
-			curl -L --output /tmp/analysis-ik.zip https://get.infini.cloud/elasticsearch/analysis-ik/8.8.2; \
-			echo 'y' | bin/elasticsearch-plugin install file:///tmp/analysis-ik.zip; \
-			echo 'Restarting Elasticsearch to apply changes...'; \
-		else \
-			echo 'IK Analyzer is already installed.'; \
-		fi"
-	@docker restart aperag-es-dev > /dev/null
-	@echo "Elasticsearch is ready with IK Analyzer!"
-
-run-minio:
-	@docker inspect aperag-minio-dev >/dev/null 2>&1 || \
-		docker run -d --name aperag-minio-dev -p 9000:9000 -p 9001:9001 \
-		quay.io/minio/minio server /data --console-address ":9001"
-	@docker start aperag-minio-dev
-
-run-neo4j:
-	@docker inspect aperag-neo4j-dev >/dev/null 2>&1 || \
-		docker run -d --name aperag-neo4j-dev -p 7474:7474 -p 7687:7687 \
-		-e NEO4J_AUTH=neo4j/password \
-		-e NEO4J_PLUGINS=\[\"apoc\"\] \
-		-e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \
-		-e NEO4J_apoc_export_file_enabled=true \
-		neo4j:5.26.5-enterprise
-	@docker start aperag-neo4j-dev
-
-run-nebula:
-	@echo "Setting up NebulaGraph with docker-compose (no persistence)..."
-	@TZ=UTC docker-compose -f nebula-docker-compose.yml up -d
-	@echo "NebulaGraph is starting up..."
-	@echo ""
-	@echo "✅ Graph service available at: localhost:9669"
-	@echo ""
-	@echo "🌐 Studio Web UI: http://localhost:7001"
-	@echo "   📝 Connection Info:"
-	@echo "   • Graphd IP address: graphd"
-	@echo "   • Port: 9669"
-	@echo "   • Username: root"
-	@echo "   • Password: nebula (or any password)"
-	@echo ""
-	@echo "💻 Console: docker run --rm -ti --network host vesoft/nebula-console:nightly -addr 127.0.0.1 -port 9669 -u root -p nebula"
-	@echo ""
-	@echo "🔍 Check status: docker-compose -f nebula-docker-compose.yml ps"
-	@echo "🛑 Stop: make stop-nebula"
-
-stop-nebula:
-	@echo "Stopping NebulaGraph..."
-	@docker-compose -f nebula-docker-compose.yml down
-	@echo "NebulaGraph stopped."
-
-
-.PHONY: load-images-to-minikube
-load-images-to-minikube:
-	@echo "Start To Load Image To Minikube"
-	docker save $(APERAG_IMAGE):$(VERSION) -o aperag.tar
-	minikube image load aperag.tar
-	rm aperag.tar
-	docker save $(APERAG_FRONTEND_IMG):$(VERSION) -o aperag-frontend.tar
-	minikube image load aperag-frontend.tar
-	rm aperag-frontend.tar
-	@echo "Already Load Image To Minikube"
-
-.PHONY: load-images-to-kind
-load-images-to-kind:
-	@echo "Start To Load Image To KinD"
-	kind load docker-image $(APERAG_IMAGE):$(VERSION) --name $(KIND_CLUSTER_NAME)
-	kind load docker-image $(APERAG_FRONTEND_IMG):$(VERSION) --name $(KIND_CLUSTER_NAME)
-	@echo "Already Load Image To KinD"
-
-# Compatibility aliases
-.PHONY: image celery flower
-image: build
-celery: run-celery
-flower: run-flower
