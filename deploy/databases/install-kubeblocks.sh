@@ -11,8 +11,12 @@ check_dependencies
 # Function for installing KubeBlocks
 install_kubeblocks() {
     print "Ready to install kbcli..."
-    curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s 0.9.4
-    print_success "kbcli installation complete!"
+    if which kbcli &>/dev/null; then
+        print_success "kbcli is already installed, skipping installation."
+    else
+        curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s 0.9.4
+        print_success "kbcli installation complete!"
+    fi
 
     print "Ready to install KubeBlocks."
     kbcli kubeblocks install --version=${KB_VERSION} --namespace=kb-system --create-namespace --set dataProtection.enabled=false
