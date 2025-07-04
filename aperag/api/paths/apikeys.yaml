@@ -2,6 +2,8 @@ apikeys:
   get:
     summary: Get API keys
     description: Get API keys
+    tags:
+      - api-key
     responses:
       '200':
         description: API keys
@@ -18,6 +20,8 @@ apikeys:
   post:
     summary: Create API key
     description: Create API key
+    tags:
+      - api-key
     security:
       - BearerAuth: []
     requestBody:
@@ -44,6 +48,8 @@ apikey:
   put:
     summary: Update API key
     description: Update API key
+    tags:
+      - api-key
     security:
       - BearerAuth: []
     parameters:
@@ -71,6 +77,8 @@ apikey:
   delete:
     summary: Delete API key
     description: Delete API key
+    tags:
+      - api-key
     security:
       - BearerAuth: []
     parameters:

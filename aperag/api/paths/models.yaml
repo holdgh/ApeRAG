@@ -1,6 +1,9 @@
 availableModels:
   post:
     summary: Get available models with filtering
+    tags:
+      - config
+      - llm
     description: |
       Get available models with tag filtering support.
       - No tag_filters or empty array: Returns only models with "recommend" tag (default)

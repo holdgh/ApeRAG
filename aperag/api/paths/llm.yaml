@@ -10,7 +10,8 @@ embeddings:
       It requires the provider to be configured in the user's Model Service Provider (MSP) settings
       with a valid API key.
     tags:
-      - LLM
+      - llm
+      - embedding
     security:
       - BearerAuth: []
       - CookieAuth: []
@@ -151,7 +152,8 @@ rerank:
       The provider must be configured in the user's Model Service Provider (MSP) settings
       with a valid API key and support rerank functionality.
     tags:
-      - LLM
+      - llm
+      - rerank
     security:
       - BearerAuth: []
       - CookieAuth: []

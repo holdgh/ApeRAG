@@ -11,6 +11,8 @@ paths:
     get:
       summary: List bots
       description: Get a list of bots
+      tags:
+        - bot
       security:
         - BearerAuth: []
       parameters:
@@ -40,6 +42,8 @@ paths:
     post:
       summary: Create a new bot
       description: Create a new bot
+      tags:
+        - bot
       security:
         - BearerAuth: []
       requestBody:
@@ -65,6 +69,8 @@ paths:
     get:
       summary: Get bot details
       description: Get details of a specific bot
+      tags:
+        - bot
       security:
         - BearerAuth: []
       parameters:
@@ -95,6 +101,8 @@ paths:
     delete:
       summary: Delete a bot
       description: Delete a bot (idempotent operation)
+      tags:
+        - bot
       security:
         - BearerAuth: []
       parameters:
@@ -109,6 +117,8 @@ paths:
     put:
       summary: Update a bot
       description: Update a bot
+      tags:
+        - bot
       security:
         - BearerAuth: []
       parameters:
@@ -130,6 +140,8 @@ paths:
     get:
       summary: Get flow
       description: Get flow
+      tags:
+        - flow
       parameters:
         - name: bot_id
           in: path
@@ -152,6 +164,8 @@ paths:
     put:
       summary: Update flow
       description: Update flow
+      tags:
+        - flow
       parameters:
         - name: bot_id
           in: path
@@ -177,6 +191,9 @@ paths:
     post:
       summary: Debug a flow
       description: Debug a flow
+      tags:
+        - flow
+        - bot
       security:
         - BearerAuth: []
       parameters:
@@ -204,6 +221,8 @@ paths:
     get:
       summary: List chats
       description: Get a list of chats
+      tags:
+        - chat
       security:
         - BearerAuth: []
       parameters:
@@ -238,6 +257,8 @@ paths:
     post:
       summary: Create a new chat
       description: Create a new chat
+      tags:
+        - chat
       security:
         - BearerAuth: []
       parameters:
@@ -269,6 +290,8 @@ paths:
     get:
       summary: Get chat details
       description: Get details of a specific chat
+      tags:
+        - chat
       security:
         - BearerAuth: []
       parameters:
@@ -304,6 +327,8 @@ paths:
     put:
       summary: Update a chat
       description: Update a chat
+      tags:
+        - chat
       security:
         - BearerAuth: []
       parameters:
@@ -345,6 +370,8 @@ paths:
     delete:
       summary: Delete a chat
       description: Delete a chat (idempotent operation)
+      tags:
+        - chat
       security:
         - BearerAuth: []
       parameters:
@@ -371,6 +398,8 @@ paths:
     post:
       summary: Feedback a message
       description: Feedback a message
+      tags:
+        - chat
       parameters:
         - name: bot_id
           in: path
@@ -400,6 +429,8 @@ paths:
     get:
       summary: List collections
       description: Get a list of collections
+      tags:
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -429,6 +460,8 @@ paths:
     post:
       summary: Create a new collection
       description: Create a new collection
+      tags:
+        - collection
       security:
         - BearerAuth: []
       requestBody:
@@ -448,6 +481,8 @@ paths:
     get:
       summary: Get collection details
       description: Get details of a specific collection
+      tags:
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -478,6 +513,8 @@ paths:
     delete:
       summary: Delete a collection
       description: Delete a collection
+      tags:
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -492,6 +529,8 @@ paths:
     put:
       summary: Update a collection
       description: Update a collection
+      tags:
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -517,6 +556,9 @@ paths:
     get:
       summary: List documents
       description: Get a list of documents
+      tags:
+        - document
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -551,6 +593,9 @@ paths:
     post:
       summary: Create a new document
       description: Create a new document
+      tags:
+        - document
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -582,6 +627,9 @@ paths:
     get:
       summary: Get document details
       description: Get details of a specific document
+      tags:
+        - document
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -617,6 +665,9 @@ paths:
     delete:
       summary: Delete a document
       description: Delete a document
+      tags:
+        - document
+        - collection
       security:
         - BearerAuth: []
       parameters:
@@ -649,6 +700,9 @@ paths:
     post:
       summary: Rebuild document indexes
       description: Rebuild specified types of indexes for a document
+      tags:
+        - index
+        - document
       security:
         - BearerAuth: []
       parameters:
@@ -687,6 +741,8 @@ paths:
     get:
       summary: Get search history
       description: Get the history of searches
+      tags:
+        - search
       security:
         - BearerAuth: []
       parameters:
@@ -711,6 +767,8 @@ paths:
     post:
       summary: Search in collection
       description: Search in a collection with different search types
+      tags:
+        - search
       security:
         - BearerAuth: []
       parameters:
@@ -742,6 +800,8 @@ paths:
     delete:
       summary: Delete a search
       description: Delete a search
+      tags:
+        - search
       security:
         - BearerAuth: []
       parameters:
@@ -884,6 +944,8 @@ paths:
     get:
       summary: Get API keys
       description: Get API keys
+      tags:
+        - api-key
       responses:
         '200':
           description: API keys
@@ -900,6 +962,8 @@ paths:
     post:
       summary: Create API key
       description: Create API key
+      tags:
+        - api-key
       security:
         - BearerAuth: []
       requestBody:
@@ -925,6 +989,8 @@ paths:
     put:
       summary: Update API key
       description: Update API key
+      tags:
+        - api-key
       security:
         - BearerAuth: []
       parameters:
@@ -951,6 +1017,8 @@ paths:
     delete:
       summary: Delete API key
       description: Delete API key
+      tags:
+        - api-key
       security:
         - BearerAuth: []
       parameters:
@@ -973,6 +1041,9 @@ paths:
   /available_models:
     post:
       summary: Get available models with filtering
+      tags:
+        - config
+        - llm
       description: |
         Get available models with tag filtering support.
         - No tag_filters or empty array: Returns only models with "recommend" tag (default)
@@ -1054,6 +1125,9 @@ paths:
     get:
       summary: Get complete LLM configuration
       description: Get complete LLM configuration including providers and models
+      tags:
+        - config
+        - llm
       responses:
         '200':
           description: Complete LLM configuration
@@ -1071,6 +1145,9 @@ paths:
     post:
       summary: Create a new LLM provider
       description: Create a new LLM provider with optional API key
+      tags:
+        - config
+        - llm
       requestBody:
         required: true
         content:
@@ -1100,6 +1177,9 @@ paths:
     get:
       summary: Get a specific LLM provider
       description: Get a specific LLM provider by name
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1129,6 +1209,9 @@ paths:
     put:
       summary: Update an LLM provider
       description: Update an existing LLM provider with optional API key
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1170,6 +1253,9 @@ paths:
     delete:
       summary: Delete an LLM provider
       description: Delete an LLM provider (soft delete)
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1196,6 +1282,9 @@ paths:
     get:
       summary: Get models for a specific provider
       description: Get all models for a specific provider
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1219,6 +1308,9 @@ paths:
     post:
       summary: Create a new model for a provider
       description: Create a new model for a specific provider
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1255,6 +1347,9 @@ paths:
     put:
       summary: Update a provider model
       description: Update a specific model of a provider
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1314,6 +1409,9 @@ paths:
     delete:
       summary: Delete a provider model
       description: Delete a specific model of a provider
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: path
@@ -1358,6 +1456,9 @@ paths:
     get:
       summary: List all LLM provider models
       description: List all LLM provider models, optionally filtered by provider
+      tags:
+        - config
+        - llm
       parameters:
         - name: provider_name
           in: query
@@ -1390,7 +1491,8 @@ paths:
         It requires the provider to be configured in the user's Model Service Provider (MSP) settings
         with a valid API key.
       tags:
-        - LLM
+        - llm
+        - embedding
       security:
         - BearerAuth: []
         - CookieAuth: []
@@ -1542,7 +1644,8 @@ paths:
         The provider must be configured in the user's Model Service Provider (MSP) settings
         with a valid API key and support rerank functionality.
       tags:
-        - LLM
+        - llm
+        - rerank
       security:
         - BearerAuth: []
         - CookieAuth: []
@@ -1750,6 +1853,8 @@ paths:
     get:
       summary: Get system configuration
       description: Get system configuration
+      tags:
+        - config
       security:
         - BearerAuth: []
       responses:
@@ -1769,6 +1874,8 @@ paths:
     get:
       summary: Get prompt templates
       description: Get prompt templates
+      tags:
+        - template
       responses:
         '200':
           description: A list of prompt templates
@@ -1856,6 +1963,8 @@ paths:
     post:
       summary: Create an invitation
       description: Create a new invitation for a user to register
+      tags:
+        - invite
       requestBody:
         required: true
         content:
@@ -1879,6 +1988,8 @@ paths:
     get:
       summary: Get all invitations
       description: Get all invitations
+      tags:
+        - invite
       responses:
         '200':
           description: Invitations fetched successfully
@@ -1896,6 +2007,8 @@ paths:
     post:
       summary: Register a new user
       description: Register a new user with an invitation token
+      tags:
+        - auth
       requestBody:
         required: true
         content:
@@ -1919,6 +2032,8 @@ paths:
     post:
       summary: Login a user
       description: Login a user with username and password
+      tags:
+        - auth
       requestBody:
         required: true
         content:
@@ -1942,6 +2057,8 @@ paths:
     post:
       summary: Logout a user
       description: Logout a user
+      tags:
+        - auth
       responses:
         '200':
           description: Logout successful
@@ -1949,6 +2066,8 @@ paths:
     get:
       summary: Get all users
       description: Get all users
+      tags:
+        - admin
       responses:
         '200':
           description: Users fetched successfully
@@ -1966,6 +2085,8 @@ paths:
     get:
       summary: Get user info
       description: Get user info
+      tags:
+        - admin
       responses:
         '200':
           description: User info
@@ -1983,6 +2104,8 @@ paths:
     post:
       summary: Change user password
       description: Change user password
+      tags:
+        - admin
       requestBody:
         required: true
         content:
@@ -1996,6 +2119,8 @@ paths:
     delete:
       summary: Delete a user
       description: Delete a user
+      tags:
+        - admin
       parameters:
         - name: user_id
           in: path

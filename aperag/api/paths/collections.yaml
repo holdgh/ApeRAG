@@ -2,6 +2,8 @@ collections:
   get:
     summary: List collections
     description: Get a list of collections
+    tags:
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -32,6 +34,8 @@ collections:
   post:
     summary: Create a new collection
     description: Create a new collection
+    tags:
+      - collection
     security:
       - BearerAuth: []
     requestBody:
@@ -52,6 +56,8 @@ collection:
   get:
     summary: Get collection details
     description: Get details of a specific collection
+    tags:
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -83,6 +89,8 @@ collection:
   delete:
     summary: Delete a collection
     description: Delete a collection
+    tags:
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -98,6 +106,8 @@ collection:
   put:
     summary: Update a collection
     description: Update a collection
+    tags:
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -124,6 +134,9 @@ documents:
   get:
     summary: List documents
     description: Get a list of documents
+    tags:
+      - document
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -159,6 +172,9 @@ documents:
   post:
     summary: Create a new document
     description: Create a new document
+    tags:
+      - document
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -191,6 +207,9 @@ document:
   get:
     summary: Get document details
     description: Get details of a specific document
+    tags:
+      - document
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -226,6 +245,9 @@ document:
   delete:
     summary: Delete a document
     description: Delete a document
+    tags:
+      - document
+      - collection
     security:
       - BearerAuth: []
     parameters:
@@ -259,6 +281,9 @@ rebuild_indexes:
   post:
     summary: Rebuild document indexes
     description: Rebuild specified types of indexes for a document
+    tags:
+      - index
+      - document
     security:
       - BearerAuth: []
     parameters:
@@ -298,6 +323,8 @@ searches:
   get:
     summary: Get search history
     description: Get the history of searches
+    tags:
+      - search
     security:
       - BearerAuth: []
     parameters:
@@ -323,6 +350,8 @@ searches:
   post:
     summary: Search in collection
     description: Search in a collection with different search types
+    tags:
+      - search
     security:
       - BearerAuth: []
     parameters:
@@ -355,6 +384,8 @@ search_detail:
   delete:
     summary: Delete a search
     description: Delete a search
+    tags:
+      - search
     security:
       - BearerAuth: []
     parameters:

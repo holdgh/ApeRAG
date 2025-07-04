@@ -2,6 +2,8 @@ config:
   get:
     summary: Get system configuration
     description: Get system configuration
+    tags:
+      - config
     security:
       - BearerAuth: []
     responses:

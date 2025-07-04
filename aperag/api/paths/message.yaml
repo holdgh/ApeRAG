@@ -2,6 +2,8 @@ message:
   post:
     summary: Feedback a message
     description: Feedback a message
+    tags:
+      - chat
     parameters:
       - name: bot_id
         in: path

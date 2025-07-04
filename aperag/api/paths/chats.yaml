@@ -2,6 +2,8 @@ chats:
   get:
     summary: List chats
     description: Get a list of chats
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:
@@ -36,6 +38,8 @@ chats:
   post:
     summary: Create a new chat
     description: Create a new chat
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:
@@ -68,6 +72,8 @@ chat:
   get:
     summary: Get chat details
     description: Get details of a specific chat
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:
@@ -103,6 +109,8 @@ chat:
   put:
     summary: Update a chat
     description: Update a chat
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:
@@ -144,6 +152,8 @@ chat:
   delete:
     summary: Delete a chat
     description: Delete a chat (idempotent operation)
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:
@@ -171,6 +181,8 @@ messages:
   get:
     summary: List messages
     description: Get a list of messages in a chat
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:
@@ -210,6 +222,8 @@ messages:
   post:
     summary: Create a new message
     description: Create a new message in a chat
+    tags:
+      - chat
     security:
       - BearerAuth: []
     parameters:

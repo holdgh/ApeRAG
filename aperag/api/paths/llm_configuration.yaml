@@ -4,6 +4,9 @@ llmConfiguration:
   get:
     summary: Get complete LLM configuration
     description: Get complete LLM configuration including providers and models
+    tags:
+      - config
+      - llm
     responses:
       '200':
         description: Complete LLM configuration
@@ -22,6 +25,9 @@ llmProviders:
   post:
     summary: Create a new LLM provider
     description: Create a new LLM provider with optional API key
+    tags:
+      - config
+      - llm
     requestBody:
       required: true
       content:
@@ -52,6 +58,9 @@ llmProvider:
   get:
     summary: Get a specific LLM provider
     description: Get a specific LLM provider by name
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -81,6 +90,9 @@ llmProvider:
   put:
     summary: Update an LLM provider
     description: Update an existing LLM provider with optional API key
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -122,6 +134,9 @@ llmProvider:
   delete:
     summary: Delete an LLM provider
     description: Delete an LLM provider (soft delete)
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -149,6 +164,9 @@ llmProviderModels:
   get:
     summary: Get models for a specific provider
     description: Get all models for a specific provider
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -172,6 +190,9 @@ llmProviderModels:
   post:
     summary: Create a new model for a provider
     description: Create a new model for a specific provider
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -209,6 +230,9 @@ llmProviderModel:
   put:
     summary: Update a provider model
     description: Update a specific model of a provider
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -265,6 +289,9 @@ llmProviderModel:
   delete:
     summary: Delete a provider model
     description: Delete a specific model of a provider
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: path
@@ -307,6 +334,9 @@ llmProviderModelsList:
   get:
     summary: List all LLM provider models
     description: List all LLM provider models, optionally filtered by provider
+    tags:
+      - config
+      - llm
     parameters:
       - name: provider_name
         in: query

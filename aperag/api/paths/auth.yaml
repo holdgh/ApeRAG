@@ -2,6 +2,8 @@ invite:
   post:
     summary: Create an invitation
     description: Create a new invitation for a user to register
+    tags:
+      - invite
     requestBody:
       required: true
       content:
@@ -26,6 +28,8 @@ invitations:
   get:
     summary: Get all invitations
     description: Get all invitations
+    tags:
+      - invite
     responses:
       '200':
         description: Invitations fetched successfully
@@ -44,6 +48,8 @@ register:
   post:
     summary: Register a new user
     description: Register a new user with an invitation token
+    tags:
+      - auth
     requestBody:
       required: true
       content:
@@ -68,6 +74,8 @@ login:
   post:
     summary: Login a user
     description: Login a user with username and password
+    tags:
+      - auth
     requestBody:
       required: true
       content:
@@ -92,6 +100,8 @@ logout:
   post:
     summary: Logout a user
     description: Logout a user
+    tags:
+      - auth
     responses:
       '200':
         description: Logout successful
@@ -100,6 +110,8 @@ users:
   get:
     summary: Get all users 
     description: Get all users
+    tags:
+      - admin
     responses:
       '200':
         description: Users fetched successfully
@@ -118,6 +130,8 @@ changePassword:
   post:
     summary: Change user password
     description: Change user password
+    tags:
+      - admin
     requestBody:
       required: true
       content:
@@ -133,6 +147,8 @@ deleteUser:
   delete:
     summary: Delete a user
     description: Delete a user
+    tags:
+      - admin
     parameters:
       - name: user_id
         in: path
@@ -147,6 +163,8 @@ user:
   get:
     summary: Get user info
     description: Get user info
+    tags:
+      - admin
     responses:
       '200':
         description: User info

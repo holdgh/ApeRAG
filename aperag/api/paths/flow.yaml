@@ -2,6 +2,8 @@ flow:
   get:
     summary: Get flow
     description: Get flow
+    tags:
+      - flow
     parameters:
       - name: bot_id
         in: path
@@ -24,6 +26,8 @@ flow:
   put:
     summary: Update flow
     description: Update flow
+    tags:
+      - flow
     parameters:
       - name: bot_id
         in: path

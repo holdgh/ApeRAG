@@ -14,8 +14,22 @@
 
 
 
+export * from './apis/admin-api';
+export * from './apis/api-key-api';
 export * from './apis/audit-api';
-export * from './apis/default-api';
+export * from './apis/auth-api';
+export * from './apis/bot-api';
+export * from './apis/chat-api';
+export * from './apis/collection-api';
+export * from './apis/config-api';
+export * from './apis/document-api';
+export * from './apis/embedding-api';
+export * from './apis/flow-api';
 export * from './apis/graph-api';
-export * from './apis/llmapi';
+export * from './apis/index-api';
+export * from './apis/invite-api';
+export * from './apis/llm-api';
+export * from './apis/rerank-api';
+export * from './apis/search-api';
+export * from './apis/template-api';
 
