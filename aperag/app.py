@@ -16,6 +16,7 @@ from fastapi import FastAPI
 
 from aperag.exception_handlers import register_exception_handlers
 from aperag.llm.litellm_track import register_custom_llm_track
+from aperag.mcp import mcp_server
 from aperag.views.api_key import router as api_key_router
 from aperag.views.audit import router as audit_router
 from aperag.views.auth import router as auth_router
@@ -25,10 +26,15 @@ from aperag.views.flow import router as flow_router
 from aperag.views.llm import router as llm_router
 from aperag.views.main import router as main_router
 
+# Initialize MCP server integration
+mcp_app = mcp_server.http_app(path="/")
+
+# Create the main FastAPI app with MCP lifespan
 app = FastAPI(
     title="ApeRAG API",
     description="Knowledge management and retrieval system",
     version="1.0.0",
+    lifespan=mcp_app.lifespan,  # CRITICAL: Pass MCP lifespan to FastAPI
 )
 
 # Register global exception handlers
@@ -52,3 +58,6 @@ app.include_router(flow_router, prefix="/api/v1")
 app.include_router(llm_router, prefix="/api/v1")
 app.include_router(chat_completion_router, prefix="/v1")
 app.include_router(config_router, prefix="/api/v1/config")
+
+# Mount the MCP server at /mcp path
+app.mount("/mcp", mcp_app)
