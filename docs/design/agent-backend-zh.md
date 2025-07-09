@@ -428,6 +428,32 @@ class WebResult:
 - 响应格式保持一致
 - 参数含义保持兼容
 
+### 6.3 MCP工具自动集成与接口统一方案
+
+为降低维护成本、避免MCP工具与HTTP API接口重复开发，ApeRAG后端将采用 [fastapi_mcp](https://github.com/tadata-org/fastapi_mcp) 进行集成。该库可自动将FastAPI接口暴露为MCP工具，具备如下优势：
+
+- **接口定义唯一**：只需维护一套FastAPI接口，MCP工具自动生成，避免功能漂移和重复测试。
+- **认证与依赖一致**：MCP工具可完全复用FastAPI的依赖注入、认证、权限校验等机制，安全策略一致。
+- **文档与Schema同步**：MCP工具自动继承FastAPI的OpenAPI文档和Schema，前后端协作更顺畅。
+- **灵活暴露端口**：支持自定义选择需要暴露为MCP工具的接口，不必全部暴露，满足不同业务需求。
+- **部署方式灵活**：MCP服务可与主API同进程部署，也可独立部署，适应多种场景。
+
+**集成示例代码**：
+
+```python
+from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP
+
+app = FastAPI()
+# ... 现有API路由注册
+
+# 只暴露部分接口为MCP工具（如只暴露 /api/v1/web/search 和 /api/v1/web/read）
+mcp = FastApiMCP(app, include_routes=["/api/v1/web/search", "/api/v1/web/read"])
+mcp.mount()  # MCP服务自动挂载到 /mcp 路径
+```
+
+通过上述方案，ApeRAG后端所有需要对外暴露为MCP工具的接口都能自动同步，无需手动维护两套逻辑，极大提升开发效率和接口一致性。同时，认证、权限等安全机制也能无缝复用，保障系统安全。
+
 ## 7. 错误处理设计
 
 ### 7.1 标准错误响应格式
