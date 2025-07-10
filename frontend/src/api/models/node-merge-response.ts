@@ -59,18 +59,6 @@ export interface NodeMergeResponse {
      * @memberof NodeMergeResponse
      */
     'merged_description_length': number;
-    /**
-     * Whether LLM was used to summarize descriptions
-     * @type {boolean}
-     * @memberof NodeMergeResponse
-     */
-    'used_llm_summary': boolean;
-    /**
-     * Collection ID where the merge was performed
-     * @type {string}
-     * @memberof NodeMergeResponse
-     */
-    'collection_id'?: string;
 }
 
 export const NodeMergeResponseStatusEnum = {

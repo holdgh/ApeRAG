@@ -51,6 +51,7 @@ from .base import (
     TextChunkSchema,
 )
 from .prompt import GRAPH_FIELD_SEP, PROMPTS
+from .types import GraphNodeData, GraphNodeDataDict, MergeSuggestion
 from .utils import (
     LightRAGLogger,
     Tokenizer,
@@ -315,22 +316,14 @@ async def _merge_nodes_then_upsert(
 
     # 5. Handle description summarization if there are multiple fragments
     if num_fragment > 1:
-        # 5.1. Check if LLM summarization is needed based on fragment count threshold
+        # 5.1. Check if LLM summarization threshold is met
         if num_fragment >= force_llm_summary_on_merge:
-            # 5.1.1. Log LLM summarization decision
-            lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=True)
+            # 5.1.1. Log that LLM summarization was deliberately skipped by design
+            lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=False)
 
-            # 5.1.2. Use LLM to summarize lengthy descriptions
-            description = await _handle_entity_relation_summary(
-                entity_name,
-                description,
-                llm_model_func,
-                tokenizer,
-                llm_model_max_token_size,
-                summary_to_max_tokens,
-                language,
-                lightrag_logger,
-            )
+            # 5.1.2. Skip LLM summarization to save cost and time
+            # Previously: description = await _handle_entity_relation_summary(...)
+            # Now: keep the concatenated description as-is
         else:
             # 5.2. Simple merge without LLM summarization (fragment count below threshold)
             lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=False)
@@ -447,18 +440,11 @@ async def _merge_edges_then_upsert(
 
     if num_fragment > 1:
         if num_fragment >= force_llm_summary_on_merge:
-            lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=True)
+            lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=False)
 
-            description = await _handle_entity_relation_summary(
-                f"({src_id}, {tgt_id})",
-                description,
-                llm_model_func,
-                tokenizer,
-                llm_model_max_token_size,
-                summary_to_max_tokens,
-                language,
-                lightrag_logger,
-            )
+            # Skip LLM summarization to save cost and time
+            # Previously: description = await _handle_entity_relation_summary(...)
+            # Now: keep the concatenated description as-is
         else:
             lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=False)
 
@@ -1834,3 +1820,681 @@ async def naive_query(
         )
 
     return response
+
+
+# ============= Merge Suggestions Functions =============
+
+
+async def get_high_degree_nodes(
+    graph_storage: BaseGraphStorage,
+    max_analyze_nodes: int = 500,
+    batch_size: int = 100,
+    lightrag_logger=None,
+) -> tuple[GraphNodeDataDict, int]:
+    """
+    Get high-degree nodes from the graph prioritized by connectivity.
+
+    Args:
+        graph_storage: Graph storage instance
+        max_analyze_nodes: Maximum number of nodes to analyze (default: 500)
+        batch_size: Batch size for processing (default: 100)
+        lightrag_logger: Logger instance
+
+    Returns:
+        Tuple of (selected_nodes_dict, total_nodes_analyzed)
+
+    Example:
+        Input: Graph with 1000 nodes, max_analyze_nodes=300
+        Output: (GraphNodeDataDict with 300 nodes, 1000)
+    """
+    # Get all node labels
+    all_labels = await graph_storage.get_all_labels()
+    if not all_labels:
+        return GraphNodeDataDict(nodes_by_id={}), 0
+
+    if lightrag_logger:
+        lightrag_logger.debug(f"Found {len(all_labels)} total nodes in graph")
+
+    # Process nodes in batches to get degrees
+    high_degree_nodes = []
+    all_degrees = {}
+
+    for i in range(0, len(all_labels), batch_size):
+        batch_labels = all_labels[i : i + batch_size]
+        batch_degrees = await graph_storage.node_degrees_batch(batch_labels)
+
+        # Collect all degrees for return
+        all_degrees.update(batch_degrees)
+
+        # Collect nodes with their degrees
+        for label in batch_labels:
+            degree = batch_degrees.get(label, 0)
+            if degree > 0:  # Only consider connected nodes
+                high_degree_nodes.append((label, degree))
+
+    # Sort by degree and take top nodes
+    high_degree_nodes.sort(key=lambda x: x[1], reverse=True)
+    selected_labels = [label for label, _ in high_degree_nodes[:max_analyze_nodes]]
+
+    # Get detailed node data for selected nodes (avoid redundant query in filter_and_group_entities)
+    nodes_data_raw = {}
+    if selected_labels:
+        nodes_data_raw = await graph_storage.get_nodes_batch(selected_labels)
+
+    # Convert raw dict data to GraphNodeData objects with degree information
+    nodes_by_id = {}
+    for label, raw_data in nodes_data_raw.items():
+        # Ensure entity_id is set
+        if "entity_id" not in raw_data:
+            raw_data["entity_id"] = label
+
+        # Add degree information to the node data
+        raw_data["degree"] = all_degrees.get(label, 0)
+
+        nodes_by_id[label] = GraphNodeData(**raw_data)
+
+    if lightrag_logger:
+        lightrag_logger.debug(f"Selected {len(selected_labels)} high-degree nodes and retrieved their data")
+
+    return GraphNodeDataDict(nodes_by_id=nodes_by_id), len(all_labels)
+
+
+async def filter_and_group_entities(
+    selected_nodes_dict: GraphNodeDataDict,
+    entity_types: list[str] | None = None,
+) -> dict[str, list[GraphNodeData]]:
+    """
+    Filter nodes by entity types and group them by type.
+
+    Args:
+        selected_nodes_dict: Dictionary of selected nodes with their data
+        entity_types: Optional filter for specific entity types
+
+    Returns:
+        Dictionary mapping entity types to lists of GraphNodeData objects
+
+    Example:
+        Input: selected_nodes_dict=GraphNodeDataDict(...), entity_types=['PERSON']
+        Output: {'PERSON': [GraphNodeData(entity_id='entity1', ...)]}
+    """
+    # Filter by entity types if specified
+    filtered_nodes = {}
+    for label, node_data in selected_nodes_dict.nodes_by_id.items():
+        if entity_types:
+            entity_type = node_data.entity_type or ""
+            if entity_type not in entity_types:
+                continue
+        filtered_nodes[label] = node_data
+
+    if not filtered_nodes:
+        return {}
+
+    # Group entities by type
+    from collections import defaultdict
+
+    entities_by_type = defaultdict(list)
+    for label, node_data in filtered_nodes.items():
+        entity_type = node_data.entity_type or "UNKNOWN"
+        filtered_node_data = GraphNodeData(
+            entity_id=label,
+            entity_name=node_data.entity_name or label,
+            entity_type=entity_type,
+            description=node_data.description or "",
+            degree=node_data.degree,
+            source_id=node_data.source_id,
+            file_path=node_data.file_path,
+            created_at=node_data.created_at,
+        )
+        entities_by_type[entity_type].append(filtered_node_data)
+
+    return dict(entities_by_type)
+
+
+async def analyze_entities_with_llm(
+    entities_by_type: dict[str, list[GraphNodeData]],
+    llm_model_func: callable,
+    confidence_threshold: float = 0.6,
+    batch_size: int = 50,
+    max_suggestions: int = 10,  # Add max_suggestions parameter for early exit
+    max_concurrent_llm_calls: int = 4,  # Add concurrent LLM calls limit
+    tokenizer=None,
+    llm_model_max_token_size: int = 32768,
+    summary_to_max_tokens: int = 200,
+    lightrag_logger=None,
+) -> list[MergeSuggestion]:
+    """
+    Analyze entities using LLM to identify merge candidates with concurrent processing and early exit optimization.
+
+    Args:
+        entities_by_type: Dictionary mapping entity types to GraphNodeData lists
+        llm_model_func: LLM function for analysis
+        confidence_threshold: Minimum confidence score to accept suggestions (default: 0.6)
+        batch_size: Batch size for LLM processing (default: 50)
+        max_suggestions: Maximum suggestions to return - enables early exit (default: 10)
+        max_concurrent_llm_calls: Maximum concurrent LLM calls (default: 4)
+        tokenizer: Tokenizer for description handling
+        llm_model_max_token_size: Max token size for LLM
+        summary_to_max_tokens: Max tokens for summaries
+        lightrag_logger: Logger instance
+
+    Returns:
+        List of MergeSuggestion objects (up to max_suggestions)
+
+    Example:
+        Input: entities_by_type={'PERSON': [GraphNodeData('Alice Smith'), GraphNodeData('A. Smith')]}
+        Output: [MergeSuggestion(entities=[...], confidence_score=0.85, ...)]
+    """
+    suggestions = []
+
+    if not llm_model_func:
+        if lightrag_logger:
+            lightrag_logger.warning("No LLM function provided, skipping LLM analysis")
+        return suggestions
+
+    # Track processed entities for debugging
+    total_entities_processed = 0
+    total_batches_prepared = 0
+
+    # For early exit tracking
+    seen_entities = set()
+
+    # Prepare all batches for concurrent processing
+    batch_tasks_data = []
+
+    # Process each entity type and create batch task data
+    for entity_type, entities_list in entities_by_type.items():
+        if len(entities_list) < 2:
+            if lightrag_logger:
+                lightrag_logger.debug(f"Skipping {entity_type}: only {len(entities_list)} entities")
+            continue  # Skip types with only one entity
+
+        if lightrag_logger:
+            lightrag_logger.debug(f"Preparing {entity_type}: {len(entities_list)} entities in batches of {batch_size}")
+
+        # Create batch tasks for this entity type
+        for i in range(0, len(entities_list), batch_size):
+            batch_entities = entities_list[i : i + batch_size]
+            total_batches_prepared += 1
+            total_entities_processed += len(batch_entities)
+
+            batch_tasks_data.append(
+                {
+                    "batch_id": total_batches_prepared,
+                    "entity_type": entity_type,
+                    "entities": batch_entities,
+                    "batch_size": len(batch_entities),
+                }
+            )
+
+    if not batch_tasks_data:
+        if lightrag_logger:
+            lightrag_logger.info("No valid batches to process")
+        return suggestions
+
+    if lightrag_logger:
+        lightrag_logger.info(
+            f"Starting concurrent LLM analysis: {total_batches_prepared} batches, "
+            f"{total_entities_processed} entities, max_concurrent={max_concurrent_llm_calls}"
+        )
+
+    # Create semaphore for controlling concurrency and lock for protecting shared state
+    semaphore = asyncio.Semaphore(max_concurrent_llm_calls)
+    shared_state_lock = asyncio.Lock()  # Lock to protect shared variables
+    successful_batches = 0
+    processed_batches = 0
+
+    async def _process_batch_with_semaphore(batch_data):
+        """Process a single batch with semaphore control"""
+        nonlocal suggestions, seen_entities, successful_batches, processed_batches
+
+        async with semaphore:
+            batch_id = batch_data["batch_id"]
+            entity_type = batch_data["entity_type"]
+            batch_entities = batch_data["entities"]
+
+            if lightrag_logger:
+                lightrag_logger.debug(f"Processing batch {batch_id} for {entity_type}: {len(batch_entities)} entities")
+
+            try:
+                batch_suggestions = await _batch_analyze_entities_with_llm(
+                    batch_entities,
+                    llm_model_func,
+                    confidence_threshold,
+                    tokenizer,
+                    llm_model_max_token_size,
+                    summary_to_max_tokens,
+                    lightrag_logger,
+                )
+
+                # Protect shared state modifications with lock
+                async with shared_state_lock:
+                    processed_batches += 1
+
+                    if batch_suggestions:
+                        # Apply immediate filtering and deduplication
+                        filtered_batch_suggestions = []
+                        for suggestion in batch_suggestions:
+                            entity_ids = {entity.entity_id for entity in suggestion.entities}
+                            # Check for overlap with already seen entities
+                            if not (entity_ids & seen_entities):
+                                filtered_batch_suggestions.append(suggestion)
+                                seen_entities.update(entity_ids)
+
+                        successful_batches += 1
+
+                        if lightrag_logger:
+                            lightrag_logger.debug(
+                                f"Batch {batch_id} produced {len(batch_suggestions)} raw suggestions, "
+                                f"{len(filtered_batch_suggestions)} after filtering"
+                            )
+
+                        return filtered_batch_suggestions
+                    else:
+                        if lightrag_logger:
+                            lightrag_logger.debug(f"Batch {batch_id} produced no suggestions")
+                        return []
+
+            except Exception as e:
+                # Protect shared state modifications with lock
+                async with shared_state_lock:
+                    processed_batches += 1
+                if lightrag_logger:
+                    lightrag_logger.warning(f"Batch LLM analysis failed for {entity_type} batch {batch_id}: {e}")
+                return []
+
+    # Create tasks for all batches
+    tasks = []
+    for batch_data in batch_tasks_data:
+        task = asyncio.create_task(_process_batch_with_semaphore(batch_data))
+        tasks.append(task)
+
+    # Wait for tasks to complete or for the first exception
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+
+    # Check if any task raised an exception
+    for task in done:
+        if task.exception():
+            # Cancel all pending tasks
+            for pending_task in pending:
+                pending_task.cancel()
+
+            # Wait for cancellation to complete
+            if pending:
+                await asyncio.wait(pending)
+
+            # Re-raise the exception
+            raise task.exception()
+
+    # Collect results from all completed tasks
+    for task in done:
+        task_suggestions = task.result()
+        if task_suggestions:
+            suggestions.extend(task_suggestions)
+            # Early exit check
+            if len(suggestions) >= max_suggestions:
+                if lightrag_logger:
+                    lightrag_logger.info(
+                        f"Early exit: reached max_suggestions ({max_suggestions}) during concurrent processing"
+                    )
+                # Cancel remaining tasks if we have enough suggestions
+                for pending_task in pending:
+                    pending_task.cancel()
+                if pending:
+                    await asyncio.wait(pending)
+                break
+
+    # Wait for any remaining tasks if we haven't hit the limit
+    if len(suggestions) < max_suggestions and pending:
+        remaining_done, _ = await asyncio.wait(pending)
+        for task in remaining_done:
+            if not task.cancelled():
+                task_suggestions = task.result()
+                if task_suggestions:
+                    suggestions.extend(task_suggestions)
+                    # Early exit check
+                    if len(suggestions) >= max_suggestions:
+                        break
+
+    # Sort by confidence before returning (only sort what we have)
+    suggestions.sort(key=lambda x: x.confidence_score, reverse=True)
+
+    # Trim to max_suggestions if needed
+    if len(suggestions) > max_suggestions:
+        suggestions = suggestions[:max_suggestions]
+
+    # Final logging with comprehensive stats
+    if lightrag_logger:
+        lightrag_logger.info(
+            f"Concurrent LLM analysis completed: {len(suggestions)} suggestions found. "
+            f"Processed {processed_batches}/{total_batches_prepared} batches concurrently "
+            f"({successful_batches} successful). Confidence threshold: {confidence_threshold}, "
+            f"Max concurrent: {max_concurrent_llm_calls}"
+        )
+
+        if suggestions:
+            confidence_scores = [s.confidence_score for s in suggestions]
+            lightrag_logger.debug(
+                f"Suggestion confidence range: {min(confidence_scores):.2f} - {max(confidence_scores):.2f}"
+            )
+        else:
+            lightrag_logger.warning(
+                f"No suggestions found! This may indicate: "
+                f"1) Confidence threshold ({confidence_threshold}) too high, "
+                f"2) LLM parsing issues, or "
+                f"3) No actual merge candidates exist"
+            )
+
+    return suggestions
+
+
+async def _batch_analyze_entities_with_llm(
+    entities_list: list[GraphNodeData],
+    llm_model_func: callable,
+    confidence_threshold: float,
+    tokenizer,
+    llm_model_max_token_size: int,
+    summary_to_max_tokens: int,
+    lightrag_logger,
+) -> list[MergeSuggestion]:
+    """
+    Analyze a batch of entities using LLM to identify merge candidates.
+
+    Args:
+        entities_list: List of GraphNodeData objects to analyze
+        llm_model_func: LLM function for analysis
+        confidence_threshold: Minimum confidence score for suggestions
+        tokenizer: Tokenizer for handling description length
+        llm_model_max_token_size: Max token size for LLM
+        summary_to_max_tokens: Max tokens for description summaries
+        lightrag_logger: Logger instance
+
+    Returns:
+        List of MergeSuggestion objects
+
+    Example:
+        Input: entities_list=[GraphNodeData('Apple Inc'), GraphNodeData('Apple Company')]
+        Output: [MergeSuggestion(confidence_score=0.9, merge_reason='Same organization')]
+    """
+    try:
+        # Prepare entities list for prompt with description handling
+        entities_text = ""
+        for i, entity in enumerate(entities_list):
+            # Skip description summarization to save LLM calls and time
+            # Previously we would summarize long descriptions using _handle_entity_relation_summary
+            # Now we use the original description as-is
+            description = entity.description or ""
+
+            entities_text += f"Entity {i + 1}:\n"
+            entities_text += f"- Name: {entity.entity_name or entity.entity_id}\n"
+            entities_text += f"- Type: {entity.entity_type or 'UNKNOWN'}\n"
+            entities_text += f"- Description: {description}\n"
+            entities_text += f"- Degree: {entity.degree or 0}\n\n"
+
+        # Use prompt from prompts.py
+        from .prompt import PROMPTS
+
+        prompt = PROMPTS["batch_merge_analysis"].format(
+            entities_list=entities_text,
+            tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
+            record_delimiter=PROMPTS["DEFAULT_RECORD_DELIMITER"],
+            completion_delimiter=PROMPTS["DEFAULT_COMPLETION_DELIMITER"],
+            graph_field_sep=GRAPH_FIELD_SEP,
+        )
+
+        if lightrag_logger:
+            lightrag_logger.debug(f"Sending {len(entities_list)} entities to LLM for merge analysis")
+
+        # Call LLM
+        response = await llm_model_func(
+            prompt,
+            system_prompt="You are a knowledge graph expert specialized in identifying entities that should be merged. Analyze the provided entities and identify groups that refer to the same real-world objects.",
+            stream=False,
+            temperature=0.1,
+        )
+
+        if lightrag_logger:
+            lightrag_logger.debug(f"Received LLM response of length {len(response)} characters")
+
+        # Parse LLM response
+        suggestions = parse_llm_merge_response(response, entities_list, confidence_threshold, lightrag_logger)
+        return suggestions
+
+    except Exception as e:
+        if lightrag_logger:
+            lightrag_logger.warning(f"Batch LLM analysis failed: {e}")
+        return []
+
+
+def parse_llm_merge_response(
+    llm_response: str, entities_list: list[GraphNodeData], confidence_threshold: float, lightrag_logger
+) -> list[MergeSuggestion]:
+    """
+    Parse LLM response to extract merge suggestions.
+
+    Args:
+        llm_response: Raw LLM response text
+        entities_list: Original list of GraphNodeData entities analyzed
+        confidence_threshold: Minimum confidence score for suggestions
+        lightrag_logger: Logger instance
+
+    Returns:
+        List of MergeSuggestion objects
+
+    Example:
+        Input: llm_response='("merge_group"<|>Apple Inc,Apple Company<|>0.9<|>Same organization<|>...)'
+        Output: [MergeSuggestion(entities=[...], confidence_score=0.9, ...)]
+    """
+    suggestions = []
+
+    try:
+        # Create entity lookup for quick access
+        entity_lookup = {(entity.entity_name or entity.entity_id): entity for entity in entities_list}
+
+        # Split by record delimiter
+        from .prompt import PROMPTS
+
+        records = llm_response.split(PROMPTS["DEFAULT_RECORD_DELIMITER"])
+
+        if lightrag_logger:
+            lightrag_logger.debug(f"Parsing LLM response: found {len(records)} potential records")
+
+        parsed_count = 0
+        filtered_count = 0
+
+        for i, record in enumerate(records):
+            record = record.strip()
+            if not record or PROMPTS["DEFAULT_COMPLETION_DELIMITER"] in record:
+                continue
+
+            suggestion = parse_single_merge_record(record, entity_lookup, confidence_threshold, lightrag_logger)
+            if suggestion:
+                suggestions.append(suggestion)
+                parsed_count += 1
+            else:
+                filtered_count += 1
+
+        if lightrag_logger:
+            lightrag_logger.debug(
+                f"Parsed {parsed_count} valid suggestions, filtered out {filtered_count} invalid/low-confidence records"
+            )
+
+    except Exception as e:
+        if lightrag_logger:
+            lightrag_logger.warning(f"Failed to parse merge suggestions: {e}")
+
+    return suggestions
+
+
+def parse_single_merge_record(
+    record: str, entity_lookup: dict[str, GraphNodeData], confidence_threshold: float, lightrag_logger=None
+) -> MergeSuggestion | None:
+    """
+    Parse a single merge record from LLM response.
+
+    Expected format:
+    ("merge_group"<|>Entity A<SEP>Entity B<|>0.85<|>reason<|>target_name<|>target_type)
+
+    Args:
+        record: Raw record string from LLM
+        entity_lookup: Dict mapping entity names to GraphNodeData
+        confidence_threshold: Minimum confidence score to accept
+        lightrag_logger: Logger for debugging
+
+    Returns:
+        MergeSuggestion if successfully parsed and meets threshold, None otherwise
+    """
+    try:
+        # Import required constants and types
+        from .prompt import GRAPH_FIELD_SEP, PROMPTS
+        from .types import GraphNodeData
+
+        # Extract content between quotes and parentheses
+        content = record.split('("merge_group"')[1].strip()
+        if content.endswith(")"):
+            content = content[:-1]
+
+        # Parse the content using tuple delimiter
+        parts = content.split(PROMPTS["DEFAULT_TUPLE_DELIMITER"])
+
+        # Filter out empty parts (especially the first one if content starts with delimiter)
+        parts = [part.strip() for part in parts if part.strip()]
+
+        if len(parts) != 5:  # Now expecting 5 parts instead of 6
+            if lightrag_logger:
+                lightrag_logger.warning(f"Record has {len(parts)} parts, expected 5. Parts: {parts}")
+                lightrag_logger.debug(f"Raw record: {record[:200]}...")
+            return None
+
+        # Extract entity names from GRAPH_FIELD_SEP-separated list
+        entity_names_str = parts[0].strip()
+        entity_names = []
+        seen_names = set()  # Prevent duplicate entity names in the same suggestion
+
+        for name in entity_names_str.split(GRAPH_FIELD_SEP):
+            name = name.strip()
+            if name and name in entity_lookup:
+                # Only add if we haven't seen this entity name before
+                if name not in seen_names:
+                    entity_names.append(name)
+                    seen_names.add(name)
+                elif lightrag_logger:
+                    lightrag_logger.debug(f"Skipping duplicate entity name '{name}' in merge suggestion")
+            elif name and lightrag_logger:
+                lightrag_logger.debug(f"Entity '{name}' not found in lookup")
+
+        if len(entity_names) < 2:
+            if lightrag_logger:
+                lightrag_logger.debug(f"Not enough unique valid entities found: {entity_names}")
+            return None
+
+        # Parse confidence score
+        try:
+            confidence_score = float(parts[1].strip())
+        except ValueError:
+            if lightrag_logger:
+                lightrag_logger.warning(f"Invalid confidence score: {parts[1]}")
+            return None
+
+        # Check confidence threshold
+        if confidence_score < confidence_threshold:
+            if lightrag_logger:
+                lightrag_logger.debug(f"Confidence {confidence_score} below threshold {confidence_threshold}")
+            return None
+
+        # Extract other fields (no longer processing description)
+        merge_reason = parts[2].strip()
+        suggested_name = parts[3].strip()
+        suggested_type = parts[4].strip()
+
+        # Build entities list
+        entities = [entity_lookup[name] for name in entity_names]
+
+        if lightrag_logger:
+            lightrag_logger.debug(
+                f"Successfully parsed suggestion: {entity_names} -> {suggested_name} (confidence: {confidence_score})"
+            )
+
+        # Create suggested target entity as GraphNodeData object (without description)
+        suggested_target_entity = GraphNodeData(
+            entity_id=suggested_name,  # Use suggested name as entity_id
+            entity_name=suggested_name,
+            entity_type=suggested_type,
+        )
+
+        return MergeSuggestion(
+            entities=entities,
+            confidence_score=confidence_score,
+            merge_reason=merge_reason,
+            suggested_target_entity=suggested_target_entity,
+        )
+
+    except Exception as e:
+        if lightrag_logger:
+            lightrag_logger.warning(f"Failed to parse merge record: {e}")
+            lightrag_logger.debug(f"Record content: {record}")
+        return None
+
+
+def filter_and_deduplicate_suggestions(
+    suggestions: list[MergeSuggestion], max_suggestions: int
+) -> list[MergeSuggestion]:
+    """
+    Filter and deduplicate merge suggestions.
+
+    Args:
+        suggestions: List of MergeSuggestion objects
+        max_suggestions: Maximum number of suggestions to return
+
+    Returns:
+        Filtered and deduplicated list of suggestions
+    """
+    # Handle edge case where max_suggestions is 0
+    if max_suggestions <= 0:
+        return []
+
+    # Sort by confidence score (highest first)
+    suggestions.sort(key=lambda x: x.confidence_score, reverse=True)
+
+    # Remove duplicates (same entity appearing in multiple suggestions)
+    seen_entities = set()
+    filtered_suggestions = []
+
+    for suggestion in suggestions:
+        entity_ids = {entity.entity_id for entity in suggestion.entities}
+        if not (entity_ids & seen_entities):  # No overlap with seen entities
+            filtered_suggestions.append(suggestion)
+            seen_entities.update(entity_ids)
+            if len(filtered_suggestions) >= max_suggestions:
+                break
+
+    return filtered_suggestions
+
+
+def calculate_edit_distance(s1: str, s2: str) -> int:
+    """
+    Calculate Levenshtein distance between two strings.
+
+    Args:
+        s1: First string
+        s2: Second string
+
+    Returns:
+        Edit distance as integer
+    """
+    if len(s1) < len(s2):
+        s1, s2 = s2, s1
+
+    if len(s2) == 0:
+        return len(s1)
+
+    previous_row = list(range(len(s2) + 1))
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+
+    return previous_row[-1]
