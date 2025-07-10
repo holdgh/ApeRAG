@@ -415,6 +415,52 @@ async def get_knowledge_graph_view(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.post("/collections/{collection_id}/graphs/nodes/merge", tags=["graph"])
+@audit(resource_type="index", api_name="MergeNodes")
+async def merge_nodes_view(
+    request: Request,
+    collection_id: str,
+    merge_request: view_models.NodeMergeRequest,
+    user: User = Depends(current_user),
+) -> view_models.NodeMergeResponse:
+    """Merge multiple graph nodes into one"""
+    from aperag.exceptions import CollectionNotFoundException, GraphServiceError
+    from aperag.service.graph_service import graph_service
+
+    try:
+        # Log merge operation
+        target_name = merge_request.target_entity_data.entity_name if merge_request.target_entity_data else None
+        entity_info = f"entities {merge_request.entity_ids} -> {target_name or 'auto-select'}"
+        logger.info(f"Merging nodes: {entity_info} in collection {collection_id}")
+
+        # Convert target_entity_data to dict if provided
+        target_entity_data_dict = None
+        if merge_request.target_entity_data:
+            target_entity_data_dict = merge_request.target_entity_data.model_dump(exclude_unset=True)
+
+        # Call graph service (it will handle collection access and validation)
+        result = await graph_service.merge_nodes(
+            user_id=str(user.id),
+            collection_id=collection_id,
+            entity_ids=merge_request.entity_ids,
+            target_entity_data=target_entity_data_dict,
+        )
+
+        return view_models.NodeMergeResponse(**result)
+
+    except CollectionNotFoundException:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except GraphServiceError as e:
+        # Handle business logic errors from Graph Service (e.g., entity not found, invalid merge operation)
+        logger.warning(f"Graph service error for collection {collection_id}: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error merging nodes in collection {collection_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 # LLM Configuration API endpoints
 @router.get("/llm_configuration", tags=["llm_providers"])
 async def get_llm_configuration_view(request: Request, user: User = Depends(current_user)):
