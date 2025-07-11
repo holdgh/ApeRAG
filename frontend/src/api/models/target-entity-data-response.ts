@@ -17,37 +17,37 @@
 /**
  * Complete data of the target entity after merge
  * @export
- * @interface NodeMergeResponseTargetEntityData
+ * @interface TargetEntityDataResponse
  */
-export interface NodeMergeResponseTargetEntityData {
+export interface TargetEntityDataResponse {
     /**
      * The entity name that was kept (merge target)
      * @type {string}
-     * @memberof NodeMergeResponseTargetEntityData
+     * @memberof TargetEntityDataResponse
      */
     'entity_name': string;
     /**
      * Entity type of the target entity
      * @type {string}
-     * @memberof NodeMergeResponseTargetEntityData
+     * @memberof TargetEntityDataResponse
      */
     'entity_type': string;
     /**
      * Merged description of the target entity
      * @type {string}
-     * @memberof NodeMergeResponseTargetEntityData
+     * @memberof TargetEntityDataResponse
      */
     'description': string;
     /**
      * Source ID information
      * @type {string}
-     * @memberof NodeMergeResponseTargetEntityData
+     * @memberof TargetEntityDataResponse
      */
     'source_id'?: string;
     /**
      * File path information
      * @type {string}
-     * @memberof NodeMergeResponseTargetEntityData
+     * @memberof TargetEntityDataResponse
      */
     'file_path'?: string;
 }

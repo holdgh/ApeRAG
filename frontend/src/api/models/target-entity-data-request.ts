@@ -15,39 +15,39 @@
 
 
 /**
- * Optional target entity configuration. If not specified or empty, auto-select entity with highest degree
+ * Optional target entity configuration. If not specified, auto-select entity with highest degree.
  * @export
- * @interface NodeMergeRequestTargetEntityData
+ * @interface TargetEntityDataRequest
  */
-export interface NodeMergeRequestTargetEntityData {
+export interface TargetEntityDataRequest {
     /**
      * Target entity name. If not specified, auto-select entity with highest degree
      * @type {string}
-     * @memberof NodeMergeRequestTargetEntityData
+     * @memberof TargetEntityDataRequest
      */
     'entity_name'?: string;
     /**
      * Entity type for the target entity
      * @type {string}
-     * @memberof NodeMergeRequestTargetEntityData
+     * @memberof TargetEntityDataRequest
      */
     'entity_type'?: string;
     /**
      * Description for the target entity
      * @type {string}
-     * @memberof NodeMergeRequestTargetEntityData
+     * @memberof TargetEntityDataRequest
      */
     'description'?: string;
     /**
      * Source ID for the target entity
      * @type {string}
-     * @memberof NodeMergeRequestTargetEntityData
+     * @memberof TargetEntityDataRequest
      */
     'source_id'?: string;
     /**
      * File path for the target entity
      * @type {string}
-     * @memberof NodeMergeRequestTargetEntityData
+     * @memberof TargetEntityDataRequest
      */
     'file_path'?: string;
 }

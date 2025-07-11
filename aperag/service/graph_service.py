@@ -13,117 +13,59 @@
 # limitations under the License.
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from aperag.exceptions import CollectionNotFoundException, GraphServiceError
+from aperag.db.models import MergeSuggestionStatus
+from aperag.db.ops import async_db_ops
+from aperag.exceptions import CollectionNotFoundException
 from aperag.graph import lightrag_manager
 from aperag.schema import view_models
+from aperag.utils.utils import utc_now
 
 logger = logging.getLogger(__name__)
 
 
 class GraphService:
-    """Service for handling knowledge graph operations and index management"""
+    """Service for knowledge graph operations"""
 
     def __init__(self):
-        # Import here to avoid circular imports
         from aperag.service.collection_service import collection_service
 
         self.collection_service = collection_service
-
-    # ==================== Graph Query Operations ====================
+        self.db_ops = async_db_ops
 
     async def get_graph_labels(self, user_id: str, collection_id: str) -> view_models.GraphLabelsResponse:
-        """
-        Get all available node labels in the collection's knowledge graph
+        """Get available node labels in the knowledge graph"""
+        db_collection = await self._get_and_validate_collection(user_id, collection_id)
 
-        Args:
-            user_id: User ID
-            collection_id: Collection ID
-
-        Returns:
-            GraphLabelsResponse: Response containing available labels
-
-        Raises:
-            CollectionNotFoundException: If collection is not found
-            ValueError: If knowledge graph is not enabled for the collection
-        """
-        # Get and validate collection
-        collection = await self._get_and_validate_collection(user_id, collection_id)
-
+        rag = await lightrag_manager.create_lightrag_instance(db_collection)
         try:
-            # Create LightRAG instance
-            rag = await lightrag_manager.create_lightrag_instance(collection)
-
-            # Get all available labels
             labels = await rag.get_graph_labels()
-
-            # Clean up
+            return view_models.GraphLabelsResponse(labels=labels)
+        finally:
             await rag.finalize_storages()
 
-            return view_models.GraphLabelsResponse(labels=labels)
-
-        except Exception as e:
-            logger.error(f"Failed to get graph labels for collection {collection_id}: {str(e)}")
-            raise
-
     def _optimize_graph_for_visualization(self, nodes, edges, max_nodes):
-        """
-        Optimize graph for visualization by prioritizing well-connected nodes
-
-        Strategy:
-        1. Calculate degree for each node
-        2. Prefer nodes with higher connectivity (not isolated)
-        3. Keep edges only between selected nodes
-
-        Args:
-            nodes: List of KnowledgeGraphNode objects
-            edges: List of KnowledgeGraphEdge objects
-            max_nodes: Maximum number of nodes to keep
-
-        Returns:
-            Tuple of (optimized_nodes, optimized_edges)
-        """
+        """Optimize graph by selecting well-connected nodes"""
         if len(nodes) <= max_nodes:
             return nodes, edges
 
-        # Build degree map: node_id -> degree count
-        degree_map = {}
-        edge_map = {}  # node_id -> set of connected node_ids
-
-        # Initialize all nodes with degree 0
-        for node in nodes:
-            degree_map[node.id] = 0
-            edge_map[node.id] = set()
-
-        # Count degrees from edges
+        # Calculate node degrees
+        degree_map = {node.id: 0 for node in nodes}
         for edge in edges:
-            source_id = edge.source
-            target_id = edge.target
-
-            if source_id in degree_map and target_id in degree_map:
-                degree_map[source_id] += 1
-                degree_map[target_id] += 1
-                edge_map[source_id].add(target_id)
-                edge_map[target_id].add(source_id)
-
-        # Sort nodes by degree (descending), then by id for deterministic ordering
-        sorted_nodes = sorted(nodes, key=lambda node: (-degree_map[node.id], node.id))
+            if edge.source in degree_map and edge.target in degree_map:
+                degree_map[edge.source] += 1
+                degree_map[edge.target] += 1
 
         # Select top nodes by degree
+        sorted_nodes = sorted(nodes, key=lambda node: (-degree_map[node.id], node.id))
         selected_nodes = sorted_nodes[:max_nodes]
         selected_node_ids = {node.id for node in selected_nodes}
 
-        # Filter edges to only include those between selected nodes
+        # Filter edges between selected nodes
         optimized_edges = [
             edge for edge in edges if edge.source in selected_node_ids and edge.target in selected_node_ids
         ]
-
-        logger.debug(
-            f"Graph optimization: {len(nodes)} -> {len(selected_nodes)} nodes, "
-            f"{len(edges)} -> {len(optimized_edges)} edges. "
-            f"Degree range: {degree_map[sorted_nodes[0].id]} -> {degree_map[sorted_nodes[-1].id] if sorted_nodes else 0}"
-        )
 
         return selected_nodes, optimized_edges
 
@@ -135,41 +77,17 @@ class GraphService:
         max_depth: int = 3,
         max_nodes: int = 1000,
     ) -> Dict[str, Any]:
-        """
-        Get knowledge graph - supports both overview and subgraph modes
+        """Get knowledge graph with overview or subgraph mode"""
+        db_collection = await self._get_and_validate_collection(user_id, collection_id)
 
-        Args:
-            user_id: User ID
-            collection_id: Collection ID
-            label: Label of the starting node. If None/empty, uses overview mode ("*")
-            max_depth: Maximum depth of the subgraph (default: 3)
-            max_nodes: Maximum number of nodes to return (default: 1000)
-
-        Returns:
-            Dict containing knowledge graph data with nodes and edges
-
-        Raises:
-            CollectionNotFoundException: If collection is not found
-            ValueError: If knowledge graph is not enabled for the collection
-        """
-        # Get and validate collection
-        collection = await self._get_and_validate_collection(user_id, collection_id)
-
+        rag = await lightrag_manager.create_lightrag_instance(db_collection)
         try:
-            # Create LightRAG instance
-            rag = await lightrag_manager.create_lightrag_instance(collection)
-
-            # Determine mode based on label parameter
+            # Determine query parameters
             if not label or label == "*":
-                # Overview mode: use "*" to get entire graph
-                node_label = "*"
-                # Get more nodes for optimization in overview mode
-                query_max_nodes = max_nodes * 2
-                mode_description = "overview (full graph)"
+                node_label, query_max_nodes = "*", max_nodes * 2
+                mode_description = "overview"
             else:
-                # Subgraph mode: use specific label
-                node_label = label
-                query_max_nodes = max_nodes
+                node_label, query_max_nodes = label, max_nodes
                 mode_description = f"subgraph from '{label}'"
 
             # Get knowledge graph
@@ -179,243 +97,233 @@ class GraphService:
                 max_nodes=query_max_nodes,
             )
 
-            # Clean up
-            await rag.finalize_storages()
-
-            # Optimize node selection for overview mode if needed
+            # Optimize if needed
             if (not label or label == "*") and len(kg.nodes) > max_nodes:
                 optimized_nodes, optimized_edges = self._optimize_graph_for_visualization(kg.nodes, kg.edges, max_nodes)
                 is_truncated = True
             else:
-                optimized_nodes = kg.nodes
-                optimized_edges = kg.edges
-                is_truncated = kg.is_truncated if hasattr(kg, "is_truncated") else False
+                optimized_nodes, optimized_edges = kg.nodes, kg.edges
+                is_truncated = getattr(kg, "is_truncated", False)
 
-            # Convert to dict format expected by frontend
-            result = self._convert_graph_to_dict(optimized_nodes, optimized_edges, is_truncated=is_truncated)
+            result = self._convert_graph_to_dict(optimized_nodes, optimized_edges, is_truncated)
 
             logger.info(
-                f"Retrieved knowledge graph for collection {collection_id} ({mode_description}): "
-                f"{len(result['nodes'])} nodes, {len(result['edges'])} edges "
-                f"(truncated: {is_truncated})"
+                f"Retrieved {mode_description} graph for collection {collection_id}: "
+                f"{len(result['nodes'])} nodes, {len(result['edges'])} edges"
             )
-
             return result
-
-        except Exception as e:
-            logger.error(
-                f"Failed to get knowledge graph for collection {collection_id}, mode '{mode_description}': {str(e)}"
-            )
-            raise
+        finally:
+            await rag.finalize_storages()
 
     def _convert_graph_to_dict(self, nodes, edges, is_truncated=False) -> Dict[str, Any]:
-        """
-        Convert LightRAG graph nodes and edges to dictionary format
+        """Convert LightRAG graph objects to dictionary format"""
 
-        Args:
-            nodes: List of LightRAG node objects
-            edges: List of LightRAG edge objects
-            is_truncated: Whether the graph was truncated
+        def extract_properties(obj, default_fields):
+            if hasattr(obj, "properties") and obj.properties:
+                return obj.properties
+            return {field: getattr(obj, field, None) for field in default_fields if hasattr(obj, field)}
 
-        Returns:
-            Dict with 'nodes', 'edges', and 'is_truncated' keys
-        """
-        result = {
-            "nodes": [],
-            "edges": [],
+        return {
+            "nodes": [
+                {
+                    "id": node.id,
+                    "labels": [node.id] if hasattr(node, "id") else [],
+                    "properties": extract_properties(
+                        node, ["entity_id", "entity_type", "description", "source_id", "file_path"]
+                    ),
+                }
+                for node in nodes
+            ],
+            "edges": [
+                {
+                    "id": edge.id,
+                    "type": getattr(edge, "type", "DIRECTED"),
+                    "source": edge.source,
+                    "target": edge.target,
+                    "properties": extract_properties(
+                        edge, ["weight", "description", "keywords", "source_id", "file_path"]
+                    ),
+                }
+                for edge in edges
+            ],
             "is_truncated": is_truncated,
         }
 
-        # Convert nodes to dict format
-        for node in nodes:
-            node_dict = {"id": node.id, "labels": [node.id] if hasattr(node, "id") else [], "properties": {}}
+    async def get_or_generate_merge_suggestions(
+        self,
+        user_id: str,
+        collection_id: str,
+        max_suggestions: int = 10,
+        max_concurrent_llm_calls: int = 4,
+        force_refresh: bool = False,
+    ) -> dict[str, Any]:
+        """Get cached suggestions or generate new ones"""
+        await self._get_and_validate_collection(user_id, collection_id)
 
-            # Add properties from the node
-            if hasattr(node, "properties") and node.properties:
-                node_dict["properties"] = node.properties
-            else:
-                # Fallback: build properties from individual fields
-                properties = {}
-                if hasattr(node, "entity_id"):
-                    properties["entity_id"] = node.entity_id
-                if hasattr(node, "entity_type"):
-                    properties["entity_type"] = node.entity_type
-                if hasattr(node, "description"):
-                    properties["description"] = node.description
-                if hasattr(node, "source_id"):
-                    properties["source_id"] = node.source_id
-                if hasattr(node, "file_path"):
-                    properties["file_path"] = node.file_path
-                node_dict["properties"] = properties
+        # Check cache first
+        if not force_refresh:
+            cached_suggestions = await self.db_ops.get_valid_suggestions(collection_id)
+            if cached_suggestions:
+                logger.info(f"Found {len(cached_suggestions)} cached suggestions for collection {collection_id}")
+                return self._format_suggestions_response(cached_suggestions, from_cache=True)
 
-            result["nodes"].append(node_dict)
+        # Generate new suggestions
+        logger.info(f"Generating new merge suggestions for collection {collection_id}")
+        llm_result = await self.generate_merge_suggestions(
+            user_id, collection_id, max_suggestions, max_concurrent_llm_calls
+        )
 
-        # Convert edges to dict format
-        for edge in edges:
-            edge_dict = {
-                "id": edge.id,
-                "type": getattr(edge, "type", "DIRECTED"),
-                "source": edge.source,
-                "target": edge.target,
-                "properties": {},
+        # Prepare suggestion data
+        suggestion_data = [
+            {
+                "collection_id": collection_id,
+                "entity_ids": [entity["entity_id"] for entity in suggestion["entities"]],
+                "confidence_score": suggestion["confidence_score"],
+                "merge_reason": suggestion["merge_reason"],
+                "suggested_target_entity": suggestion["suggested_target_entity"],
             }
+            for suggestion in llm_result.get("suggestions", [])
+        ]
 
-            # Add properties from the edge
-            if hasattr(edge, "properties") and edge.properties:
-                edge_dict["properties"] = edge.properties
-            else:
-                # Fallback: build properties from individual fields
-                properties = {}
-                if hasattr(edge, "weight"):
-                    properties["weight"] = edge.weight
-                if hasattr(edge, "description"):
-                    properties["description"] = edge.description
-                if hasattr(edge, "keywords"):
-                    properties["keywords"] = edge.keywords
-                if hasattr(edge, "source_id"):
-                    properties["source_id"] = edge.source_id
-                if hasattr(edge, "file_path"):
-                    properties["file_path"] = edge.file_path
-                edge_dict["properties"] = properties
+        if suggestion_data:
+            # If force_refresh=true, delete all existing suggestions before storing new ones
+            if force_refresh:
+                deleted_count = await self.db_ops.delete_all_suggestions_for_collection(collection_id)
+                logger.info(
+                    f"Deleted {deleted_count} existing suggestions for collection {collection_id} (force_refresh=true)"
+                )
 
-            result["edges"].append(edge_dict)
+            # Store new suggestions
+            stored_suggestions = await self.db_ops.batch_create_suggestions(suggestion_data)
+            logger.info(f"Stored {len(stored_suggestions)} new suggestions for collection {collection_id}")
+            # Extract metadata from llm_result, excluding 'suggestions' to avoid parameter conflict
+            llm_metadata = {k: v for k, v in llm_result.items() if k != "suggestions"}
+            return self._format_suggestions_response(stored_suggestions, from_cache=False, **llm_metadata)
 
-        return result
+        # Extract metadata from llm_result, excluding 'suggestions' to avoid parameter conflict
+        llm_metadata = {k: v for k, v in llm_result.items() if k != "suggestions"}
+        return self._format_suggestions_response([], from_cache=False, **llm_metadata)
 
-    # ==================== Graph Index Operations ====================
+    def _format_suggestions_response(self, suggestions: List, from_cache: bool = False, **kwargs) -> dict[str, Any]:
+        """Format suggestions response with statistics"""
+        suggestion_items = [
+            {
+                "id": suggestion.id,
+                "collection_id": suggestion.collection_id,
+                "suggestion_batch_id": suggestion.suggestion_batch_id,
+                "entity_ids": suggestion.entity_ids,
+                "confidence_score": float(suggestion.confidence_score),
+                "merge_reason": suggestion.merge_reason,
+                "suggested_target_entity": suggestion.suggested_target_entity,
+                "status": suggestion.status,
+                "created": suggestion.gmt_created,
+                "expires_at": suggestion.expires_at,
+                "operated_at": suggestion.operated_at,
+            }
+            for suggestion in suggestions
+        ]
+
+        # Count by status
+        status_counts = {"PENDING": 0, "ACCEPTED": 0, "REJECTED": 0, "EXPIRED": 0}
+        for suggestion in suggestions:
+            status_counts[suggestion.status] += 1
+
+        return {
+            "suggestions": suggestion_items,
+            "total_analyzed_nodes": kwargs.get("total_analyzed_nodes", 0),
+            "processing_time_seconds": kwargs.get("processing_time_seconds", 0.0),
+            "from_cache": from_cache,
+            "generated_at": utc_now(),
+            "total_suggestions": len(suggestion_items),
+            "pending_count": status_counts["PENDING"],
+            "accepted_count": status_counts["ACCEPTED"],
+            "rejected_count": status_counts["REJECTED"],
+            "expired_count": status_counts["EXPIRED"],
+        }
 
     async def generate_merge_suggestions(
         self,
         user_id: str,
         collection_id: str,
         max_suggestions: int = 10,
-        entity_types: list[str] | None = None,
-        debug_mode: bool = False,
         max_concurrent_llm_calls: int = 4,
     ) -> dict[str, Any]:
-        """
-        Generate node merge suggestions using LLM analysis.
+        """Generate node merge suggestions using LLM analysis"""
+        db_collection = await self._get_and_validate_collection(user_id, collection_id)
 
-        Args:
-            user_id: User ID
-            collection_id: Collection ID
-            max_suggestions: Maximum number of suggestions to return (default: 10)
-            entity_types: Optional filter for specific entity types
-            debug_mode: Enable debug mode with lower confidence threshold and verbose logging
-            max_concurrent_llm_calls: Maximum concurrent LLM calls for batch analysis (default: 4)
-
-        Returns:
-            Dict containing merge suggestions and processing statistics
-
-        Raises:
-            CollectionNotFoundException: If collection is not found
-            ValueError: If knowledge graph is not enabled for the collection
-            GraphServiceError: If suggestion generation fails
-        """
-        # Get and validate collection
-        collection = await self._get_and_validate_collection(user_id, collection_id)
-
+        rag = await lightrag_manager.create_lightrag_instance(db_collection)
         try:
-            # Create LightRAG instance
-            rag = await lightrag_manager.create_lightrag_instance(collection)
-
-            # Call LightRAG method to generate suggestions
-            result = await rag.agenerate_merge_suggestions(
+            return await rag.agenerate_merge_suggestions(
                 max_suggestions=max_suggestions,
-                entity_types=entity_types,
-                debug_mode=debug_mode,
+                entity_types=None,  # Default to None (consider all entity types)
+                debug_mode=False,  # Default to False
                 max_concurrent_llm_calls=max_concurrent_llm_calls,
             )
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Failed to generate merge suggestions for collection {collection_id}: {str(e)}")
-            raise GraphServiceError(f"Failed to generate merge suggestions: {str(e)}") from e
         finally:
-            if "rag" in locals():
-                await rag.finalize_storages()
+            await rag.finalize_storages()
 
     async def merge_nodes(
         self,
         user_id: str,
         collection_id: str,
-        entity_ids: list[str],
+        entity_ids: list[str] | None = None,
+        suggestion_id: str | None = None,
         target_entity_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """
-        Merge multiple graph nodes using LightRAG.
+        """Merge graph nodes with suggestion or entity IDs (suggestion_id takes precedence)"""
+        if not suggestion_id and not entity_ids:
+            raise ValueError("Must specify either entity_ids or suggestion_id")
 
-        Args:
-            user_id: User ID
-            collection_id: Collection ID
-            entity_ids: List of entity IDs to merge
-            target_entity_data: Optional target entity configuration including entity_name and other properties
+        db_collection = await self._get_and_validate_collection(user_id, collection_id)
 
-        Returns:
-            Dict containing merge operation results
+        # Prepare merge parameters
+        if suggestion_id:
+            suggestions = await self.db_ops.get_suggestions_by_ids([suggestion_id])
+            if not suggestions:
+                raise ValueError(f"Suggestion not found: {suggestion_id}")
 
-        Raises:
-            CollectionNotFoundException: If collection is not found
-            ValueError: If knowledge graph is not enabled for the collection
-            GraphServiceError: If merge operation fails
-        """
-        # Get and validate collection
-        collection = await self._get_and_validate_collection(user_id, collection_id)
+            suggestion = suggestions[0]
+            merge_entity_ids = suggestion.entity_ids
+            merge_target_data = target_entity_data or suggestion.suggested_target_entity
+        else:
+            merge_entity_ids = entity_ids
+            merge_target_data = target_entity_data
 
+        # Execute merge
+        rag = await lightrag_manager.create_lightrag_instance(db_collection)
         try:
-            # Create LightRAG instance
-            rag = await lightrag_manager.create_lightrag_instance(collection)
-
-            # Call LightRAG merge method
             result = await rag.amerge_nodes(
-                entity_ids=entity_ids,
-                target_entity_data=target_entity_data,
+                entity_ids=merge_entity_ids,
+                target_entity_data=merge_target_data,
             )
 
+            result.update(
+                {
+                    "suggestion_id": suggestion_id,
+                    "entity_ids": merge_entity_ids,
+                }
+            )
+
+            # Update suggestion status if applicable
+            if suggestion_id:
+                await self.db_ops.update_suggestion_status(suggestion_id, MergeSuggestionStatus.ACCEPTED, utc_now())
+                await self.db_ops.expire_related_suggestions(collection_id, merge_entity_ids)
+
+            logger.info(f"Successfully merged entities {merge_entity_ids} in collection {collection_id}")
             return result
-
-        except Exception as e:
-            logger.error(f"Failed to merge nodes in collection {collection_id}: {str(e)}")
-            raise GraphServiceError(f"Failed to merge nodes: {str(e)}") from e
         finally:
-            if "rag" in locals():
-                await rag.finalize_storages()
-
-    # ==================== Common Helper Methods ====================
+            await rag.finalize_storages()
 
     async def _get_and_validate_collection(self, user_id: str, collection_id: str):
-        """
-        Get collection database model and validate that knowledge graph is enabled
-
-        Args:
-            user_id: User ID
-            collection_id: Collection ID
-
-        Returns:
-            Collection database model (needed for lightrag_manager)
-
-        Raises:
-            CollectionNotFoundException: If collection is not found
-            ValueError: If knowledge graph is not enabled
-        """
-        # Validate that user has access to the collection
+        """Get collection and validate knowledge graph is enabled"""
         try:
-            view_collection: view_models.Collection = await self.collection_service.get_collection(
-                user_id, collection_id
-            )
+            view_collection = await self.collection_service.get_collection(user_id, collection_id)
         except Exception:
             raise CollectionNotFoundException(collection_id)
 
-        # Check if knowledge graph is enabled in the view model
-        if view_collection.config:
-            config = view_collection.config
-            if not config.enable_knowledge_graph:
-                raise ValueError(f"Knowledge graph is not enabled for collection {collection_id}")
-        else:
+        if not view_collection.config or not view_collection.config.enable_knowledge_graph:
             raise ValueError(f"Knowledge graph is not enabled for collection {collection_id}")
 
-        # Get the database model (needed for lightrag_manager which expects config as JSON string)
         db_collection = await self.collection_service.db_ops.query_collection(user_id, collection_id)
         if not db_collection:
             raise CollectionNotFoundException(collection_id)
@@ -423,5 +331,5 @@ class GraphService:
         return db_collection
 
 
-# Global service instances (maintaining backward compatibility)
+# Global service instance
 graph_service = GraphService()
