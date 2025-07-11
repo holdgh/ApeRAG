@@ -1,13 +1,12 @@
 """
 JINA Search Provider
 
-Web search implementation using JINA Search API.
-Provides LLM-friendly search results using JINA's s.jina.ai service.
+Web search provider using JINA's s.jina.ai API.
 """
 
+import asyncio
 import logging
-from datetime import datetime
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -16,12 +15,6 @@ from aperag.websearch.search.base_search import BaseSearchProvider
 from aperag.websearch.utils.url_validator import URLValidator
 
 logger = logging.getLogger(__name__)
-
-
-class SearchProviderError(Exception):
-    """Exception raised by search providers."""
-
-    pass
 
 
 class JinaSearchProvider(BaseSearchProvider):
@@ -43,7 +36,7 @@ class JinaSearchProvider(BaseSearchProvider):
         self.api_key = config.get("api_key") if config else None
 
         self.base_url = "https://s.jina.ai/"
-        self.supported_engines = ["jina", "google", "bing"]  # JINA supports multiple search engines
+        self.supported_engines = ["jina", "google", "bing"]
 
         # Configure session headers
         self.headers = {
@@ -57,168 +50,132 @@ class JinaSearchProvider(BaseSearchProvider):
         self,
         query: str,
         max_results: int = 5,
-        search_engine: str = "google",
+        search_engine: str = "jina",
         timeout: int = 30,
-        locale: str = "zh-CN",
+        locale: str = "en-US",
+        source: Optional[str] = None,
     ) -> List[WebSearchResultItem]:
         """
-        Perform web search using JINA Search API.
+        Perform web search using Jina Search API.
 
         Args:
-            query: Search query
+            query: Search query (can be empty for site-specific browsing)
             max_results: Maximum number of results to return
-            search_engine: Search engine to use (google, bing, etc.)
+            search_engine: Search engine to use
             timeout: Request timeout in seconds
             locale: Browser locale
+            source: Domain or URL for site-specific search. When provided, search will be limited to this domain.
 
         Returns:
             List of search result items
-
-        Raises:
-            SearchProviderError: If search fails
         """
-        if not query or not query.strip():
-            raise SearchProviderError("Query cannot be empty")
+        # Validate parameters
+        has_query = query and query.strip()
+        has_source = source and source.strip()
 
-        if not self.api_key:
-            raise SearchProviderError("JINA API key is required. Pass api_key in provider_config.")
+        # Either query or source must be provided
+        if not has_query and not has_source:
+            raise ValueError("Either query or source must be provided")
 
-        if not self.validate_search_engine(search_engine):
-            raise SearchProviderError(
-                f"Unsupported search engine: {search_engine}. Supported engines: {self.get_supported_engines()}"
-            )
+        if max_results <= 0:
+            raise ValueError("max_results must be positive")
+        if max_results > 100:
+            raise ValueError("max_results cannot exceed 100")
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+
+        # Prepare search query and domain filtering
+        final_query = query or ""
+        target_domain = None
+
+        if source:
+            target_domain = URLValidator.extract_domain_from_source(source)
+            if target_domain and has_query:
+                # Add site restriction to query
+                final_query = f"site:{target_domain} {query}"
+            elif target_domain and not has_query:
+                # Site browsing without specific query
+                final_query = f"site:{target_domain}"
+            elif not target_domain and not has_query:
+                raise ValueError("Invalid source domain and no query provided")
+
+        # Build request data
+        request_data = {
+            "q": final_query,
+            "count": min(max_results, 20),  # Jina API typically supports up to 20 results
+        }
 
         try:
-            # Prepare request payload
-            payload = {
-                "query": query,
-                "count": max_results,
-                "search_engine": search_engine if search_engine != "jina" else "google",
-                "include_citations": True,
-                "include_images": False,
-                "include_image_descriptions": False,
-            }
-
-            # Add locale-specific parameters
-            if locale.startswith("zh"):
-                payload["safe_search"] = "moderate"
-                payload["country"] = "CN"
-
+            # Make request to Jina Search API
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-                async with session.post(self.base_url, json=payload, headers=self.headers) as response:
+                async with session.get(
+                    "https://s.jina.ai/",
+                    params=request_data,
+                    headers={
+                        "Accept": "application/json",
+                        "User-Agent": f"Mozilla/5.0 ({locale}) AppleWebKit/537.36",
+                    },
+                ) as response:
                     if response.status != 200:
-                        error_text = await response.text()
-                        logger.error(f"JINA search API error {response.status}: {error_text}")
-                        raise SearchProviderError(f"JINA API returned status {response.status}: {error_text}")
+                        logger.error(f"Jina Search API returned status {response.status}")
+                        return []
 
-                    data = await response.json()
-                    return self._parse_search_results(data, query)
+                    response_data = await response.json()
+                    return self._parse_jina_response(response_data, target_domain)
 
-        except aiohttp.ClientError as e:
-            logger.error(f"JINA search request failed: {e}")
-            raise SearchProviderError(f"Network request failed: {str(e)}")
+        except asyncio.TimeoutError:
+            logger.error(f"Jina search timed out after {timeout} seconds")
+            return []
         except Exception as e:
-            logger.error(f"JINA search failed: {e}")
-            raise SearchProviderError(f"Search failed: {str(e)}")
+            logger.error(f"Error in Jina search: {e}")
+            return []
 
-    def _parse_search_results(self, data: dict, query: str) -> List[WebSearchResultItem]:
-        """
-        Parse JINA search response into WebSearchResultItem objects.
-
-        Args:
-            data: Raw response data from JINA API
-            query: Original search query
-
-        Returns:
-            List of parsed search result items
-        """
+    def _parse_jina_response(
+        self, response_data: Dict[str, Any], target_domain: Optional[str] = None
+    ) -> List[WebSearchResultItem]:
+        """Parse Jina API response into standardized result items."""
         results = []
 
-        # JINA s.jina.ai returns results in 'data' field with 'content' containing structured info
-        content = data.get("data", {}).get("content", "")
-        if not content:
-            logger.warning("No content found in JINA search response")
-            return results
+        # Handle different response formats
+        items = response_data.get("data", []) or response_data.get("results", [])
 
-        # Extract URLs from citations if available
-        citations = data.get("data", {}).get("citations", [])
-
-        # Parse content to extract search results
-        # JINA typically returns markdown-formatted content with citations
-        try:
-            # Try to extract structured information from content
-            # This is a simplified parser - JINA's format may vary
-            lines = content.split("\n")
-            rank = 1
-
-            for line in lines:
-                line = line.strip()
-                if not line:
+        for i, item in enumerate(items):
+            try:
+                url = item.get("url", "")
+                if not url:
                     continue
 
-                # Look for URL patterns in citations
-                for citation in citations:
-                    if isinstance(citation, dict) and "url" in citation:
-                        url = citation["url"]
-                        if not URLValidator.is_valid_url(url):
-                            continue
+                # Apply domain filtering if specified
+                if target_domain:
+                    result_domain = URLValidator.extract_domain(url)
+                    if not result_domain or result_domain.lower() != target_domain.lower():
+                        continue
 
-                        # Extract title and snippet from citation
-                        title = citation.get("title", "")
-                        snippet = citation.get("snippet", "")
-
-                        if not title:
-                            # Try to extract title from content
-                            title = f"Search result {rank}"
-
-                        if not snippet:
-                            # Use part of the content as snippet
-                            snippet = content[:200] + "..." if len(content) > 200 else content
-
-                        results.append(
-                            WebSearchResultItem(
-                                rank=rank,
-                                title=title,
-                                url=url,
-                                snippet=snippet,
-                                domain=URLValidator.extract_domain(url),
-                                timestamp=datetime.now(),
-                            )
-                        )
-                        rank += 1
-
-                        if len(results) >= 10:  # Reasonable limit
-                            break
-
-            # If no citations found, create a generic result
-            if not results and content:
-                results.append(
-                    WebSearchResultItem(
-                        rank=1,
-                        title=f"Search results for: {query}",
-                        url="https://jina.ai/",
-                        snippet=content[:300] + "..." if len(content) > 300 else content,
-                        domain="jina.ai",
-                        timestamp=datetime.now(),
-                    )
+                result = WebSearchResultItem(
+                    url=url,
+                    title=item.get("title", "").strip() or "No Title",
+                    snippet=item.get("description", "").strip()
+                    or item.get("snippet", "").strip()
+                    or "No description available",
+                    rank=len(results) + 1,  # Use filtered rank
+                    search_engine="jina",
+                    metadata={
+                        "score": item.get("score"),
+                        "published_date": item.get("published_date"),
+                        "source_domain": URLValidator.extract_domain(url),
+                    },
                 )
+                results.append(result)
 
-        except Exception as e:
-            logger.error(f"Error parsing JINA search results: {e}")
-            # Fallback: create a single result with the content
-            if content:
-                results.append(
-                    WebSearchResultItem(
-                        rank=1,
-                        title=f"Search results for: {query}",
-                        url="https://jina.ai/",
-                        snippet=content[:300] + "..." if len(content) > 300 else content,
-                        domain="jina.ai",
-                        timestamp=datetime.now(),
-                    )
-                )
+            except Exception as e:
+                logger.warning(f"Failed to parse Jina result item: {e}")
+                continue
 
-        return results if results else []
+        logger.info(
+            f"Jina search completed: {len(results)} results"
+            + (f" from domain {target_domain}" if target_domain else "")
+        )
+        return results
 
     def get_supported_engines(self) -> List[str]:
         """
@@ -228,11 +185,3 @@ class JinaSearchProvider(BaseSearchProvider):
             List of supported search engine names
         """
         return self.supported_engines.copy()
-
-    async def close(self):
-        """
-        Close and cleanup resources.
-        """
-        # JINA provider doesn't maintain persistent connections
-        # No resources to close
-        pass

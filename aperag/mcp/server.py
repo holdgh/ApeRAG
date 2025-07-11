@@ -139,38 +139,55 @@ async def search_collection(
 
 @mcp_server.tool
 async def web_search(
-    query: str,
+    query: str = "",
     max_results: int = 5,
     search_engine: str = "duckduckgo",
     timeout: int = 30,
-    locale: str = "zh-CN",
+    locale: str = "en-US",
+    source: str = "",
+    search_llms_txt: str = "",
 ) -> Dict[str, Any]:
-    """Perform web search using various search engines.
+    """Perform web search using various search engines with advanced domain targeting.
 
     Args:
-        query: Search query
+        query: Search query for regular web search. Optional if only using LLM.txt discovery.
         max_results: Maximum number of results to return (default: 5)
-                 search_engine: Search engine to use: duckduckgo, google, bing (default: duckduckgo)
+        search_engine: Search engine to use: duckduckgo, google, bing (default: duckduckgo)
         timeout: Request timeout in seconds (default: 30)
-        locale: Browser locale (default: zh-CN)
+        locale: Browser locale (default: en-US)
+        source: Optional domain or URL for site-specific filtering. When provided with query,
+                limits search results to this domain (e.g., 'site:vercel.com query').
+        search_llms_txt: Domain for LLM.txt discovery search. When provided, performs additional
+                        LLM-optimized content discovery from the specified domain, independent
+                        of the main search. Results are merged with regular search results.
 
     Returns:
         Web search results with URLs, titles, snippets, and metadata
 
     Note:
-        Uses WebSearchResponse view model for type-safe response parsing
+        Supports parallel execution of regular search and LLM.txt discovery.
+        Results are automatically merged and ranked.
     """
     try:
         api_key = get_api_key()
 
         # Build search request
         search_data = {
-            "query": query,
             "max_results": max_results,
             "search_engine": search_engine,
             "timeout": timeout,
             "locale": locale,
         }
+
+        # Only include non-empty optional parameters
+        if query and query.strip():
+            search_data["query"] = query.strip()
+
+        if source and source.strip():
+            search_data["source"] = source.strip()
+
+        if search_llms_txt and search_llms_txt.strip():
+            search_data["search_llms_txt"] = search_llms_txt.strip()
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -196,7 +213,7 @@ async def web_search(
 async def web_read(
     urls: str | list[str],
     timeout: int = 30,
-    locale: str = "zh-CN",
+    locale: str = "en-US",
     max_concurrent: int = 5,
 ) -> Dict[str, Any]:
     """Read and extract content from web pages.
@@ -204,7 +221,7 @@ async def web_read(
     Args:
         urls: URL (string) or list of URLs to read content from
         timeout: Request timeout in seconds (default: 30)
-        locale: Browser locale (default: zh-CN)
+        locale: Browser locale (default: en-US)
         max_concurrent: Maximum concurrent requests for multiple URLs (default: 5)
 
     Returns:
@@ -317,7 +334,7 @@ You can also search the web and extract content from web pages:
 
 ### Web Search Example:
 ```
-# Search the web for information
+# Basic web search
 web_results = web_search(
     query="ApeRAG RAG system 2025",
     max_results=5,
@@ -325,11 +342,33 @@ web_results = web_search(
     locale="zh-CN"
 )
 
+# Site-specific regular search
+site_results = web_search(
+    query="deployment documentation",
+    source="vercel.com",  # limit search to vercel.com domain
+    max_results=10
+)
+
+# LLM.txt discovery search (independent)
+llms_txt_results = web_search(
+    search_llms_txt="anthropic.com",  # discover LLM.txt content from anthropic.com
+    max_results=5
+)
+
+# Combined search: regular + LLM.txt discovery
+combined_results = web_search(
+    query="machine learning tutorials",
+    source="docs.python.org",  # regular search limited to Python docs
+    search_llms_txt="openai.com",  # plus LLM.txt discovery from OpenAI
+    max_results=8
+)
+
 # Search results include URLs, titles, snippets, and domains
 for result in web_results.results:
     print(f"Title: {result.title}")
     print(f"URL: {result.url}")
     print(f"Snippet: {result.snippet}")
+    print(f"Domain: {result.domain}")
 ```
 
 ### Web Content Reading Example:
@@ -356,8 +395,13 @@ for result in content.results:
 
 ### Combined Workflow Example:
 ```
-# 1. Search web for recent information
-web_results = web_search(query="latest AI developments 2025", max_results=3)
+# 1. Search web for recent information with LLM.txt discovery
+web_results = web_search(
+    query="latest AI developments 2025", 
+    source="anthropic.com",  # limit regular search to Anthropic's content
+    search_llms_txt="anthropic.com",  # discover LLM-optimized content from Anthropic
+    max_results=3
+)
 
 # 2. Extract URLs from search results
 urls = [result.url for result in web_results.results]
@@ -373,6 +417,20 @@ if collections.items:
         query="AI developments",
         topk=5
     )
+
+# 5. Combine results for comprehensive analysis
+print("=== Web Results ===")
+for result in web_results.results:
+    print(f"[{result.domain}] {result.title}: {result.url}")
+
+print("\n=== Web Content ===")
+for content in web_content.results:
+    if content.status == "success":
+        print(f"📄 {content.title} ({content.word_count} words)")
+
+print("\n=== Internal Knowledge ===")
+for item in internal_results.items:
+    print(f"🔍 {item.content[:100]}...")
 
 # Now you have both web and internal knowledge base results!
 ```
@@ -401,6 +459,9 @@ I can help you search your knowledge base effectively using ApeRAG.
 - 🌐 **Search the web** for latest information using multiple search engines
 - 📄 **Read web content** and extract clean text from any web page
 - 🔗 **Combine web and internal search** for comprehensive results
+- 🤖 **LLM.txt discovery** for AI-optimized content from any domain
+- 🎯 **Domain-targeted search** with flexible result filtering
+- 🏢 **Site-specific search** to focus on specific websites or domains
 
 ## Search Tips:
 - Use **specific terms** for better results

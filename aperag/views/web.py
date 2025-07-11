@@ -12,106 +12,173 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import logging
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 
-from aperag.db.models import User
-from aperag.schema.view_models import WebReadRequest, WebReadResponse, WebSearchRequest, WebSearchResponse
-from aperag.utils.audit_decorator import audit
-from aperag.views.auth import current_user
-from aperag.websearch import ReaderService, SearchService
+from aperag.schema.view_models import WebSearchRequest, WebSearchResponse
+from aperag.websearch.search.search_service import SearchService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
+async def web_search_view(request: WebSearchRequest) -> WebSearchResponse:
+    """
+    Enhanced web search with parallel regular and LLM.txt discovery.
+
+    Logic:
+    - query + source = site-specific regular search (AND relationship)
+    - search_llms_txt = independent LLM.txt discovery (OR relationship)
+    - Results are merged and ranked
+    """
+    # Validate that at least one search type is requested
+    has_regular_search = bool(request.query and request.query.strip())
+    has_llm_txt_search = bool(request.search_llms_txt and request.search_llms_txt.strip())
+
+    if not has_regular_search and not has_llm_txt_search:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one search type is required: provide 'query' for regular search or 'search_llms_txt' for LLM.txt discovery.",
+        )
+
+    # Prepare search tasks
+    search_tasks = []
+    search_descriptions = []
+
+    # Regular search (query + optional source filtering)
+    if has_regular_search:
+        regular_service = SearchService(provider_name="duckduckgo")
+
+        regular_request = WebSearchRequest(
+            query=request.query.strip(),
+            max_results=request.max_results,
+            search_engine=request.search_engine,
+            timeout=request.timeout,
+            locale=request.locale,
+            source=request.source,  # Optional site filtering
+            search_llms_txt=None,  # Not used for regular search
+        )
+
+        search_tasks.append(regular_service.search(regular_request))
+        search_descriptions.append(
+            f"Regular search: '{request.query}'" + (f" on {request.source}" if request.source else "")
+        )
+
+    # LLM.txt discovery search (independent)
+    if has_llm_txt_search:
+        llm_txt_service = SearchService(provider_name="llm_txt")
+
+        llm_txt_request = WebSearchRequest(
+            query="",  # LLM.txt discovery doesn't use query
+            max_results=request.max_results,
+            search_engine="llm_txt",
+            timeout=request.timeout,
+            locale=request.locale,
+            source=request.search_llms_txt.strip(),  # LLM.txt domain
+            search_llms_txt=None,  # Not used in this provider
+        )
+
+        search_tasks.append(llm_txt_service.search(llm_txt_request))
+        search_descriptions.append(f"LLM.txt discovery: {request.search_llms_txt}")
+
+    # Execute searches in parallel
+    try:
+        search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search execution failed: {str(e)}")
+
+    # Process results and handle errors
+    all_results = []
+    successful_searches = []
+    failed_searches = []
+
+    for i, result in enumerate(search_results):
+        description = search_descriptions[i]
+
+        if isinstance(result, Exception):
+            failed_searches.append(f"{description}: {str(result)}")
+            continue
+
+        if hasattr(result, "results") and result.results:
+            all_results.extend(result.results)
+            successful_searches.append(description)
+        else:
+            failed_searches.append(f"{description}: No results returned")
+
+    # If all searches failed, return error
+    if not all_results and failed_searches:
+        raise HTTPException(status_code=500, detail=f"All searches failed: {'; '.join(failed_searches)}")
+
+    # Merge and rank results
+    merged_results = _merge_and_rank_results(all_results, request.max_results)
+
+    # Determine the query description for response
+    query_parts = []
+    if has_regular_search:
+        query_parts.append(request.query.strip())
+    if has_llm_txt_search:
+        query_parts.append(f"LLM.txt:{request.search_llms_txt.strip()}")
+
+    response_query = " + ".join(query_parts)
+
+    return WebSearchResponse(
+        query=response_query,
+        results=merged_results,
+        search_engine=f"parallel({len(successful_searches)} sources)",
+        total_results=len(merged_results),
+        search_time=0.0,  # TODO: Track actual search time
+    )
+
+
+def _merge_and_rank_results(all_results: List, max_results: int) -> List:
+    """
+    Merge results from multiple sources and re-rank them.
+
+    Simple strategy:
+    1. Remove duplicates by URL
+    2. Sort by rank (lower is better)
+    3. Re-assign sequential ranks
+    4. Limit to max_results
+    """
+    if not all_results:
+        return []
+
+    # Remove duplicates by URL, keeping the first occurrence
+    seen_urls = set()
+    unique_results = []
+
+    for result in all_results:
+        if hasattr(result, "url") and result.url not in seen_urls:
+            seen_urls.add(result.url)
+            unique_results.append(result)
+
+    # Sort by existing rank (assume lower rank = higher relevance)
+    sorted_results = sorted(unique_results, key=lambda r: getattr(r, "rank", 999))
+
+    # Re-assign sequential ranks and limit results
+    final_results = []
+    for i, result in enumerate(sorted_results[:max_results]):
+        # Create a new result item with updated rank
+        if hasattr(result, "rank"):
+            result.rank = i + 1
+        final_results.append(result)
+
+    return final_results
+
+
 @router.post("/web/search", response_model=WebSearchResponse, tags=["websearch"])
-@audit(resource_type="search", api_name="WebSearch")
-async def web_search(http_request: Request, request: WebSearchRequest, user: User = Depends(current_user)):
+async def web_search_endpoint(request: WebSearchRequest) -> WebSearchResponse:
     """
-    Perform web search to find relevant information on the internet.
+    Perform web search using various search engines with advanced domain targeting.
 
-    Supports multiple search engines including DuckDuckGo and JINA AI.
-    Results are returned in a structured format with ranking and metadata.
+    Supports parallel execution of:
+    - Regular web search with optional site filtering (query + source)
+    - LLM.txt discovery search (search_llms_txt)
+
+    Results are merged and ranked automatically.
     """
-    try:
-        # Validate request
-        if not request.query or not request.query.strip():
-            raise HTTPException(status_code=400, detail="Search query cannot be empty")
-
-        # Log the search request
-        logger.info(f"Web search request from user {user.id}: query='{request.query}', engine={request.search_engine}")
-
-        # Create search service and ensure proper cleanup
-        async with SearchService() as search_service:
-            # Perform search
-            response = await search_service.search(request)
-
-            # Log successful search
-            logger.info(
-                f"Web search completed for user {user.id}: {len(response.results)} results in {response.search_time:.2f}s"
-            )
-
-            return response
-
-    except Exception as e:
-        logger.error(f"Web search failed for user {user.id}: {e}")
-
-        # Handle specific provider errors
-        if "SearchProviderError" in str(type(e)):
-            raise HTTPException(status_code=500, detail=f"Search provider error: {str(e)}")
-        elif "timeout" in str(e).lower():
-            raise HTTPException(status_code=408, detail="Search request timed out")
-        else:
-            raise HTTPException(status_code=500, detail=f"Web search failed: {str(e)}")
-
-
-@router.post("/web/read", response_model=WebReadResponse, tags=["websearch"])
-@audit(resource_type="search", api_name="WebRead")
-async def web_read(http_request: Request, request: WebReadRequest, user: User = Depends(current_user)):
-    """
-    Read and extract content from web pages.
-
-    Supports reading single or multiple URLs concurrently.
-    Content is extracted in Markdown format with metadata.
-    """
-    try:
-        # Validate request
-        if not request.urls:
-            raise HTTPException(status_code=400, detail="URLs cannot be empty")
-
-        # Normalize URLs to list for logging
-        if isinstance(request.urls, str):
-            url_list = [request.urls]
-        else:
-            url_list = request.urls
-
-        # Log the read request
-        logger.info(f"Web read request from user {user.id}: {len(url_list)} URLs, timeout={request.timeout}s")
-
-        # Create reader service and ensure proper cleanup
-        async with ReaderService() as reader_service:
-            # Perform reading
-            response = await reader_service.read(request)
-
-            # Log successful read
-            logger.info(
-                f"Web read completed for user {user.id}: {response.successful}/{response.total_urls} successful in {response.processing_time:.2f}s"
-            )
-
-            return response
-
-    except Exception as e:
-        logger.error(f"Web read failed for user {user.id}: {e}")
-
-        # Handle specific provider errors
-        if "ReaderProviderError" in str(type(e)):
-            raise HTTPException(status_code=500, detail=f"Reader provider error: {str(e)}")
-        elif "timeout" in str(e).lower():
-            raise HTTPException(status_code=408, detail="Read request timed out")
-        elif "urls list cannot be empty" in str(e).lower():
-            raise HTTPException(status_code=400, detail="URLs list cannot be empty")
-        else:
-            raise HTTPException(status_code=500, detail=f"Web read failed: {str(e)}")
+    return await web_search_view(request)

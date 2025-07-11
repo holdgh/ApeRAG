@@ -21,11 +21,11 @@
  */
 export interface WebSearchRequest {
     /**
-     * Search query
+     * Search query for regular web search. Optional if only using LLM.txt discovery.
      * @type {string}
      * @memberof WebSearchRequest
      */
-    'query': string;
+    'query'?: string;
     /**
      * Maximum number of results to return
      * @type {number}
@@ -50,5 +50,17 @@ export interface WebSearchRequest {
      * @memberof WebSearchRequest
      */
     'locale'?: string;
+    /**
+     * Domain or URL for site-specific filtering. When provided with query, limits search results to this domain (e.g., \'site:vercel.com query\').
+     * @type {string}
+     * @memberof WebSearchRequest
+     */
+    'source'?: string;
+    /**
+     * Domain for LLM.txt discovery search. When provided, performs additional LLM-optimized content discovery from the specified domain, independent of the main search. Results are merged with regular search results.
+     * @type {string}
+     * @memberof WebSearchRequest
+     */
+    'search_llms_txt'?: string;
 }
 
