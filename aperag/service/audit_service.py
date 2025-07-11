@@ -159,10 +159,16 @@ class AuditService:
                 request_id=request_id or str(uuid.uuid4()),
             )
 
-            # Save to database asynchronously
-            async for session in get_async_session():
+            # Save to database with proper session management
+            async def _save_audit_log(session):
                 session.add(audit_log)
                 await session.commit()
+                return audit_log
+
+            # Use get_async_session with proper session management
+            async for session in get_async_session():
+                await _save_audit_log(session)
+                break  # Only process one session
 
         except Exception as e:
             logger.error(f"Failed to log audit: {e}")
@@ -179,7 +185,9 @@ class AuditService:
         limit: int = 1000,
     ) -> List[AuditLog]:
         """List audit logs with filtering"""
-        async for session in get_async_session():
+
+        # Use proper session management
+        async def _list_audit_logs(session):
             # Build query
             stmt = select(AuditLog)
 
@@ -206,33 +214,39 @@ class AuditService:
             # Order by creation time (newest first) and limit
             stmt = stmt.order_by(desc(AuditLog.gmt_created)).limit(limit)
 
-            # Execute query
+            # Execute query and return results immediately
             result = await session.execute(stmt)
-            audit_logs = result.scalars().all()
+            return result.scalars().all()
 
-            # Extract resource_id for each log during query time
-            for log in audit_logs:
-                if log.resource_type and log.path:
-                    # Convert string to enum if needed
-                    resource_type_enum = log.resource_type
-                    if isinstance(log.resource_type, str):
-                        try:
-                            resource_type_enum = AuditResource(log.resource_type)
-                        except ValueError:
-                            resource_type_enum = None
+        # Execute query with proper session management
+        audit_logs = None
+        async for session in get_async_session():
+            audit_logs = await _list_audit_logs(session)
+            break  # Only process one session
 
-                    if resource_type_enum:
-                        log.resource_id = self.extract_resource_id_from_path(log.path, resource_type_enum)
-                    else:
-                        log.resource_id = None
+        # Post-process audit logs outside of session to avoid long session occupation
+        for log in audit_logs:
+            if log.resource_type and log.path:
+                # Convert string to enum if needed
+                resource_type_enum = log.resource_type
+                if isinstance(log.resource_type, str):
+                    try:
+                        resource_type_enum = AuditResource(log.resource_type)
+                    except ValueError:
+                        resource_type_enum = None
 
-                # Calculate duration if both times are available
-                if log.start_time and log.end_time:
-                    log.duration_ms = log.end_time - log.start_time
+                if resource_type_enum:
+                    log.resource_id = self.extract_resource_id_from_path(log.path, resource_type_enum)
                 else:
-                    log.duration_ms = None
+                    log.resource_id = None
 
-            return audit_logs
+            # Calculate duration if both times are available
+            if log.start_time and log.end_time:
+                log.duration_ms = log.end_time - log.start_time
+            else:
+                log.duration_ms = None
+
+        return audit_logs
 
 
 # Global audit service instance

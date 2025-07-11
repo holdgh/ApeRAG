@@ -23,7 +23,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aperag.config import get_async_session, settings
+from aperag.config import settings
 from aperag.db import models as db_models
 from aperag.db.ops import AsyncDatabaseOps, async_db_ops
 from aperag.docparser.doc_parser import DocParser
@@ -79,52 +79,95 @@ class DocumentService:
         else:
             self.db_ops = AsyncDatabaseOps(session)  # Create custom instance for transaction control
 
-    async def build_document_response(
-        self, document: db_models.Document, session: AsyncSession
-    ) -> view_models.Document:
-        """Build Document response object for API return using new status model."""
-        from sqlalchemy import select
+    async def _query_documents_with_indexes(
+        self, user: str, collection_id: str, document_id: str = None
+    ) -> List[db_models.Document]:
+        """
+        Common function to query documents with their indexes using JOIN.
+        If document_id is provided, query single document, otherwise query all documents.
+        """
 
-        from aperag.db.models import DocumentIndex
+        async def _execute_query(session):
+            from sqlalchemy import and_, outerjoin, select
 
-        # Get all document indexes for status calculation
-        document_indexes = await session.execute(
-            select(DocumentIndex).where(
-                DocumentIndex.document_id == document.id,
-                DocumentIndex.status != db_models.DocumentIndexStatus.DELETING,
-                DocumentIndex.status != db_models.DocumentIndexStatus.DELETION_IN_PROGRESS,
+            # Create JOIN query between Document and DocumentIndex tables
+            # Use outerjoin to get all documents even if they don't have indexes
+            query = (
+                select(
+                    db_models.Document,
+                    db_models.DocumentIndex.index_type,
+                    db_models.DocumentIndex.status.label("index_status"),
+                    db_models.DocumentIndex.gmt_created.label("index_created_at"),
+                    db_models.DocumentIndex.gmt_updated.label("index_updated_at"),
+                    db_models.DocumentIndex.error_message.label("index_error_message"),
+                )
+                .select_from(
+                    outerjoin(
+                        db_models.Document,
+                        db_models.DocumentIndex,
+                        db_models.Document.id == db_models.DocumentIndex.document_id,
+                    )
+                )
+                .where(
+                    and_(
+                        db_models.Document.user == user,
+                        db_models.Document.collection_id == collection_id,
+                        db_models.Document.status != db_models.DocumentStatus.DELETED,
+                    )
+                )
+                .order_by(db_models.Document.gmt_created.desc())
             )
-        )
-        indexes = document_indexes.scalars().all()
 
-        # Map index states to API response format
-        index_status = {}
-        index_updated = {}
+            # Add document_id filter if provided (for single document query)
+            if document_id:
+                query = query.where(db_models.Document.id == document_id)
 
-        # Initialize all types as SKIPPED (when no record exists)
-        all_types = [
-            db_models.DocumentIndexType.VECTOR,
-            db_models.DocumentIndexType.FULLTEXT,
-            db_models.DocumentIndexType.GRAPH,
-        ]
-        for index_type in all_types:
-            index_status[index_type] = "SKIPPED"
+            result = await session.execute(query)
+            rows = result.fetchall()
 
-        # Update with actual states from database
-        for index in indexes:
-            index_status[index.index_type] = index.status
-            index_updated[index.index_type] = index.gmt_updated
+            # Group results by document and attach all index information
+            documents_dict = {}
+            for row in rows:
+                doc = row.Document
+                if doc.id not in documents_dict:
+                    documents_dict[doc.id] = doc
+                    # Initialize index information for all types
+                    doc.indexes = {"VECTOR": None, "FULLTEXT": None, "GRAPH": None}
+
+                # Add index information if exists
+                if row.index_type:
+                    doc.indexes[row.index_type] = {
+                        "index_type": row.index_type,
+                        "status": row.index_status,
+                        "created_at": row.index_created_at,
+                        "updated_at": row.index_updated_at,
+                        "error_message": row.index_error_message,
+                    }
+
+            return list(documents_dict.values())
+
+        return await self.db_ops._execute_query(_execute_query)
+
+    async def _build_document_response(self, document: db_models.Document) -> view_models.Document:
+        """
+        Build document response object with all index types information.
+        """
+        # Get all index information if available
+        indexes = getattr(document, "indexes", {"VECTOR": None, "FULLTEXT": None, "GRAPH": None})
 
         return view_models.Document(
             id=document.id,
             name=document.name,
             status=document.status,
-            vector_index_status=index_status.get(db_models.DocumentIndexType.VECTOR, "SKIPPED"),
-            fulltext_index_status=index_status.get(db_models.DocumentIndexType.FULLTEXT, "SKIPPED"),
-            graph_index_status=index_status.get(db_models.DocumentIndexType.GRAPH, "SKIPPED"),
-            vector_index_updated=index_updated.get(db_models.DocumentIndexType.VECTOR, None),
-            fulltext_index_updated=index_updated.get(db_models.DocumentIndexType.FULLTEXT, None),
-            graph_index_updated=index_updated.get(db_models.DocumentIndexType.GRAPH, None),
+            # Vector index information
+            vector_index_status=indexes["VECTOR"]["status"] if indexes["VECTOR"] else "SKIPPED",
+            vector_index_updated=indexes["VECTOR"]["updated_at"] if indexes["VECTOR"] else None,
+            # Fulltext index information
+            fulltext_index_status=indexes["FULLTEXT"]["status"] if indexes["FULLTEXT"] else "SKIPPED",
+            fulltext_index_updated=indexes["FULLTEXT"]["updated_at"] if indexes["FULLTEXT"] else None,
+            # Graph index information
+            graph_index_status=indexes["GRAPH"]["status"] if indexes["GRAPH"] else "SKIPPED",
+            graph_index_updated=indexes["GRAPH"]["updated_at"] if indexes["GRAPH"] else None,
             size=document.size,
             created=document.gmt_created,
             updated=document.gmt_updated,
@@ -241,19 +284,24 @@ class DocumentService:
         return DocumentList(items=response)
 
     async def list_documents(self, user: str, collection_id: str) -> view_models.DocumentList:
-        documents = await self.db_ops.query_documents([user], collection_id)
+        """List all documents for a user in a collection."""
+        documents = await self._query_documents_with_indexes(user, collection_id)
+
         response = []
-        async for session in get_async_session():
-            for document in documents:
-                response.append(await self.build_document_response(document, session))
-        return DocumentList(items=response)
+        for document in documents:
+            response.append(await self._build_document_response(document))
+
+        return view_models.DocumentList(items=response)
 
     async def get_document(self, user: str, collection_id: str, document_id: str) -> view_models.Document:
-        document = await self.db_ops.query_document(user, collection_id, document_id)
-        if document is None:
-            raise DocumentNotFoundException(document_id)
-        async for session in get_async_session():
-            return await self.build_document_response(document, session)
+        """Get a specific document by ID."""
+        documents = await self._query_documents_with_indexes(user, collection_id, document_id)
+
+        if not documents:
+            raise DocumentNotFoundException(f"Document not found: {document_id}")
+
+        document = documents[0]
+        return await self._build_document_response(document)
 
     async def _delete_document(self, session: AsyncSession, user: str, collection_id: str, document_id: str):
         """
@@ -390,7 +438,9 @@ class DocumentService:
         """
         Get all chunks of a document.
         """
-        async for session in get_async_session():
+
+        # Use database operations with proper session management
+        async def _get_document_chunks(session):
             # 1. Get the document to verify ownership and get collection_id
             stmt = select(db_models.Document).filter(
                 db_models.Document.id == document_id,
@@ -471,11 +521,16 @@ class DocumentService:
                 )
                 raise HTTPException(status_code=500, detail="Failed to retrieve chunks from vector store")
 
+        # Execute query with proper session management
+        return await self.db_ops._execute_query(_get_document_chunks)
+
     async def get_document_preview(self, user_id: str, collection_id: str, document_id: str) -> DocumentPreview:
         """
         Get all preview-related information for a document.
         """
-        async for session in get_async_session():
+
+        # Use database operations with proper session management
+        async def _get_document_preview(session):
             # 1. Get document and vector index in one go
             doc_stmt = select(db_models.Document).filter(
                 db_models.Document.id == document_id,
@@ -539,11 +594,16 @@ class DocumentService:
                 chunks=chunks,
             )
 
+        # Execute query with proper session management
+        return await self.db_ops._execute_query(_get_document_preview)
+
     async def get_document_object(self, user_id: str, collection_id: str, document_id: str, path: str):
         """
         Get a file object associated with a document from the object store.
         """
-        async for session in get_async_session():
+
+        # Use database operations with proper session management
+        async def _get_document_object(session):
             # 1. Verify user has access to the document
             stmt = select(db_models.Document).filter(
                 db_models.Document.id == document_id,
@@ -579,6 +639,9 @@ class DocumentService:
             except Exception as e:
                 logger.error(f"Failed to get object for document {document_id} at path {full_path}: {e}", exc_info=True)
                 raise HTTPException(status_code=500, detail="Failed to get object from store")
+
+        # Execute query with proper session management
+        return await self.db_ops._execute_query(_get_document_object)
 
 
 # Create a global service instance for easy access
