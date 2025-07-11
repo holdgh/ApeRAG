@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import logging
+import os
 import secrets
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, WebSocket
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, WebSocket
 from fastapi_users import BaseUserManager, FastAPIUsers
 from fastapi_users.authentication import AuthenticationBackend, CookieTransport, JWTStrategy
 from fastapi_users.db import SQLAlchemyUserDatabase
@@ -520,3 +521,4 @@ async def delete_user_view(
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
     await async_db_ops.delete_user(session, target)
     return {"message": "User deleted successfully"}
+
