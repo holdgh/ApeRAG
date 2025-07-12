@@ -16,6 +16,7 @@ import json
 import logging
 import mimetypes
 import os
+import re
 from typing import List
 
 from fastapi import HTTPException, UploadFile
@@ -575,14 +576,14 @@ class DocumentService:
 
             converted_pdf_object_path = None
             index_data = json.loads(doc_index.index_data) if doc_index and doc_index.index_data else {}
-            if index_data.get("has_pdf_source_map") and not document.name.lower().endswith(".pdf"):
+            if index_data.get("has_pdf_source_map"):
                 # If the parsing result contains pdf_source_map metadata,
                 # it means it is a PDF or has been converted to a PDF.
-                # But only converted documents have a converted.pdf file.
-                pdf_path = f"{document.object_store_base_path()}/converted.pdf"
+                converted_pdf_name = "converted.pdf"
+                pdf_path = f"{document.object_store_base_path()}/{converted_pdf_name}"
                 exists = await async_obj_store.obj_exists(pdf_path)
                 if exists:
-                    converted_pdf_object_path = "converted.pdf"
+                    converted_pdf_object_path = converted_pdf_name
 
             # 5. Construct and return response
             return DocumentPreview(
@@ -596,9 +597,12 @@ class DocumentService:
         # Execute query with proper session management
         return await self.db_ops._execute_query(_get_document_preview)
 
-    async def get_document_object(self, user_id: str, collection_id: str, document_id: str, path: str):
+    async def get_document_object(
+        self, user_id: str, collection_id: str, document_id: str, path: str, range_header: str = None
+    ):
         """
         Get a file object associated with a document from the object store.
+        Supports HTTP Range requests.
         """
 
         # Use database operations with proper session management
@@ -622,19 +626,49 @@ class DocumentService:
             # 2. Get the object from object store
             try:
                 async_obj_store = get_async_object_store()
-                get_obj_result = await async_obj_store.get(full_path)
-
-                if not get_obj_result:
-                    raise HTTPException(status_code=404, detail="Object not found at specified path")
-
-                data_stream, _ = get_obj_result
-
-                # 3. Stream the response
+                headers = {"Accept-Ranges": "bytes"}
                 content_type, _ = mimetypes.guess_type(full_path)
                 if content_type is None:
                     content_type = "application/octet-stream"
+                headers["Content-Type"] = content_type
 
-                return StreamingResponse(data_stream, media_type=content_type)
+                if range_header:
+                    # For range requests, we need the total size first.
+                    total_size = await async_obj_store.get_obj_size(full_path)
+                    if total_size is None:
+                        raise HTTPException(status_code=404, detail="Object not found at specified path")
+
+                    range_match = re.match(r"bytes=(\d+)-(\d*)", range_header)
+                    if not range_match:
+                        raise HTTPException(status_code=400, detail="Invalid range header format")
+
+                    start_byte = int(range_match.group(1))
+                    end_byte_str = range_match.group(2)
+                    end_byte = int(end_byte_str) if end_byte_str else total_size - 1
+
+                    if start_byte >= total_size or end_byte >= total_size or start_byte > end_byte:
+                        headers["Content-Range"] = f"bytes */{total_size}"
+                        raise HTTPException(status_code=416, headers=headers, detail="Requested range not satisfiable")
+
+                    # Use stream_range to get the partial content
+                    range_result = await async_obj_store.stream_range(full_path, start=start_byte, end=end_byte)
+                    if not range_result:
+                        raise HTTPException(status_code=404, detail="Object not found at specified path")
+
+                    data_stream, content_length = range_result
+                    headers["Content-Range"] = f"bytes {start_byte}-{end_byte}/{total_size}"
+                    headers["Content-Length"] = str(content_length)
+                    return StreamingResponse(data_stream, status_code=206, headers=headers)
+
+                # Full content response - optimized to use size from get()
+                get_obj_result = await async_obj_store.get(full_path)
+                if not get_obj_result:
+                    raise HTTPException(status_code=404, detail="Object not found at specified path")
+
+                data_stream, file_size = get_obj_result
+                headers["Content-Length"] = str(file_size)
+                return StreamingResponse(data_stream, headers=headers)
+
             except Exception as e:
                 logger.error(f"Failed to get object for document {document_id} at path {full_path}: {e}", exc_info=True)
                 raise HTTPException(status_code=500, detail="Failed to get object from store")
