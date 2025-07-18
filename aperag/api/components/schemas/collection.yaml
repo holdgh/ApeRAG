@@ -148,6 +148,9 @@ collectionConfig:
     enable_knowledge_graph:
       type: boolean
       description: Whether to enable knowledge graph
+    enable_summary:
+      type: boolean
+      description: Whether to enable summary generation
     embedding:
       $ref: './model.yaml#/modelSpec'
     completion:

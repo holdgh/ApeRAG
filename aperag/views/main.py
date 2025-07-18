@@ -15,14 +15,17 @@
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Path, Request, Response, UploadFile, WebSocket
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Path, Request, Response, UploadFile, WebSocket, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from aperag.db.models import User
 from aperag.exceptions import CollectionNotFoundException
 from aperag.schema import view_models
+from aperag.schema.utils import parseCollectionConfig
 from aperag.service.bot_service import bot_service
 from aperag.service.chat_service import chat_service_global
 from aperag.service.collection_service import collection_service
+from aperag.service.collection_summary_service import collection_summary_service
 from aperag.service.document_service import document_service
 from aperag.service.flow_service import flow_service_global
 from aperag.service.llm_available_model_service import llm_available_model_service
@@ -86,7 +89,8 @@ async def update_collection_view(
     collection: view_models.CollectionUpdate,
     user: User = Depends(current_user),
 ) -> view_models.Collection:
-    return await collection_service.update_collection(str(user.id), collection_id, collection)
+    instance = await collection_service.update_collection(str(user.id), collection_id, collection)
+    return instance
 
 
 @router.delete("/collections/{collection_id}", tags=["collections"])
@@ -95,6 +99,38 @@ async def delete_collection_view(
     request: Request, collection_id: str, user: User = Depends(current_user)
 ) -> view_models.Collection:
     return await collection_service.delete_collection(str(user.id), collection_id)
+
+
+@router.post("/collections/{collection_id}/summary/generate", tags=["collections"])
+@audit(resource_type="collection", api_name="GenerateCollectionSummary")
+async def generate_collection_summary_view(
+    request: Request, collection_id: str, user: User = Depends(current_user)
+) -> dict:
+    """Trigger collection summary generation as background task"""
+    from aperag.service.collection_summary_service import collection_summary_service
+
+    # Check if collection exists
+    collection = await collection_service.get_collection(str(user.id), collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    # Trigger async summary generation
+    task_triggered = await collection_summary_service.trigger_collection_summary_generation(collection)
+
+    if task_triggered:
+        return {
+            "collection_id": collection_id,
+            "success": True,
+            "message": "Collection summary generation started",
+            "summary_status": "PENDING",
+        }
+    else:
+        return {
+            "collection_id": collection_id,
+            "success": False,
+            "message": "Collection summary generation already in progress or disabled",
+            "summary_status": "GENERATING",
+        }
 
 
 @router.post("/collections/test-mineru-token", tags=["collections"])
