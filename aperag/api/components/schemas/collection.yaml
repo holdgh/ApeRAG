@@ -151,6 +151,9 @@ collectionConfig:
     enable_summary:
       type: boolean
       description: Whether to enable summary generation
+    enable_vision:
+      type: boolean
+      description: Whether to enable vision index
     embedding:
       $ref: './model.yaml#/modelSpec'
     completion:
@@ -368,6 +371,9 @@ searchResultItem:
         - vector_search
         - graph_search
         - fulltext_search
+    metadata:
+      type: object
+      description: Metadata of the result
 
 searchResult:
   type: object

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pikepdf
+import pypdfium2 as pdfium
 
 from aperag.docparser.base import AssetBinPart, MarkdownPart, PdfPart
 from aperag.docparser.doc_parser import DocParser
@@ -58,6 +59,7 @@ class DocumentParser:
         Raises:
             ValueError: If the file type is unsupported
         """
+        file_metadata = file_metadata or {}
         parser = DocParser(parser_config=parser_config)
         filepath_obj = Path(filepath)
 
@@ -71,6 +73,40 @@ class DocumentParser:
             if not any(isinstance(p, PdfPart) for p in parts):
                 with open(filepath_obj, "rb") as f:
                     parts.append(PdfPart(data=f.read()))
+
+        # Convert PdfPart to image assets
+        pdf_parts = [p for p in parts if isinstance(p, PdfPart)]
+        for pdf_part in pdf_parts:
+            try:
+                pdf_doc = pdfium.PdfDocument(pdf_part.data)
+                for i, page in enumerate(pdf_doc):
+                    # Render page to a PIL image
+                    image = page.render(scale=1).to_pil()
+                    # Save image to a bytes buffer
+                    with io.BytesIO() as buffer:
+                        image.save(buffer, format="PNG")
+                        image_data = buffer.getvalue()
+
+                    # Create a new AssetBinPart for each page
+                    metadata = file_metadata.copy()
+                    metadata.update(
+                        {
+                            "page_idx": i + 1,
+                            "converted_from": "pdf",
+                        }
+                    )
+                    asset_id = f"page_{i + 1}.png"
+                    asset_part = AssetBinPart(
+                        asset_id=asset_id,
+                        data=image_data,
+                        metadata=metadata,
+                        mime_type="image/png",
+                    )
+                    parts.append(asset_part)
+
+                logger.info(f"Converted {len(pdf_doc)} pages from a PDF part to image assets.")
+            except Exception as e:
+                logger.warning(f"Failed to convert PDF part to images: {e}", exc_info=True)
 
         logger.info(f"Parsed document {filepath} into {len(parts)} parts")
         return parts
@@ -102,6 +138,7 @@ class DocumentParser:
         md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)
         if md_part is not None:
             content = md_part.markdown
+            doc_parts.remove(md_part)
 
         pdf_part = next((part for part in doc_parts if isinstance(part, PdfPart)), None)
         if pdf_part is not None:
@@ -126,19 +163,14 @@ class DocumentParser:
 
             # Save assets
             asset_count = 0
-            to_be_removed = []
             for part in doc_parts:
                 if not isinstance(part, AssetBinPart):
                     continue
-                to_be_removed.append(part)
 
                 asset_upload_path = f"{base_path}/assets/{part.asset_id}"
                 obj_store.put(asset_upload_path, part.data)
                 asset_count += 1
                 logger.info(f"uploaded asset to {asset_upload_path}, size: {len(part.data)}")
-
-            for part in to_be_removed:
-                doc_parts.remove(part)
 
             logger.info(f"Saved {asset_count} assets to object storage")
 
