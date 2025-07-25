@@ -160,6 +160,11 @@ class Config(BaseSettings):
     opik_api_key: str = Field("", alias="OPIK_API_KEY")
     opik_workspace: str = Field("", alias="OPIK_WORKSPACE")
 
+    # Anybase Integration
+    anybase_enabled: bool = Field(False, alias="ANYBASE_ENABLED")
+    anybase_api_base_url: str = Field("", alias="ANYBASE_API_BASE_URL")
+    anybase_login_url: str = Field("", alias="ANYBASE_LOGIN_URL")
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Load model configs from file

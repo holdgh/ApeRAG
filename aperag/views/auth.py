@@ -17,6 +17,7 @@ import secrets
 from datetime import timedelta
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, WebSocket
 from fastapi_users import BaseUserManager, FastAPIUsers
 from fastapi_users.authentication import AuthenticationBackend, CookieTransport, JWTStrategy
@@ -201,24 +202,191 @@ async def authenticate_api_key(request: Request, session: AsyncSessionDep) -> Op
     return user
 
 
+# Anybase Authentication
+async def authenticate_anybase_token(request: Request, session: AsyncSessionDep) -> Optional[User]:
+    """Authenticate using Anybase token from Authorization header"""
+    if not settings.anybase_enabled or not settings.anybase_api_base_url:
+        return None
+        
+    from sqlalchemy import select
+
+    authorization: str = request.headers.get("Authorization")
+    if not authorization:
+        return None
+
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            return None
+    except ValueError:
+        return None
+
+    # Call Anybase me API to verify token and get user info
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{settings.anybase_api_base_url}/api/v1/user/me",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=10.0
+            )
+            
+            if response.status_code != 200:
+                logger.debug(f"Anybase token verification failed with status {response.status_code}")
+                return None
+                
+            anybase_user_data = response.json()
+            logger.debug(f"Anybase user data: {anybase_user_data}")
+            
+    except Exception as e:
+        logger.error(f"Failed to verify Anybase token: {e}")
+        return None
+
+    # Extract user info from Anybase response
+    anybase_user_id = anybase_user_data.get("user_id")
+    anybase_nickname = anybase_user_data.get("nickname")
+    anybase_email = anybase_user_data.get("email")
+    anybase_phone = anybase_user_data.get("phone")
+    
+    if not anybase_user_id:
+        logger.error("Anybase user data missing user_id")
+        return None
+
+    # Check if user exists in ApeRAG by anybase user_id (stored as username)
+    result = await session.execute(
+        select(User).where(User.username == anybase_user_id, User.is_active.is_(True), User.gmt_deleted.is_(None))
+    )
+    user = result.scalars().first()
+    
+    if user:
+        # User exists, mark authentication method and return
+        user._auth_method = "anybase_token"
+        return user
+    
+    # User doesn't exist, create new user automatically
+    try:
+        user_manager = UserManager(SQLAlchemyUserDatabase(session, User))
+        
+        # Create user with Anybase data
+        new_user = User(
+            username=anybase_user_id,  # Use anybase user_id as username
+            email=anybase_email or f"{anybase_user_id}@anybase.local",  # Use email or generate one
+            hashed_password=user_manager.password_helper.hash(secrets.token_urlsafe(32)),  # Random password
+            role=Role.RO,  # Default role for Anybase users
+            is_active=True,
+            is_verified=True,
+            date_joined=utc_now(),
+        )
+        
+        session.add(new_user)
+        await session.commit()
+        await session.refresh(new_user)
+        
+        # Create default API key and bot for the new user
+        try:
+            from aperag.db.models import BotType
+            from aperag.schema.view_models import BotCreate
+            from aperag.service.bot_service import bot_service
+
+            # Create a system API key for the user
+            await async_db_ops.create_api_key(user=str(new_user.id), description="aperag", is_system=True)
+
+            # Create a default bot for the user
+            bot_create = BotCreate(
+                title="Default Agent Bot",
+                type=BotType.AGENT,
+                description="Default agent bot created on registration.",
+                collection_ids=[],
+            )
+            await bot_service.create_bot(user=str(new_user.id), bot_in=bot_create)
+
+            logger.info(f"Created default bot and api key for Anybase user {new_user.username} ({new_user.id})")
+        except Exception as e:
+            logger.error(f"Failed to create default bot and api key for Anybase user {new_user.username} ({new_user.id}): {e}")
+        
+        logger.info(f"Auto-created ApeRAG user for Anybase user {anybase_user_id}")
+        new_user._auth_method = "anybase_token"
+        return new_user
+        
+    except Exception as e:
+        logger.error(f"Failed to create user for Anybase user {anybase_user_id}: {e}")
+        await session.rollback()
+        return None
+
+
 # Authentication dependency, writes to request.state.user_id
 async def current_user(
     request: Request, session: AsyncSessionDep, user: User = Depends(fastapi_users.current_user(optional=True))
 ) -> Optional[User]:
-    """Get current user from JWT/Cookie or API Key and write to request.state.user_id"""
-    # First try API Key authentication
+    """Get current user from JWT/Cookie, Anybase token, or API Key and write to request.state.user_id"""
+    # First try JWT/Cookie authentication
+    if user:
+        request.state.user_id = user.id
+        request.state.username = user.username
+        return user
+    
+    # Then try Anybase token authentication
+    anybase_user = await authenticate_anybase_token(request, session)
+    if anybase_user:
+        request.state.user_id = anybase_user.id
+        request.state.username = anybase_user.username
+        return anybase_user
+
+    # Finally try API Key authentication
     api_user = await authenticate_api_key(request, session)
     if api_user:
         request.state.user_id = api_user.id
         request.state.username = api_user.username
         return api_user
 
-    # Then try JWT/Cookie authentication
+    raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+# Enhanced authentication dependency that supports auto-login from Anybase
+async def current_user_with_anybase_auto_login(
+    request: Request, 
+    response: Response,
+    session: AsyncSessionDep, 
+    user: User = Depends(fastapi_users.current_user(optional=True))
+) -> Optional[User]:
+    """Get current user with Anybase auto-login support. Sets ApeRAG cookie if authenticated via Anybase token."""
+    # First try JWT/Cookie authentication
     if user:
         request.state.user_id = user.id
         request.state.username = user.username
         return user
+    
+    # Then try Anybase token authentication
+    anybase_user = await authenticate_anybase_token(request, session)
+    if anybase_user:
+        request.state.user_id = anybase_user.id
+        request.state.username = anybase_user.username
+        
+        # Generate ApeRAG JWT token and set cookie for future requests
+        try:
+            strategy = get_jwt_strategy()
+            token = await strategy.write_token(anybase_user)
+            response.set_cookie(key="session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
+            logger.info(f"Set ApeRAG session cookie for Anybase user {anybase_user.username}")
+        except Exception as e:
+            logger.error(f"Failed to set ApeRAG session cookie for Anybase user {anybase_user.username}: {e}")
+        
+        return anybase_user
 
+    # Finally try API Key authentication
+    api_user = await authenticate_api_key(request, session)
+    if api_user:
+        request.state.user_id = api_user.id
+        request.state.username = api_user.username
+        return api_user
+
+    # If Anybase is enabled and no authentication found, suggest redirect to Anybase login
+    if settings.anybase_enabled and settings.anybase_login_url:
+        raise HTTPException(
+            status_code=401, 
+            detail="Unauthorized",
+            headers={"X-Anybase-Login-URL": settings.anybase_login_url}
+        )
+    
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
@@ -429,9 +597,49 @@ async def logout_view(response: Response):
     return {"success": True}
 
 
+@router.post("/anybase-login", tags=["auth"])
+async def anybase_login_view(
+    request: Request,
+    response: Response,
+    session: AsyncSessionDep,
+) -> view_models.User:
+    """Login using Anybase token from Authorization header and set ApeRAG session cookie"""
+    if not settings.anybase_enabled:
+        raise HTTPException(status_code=400, detail="Anybase integration is not enabled")
+    
+    # Try to authenticate with Anybase token
+    anybase_user = await authenticate_anybase_token(request, session)
+    if not anybase_user:
+        raise HTTPException(status_code=401, detail="Invalid Anybase token")
+    
+    # Generate ApeRAG JWT token and set cookie
+    try:
+        strategy = get_jwt_strategy()
+        token = await strategy.write_token(anybase_user)
+        response.set_cookie(key="session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
+        logger.info(f"Anybase user {anybase_user.username} logged in successfully")
+    except Exception as e:
+        logger.error(f"Failed to set session cookie for Anybase user {anybase_user.username}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create session")
+    
+    return view_models.User(
+        id=str(anybase_user.id),
+        username=anybase_user.username,
+        email=anybase_user.email,
+        role=anybase_user.role,
+        is_active=anybase_user.is_active,
+        date_joined=anybase_user.date_joined.isoformat(),
+    )
+
+
 @router.get("/user", tags=["users"])
-async def get_user_view(request: Request, session: AsyncSessionDep, user: Optional[User] = Depends(current_user)):
-    """Get user info, return 401 if not authenticated"""
+async def get_user_view(
+    request: Request, 
+    response: Response,
+    session: AsyncSessionDep, 
+    user: Optional[User] = Depends(current_user_with_anybase_auto_login)
+):
+    """Get user info with Anybase auto-login support, return 401 if not authenticated"""
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
