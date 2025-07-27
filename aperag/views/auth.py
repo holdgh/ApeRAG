@@ -281,28 +281,6 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
         await session.commit()
         await session.refresh(new_user)
         
-        # Create default API key and bot for the new user
-        try:
-            from aperag.db.models import BotType
-            from aperag.schema.view_models import BotCreate
-            from aperag.service.bot_service import bot_service
-
-            # Create a system API key for the user
-            await async_db_ops.create_api_key(user=str(new_user.id), description="aperag", is_system=True)
-
-            # Create a default bot for the user
-            bot_create = BotCreate(
-                title="Default Agent Bot",
-                type=BotType.AGENT,
-                description="Default agent bot created on registration.",
-                collection_ids=[],
-            )
-            await bot_service.create_bot(user=str(new_user.id), bot_in=bot_create)
-
-            logger.info(f"Created default bot and api key for Anybase user {new_user.username} ({new_user.id})")
-        except Exception as e:
-            logger.error(f"Failed to create default bot and api key for Anybase user {new_user.username} ({new_user.id}): {e}")
-        
         logger.info(f"Auto-created ApeRAG user for Anybase user {anybase_user_id}")
         new_user._auth_method = "anybase_token"
         return new_user
@@ -315,40 +293,12 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
 
 # Authentication dependency, writes to request.state.user_id
 async def current_user(
-    request: Request, session: AsyncSessionDep, user: User = Depends(fastapi_users.current_user(optional=True))
-) -> Optional[User]:
-    """Get current user from JWT/Cookie, Anybase token, or API Key and write to request.state.user_id"""
-    # First try JWT/Cookie authentication
-    if user:
-        request.state.user_id = user.id
-        request.state.username = user.username
-        return user
-    
-    # Then try Anybase token authentication
-    anybase_user = await authenticate_anybase_token(request, session)
-    if anybase_user:
-        request.state.user_id = anybase_user.id
-        request.state.username = anybase_user.username
-        return anybase_user
-
-    # Finally try API Key authentication
-    api_user = await authenticate_api_key(request, session)
-    if api_user:
-        request.state.user_id = api_user.id
-        request.state.username = api_user.username
-        return api_user
-
-    raise HTTPException(status_code=401, detail="Unauthorized")
-
-
-# Enhanced authentication dependency that supports auto-login from Anybase
-async def current_user_with_anybase_auto_login(
     request: Request, 
     response: Response,
     session: AsyncSessionDep, 
     user: User = Depends(fastapi_users.current_user(optional=True))
 ) -> Optional[User]:
-    """Get current user with Anybase auto-login support. Sets ApeRAG cookie if authenticated via Anybase token."""
+    """Get current user from JWT/Cookie, Anybase token, or API Key and write to request.state.user_id"""
     # First try JWT/Cookie authentication
     if user:
         request.state.user_id = user.id
@@ -391,7 +341,10 @@ async def current_user_with_anybase_auto_login(
 
 
 async def get_current_active_user(
-    request: Request, session: AsyncSessionDep, user: Optional[User] = Depends(current_user)
+    request: Request, 
+    response: Response,
+    session: AsyncSessionDep, 
+    user: Optional[User] = Depends(current_user)
 ) -> User:
     """Get current active user, raise 401 if not authenticated"""
     if not user:
@@ -399,7 +352,12 @@ async def get_current_active_user(
     return user
 
 
-async def get_current_admin(session: AsyncSessionDep, user: User = Depends(get_current_active_user)) -> User:
+async def get_current_admin(
+    request: Request,
+    response: Response, 
+    session: AsyncSessionDep, 
+    user: User = Depends(get_current_active_user)
+) -> User:
     """Get current admin user"""
     if user.role != Role.ADMIN:
         raise HTTPException(status_code=403, detail="Only admin members can perform this action")
@@ -451,7 +409,10 @@ async def create_invitation_view(
 
 @router.get("/invitations", tags=["invitations"])
 async def list_invitations_view(
-    session: AsyncSessionDep, user: User = Depends(current_user)
+    request: Request,
+    response: Response,
+    session: AsyncSessionDep, 
+    user: User = Depends(current_user)
 ) -> view_models.InvitationList:
     from sqlalchemy import select
 
@@ -597,47 +558,12 @@ async def logout_view(response: Response):
     return {"success": True}
 
 
-@router.post("/anybase-login", tags=["auth"])
-async def anybase_login_view(
-    request: Request,
-    response: Response,
-    session: AsyncSessionDep,
-) -> view_models.User:
-    """Login using Anybase token from Authorization header and set ApeRAG session cookie"""
-    if not settings.anybase_enabled:
-        raise HTTPException(status_code=400, detail="Anybase integration is not enabled")
-    
-    # Try to authenticate with Anybase token
-    anybase_user = await authenticate_anybase_token(request, session)
-    if not anybase_user:
-        raise HTTPException(status_code=401, detail="Invalid Anybase token")
-    
-    # Generate ApeRAG JWT token and set cookie
-    try:
-        strategy = get_jwt_strategy()
-        token = await strategy.write_token(anybase_user)
-        response.set_cookie(key="session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
-        logger.info(f"Anybase user {anybase_user.username} logged in successfully")
-    except Exception as e:
-        logger.error(f"Failed to set session cookie for Anybase user {anybase_user.username}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create session")
-    
-    return view_models.User(
-        id=str(anybase_user.id),
-        username=anybase_user.username,
-        email=anybase_user.email,
-        role=anybase_user.role,
-        is_active=anybase_user.is_active,
-        date_joined=anybase_user.date_joined.isoformat(),
-    )
-
-
 @router.get("/user", tags=["users"])
 async def get_user_view(
     request: Request, 
     response: Response,
     session: AsyncSessionDep, 
-    user: Optional[User] = Depends(current_user_with_anybase_auto_login)
+    user: Optional[User] = Depends(current_user)
 ):
     """Get user info with Anybase auto-login support, return 401 if not authenticated"""
     if not user:
@@ -655,7 +581,10 @@ async def get_user_view(
 
 @router.get("/users", tags=["users"])
 async def list_users_view(
-    session: AsyncSessionDep, user: Optional[User] = Depends(current_user)
+    request: Request,
+    response: Response,
+    session: AsyncSessionDep, 
+    user: Optional[User] = Depends(current_user)
 ) -> view_models.UserList:
     from sqlalchemy import select
 
