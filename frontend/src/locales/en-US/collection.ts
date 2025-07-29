@@ -68,9 +68,12 @@ export const collection = {
   'collection.summary.title': 'Knowledge Summary',
   'collection.summary.content': 'Summary Content',
   'collection.summary.not.enabled': 'Summary feature not enabled',
-  'collection.summary.enable.description': 'Please go to settings page to enable summary feature',
-  'collection.summary.generating.description': 'Summary is being generated in the background, please refresh later to see results',
-  'collection.summary.disabled.placeholder': 'Summary feature not enabled, please enable it in settings first',
+  'collection.summary.enable.description':
+    'Please go to settings page to enable summary feature',
+  'collection.summary.generating.description':
+    'Summary is being generated in the background, please refresh later to see results',
+  'collection.summary.disabled.placeholder':
+    'Summary feature not enabled, please enable it in settings first',
   'collection.goto.settings': 'Go to Settings',
   'collection.not.found': 'Collection not found',
 };

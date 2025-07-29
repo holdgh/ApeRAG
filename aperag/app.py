@@ -14,8 +14,27 @@
 
 import os
 
-from fastapi import FastAPI
+from aperag.config import settings
 
+# Initialize OpenTelemetry FIRST - before any other imports
+from aperag.trace import init_tracing
+
+# Initialize tracing with configuration
+if settings.otel_enabled:
+    init_tracing(
+        service_name=settings.otel_service_name,
+        service_version=settings.otel_service_version,
+        jaeger_endpoint=settings.jaeger_endpoint if settings.jaeger_enabled else None,
+        enable_console=settings.otel_console_enabled,
+        enable_fastapi=settings.otel_fastapi_enabled,
+        enable_sqlalchemy=settings.otel_sqlalchemy_enabled,
+        enable_mcp=settings.otel_mcp_enabled,
+    )
+
+from fastapi import FastAPI  # noqa: E402
+
+from aperag.agent.agent_event_listener import agent_event_listener  # noqa: E402
+from aperag.agent.agent_session_manager_lifecycle import agent_session_manager_lifespan  # noqa: E402
 from aperag.exception_handlers import register_exception_handlers
 from aperag.llm.litellm_track import register_custom_llm_track
 from aperag.mcp import mcp_server
@@ -30,15 +49,29 @@ from aperag.views.llm import router as llm_router
 from aperag.views.main import router as main_router
 from aperag.views.web import router as web_router
 
-# Initialize MCP server integration
-mcp_app = mcp_server.http_app(path="/")
+# Initialize MCP server integration with stateless HTTP to fix OpenAI tool call sequence issues
+mcp_app = mcp_server.http_app(path="/", stateless_http=True)
 
-# Create the main FastAPI app with MCP lifespan
+
+# Combined lifespan function for both MCP and Agent session management
+async def combined_lifespan(app: FastAPI):
+    """Combined lifespan manager for MCP and Agent sessions."""
+    # Initialize the global proxy listener at startup
+    await agent_event_listener.initialize()
+
+    # Start MCP server first
+    async with mcp_app.lifespan(app):
+        # Then start Agent session manager
+        async with agent_session_manager_lifespan(app):
+            yield
+
+
+# Create the main FastAPI app with combined lifespan
 app = FastAPI(
     title="ApeRAG API",
     description="Knowledge management and retrieval system",
     version="1.0.0",
-    lifespan=mcp_app.lifespan,  # CRITICAL: Pass MCP lifespan to FastAPI
+    lifespan=combined_lifespan,  # Combined lifecycle management
 )
 
 # Register global exception handlers

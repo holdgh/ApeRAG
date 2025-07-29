@@ -46,7 +46,7 @@ async def list_collections() -> Dict[str, Any]:
     """
     try:
         api_key = get_api_key()
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 f"{API_BASE_URL}/api/v1/collections", headers={"Authorization": f"Bearer {api_key}"}
             )
@@ -83,7 +83,7 @@ async def search_collection(
     collection_id: str,
     query: str,
     use_vector_index: bool = True,
-    use_fulltext_index: bool = True,
+    use_fulltext_index: bool = False,
     use_graph_index: bool = True,
     topk: int = 5,
     query_keywords: list[str] = None,
@@ -95,7 +95,7 @@ async def search_collection(
         query: The search query
         query_keywords: The keywords extracted from query to use for fulltext search (optional), only effective when use_fulltext_index is True.
         use_vector_index: Whether to use vector/semantic search (default: True)
-        use_fulltext_index: Whether to use full-text keyword search (default: True)
+        use_fulltext_index: Whether to use full-text keyword search (default: False)
         use_graph_index: Whether to use knowledge graph search (default: True)
         topk: Maximum number of results to return per search type (default: 10)
 
@@ -125,7 +125,8 @@ async def search_collection(
         if not any([use_vector_index, use_fulltext_index, use_graph_index]):
             return {"error": "At least one search type must be enabled"}
 
-        async with httpx.AsyncClient() as client:
+        # Use longer timeout for search operations (graph search can be time-consuming)
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
                 f"{API_BASE_URL}/api/v1/collections/{collection_id}/searches",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
@@ -204,7 +205,8 @@ async def web_search(
         if search_llms_txt and search_llms_txt.strip():
             search_data["search_llms_txt"] = search_llms_txt.strip()
 
-        async with httpx.AsyncClient() as client:
+        # Use longer timeout for web search operations
+        async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(
                 f"{API_BASE_URL}/api/v1/web/search",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
@@ -260,7 +262,8 @@ async def web_read(
             "max_concurrent": max_concurrent,
         }
 
-        async with httpx.AsyncClient() as client:
+        # Use longer timeout for web content reading operations
+        async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{API_BASE_URL}/api/v1/web/read",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
@@ -306,15 +309,17 @@ The server will automatically try both methods in order of preference.
 1. First, get available collections with essential information: `list_collections()`
 2. Choose a collection from the list
 3. Search the collection: `search_collection(collection_id="abc123", query="your question")`
-   (By default, all search types are enabled for comprehensive results)
+   (By default, vector and graph search are enabled for optimal performance)
 
 ## Search Types:
 You can enable/disable any combination of search methods:
-- **Vector search** (use_vector_index): Semantic similarity search using embeddings
-- **Full-text search** (use_fulltext_index): Traditional keyword-based text search
-- **Graph search** (use_graph_index): Knowledge graph-based search
+- **Vector search** (use_vector_index): Semantic similarity search using embeddings (default: True)
+- **Full-text search** (use_fulltext_index): Traditional keyword-based text search (default: False)
+- **Graph search** (use_graph_index): Knowledge graph-based search (default: True)
 
-By default, all three search types are enabled for comprehensive results (hybrid search).
+⚠️ **Important**: Full-text search can return large amounts of text content which may cause context window overflow with smaller LLM models. Use with caution and consider reducing topk when enabling fulltext search.
+
+By default, vector and graph search are enabled for optimal balance of quality and context size.
 
 ## Example Workflow:
 ```
@@ -325,12 +330,12 @@ collections = list_collections()
 # (collections.items contains collection ID, title, and description)
 collection_id = collections.items[0].id
 
-# Step 3: Search with all methods (hybrid search)
+# Step 3: Search with default methods (vector + graph)
 results = search_collection(
     collection_id=collection_id,
     query="How to deploy applications?",
     use_vector_index=True,
-    use_fulltext_index=True,
+    use_fulltext_index=False,
     use_graph_index=True,
     topk=5
 )
@@ -343,6 +348,16 @@ vector_only = search_collection(
     use_fulltext_index=False,
     use_graph_index=False,
     topk=10
+)
+
+# Enable fulltext search with caution (may cause context overflow)
+fulltext_search = search_collection(
+    collection_id=collection_id,
+    query="specific keywords",
+    use_vector_index=True,
+    use_fulltext_index=True,  # Enable with caution
+    use_graph_index=True,
+    topk=3  # Use smaller topk to manage context size
 )
 ```
 

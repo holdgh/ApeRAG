@@ -1,10 +1,12 @@
-import { CopyOutlined } from '@ant-design/icons';
-import { GlobalToken, theme } from 'antd';
+import { CaretRightOutlined, CopyOutlined } from '@ant-design/icons';
+import { Collapse, GlobalToken, Space, theme } from 'antd';
 import 'highlight.js/styles/github-dark.css';
+import { useMemo } from 'react';
 import Markdown from 'react-markdown';
 import { toast } from 'react-toastify';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeHighlightLines from 'rehype-highlight-code-lines';
+import rehypeRaw from 'rehype-raw';
 import remarkDirective from 'remark-directive';
 import remarkGfm from 'remark-gfm';
 import remarkGithubAdmonitionsToDirectives from 'remark-github-admonitions-to-directives';
@@ -77,6 +79,16 @@ const StyledMarkdown = styled('div').withConfig({
           display: block;
         }
       }
+
+      .ape-collapse {
+        margin-bottom: 12px;
+      }
+      .ape-collapse-content-box {
+        border: 1px dashed ${token.colorBorderSecondary};
+        background: ${token.colorBgLayout};
+        padding: 12px !important;
+        border-radius: 4px;
+      }
     `;
   }}
 `;
@@ -111,8 +123,45 @@ const StyledCopyButton = styled('div').withConfig({
   }}
 `;
 
+export const CollapseResult = ({
+  title,
+  className,
+  children,
+}: {
+  title: string;
+  className?: string;
+  children?: string;
+}) => {
+  return (
+    <Collapse
+      expandIcon={({ isActive }) => (
+        <CaretRightOutlined rotate={isActive ? 90 : 0} />
+      )}
+      defaultActiveKey={['conent']}
+      style={{ background: 'none' }}
+      bordered={false}
+      className={className}
+      items={[
+        {
+          key: 'conent',
+          label: <Space>💡 {title}</Space>,
+          children,
+        },
+      ]}
+    />
+  );
+};
+
 export const ApeMarkdown = ({ children }: MarkdownProps) => {
   const { token } = theme.useToken();
+
+  const processedValue = useMemo(() => {
+    return children
+      ?.replace(/<think>/g, '<div class="think">')
+      .replace(/<\/think>/g, '</div>')
+      .replace(/<tool_call_result>/g, '<div class="tool_call_result">')
+      .replace(/<\/tool_call_result>/g, '</div>');
+  }, [children]);
 
   const onCopy = async (id: string) => {
     const text = document.getElementById(id)?.innerText || '';
@@ -125,7 +174,7 @@ export const ApeMarkdown = ({ children }: MarkdownProps) => {
   return (
     <StyledMarkdown token={token}>
       <Markdown
-        rehypePlugins={[rehypeHighlight, rehypeHighlightLines]}
+        rehypePlugins={[rehypeHighlight, rehypeHighlightLines, rehypeRaw]}
         remarkPlugins={[
           remarkGfm,
           remarkGithubAdmonitionsToDirectives,
@@ -139,7 +188,6 @@ export const ApeMarkdown = ({ children }: MarkdownProps) => {
             if (match?.length) {
               return (
                 <code id={id} className={className + ' copy-to-clipboard'}>
-                  {/* @ts-ignore */}
                   <StyledCopyButton
                     className="copy-to-clipboard-trigger"
                     token={token}
@@ -154,9 +202,28 @@ export const ApeMarkdown = ({ children }: MarkdownProps) => {
               return <code>{children}</code>;
             }
           },
+          div: (props: any) => {
+            const className = props?.className || '';
+            const children = props?.children || '';
+            if (/think/.exec(className)?.length) {
+              return (
+                <CollapseResult title="Thinking" className={className}>
+                  {children}
+                </CollapseResult>
+              );
+            }
+            if (/tool_call_result/.exec(className)?.length) {
+              return (
+                <CollapseResult title="Tool call" className={className}>
+                  {children}
+                </CollapseResult>
+              );
+            }
+            return <div {...props} />;
+          },
         }}
       >
-        {children}
+        {processedValue}
       </Markdown>
     </StyledMarkdown>
   );

@@ -3,6 +3,7 @@ import { ApeMarkdown, CheckCard, ModelSelect } from '@/components';
 import { COLLECTION_SOURCE, COLLECTION_SOURCE_EMAIL } from '@/constants';
 
 import { CollectionConfigSource, CollectionEmailSource } from '@/types';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import {
   Alert,
   Avatar,
@@ -17,6 +18,7 @@ import {
   Segmented,
   Space,
   Switch,
+  Tooltip,
   Typography,
   message,
   Tooltip,
@@ -291,26 +293,30 @@ export default ({ onSubmit, action, values, form }: Props) => {
               {formatMessage({ id: 'text.description' })}
               <Tooltip
                 title={
-                  <div style={{
-                    maxWidth: 400,
-                    whiteSpace: 'pre-line',
-                    color: '#fff',
-                    fontSize: token.fontSize
-                  }}>
+                  <div
+                    style={{
+                      maxWidth: 400,
+                      whiteSpace: 'pre-line',
+                      color: '#fff',
+                      fontSize: token.fontSize,
+                    }}
+                  >
                     {formatMessage({ id: 'collection.description.tips' })}
                   </div>
                 }
                 overlayStyle={{
-                  maxWidth: 400
+                  maxWidth: 400,
                 }}
                 overlayInnerStyle={{
                   backgroundColor: token.colorBgSpotlight,
                   color: '#fff',
                   borderRadius: token.borderRadius,
-                  padding: '8px 12px'
+                  padding: '8px 12px',
                 }}
               >
-                <QuestionCircleOutlined style={{ marginLeft: 6, color: token.colorTextSecondary }} />
+                <QuestionCircleOutlined
+                  style={{ marginLeft: 6, color: token.colorTextSecondary }}
+                />
               </Tooltip>
             </span>
           }
@@ -322,7 +328,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
             style={{
               color: token.colorText,
               backgroundColor: token.colorBgContainer,
-              cursor: enableSummary ? 'default' : 'text'
+              cursor: enableSummary ? 'default' : 'text',
             }}
           />
         </Form.Item>
@@ -420,7 +426,7 @@ export default ({ onSubmit, action, values, form }: Props) => {
           </Col>
         </Row>
 
-        {(enableKnowledgeGraph || enableSummary) ? (
+        {enableKnowledgeGraph || enableSummary ? (
           <>
             <Form.Item
               label={formatMessage({

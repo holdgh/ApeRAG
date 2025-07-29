@@ -479,7 +479,7 @@ export default () => {
         title: formatMessage({ id: 'model.provider.model_count' }),
         key: 'model_count',
         dataIndex: '', // Add empty dataIndex to satisfy type requirement
-        render: (_, record: LlmProvider) => (
+        render: (_: any, record: LlmProvider) => (
           <span>{getProviderModelCount(record.name)}</span>
         ),
       },

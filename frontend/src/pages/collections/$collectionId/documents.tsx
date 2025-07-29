@@ -507,9 +507,13 @@ export default () => {
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(summaryContent);
-                  toast.success(formatMessage({ id: 'document.summary.copy.success' }));
+                  toast.success(
+                    formatMessage({ id: 'document.summary.copy.success' }),
+                  );
                 } catch (error) {
-                  toast.error(formatMessage({ id: 'document.summary.copy.failed' }));
+                  toast.error(
+                    formatMessage({ id: 'document.summary.copy.failed' }),
+                  );
                 }
               }}
             >
@@ -519,7 +523,13 @@ export default () => {
         }
       >
         {summaryDoc && (
-          <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f0f0f0' }}>
+          <div
+            style={{
+              marginBottom: 16,
+              paddingBottom: 16,
+              borderBottom: '1px solid #f0f0f0',
+            }}
+          >
             <Typography.Text strong style={{ fontSize: '16px' }}>
               {summaryDoc.name}
             </Typography.Text>

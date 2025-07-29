@@ -65,7 +65,8 @@ export const collection = {
   'collection.summary.content': '摘要内容',
   'collection.summary.not.enabled': '摘要功能未启用',
   'collection.summary.enable.description': '请前往设置页面开启摘要功能',
-  'collection.summary.generating.description': '摘要正在后台生成中，请稍候刷新查看结果',
+  'collection.summary.generating.description':
+    '摘要正在后台生成中，请稍候刷新查看结果',
   'collection.summary.disabled.placeholder': '摘要功能未启用，请先在设置中开启',
   'collection.goto.settings': '前往设置',
   'collection.not.found': '知识库不存在',
