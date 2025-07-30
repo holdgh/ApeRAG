@@ -132,12 +132,16 @@ class ToolResultFormatter:
 
         # Part 2: Results (only if has results)
         if total_count == 0:
-            return execution
-
-        if self.language == "zh-CN":
-            results = f"找到 {total_count} 条相关结果"
+            if self.language == "zh-CN":
+                results = "没有找到任何相关结果"
+            else:
+                results = "No relevant results found"
+            return f"{execution}\n\n{results}"
         else:
-            results = f"Found {total_count} relevant results"
+            if self.language == "zh-CN":
+                results = f"找到 {total_count} 条相关结果"
+            else:
+                results = f"Found {total_count} relevant results"
 
         # Add breakdown of result types (only non-zero)
         breakdown_parts = []
@@ -158,7 +162,7 @@ class ToolResultFormatter:
                 breakdown_parts.append(f"Full-text: {fulltext_count}")
 
         if breakdown_parts:
-            results += " • " + " • ".join(breakdown_parts)
+            results += "\n\n • " + "\n\n • ".join(breakdown_parts)
 
         return f"{execution}\n\n{results}"
 
@@ -174,12 +178,15 @@ class ToolResultFormatter:
 
         # Part 2: Results (only if has collections)
         if count == 0:
-            return execution
-
-        if self.language == "zh-CN":
-            results = f"找到 {count} 个知识库集合"
+            if self.language == "zh-CN":
+                results = "没有找到任何知识库"
+            else:
+                results = "No knowledge collections found"
         else:
-            results = f"Found {count} knowledge base collections"
+            if self.language == "zh-CN":
+                results = f"找到 {count} 个知识库"
+            else:
+                results = f"Found {count} knowledge collections"
 
         # Add collection names (first 5)
         if result.items:
@@ -207,12 +214,16 @@ class ToolResultFormatter:
 
         # Part 2: Results (only if has results)
         if count == 0:
-            return execution
-
-        if self.language == "zh-CN":
-            results = f"找到 {count} 个网页结果"
+            if self.language == "zh-CN":
+                results = "没有找到任何网页结果"
+            else:
+                results = "No web results found"
+            return f"{execution}\n\n{results}"
         else:
-            results = f"Found {count} web results"
+            if self.language == "zh-CN":
+                results = f"找到 {count} 个网页结果"
+            else:
+                results = f"Found {count} web results"
 
         # Add search results as markdown links (first 5)
         if result.results:
@@ -246,12 +257,16 @@ class ToolResultFormatter:
 
         # Part 2: Results (only if has successful reads)
         if success_count == 0:
-            return execution
-
-        if self.language == "zh-CN":
-            results = f"成功读取 {success_count} 个网页"
+            if self.language == "zh-CN":
+                results = "没有成功读取任何网页"
+            else:
+                results = "No web pages read successfully"
+            return f"{execution}\n\n{results}"
         else:
-            results = f"Successfully read {success_count} web pages"
+            if self.language == "zh-CN":
+                results = f"成功读取 {success_count} 个网页"
+            else:
+                results = f"Successfully read {success_count} web pages"
 
         # Add page links as markdown links (first 5 successful ones)
         if result.results:
