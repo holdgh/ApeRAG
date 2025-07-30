@@ -277,7 +277,14 @@ export default ({ onSubmit, action, values, form }: Props) => {
               className="form-item-wrap"
               label={formatMessage({ id: 'collection.embedding_model' })}
             >
-              <ModelSelect model="embedding" disabled={action === 'edit'} />
+              <ModelSelect 
+                model="embedding" 
+                disabled={action === 'edit'} 
+                tagFilters={[{
+                  operation: "OR",
+                  tags: ["enable_for_collection"]
+                }]}
+              />
             </Form.Item>
 
             <Form.Item name={configEmbeddingModelServiceProviderKey} hidden>
@@ -363,7 +370,13 @@ export default ({ onSubmit, action, values, form }: Props) => {
                 },
               ]}
             >
-              <ModelSelect model="completion" />
+              <ModelSelect 
+                model="completion" 
+                tagFilters={[{
+                  operation: "OR",
+                  tags: ["enable_for_collection"]
+                }]}
+              />
             </Form.Item>
             <Form.Item name={configCompletionModelServiceProviderKey} hidden>
               <Input hidden />

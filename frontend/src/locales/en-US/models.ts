@@ -2,8 +2,7 @@ export const model = {
   'model.name': 'Models',
   'model.configuration': 'Model Configuration',
   'model.configuration.description': 'Configure LLM providers and models',
-  'model.configuration.admin_only':
-    '👤 Admin Notice: Only globally shared models with "recommend" tag are visible to regular users. Private user providers/models are not affected by this restriction.',
+
   'model.prompt_template': 'Prompt Template',
   'model.llm.tips': 'Large language chat model',
   'model.rerank.tips':
@@ -104,6 +103,10 @@ export const model = {
   'model.save.failed': 'Failed to save model',
   'model.delete.failed': 'Failed to delete model',
   'model.configuration.fetch.failed': 'Failed to fetch LLM configuration',
+
+  // Use cases
+  'model.usecase.collection': 'Collection',
+  'model.usecase.agent': 'Agent',
 };
 
 export const model_provider = {
