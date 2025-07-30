@@ -126,18 +126,18 @@ class ToolResultFormatter:
 
         # Part 1: Search execution
         if self.language == "zh-CN":
-            execution = f"**🔍 搜索执行**\n\n使用{search_methods}在{collection_name}中查找「{query}」"
+            execution = f"**使用{search_methods}在{collection_name}中查找「{query}」**"
         else:
-            execution = f'**🔍 Search Execution**\n\nUsing {search_methods} to find "{query}" in {collection_name}'
+            execution = f'**Using {search_methods} to find "{query}" in {collection_name}**'
 
         # Part 2: Results (only if has results)
         if total_count == 0:
             return execution
 
         if self.language == "zh-CN":
-            results = f"**📊 搜索结果**\n\n找到 {total_count} 条相关结果"
+            results = f"找到 {total_count} 条相关结果"
         else:
-            results = f"**📊 Search Results**\n\nFound {total_count} relevant results"
+            results = f"Found {total_count} relevant results"
 
         # Add breakdown of result types (only non-zero)
         breakdown_parts = []
@@ -168,29 +168,29 @@ class ToolResultFormatter:
 
         # Part 1: Action execution
         if self.language == "zh-CN":
-            execution = "📚 **操作执行**\n\n获取所有可用的知识库集合"
+            execution = "**正在搜索可用知识库**"
         else:
-            execution = "📚 **Action Execution**\n\nRetrieving all available knowledge base collections"
+            execution = "**Searching available knowledge collections**"
 
         # Part 2: Results (only if has collections)
         if count == 0:
             return execution
 
         if self.language == "zh-CN":
-            results = f"📊 **操作结果**\n\n找到 {count} 个知识库集合"
+            results = f"找到 {count} 个知识库集合"
         else:
-            results = f"📊 **Action Results**\n\nFound {count} knowledge base collections"
+            results = f"Found {count} knowledge base collections"
 
-        # Add collection names (first 3)
+        # Add collection names (first 5)
         if result.items:
-            collection_names = [item.title or item.id or "Unknown" for item in result.items[:3]]
-            if len(result.items) > 3:
+            collection_names = [item.title or item.id or "Unknown" for item in result.items[:5]]
+            if len(result.items) > 5:
                 collection_names.append("...")
 
             if self.language == "zh-CN":
-                results += f" • 集合：{', '.join(collection_names)}"
+                results += "\n\n • " + "\n\n • ".join(collection_names)
             else:
-                results += f" • Collections: {', '.join(collection_names)}"
+                results += "\n\n • " + "\n\n • ".join(collection_names)
 
         return f"{execution}\n\n{results}"
 
@@ -201,26 +201,35 @@ class ToolResultFormatter:
 
         # Part 1: Search execution
         if self.language == "zh-CN":
-            execution = f"**🌐 搜索执行**\n\n在互联网上搜索「{query}」"
+            execution = f"**在互联网上搜索「{query}」**"
         else:
-            execution = f'**🌐 Search Execution**\n\nSearching the web for "{query}"'
+            execution = f'**Searching the web for "{query}"**'
 
         # Part 2: Results (only if has results)
         if count == 0:
             return execution
 
         if self.language == "zh-CN":
-            results = f"**📊 搜索结果**\n\n找到 {count} 个网页结果"
+            results = f"找到 {count} 个网页结果"
         else:
-            results = f"**📊 Search Results**\n\nFound {count} web results"
+            results = f"Found {count} web results"
 
-        # Add domains (first 3)
+        # Add search results as markdown links (first 5)
         if result.results:
-            domains = list(set([item.domain for item in result.results[:3]]))
+            links = []
+            for item in result.results[:5]:
+                # Create markdown link format [title](url)
+                title = item.title or item.domain or "Untitled"
+                url = item.url
+                links.append(f"[{title}]({url})")
+
+            if len(result.results) > 5:
+                links.append("...")
+
             if self.language == "zh-CN":
-                results += f" • 来源：{', '.join(domains)}"
+                results += "\n\n • " + "\n\n • ".join(links)
             else:
-                results += f" • Sources: {', '.join(domains)}"
+                results += "\n\n • " + "\n\n • ".join(links)
 
         return f"{execution}\n\n{results}"
 
@@ -231,31 +240,37 @@ class ToolResultFormatter:
 
         # Part 1: Action execution
         if self.language == "zh-CN":
-            execution = f"**📖 操作执行**\n\n读取 {total_count} 个网页的详细内容"
+            execution = f"**读取 {total_count} 个网页的详细内容**"
         else:
-            execution = f"**📖 Action Execution**\n\nReading detailed content from {total_count} web pages"
+            execution = f"**Reading detailed content from {total_count} web pages**"
 
         # Part 2: Results (only if has successful reads)
         if success_count == 0:
             return execution
 
         if self.language == "zh-CN":
-            results = f"**📊 操作结果**\n\n成功读取 {success_count} 个网页"
+            results = f"成功读取 {success_count} 个网页"
         else:
-            results = f"**📊 Action Results**\n\nSuccessfully read {success_count} web pages"
+            results = f"Successfully read {success_count} web pages"
 
-        # Add page titles (first 3 successful ones)
+        # Add page links as markdown links (first 5 successful ones)
         if result.results:
             successful_results = [item for item in result.results if item.status == "success"]
-            page_titles = [item.title or item.url for item in successful_results[:3]]
-            if len(successful_results) > 3:
-                page_titles.append("...")
+            links = []
+            for item in successful_results[:5]:
+                # Create markdown link format [title](url)
+                title = item.title or "Untitled"
+                url = item.url
+                links.append(f"[{title}]({url})")
 
-            if page_titles:
+            if len(successful_results) > 5:
+                links.append("...")
+
+            if links:
                 if self.language == "zh-CN":
-                    results += f" • 页面：{', '.join(page_titles)}"
+                    results += "\n\n • " + "\n\n • ".join(links)
                 else:
-                    results += f" • Pages: {', '.join(page_titles)}"
+                    results += "\n\n • " + "\n\n • ".join(links)
 
         return f"{execution}\n\n{results}"
 
