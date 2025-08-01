@@ -1102,60 +1102,60 @@ const CollectionDetail: React.FC = () => {
 
 #### **Phase 1: 后端 - 数据库与核心服务**
 
-- [ ] **1.1. 数据库模型与迁移**
-    - [ ] 在 `aperag/db/models.py` 中定义数据库模型：
+- [x] **1.1. 数据库模型与迁移**
+    - [x] 在 `aperag/db/models.py` 中定义数据库模型：
         - `CollectionMarketplace` (SQLAlchemy模型)：分享状态记录，包含状态和时间字段
         - `UserCollectionSubscription` (SQLAlchemy模型)：用户订阅记录，关联collection_marketplace_id，使用 `gmt_deleted` 字段实现软删除
         - `CollectionMarketplaceStatusEnum` (Python enum)：分享状态枚举，用于代码逻辑，数据库使用VARCHAR存储
         - 包含所有必要字段、约束和索引（特别注意 `gmt_deleted` 的索引优化）
         - 注意：`status` 字段使用 `Column(String(20))` 而非 `EnumColumn`，确保数据库层使用VARCHAR
         - 重点：UserCollectionSubscription表关联collection_marketplace_id而不是collection_id
-    - [ ] 运行 `make makemigration` 生成新的数据库迁移脚本
-    - [ ] 检查生成的迁移脚本（位于 `aperag/migration/versions/`）确保 SQL 语法正确性和索引创建
-    - [ ] 运行 `make migrate` 将数据库 schema 变更应用到开发环境
-    - [ ] 验证新表创建成功，检查约束和索引是否正确建立
+    - [x] 运行 `make makemigration` 生成新的数据库迁移脚本
+    - [x] 检查生成的迁移脚本（位于 `aperag/migration/versions/`）确保 SQL 语法正确性和索引创建
+    - [x] 运行 `make migrate` 将数据库 schema 变更应用到开发环境
+    - [x] 验证新表创建成功，检查约束和索引是否正确建立
 
-- [ ] **1.2. OpenAPI Schema 定义**
-    - [ ] 创建 `aperag/api/components/schemas/marketplace.yaml`，定义以下视图模型：
+- [x] **1.2. OpenAPI Schema 定义**
+    - [x] 创建 `aperag/api/components/schemas/marketplace.yaml`，定义以下视图模型：
         - `CollectionMarketplaceStatusEnum`
         - `SharedCollection` (共享Collection模型，用于市场浏览和订阅访问)
         - `SharedCollectionList` (共享Collection列表响应模型)
         - `SharingStatusResponse` (简洁的分享状态响应模型，包含is_published和published_at字段)
-    - [ ] 创建 `aperag/api/paths/marketplace.yaml`，定义以下端点的完整规范：
+    - [x] 创建 `aperag/api/paths/marketplace.yaml`，定义以下端点的完整规范：
         - `GET /api/v1/marketplace/collections`：获取市场Collection列表
         - `GET /api/v1/marketplace/collections/subscriptions`：获取当前用户订阅的Collection列表
         - `POST /api/v1/marketplace/collections/{collection_id}/subscribe`：订阅Collection
         - `DELETE /api/v1/marketplace/collections/{collection_id}/subscribe`：取消订阅Collection
-    - [ ] 修改 `aperag/api/paths/collections.yaml`，添加 sharing 相关端点：
+    - [x] 修改 `aperag/api/paths/collections.yaml`，添加 sharing 相关端点：
         - `GET /api/v1/collections/{collection_id}/sharing`
         - `POST /api/v1/collections/{collection_id}/sharing`
         - `DELETE /api/v1/collections/{collection_id}/sharing`
 
-    - [ ] 修改 `aperag/api/components/schemas/collection.yaml`，在 Collection schema 中添加 `is_published` 和 `published_at` 字段
-    - [ ] 运行 `make generate-models` 生成更新后的 `aperag/schema/view_models.py`
-    - [ ] 验证生成的 Pydantic 模型类型注解正确
+    - [x] 修改 `aperag/api/components/schemas/collection.yaml`，在 Collection schema 中添加 `is_published` 和 `published_at` 字段
+    - [x] 运行 `make generate-models` 生成更新后的 `aperag/schema/view_models.py`
+    - [x] 验证生成的 Pydantic 模型类型注解正确
 
-- [ ] **1.3. 服务层 - Marketplace Service**
-    - [ ] 创建 `aperag/service/marketplace_service.py` 文件和 MarketplaceService 类
-    - [ ] 实现 `publish_collection(user_id: str, collection_id: str)` 方法：
+- [x] **1.3. 服务层 - Marketplace Service**
+    - [x] 创建 `aperag/service/marketplace_service.py` 文件和 MarketplaceService 类
+    - [x] 实现 `publish_collection(user_id: str, collection_id: str)` 方法：
         - 验证用户是 Collection 所有者
         - 创建或更新 collection_marketplace 记录为 PUBLISHED 状态，手动设置 `gmt_updated = datetime.utcnow()`
         - 处理重复发布的情况（如果已经是 PUBLISHED 状态，应返回成功但不执行任何操作）
-    - [ ] 实现 `unpublish_collection(user_id: str, collection_id: str)` 方法：
+    - [x] 实现 `unpublish_collection(user_id: str, collection_id: str)` 方法：
         - 验证用户是 Collection 所有者
         - 将 collection_marketplace 记录状态改为 'DRAFT'（设置 `status='DRAFT', gmt_updated=datetime.utcnow()`）
         - 应用层查询并软删除相关订阅记录（设置 `gmt_deleted`）
         - 使用数据库事务确保数据一致性
-    - [ ] 实现 `get_sharing_status(collection_id: str)` 方法：
+    - [x] 实现 `get_sharing_status(collection_id: str)` 方法：
         - 返回指定 Collection 的分享状态信息
-    - [ ] 实现 `get_raw_sharing_status(collection_id: str)` 内部方法：
+    - [x] 实现 `get_raw_sharing_status(collection_id: str)` 内部方法：
         - 供权限检查函数调用，不进行额外的权限验证
-    - [ ] 实现 `list_published_collections(user_id: str, page: int, page_size: int)` 方法：
+    - [x] 实现 `list_published_collections(user_id: str, page: int, page_size: int)` 方法：
         - 查询所有 PUBLISHED 状态的 Collection
         - 支持分页功能
         - 关联查询获取 Collection 基本信息和所有者用户名
         - 计算当前用户的订阅状态（通过subscription_id字段）
-    - [ ] 实现订阅相关方法：
+    - [x] 实现订阅相关方法：
         - `subscribe_collection(user_id: str, collection_id: str)` 方法：
             - 查找Collection对应的已发布marketplace记录 (status = 'PUBLISHED', gmt_deleted IS NULL)
             - 验证用户不是 Collection 所有者，如果是则抛出 SelfSubscriptionError
@@ -1174,13 +1174,13 @@ const CollectionDetail: React.FC = () => {
             - 返回包含订阅信息的 Collection 列表
             - 支持分页功能
 
-- [ ] **1.4. 服务层 - MarketplaceCollection Service**
-    - [ ] 创建 `aperag/service/marketplace_collection_service.py` 文件和 MarketplaceCollectionService 类
-    - [ ] 实现 `_check_subscription_access(user_id: str, collection_id: str)` 方法：
+- [x] **1.4. 服务层 - MarketplaceCollection Service**
+    - [x] 创建 `aperag/service/marketplace_collection_service.py` 文件和 MarketplaceCollectionService 类
+    - [x] 实现 `_check_subscription_access(user_id: str, collection_id: str)` 方法：
         - 验证 Collection 是否存在且已发布（status = 'PUBLISHED'）
         - 验证用户是否已订阅且订阅有效（gmt_deleted IS NULL）
         - 返回有效的订阅记录或抛出相应的 HTTPException
-    - [ ] 实现 MarketplaceCollection 专用业务方法：
+    - [x] 实现 MarketplaceCollection 专用业务方法：
         - `get_marketplace_collection(user_id: str, collection_id: str)` 方法：
             - 调用 `_check_subscription_access` 验证权限
             - 返回 SharedCollection 数据（只包含订阅者需要的字段）
@@ -1198,31 +1198,31 @@ const CollectionDetail: React.FC = () => {
 
 #### **Phase 2: 后端 - API 视图与前端集成**
 
-- [ ] **2.1. API 视图层实现**
-    - [ ] 创建 `aperag/views/marketplace.py` 文件：
+- [x] **2.1. API 视图层实现**
+    - [x] 创建 `aperag/views/marketplace.py` 文件：
         - 实现 `list_marketplace_collections_view` 函数
         - 处理分页参数验证和默认值设置
         - 调用 `marketplace_service.list_published_collections`
         - 返回标准化的分页响应格式
-    - [ ] 修改 `aperag/views/collections.py`（或相关视图文件）实现 sharing 相关端点：
+    - [x] 修改 `aperag/views/collections.py`（或相关视图文件）实现 sharing 相关端点：
         - `get_collection_sharing_status_view`: 获取分享状态（仅所有者）
         - `publish_collection_view`: 发布 Collection 到市场
         - `unpublish_collection_view`: 从市场下架 Collection
         - 为每个端点添加用户身份验证、所有权验证和异常错误处理
-    - [ ] 在 `aperag/app.py` 中注册新的路由：
+    - [x] 在 `aperag/app.py` 中注册新的路由：
         - 添加 `marketplace` 路由组，tag 设为 "marketplace"
         - 添加 `marketplace-collections` 路由组，tag 设为 "marketplace-collections"
         - 集成到主应用的路由配置中
-    - [ ] 创建 `aperag/views/marketplace_collections.py` 文件：
+    - [x] 创建 `aperag/views/marketplace_collections.py` 文件：
         - 实现 `get_marketplace_collection_view`: 获取MarketplaceCollection详情
         - 实现 `list_marketplace_collection_documents_view`: 获取文档列表
         - 实现 `get_marketplace_collection_document_preview_view`: 文档预览
         - 实现 `get_marketplace_collection_graph_view`: 知识图谱
         - 为每个端点添加订阅权限验证和异常错误处理
 
-- [ ] **2.2. 前端 - 生成 SDK 与状态管理**
-    - [ ] 运行 `make generate-frontend-sdk` 更新前端 API client
-    - [ ] 验证 `frontend/src/api/` 目录中的新增内容：
+- [x] **2.2. 前端 - 生成 SDK 与状态管理**
+    - [x] 运行 `make generate-frontend-sdk` 更新前端 API client
+    - [x] 验证 `frontend/src/api/` 目录中的新增内容：
         - 检查 `apis/` 目录下是否生成了 marketplace 相关的 API 函数
         - 检查 `models/` 目录下是否生成了新的 TypeScript 接口
         - 验证现有 Collection 接口是否正确更新
