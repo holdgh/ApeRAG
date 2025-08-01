@@ -36,7 +36,7 @@ async def get_marketplace_collection(
     """Get MarketplaceCollection details (read-only)"""
     try:
         result = await marketplace_collection_service.get_marketplace_collection(user.id, collection_id)
-        return view_models.SharedCollection(**result)
+        return result
     except CollectionMarketplaceAccessDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
@@ -58,7 +58,7 @@ async def list_marketplace_collection_documents(
         result = await marketplace_collection_service.list_marketplace_collection_documents(
             user.id, collection_id, page, page_size, search, file_type
         )
-        return view_models.DocumentList(**result)
+        return result
     except CollectionMarketplaceAccessDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
@@ -80,7 +80,7 @@ async def get_marketplace_collection_document_preview(
         result = await marketplace_collection_service.get_marketplace_collection_document_preview(
             user.id, collection_id, document_id
         )
-        return view_models.DocumentPreview(**result)
+        return result
     except CollectionMarketplaceAccessDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:

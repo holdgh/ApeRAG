@@ -42,7 +42,7 @@ async def list_marketplace_collections(
     """List all published Collections in marketplace"""
     try:
         result = await marketplace_service.list_published_collections(user.id, page, page_size)
-        return view_models.SharedCollectionList(**result)
+        return result
     except Exception as e:
         logger.error(f"Error listing marketplace collections: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -57,7 +57,7 @@ async def list_user_subscribed_collections(
     """Get user's subscribed Collections"""
     try:
         result = await marketplace_service.list_user_subscribed_collections(user.id, page, page_size)
-        return view_models.SharedCollectionList(**result)
+        return result
     except Exception as e:
         logger.error(f"Error listing user subscribed collections: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -71,7 +71,7 @@ async def subscribe_collection(
     """Subscribe to a Collection"""
     try:
         result = await marketplace_service.subscribe_collection(user.id, collection_id)
-        return view_models.SharedCollection(**result)
+        return result
     except CollectionNotPublishedError:
         raise HTTPException(status_code=400, detail="Collection is not published to marketplace")
     except SelfSubscriptionError:

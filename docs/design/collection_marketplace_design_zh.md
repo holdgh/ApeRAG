@@ -1234,16 +1234,16 @@ const CollectionDetail: React.FC = () => {
 
 #### **Phase 3: 前端 - UI 实现**
 
-- [ ] **3.1. Marketplace 页面开发**
-    - [ ] 创建页面文件 `frontend/src/pages/marketplace/index.tsx`：
+- [x] **3.1. Marketplace 页面开发**
+    - [x] 创建页面文件 `frontend/src/pages/marketplace/index.tsx`：
         - 实现基础页面结构和布局
         - 添加页面标题 "知识库市场" 和功能说明
         - 集成分页组件和加载状态管理
-    - [ ] 实现 API 数据获取逻辑：
+    - [x] 实现 API 数据获取逻辑：
         - 在页面加载时调用 marketplace API
         - 处理分页参数和状态更新
         - 实现错误状态处理和重试机制
-    - [ ] 创建 `CollectionMarketplaceCard` 组件（`frontend/src/components/CollectionMarketplaceCard.tsx`）：
+    - [x] 创建 `CollectionMarketplaceCard` 组件（`frontend/src/components/CollectionMarketplaceCard.tsx`）：
         - 设计卡片布局（标题、描述、所有者、发布时间）
         - 实现悬浮效果和点击交互
         - 处理描述文本截断（最多 150 字符）
@@ -1254,11 +1254,11 @@ const CollectionDetail: React.FC = () => {
             - 如果当前用户是Collection所有者，显示 "我的" 标签
             - 如果当前用户非所有者且未订阅（`subscription_id` 为空），显示 "订阅" 按钮
             - 如果当前用户已订阅（`subscription_id` 有值），显示 "已订阅" 状态
-    - [ ] 实现网格布局和响应式设计：
+    - [x] 实现网格布局和响应式设计：
         - 桌面端：4 列网格布局
         - 平板端：2-3 列网格布局
         - 手机端：1 列布局
-    - [ ] 添加到导航菜单：
+    - [x] 添加到导航菜单：
         - 在 `frontend/src/layouts/sidebar.tsx` 中添加 "知识库市场" 菜单项
         - 设置市场图标（如ShopOutlined）和路由链接
 
@@ -1283,20 +1283,20 @@ const CollectionDetail: React.FC = () => {
         - `GraphViewReadOnly`: 只读图谱查看组件
         - `CollectionInfoReadOnly`: 只读基本信息展示
 
-- [ ] **3.3. Collection 详情页 - 分享功能实现（所有者专用）**
-    - [ ] 创建 `SharingControl` 组件（`frontend/src/components/SharingControl.tsx`）：
+- [x] **3.3. Collection 详情页 - 分享功能实现（所有者专用）**
+    - [x] 创建 `SharingControl` 组件（`frontend/src/components/SharingControl.tsx`）：
         - 使用 Switch 组件控制发布状态（基于 `collection.is_published`）
         - 显示当前分享状态标签和发布时间（使用 `collection.published_at`）
         - 仅在Collection详情页面（`/collections/{id}`）中显示
-    - [ ] 实现分享操作确认对话框：
+    - [x] 实现分享操作确认对话框：
         - 发布确认：说明发布后其他用户可以访问
         - 下架确认：说明下架后其他用户将无法访问
         - 使用 Ant Design Modal 组件
-    - [ ] 集成分享状态管理：
+    - [x] 集成分享状态管理：
         - 在 Collection model 中添加相关 Effects
         - 实现发布/取消发布的 API 调用（调用 `/api/v1/collections/{id}/sharing`）
         - 处理操作成功/失败的反馈提示
-    - [ ] 在 Collection 详情页面中集成 SharingControl：
+    - [x] 在 Collection 详情页面中集成 SharingControl：
         - 在Collection标题右侧区域展示分享控制组件
         - 确保只有在Collection接口（所有者模式）下才显示
         - 实现状态变更后的页面刷新

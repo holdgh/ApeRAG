@@ -37,7 +37,7 @@ export interface SharedCollection {
      * @type {string}
      * @memberof SharedCollection
      */
-    'description': string;
+    'description'?: string;
     /**
      * Original owner user ID
      * @type {string}

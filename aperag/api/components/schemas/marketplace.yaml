@@ -19,6 +19,7 @@ SharedCollection:
       description: Collection title
     description:
       type: string
+      nullable: true
       description: Collection description
     owner_user_id:
       type: string
@@ -38,7 +39,6 @@ SharedCollection:
   required:
     - id
     - title
-    - description
     - owner_user_id
     - owner_username
 
