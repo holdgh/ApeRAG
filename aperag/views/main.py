@@ -579,3 +579,67 @@ async def delete_provider_model_view(
 
     is_admin = user.role == Role.ADMIN
     return await delete_llm_provider_model(provider_name, api, model, str(user.id), is_admin)
+
+
+# Collection sharing endpoints
+@router.get("/collections/{collection_id}/sharing", tags=["collections"])
+async def get_collection_sharing_status(
+    collection_id: str,
+    user: User = Depends(current_user),
+) -> view_models.SharingStatusResponse:
+    """Get collection sharing status (owner only)"""
+    from aperag.exceptions import CollectionNotFoundException, PermissionDeniedError
+    from aperag.service.marketplace_service import marketplace_service
+
+    try:
+        is_published, published_at = await marketplace_service.get_sharing_status(user.id, collection_id)
+        return view_models.SharingStatusResponse(is_published=is_published, published_at=published_at)
+    except CollectionNotFoundException:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    except PermissionDeniedError:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    except Exception as e:
+        logger.error(f"Error getting collection sharing status {collection_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/collections/{collection_id}/sharing", tags=["collections"])
+async def publish_collection_to_marketplace(
+    collection_id: str,
+    user: User = Depends(current_user),
+):
+    """Publish collection to marketplace (owner only)"""
+    from aperag.exceptions import CollectionNotFoundException, PermissionDeniedError
+    from aperag.service.marketplace_service import marketplace_service
+
+    try:
+        await marketplace_service.publish_collection(user.id, collection_id)
+        return Response(status_code=204)
+    except CollectionNotFoundException:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    except PermissionDeniedError:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    except Exception as e:
+        logger.error(f"Error publishing collection {collection_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/collections/{collection_id}/sharing", tags=["collections"])
+async def unpublish_collection_from_marketplace(
+    collection_id: str,
+    user: User = Depends(current_user),
+):
+    """Unpublish collection from marketplace (owner only)"""
+    from aperag.exceptions import CollectionNotFoundException, PermissionDeniedError
+    from aperag.service.marketplace_service import marketplace_service
+
+    try:
+        await marketplace_service.unpublish_collection(user.id, collection_id)
+        return Response(status_code=204)
+    except CollectionNotFoundException:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    except PermissionDeniedError:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    except Exception as e:
+        logger.error(f"Error unpublishing collection {collection_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -291,6 +291,15 @@ collection:
     updated:
       type: string
       format: date-time
+    is_published:
+      type: boolean
+      description: Whether the collection is published to marketplace
+      default: false
+    published_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Publication time, null when not published
 
 collectionList:
   type: object
