@@ -122,7 +122,7 @@ export const collection = {
   'collection.sharing.published.simple': '已发布于 {time}',
 
   // Collection marketplace
-  'collection.marketplace.title': '知识库市场',
+  'collection.marketplace.title': '市场',
   'collection.marketplace.description': '发现并订阅其他用户分享的优质知识库',
   'collection.marketplace.owner': '我的',
   'collection.marketplace.subscribe': '订阅',
@@ -138,6 +138,20 @@ export const collection = {
   'collection.marketplace.load.failed': '加载知识库市场失败',
   'collection.marketplace.empty.title': '暂无已发布的知识库',
   'collection.marketplace.empty.description': '还没有用户发布知识库到市场',
+  'collection.marketplace.loading': '正在加载知识库...',
+  'collection.marketplace.search.placeholder': '搜索知识库...',
+  'collection.marketplace.stats.total': '{total} 个已发布的知识库',
+  'collection.marketplace.discover.subtitle': '发现和订阅社区共享的优质知识库，扩展您的知识边界',
+  'collection.marketplace.explore.subtitle': '探索由社区贡献者分享的高质量知识库',
+  'collection.marketplace.subtitle': '来自 @{ownerUsername} 的共享知识库',
+  'collection.marketplace.not.found': '知识库不存在或已不可用',
+  'collection.tab.documents': '文档',
+  'collection.tab.graphs': '知识图谱',
+  'collection.marketplace.readonly.title': '只读模式',
+  'collection.marketplace.readonly.description': '您正在以只读模式浏览来自 @{ownerUsername} 的共享知识库，无法进行修改操作',
+  'common.search.no.results': '未找到相关结果',
+  'common.search.try.different.keywords': '尝试使用不同的关键词搜索',
+  'common.pagination.total': '第 {start}-{end} 项，共 {total} 项',
 };
 
 export default {

@@ -129,7 +129,7 @@ export const collection = {
   'collection.sharing.published.simple': 'Published on {time}',
 
   // Collection marketplace
-  'collection.marketplace.title': 'Knowledge Marketplace',
+  'collection.marketplace.title': 'Marketplace',
   'collection.marketplace.description': 'Discover and subscribe to quality knowledge collections shared by other users',
   'collection.marketplace.owner': 'Mine',
   'collection.marketplace.subscribe': 'Subscribe',
@@ -145,4 +145,18 @@ export const collection = {
   'collection.marketplace.load.failed': 'Failed to load marketplace collections',
   'collection.marketplace.empty.title': 'No published collections',
   'collection.marketplace.empty.description': 'No users have published collections to the marketplace yet',
+  'collection.marketplace.loading': 'Loading collections...',
+  'collection.marketplace.search.placeholder': 'Search collections...',
+  'collection.marketplace.stats.total': '{total} published collections',
+  'collection.marketplace.discover.subtitle': 'Discover and subscribe to quality knowledge collections shared by community, expand your knowledge boundaries',
+  'collection.marketplace.explore.subtitle': 'Explore quality collections shared by community contributors',
+  'collection.marketplace.subtitle': 'Shared collection from @{ownerUsername}',
+  'collection.marketplace.not.found': 'Collection not found or no longer available',
+  'collection.tab.documents': 'Documents',
+  'collection.tab.graphs': 'Knowledge Graph',
+  'collection.marketplace.readonly.title': 'Read-only Mode',
+  'collection.marketplace.readonly.description': 'You are browsing a shared collection from @{ownerUsername} in read-only mode. No modifications are allowed',
+  'common.search.no.results': 'No results found',
+  'common.search.try.different.keywords': 'Try different keywords',
+  'common.pagination.total': '{start}-{end} of {total} items',
 };

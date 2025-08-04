@@ -123,7 +123,7 @@ export default () => {
         }}>
           <Spin size="large" />
           <div style={{ marginTop: 16, color: '#8c8c8c', fontSize: '16px' }}>
-            正在加载知识库...
+            {formatMessage({ id: 'collection.marketplace.loading' })}
           </div>
         </div>
       );
@@ -214,7 +214,7 @@ export default () => {
               marginBottom: 8,
             }}
           >
-            知识库市场
+            <FormattedMessage id="collection.marketplace.title" />
           </Typography.Title>
           <Typography.Text 
             style={{ 
@@ -223,7 +223,7 @@ export default () => {
               display: 'block',
             }}
           >
-            发现和订阅社区共享的优质知识库，扩展您的知识边界
+            <FormattedMessage id="collection.marketplace.discover.subtitle" />
           </Typography.Text>
         </div>
         <div style={{ 
@@ -231,7 +231,7 @@ export default () => {
           marginBottom: 16,
         }}>
           <Search
-            placeholder="搜索知识库..."
+            placeholder={formatMessage({ id: 'collection.marketplace.search.placeholder' })}
             allowClear
             enterButton={<SearchOutlined />}
             size="large"
@@ -260,7 +260,10 @@ export default () => {
                 color: '#262626'
               }}
             >
-              {marketplacePagination.total} 个已发布的知识库
+              <FormattedMessage
+                id="collection.marketplace.stats.total"
+                values={{ total: marketplacePagination.total }}
+              />
             </Typography.Text>
           </div>
           <Typography.Text 
@@ -270,7 +273,7 @@ export default () => {
               color: '#8c8c8c'
             }}
           >
-            探索由社区贡献者分享的高质量知识库
+            <FormattedMessage id="collection.marketplace.explore.subtitle" />
           </Typography.Text>
         </div>
       )}
