@@ -6,7 +6,7 @@ import {
   UI_COLLECTION_STATUS,
 } from '@/constants';
 import { CollectionConfigSource } from '@/types';
-import { HeartFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, HeartFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useInterval } from 'ahooks';
 import {
   Avatar,
@@ -154,6 +154,7 @@ export default () => {
             const embedding_model_service_provider =
               config?.embedding?.model_service_provider || '';
             const embedding_model_name = config?.embedding?.model;
+            const hasProviderIcon = MODEL_PROVIDER_ICON[embedding_model_service_provider];
             return (
               <Col
                 key={collection.id}
@@ -195,12 +196,15 @@ export default () => {
                       style={{ display: 'flex', gap: 8, alignItems: 'center' }}
                     >
                       <Avatar
-                        style={{ flex: 'none' }}
                         size={40}
-                        src={
-                          MODEL_PROVIDER_ICON[embedding_model_service_provider]
-                        }
+                        src={hasProviderIcon}
+                        icon={!hasProviderIcon && <DatabaseOutlined />}
                         shape="square"
+                        style={{
+                          flex: 'none',
+                          backgroundColor: !hasProviderIcon ? '#1890ff' : 'transparent',
+                          color: !hasProviderIcon ? '#fff' : 'inherit'
+                        }}
                       />
                       <div style={{ flex: 'auto', maxWidth: '75%' }}>
                         <div>
