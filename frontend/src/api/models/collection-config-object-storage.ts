@@ -15,46 +15,64 @@
 
 
 /**
- * 
+ * Object storage source configuration (S3, MinIO, etc.)
  * @export
  * @interface CollectionConfigObjectStorage
  */
 export interface CollectionConfigObjectStorage {
     /**
-     * 
+     * Object storage endpoint URL
      * @type {string}
      * @memberof CollectionConfigObjectStorage
      */
-    'access_key_id'?: string;
+    'endpoint': string;
     /**
-     * 
+     * Access key for object storage authentication
      * @type {string}
      * @memberof CollectionConfigObjectStorage
      */
-    'access_key_secret'?: string;
+    'access_key': string;
     /**
-     * 
+     * Secret key for object storage authentication
+     * @type {string}
+     * @memberof CollectionConfigObjectStorage
+     */
+    'secret_key': string;
+    /**
+     * Whether to use path-style URLs for object storage. Set to false for MinIO.
      * @type {boolean}
      * @memberof CollectionConfigObjectStorage
      */
     'enable_path_style'?: boolean;
     /**
-     * 
+     * Bucket name in object storage
      * @type {string}
      * @memberof CollectionConfigObjectStorage
      */
-    'bucket'?: string;
+    'bucket': string;
     /**
-     * 
+     * Object storage region
      * @type {string}
      * @memberof CollectionConfigObjectStorage
      */
     'region'?: string;
     /**
-     * 
+     * Prefix for object keys to be included in the collection. Only objects with keys matching this prefix will be considered.
+     * @type {string}
+     * @memberof CollectionConfigObjectStorage
+     */
+    'object_prefix': string;
+    /**
+     * Whitelist of complete object keys. Only objects with keys in this list will be included in the collection.
      * @type {Array<string>}
      * @memberof CollectionConfigObjectStorage
      */
-    'objects'?: Array<string>;
+    'include_filters'?: Array<string>;
+    /**
+     * Blacklist of complete object keys. Objects with keys in this list will be excluded from the collection. Takes precedence over include_filters if an object appears in both.
+     * @type {Array<string>}
+     * @memberof CollectionConfigObjectStorage
+     */
+    'exclude_filters'?: Array<string>;
 }
 

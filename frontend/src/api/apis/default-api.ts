@@ -60,6 +60,8 @@ import type { CollectionUpdate } from '../models';
 // @ts-ignore
 import type { CollectionsCollectionIdSummaryGeneratePost200Response } from '../models';
 // @ts-ignore
+import type { CollectionsCollectionIdSyncPost200Response } from '../models';
+// @ts-ignore
 import type { Config } from '../models';
 // @ts-ignore
 import type { DebugFlowRequest } from '../models';
@@ -1450,6 +1452,44 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Manually trigger synchronization of an object storage collection
+         * @summary Sync object storage collection
+         * @param {string} collectionId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdSyncPost: async (collectionId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'collectionId' is not null or undefined
+            assertParamExists('collectionsCollectionIdSyncPost', 'collectionId', collectionId)
+            const localVarPath = `/collections/{collection_id}/sync`
+                .replace(`{${"collection_id"}}`, encodeURIComponent(String(collectionId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Get a list of collections
          * @summary List collections
          * @param {number} [page] 
@@ -2774,6 +2814,19 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Manually trigger synchronization of an object storage collection
+         * @summary Sync object storage collection
+         * @param {string} collectionId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async collectionsCollectionIdSyncPost(collectionId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CollectionsCollectionIdSyncPost200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsCollectionIdSyncPost(collectionId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.collectionsCollectionIdSyncPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Get a list of collections
          * @summary List collections
          * @param {number} [page] 
@@ -3419,6 +3472,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.collectionsCollectionIdSummaryGeneratePost(requestParameters.collectionId, options).then((request) => request(axios, basePath));
         },
         /**
+         * Manually trigger synchronization of an object storage collection
+         * @summary Sync object storage collection
+         * @param {DefaultApiCollectionsCollectionIdSyncPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdSyncPost(requestParameters: DefaultApiCollectionsCollectionIdSyncPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<CollectionsCollectionIdSyncPost200Response> {
+            return localVarFp.collectionsCollectionIdSyncPost(requestParameters.collectionId, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Get a list of collections
          * @summary List collections
          * @param {DefaultApiCollectionsGetRequest} requestParameters Request parameters.
@@ -3978,6 +4041,16 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     collectionsCollectionIdSummaryGeneratePost(requestParameters: DefaultApiCollectionsCollectionIdSummaryGeneratePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<CollectionsCollectionIdSummaryGeneratePost200Response>;
+
+    /**
+     * Manually trigger synchronization of an object storage collection
+     * @summary Sync object storage collection
+     * @param {DefaultApiCollectionsCollectionIdSyncPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    collectionsCollectionIdSyncPost(requestParameters: DefaultApiCollectionsCollectionIdSyncPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<CollectionsCollectionIdSyncPost200Response>;
 
     /**
      * Get a list of collections
@@ -4824,6 +4897,20 @@ export interface DefaultApiCollectionsCollectionIdSummaryGeneratePostRequest {
 }
 
 /**
+ * Request parameters for collectionsCollectionIdSyncPost operation in DefaultApi.
+ * @export
+ * @interface DefaultApiCollectionsCollectionIdSyncPostRequest
+ */
+export interface DefaultApiCollectionsCollectionIdSyncPostRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiCollectionsCollectionIdSyncPost
+     */
+    readonly collectionId: string
+}
+
+/**
  * Request parameters for collectionsGet operation in DefaultApi.
  * @export
  * @interface DefaultApiCollectionsGetRequest
@@ -5526,6 +5613,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public collectionsCollectionIdSummaryGeneratePost(requestParameters: DefaultApiCollectionsCollectionIdSummaryGeneratePostRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).collectionsCollectionIdSummaryGeneratePost(requestParameters.collectionId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Manually trigger synchronization of an object storage collection
+     * @summary Sync object storage collection
+     * @param {DefaultApiCollectionsCollectionIdSyncPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public collectionsCollectionIdSyncPost(requestParameters: DefaultApiCollectionsCollectionIdSyncPostRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).collectionsCollectionIdSyncPost(requestParameters.collectionId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

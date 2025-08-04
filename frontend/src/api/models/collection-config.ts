@@ -15,6 +15,9 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
+import type { CollectionConfigObjectStorage } from './collection-config-object-storage';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { CrontabConfig } from './crontab-config';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -60,13 +63,13 @@ export interface CollectionConfig {
      */
     'enable_vision'?: boolean;
     /**
-     * 
+     * Embedding model configuration for vector indexing. Use /api/v1/available_models to get available models.
      * @type {ModelSpec}
      * @memberof CollectionConfig
      */
     'embedding'?: ModelSpec;
     /**
-     * 
+     * Completion model configuration for text generation. Use /api/v1/available_models to get available models.
      * @type {ModelSpec}
      * @memberof CollectionConfig
      */
@@ -78,123 +81,16 @@ export interface CollectionConfig {
      */
     'parser'?: ParserConfig;
     /**
-     * Path for local and ftp sources
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'path'?: string;
-    /**
-     * FTP host
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'host'?: string;
-    /**
-     * FTP username
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'username'?: string;
-    /**
-     * FTP password
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'password'?: string;
-    /**
-     * Region for S3/OSS
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'region'?: string;
-    /**
-     * Access key ID for S3/OSS
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'access_key_id'?: string;
-    /**
-     * Secret access key for S3/OSS
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'secret_access_key'?: string;
-    /**
-     * Bucket name for S3/OSS
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'bucket'?: string;
-    /**
-     * Directory path in bucket for S3/OSS
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'dir'?: string;
-    /**
-     * Email source configuration
+     * 
      * @type {object}
      * @memberof CollectionConfig
-     * @deprecated
      */
-    'email_source'?: object;
+    'system'?: object;
     /**
-     * POP3 server address
-     * @type {string}
+     * 
+     * @type {CollectionConfigObjectStorage}
      * @memberof CollectionConfig
-     * @deprecated
      */
-    'pop_server'?: string;
-    /**
-     * Email server port
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'port'?: string;
-    /**
-     * Email address
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'email_address'?: string;
-    /**
-     * Email password
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'email_password'?: string;
-    /**
-     * Feishu app ID
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'app_id'?: string;
-    /**
-     * Feishu app secret
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'app_secret'?: string;
-    /**
-     * Feishu space ID
-     * @type {string}
-     * @memberof CollectionConfig
-     * @deprecated
-     */
-    'space_id'?: string;
+    'object_storage'?: CollectionConfigObjectStorage;
 }
 

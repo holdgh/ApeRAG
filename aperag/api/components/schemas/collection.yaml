@@ -155,42 +155,59 @@ collectionConfig:
       description: Whether to enable vision index
     embedding:
       $ref: './model.yaml#/modelSpec'
+      description: Embedding model configuration for vector indexing. Use /api/v1/available_models to get available models.
     completion:
       $ref: './model.yaml#/modelSpec'
+      description: Completion model configuration for text generation. Use /api/v1/available_models to get available models.
     parser:
       $ref: '#/parserConfig'
     system:
       type: object
-    local:
-      type: object
-      properties:
-        path:
-          type: string
     object_storage:
       type: object
+      description: Object storage source configuration (S3, MinIO, etc.)
+      required:
+        - endpoint
+        - access_key
+        - secret_key
+        - bucket
+        - object_prefix
       properties:
         endpoint:
           type: string
+          description: Object storage endpoint URL
         access_key:
           type: string
+          description: Access key for object storage authentication
         secret_key:
           type: string
+          description: Secret key for object storage authentication
         enable_path_style:
           type: boolean
+          description: Whether to use path-style URLs for object storage. Set to false for MinIO.
+          defalt: false
         bucket:
           type: string
+          description: Bucket name in object storage
         region:
           type: string
+          description: Object storage region
         object_prefix:
           type: string
+          description: Prefix for object keys to be included in the collection. Only objects with keys matching this prefix will be considered.
+          default: /
         include_filters:
           type: array
+          description: Whitelist of complete object keys. Only objects with keys in this list will be included in the collection.
           items:
             type: string
+            description: Complete object key to include
         exclude_filters:
           type: array
+          description: Blacklist of complete object keys. Objects with keys in this list will be excluded from the collection. Takes precedence over include_filters if an object appears in both.
           items:
             type: string
+            description: Complete object key to exclude
 
 
 parserConfig:
