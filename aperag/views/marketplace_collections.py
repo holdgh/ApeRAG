@@ -15,11 +15,15 @@
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from aperag.db.models import User
-from aperag.exceptions import CollectionMarketplaceAccessDeniedError
+from aperag.exceptions import (
+    CollectionMarketplaceAccessDeniedError,
+    CollectionNotPublishedError,
+)
 from aperag.schema import view_models
+from aperag.service.document_service import document_service
 from aperag.service.marketplace_collection_service import marketplace_collection_service
 from aperag.views.auth import current_user
 
@@ -46,19 +50,19 @@ async def get_marketplace_collection(
 
 @router.get("/marketplace/collections/{collection_id}/documents", response_model=view_models.DocumentList)
 async def list_marketplace_collection_documents(
+    request: Request,
     collection_id: str,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    search: str = Query(None),
-    file_type: str = Query(None),
     user: User = Depends(current_user),
 ) -> view_models.DocumentList:
     """List documents in MarketplaceCollection (read-only)"""
     try:
-        result = await marketplace_collection_service.list_marketplace_collection_documents(
-            user.id, collection_id, page, page_size, search, file_type
-        )
-        return result
+        # Check marketplace access first (all logged-in users can view published collections)
+        await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
+
+        # Use the same document service as regular collections for compatibility
+        return await document_service.list_documents(str(user.id), collection_id)
+    except CollectionNotPublishedError:
+        raise HTTPException(status_code=404, detail="Collection not found or not published")
     except CollectionMarketplaceAccessDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
@@ -68,19 +72,23 @@ async def list_marketplace_collection_documents(
 
 @router.get(
     "/marketplace/collections/{collection_id}/documents/{document_id}/preview",
-    response_model=view_models.DocumentPreview,
+    tags=["documents"],
+    operation_id="get_marketplace_document_preview",
 )
 async def get_marketplace_collection_document_preview(
     collection_id: str,
     document_id: str,
     user: User = Depends(current_user),
-) -> view_models.DocumentPreview:
+):
     """Preview document in MarketplaceCollection (read-only)"""
     try:
-        result = await marketplace_collection_service.get_marketplace_collection_document_preview(
-            user.id, collection_id, document_id
-        )
-        return result
+        # Check marketplace access first (all logged-in users can view published collections)
+        await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
+
+        # Use the same document service as regular collections for compatibility
+        return await document_service.get_document_preview(user.id, collection_id, document_id)
+    except CollectionNotPublishedError:
+        raise HTTPException(status_code=404, detail="Collection not found or not published")
     except CollectionMarketplaceAccessDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
@@ -88,23 +96,35 @@ async def get_marketplace_collection_document_preview(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/marketplace/collections/{collection_id}/graph")
+@router.get("/marketplace/collections/{collection_id}/graph", tags=["graph"])
 async def get_marketplace_collection_graph(
+    request: Request,
     collection_id: str,
-    node_limit: int = Query(100, ge=1, le=1000),
-    depth: int = Query(2, ge=1, le=5),
+    label: str = Query("*"),
+    max_nodes: int = Query(1000, ge=1, le=10000),
+    max_depth: int = Query(3, ge=1, le=10),
     user: User = Depends(current_user),
 ) -> Dict[str, Any]:
     """Get knowledge graph for MarketplaceCollection (read-only)"""
+    from aperag.service.graph_service import graph_service
+
+    # Validate parameters (same as regular collections)
+    if not (1 <= max_nodes <= 10000):
+        raise HTTPException(status_code=400, detail="max_nodes must be between 1 and 10000")
+    if not (1 <= max_depth <= 10):
+        raise HTTPException(status_code=400, detail="max_depth must be between 1 and 10")
+
     try:
-        result = await marketplace_collection_service.get_marketplace_collection_graph(
-            user.id, collection_id, node_limit=node_limit, depth=depth
-        )
-        # Add read_only flag to indicate this is read-only access
-        result["read_only"] = True
-        return result
+        # Check marketplace access first (all logged-in users can view published collections)
+        await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
+        # Use the same graph service as regular collections for compatibility
+        return await graph_service.get_knowledge_graph(str(user.id), collection_id, label, max_depth, max_nodes)
+    except CollectionNotPublishedError:
+        raise HTTPException(status_code=404, detail="Collection not found or not published")
     except CollectionMarketplaceAccessDeniedError as e:
         raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting marketplace collection graph {collection_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

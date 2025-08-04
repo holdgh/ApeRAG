@@ -122,7 +122,7 @@ class MarketplaceCollectionService:
             raise CollectionNotFoundException(collection_id)
 
         # Use existing document repository methods to query documents
-        documents = await self.db_ops.query_documents(collection_id)
+        documents = await self.db_ops.query_documents([collection.user], collection_id)
 
         # Simple pagination logic
         start_idx = (page - 1) * page_size
