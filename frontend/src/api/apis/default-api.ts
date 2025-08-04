@@ -58,9 +58,9 @@ import type { Collection } from '../models';
 // @ts-ignore
 import type { CollectionCreate } from '../models';
 // @ts-ignore
-import type { CollectionList } from '../models';
-// @ts-ignore
 import type { CollectionUpdate } from '../models';
+// @ts-ignore
+import type { CollectionViewList } from '../models';
 // @ts-ignore
 import type { CollectionsCollectionIdSummaryGeneratePost200Response } from '../models';
 // @ts-ignore
@@ -1620,14 +1620,15 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
-         * Get a list of collections
+         * Get a list of collections (owned and optionally subscribed)
          * @summary List collections
          * @param {number} [page] 
          * @param {number} [pageSize] 
+         * @param {boolean} [includeSubscribed] Whether to include subscribed collections in results
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        collectionsGet: async (page?: number, pageSize?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        collectionsGet: async (page?: number, pageSize?: number, includeSubscribed?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/collections`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1650,6 +1651,10 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
 
             if (pageSize !== undefined) {
                 localVarQueryParameter['page_size'] = pageSize;
+            }
+
+            if (includeSubscribed !== undefined) {
+                localVarQueryParameter['include_subscribed'] = includeSubscribed;
             }
 
 
@@ -3411,15 +3416,16 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Get a list of collections
+         * Get a list of collections (owned and optionally subscribed)
          * @summary List collections
          * @param {number} [page] 
          * @param {number} [pageSize] 
+         * @param {boolean} [includeSubscribed] Whether to include subscribed collections in results
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async collectionsGet(page?: number, pageSize?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CollectionList>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsGet(page, pageSize, options);
+        async collectionsGet(page?: number, pageSize?: number, includeSubscribed?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<CollectionViewList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsGet(page, pageSize, includeSubscribed, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.collectionsGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -4244,14 +4250,14 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.collectionsCollectionIdSummaryGeneratePost(requestParameters.collectionId, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get a list of collections
+         * Get a list of collections (owned and optionally subscribed)
          * @summary List collections
          * @param {DefaultApiCollectionsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        collectionsGet(requestParameters: DefaultApiCollectionsGetRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<CollectionList> {
-            return localVarFp.collectionsGet(requestParameters.page, requestParameters.pageSize, options).then((request) => request(axios, basePath));
+        collectionsGet(requestParameters: DefaultApiCollectionsGetRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<CollectionViewList> {
+            return localVarFp.collectionsGet(requestParameters.page, requestParameters.pageSize, requestParameters.includeSubscribed, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a new collection
@@ -4954,14 +4960,14 @@ export interface DefaultApiInterface {
     collectionsCollectionIdSummaryGeneratePost(requestParameters: DefaultApiCollectionsCollectionIdSummaryGeneratePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<CollectionsCollectionIdSummaryGeneratePost200Response>;
 
     /**
-     * Get a list of collections
+     * Get a list of collections (owned and optionally subscribed)
      * @summary List collections
      * @param {DefaultApiCollectionsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApiInterface
      */
-    collectionsGet(requestParameters?: DefaultApiCollectionsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<CollectionList>;
+    collectionsGet(requestParameters?: DefaultApiCollectionsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<CollectionViewList>;
 
     /**
      * Create a new collection
@@ -5981,6 +5987,13 @@ export interface DefaultApiCollectionsGetRequest {
      * @memberof DefaultApiCollectionsGet
      */
     readonly pageSize?: number
+
+    /**
+     * Whether to include subscribed collections in results
+     * @type {boolean}
+     * @memberof DefaultApiCollectionsGet
+     */
+    readonly includeSubscribed?: boolean
 }
 
 /**
@@ -6898,7 +6911,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     }
 
     /**
-     * Get a list of collections
+     * Get a list of collections (owned and optionally subscribed)
      * @summary List collections
      * @param {DefaultApiCollectionsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -6906,7 +6919,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      * @memberof DefaultApi
      */
     public collectionsGet(requestParameters: DefaultApiCollectionsGetRequest = {}, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).collectionsGet(requestParameters.page, requestParameters.pageSize, options).then((request) => request(this.axios, this.basePath));
+        return DefaultApiFp(this.configuration).collectionsGet(requestParameters.page, requestParameters.pageSize, requestParameters.includeSubscribed, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

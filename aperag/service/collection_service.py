@@ -98,12 +98,88 @@ class CollectionService:
 
         return await self.build_collection_response(instance)
 
-    async def list_collections(self, user: str) -> view_models.CollectionList:
-        collections = await self.db_ops.query_collections([user])
-        response = []
-        for collection in collections:
-            response.append(await self.build_collection_response(collection))
-        return view_models.CollectionList(items=response)
+    async def list_collections_view(
+        self, user_id: str, include_subscribed: bool = True, page: int = 1, page_size: int = 20
+    ) -> view_models.CollectionViewList:
+        """
+        Get user's collection list (lightweight view)
+
+        Args:
+            user_id: User ID
+            include_subscribed: Whether to include subscribed collections, default True
+            page: Page number
+            page_size: Page size
+        """
+        items = []
+
+        # 1. Get user's owned collections
+        owned_collections = await self.db_ops.query_collections([user_id])
+        owner_user = await self.db_ops.query_user_by_id(user_id)
+        owner_username = owner_user.username if owner_user else "Unknown"
+
+        for col in owned_collections:
+            items.append(
+                view_models.CollectionView(
+                    id=col.id,
+                    title=col.title,
+                    description=col.description,
+                    status=col.status,
+                    created=col.gmt_created,
+                    updated=col.gmt_modified,
+                    is_published=col.is_published,
+                    published_at=col.published_at,
+                    owner_user_id=user_id,
+                    owner_username=owner_username,
+                    subscription_id=None,  # Own collection, subscription_id is None
+                    subscribed_at=None,
+                )
+            )
+
+        # 2. Get subscribed collections if needed (optimized - no N+1 queries)
+        if include_subscribed:
+            try:
+                # Get subscribed collections data with all needed fields in one query
+                subscribed_collections_data, _ = await self.db_ops.list_user_subscribed_collections(
+                    user_id,
+                    page=1,
+                    page_size=1000,  # Get all subscriptions for now
+                )
+
+                for data in subscribed_collections_data:
+                    items.append(
+                        view_models.CollectionView(
+                            id=data["id"],
+                            title=data["title"],
+                            description=data["description"],
+                            status=data["status"],
+                            created=data["gmt_created"],
+                            updated=data["gmt_modified"],
+                            is_published=data["is_published"],
+                            published_at=data["published_at"],
+                            owner_user_id=data["owner_user_id"],
+                            owner_username=data["owner_username"],
+                            subscription_id=data["subscription_id"],
+                            subscribed_at=data["gmt_subscribed"],
+                        )
+                    )
+            except Exception as e:
+                # If getting subscriptions fails, log and continue with owned collections
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to get subscribed collections for user {user_id}: {e}")
+
+        # 3. Sort by update time
+        items.sort(key=lambda x: x.updated or x.created, reverse=True)
+
+        # 4. Apply pagination
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated_items = items[start_idx:end_idx]
+
+        return view_models.CollectionViewList(
+            items=paginated_items, pageResult=view_models.PageResult(total=len(items), page=page, page_size=page_size)
+        )
 
     async def get_collection(self, user: str, collection_id: str) -> view_models.Collection:
         from aperag.exceptions import CollectionNotFoundException

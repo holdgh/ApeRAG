@@ -15,7 +15,7 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, Response, UploadFile
 
 from aperag.db.models import User
 from aperag.exceptions import CollectionNotFoundException
@@ -42,8 +42,14 @@ async def create_collection_view(
 
 
 @router.get("/collections", tags=["collections"])
-async def list_collections_view(request: Request, user: User = Depends(current_user)) -> view_models.CollectionList:
-    return await collection_service.list_collections(str(user.id))
+async def list_collections_view(
+    request: Request,
+    page: int = Query(1),
+    page_size: int = Query(50),
+    include_subscribed: bool = Query(True),
+    user: User = Depends(current_user),
+) -> view_models.CollectionViewList:
+    return await collection_service.list_collections_view(str(user.id), include_subscribed, page, page_size)
 
 
 @router.get("/collections/{collection_id}", tags=["collections"])

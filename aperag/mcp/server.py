@@ -21,7 +21,7 @@ from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
 
 # Import view models for type safety
-from aperag.schema.view_models import CollectionList, SearchResult, WebReadResponse, WebSearchResponse
+from aperag.schema.view_models import CollectionViewList, SearchResult, WebReadResponse, WebSearchResponse
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ async def list_collections() -> Dict[str, Any]:
         for security and optimized LLM search.
 
     Note:
-        Uses CollectionList view model for type-safe response parsing but filters
+        Uses CollectionViewList view model for type-safe response parsing but filters
         sensitive and unnecessary information.
     """
     try:
@@ -53,20 +53,7 @@ async def list_collections() -> Dict[str, Any]:
             if response.status_code == 200:
                 try:
                     # Parse response using view model for type safety
-                    collection_list = CollectionList.model_validate(response.json())
-
-                    # Filter collection data to only include essential information
-                    # by directly modifying the CollectionList object and setting unneeded fields to None
-                    if collection_list.items:
-                        for collection in collection_list.items:
-                            # Keep essential fields and set sensitive fields to None
-                            # This preserves the original object structure for better maintainability
-                            collection.config = None
-                            collection.created = None
-                            collection.updated = None
-                            collection.source = None
-                            # Type and status are kept for compatibility and filtering
-
+                    collection_list = CollectionViewList.model_validate(response.json())
                     # Return the modified object using model_dump()
                     return collection_list.model_dump()
                 except Exception as e:

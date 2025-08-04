@@ -399,7 +399,7 @@ paths:
   /collections:
     get:
       summary: List collections
-      description: Get a list of collections
+      description: Get a list of collections (owned and optionally subscribed)
       security:
         - BearerAuth: []
       parameters:
@@ -413,13 +413,19 @@ paths:
           schema:
             type: integer
             default: 10
+        - name: include_subscribed
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Whether to include subscribed collections in results
       responses:
         '200':
           description: List of collections
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/collectionList'
+                $ref: '#/components/schemas/collectionViewList'
         '401':
           description: Unauthorized
           content:
@@ -3685,6 +3691,61 @@ components:
       properties:
         title:
           type: string
+    collectionView:
+      type: object
+      description: Lightweight collection information for lists, MCP and agents
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - DELETED
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+        is_published:
+          type: boolean
+          default: false
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Publication time, null when not published
+        owner_user_id:
+          type: string
+          description: Collection owner user ID
+        owner_username:
+          type: string
+          description: Collection owner username
+        subscription_id:
+          type: string
+          nullable: true
+          description: Subscription ID if this is a subscribed collection, null for owned collections
+        subscribed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Subscription time, null for owned collections
+    collectionViewList:
+      type: object
+      description: A list of collection views
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/collectionView'
+        pageResult:
+          $ref: '#/components/schemas/pageResult'
     crontabConfig:
       type: object
       properties:
@@ -3970,6 +4031,19 @@ components:
               type: string
             target_format:
               type: string
+    collectionCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        config:
+          $ref: '#/components/schemas/collectionConfig'
+        type:
+          type: string
+        description:
+          type: string
+        source:
+          $ref: '#/components/schemas/collectionSource'
     collection:
       description: Collection is a collection of documents
       properties:
@@ -4006,29 +4080,6 @@ components:
           format: date-time
           nullable: true
           description: Publication time, null when not published
-    collectionList:
-      type: object
-      description: A list of collections
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/collection'
-        pageResult:
-          $ref: '#/components/schemas/pageResult'
-    collectionCreate:
-      type: object
-      properties:
-        title:
-          type: string
-        config:
-          $ref: '#/components/schemas/collectionConfig'
-        type:
-          type: string
-        description:
-          type: string
-        source:
-          $ref: '#/components/schemas/collectionSource'
     collectionUpdate:
       type: object
       properties:
