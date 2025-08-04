@@ -286,26 +286,40 @@ class CollectionService:
                 )
             )
 
-        record = await self.db_ops.create_search(
-            user=user,
-            collection_id=collection_id,
-            query=data.query,
-            vector_search=data.vector_search.model_dump() if data.vector_search else None,
-            fulltext_search=data.fulltext_search.model_dump() if data.fulltext_search else None,
-            graph_search=data.graph_search.model_dump() if data.graph_search else None,
-            summary_search=data.summary_search.model_dump() if data.summary_search else None,
-            items=[item.model_dump() for item in items],
-        )
-        return SearchResult(
-            id=record.id,
-            query=record.query,
-            vector_search=record.vector_search,
-            fulltext_search=record.fulltext_search,
-            graph_search=record.graph_search,
-            summary_search=record.summary_search,
-            items=items,
-            created=record.gmt_created.isoformat(),
-        )
+        # Save to database only if save_to_history is True
+        if data.save_to_history:
+            record = await self.db_ops.create_search(
+                user=user,
+                collection_id=collection_id,
+                query=data.query,
+                vector_search=data.vector_search.model_dump() if data.vector_search else None,
+                fulltext_search=data.fulltext_search.model_dump() if data.fulltext_search else None,
+                graph_search=data.graph_search.model_dump() if data.graph_search else None,
+                summary_search=data.summary_search.model_dump() if data.summary_search else None,
+                items=[item.model_dump() for item in items],
+            )
+            return SearchResult(
+                id=record.id,
+                query=record.query,
+                vector_search=record.vector_search,
+                fulltext_search=record.fulltext_search,
+                graph_search=record.graph_search,
+                summary_search=record.summary_search,
+                items=items,
+                created=record.gmt_created.isoformat(),
+            )
+        else:
+            # Return search result without saving to database
+            return SearchResult(
+                id=None,  # No ID since not saved
+                query=data.query,
+                vector_search=data.vector_search,
+                fulltext_search=data.fulltext_search,
+                graph_search=data.graph_search,
+                summary_search=data.summary_search,
+                items=items,
+                created=None,  # No creation time since not saved
+            )
 
     async def list_searches(self, user: str, collection_id: str) -> view_models.SearchResultList:
         from aperag.exceptions import CollectionNotFoundException

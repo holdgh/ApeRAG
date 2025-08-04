@@ -4331,6 +4331,16 @@ components:
           $ref: '#/components/schemas/graphSearchParams'
         summary_search:
           $ref: '#/components/schemas/summarySearchParams'
+        save_to_history:
+          type: boolean
+          description: Whether to save search result to database history
+          default: false
+          example: true
+        rerank:
+          type: boolean
+          description: Whether to enable rerank for search results
+          default: false
+          example: true
     Settings:
       type: object
       properties:
