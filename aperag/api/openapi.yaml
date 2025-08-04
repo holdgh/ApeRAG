@@ -72,6 +72,10 @@ paths:
   /collections/{collection_id}/graphs/merge-suggestions/{suggestion_id}/action:
     $ref: './paths/collections.yaml#/graph_suggestion_action'
 
+  # object storage sync
+  /collections/{collection_id}/sync:
+    $ref: './paths/collections.yaml#/sync_object_storage'
+
   # apikeys
   /apikeys:
     $ref: './paths/apikeys.yaml#/apikeys'

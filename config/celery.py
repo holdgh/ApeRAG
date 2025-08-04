@@ -52,6 +52,10 @@ app.conf.beat_schedule = {
         'task': 'config.celery_tasks.reconcile_collection_summaries_task',
         'schedule': 60.0,  # Run every 1 minute
     },
+    "sync-object-storage": {
+        'task': "config.celery_tasks.scheduled_object_storage_sync_task",
+        'schedule': 60.0,
+    }
 }
 
 # Set up task routes if local queue is specified

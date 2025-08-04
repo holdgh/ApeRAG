@@ -944,3 +944,55 @@ test_mineru_token:
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/failResponse'
+
+sync_object_storage:
+  post:
+    summary: Sync object storage collection
+    description: Manually trigger synchronization of an object storage collection
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: collection_id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Object storage sync completed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                collection_id:
+                  type: string
+                message:
+                  type: string
+                status:
+                  type: string
+                stats:
+                  type: object
+                  properties:
+                    total_objects:
+                      type: integer
+                    new_documents:
+                      type: integer
+                    updated_documents:
+                      type: integer
+                    deleted_documents:
+                      type: integer
+                    failed_documents:
+                      type: integer
+      '400':
+        description: Bad request - collection is not an object storage type
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '404':
+        description: Collection not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'

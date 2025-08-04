@@ -755,6 +755,80 @@ def collection_delete_task(self, collection_id: str) -> Any:
 
 
 @app.task(bind=True)
+def collection_sync_object_storage_task(self, collection_id: str, trigger_type: str = "manual") -> Any:
+    """
+    Synchronize object storage collection task entry point
+
+    Args:
+        collection_id: Collection ID to sync
+        trigger_type: Type of trigger ('manual', 'scheduled', 'collection_update')
+    """
+    try:
+        result = collection_task.sync_object_storage_collection(collection_id, trigger_type)
+
+        if not result.success:
+            raise Exception(result.error)
+
+        logger.info(f"Object storage sync completed for collection {collection_id}")
+        return result.to_dict()
+
+    except Exception as e:
+        logger.error(f"Object storage sync failed for collection {collection_id}: {str(e)}")
+        raise self.retry(
+            exc=e,
+            countdown=TaskConfig.RETRY_COUNTDOWN_COLLECTION,
+            max_retries=TaskConfig.RETRY_MAX_RETRIES_COLLECTION,
+        )
+
+
+@app.task
+def scheduled_object_storage_sync_task():
+    """
+    Scheduled task to sync all object storage collections
+    """
+    try:
+        logger.info("Starting scheduled object storage sync for all collections")
+        
+        from aperag.db.models import Collection, CollectionStatus
+        from aperag.config import get_sync_session
+        from aperag.schema.utils import parseCollectionConfig
+        
+        synced_collections = 0
+        failed_collections = 0
+        
+        for session in get_sync_session():
+            # Get all active collections
+            collections = session.query(Collection).filter(
+                Collection.status == CollectionStatus.ACTIVE
+            ).all()
+            
+            for collection in collections:
+                try:
+                    # Check if it's an object storage collection
+                    config = parseCollectionConfig(collection.config)
+                    if hasattr(config, 'object_storage_config') and config.object_storage_config:
+                        # Schedule sync task for this collection
+                        collection_sync_object_storage_task.delay(collection.id, "scheduled")
+                        synced_collections += 1
+                        logger.debug(f"Scheduled sync for object storage collection: {collection.id}")
+                        
+                except Exception as e:
+                    failed_collections += 1
+                    logger.warning(f"Failed to schedule sync for collection {collection.id}: {str(e)}")
+        
+        logger.info(f"Scheduled object storage sync completed. Synced: {synced_collections}, Failed: {failed_collections}")
+        return {
+            "success": True,
+            "synced_collections": synced_collections,
+            "failed_collections": failed_collections
+        }
+        
+    except Exception as e:
+        logger.error(f"Scheduled object storage sync failed: {str(e)}")
+        raise
+
+
+@app.task(bind=True)
 def collection_init_task(self, collection_id: str, document_user_quota: int) -> Any:
     """
     Initialize collection task entry point
@@ -813,5 +887,3 @@ def collection_summary_task(self, summary_id: str, collection_id: str, target_ve
             countdown=TaskConfig.RETRY_COUNTDOWN_COLLECTION,
             max_retries=TaskConfig.RETRY_MAX_RETRIES_COLLECTION,
         )
-
-

@@ -34,7 +34,7 @@ from aperag.schema.view_models import (
 from aperag.service.collection_summary_service import collection_summary_service
 from aperag.utils.constant import QuotaType
 from aperag.views.utils import validate_source_connect_config
-from config.celery_tasks import collection_delete_task, collection_init_task
+from config.celery_tasks import collection_delete_task, collection_init_task, collection_sync_object_storage_task
 
 
 class CollectionService:
@@ -95,6 +95,10 @@ class CollectionService:
         document_user_quota = await self.db_ops.query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         collection_init_task.delay(instance.id, document_user_quota)
 
+        # Trigger object storage sync if it's an object storage collection
+        if hasattr(collection_config, 'object_storage') and collection_config.object_storage:
+            collection_sync_object_storage_task.delay(instance.id, "collection_create")
+
         return await self.build_collection_response(instance)
 
     async def list_collections(self, user: str) -> view_models.CollectionList:
@@ -150,6 +154,11 @@ class CollectionService:
 
         if not updated_instance:
             raise CollectionNotFoundException(collection_id)
+
+        # Trigger object storage sync if it's an object storage collection
+        updated_config = parseCollectionConfig(updated_instance.config)
+        if hasattr(updated_config, 'object_storage') and updated_config.object_storage:
+            collection_sync_object_storage_task.delay(updated_instance.id, "collection_update")
 
         return await self.build_collection_response(updated_instance)
 
@@ -342,6 +351,29 @@ class CollectionService:
                 return {"status_code": response.status_code, "data": response.json()}
             except httpx.RequestError as e:
                 return {"status_code": 500, "data": {"msg": f"Request failed: {e}"}}
+
+    async def sync_collection(self, user: str, collection_id: str) -> dict:
+        """Manually trigger synchronization of an collection"""
+        from aperag.exceptions import CollectionNotFoundException
+        
+        # Check if collection exists and user has access
+        collection = await self.db_ops.query_collection(user, collection_id)
+        if not collection:
+            raise CollectionNotFoundException(collection_id)
+        
+        # Check if it's an object storage collection
+        config = parseCollectionConfig(collection.config)
+        if not hasattr(config, 'object_storage') or not config.object_storage:
+            collection_sync_object_storage_task.delay(collection_id, "manual")
+        else:
+            raise ValidationException("Collection is not an object storage collection")
+        
+        # For now, return a simple response since we're not tracking sync status
+        return {
+            "collection_id": collection_id,
+            "message": "Object storage sync initiated successfully",
+            "status": "initiated"
+        }
 
 
 # Create a global service instance for easy access

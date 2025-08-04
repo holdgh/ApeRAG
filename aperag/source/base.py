@@ -97,6 +97,10 @@ def get_source(collectionConfig: CollectionConfig) -> Source:
             from aperag.source.oss import OSSSource
 
             source = OSSSource(collectionConfig)
+        case "object_storage":
+            from aperag.source.object_storage import ObjectStorageSource
+
+            source = ObjectStorageSource(collectionConfig)
         case "feishu":
             from aperag.source.feishu.feishu import FeishuSource
 

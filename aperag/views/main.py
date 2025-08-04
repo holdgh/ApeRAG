@@ -142,6 +142,17 @@ async def test_mineru_token_view(
     return await collection_service.test_mineru_token(token)
 
 
+@router.post("/collections/{collection_id}/sync", tags=["collections"])
+@audit(resource_type="collection", api_name="SyncObjectStorage")
+async def sync_object_storage_view(
+    request: Request,
+    collection_id: str,
+    user: User = Depends(current_user),
+):
+    """Manually trigger synchronization of an object storage collection"""
+    return await collection_service.sync_collection(str(user.id), collection_id)
+
+
 @router.post("/collections/{collection_id}/documents", tags=["documents"])
 @audit(resource_type="document", api_name="CreateDocuments")
 async def create_documents_view(
