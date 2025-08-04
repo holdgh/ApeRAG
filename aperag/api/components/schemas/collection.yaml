@@ -311,6 +311,8 @@ collectionView:
       type: string
     description:
       type: string
+    type:
+      type: string
     status:
       type: string
       enum:

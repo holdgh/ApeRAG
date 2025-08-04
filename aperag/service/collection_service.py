@@ -112,24 +112,24 @@ class CollectionService:
         """
         items = []
 
-        # 1. Get user's owned collections
-        owned_collections = await self.db_ops.query_collections([user_id])
-        owner_user = await self.db_ops.query_user_by_id(user_id)
-        owner_username = owner_user.username if owner_user else "Unknown"
+        # 1. Get user's owned collections with marketplace info
+        owned_collections_data = await self.db_ops.query_collections_with_marketplace_info(user_id)
 
-        for col in owned_collections:
+        for row in owned_collections_data:
+            is_published = row.marketplace_status == "PUBLISHED"
             items.append(
                 view_models.CollectionView(
-                    id=col.id,
-                    title=col.title,
-                    description=col.description,
-                    status=col.status,
-                    created=col.gmt_created,
-                    updated=col.gmt_modified,
-                    is_published=col.is_published,
-                    published_at=col.published_at,
-                    owner_user_id=user_id,
-                    owner_username=owner_username,
+                    id=row.id,
+                    title=row.title,
+                    description=row.description,
+                    type=row.type,
+                    status=row.status,
+                    created=row.gmt_created,
+                    updated=row.gmt_updated,
+                    is_published=is_published,
+                    published_at=row.published_at if is_published else None,
+                    owner_user_id=row.user,
+                    owner_username=row.owner_username,
                     subscription_id=None,  # Own collection, subscription_id is None
                     subscribed_at=None,
                 )
@@ -146,16 +146,18 @@ class CollectionService:
                 )
 
                 for data in subscribed_collections_data:
+                    is_published = data["marketplace_status"] == "PUBLISHED"
                     items.append(
                         view_models.CollectionView(
                             id=data["id"],
                             title=data["title"],
                             description=data["description"],
+                            type=data["type"],
                             status=data["status"],
                             created=data["gmt_created"],
-                            updated=data["gmt_modified"],
-                            is_published=data["is_published"],
-                            published_at=data["published_at"],
+                            updated=data["gmt_updated"],
+                            is_published=is_published,
+                            published_at=data["published_at"] if is_published else None,
                             owner_user_id=data["owner_user_id"],
                             owner_username=data["owner_username"],
                             subscription_id=data["subscription_id"],
