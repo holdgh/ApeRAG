@@ -57,10 +57,11 @@ async def list_marketplace_collection_documents(
     """List documents in MarketplaceCollection (read-only)"""
     try:
         # Check marketplace access first (all logged-in users can view published collections)
-        await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
+        marketplace_info = await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
 
-        # Use the same document service as regular collections for compatibility
-        return await document_service.list_documents(str(user.id), collection_id)
+        # Use the collection owner's user_id to query documents, not the current user's id
+        owner_user_id = marketplace_info["owner_user_id"]
+        return await document_service.list_documents(str(owner_user_id), collection_id)
     except CollectionNotPublishedError:
         raise HTTPException(status_code=404, detail="Collection not found or not published")
     except CollectionMarketplaceAccessDeniedError as e:
@@ -83,10 +84,11 @@ async def get_marketplace_collection_document_preview(
     """Preview document in MarketplaceCollection (read-only)"""
     try:
         # Check marketplace access first (all logged-in users can view published collections)
-        await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
+        marketplace_info = await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
 
-        # Use the same document service as regular collections for compatibility
-        return await document_service.get_document_preview(user.id, collection_id, document_id)
+        # Use the collection owner's user_id to query document, not the current user's id
+        owner_user_id = marketplace_info["owner_user_id"]
+        return await document_service.get_document_preview(owner_user_id, collection_id, document_id)
     except CollectionNotPublishedError:
         raise HTTPException(status_code=404, detail="Collection not found or not published")
     except CollectionMarketplaceAccessDeniedError as e:
@@ -116,9 +118,11 @@ async def get_marketplace_collection_graph(
 
     try:
         # Check marketplace access first (all logged-in users can view published collections)
-        await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
-        # Use the same graph service as regular collections for compatibility
-        return await graph_service.get_knowledge_graph(str(user.id), collection_id, label, max_depth, max_nodes)
+        marketplace_info = await marketplace_collection_service._check_marketplace_access(user.id, collection_id)
+
+        # Use the collection owner's user_id to query graph, not the current user's id
+        owner_user_id = marketplace_info["owner_user_id"]
+        return await graph_service.get_knowledge_graph(str(owner_user_id), collection_id, label, max_depth, max_nodes)
     except CollectionNotPublishedError:
         raise HTTPException(status_code=404, detail="Collection not found or not published")
     except CollectionMarketplaceAccessDeniedError as e:

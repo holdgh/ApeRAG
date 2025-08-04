@@ -55,17 +55,11 @@ export default () => {
     if (collection.owner_user_id === user.id) {
       // Owner clicks - go to owner's collection page
       history.push(`/collections/${collection.id}/documents`);
-    } else if (collection.subscription_id) {
-      // Subscribed collection - go to marketplace collection page
-      history.push(`/marketplace/collections/${collection.id}`);
     } else {
-      // Not subscribed - show reminder to subscribe
-      toast.info(formatMessage({ 
-        id: 'collection.marketplace.subscribe.hint', 
-        defaultMessage: '请点击爱心按钮订阅此知识库' 
-      }));
+      // All other users can access marketplace collection page directly
+      history.push(`/marketplace/collections/${collection.id}`);
     }
-  }, [user, formatMessage]);
+  }, [user]);
 
   const handleSubscribe = useCallback(async (collectionId: string) => {
     if (!collectionId) return false;

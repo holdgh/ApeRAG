@@ -1677,31 +1677,6 @@ paths:
           description: Collection ID
           schema:
             type: string
-        - name: page
-          in: query
-          description: Page number
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: page_size
-          in: query
-          description: Page size
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - name: search
-          in: query
-          description: Search keyword
-          schema:
-            type: string
-        - name: file_type
-          in: query
-          description: File type filter
-          schema:
-            type: string
       responses:
         '200':
           description: Document list (read-only)
@@ -1776,22 +1751,28 @@ paths:
           description: Collection ID
           schema:
             type: string
-        - name: node_limit
+        - name: label
+          in: query
+          description: Node label filter
+          schema:
+            type: string
+            default: '*'
+        - name: max_nodes
           in: query
           description: Maximum number of nodes
           schema:
             type: integer
             minimum: 1
-            maximum: 1000
-            default: 100
-        - name: depth
+            maximum: 10000
+            default: 1000
+        - name: max_depth
           in: query
           description: Graph traversal depth
           schema:
             type: integer
             minimum: 1
-            maximum: 5
-            default: 2
+            maximum: 10
+            default: 3
       responses:
         '200':
           description: Knowledge graph data (read-only)

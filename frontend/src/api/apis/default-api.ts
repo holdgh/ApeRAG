@@ -2375,14 +2375,10 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * Get document list for a subscribed Collection (read-only mode)
          * @summary List documents in MarketplaceCollection (read-only)
          * @param {string} collectionId Collection ID
-         * @param {number} [page] Page number
-         * @param {number} [pageSize] Page size
-         * @param {string} [search] Search keyword
-         * @param {string} [fileType] File type filter
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        marketplaceCollectionsCollectionIdDocumentsGet: async (collectionId: string, page?: number, pageSize?: number, search?: string, fileType?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        marketplaceCollectionsCollectionIdDocumentsGet: async (collectionId: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'collectionId' is not null or undefined
             assertParamExists('marketplaceCollectionsCollectionIdDocumentsGet', 'collectionId', collectionId)
             const localVarPath = `/marketplace/collections/{collection_id}/documents`
@@ -2397,22 +2393,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
-
-            if (page !== undefined) {
-                localVarQueryParameter['page'] = page;
-            }
-
-            if (pageSize !== undefined) {
-                localVarQueryParameter['page_size'] = pageSize;
-            }
-
-            if (search !== undefined) {
-                localVarQueryParameter['search'] = search;
-            }
-
-            if (fileType !== undefined) {
-                localVarQueryParameter['file_type'] = fileType;
-            }
 
 
     
@@ -2463,12 +2443,13 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * Get knowledge graph data for a subscribed Collection (read-only mode)
          * @summary Get knowledge graph for MarketplaceCollection (read-only)
          * @param {string} collectionId Collection ID
-         * @param {number} [nodeLimit] Maximum number of nodes
-         * @param {number} [depth] Graph traversal depth
+         * @param {string} [label] Node label filter
+         * @param {number} [maxNodes] Maximum number of nodes
+         * @param {number} [maxDepth] Graph traversal depth
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        marketplaceCollectionsCollectionIdGraphGet: async (collectionId: string, nodeLimit?: number, depth?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        marketplaceCollectionsCollectionIdGraphGet: async (collectionId: string, label?: string, maxNodes?: number, maxDepth?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'collectionId' is not null or undefined
             assertParamExists('marketplaceCollectionsCollectionIdGraphGet', 'collectionId', collectionId)
             const localVarPath = `/marketplace/collections/{collection_id}/graph`
@@ -2484,12 +2465,16 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
-            if (nodeLimit !== undefined) {
-                localVarQueryParameter['node_limit'] = nodeLimit;
+            if (label !== undefined) {
+                localVarQueryParameter['label'] = label;
             }
 
-            if (depth !== undefined) {
-                localVarQueryParameter['depth'] = depth;
+            if (maxNodes !== undefined) {
+                localVarQueryParameter['max_nodes'] = maxNodes;
+            }
+
+            if (maxDepth !== undefined) {
+                localVarQueryParameter['max_depth'] = maxDepth;
             }
 
 
@@ -3697,15 +3682,11 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * Get document list for a subscribed Collection (read-only mode)
          * @summary List documents in MarketplaceCollection (read-only)
          * @param {string} collectionId Collection ID
-         * @param {number} [page] Page number
-         * @param {number} [pageSize] Page size
-         * @param {string} [search] Search keyword
-         * @param {string} [fileType] File type filter
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async marketplaceCollectionsCollectionIdDocumentsGet(collectionId: string, page?: number, pageSize?: number, search?: string, fileType?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DocumentList>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.marketplaceCollectionsCollectionIdDocumentsGet(collectionId, page, pageSize, search, fileType, options);
+        async marketplaceCollectionsCollectionIdDocumentsGet(collectionId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DocumentList>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.marketplaceCollectionsCollectionIdDocumentsGet(collectionId, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.marketplaceCollectionsCollectionIdDocumentsGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -3727,13 +3708,14 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * Get knowledge graph data for a subscribed Collection (read-only mode)
          * @summary Get knowledge graph for MarketplaceCollection (read-only)
          * @param {string} collectionId Collection ID
-         * @param {number} [nodeLimit] Maximum number of nodes
-         * @param {number} [depth] Graph traversal depth
+         * @param {string} [label] Node label filter
+         * @param {number} [maxNodes] Maximum number of nodes
+         * @param {number} [maxDepth] Graph traversal depth
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async marketplaceCollectionsCollectionIdGraphGet(collectionId: string, nodeLimit?: number, depth?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MarketplaceCollectionsCollectionIdGraphGet200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.marketplaceCollectionsCollectionIdGraphGet(collectionId, nodeLimit, depth, options);
+        async marketplaceCollectionsCollectionIdGraphGet(collectionId: string, label?: string, maxNodes?: number, maxDepth?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MarketplaceCollectionsCollectionIdGraphGet200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.marketplaceCollectionsCollectionIdGraphGet(collectionId, label, maxNodes, maxDepth, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.marketplaceCollectionsCollectionIdGraphGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -4465,7 +4447,7 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         marketplaceCollectionsCollectionIdDocumentsGet(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdDocumentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DocumentList> {
-            return localVarFp.marketplaceCollectionsCollectionIdDocumentsGet(requestParameters.collectionId, requestParameters.page, requestParameters.pageSize, requestParameters.search, requestParameters.fileType, options).then((request) => request(axios, basePath));
+            return localVarFp.marketplaceCollectionsCollectionIdDocumentsGet(requestParameters.collectionId, options).then((request) => request(axios, basePath));
         },
         /**
          * Get details of a subscribed Collection (read-only access)
@@ -4485,7 +4467,7 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         marketplaceCollectionsCollectionIdGraphGet(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdGraphGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<MarketplaceCollectionsCollectionIdGraphGet200Response> {
-            return localVarFp.marketplaceCollectionsCollectionIdGraphGet(requestParameters.collectionId, requestParameters.nodeLimit, requestParameters.depth, options).then((request) => request(axios, basePath));
+            return localVarFp.marketplaceCollectionsCollectionIdGraphGet(requestParameters.collectionId, requestParameters.label, requestParameters.maxNodes, requestParameters.maxDepth, options).then((request) => request(axios, basePath));
         },
         /**
          * Remove subscription to a Collection
@@ -6300,34 +6282,6 @@ export interface DefaultApiMarketplaceCollectionsCollectionIdDocumentsGetRequest
      * @memberof DefaultApiMarketplaceCollectionsCollectionIdDocumentsGet
      */
     readonly collectionId: string
-
-    /**
-     * Page number
-     * @type {number}
-     * @memberof DefaultApiMarketplaceCollectionsCollectionIdDocumentsGet
-     */
-    readonly page?: number
-
-    /**
-     * Page size
-     * @type {number}
-     * @memberof DefaultApiMarketplaceCollectionsCollectionIdDocumentsGet
-     */
-    readonly pageSize?: number
-
-    /**
-     * Search keyword
-     * @type {string}
-     * @memberof DefaultApiMarketplaceCollectionsCollectionIdDocumentsGet
-     */
-    readonly search?: string
-
-    /**
-     * File type filter
-     * @type {string}
-     * @memberof DefaultApiMarketplaceCollectionsCollectionIdDocumentsGet
-     */
-    readonly fileType?: string
 }
 
 /**
@@ -6358,18 +6312,25 @@ export interface DefaultApiMarketplaceCollectionsCollectionIdGraphGetRequest {
     readonly collectionId: string
 
     /**
+     * Node label filter
+     * @type {string}
+     * @memberof DefaultApiMarketplaceCollectionsCollectionIdGraphGet
+     */
+    readonly label?: string
+
+    /**
      * Maximum number of nodes
      * @type {number}
      * @memberof DefaultApiMarketplaceCollectionsCollectionIdGraphGet
      */
-    readonly nodeLimit?: number
+    readonly maxNodes?: number
 
     /**
      * Graph traversal depth
      * @type {number}
      * @memberof DefaultApiMarketplaceCollectionsCollectionIdGraphGet
      */
-    readonly depth?: number
+    readonly maxDepth?: number
 }
 
 /**
@@ -7181,7 +7142,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      * @memberof DefaultApi
      */
     public marketplaceCollectionsCollectionIdDocumentsGet(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdDocumentsGetRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).marketplaceCollectionsCollectionIdDocumentsGet(requestParameters.collectionId, requestParameters.page, requestParameters.pageSize, requestParameters.search, requestParameters.fileType, options).then((request) => request(this.axios, this.basePath));
+        return DefaultApiFp(this.configuration).marketplaceCollectionsCollectionIdDocumentsGet(requestParameters.collectionId, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -7205,7 +7166,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      * @memberof DefaultApi
      */
     public marketplaceCollectionsCollectionIdGraphGet(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdGraphGetRequest, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).marketplaceCollectionsCollectionIdGraphGet(requestParameters.collectionId, requestParameters.nodeLimit, requestParameters.depth, options).then((request) => request(this.axios, this.basePath));
+        return DefaultApiFp(this.configuration).marketplaceCollectionsCollectionIdGraphGet(requestParameters.collectionId, requestParameters.label, requestParameters.maxNodes, requestParameters.maxDepth, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
