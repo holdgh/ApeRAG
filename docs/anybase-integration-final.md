@@ -234,27 +234,30 @@ Content-Type: application/json
 {
   "title": "Anybase文档知识库",
   "description": "从Anybase同步的文档集合",
-  "type": "s3",
-  "source": {
-    "category": "s3",
-    "s3": {
-      "access_key_id": "your_access_key",
-      "access_key_secret": "your_secret_key",
-      "bucket": "anybase-documents",
-      "region": "us-east-1",
-      "dir": "documents/"
-    }
-  },
+  "type": "document",
   "config": {
     "source": "anybase",
-    "access_key_id": "your_access_key",
-    "secret_access_key": "your_secret_key",
-    "bucket": "anybase-documents",
-    "region": "us-east-1",
-    "dir": "documents/",
     "enable_knowledge_graph": true,
     "enable_summary": true,
-    "enable_vision": false
+    "enable_vision": false,
+    "object_storage": {
+      "endpoint": "https://s3.amazonaws.com",
+      "access_key": "your_access_key",
+      "secret_key": "your_secret_key",
+      "bucket": "anybase-documents",
+      "region": "us-east-1",
+      "object_prefix": "documents/",
+      "enable_path_style": false,
+      "include_filters": [
+        "*.pdf",
+        "*.docx",
+        "*.txt"
+      ],
+      "exclude_filters": [
+        "temp/*",
+        "*.tmp"
+      ]
+    }
   }
 }
 ```
@@ -264,16 +267,22 @@ Content-Type: application/json
 {
   "id": "col_123456",
   "title": "Anybase文档知识库",
-  "type": "s3",
+  "type": "document",
   "description": "从Anybase同步的文档集合",
   "status": "ACTIVE",
   "created": "2025-01-01T00:00:00Z",
   "updated": "2025-01-01T00:00:00Z",
   "config": {
     "source": "anybase",
-    "bucket": "anybase-documents",
-    "region": "us-east-1",
-    "dir": "documents/"
+    "enable_knowledge_graph": true,
+    "enable_summary": true,
+    "enable_vision": false,
+    "object_storage": {
+      "endpoint": "https://s3.amazonaws.com",
+      "bucket": "anybase-documents",
+      "region": "us-east-1",
+      "object_prefix": "documents/"
+    }
   }
 }
 ```
@@ -284,7 +293,7 @@ Content-Type: application/json
 
 **请求示例**:
 ```http
-GET /api/v1/collections
+GET /api/v1/collections?page=1&page_size=10
 Authorization: Bearer <anybase_token>
 ```
 
@@ -295,16 +304,23 @@ Authorization: Bearer <anybase_token>
     {
       "id": "col_123456",
       "title": "Anybase文档知识库",
-      "type": "s3",
+      "type": "document",
       "description": "从Anybase同步的文档集合",
       "status": "ACTIVE",
       "created": "2025-01-01T00:00:00Z",
-      "updated": "2025-01-01T00:00:00Z"
+      "updated": "2025-01-01T00:00:00Z",
+      "config": {
+        "source": "anybase",
+        "object_storage": {
+          "bucket": "anybase-documents",
+          "object_prefix": "documents/"
+        }
+      }
     }
   ],
   "pageResult": {
     "page_number": 1,
-    "page_size": 20,
+    "page_size": 10,
     "count": 1
   }
 }
@@ -314,63 +330,87 @@ Authorization: Bearer <anybase_token>
 
 **API接口**: `PUT /api/v1/collections/{collection_id}`
 
-通过更新Collection的S3配置来实现文件的添加和删除：
+通过更新Collection的object_storage配置中的include_filters来实现文件的添加和删除：
 
-**添加文件示例**:
+**添加特定文件示例**:
 ```http
 PUT /api/v1/collections/col_123456
 Authorization: Bearer <anybase_token>
 Content-Type: application/json
 
 {
-  "source": {
-    "category": "s3",
-    "s3": {
-      "access_key_id": "your_access_key",
-      "access_key_secret": "your_secret_key",
+  "config": {
+    "object_storage": {
+      "endpoint": "https://s3.amazonaws.com",
+      "access_key": "your_access_key",
+      "secret_key": "your_secret_key",
       "bucket": "anybase-documents",
       "region": "us-east-1",
-      "dir": "documents/",
-      "file_list": [
+      "object_prefix": "documents/",
+      "include_filters": [
         "documents/doc1.pdf",
         "documents/doc2.docx",
-        "documents/new_doc.txt"
+        "documents/new_doc.txt",
+        "documents/folder1/*"
       ]
     }
   }
 }
 ```
 
-**删除文件示例**:
+**删除特定文件示例**:
 ```http
 PUT /api/v1/collections/col_123456
 Authorization: Bearer <anybase_token>
 Content-Type: application/json
 
 {
-  "source": {
-    "category": "s3",
-    "s3": {
-      "access_key_id": "your_access_key",
-      "access_key_secret": "your_secret_key",
+  "config": {
+    "object_storage": {
+      "endpoint": "https://s3.amazonaws.com",
+      "access_key": "your_access_key",
+      "secret_key": "your_secret_key",
       "bucket": "anybase-documents",
       "region": "us-east-1",
-      "dir": "documents/",
-      "file_list": [
+      "object_prefix": "documents/",
+      "include_filters": [
         "documents/doc1.pdf"
+      ],
+      "exclude_filters": [
+        "documents/doc2.docx",
+        "documents/old_folder/*"
       ]
     }
   }
 }
 ```
 
-#### 3.4 查询知识库文档列表
+#### 3.4 手动同步对象存储
+
+**API接口**: `POST /api/v1/collections/{collection_id}/sync`
+
+**请求示例**:
+```http
+POST /api/v1/collections/col_123456/sync
+Authorization: Bearer <anybase_token>
+```
+
+**响应示例**:
+```json
+{
+  "collection_id": "col_123456",
+  "message": "Object storage sync initiated successfully",
+  "status": "initiated"
+}
+```
+
+#### 3.5 查询知识库文档列表
 
 **API接口**: `GET /api/v1/collections/{collection_id}/documents`
 
 **请求示例**:
 ```http
-GET /api/v1/collections/col_123456/documents
+GET /api/v1/collections/col_123456/documents?page=1&page_size=10
 Authorization: Bearer <anybase_token>
 ```
 
@@ -393,7 +433,7 @@ Authorization: Bearer <anybase_token>
   ],
   "pageResult": {
     "page_number": 1,
-    "page_size": 20,
+    "page_size": 10,
     "count": 1
   }
 }
@@ -412,12 +452,13 @@ class ApeRAGKnowledgeBaseIntegration {
     
     /**
      * 创建知识库
-     * @param {Object} s3Config - S3配置信息
-     * @param {Array} selectedFiles - 选中的文件列表
+     * @param {Object} objectStorageConfig - 对象存储配置信息
+     * @param {Array} includeFilters - 包含的文件过滤器
+     * @param {Array} excludeFilters - 排除的文件过滤器
      * @param {string} title - 知识库标题
      * @param {string} description - 知识库描述
      */
-    async createKnowledgeBase(s3Config, selectedFiles, title, description) {
+    async createKnowledgeBase(objectStorageConfig, includeFilters, excludeFilters, title, description) {
         const token = localStorage.getItem('token');
         if (!token) {
             throw new Error('请先登录');
@@ -426,28 +467,23 @@ class ApeRAGKnowledgeBaseIntegration {
         const collectionData = {
             title: title || '文档知识库',
             description: description || '从Anybase创建的文档知识库',
-            type: 's3',
-            source: {
-                category: 's3',
-                s3: {
-                    access_key_id: s3Config.accessKeyId,
-                    access_key_secret: s3Config.secretAccessKey,
-                    bucket: s3Config.bucket,
-                    region: s3Config.region || 'us-east-1',
-                    dir: s3Config.dir || '',
-                    file_list: selectedFiles
-                }
-            },
+            type: 'document',
             config: {
                 source: 'anybase',
-                access_key_id: s3Config.accessKeyId,
-                secret_access_key: s3Config.secretAccessKey,
-                bucket: s3Config.bucket,
-                region: s3Config.region || 'us-east-1',
-                dir: s3Config.dir || '',
                 enable_knowledge_graph: true,
                 enable_summary: true,
-                enable_vision: false
+                enable_vision: false,
+                object_storage: {
+                    endpoint: objectStorageConfig.endpoint,
+                    access_key: objectStorageConfig.accessKey,
+                    secret_key: objectStorageConfig.secretKey,
+                    bucket: objectStorageConfig.bucket,
+                    region: objectStorageConfig.region || 'us-east-1',
+                    object_prefix: objectStorageConfig.objectPrefix || '',
+                    enable_path_style: objectStorageConfig.enablePathStyle || false,
+                    include_filters: includeFilters || [],
+                    exclude_filters: excludeFilters || []
+                }
             }
         };
         
@@ -474,23 +510,30 @@ class ApeRAGKnowledgeBaseIntegration {
     }
     
     /**
-     * 更新知识库文件列表
+     * 更新知识库文件过滤器
      * @param {string} collectionId - 知识库ID
-     * @param {Object} s3Config - S3配置信息
-     * @param {Array} fileList - 新的文件列表
+     * @param {Object} objectStorageConfig - 对象存储配置信息
+     * @param {Array} includeFilters - 包含的文件过滤器
+     * @param {Array} excludeFilters - 排除的文件过滤器
      */
-    async updateKnowledgeBaseFiles(collectionId, s3Config, fileList) {
+    async updateKnowledgeBaseFiles(collectionId, objectStorageConfig, includeFilters, excludeFilters) {
         const token = localStorage.getItem('token');
         if (!token) {
             throw new Error('请先登录');
         }
         
         const updateData = {
-            source: {
-                category: 's3',
-                s3: {
-                    ...s3Config,
-                    file_list: fileList
+            config: {
+                object_storage: {
+                    endpoint: objectStorageConfig.endpoint,
+                    access_key: objectStorageConfig.accessKey,
+                    secret_key: objectStorageConfig.secretKey,
+                    bucket: objectStorageConfig.bucket,
+                    region: objectStorageConfig.region || 'us-east-1',
+                    object_prefix: objectStorageConfig.objectPrefix || '',
+                    enable_path_style: objectStorageConfig.enablePathStyle || false,
+                    include_filters: includeFilters || [],
+                    exclude_filters: excludeFilters || []
                 }
             }
         };
@@ -512,6 +555,35 @@ class ApeRAGKnowledgeBaseIntegration {
             return await response.json();
         } catch (error) {
             console.error('更新知识库失败:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * 手动同步知识库
+     * @param {string} collectionId - 知识库ID
+     */
+    async syncKnowledgeBase(collectionId) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('请先登录');
+        }
+        
+        try {
+            const response = await fetch(`${this.aperagBaseUrl}/api/v1/collections/${collectionId}/sync`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`同步知识库失败: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('同步知识库失败:', error);
             throw error;
         }
     }
