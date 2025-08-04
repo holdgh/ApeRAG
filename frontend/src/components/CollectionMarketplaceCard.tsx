@@ -46,6 +46,34 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
   const canSubscribe = !isOwner && !isSubscribed;
   const canUnsubscribe = !isOwner && isSubscribed;
 
+  // Format relative time with i18n
+  const formatRelativeTime = (timestamp: string) => {
+    const now = moment();
+    const time = moment(timestamp);
+    const diffInMinutes = now.diff(time, 'minutes');
+    const diffInHours = now.diff(time, 'hours');
+    const diffInDays = now.diff(time, 'days');
+    const diffInWeeks = now.diff(time, 'weeks');
+    const diffInMonths = now.diff(time, 'months');
+    const diffInYears = now.diff(time, 'years');
+
+    if (diffInMinutes < 1) {
+      return formatMessage({ id: 'collection.marketplace.time.just_now' });
+    } else if (diffInMinutes < 60) {
+      return formatMessage({ id: 'collection.marketplace.time.minutes_ago' }, { minutes: diffInMinutes });
+    } else if (diffInHours < 24) {
+      return formatMessage({ id: 'collection.marketplace.time.hours_ago' }, { hours: diffInHours });
+    } else if (diffInDays < 7) {
+      return formatMessage({ id: 'collection.marketplace.time.days_ago' }, { days: diffInDays });
+    } else if (diffInWeeks < 4) {
+      return formatMessage({ id: 'collection.marketplace.time.weeks_ago' }, { weeks: diffInWeeks });
+    } else if (diffInMonths < 12) {
+      return formatMessage({ id: 'collection.marketplace.time.months_ago' }, { months: diffInMonths });
+    } else {
+      return formatMessage({ id: 'collection.marketplace.time.years_ago' }, { years: diffInYears });
+    }
+  };
+
   // Truncate description to 120 characters for better layout
   const truncatedDescription = React.useMemo(() => {
     if (!collection.description) return '';
@@ -87,7 +115,7 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
             fontWeight: 500,
           }}
         >
-          我的
+          <FormattedMessage id="collection.marketplace.owner" />
         </Tag>
       );
     }
@@ -117,7 +145,7 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
             e.currentTarget.style.color = '#1890ff';
           }}
         >
-          订阅
+          <FormattedMessage id="collection.marketplace.subscribe" />
         </Button>
       );
     }
@@ -135,12 +163,12 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
             fontSize: '12px',
             height: '28px',
             fontWeight: 500,
-            borderColor: '#52c41a',
-            color: '#52c41a',
-            background: '#f6ffed',
+            borderColor: '#1890ff',
+            color: '#1890ff',
+            background: '#f0f9ff',
           }}
         >
-          已订阅
+          <FormattedMessage id="collection.marketplace.subscribed" />
         </Button>
       );
     }
@@ -258,7 +286,7 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
             <Space size={4} align="center">
               <ClockCircleOutlined style={{ fontSize: '11px', color: '#9ca3af' }} />
               <Text style={{ fontSize: '11px', color: '#9ca3af' }}>
-                {moment(collection.gmt_subscribed).fromNow()}
+                {formatRelativeTime(collection.gmt_subscribed)}
               </Text>
             </Space>
           )}

@@ -1,4 +1,4 @@
-import { Collection, SharingStatusResponse, SharedCollection, SharedCollectionList } from '@/api';
+import { Collection, CollectionView, CollectionViewList, SharingStatusResponse, SharedCollection, SharedCollectionList } from '@/api';
 import { DOCUMENT_DEFAULT_CONFIG } from '@/constants';
 import { api } from '@/services';
 import _ from 'lodash';
@@ -10,7 +10,7 @@ export default () => {
   const [collection, setCollection] = useState<Collection>();
   const [collectionLoading, setCollectionLoading] = useState<boolean>(false);
 
-  const [collections, setCollections] = useState<Collection[]>();
+  const [collections, setCollections] = useState<CollectionView[]>();
   const [collectionsLoading, setCollectionsLoading] = useState<boolean>(false);
 
   // sharing status

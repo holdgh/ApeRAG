@@ -14,7 +14,7 @@ export default () => {
   const { collection, updateCollection } = useModel('collection');
   const { collectionId } = useParams();
   
-  // 分享状态
+  // Sharing state
   const [isPublished, setIsPublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
   
@@ -26,14 +26,14 @@ export default () => {
     unpublishCollection,
   } = useModel('collection');
 
-  // 加载分享状态
+  // Load sharing status
   useEffect(() => {
     if (collectionId && getSharingStatus) {
       getSharingStatus(collectionId);
     }
   }, [collectionId]);
 
-  // 更新本地状态
+  // Update local state
   useEffect(() => {
     if (sharingStatus) {
       setIsPublished(sharingStatus.is_published || false);
@@ -54,14 +54,16 @@ export default () => {
     try {
       if (checked) {
         await publishCollection(collectionId);
-        message.success('知识库已发布到市场');
+        message.success(formatMessage({ id: 'collection.sharing.publish.success' }));
       } else {
         await unpublishCollection(collectionId);
-        message.success('知识库已从市场下架');
+        message.success(formatMessage({ id: 'collection.sharing.unpublish.success' }));
       }
       setIsPublished(checked);
     } catch (error) {
-      message.error(checked ? '发布失败' : '下架失败');
+      message.error(formatMessage({ 
+        id: checked ? 'collection.sharing.publish.failed' : 'collection.sharing.unpublish.failed' 
+      }));
     } finally {
       setPublishing(false);
     }
@@ -80,7 +82,7 @@ export default () => {
       
       <div style={{ marginBottom: 24 }}>
         <Title level={4} style={{ marginBottom: 16 }}>
-          分享
+          {formatMessage({ id: 'collection.sharing.title' })}
         </Title>
         
         <div style={{ 
@@ -90,10 +92,10 @@ export default () => {
           padding: '16px 0'
         }}>
           <div>
-            <Text strong>发布到知识库市场</Text>
+            <Text strong>{formatMessage({ id: 'collection.sharing.marketplace.publish' })}</Text>
             <br />
             <Text type="secondary" style={{ fontSize: '14px' }}>
-              发布后其他用户可以订阅使用（只读模式）
+              {formatMessage({ id: 'collection.sharing.marketplace.description' })}
             </Text>
           </div>
           
