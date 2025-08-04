@@ -55,20 +55,52 @@ class MarketplaceCollectionService:
 
         return subscription_info
 
+    async def _check_marketplace_access(self, user_id: str, collection_id: str) -> dict:
+        """Check if user can access marketplace collection (all logged-in users can view published collections)"""
+        # Check if collection is published in marketplace
+        marketplace = await self.db_ops.get_collection_marketplace_by_collection_id(collection_id)
+        if marketplace is None or marketplace.status != db_models.CollectionMarketplaceStatusEnum.PUBLISHED.value:
+            raise CollectionNotPublishedError(collection_id)
+
+        # Get collection info
+        collection = await self.db_ops.query_collection_without_user(collection_id)
+        if collection is None:
+            raise CollectionNotFoundException(collection_id)
+
+        # Get owner info
+        owner = await self.db_ops.query_user_by_id(collection.user)
+        if owner is None:
+            raise CollectionNotFoundException(f"Collection owner not found for collection {collection_id}")
+
+        # Check subscription status (optional - might be None)
+        subscription = await self.db_ops.get_user_subscription_by_collection_id(user_id, collection_id)
+
+        return {
+            "collection_id": collection.id,
+            "collection_title": collection.title,
+            "collection_description": collection.description,
+            "owner_user_id": collection.user,
+            "owner_username": owner.username,
+            "subscription_id": subscription.id if subscription else None,
+            "gmt_subscribed": subscription.gmt_subscribed if subscription else None,
+            "is_subscribed": subscription is not None,
+            "is_owner": collection.user == user_id,
+        }
+
     async def get_marketplace_collection(self, user_id: str, collection_id: str) -> view_models.SharedCollection:
         """Get MarketplaceCollection details"""
-        # Call _check_subscription_access to verify permissions
-        subscription_info = await self._check_subscription_access(user_id, collection_id)
+        # Call _check_marketplace_access to verify permissions (all logged-in users can view)
+        marketplace_info = await self._check_marketplace_access(user_id, collection_id)
 
-        # Return SharedCollection data (only fields needed by subscribers)
+        # Return SharedCollection data with subscription status
         return view_models.SharedCollection(
-            id=subscription_info["collection_id"],
-            title=subscription_info["collection_title"],
-            description=subscription_info["collection_description"],
-            owner_user_id=subscription_info["owner_user_id"],
-            owner_username=subscription_info["owner_username"],
-            subscription_id=subscription_info["subscription_id"],
-            gmt_subscribed=subscription_info["gmt_subscribed"],
+            id=marketplace_info["collection_id"],
+            title=marketplace_info["collection_title"],
+            description=marketplace_info["collection_description"],
+            owner_user_id=marketplace_info["owner_user_id"],
+            owner_username=marketplace_info["owner_username"],
+            subscription_id=marketplace_info["subscription_id"],
+            gmt_subscribed=marketplace_info["gmt_subscribed"],
         )
 
     async def list_marketplace_collection_documents(
@@ -81,11 +113,11 @@ class MarketplaceCollectionService:
         file_type: str = None,
     ) -> view_models.DocumentList:
         """List documents in MarketplaceCollection (read-only mode)"""
-        # Call _check_subscription_access to verify permissions
-        await self._check_subscription_access(user_id, collection_id)
+        # Call _check_marketplace_access to verify permissions (all logged-in users can view)
+        await self._check_marketplace_access(user_id, collection_id)
 
         # Get the actual collection object for document queries
-        collection = await self.db_ops.get_collection_by_subscription_access(user_id, collection_id)
+        collection = await self.db_ops.query_collection_without_user(collection_id)
         if collection is None:
             raise CollectionNotFoundException(collection_id)
 
@@ -118,8 +150,8 @@ class MarketplaceCollectionService:
         self, user_id: str, collection_id: str, document_id: str
     ) -> view_models.DocumentPreview:
         """Preview document in MarketplaceCollection"""
-        # Call _check_subscription_access to verify permissions
-        await self._check_subscription_access(user_id, collection_id)
+        # Call _check_marketplace_access to verify permissions (all logged-in users can view)
+        await self._check_marketplace_access(user_id, collection_id)
 
         # Get document preview data (same format as original interface)
         # This reuses existing document preview logic
@@ -142,11 +174,11 @@ class MarketplaceCollectionService:
         self, user_id: str, collection_id: str, node_limit: int = 100, depth: int = 2, **params
     ) -> dict:
         """Get knowledge graph for MarketplaceCollection (read-only mode)"""
-        # Call _check_subscription_access to verify permissions
-        await self._check_subscription_access(user_id, collection_id)
+        # Call _check_marketplace_access to verify permissions (all logged-in users can view)
+        await self._check_marketplace_access(user_id, collection_id)
 
         # Get collection object for graph queries
-        collection = await self.db_ops.get_collection_by_subscription_access(user_id, collection_id)
+        collection = await self.db_ops.query_collection_without_user(collection_id)
         if collection is None:
             raise CollectionNotFoundException(collection_id)
 

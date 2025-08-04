@@ -181,7 +181,7 @@ export default () => {
   const unsubscribeFromCollection = useCallback(async (collectionId: string): Promise<boolean> => {
     try {
       const res = await api.marketplaceCollectionsCollectionIdSubscribeDelete({ collectionId });
-      const success = res.status === 204;
+      const success = res.status === 200;
       if (success) {
         // Refresh marketplace collections to update subscription status
         await getMarketplaceCollections(marketplacePagination.current, marketplacePagination.pageSize);

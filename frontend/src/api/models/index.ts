@@ -75,6 +75,7 @@ export * from './llm-provider-model-update';
 export * from './llm-provider-update-with-api-key';
 export * from './login';
 export * from './marketplace-collections-collection-id-graph-get200-response';
+export * from './marketplace-collections-collection-id-subscribe-delete200-response';
 export * from './merge-suggestion-item';
 export * from './merge-suggestion-target-entity';
 export * from './merge-suggestions-request';

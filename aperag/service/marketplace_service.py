@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from datetime import datetime
 from typing import Optional, Tuple
 
@@ -25,9 +26,10 @@ from aperag.exceptions import (
     CollectionNotPublishedError,
     PermissionDeniedError,
     SelfSubscriptionError,
-    SubscriptionNotFoundError,
 )
 from aperag.schema import view_models
+
+logger = logging.getLogger(__name__)
 
 
 class MarketplaceService:
@@ -147,10 +149,16 @@ class MarketplaceService:
 
     async def unsubscribe_collection(self, user_id: str, collection_id: str) -> None:
         """Unsubscribe from Collection"""
-        # Verify user has subscribed to this Collection
+        # Check if user has subscribed to this Collection
         subscription = await self.db_ops.get_user_subscription_by_collection_id(user_id, collection_id)
+
+        # If no active subscription found, return silently (idempotent operation)
+        # This handles cases where user clicks unsubscribe multiple times
         if subscription is None:
-            raise SubscriptionNotFoundError(collection_id)
+            logger.info(
+                f"User {user_id} attempted to unsubscribe from collection {collection_id}, but no active subscription found. Operation treated as successful (idempotent)."
+            )
+            return
 
         # Soft delete subscription record (set gmt_deleted = current_timestamp)
         await self.db_ops.unsubscribe_collection(user_id, collection_id)

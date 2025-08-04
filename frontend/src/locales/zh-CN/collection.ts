@@ -134,6 +134,7 @@ export const collection = {
   'collection.marketplace.subscribe.failed': '订阅失败',
   'collection.marketplace.unsubscribe.success': '取消订阅成功',
   'collection.marketplace.unsubscribe.failed': '取消订阅失败',
+  'collection.marketplace.subscribe.hint': '请点击爱心按钮订阅此知识库',
   'collection.marketplace.load.failed': '加载知识库市场失败',
   'collection.marketplace.empty.title': '暂无已发布的知识库',
   'collection.marketplace.empty.description': '还没有用户发布知识库到市场',

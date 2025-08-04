@@ -1,6 +1,6 @@
 import { SharedCollection } from '@/api';
 import { DATETIME_FORMAT } from '@/constants';
-import { ShareAltOutlined, UserOutlined, ClockCircleOutlined, StarOutlined } from '@ant-design/icons';
+import { ShareAltOutlined, UserOutlined, ClockCircleOutlined, StarOutlined, HeartOutlined, HeartFilled } from '@ant-design/icons';
 import { Card, Button, Tag, Typography, Space, Tooltip, Avatar } from 'antd';
 import moment from 'moment';
 import React from 'react';
@@ -77,8 +77,17 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
   const renderActionButton = () => {
     if (isOwner) {
       return (
-        <Tag color="gold" icon={<StarOutlined />} style={{ marginLeft: 8, fontSize: '12px' }}>
-          <FormattedMessage id="collection.marketplace.owner" />
+        <Tag 
+          color="gold" 
+          icon={<StarOutlined />} 
+          style={{ 
+            fontSize: '12px',
+            borderRadius: 6,
+            margin: 0,
+            fontWeight: 500,
+          }}
+        >
+          我的
         </Tag>
       );
     }
@@ -86,28 +95,53 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
     if (canSubscribe) {
       return (
         <Button
-          type="primary"
+          type="default"
           size="small"
           onClick={handleSubscribe}
           loading={loading}
-          icon={<ShareAltOutlined />}
+          icon={<HeartOutlined />}
           style={{ 
-            borderRadius: 8,
+            borderRadius: 6,
             fontSize: '12px',
             height: '28px',
-            marginLeft: 8,
+            fontWeight: 500,
+            borderColor: '#1890ff',
+            color: '#1890ff',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#1890ff';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#1890ff';
           }}
         >
-          <FormattedMessage id="collection.marketplace.subscribe" />
+          订阅
         </Button>
       );
     }
 
     if (canUnsubscribe) {
       return (
-        <Tag color="blue" icon={<ShareAltOutlined />} style={{ marginLeft: 8, fontSize: '12px' }}>
-          <FormattedMessage id="collection.marketplace.subscribed" />
-        </Tag>
+        <Button
+          type="default"
+          size="small"
+          onClick={handleUnsubscribe}
+          loading={loading}
+          icon={<HeartFilled />}
+          style={{ 
+            borderRadius: 6,
+            fontSize: '12px',
+            height: '28px',
+            fontWeight: 500,
+            borderColor: '#52c41a',
+            color: '#52c41a',
+            background: '#f6ffed',
+          }}
+        >
+          已订阅
+        </Button>
       );
     }
 
@@ -122,16 +156,16 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
         height: '100%',
         cursor: loading ? 'default' : 'pointer',
         opacity: loading ? 0.7 : 1,
-        borderRadius: 16,
-        border: '1px solid #f0f0f0',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        borderRadius: 12,
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        transition: 'all 0.2s ease-in-out',
         background: '#ffffff',
-        minHeight: '240px',
+        minHeight: '200px',
       }}
       styles={{
         body: {
-          padding: '20px',
+          padding: '16px',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -139,16 +173,14 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
       }}
       onMouseEnter={(e) => {
         if (!loading) {
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)';
-          e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.borderColor = '#1890ff';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+          e.currentTarget.style.borderColor = '#d1d5db';
         }
       }}
       onMouseLeave={(e) => {
         if (!loading) {
-          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)';
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.borderColor = '#f0f0f0';
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+          e.currentTarget.style.borderColor = '#e5e7eb';
         }
       }}
     >
@@ -158,7 +190,7 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'flex-start',
-          marginBottom: 12,
+          marginBottom: 8,
         }}>
           <Title 
             level={5} 
@@ -169,8 +201,8 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
               marginRight: 8,
               fontWeight: 600,
               fontSize: '16px',
-              lineHeight: '1.4',
-              color: '#262626',
+              lineHeight: '1.3',
+              color: '#111827',
             }}
           >
             {collection.title}
@@ -179,12 +211,12 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
         </div>
 
         {/* Description */}
-        <div style={{ flex: 1, marginBottom: 16 }}>
+        <div style={{ flex: 1, marginBottom: 12 }}>
           <Text 
             style={{ 
-              fontSize: '14px',
-              lineHeight: '1.5',
-              color: '#8c8c8c',
+              fontSize: '13px',
+              lineHeight: '1.4',
+              color: '#6b7280',
               display: '-webkit-box',
               WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
@@ -202,51 +234,37 @@ export const CollectionMarketplaceCard: React.FC<CollectionMarketplaceCardProps>
           justifyContent: 'space-between',
           alignItems: 'center',
           marginTop: 'auto',
-          paddingTop: 12,
-          borderTop: '1px solid #f5f5f5',
+          paddingTop: 8,
         }}>
-          <Space size={8}>
+          <Space size={6} align="center">
             <Avatar 
-              size={20} 
+              size={16} 
               icon={<UserOutlined />} 
-              style={{ backgroundColor: '#1890ff' }}
+              style={{ 
+                backgroundColor: '#6b7280',
+                fontSize: '10px',
+              }}
             />
-            <Text style={{ fontSize: '12px', color: '#595959', fontWeight: 500 }}>
+            <Text style={{ 
+              fontSize: '12px', 
+              color: '#6b7280',
+              fontWeight: 500,
+            }}>
               {collection.owner_username}
             </Text>
           </Space>
           
           {collection.gmt_subscribed && isSubscribed && (
-            <Tooltip title={formatMessage({ id: 'collection.marketplace.subscribed.at' })}>
-              <Space size={4}>
-                <ClockCircleOutlined style={{ fontSize: '12px', color: '#bfbfbf' }} />
-                <Text style={{ fontSize: '12px', color: '#bfbfbf' }}>
-                  {moment(collection.gmt_subscribed).fromNow()}
-                </Text>
-              </Space>
-            </Tooltip>
+            <Space size={4} align="center">
+              <ClockCircleOutlined style={{ fontSize: '11px', color: '#9ca3af' }} />
+              <Text style={{ fontSize: '11px', color: '#9ca3af' }}>
+                {moment(collection.gmt_subscribed).fromNow()}
+              </Text>
+            </Space>
           )}
         </div>
 
-        {/* Unsubscribe action for subscribed collections */}
-        {isSubscribed && !isOwner && (
-          <div style={{ marginTop: 12, textAlign: 'center' }}>
-            <Button
-              type="text"
-              size="small"
-              onClick={handleUnsubscribe}
-              loading={loading}
-              danger
-              style={{
-                fontSize: '12px',
-                height: '24px',
-                borderRadius: 6,
-              }}
-            >
-              <FormattedMessage id="collection.marketplace.unsubscribe" />
-            </Button>
-          </div>
-        )}
+
       </div>
     </Card>
   );

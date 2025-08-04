@@ -9,5 +9,6 @@ export * from './model-select';
 export * from './navbar';
 export * from './page-container';
 export * from './page-header';
+export * from './ReadOnlyBanner';
 export * from './refresh-button';
 export * from './SharingControl';

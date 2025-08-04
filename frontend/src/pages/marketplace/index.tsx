@@ -59,10 +59,13 @@ export default () => {
       // Subscribed collection - go to marketplace collection page
       history.push(`/marketplace/collections/${collection.id}`);
     } else {
-      // Not subscribed - show subscribe action
-      handleSubscribe(collection.id);
+      // Not subscribed - show reminder to subscribe
+      toast.info(formatMessage({ 
+        id: 'collection.marketplace.subscribe.hint', 
+        defaultMessage: '请点击爱心按钮订阅此知识库' 
+      }));
     }
-  }, [user]);
+  }, [user, formatMessage]);
 
   const handleSubscribe = useCallback(async (collectionId: string) => {
     if (!collectionId) return false;
@@ -203,90 +206,78 @@ export default () => {
     <PageContainer loading={marketplaceLoading && !marketplaceCollections}>
       {/* Enhanced Header */}
       <div style={{ 
-        textAlign: 'center', 
-        marginBottom: 48,
+        marginBottom: 32,
         paddingTop: 24
       }}>
         <div style={{ marginBottom: 24 }}>
           <Typography.Title 
-            level={2} 
+            level={1} 
             style={{ 
               margin: 0, 
-              fontWeight: 700,
-              fontSize: '32px',
-              background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              fontWeight: 600,
+              fontSize: '28px',
+              color: '#262626',
+              marginBottom: 8,
             }}
           >
-            <FormattedMessage id="collection.marketplace.title" />
+            知识库市场
           </Typography.Title>
           <Typography.Text 
             style={{ 
               fontSize: '16px', 
               color: '#8c8c8c',
-              marginTop: 8,
               display: 'block',
             }}
           >
-            发现并订阅高质量的知识库
+            发现和订阅社区共享的优质知识库，扩展您的知识边界
           </Typography.Text>
         </div>
         <div style={{ 
-          maxWidth: 640, 
-          margin: '0 auto',
-          padding: '0 20px',
+          maxWidth: 400, 
+          marginBottom: 16,
         }}>
           <Search
-            placeholder={formatMessage({ id: 'common.search.placeholder' })}
+            placeholder="搜索知识库..."
             allowClear
-            enterButton={
-              <Button 
-                type="primary" 
-                icon={<SearchOutlined />}
-                style={{
-                  height: '52px',
-                  borderRadius: '0 12px 12px 0',
-                  fontSize: '16px',
-                  fontWeight: 500,
-                  background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(24, 144, 255, 0.3)',
-                }}
-              >
-                {formatMessage({ id: 'common.search' })}
-              </Button>
-            }
+            enterButton={<SearchOutlined />}
             size="large"
             onSearch={handleSearch}
-            style={{ 
-              width: '100%',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-              borderRadius: 12,
-            }}
-            styles={{
-              input: {
-                borderRadius: '12px 0 0 12px',
-                fontSize: '16px',
-                height: '52px',
-                border: '1px solid #e8e8e8',
-                borderRight: 'none',
-                padding: '0 20px',
-              },
-            }}
           />
         </div>
       </div>
       
+      {/* Statistics Section */}
       {marketplaceCollections && marketplaceCollections.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <Text type="secondary">
-            <FormattedMessage 
-              id="common.total.items" 
-              values={{ total: marketplacePagination.total }} 
-            />
-          </Text>
+        <div style={{ 
+          marginBottom: 24,
+          padding: '16px 0',
+          borderBottom: '1px solid #f0f0f0'
+        }}>
+          <div style={{ 
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 8
+          }}>
+            <Typography.Text 
+              style={{ 
+                fontSize: '16px',
+                fontWeight: 500,
+                color: '#262626'
+              }}
+            >
+              {marketplacePagination.total} 个已发布的知识库
+            </Typography.Text>
+          </div>
+          <Typography.Text 
+            type="secondary"
+            style={{ 
+              fontSize: '14px',
+              color: '#8c8c8c'
+            }}
+          >
+            探索由社区贡献者分享的高质量知识库
+          </Typography.Text>
         </div>
       )}
 

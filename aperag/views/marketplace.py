@@ -22,7 +22,6 @@ from aperag.exceptions import (
     AlreadySubscribedError,
     CollectionNotPublishedError,
     SelfSubscriptionError,
-    SubscriptionNotFoundError,
 )
 from aperag.schema import view_models
 from aperag.service.marketplace_service import marketplace_service
@@ -36,7 +35,7 @@ router = APIRouter(tags=["marketplace"])
 @router.get("/marketplace/collections", response_model=view_models.SharedCollectionList)
 async def list_marketplace_collections(
     page: int = Query(1, ge=1),
-    page_size: int = Query(12, ge=1, le=100),
+    page_size: int = Query(30, ge=1, le=100),
     user: User = Depends(current_user),
 ) -> view_models.SharedCollectionList:
     """List all published Collections in marketplace"""
@@ -51,7 +50,7 @@ async def list_marketplace_collections(
 @router.get("/marketplace/collections/subscriptions", response_model=view_models.SharedCollectionList)
 async def list_user_subscribed_collections(
     page: int = Query(1, ge=1),
-    page_size: int = Query(12, ge=1, le=100),
+    page_size: int = Query(30, ge=1, le=100),
     user: User = Depends(current_user),
 ) -> view_models.SharedCollectionList:
     """Get user's subscribed Collections"""
@@ -92,8 +91,6 @@ async def unsubscribe_collection(
     try:
         await marketplace_service.unsubscribe_collection(user.id, collection_id)
         return {"message": "Successfully unsubscribed"}
-    except SubscriptionNotFoundError:
-        raise HTTPException(status_code=404, detail="Subscription not found")
     except Exception as e:
         logger.error(f"Error unsubscribing from collection {collection_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

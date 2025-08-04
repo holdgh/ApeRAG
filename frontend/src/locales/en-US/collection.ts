@@ -141,6 +141,7 @@ export const collection = {
   'collection.marketplace.subscribe.failed': 'Failed to subscribe',
   'collection.marketplace.unsubscribe.success': 'Unsubscribed successfully',
   'collection.marketplace.unsubscribe.failed': 'Failed to unsubscribe',
+  'collection.marketplace.subscribe.hint': 'Please click the heart button to subscribe to this collection',
   'collection.marketplace.load.failed': 'Failed to load marketplace collections',
   'collection.marketplace.empty.title': 'No published collections',
   'collection.marketplace.empty.description': 'No users have published collections to the marketplace yet',

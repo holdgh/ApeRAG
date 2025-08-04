@@ -116,8 +116,16 @@ marketplaceCollectionSubscribe:
         schema:
           type: string
     responses:
-      '204':
+      '200':
         description: Successfully unsubscribed
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Successfully unsubscribed"
       '401':
         $ref: '../components/schemas/common.yaml#/failResponse'
       '404':

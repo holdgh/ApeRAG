@@ -106,6 +106,8 @@ import type { Login } from '../models';
 // @ts-ignore
 import type { MarketplaceCollectionsCollectionIdGraphGet200Response } from '../models';
 // @ts-ignore
+import type { MarketplaceCollectionsCollectionIdSubscribeDelete200Response } from '../models';
+// @ts-ignore
 import type { ModelConfigList } from '../models';
 // @ts-ignore
 import type { PromptTemplateList } from '../models';
@@ -3743,7 +3745,7 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async marketplaceCollectionsCollectionIdSubscribeDelete(collectionId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+        async marketplaceCollectionsCollectionIdSubscribeDelete(collectionId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MarketplaceCollectionsCollectionIdSubscribeDelete200Response>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.marketplaceCollectionsCollectionIdSubscribeDelete(collectionId, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.marketplaceCollectionsCollectionIdSubscribeDelete']?.[localVarOperationServerIndex]?.url;
@@ -4492,7 +4494,7 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        marketplaceCollectionsCollectionIdSubscribeDelete(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdSubscribeDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+        marketplaceCollectionsCollectionIdSubscribeDelete(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdSubscribeDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<MarketplaceCollectionsCollectionIdSubscribeDelete200Response> {
             return localVarFp.marketplaceCollectionsCollectionIdSubscribeDelete(requestParameters.collectionId, options).then((request) => request(axios, basePath));
         },
         /**
@@ -5203,7 +5205,7 @@ export interface DefaultApiInterface {
      * @throws {RequiredError}
      * @memberof DefaultApiInterface
      */
-    marketplaceCollectionsCollectionIdSubscribeDelete(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdSubscribeDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+    marketplaceCollectionsCollectionIdSubscribeDelete(requestParameters: DefaultApiMarketplaceCollectionsCollectionIdSubscribeDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<MarketplaceCollectionsCollectionIdSubscribeDelete200Response>;
 
     /**
      * Subscribe to a published Collection
