@@ -227,8 +227,9 @@ export default () => {
           </Typography.Text>
         </div>
         <div style={{ 
-          maxWidth: 400, 
+          maxWidth: 500, 
           marginBottom: 16,
+          margin: '0 auto 16px auto',
         }}>
           <Search
             placeholder={formatMessage({ id: 'collection.marketplace.search.placeholder' })}
@@ -239,44 +240,7 @@ export default () => {
           />
         </div>
       </div>
-      
-      {/* Statistics Section */}
-      {marketplaceCollections && marketplaceCollections.length > 0 && (
-        <div style={{ 
-          marginBottom: 24,
-          padding: '16px 0',
-          borderBottom: '1px solid #f0f0f0'
-        }}>
-          <div style={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 8
-          }}>
-            <Typography.Text 
-              style={{ 
-                fontSize: '16px',
-                fontWeight: 500,
-                color: '#262626'
-              }}
-            >
-              <FormattedMessage
-                id="collection.marketplace.stats.total"
-                values={{ total: marketplacePagination.total }}
-              />
-            </Typography.Text>
-          </div>
-          <Typography.Text 
-            type="secondary"
-            style={{ 
-              fontSize: '14px',
-              color: '#8c8c8c'
-            }}
-          >
-            <FormattedMessage id="collection.marketplace.explore.subtitle" />
-          </Typography.Text>
-        </div>
-      )}
+
 
       {renderEmptyState() || (
         <>

@@ -32,6 +32,7 @@ from aperag.schema.view_models import (
     SearchResultList,
 )
 from aperag.service.collection_summary_service import collection_summary_service
+from aperag.service.marketplace_collection_service import marketplace_collection_service
 from aperag.utils.constant import QuotaType
 from aperag.views.utils import validate_source_connect_config
 from config.celery_tasks import collection_delete_task, collection_init_task
@@ -178,9 +179,22 @@ class CollectionService:
     ) -> view_models.SearchResult:
         from aperag.exceptions import CollectionNotFoundException
 
+        # Try to find collection as owner first
         collection = await self.db_ops.query_collection(user, collection_id)
+        search_user_id = user  # Default to current user for search operations
+
         if not collection:
-            raise CollectionNotFoundException(collection_id)
+            # If not found as owner, check if it's a marketplace collection
+            try:
+                marketplace_info = await marketplace_collection_service._check_marketplace_access(user, collection_id)
+                # Use owner's user_id for search operations in marketplace collections
+                search_user_id = marketplace_info["owner_user_id"]
+                collection = await self.db_ops.query_collection(search_user_id, collection_id)
+                if not collection:
+                    raise CollectionNotFoundException(collection_id)
+            except Exception:
+                # If marketplace access also fails, raise original not found error
+                raise CollectionNotFoundException(collection_id)
 
         # Build flow for search execution
         nodes = {}
@@ -265,7 +279,8 @@ class CollectionService:
             edges=edges,
         )
         engine = FlowEngine()
-        initial_data = {"query": query, "user": user}
+        # Use search_user_id for flow execution (owner's ID for marketplace collections)
+        initial_data = {"query": query, "user": search_user_id}
         result, _ = await engine.execute_flow(flow, initial_data)
 
         if not result:
