@@ -33,6 +33,7 @@ from aperag.schema.view_models import (
     SearchResultList,
 )
 from aperag.service.collection_summary_service import collection_summary_service
+from aperag.service.quota_service import QuotaService
 from aperag.service.marketplace_collection_service import marketplace_collection_service
 from aperag.utils.constant import QuotaType
 from aperag.views.utils import validate_source_connect_config
@@ -73,24 +74,36 @@ class CollectionService:
         if not is_validate:
             raise ValidationException(error_msg)
 
-        # Check quota limit on collection
-        if settings.max_collection_count:
-            collection_limit = await self.db_ops.query_user_quota(user, QuotaType.MAX_COLLECTION_COUNT)
-            if collection_limit is None:
-                collection_limit = settings.max_collection_count
-            if collection_limit and await self.db_ops.query_collections_count(user) >= collection_limit:
-                raise QuotaExceededException("collection", collection_limit)
+        # Create collection and consume quota in a single transaction
+        async def _create_collection_with_quota(session):
+            from aperag.service.quota_service import quota_service
+            
+            # Check and consume quota within the transaction
+            await quota_service.check_and_consume_quota(user, "max_collection_count", 1, session)
+            
+            # Create collection within the same transaction
+            config_str = dumpCollectionConfig(collection_config) if collection.config is not None else None
+            
+            from aperag.db.models import Collection, CollectionStatus
+            from aperag.utils.utils import utc_now
+            
+            instance = Collection(
+                user=user,
+                title=collection.title,
+                description=collection.description,
+                type=collection.type,
+                status=CollectionStatus.ACTIVE,
+                config=config_str,
+                gmt_created=utc_now(),
+                gmt_updated=utc_now()
+            )
+            session.add(instance)
+            await session.flush()
+            await session.refresh(instance)
+            
+            return instance
 
-        # Direct call to repository method, which handles its own transaction
-        config_str = dumpCollectionConfig(collection_config) if collection.config is not None else None
-
-        instance = await self.db_ops.create_collection(
-            user=user,
-            title=collection.title,
-            description=collection.description,
-            collection_type=collection.type,
-            config=config_str,
-        )
+        instance = await self.db_ops.execute_with_transaction(_create_collection_with_quota)
 
         if collection.config.enable_summary:
             await collection_summary_service.trigger_collection_summary_generation(instance)
@@ -245,8 +258,37 @@ class CollectionService:
         if collection is None:
             return None
 
-        # Direct call to repository method, which handles its own transaction
-        deleted_instance = await self.db_ops.delete_collection_by_id(user, collection_id)
+        # Delete collection and release quota in a single transaction
+        async def _delete_collection_with_quota(session):
+            from aperag.service.quota_service import quota_service
+            from aperag.db.models import CollectionStatus
+            from aperag.utils.utils import utc_now
+            from sqlalchemy import select
+            
+            # Get collection within transaction
+            stmt = select(db_models.Collection).where(
+                db_models.Collection.id == collection_id,
+                db_models.Collection.user == user
+            )
+            result = await session.execute(stmt)
+            collection_to_delete = result.scalars().first()
+            
+            if not collection_to_delete:
+                return None
+            
+            # Mark collection as deleted
+            collection_to_delete.status = CollectionStatus.DELETED
+            collection_to_delete.gmt_deleted = utc_now()
+            
+            # Release quota within the same transaction
+            await quota_service.release_quota(user, "max_collection_count", 1, session)
+            
+            await session.flush()
+            await session.refresh(collection_to_delete)
+            
+            return collection_to_delete
+
+        deleted_instance = await self.db_ops.execute_with_transaction(_delete_collection_with_quota)
 
         if deleted_instance:
             # Clean up related resources
