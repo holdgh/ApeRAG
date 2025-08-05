@@ -61,7 +61,7 @@ export interface CollectionConfigObjectStorage {
      * @type {string}
      * @memberof CollectionConfigObjectStorage
      */
-    'object_prefix': string;
+    'object_prefix'?: string;
     /**
      * Whitelist of complete object keys. Only objects with keys in this list will be included in the collection.
      * @type {Array<string>}

@@ -139,6 +139,10 @@ class CollectionService:
         if instance is None:
             raise CollectionNotFoundException(collection_id)
 
+        is_validate, error_msg = validate_source_connect_config(collection.config)
+        if not is_validate:
+            raise ValidationException(error_msg)
+
         # Direct call to repository method, which handles its own transaction
         config_str = dumpCollectionConfig(collection.config)
 

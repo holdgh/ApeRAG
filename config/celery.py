@@ -54,7 +54,7 @@ app.conf.beat_schedule = {
     },
     "sync-object-storage": {
         'task': "config.celery_tasks.scheduled_object_storage_sync_task",
-        'schedule': 60.0,
+        'schedule': 3600.0,
     }
 }
 

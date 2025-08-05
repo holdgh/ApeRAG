@@ -78,12 +78,12 @@ async def query_chat_messages(user: str, chat_id: str) -> list[view_models.ChatM
 
 def validate_source_connect_config(config: CollectionConfig) -> Tuple[bool, str]:
     if config.source is None:
-        return False, ""
+        return False, "Empty collection source"
     if config.source not in AVAILABLE_SOURCE:
-        return False, ""
+        return False, "Invalid collection source"
     try:
         get_source(config)
-    except CustomSourceInitializationError as e:
+    except Exception as e:
         return False, str(e)
     return True, ""
 

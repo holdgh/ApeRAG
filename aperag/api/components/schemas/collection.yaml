@@ -171,7 +171,6 @@ collectionConfig:
         - access_key
         - secret_key
         - bucket
-        - object_prefix
       properties:
         endpoint:
           type: string
@@ -185,7 +184,7 @@ collectionConfig:
         enable_path_style:
           type: boolean
           description: Whether to use path-style URLs for object storage. Set to false for MinIO.
-          defalt: false
+          default: false
         bucket:
           type: string
           description: Bucket name in object storage
@@ -195,7 +194,6 @@ collectionConfig:
         object_prefix:
           type: string
           description: Prefix for object keys to be included in the collection. Only objects with keys matching this prefix will be considered.
-          default: /
         include_filters:
           type: array
           description: Whitelist of complete object keys. Only objects with keys in this list will be included in the collection.
