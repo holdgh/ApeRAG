@@ -210,9 +210,9 @@ class CollectionTask:
             TaskResult: Result of the synchronization
         """
         try:
-            # Get collection from database
-            collection = db_ops.query_collection_by_id(collection_id)
-            if not collection or collection.status == CollectionStatus.DELETED:
+            # Wait for collection to be initialized if needed
+            collection = self._wait_for_collection_initialization(collection_id)
+            if not collection:
                 return TaskResult(success=False, error=f"Collection {collection_id} not found or deleted")
 
             # Parse collection config to check if it's object storage type
@@ -548,6 +548,54 @@ class CollectionTask:
             logger.error(f"Failed to delete documents: {str(e)}")
         
         return deleted_count
+
+    def _wait_for_collection_initialization(self, collection_id: str, max_wait_seconds: int = 300, check_interval: int = 5):
+        """
+        Wait for collection to be initialized (status becomes ACTIVE)
+        
+        Args:
+            collection_id: Collection ID to wait for
+            max_wait_seconds: Maximum time to wait in seconds (default: 5 minutes)
+            check_interval: Check interval in seconds (default: 5 seconds)
+            
+        Returns:
+            Collection object if initialized successfully, None if failed or timeout
+        """
+        import time
+        
+        start_time = time.time()
+        logger.info(f"Waiting for collection {collection_id} to be initialized...")
+        
+        while time.time() - start_time < max_wait_seconds:
+            # Get collection from database
+            collection = db_ops.query_collection_by_id(collection_id)
+            
+            if not collection:
+                logger.error(f"Collection {collection_id} not found")
+                return None
+                
+            if collection.status == CollectionStatus.DELETED:
+                logger.error(f"Collection {collection_id} has been deleted")
+                return None
+                
+            if collection.status == CollectionStatus.ACTIVE:
+                logger.info(f"Collection {collection_id} is now active and ready for sync")
+                return collection
+                
+            # Log current status and wait
+            logger.debug(f"Collection {collection_id} status: {collection.status}, waiting...")
+            time.sleep(check_interval)
+        
+        # Timeout reached
+        logger.warning(f"Timeout waiting for collection {collection_id} to be initialized after {max_wait_seconds} seconds")
+        
+        # Return the collection anyway, let the caller decide what to do
+        collection = db_ops.query_collection_by_id(collection_id)
+        if collection and collection.status != CollectionStatus.DELETED:
+            logger.warning(f"Proceeding with collection {collection_id} in status {collection.status}")
+            return collection
+            
+        return None
 
 
 collection_task = CollectionTask()

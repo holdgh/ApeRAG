@@ -367,7 +367,7 @@ class CollectionService:
         
         # Check if it's an object storage collection
         config = parseCollectionConfig(collection.config)
-        if not hasattr(config, 'object_storage') or not config.object_storage:
+        if hasattr(config, 'object_storage') and config.object_storage:
             collection_sync_object_storage_task.delay(collection_id, "manual")
         else:
             raise ValidationException("Collection is not an object storage collection")
