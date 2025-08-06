@@ -246,6 +246,7 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
     anybase_nickname = anybase_user_data.get("nickname")
     anybase_email = anybase_user_data.get("email")
     anybase_phone = anybase_user_data.get("phone")
+    anybase_user_role = anybase_user_data.get("role")
     
     if not anybase_user_id:
         logger.error("Anybase user data missing user_id")
@@ -271,7 +272,7 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
             username=anybase_user_id,  # Use anybase user_id as username
             email=anybase_email or f"{anybase_user_id}@anybase.local",  # Use email or generate one
             hashed_password=user_manager.password_helper.hash(secrets.token_urlsafe(32)),  # Random password
-            role=Role.RO,  # Default role for Anybase users
+            role=Role.ADMIN if anybase_user_role == "admin" else Role.RO,
             is_active=True,
             is_verified=True,
             date_joined=utc_now(),
