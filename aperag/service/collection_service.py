@@ -95,8 +95,10 @@ class CollectionService:
         document_user_quota = await self.db_ops.query_user_quota(user, QuotaType.MAX_DOCUMENT_COUNT)
         collection_init_task.delay(instance.id, document_user_quota)
 
-        # Trigger object storage sync if it's an object storage collection
+        # Trigger object storage sync if it's an object storage or anybase collection
         if hasattr(collection_config, 'object_storage') and collection_config.object_storage:
+            collection_sync_object_storage_task.delay(instance.id, "collection_create")
+        elif hasattr(collection_config, 'anybase') and collection_config.anybase:
             collection_sync_object_storage_task.delay(instance.id, "collection_create")
 
         return await self.build_collection_response(instance)
@@ -159,9 +161,11 @@ class CollectionService:
         if not updated_instance:
             raise CollectionNotFoundException(collection_id)
 
-        # Trigger object storage sync if it's an object storage collection
+        # Trigger object storage sync if it's an object storage or anybase collection
         updated_config = parseCollectionConfig(updated_instance.config)
         if hasattr(updated_config, 'object_storage') and updated_config.object_storage:
+            collection_sync_object_storage_task.delay(updated_instance.id, "collection_update")
+        elif hasattr(updated_config, 'anybase') and updated_config.anybase:
             collection_sync_object_storage_task.delay(updated_instance.id, "collection_update")
 
         return await self.build_collection_response(updated_instance)
@@ -365,12 +369,14 @@ class CollectionService:
         if not collection:
             raise CollectionNotFoundException(collection_id)
         
-        # Check if it's an object storage collection
+        # Check if it's an object storage or anybase collection
         config = parseCollectionConfig(collection.config)
         if hasattr(config, 'object_storage') and config.object_storage:
             collection_sync_object_storage_task.delay(collection_id, "manual")
+        elif hasattr(config, 'anybase') and config.anybase:
+            collection_sync_object_storage_task.delay(collection_id, "manual")
         else:
-            raise ValidationException("Collection is not an object storage collection")
+            raise ValidationException("Collection is not an object storage or anybase collection")
         
         # For now, return a simple response since we're not tracking sync status
         return {

@@ -215,10 +215,13 @@ class CollectionTask:
             if not collection:
                 return TaskResult(success=False, error=f"Collection {collection_id} not found or deleted")
 
-            # Parse collection config to check if it's object storage type
+            # Parse collection config to check if it's object storage or anybase type
             config = parseCollectionConfig(collection.config)
-            if not hasattr(config, 'object_storage') or not config.object_storage:
-                return TaskResult(success=False, error=f"Collection {collection_id} is not an object storage collection")
+            is_object_storage = hasattr(config, 'object_storage') and config.object_storage
+            is_anybase = hasattr(config, 'anybase') and config.anybase
+            
+            if not (is_object_storage or is_anybase):
+                return TaskResult(success=False, error=f"Collection {collection_id} is not an object storage or anybase collection")
 
             # Perform the actual sync
             sync_result = self._perform_object_storage_sync(collection)

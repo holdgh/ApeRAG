@@ -15,6 +15,9 @@
 
 // May contain unused imports in some cases
 // @ts-ignore
+import type { CollectionConfigAnybase } from './collection-config-anybase';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { CollectionConfigObjectStorage } from './collection-config-object-storage';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -92,5 +95,11 @@ export interface CollectionConfig {
      * @memberof CollectionConfig
      */
     'object_storage'?: CollectionConfigObjectStorage;
+    /**
+     * 
+     * @type {CollectionConfigAnybase}
+     * @memberof CollectionConfig
+     */
+    'anybase'?: CollectionConfigAnybase;
 }
 

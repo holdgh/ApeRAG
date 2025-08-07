@@ -25,6 +25,7 @@ from aperag.db.ops import async_db_ops
 from aperag.schema import view_models
 from aperag.schema.view_models import CollectionConfig
 from aperag.source.base import CustomSourceInitializationError, get_source
+from aperag.service.anybase_patch import validate_anybase_config
 from aperag.utils.history import RedisChatMessageHistory, get_async_redis_client
 from aperag.utils.utils import AVAILABLE_SOURCE
 
@@ -81,6 +82,13 @@ def validate_source_connect_config(config: CollectionConfig) -> Tuple[bool, str]
         return False, "Empty collection source"
     if config.source not in AVAILABLE_SOURCE:
         return False, "Invalid collection source"
+    
+    # Special validation for anybase
+    if config.source == "anybase":
+        is_valid, error_msg = validate_anybase_config(config)
+        if not is_valid:
+            return False, error_msg
+    
     try:
         get_source(config)
     except Exception as e:

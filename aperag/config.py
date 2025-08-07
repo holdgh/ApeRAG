@@ -47,6 +47,15 @@ class LocalObjectStoreConfig(BaseSettings):
     root_dir: str = Field(".objects", alias="OBJECT_STORE_LOCAL_ROOT_DIR")
 
 
+class AnybaseConfig(BaseSettings):
+    endpoint: str = Field("", alias="ANYBASE_ENDPOINT")
+    access_key: str = Field("", alias="ANYBASE_ACCESS_KEY")
+    secret_key: str = Field("", alias="ANYBASE_SECRET_KEY")
+    bucket: str = Field("", alias="ANYBASE_BUCKET")
+    region: Optional[str] = Field(None, alias="ANYBASE_REGION")
+    use_path_style: bool = Field(True, alias="ANYBASE_USE_PATH_STYLE")
+
+
 class Config(BaseSettings):
     # Debug mode
     debug: bool = Field(False, alias="DEBUG")
@@ -119,6 +128,9 @@ class Config(BaseSettings):
     object_store_type: str = Field("local", alias="OBJECT_STORE_TYPE")
     object_store_local_config: Optional[LocalObjectStoreConfig] = None
     object_store_s3_config: Optional[S3Config] = None
+    
+    # Anybase object store
+    anybase_config: Optional[AnybaseConfig] = None
 
     # Limits
     max_bot_count: int = Field(10, alias="MAX_BOT_COUNT")
@@ -214,6 +226,9 @@ class Config(BaseSettings):
             raise ValueError(
                 f"Unsupported OBJECT_STORE_TYPE: {self.object_store_type}. Supported types are: local, s3."
             )
+        
+        # Anybase config
+        self.anybase_config = AnybaseConfig()
 
 
 def get_sync_database_url(url: str):

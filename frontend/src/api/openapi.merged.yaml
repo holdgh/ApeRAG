@@ -3342,6 +3342,25 @@ components:
               items:
                 type: string
                 description: Complete object key to exclude
+        anybase:
+          type: object
+          description: Anybase object storage source configuration. Endpoint, access_key, secret_key, bucket, and enable_path_style are configured via environment variables.
+          properties:
+            object_prefix:
+              type: string
+              description: Prefix for object keys to be included in the collection. Only objects with keys matching this prefix will be considered.
+            include_filters:
+              type: array
+              description: Whitelist of complete object keys. Only objects with keys in this list will be included in the collection.
+              items:
+                type: string
+                description: Complete object key to include
+            exclude_filters:
+              type: array
+              description: Blacklist of complete object keys. Objects with keys in this list will be excluded from the collection. Takes precedence over include_filters if an object appears in both.
+              items:
+                type: string
+                description: Complete object key to exclude
     collection:
       description: Collection is a collection of documents
       properties:

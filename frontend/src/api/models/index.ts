@@ -17,6 +17,7 @@ export * from './chat-message';
 export * from './chat-update';
 export * from './collection';
 export * from './collection-config';
+export * from './collection-config-anybase';
 export * from './collection-config-object-storage';
 export * from './collection-create';
 export * from './collection-list';
