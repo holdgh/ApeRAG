@@ -827,7 +827,7 @@ async def build_query_context(
     # Handle empty keywords
     if hl_keywords == [] and ll_keywords == []:
         logger.warning("low_level_keywords and high_level_keywords is empty")
-        return PROMPTS["fail_response"]
+        return None
     if ll_keywords == [] and query_param.mode in ["local", "hybrid"]:
         logger.warning(
             "low_level_keywords is empty, switching from %s mode to global mode",
