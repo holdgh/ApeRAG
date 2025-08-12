@@ -18,7 +18,6 @@ import logging
 import uuid
 from typing import Dict, List, Optional, Tuple
 
-from langchain.schema import AIMessage, HumanMessage
 from litellm import BaseModel
 from pydantic import Field
 
@@ -32,7 +31,6 @@ from aperag.query.query import DocumentWithScore
 from aperag.schema.view_models import Reference
 from aperag.utils.constant import DOC_QA_REFERENCES
 from aperag.utils.history import BaseChatMessageHistory
-from aperag.utils.utils import now_unix_milliseconds
 
 logger = logging.getLogger(__name__)
 
@@ -50,47 +48,23 @@ FALLBACK_MAX_CONTEXT_LENGTH = 50000
 MAX_IMAGES_PER_QUERY = 5
 
 
-class Message(BaseModel):
-    id: str
-    query: Optional[str] = None
-    timestamp: Optional[int] = None
-    response: Optional[str] = None
-    urls: Optional[List[str]] = None
-    references: Optional[List[Dict]] = None
-
-
-def new_ai_message(message, message_id, response, references, urls):
-    return Message(
-        id=message_id,
-        query=message,
-        response=response,
-        timestamp=now_unix_milliseconds(),
-        references=references,
-        urls=urls,
-    )
-
-
-def new_human_message(message, message_id):
-    return Message(
-        id=message_id,
-        query=message,
-        timestamp=now_unix_milliseconds(),
-    )
-
-
 async def add_human_message(history: BaseChatMessageHistory, message, message_id):
     if not message_id:
         message_id = str(uuid.uuid4())
-
-    human_msg = new_human_message(message, message_id)
-    human_msg = human_msg.model_dump_json(exclude_none=True)
-    await history.add_message(HumanMessage(content=human_msg, additional_kwargs={"role": "human"}))
+    await history.add_user_message(message, message_id)
 
 
 async def add_ai_message(history: BaseChatMessageHistory, message, message_id, response, references, urls):
-    ai_msg = new_ai_message(message, message_id, response, references, urls)
-    ai_msg = ai_msg.model_dump_json(exclude_none=True)
-    await history.add_message(AIMessage(content=ai_msg, additional_kwargs={"role": "ai"}))
+    await history.add_ai_message(
+        content=response,
+        chat_id=history.session_id,
+        message_id=message_id,
+        tool_use_list=None,
+        references=references,
+        urls=urls,
+        trace_id=None,
+        metadata=None,
+    )
 
 
 class LLMInput(BaseModel):
@@ -247,7 +221,14 @@ class LLMService:
                     if doc.metadata.get("index_method", "") == "vision_to_text":
                         # If the index_method is "vision_to_text", the doc is also contains text content,
                         # which is useful if the current LLM doesn't support image input.
-                        if not vision_model:
+                        if not vision_model and doc.text and doc.text.strip():
+                            metadata = ""
+                            if doc.metadata.get("source"):
+                                metadata += "Source: " + doc.metadata["source"] + "\n"
+                            if doc.metadata.get("page_idx") is not None:
+                                metadata += "Page: " + str(int(doc.metadata["page_idx"]) + 1) + "\n"
+
+                            doc.text = f"\n------ IMAGE DESCRIPTION BEGIN ------ \n{metadata}Description:\n{doc.text}\n------ IMAGE DESCRIPTION END ------\n"
                             text_docs.append(doc)
                 else:
                     text_docs.append(doc)

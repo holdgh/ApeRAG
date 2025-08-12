@@ -149,6 +149,12 @@ api:
             topologyKey: kubernetes.io/hostname
   env:
     # Auth
+    JWT_SECRET: "a-very-secret-key-that-you-should-change" # IMPORTANT: Change this in production
+    OAUTH_REDIRECT_URL: "http://127.0.0.1:3000/web/oauth-callback.html"
+    GOOGLE_OAUTH_CLIENT_ID: ""
+    GOOGLE_OAUTH_CLIENT_SECRET: ""
+    GITHUB_OAUTH_CLIENT_ID: ""
+    GITHUB_OAUTH_CLIENT_SECRET: ""
     AUTH_TYPE: cookie
     AUTH0_DOMAIN: ""
     AUTH0_CLIENT_ID: ""

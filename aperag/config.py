@@ -92,6 +92,12 @@ class Config(BaseSettings):
 
     # Auth
     auth_type: str = Field("none", alias="AUTH_TYPE")
+    jwt_secret: str = Field("SECRET", alias="JWT_SECRET")
+    oauth_redirect_url: str = Field("http://127.0.0.1:3000/web/oauth-callback.html", alias="OAUTH_REDIRECT_URL")
+    google_oauth_client_id: str = Field("", alias="GOOGLE_OAUTH_CLIENT_ID")
+    google_oauth_client_secret: str = Field("", alias="GOOGLE_OAUTH_CLIENT_SECRET")
+    github_oauth_client_id: str = Field("", alias="GITHUB_OAUTH_CLIENT_ID")
+    github_oauth_client_secret: str = Field("", alias="GITHUB_OAUTH_CLIENT_SECRET")
     auth0_domain: str = Field("aperag-dev.auting.cn", alias="AUTH0_DOMAIN")
     auth0_client_id: str = Field("", alias="AUTH0_CLIENT_ID")
     authing_domain: str = Field("aperag.authing.cn", alias="AUTHING_DOMAIN")
@@ -176,6 +182,17 @@ class Config(BaseSettings):
     anybase_enabled: bool = Field(False, alias="ANYBASE_ENABLED")
     anybase_api_base_url: str = Field("", alias="ANYBASE_API_BASE_URL")
     anybase_login_url: str = Field("", alias="ANYBASE_LOGIN_URL")
+
+    # OpenTelemetry/Jaeger Tracing
+    otel_enabled: bool = Field(True, alias="OTEL_ENABLED")
+    otel_service_name: str = Field("aperag", alias="OTEL_SERVICE_NAME")
+    otel_service_version: str = Field("1.0.0", alias="OTEL_SERVICE_VERSION")
+    jaeger_enabled: bool = Field(False, alias="JAEGER_ENABLED")
+    jaeger_endpoint: Optional[str] = Field(None, alias="JAEGER_ENDPOINT")
+    otel_console_enabled: bool = Field(False, alias="OTEL_CONSOLE_ENABLED")
+    otel_fastapi_enabled: bool = Field(True, alias="OTEL_FASTAPI_ENABLED")
+    otel_sqlalchemy_enabled: bool = Field(True, alias="OTEL_SQLALCHEMY_ENABLED")
+    otel_mcp_enabled: bool = Field(True, alias="OTEL_MCP_ENABLED")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

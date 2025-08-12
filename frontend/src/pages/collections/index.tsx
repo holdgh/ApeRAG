@@ -6,7 +6,7 @@ import {
   UI_COLLECTION_STATUS,
 } from '@/constants';
 import { CollectionConfigSource } from '@/types';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, HeartFilled, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useInterval } from 'ahooks';
 import {
   Avatar,
@@ -20,6 +20,7 @@ import {
   Row,
   Select,
   Space,
+  Tag,
   theme,
   Tooltip,
   Typography,
@@ -52,47 +53,7 @@ export default () => {
       description={formatMessage({ id: 'collection.tips' })}
     >
       <Space>
-        <Select
-          style={{ width: 180 }}
-          placeholder={formatMessage({ id: 'collection.source' })}
-          options={Object.keys(COLLECTION_SOURCE).map((key) => {
-            return {
-              label: formatMessage({ id: `collection.source.${key}` }),
-              value: key,
-              disabled:
-                !COLLECTION_SOURCE[key as CollectionConfigSource].enabled,
-            };
-          })}
-          allowClear
-          onChange={(v) => {
-            setSearchParams({ ...searchParams, source: v });
-          }}
-          value={searchParams?.source}
-          labelRender={({ label, value }) => {
-            return (
-              <Space>
-                <Avatar
-                  size={20}
-                  shape="square"
-                  src={COLLECTION_SOURCE[value as CollectionConfigSource].icon}
-                />
-                {label}
-              </Space>
-            );
-          }}
-          optionRender={({ label, value }) => {
-            return (
-              <Space>
-                <Avatar
-                  size={20}
-                  shape="square"
-                  src={COLLECTION_SOURCE[value as CollectionConfigSource].icon}
-                />
-                {label}
-              </Space>
-            );
-          }}
-        />
+        
         <Input
           placeholder={formatMessage({ id: 'action.search' })}
           prefix={
@@ -153,6 +114,7 @@ export default () => {
             const embedding_model_service_provider =
               config?.embedding?.model_service_provider || '';
             const embedding_model_name = config?.embedding?.model;
+            const hasProviderIcon = MODEL_PROVIDER_ICON[embedding_model_service_provider];
             return (
               <Col
                 key={collection.id}
@@ -163,18 +125,46 @@ export default () => {
                 xl={6}
                 xxl={6}
               >
-                <Link to={`/collections/${collection.id}/documents`}>
-                  <Card size="small" hoverable>
+                <Link to={collection.subscription_id 
+                  ? `/marketplace/collections/${collection.id}` 
+                  : `/collections/${collection.id}/documents`}>
+                  <Card 
+                    size="small" 
+                    hoverable
+                    style={{ position: 'relative' }}
+                  >
+                    {collection.subscription_id && (
+                      <Tag
+                        icon={<HeartFilled />}
+                        color="blue"
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          zIndex: 1,
+                          fontSize: '11px',
+                          height: '20px',
+                          lineHeight: '18px',
+                          borderRadius: '10px',
+                          padding: '0 6px'
+                        }}
+                      >
+                        <FormattedMessage id="collection.marketplace.subscribed" />
+                      </Tag>
+                    )}
                     <div
                       style={{ display: 'flex', gap: 8, alignItems: 'center' }}
                     >
                       <Avatar
-                        style={{ flex: 'none' }}
                         size={40}
-                        src={
-                          MODEL_PROVIDER_ICON[embedding_model_service_provider]
-                        }
+                        src={hasProviderIcon}
+                        icon={!hasProviderIcon && <DatabaseOutlined />}
                         shape="square"
+                        style={{
+                          flex: 'none',
+                          backgroundColor: !hasProviderIcon ? '#1890ff' : 'transparent',
+                          color: !hasProviderIcon ? '#fff' : 'inherit'
+                        }}
                       />
                       <div style={{ flex: 'auto', maxWidth: '75%' }}>
                         <div>

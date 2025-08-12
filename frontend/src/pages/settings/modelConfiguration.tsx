@@ -15,13 +15,11 @@ import {
   ArrowLeftOutlined,
   DeleteOutlined,
   EditOutlined,
-  InfoCircleOutlined,
   PlusOutlined,
   SearchOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import {
-  Alert,
   Button,
   Col,
   Divider,
@@ -42,6 +40,7 @@ import {
 } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl, useModel } from 'umi';
+import DefaultModelsModal from './_defaultModelsModal';
 
 const { Title, Text } = Typography;
 
@@ -86,6 +85,9 @@ export default () => {
   );
   // Model search state
   const [modelSearchText, setModelSearchText] = useState<string>('');
+
+  // Default models modal state
+  const [defaultModelsVisible, setDefaultModelsVisible] = useState(false);
 
   const [modal, contextHolder] = Modal.useModal();
 
@@ -255,7 +257,6 @@ export default () => {
       setEditingModel(model);
       modelForm.setFieldsValue({
         ...model,
-        tags: model.tags?.filter((tag) => tag !== '__autogen__') || [],
       });
       setModalView('edit');
     },
@@ -266,20 +267,31 @@ export default () => {
     async (values: any) => {
       try {
         setLoading(true);
+
         if (editingModel) {
-          // Update existing model
+          // Update existing model - 保持原有的tags和token限制字段不变
+          const finalData = {
+            ...values,
+            tags: editingModel.tags, // 保持原有标签
+            max_input_tokens: editingModel.max_input_tokens, // 保持原有最大输入
+            max_output_tokens: editingModel.max_output_tokens, // 保持原有最大输出
+          };
+
           await api.llmProvidersProviderNameModelsApiModelPut({
             providerName: editingModel.provider_name,
             api: editingModel.api as LlmProvidersProviderNameModelsApiModelPutApiEnum,
             model: editingModel.model,
-            llmProviderModelUpdate: values as LlmProviderModelUpdate,
+            llmProviderModelUpdate: finalData as LlmProviderModelUpdate,
           });
           message.success(formatMessage({ id: 'model.update.success' }));
         } else {
-          // Create new model - ensure provider_name is included
+          // Create new model - 新建模型时设置默认值
           const modelCreateData: LlmProviderModelCreate = {
             ...values,
             provider_name: currentProvider!.name,
+            tags: [], // 新建模型初始无标签
+            max_input_tokens: null, // 可选字段设为null
+            max_output_tokens: null, // 可选字段设为null
           };
           await api.llmProvidersProviderNameModelsPost({
             providerName: currentProvider!.name,
@@ -333,6 +345,47 @@ export default () => {
       }
     },
     [modal, formatMessage, setLoading, fetchConfiguration],
+  );
+
+  const handleUseCaseChange = useCallback(
+    async (model: LlmProviderModel, tag: string, checked: boolean) => {
+      try {
+        setLoading(true);
+
+        // 更新tags数组
+        const currentTags = model.tags || [];
+        let newTags: string[];
+
+        if (checked) {
+          // 添加标签
+          newTags = currentTags.includes(tag)
+            ? currentTags
+            : [...currentTags, tag];
+        } else {
+          // 移除标签
+          newTags = currentTags.filter((t) => t !== tag);
+        }
+
+        // 调用API更新模型
+        await api.llmProvidersProviderNameModelsApiModelPut({
+          providerName: model.provider_name,
+          api: model.api as LlmProvidersProviderNameModelsApiModelPutApiEnum,
+          model: model.model,
+          llmProviderModelUpdate: {
+            ...model,
+            tags: newTags,
+          } as LlmProviderModelUpdate,
+        });
+
+        message.success(formatMessage({ id: 'model.useCase.update.success' }));
+        await fetchConfiguration();
+      } catch (error) {
+        message.error(formatMessage({ id: 'model.useCase.update.failed' }));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, fetchConfiguration, formatMessage],
   );
 
   const handleBackToList = useCallback(() => {
@@ -464,22 +517,10 @@ export default () => {
         ),
       },
       {
-        title: 'API Key',
-        dataIndex: 'api_key',
-        key: 'api_key',
-        render: (apiKey: string) => (
-          <Tag color={apiKey ? 'green' : 'red'}>
-            {formatMessage({
-              id: apiKey ? 'common.configured' : 'common.not_configured',
-            })}
-          </Tag>
-        ),
-      },
-      {
         title: formatMessage({ id: 'model.provider.model_count' }),
         key: 'model_count',
         dataIndex: '', // Add empty dataIndex to satisfy type requirement
-        render: (_, record: LlmProvider) => (
+        render: (_: any, record: LlmProvider) => (
           <span>{getProviderModelCount(record.name)}</span>
         ),
       },
@@ -551,16 +592,49 @@ export default () => {
       render: (tokens) => tokens || '-',
     },
     {
-      title: formatMessage({ id: 'model.field.maxInput' }),
-      dataIndex: 'max_input_tokens',
-      key: 'max_input_tokens',
-      render: (tokens) => tokens || '-',
-    },
-    {
-      title: formatMessage({ id: 'model.field.maxOutput' }),
-      dataIndex: 'max_output_tokens',
-      key: 'max_output_tokens',
-      render: (tokens) => tokens || '-',
+      title: formatMessage({ id: 'model.field.useCases' }),
+      key: 'useCases',
+      width: 160,
+      render: (_, record: LlmProviderModel) => (
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ fontSize: '12px' }}>
+              {formatMessage({ id: 'model.usecase.collection' })}
+            </Text>
+            <Switch
+              size="small"
+              checked={record.tags?.includes('enable_for_collection') || false}
+              onChange={(checked) =>
+                handleUseCaseChange(record, 'enable_for_collection', checked)
+              }
+            />
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ fontSize: '12px' }}>
+              {formatMessage({ id: 'model.usecase.agent' })}
+            </Text>
+            <Switch
+              size="small"
+              checked={record.tags?.includes('enable_for_agent') || false}
+              onChange={(checked) =>
+                handleUseCaseChange(record, 'enable_for_agent', checked)
+              }
+            />
+          </div>
+        </Space>
+      ),
     },
     {
       title: formatMessage({ id: 'model.field.tags' }),
@@ -570,9 +644,7 @@ export default () => {
         <Space wrap>
           {tags
             ?.filter((tag) => tag !== '__autogen__')
-            .map((tag) => (
-              <Tag key={tag}>{tag}</Tag>
-            ))}
+            .map((tag) => <Tag key={tag}>{tag}</Tag>)}
         </Space>
       ),
     },
@@ -613,17 +685,12 @@ export default () => {
         <Button type="primary" onClick={handleCreateProvider}>
           {formatMessage({ id: 'model.provider.add' })}
         </Button>
+        <Button onClick={() => setDefaultModelsVisible(true)}>
+          {formatMessage({ id: 'default.models.button' })}
+        </Button>
         <RefreshButton onClick={() => fetchConfiguration()} loading={loading} />
       </PageHeader>
-      {user?.role === 'admin' && (
-        <Alert
-          message={formatMessage({ id: 'model.configuration.admin_only' })}
-          type="info"
-          showIcon
-          icon={<InfoCircleOutlined />}
-          style={{ marginBottom: '16px' }}
-        />
-      )}
+
       <Table
         columns={providerColumns}
         dataSource={configuration.providers}
@@ -911,7 +978,7 @@ export default () => {
               dataSource={getCurrentProviderModels()}
               rowKey={(record) => `${record.api}-${record.model}`}
               loading={loading}
-              // pagination={false}
+              pagination={{ pageSize: 100 }}
               size="small"
               scroll={{ x: 700 }}
               style={{
@@ -1054,50 +1121,6 @@ export default () => {
                   </Form.Item>
                 </Col>
               </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label={formatMessage({ id: 'model.field.maxInput' })}
-                    name="max_input_tokens"
-                    tooltip={formatMessage({
-                      id: 'model.field.maxInput.tooltip',
-                    })}
-                  >
-                    <InputNumber
-                      style={{ width: '100%' }}
-                      placeholder="e.g. 128000"
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    label={formatMessage({ id: 'model.field.maxOutput' })}
-                    name="max_output_tokens"
-                    tooltip={formatMessage({
-                      id: 'model.field.maxOutput.tooltip',
-                    })}
-                  >
-                    <InputNumber
-                      style={{ width: '100%' }}
-                      placeholder="e.g. 4096"
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item
-                label={formatMessage({ id: 'model.field.tags' })}
-                name="tags"
-                tooltip={formatMessage({ id: 'model.field.tags.tooltip' })}
-              >
-                <Select
-                  mode="tags"
-                  placeholder={formatMessage({
-                    id: 'model.tags.placeholder',
-                  })}
-                  tokenSeparators={[',']}
-                  style={{ width: '100%', borderRadius: '6px' }}
-                />
-              </Form.Item>
 
               <div
                 style={{
@@ -1128,6 +1151,16 @@ export default () => {
           </div>
         )}
       </Modal>
+
+      {/* Default Models Modal */}
+      <DefaultModelsModal
+        visible={defaultModelsVisible}
+        onCancel={() => setDefaultModelsVisible(false)}
+        onSuccess={() => {
+          setDefaultModelsVisible(false);
+          fetchConfiguration(); // Refresh configuration
+        }}
+      />
     </PageContainer>
   );
 };

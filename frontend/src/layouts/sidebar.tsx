@@ -76,10 +76,15 @@ export const Sidebar = ({ topbar }: { topbar: boolean }) => {
 
   const sidebar_items = [
     {
-      path: '/bots',
+      path: '/agent',
       icon: <BsChatText />,
-      label: formatMessage({ id: 'bot.name_short' }),
+      label: formatMessage({ id: 'bot.type_agent' }),
     },
+    // {
+    //   path: '/bots',
+    //   icon: <AppstoreOutlined />,
+    //   label: formatMessage({ id: 'bot.name_short' }),
+    // },
     {
       path: '/collections',
       icon: <BsFiletypeDoc />,
@@ -108,15 +113,12 @@ export const Sidebar = ({ topbar }: { topbar: boolean }) => {
             const pattern = new UrlPattern(`${item.path}*`);
             const active = pattern.match(location.pathname);
             return (
-              <StyledSidebarLink
-                key={index}
-                token={token}
-                active={active}
-                to={item.path}
-              >
-                {item.icon}
-                <div>{item.label}</div>
-              </StyledSidebarLink>
+              <Tooltip key={index} placement="right" arrow>
+                <StyledSidebarLink token={token} active={active} to={item.path}>
+                  {item.icon}
+                  <div>{item.label}</div>
+                </StyledSidebarLink>
+              </Tooltip>
             );
           })}
         </div>

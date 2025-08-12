@@ -38,10 +38,28 @@ export default () => {
     {
       title: formatMessage({ id: 'user.username' }),
       dataIndex: 'username',
+      render: (value) => {
+        return value ? (
+          value
+        ) : (
+          <Typography.Text type="secondary" style={{ fontStyle: 'italic' }}>
+            {formatMessage({ id: 'user.username_placeholder' })}
+          </Typography.Text>
+        );
+      },
     },
     {
       title: formatMessage({ id: 'user.email' }),
       dataIndex: 'email',
+      render: (value) => {
+        return value ? (
+          value
+        ) : (
+          <Typography.Text type="secondary" style={{ fontStyle: 'italic' }}>
+            {formatMessage({ id: 'user.email_placeholder' })}
+          </Typography.Text>
+        );
+      },
     },
     {
       title: formatMessage({ id: 'user.role' }),
@@ -58,6 +76,48 @@ export default () => {
         ) : (
           <Typography.Text type="danger">
             <CloseOutlined />
+          </Typography.Text>
+        );
+      },
+    },
+    {
+      title: formatMessage({ id: 'user.registrationSource' }),
+      dataIndex: 'registration_source',
+      width: 120,
+      render: (value, record) => {
+        const sourceMap: Record<string, { text: string; color: string }> = {
+          local: { text: formatMessage({ id: 'user.source.local' }), color: 'default' },
+          google: { text: 'Google', color: 'blue' },
+          github: { text: 'GitHub', color: 'purple' },
+        };
+        
+        if (!value) {
+          return (
+            <Typography.Text type="secondary" style={{ fontStyle: 'italic' }}>
+              {formatMessage({ id: 'user.source.local' })}
+            </Typography.Text>
+          );
+        }
+        
+        const source = sourceMap[value] || { text: value, color: 'default' };
+        
+        // For GitHub users, make it clickable to jump to GitHub profile
+        if (value === 'github' && record.username) {
+          return (
+            <Typography.Link
+              href={`https://github.com/${record.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: source.color === 'purple' ? '#722ed1' : undefined }}
+            >
+              {source.text}
+            </Typography.Link>
+          );
+        }
+        
+        return (
+          <Typography.Text type={source.color as any}>
+            {source.text}
           </Typography.Text>
         );
       },

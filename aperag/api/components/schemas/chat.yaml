@@ -40,9 +40,11 @@ chatMessage:
   properties:
     id:
       type: string
+    part_id:
+      type: string
     type:
       type: string
-      enum: [welcome, message, start, stop, error]
+      enum: [welcome, message, start, stop, error, tool_call_result, thinking, references]
     timestamp:
       type: number
     role:
@@ -77,8 +79,12 @@ chatDetails:
       enum: [system, feishu, weixin, weixin_official, web, dingtalk]
     history:
       type: array
+      description: Array of conversation turns, where each turn is an array of message parts
       items:
-        $ref: '#/chatMessage'
+        type: array
+        description: A conversation turn containing multiple message parts (thinking, content, references, etc.)
+        items:
+          $ref: '#/chatMessage'
     status:
       type: string
       enum: [active, archived]
@@ -147,3 +153,32 @@ messageCreate:
     role:
       type: string
       enum: [user, assistant]
+
+titleGenerateRequest:
+  type: object
+  properties:
+    max_length:
+      type: integer
+      description: Maximum length of the generated title
+      default: 20
+      minimum: 6
+      maximum: 50
+    language:
+      type: string
+      description: Language for the title generation (IETF BCP 47 tag)
+      default: "zh-CN"
+      enum: ["zh-CN", "en-US", "ja-JP", "ko-KR"]
+    turns:
+      type: integer
+      description: Number of most recent conversation turns to consider
+      default: 1
+      minimum: 1
+
+titleGenerateResponse:
+  type: object
+  properties:
+    title:
+      type: string
+      description: Generated title string
+  required:
+    - title
