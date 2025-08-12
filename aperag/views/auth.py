@@ -336,6 +336,11 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
         
         logger.info(f"Auto-created ApeRAG user for Anybase user {anybase_user_id}")
         new_user._auth_method = "anybase_token"
+
+        # Note: User resources (quotas, API keys, default bot) are now initialized
+        # in the on_after_register method which is called automatically by fastapi-users
+        await user_manager.on_after_register(new_user, request)
+
         return new_user
         
     except Exception as e:
