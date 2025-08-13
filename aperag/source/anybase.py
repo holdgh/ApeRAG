@@ -72,7 +72,6 @@ class AnybaseSource(ObjectStorageSource):
             enable_vision=ctx.enable_vision,
             embedding=ctx.embedding,
             completion=ctx.completion,
-            parser=ctx.parser,
             system=ctx.system
         )
         
