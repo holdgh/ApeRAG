@@ -15,8 +15,6 @@
 import logging
 from typing import Any, Dict, List
 
-from asgiref.sync import async_to_sync
-
 from aperag.config import get_vector_db_connector
 from aperag.db.models import CollectionStatus, Document, DocumentStatus
 from aperag.db.ops import db_ops
@@ -24,8 +22,10 @@ from aperag.graph import lightrag_manager
 from aperag.index.fulltext_index import create_index, delete_index
 from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.schema.utils import parseCollectionConfig
+from aperag.service.document_service_sync import document_service_sync, SyncUploadFile
 from aperag.source.base import get_source
 from aperag.tasks.models import TaskResult
+from asgiref.sync import async_to_sync
 from aperag.utils.utils import (
     generate_fulltext_index_name,
     generate_vector_db_collection_name,
@@ -379,10 +379,6 @@ class CollectionTask:
         Returns:
             int: Number of documents created successfully
         """
-        from fastapi import UploadFile
-        from aperag.service.document_service import document_service
-        import io
-        
         created_count = 0
         batch_size = 10  # Process in batches to avoid memory issues
         
@@ -402,9 +398,9 @@ class CollectionTask:
                         with open(local_doc.path, 'rb') as f:
                             content = f.read()
                         
-                        upload_file = UploadFile(
+                        upload_file = SyncUploadFile(
                             filename=remote_doc.name,
-                            file=io.BytesIO(content),
+                            content=content,
                             size=len(content)
                         )
                         upload_files.append(upload_file)
@@ -421,7 +417,7 @@ class CollectionTask:
                 # Create documents using document_service
                 if upload_files:
                     try:
-                        result = async_to_sync(document_service.create_documents)(
+                        result = document_service_sync.create_documents(
                             collection.user, collection.id, upload_files
                         )
                         created_count += len(result.items)
@@ -461,10 +457,6 @@ class CollectionTask:
         Returns:
             int: Number of documents updated successfully
         """
-        from fastapi import UploadFile
-        from aperag.service.document_service import document_service
-        import io
-        
         updated_count = 0
         
         for remote_doc in remote_documents:
@@ -472,8 +464,8 @@ class CollectionTask:
                 existing_doc = existing_doc_map[remote_doc.name]
                 
                 # Delete existing document
-                async_to_sync(document_service.delete_document)(
-                    collection.user, collection.id, existing_doc.id
+                document_service_sync.delete_documents(
+                    collection.user, collection.id, [existing_doc.id]
                 )
                 
                 # Prepare and create new document
@@ -484,14 +476,14 @@ class CollectionTask:
                     with open(local_doc.path, 'rb') as f:
                         content = f.read()
                     
-                    upload_file = UploadFile(
+                    upload_file = SyncUploadFile(
                         filename=remote_doc.name,
-                        file=io.BytesIO(content),
+                        content=content,
                         size=len(content)
                     )
                     
                     # Create new document
-                    result = async_to_sync(document_service.create_documents)(
+                    result = document_service_sync.create_documents(
                         collection.user, collection.id, [upload_file]
                     )
                     
@@ -526,13 +518,11 @@ class CollectionTask:
         Returns:
             int: Number of documents deleted successfully
         """
-        from aperag.service.document_service import document_service
-        
         deleted_count = 0
         
         try:
             # Delete documents in batch
-            result = async_to_sync(document_service.delete_documents)(
+            result = document_service_sync.delete_documents(
                 collection.user, collection.id, document_ids
             )
             
