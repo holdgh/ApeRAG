@@ -68,6 +68,10 @@ import type { CollectionsCollectionIdSummaryGeneratePost200Response } from '../m
 // @ts-ignore
 import type { Config } from '../models';
 // @ts-ignore
+import type { ConfirmDocumentsRequest } from '../models';
+// @ts-ignore
+import type { ConfirmDocumentsResponse } from '../models';
+// @ts-ignore
 import type { DebugFlowRequest } from '../models';
 // @ts-ignore
 import type { DefaultModelsResponse } from '../models';
@@ -145,6 +149,8 @@ import type { TagFilterRequest } from '../models';
 import type { TitleGenerateRequest } from '../models';
 // @ts-ignore
 import type { TitleGenerateResponse } from '../models';
+// @ts-ignore
+import type { UploadDocumentResponse } from '../models';
 // @ts-ignore
 import type { User } from '../models';
 // @ts-ignore
@@ -1096,6 +1102,50 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * Confirm uploaded documents and add them to the collection (change status from UPLOADED to PENDING)
+         * @summary Confirm documents to collection
+         * @param {string} collectionId 
+         * @param {ConfirmDocumentsRequest} confirmDocumentsRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdDocumentsConfirmPost: async (collectionId: string, confirmDocumentsRequest: ConfirmDocumentsRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'collectionId' is not null or undefined
+            assertParamExists('collectionsCollectionIdDocumentsConfirmPost', 'collectionId', collectionId)
+            // verify required parameter 'confirmDocumentsRequest' is not null or undefined
+            assertParamExists('collectionsCollectionIdDocumentsConfirmPost', 'confirmDocumentsRequest', confirmDocumentsRequest)
+            const localVarPath = `/collections/{collection_id}/documents/confirm`
+                .replace(`{${"collection_id"}}`, encodeURIComponent(String(collectionId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(confirmDocumentsRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Delete a document
          * @summary Delete a document
          * @param {string} collectionId 
@@ -1313,6 +1363,55 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
             localVarRequestOptions.data = serializeDataIfNeeded(documentCreate, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Upload a single document file to temporary storage (UPLOADED status)
+         * @summary Upload a single document
+         * @param {string} collectionId 
+         * @param {File} file Document file to upload
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdDocumentsUploadPost: async (collectionId: string, file: File, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'collectionId' is not null or undefined
+            assertParamExists('collectionsCollectionIdDocumentsUploadPost', 'collectionId', collectionId)
+            // verify required parameter 'file' is not null or undefined
+            assertParamExists('collectionsCollectionIdDocumentsUploadPost', 'file', file)
+            const localVarPath = `/collections/{collection_id}/documents/upload`
+                .replace(`{${"collection_id"}}`, encodeURIComponent(String(collectionId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+            const localVarFormParams = new ((configuration && configuration.formDataCtor) || FormData)();
+
+            // authentication BearerAuth required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+
+            if (file !== undefined) { 
+                localVarFormParams.append('file', file as any);
+            }
+    
+    
+            localVarHeaderParameter['Content-Type'] = 'multipart/form-data';
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = localVarFormParams;
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -3411,6 +3510,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Confirm uploaded documents and add them to the collection (change status from UPLOADED to PENDING)
+         * @summary Confirm documents to collection
+         * @param {string} collectionId 
+         * @param {ConfirmDocumentsRequest} confirmDocumentsRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async collectionsCollectionIdDocumentsConfirmPost(collectionId: string, confirmDocumentsRequest: ConfirmDocumentsRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ConfirmDocumentsResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsCollectionIdDocumentsConfirmPost(collectionId, confirmDocumentsRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.collectionsCollectionIdDocumentsConfirmPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Delete a document
          * @summary Delete a document
          * @param {string} collectionId 
@@ -3480,6 +3593,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsCollectionIdDocumentsPost(collectionId, documentCreate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.collectionsCollectionIdDocumentsPost']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Upload a single document file to temporary storage (UPLOADED status)
+         * @summary Upload a single document
+         * @param {string} collectionId 
+         * @param {File} file Document file to upload
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async collectionsCollectionIdDocumentsUploadPost(collectionId: string, file: File, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UploadDocumentResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.collectionsCollectionIdDocumentsUploadPost(collectionId, file, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.collectionsCollectionIdDocumentsUploadPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -4347,6 +4474,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.collectionsCollectionIdDelete(requestParameters.collectionId, options).then((request) => request(axios, basePath));
         },
         /**
+         * Confirm uploaded documents and add them to the collection (change status from UPLOADED to PENDING)
+         * @summary Confirm documents to collection
+         * @param {DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdDocumentsConfirmPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<ConfirmDocumentsResponse> {
+            return localVarFp.collectionsCollectionIdDocumentsConfirmPost(requestParameters.collectionId, requestParameters.confirmDocumentsRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Delete a document
          * @summary Delete a document
          * @param {DefaultApiCollectionsCollectionIdDocumentsDocumentIdDeleteRequest} requestParameters Request parameters.
@@ -4395,6 +4532,16 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          */
         collectionsCollectionIdDocumentsPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DocumentList> {
             return localVarFp.collectionsCollectionIdDocumentsPost(requestParameters.collectionId, requestParameters.documentCreate, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Upload a single document file to temporary storage (UPLOADED status)
+         * @summary Upload a single document
+         * @param {DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        collectionsCollectionIdDocumentsUploadPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<UploadDocumentResponse> {
+            return localVarFp.collectionsCollectionIdDocumentsUploadPost(requestParameters.collectionId, requestParameters.file, options).then((request) => request(axios, basePath));
         },
         /**
          * Get details of a specific collection
@@ -5096,6 +5243,16 @@ export interface DefaultApiInterface {
     collectionsCollectionIdDelete(requestParameters: DefaultApiCollectionsCollectionIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
+     * Confirm uploaded documents and add them to the collection (change status from UPLOADED to PENDING)
+     * @summary Confirm documents to collection
+     * @param {DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    collectionsCollectionIdDocumentsConfirmPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<ConfirmDocumentsResponse>;
+
+    /**
      * Delete a document
      * @summary Delete a document
      * @param {DefaultApiCollectionsCollectionIdDocumentsDocumentIdDeleteRequest} requestParameters Request parameters.
@@ -5144,6 +5301,16 @@ export interface DefaultApiInterface {
      * @memberof DefaultApiInterface
      */
     collectionsCollectionIdDocumentsPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DocumentList>;
+
+    /**
+     * Upload a single document file to temporary storage (UPLOADED status)
+     * @summary Upload a single document
+     * @param {DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApiInterface
+     */
+    collectionsCollectionIdDocumentsUploadPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<UploadDocumentResponse>;
 
     /**
      * Get details of a specific collection
@@ -6036,6 +6203,27 @@ export interface DefaultApiCollectionsCollectionIdDeleteRequest {
 }
 
 /**
+ * Request parameters for collectionsCollectionIdDocumentsConfirmPost operation in DefaultApi.
+ * @export
+ * @interface DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest
+ */
+export interface DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiCollectionsCollectionIdDocumentsConfirmPost
+     */
+    readonly collectionId: string
+
+    /**
+     * 
+     * @type {ConfirmDocumentsRequest}
+     * @memberof DefaultApiCollectionsCollectionIdDocumentsConfirmPost
+     */
+    readonly confirmDocumentsRequest: ConfirmDocumentsRequest
+}
+
+/**
  * Request parameters for collectionsCollectionIdDocumentsDocumentIdDelete operation in DefaultApi.
  * @export
  * @interface DefaultApiCollectionsCollectionIdDocumentsDocumentIdDeleteRequest
@@ -6152,6 +6340,27 @@ export interface DefaultApiCollectionsCollectionIdDocumentsPostRequest {
      * @memberof DefaultApiCollectionsCollectionIdDocumentsPost
      */
     readonly documentCreate: DocumentCreate
+}
+
+/**
+ * Request parameters for collectionsCollectionIdDocumentsUploadPost operation in DefaultApi.
+ * @export
+ * @interface DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest
+ */
+export interface DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DefaultApiCollectionsCollectionIdDocumentsUploadPost
+     */
+    readonly collectionId: string
+
+    /**
+     * Document file to upload
+     * @type {File}
+     * @memberof DefaultApiCollectionsCollectionIdDocumentsUploadPost
+     */
+    readonly file: File
 }
 
 /**
@@ -7130,6 +7339,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
     }
 
     /**
+     * Confirm uploaded documents and add them to the collection (change status from UPLOADED to PENDING)
+     * @summary Confirm documents to collection
+     * @param {DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public collectionsCollectionIdDocumentsConfirmPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsConfirmPostRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).collectionsCollectionIdDocumentsConfirmPost(requestParameters.collectionId, requestParameters.confirmDocumentsRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Delete a document
      * @summary Delete a document
      * @param {DefaultApiCollectionsCollectionIdDocumentsDocumentIdDeleteRequest} requestParameters Request parameters.
@@ -7187,6 +7408,18 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
      */
     public collectionsCollectionIdDocumentsPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsPostRequest, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).collectionsCollectionIdDocumentsPost(requestParameters.collectionId, requestParameters.documentCreate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Upload a single document file to temporary storage (UPLOADED status)
+     * @summary Upload a single document
+     * @param {DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public collectionsCollectionIdDocumentsUploadPost(requestParameters: DefaultApiCollectionsCollectionIdDocumentsUploadPostRequest, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).collectionsCollectionIdDocumentsUploadPost(requestParameters.collectionId, requestParameters.file, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

@@ -329,6 +329,31 @@ async def get_graph_labels_view(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# New upload-related endpoints
+@router.post("/collections/{collection_id}/documents/upload", tags=["documents"])
+@audit(resource_type="document", api_name="UploadDocument")
+async def upload_document_view(
+    request: Request,
+    collection_id: str,
+    file: UploadFile = File(...),
+    user: User = Depends(current_user),
+) -> view_models.UploadDocumentResponse:
+    """Upload a single document file to temporary storage"""
+    return await document_service.upload_document(str(user.id), collection_id, file)
+
+
+@router.post("/collections/{collection_id}/documents/confirm", tags=["documents"])
+@audit(resource_type="document", api_name="ConfirmDocuments")
+async def confirm_documents_view(
+    request: Request,
+    collection_id: str,
+    confirm_request: view_models.ConfirmDocumentsRequest,
+    user: User = Depends(current_user),
+) -> view_models.ConfirmDocumentsResponse:
+    """Confirm uploaded documents and add them to the collection"""
+    return await document_service.confirm_documents(str(user.id), collection_id, confirm_request.document_ids)
+
+
 @router.get("/collections/{collection_id}/graphs", tags=["graph"])
 async def get_knowledge_graph_view(
     request: Request,
