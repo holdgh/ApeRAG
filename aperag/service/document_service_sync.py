@@ -185,9 +185,10 @@ class DocumentServiceSync:
             quota = result.scalars().first()
             
             if quota:
-                if quota.quota_used + len(files) > quota.quota_limit:
-                    raise QuotaExceededException("max_document_count", quota.quota_limit, quota.quota_used)
-                quota.quota_used += len(files)
+                if quota.current_usage + len(files) > quota.quota_limit:
+                    raise QuotaExceededException("max_document_count", quota.quota_limit, quota.current_usage)
+                quota.current_usage += len(files)
+                quota.gmt_updated = utc_now()
                 session.add(quota)
 
             # Check per-collection quota by counting existing documents in this collection
@@ -334,7 +335,7 @@ class DocumentServiceSync:
         quota = result.scalars().first()
         
         if quota:
-            quota.quota_used = max(0, quota.quota_used - 1)
+            quota.current_usage = max(0, quota.current_usage - 1)
             session.add(quota)
 
         session.flush()
