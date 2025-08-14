@@ -4158,64 +4158,6 @@ components:
           description: Generated title string
       required:
         - title
-    collectionView:
-      type: object
-      description: Lightweight collection information for lists, MCP and agents
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        status:
-          type: string
-          enum:
-            - ACTIVE
-            - INACTIVE
-            - DELETED
-        created:
-          type: string
-          format: date-time
-        updated:
-          type: string
-          format: date-time
-        is_published:
-          type: boolean
-          default: false
-        published_at:
-          type: string
-          format: date-time
-          nullable: true
-          description: Publication time, null when not published
-        owner_user_id:
-          type: string
-          description: Collection owner user ID
-        owner_username:
-          type: string
-          nullable: true
-          description: Collection owner username
-        subscription_id:
-          type: string
-          nullable: true
-          description: Subscription ID if this is a subscribed collection, null for owned collections
-        subscribed_at:
-          type: string
-          format: date-time
-          nullable: true
-          description: Subscription time, null for owned collections
-    collectionViewList:
-      type: object
-      description: A list of collection views
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/collectionView'
-        pageResult:
-          $ref: '#/components/schemas/pageResult'
     crontabConfig:
       type: object
       properties:
@@ -4390,6 +4332,66 @@ components:
               items:
                 type: string
                 description: Complete object key to exclude
+    collectionView:
+      type: object
+      description: Lightweight collection information for lists, MCP and agents
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        config:
+          $ref: '#/components/schemas/collectionConfig'
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - DELETED
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+        is_published:
+          type: boolean
+          default: false
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Publication time, null when not published
+        owner_user_id:
+          type: string
+          description: Collection owner user ID
+        owner_username:
+          type: string
+          nullable: true
+          description: Collection owner username
+        subscription_id:
+          type: string
+          nullable: true
+          description: Subscription ID if this is a subscribed collection, null for owned collections
+        subscribed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Subscription time, null for owned collections
+    collectionViewList:
+      type: object
+      description: A list of collection views
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/collectionView'
+        pageResult:
+          $ref: '#/components/schemas/pageResult'
     collectionCreate:
       type: object
       properties:

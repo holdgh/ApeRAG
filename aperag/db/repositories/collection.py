@@ -147,6 +147,7 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
                     Collection.id,
                     Collection.title,
                     Collection.description,
+                    Collection.config,
                     Collection.type,
                     Collection.status,
                     Collection.gmt_created,

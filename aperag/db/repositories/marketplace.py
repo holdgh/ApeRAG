@@ -345,6 +345,7 @@ class AsyncMarketplaceRepositoryMixin(AsyncRepositoryProtocol):
                     Collection.id.label("collection_id"),
                     Collection.title,
                     Collection.description,
+                    Collection.config,
                     Collection.type,
                     Collection.status,
                     Collection.gmt_created,

@@ -143,6 +143,7 @@ class CollectionService:
                     id=row.id,
                     title=row.title,
                     description=row.description,
+                    config=parseCollectionConfig(row.config),
                     type=row.type,
                     status=row.status,
                     created=row.gmt_created,

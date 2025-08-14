@@ -304,6 +304,8 @@ collectionView:
       type: string
     type:
       type: string
+    config:
+      $ref: '#/collectionConfig'
     status:
       type: string
       enum:

@@ -13,6 +13,9 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { CollectionConfig } from './collection-config';
 
 /**
  * Lightweight collection information for lists, MCP and agents
@@ -44,6 +47,12 @@ export interface CollectionView {
      * @memberof CollectionView
      */
     'type'?: string;
+    /**
+     * 
+     * @type {CollectionConfig}
+     * @memberof CollectionView
+     */
+    'config'?: CollectionConfig;
     /**
      * 
      * @type {string}
