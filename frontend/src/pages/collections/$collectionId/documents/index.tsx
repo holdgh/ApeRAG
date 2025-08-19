@@ -4,7 +4,7 @@ import {
   DocumentVectorIndexStatusEnum,
   RebuildIndexesRequestIndexTypesEnum,
 } from '@/api';
-import { ChunkViewer, RefreshButton } from '@/components';
+import { ChunkViewer, RefreshButton, PaginatedTable } from '@/components';
 import {
   DATETIME_FORMAT,
   SUPPORTED_COMPRESSED_EXTENSIONS,
@@ -17,11 +17,12 @@ import { api } from '@/services';
 import { ApeDocument } from '@/types';
 import { parseConfig } from '@/utils';
 import {
+  CaretDownOutlined,
+  CaretUpOutlined,
   CopyOutlined,
   DeleteOutlined,
   MoreOutlined,
   ReloadOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import {
@@ -31,10 +32,8 @@ import {
   Checkbox,
   Drawer,
   Dropdown,
-  Input,
   Modal,
   Space,
-  Table,
   TableProps,
   theme,
   Tooltip,
@@ -56,6 +55,14 @@ export default () => {
   const [searchParams, setSearchParams] = useState<{
     name?: string;
   }>();
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 10,
+  });
+  const [sortParams, setSortParams] = useState({
+    sort_by: 'created',
+    sort_order: 'desc' as 'asc' | 'desc',
+  });
   const { collectionId } = useParams();
   const { collection } = useModel('collection');
   const { setLoading } = useModel('global');
@@ -81,12 +88,40 @@ export default () => {
     run: getDocuments,
     loading: documentsLoading,
   } = useRequest(
-    () =>
-      api.collectionsCollectionIdDocumentsGet({
-        collectionId: collectionId || '',
-      }),
+    async () => {
+      // Custom API call with all parameters since SDK might not include them yet
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        page_size: pagination.page_size.toString(),
+        sort_order: sortParams.sort_order,
+      });
+      
+      if (sortParams.sort_by) {
+        params.append('sort_by', sortParams.sort_by);
+      }
+      
+      if (searchParams?.name) {
+        params.append('search', searchParams.name);
+      }
+      
+      const response = await fetch(
+        `/api/v1/collections/${collectionId}/documents?${params.toString()}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthorizationHeader(),
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return { data: await response.json() };
+    },
     {
-      refreshDeps: [collectionId],
+      refreshDeps: [collectionId, pagination, sortParams, searchParams],
       pollingInterval: 3000,
     },
   );
@@ -144,28 +179,21 @@ export default () => {
 
   const documents = useMemo(
     () =>
-      documentsRes?.data?.items
-        ?.map((document: any) => {
-          const item: ApeDocument = {
-            ...document,
-            config: parseConfig(document.config),
-          };
-          return item;
-        })
-        .filter((item: ApeDocument) => {
-          const titleMatch = searchParams?.name
-            ? item.name?.includes(searchParams.name)
-            : true;
-          return titleMatch;
-        }),
-    [documentsRes, searchParams],
+      (documentsRes?.data as any)?.items?.map((document: any) => {
+        const item: ApeDocument = {
+          ...document,
+          config: parseConfig(document.config),
+        };
+        return item;
+      }),
+    [documentsRes],
   );
 
   // Get documents with failed indexes
   const getDocumentsWithFailedIndexes = () => {
     if (!documents) return [];
 
-    return documents.filter((doc) => {
+    return documents.filter((doc: ApeDocument) => {
       const hasFailedVector = doc.vector_index_status === 'FAILED';
       const hasFailedFulltext = doc.fulltext_index_status === 'FAILED';
       const hasFailedGraph = doc.graph_index_status === 'FAILED';
@@ -296,6 +324,59 @@ export default () => {
     setSummaryDrawerVisible(true);
   };
 
+  // Handle pagination change
+  const handlePageChange = (page: number, pageSize: number) => {
+    setPagination({ page, page_size: pageSize });
+  };
+
+  // Handle search change
+  const handleSearchChange = (value: string | undefined) => {
+    setSearchParams({ name: value });
+    setPagination({ ...pagination, page: 1 }); // Reset to first page
+  };
+
+  // Handle sort change
+  const handleSortChange = (sortBy: string, sortOrder: 'asc' | 'desc') => {
+    setSortParams({ sort_by: sortBy, sort_order: sortOrder });
+    setPagination({ ...pagination, page: 1 }); // Reset to first page
+  };
+
+  // Create sortable column title
+  const createSortableTitle = (title: string, sortKey: string) => {
+    const isActive = sortParams.sort_by === sortKey;
+    const nextOrder = isActive && sortParams.sort_order === 'asc' ? 'desc' : 'asc';
+    
+    return (
+      <div
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}
+        onClick={() => handleSortChange(sortKey, nextOrder)}
+      >
+        <span>{title}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 4 }}>
+          <CaretUpOutlined 
+            style={{ 
+              fontSize: 10, 
+              color: isActive && sortParams.sort_order === 'asc' ? token.colorPrimary : token.colorTextTertiary,
+              marginBottom: -2
+            }} 
+          />
+          <CaretDownOutlined 
+            style={{ 
+              fontSize: 10, 
+              color: isActive && sortParams.sort_order === 'desc' ? token.colorPrimary : token.colorTextTertiary
+            }} 
+          />
+        </div>
+      </div>
+    );
+  };
+
   const indexTypeOptions = [
     {
       label: formatMessage({ id: 'document.index.type.vector' }),
@@ -317,6 +398,14 @@ export default () => {
       label: formatMessage({ id: 'document.index.type.vision' }),
       value: 'VISION',
     },
+  ];
+
+  const sortOptions = [
+    { label: formatMessage({ id: 'document.sort.name' }), value: 'name' },
+    { label: formatMessage({ id: 'document.sort.created' }), value: 'created' },
+    { label: formatMessage({ id: 'document.sort.updated' }), value: 'updated' },
+    { label: formatMessage({ id: 'document.sort.size' }), value: 'size' },
+    { label: formatMessage({ id: 'document.sort.status' }), value: 'status' },
   ];
 
   const renderIndexStatus = (
@@ -348,7 +437,7 @@ export default () => {
 
   const columns: TableProps<ApeDocument>['columns'] = [
     {
-      title: formatMessage({ id: 'document.name' }),
+      title: createSortableTitle(formatMessage({ id: 'document.name' }), 'name'),
       dataIndex: 'name',
       render: (value, record) => {
         const extension =
@@ -473,7 +562,7 @@ export default () => {
       },
     },
     {
-      title: formatMessage({ id: 'text.updatedAt' }),
+      title: createSortableTitle(formatMessage({ id: 'text.updatedAt' }), 'updated'),
       dataIndex: 'updated',
       width: 180,
       render: (value) => {
@@ -566,69 +655,68 @@ export default () => {
 
   return (
     <>
-      <Space
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: 24,
-        }}
-      >
-        <Input
-          placeholder={formatMessage({ id: 'action.search' })}
-          prefix={
-            <Typography.Text disabled>
-              <SearchOutlined />
-            </Typography.Text>
-          }
-          onChange={(e) => {
-            setSearchParams({ ...searchParams, name: e.currentTarget.value });
-          }}
-          allowClear
-          value={searchParams?.name}
-        />
-        <Space>
-          {collection?.config?.source === 'system' ? (
-            <Button 
-              type="primary"
-              onClick={() => {
-                console.log('Navigating to upload page:', `/collections/${collectionId}/documents/upload`);
-                navigate(`/collections/${collectionId}/documents/upload`);
+      <PaginatedTable
+        rowKey="id"
+        bordered
+        columns={columns}
+        dataSource={documents}
+        loading={documentsLoading}
+        // Pagination props
+        total={(documentsRes?.data as any)?.total || 0}
+        current={pagination.page}
+        pageSize={pagination.page_size}
+        onPageChange={handlePageChange}
+        // Search props
+        searchValue={searchParams?.name}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder={formatMessage({ id: 'document.search.placeholder' })}
+        // Sort props - now handled by column headers
+        showSort={false}
+        // Header content
+        headerContent={
+          <Space>
+            {collection?.config?.source === 'system' ? (
+              <Button 
+                type="primary"
+                onClick={() => {
+                  console.log('Navigating to upload page:', `/collections/${collectionId}/documents/upload`);
+                  navigate(`/collections/${collectionId}/documents/upload`);
+                }}
+              >
+                <FormattedMessage id="document.upload" />
+              </Button>
+            ) : null}
+            <Button
+              type="default"
+              onClick={handleRebuildFailedIndexes}
+              disabled={getDocumentsWithFailedIndexes().length === 0}
+              loading={documentsLoading}
+              style={{
+                borderColor:
+                  getDocumentsWithFailedIndexes().length > 0
+                    ? '#ff4d4f'
+                    : undefined,
+                color:
+                  getDocumentsWithFailedIndexes().length > 0
+                    ? '#ff4d4f'
+                    : undefined,
               }}
             >
-              <FormattedMessage id="document.upload" />
+              <ReloadOutlined />
+              <FormattedMessage id="document.index.rebuild.failed.button" />
+              {getDocumentsWithFailedIndexes().length > 0 && (
+                <span style={{ marginLeft: 4, fontSize: '12px', opacity: 0.8 }}>
+                  ({getDocumentsWithFailedIndexes().length})
+                </span>
+              )}
             </Button>
-          ) : null}
-          <Button
-            type="default"
-            onClick={handleRebuildFailedIndexes}
-            disabled={getDocumentsWithFailedIndexes().length === 0}
-            loading={documentsLoading}
-            style={{
-              borderColor:
-                getDocumentsWithFailedIndexes().length > 0
-                  ? '#ff4d4f'
-                  : undefined,
-              color:
-                getDocumentsWithFailedIndexes().length > 0
-                  ? '#ff4d4f'
-                  : undefined,
-            }}
-          >
-            <ReloadOutlined />
-            <FormattedMessage id="document.index.rebuild.failed.button" />
-            {getDocumentsWithFailedIndexes().length > 0 && (
-              <span style={{ marginLeft: 4, fontSize: '12px', opacity: 0.8 }}>
-                ({getDocumentsWithFailedIndexes().length})
-              </span>
-            )}
-          </Button>
-          <RefreshButton
-            loading={documentsLoading}
-            onClick={() => collectionId && getDocuments()}
-          />
-        </Space>
-      </Space>
-      <Table rowKey="id" bordered columns={columns} dataSource={documents} />
+            <RefreshButton
+              loading={documentsLoading}
+              onClick={() => collectionId && getDocuments()}
+            />
+          </Space>
+        }
+      />
       {contextHolder}
 
       <Drawer
