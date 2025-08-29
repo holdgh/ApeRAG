@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 from typing import Optional
 
@@ -38,6 +39,8 @@ from aperag.service.llm_provider_service import (
     update_llm_provider_model,
 )
 from aperag.service.prompt_template_service import list_prompt_templates
+from aperag.service.chat_collection_service import chat_collection_service
+from aperag.service.collection_service import collection_service
 from aperag.utils.audit_decorator import audit
 
 # Import authentication dependencies
@@ -195,13 +198,26 @@ async def update_default_models_view(
 @router.post("/chat/completions/frontend", tags=["chats"])
 async def frontend_chat_completions_view(request: Request, user: User = Depends(current_user)):
     body = await request.body()
-    message = body.decode("utf-8")
+    
+    # Try to parse JSON first, fallback to text for backward compatibility
+    try:
+        data = json.loads(body.decode("utf-8"))
+        message = data.get("message", "")
+        files = data.get("files", [])
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        # Fallback to text message for backward compatibility
+        message = body.decode("utf-8")
+        files = []
+    
     query_params = dict(request.query_params)
     stream = query_params.get("stream", "false").lower() == "true"
     bot_id = query_params.get("bot_id", "")
     chat_id = query_params.get("chat_id", "")
     msg_id = request.headers.get("msg_id", "")
-    return await chat_service_global.frontend_chat_completions(str(user.id), message, stream, bot_id, chat_id, msg_id)
+    
+    return await chat_service_global.frontend_chat_completions(
+        str(user.id), message, stream, bot_id, chat_id, msg_id, files
+    )
 
 
 @router.post("/bots/{bot_id}/flow/debug", tags=["flows"])
@@ -249,6 +265,54 @@ async def generate_chat_title_view(
         return {"title": title}
     except BusinessException as be:
         raise HTTPException(status_code=400, detail={"error_code": be.error_code.name, "message": str(be)})
+
+
+@router.post("/chat/{chat_id}/search", tags=["chats"])
+@audit(resource_type="search", api_name="SearchChatFiles")
+async def search_chat_files_view(
+    request: Request,
+    chat_id: str,
+    data: view_models.SearchRequest,
+    user: User = Depends(current_user),
+) -> view_models.SearchResult:
+    """Search files within a specific chat using hybrid search capabilities"""
+    try:
+        # Get user's chat collection
+        chat_collection_id = await chat_collection_service.get_user_chat_collection_id(str(user.id))
+        if not chat_collection_id:
+            raise HTTPException(status_code=404, detail="Chat collection not found")
+        
+        if not chat_id:
+            raise HTTPException(status_code=400, detail="Chat ID is required")
+
+        # Execute search flow using the helper method from collection_service
+        items, _ = await collection_service.execute_search_flow(
+            data=data,
+            collection_id=chat_collection_id,
+            search_user_id=str(user.id),
+            chat_id=chat_id,  # Add chat_id for filtering in chat searches
+            flow_name="chat_search",
+            flow_title="Chat Search",
+        )
+
+        # Return search result without saving to database for chat searches
+        from aperag.schema.view_models import SearchResult
+        return SearchResult(
+            id=None,  # No ID since not saved
+            query=data.query,
+            vector_search=data.vector_search,
+            fulltext_search=data.fulltext_search,
+            graph_search=data.graph_search,
+            summary_search=data.summary_search,
+            items=items,
+            created=None,  # No creation time since not saved
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to search chat files: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 
 # LLM Configuration API endpoints

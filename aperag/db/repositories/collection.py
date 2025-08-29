@@ -16,7 +16,7 @@ from typing import List, Optional
 
 from sqlalchemy import and_, desc, func, select
 
-from aperag.db.models import Collection, CollectionMarketplace, CollectionStatus, User
+from aperag.db.models import Collection, CollectionMarketplace, CollectionStatus, CollectionType, User
 from aperag.db.repositories.base import (
     AsyncRepositoryProtocol,
     SyncRepositoryProtocol,
@@ -130,7 +130,11 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
         async def _query(session):
             stmt = (
                 select(Collection)
-                .where(Collection.user.in_(users), Collection.status != CollectionStatus.DELETED)
+                .where(
+                    Collection.user.in_(users), 
+                    Collection.status != CollectionStatus.DELETED,
+                    Collection.type != CollectionType.CHAT # Exclude chat collections from regular list
+                )
                 .order_by(desc(Collection.gmt_created))
             )
             result = await session.execute(stmt)
@@ -165,7 +169,11 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
                         CollectionMarketplace.gmt_deleted.is_(None),
                     ),
                 )
-                .where(Collection.user == user_id, Collection.status != CollectionStatus.DELETED)
+                .where(
+                    Collection.user == user_id, 
+                    Collection.status != CollectionStatus.DELETED,
+                    Collection.type != CollectionType.CHAT  # Exclude chat collections from regular list
+                )
                 .order_by(desc(Collection.gmt_created))
             )
             result = await session.execute(stmt)
@@ -178,13 +186,17 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
             stmt = (
                 select(func.count())
                 .select_from(Collection)
-                .where(Collection.user == user, Collection.status != CollectionStatus.DELETED)
+                .where(
+                    Collection.user == user, 
+                    Collection.status != CollectionStatus.DELETED,
+                    Collection.type != CollectionType.CHAT  # Exclude chat collections from regular count
+                )
             )
             return await session.scalar(stmt)
 
         return await self._execute_query(_query)
 
-    async def query_collection_without_user(self, collection_id: str):
+    async def query_collection_by_id(self, collection_id: str):
         async def _query(session):
             stmt = select(Collection).where(
                 Collection.id == collection_id, Collection.status != CollectionStatus.DELETED

@@ -82,6 +82,7 @@ class CollectionSummaryStatus(str, Enum):
 
 class CollectionType(str, Enum):
     DOCUMENT = "document"
+    CHAT = "CHAT"
 
 
 class CollectionMarketplaceStatusEnum(str, Enum):
@@ -675,6 +676,7 @@ class User(Base):
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=True, nullable=False)  # fastapi-users requires is_verified
     is_staff = Column(Boolean, default=False, nullable=False)
+    chat_collection_id = Column(String(24), nullable=True, index=True)  # Chat collection for user
     date_joined = Column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )  # Unified naming with other time fields
