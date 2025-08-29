@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 import { Files, Star, User, VectorSquare } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
@@ -33,7 +34,9 @@ export const CollectionHeader = ({
   const pathname = usePathname();
 
   const { user } = useAppContext();
-
+  const page_collections = useTranslations('page_collections');
+  const page_documents = useTranslations('page_documents');
+  const page_graph = useTranslations('page_graph');
   const isOwner = useMemo(
     () => collection.owner_user_id === user?.id,
     [collection.owner_user_id, user?.id],
@@ -67,7 +70,7 @@ export const CollectionHeader = ({
           <CardTitle className="mb-0 text-2xl">{collection.title}</CardTitle>
           <CardAction className="text-muted-foreground flex flex-row items-center gap-4 text-xs">
             {isOwner ? (
-              <Badge>Mine</Badge>
+              <Badge>{page_collections('mine')}</Badge>
             ) : (
               <div className="flex flex-row items-center gap-1">
                 <User className="size-4" />
@@ -85,7 +88,9 @@ export const CollectionHeader = ({
             >
               {isSubscriber ? <FaStar className="text-orange-500" /> : <Star />}
 
-              {isSubscriber ? 'Unsubscribe' : 'Subscribe'}
+              {isSubscriber
+                ? page_collections('unsubscribe')
+                : page_collections('subscribe')}
             </Button>
           </CardAction>
         </CardHeader>
@@ -110,7 +115,9 @@ export const CollectionHeader = ({
               href={`/workspace/market/collections/${collection.id}/documents`}
             >
               <Files />
-              <span className="hidden sm:inline">Documents</span>
+              <span className="hidden sm:inline">
+                {page_documents('metadata.title')}
+              </span>
             </Link>
           </Button>
 
@@ -129,7 +136,9 @@ export const CollectionHeader = ({
                 href={`/workspace/market/collections/${collection.id}/graph`}
               >
                 <VectorSquare />
-                <span className="hidden sm:inline">Knowledge Graph</span>
+                <span className="hidden sm:inline">
+                  {page_graph('metadata.title')}
+                </span>
               </Link>
             </Button>
           )}

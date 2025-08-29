@@ -9,12 +9,23 @@ import {
 
 import { getServerApi } from '@/lib/api/server';
 import { toJson } from '@/lib/utils';
+import { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { CollectionList } from './collection-list';
 
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata(): Promise<Metadata> {
+  const page_collections = await getTranslations('page_collections');
+  return {
+    title: page_collections('metadata.title'),
+    description: page_collections('metadata.description'),
+  };
+}
+
 export default async function Page() {
   const serverApi = await getServerApi();
+  const page_collections = await getTranslations('page_collections');
 
   let collections: CollectionView[] = [];
   try {
@@ -30,13 +41,13 @@ export default async function Page() {
 
   return (
     <PageContainer>
-      <PageHeader breadcrumbs={[{ title: 'Collections' }]} />
+      <PageHeader
+        breadcrumbs={[{ title: page_collections('metadata.title') }]}
+      />
       <PageContent>
-        <PageTitle>Collections</PageTitle>
+        <PageTitle>{page_collections('metadata.title')}</PageTitle>
         <PageDescription>
-          By importing and systematically organizing your data sources into a
-          structured dataset, you can significantly improve the contextual
-          understanding and response accuracy of large language models (LLMs)
+          {page_collections('metadata.description')}
         </PageDescription>
         <CollectionList collections={toJson(collections)} />
       </PageContent>

@@ -33,6 +33,7 @@ import {
   Trash,
   VectorSquare,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
@@ -49,7 +50,10 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
   };
   const { collection, share, loadShare } = useCollectionContext();
   const pathname = usePathname();
-
+  const page_collections = useTranslations('page_collections');
+  const page_documents = useTranslations('page_documents');
+  const page_graph = useTranslations('page_graph');
+  const page_search = useTranslations('page_search');
   const urls = useMemo(() => {
     return {
       documents: `/workspace/collections/${collection.id}/documents`,
@@ -68,16 +72,16 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
         await apiClient.defaultApi.collectionsCollectionIdSharingPost({
           collectionId: collection?.id,
         });
-        toast.success('Collection published successfully');
+        toast.success(page_collections('published_success'));
       } else {
         await apiClient.defaultApi.collectionsCollectionIdSharingDelete({
           collectionId: collection?.id,
         });
-        toast.success('Collection unpublished successfully');
+        toast.success(page_collections('unpublished_success'));
       }
       await loadShare();
     },
-    [collection?.id, loadShare],
+    [collection?.id, loadShare, page_collections],
   );
 
   return (
@@ -111,7 +115,9 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
           <CardAction className="flex flex-row items-center gap-4">
             {share && (
               <Badge variant={share.is_published ? 'default' : 'secondary'}>
-                {share.is_published ? 'Public' : 'Private'}
+                {share.is_published
+                  ? page_collections('public')
+                  : page_collections('private')}
               </Badge>
             )}
 
@@ -129,10 +135,9 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
                         className="flex-col items-start gap-1"
                         onClick={() => shareCollection(false)}
                       >
-                        <div>Unpublish from Marketplace</div>
+                        <div>{page_collections('unpublish_collection')}</div>
                         <div className="text-muted-foreground text-xs">
-                          Remove the collection from the marketplace, making it
-                          private.
+                          {page_collections('unpublish_collection_description')}
                         </div>
                       </DropdownMenuItem>
                     ) : (
@@ -140,10 +145,9 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
                         className="flex-col items-start gap-1"
                         onClick={() => shareCollection(true)}
                       >
-                        <div>Publish to Marketplace</div>
+                        <div>{page_collections('publish_collection')}</div>
                         <div className="text-muted-foreground text-xs">
-                          Allow users to discover and subscribe to your
-                          collection.
+                          {page_collections('publish_collection_description')}
                         </div>
                       </DropdownMenuItem>
                     )}
@@ -153,7 +157,7 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
 
                 <CollectionDelete>
                   <DropdownMenuItem variant="destructive">
-                    <Trash /> Delete Collection
+                    <Trash /> {page_collections('delete_collection')}
                   </DropdownMenuItem>
                 </CollectionDelete>
               </DropdownMenuContent>
@@ -161,9 +165,13 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
           </CardAction>
         </CardHeader>
         <CardDescription className="mb-4 px-4">
-          {_.truncate(collection.description || 'No description available', {
-            length: 300,
-          })}
+          {_.truncate(
+            collection.description ||
+              page_collections('no_description_available'),
+            {
+              length: 300,
+            },
+          )}
         </CardDescription>
         <Separator />
         <div className="bg-accent/50 flex flex-row gap-2 rounded-b-xl px-4">
@@ -175,7 +183,9 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
           >
             <Link href={urls.documents}>
               <Files />
-              <span className="hidden sm:inline">Documents</span>
+              <span className="hidden sm:inline">
+                {page_documents('metadata.title')}
+              </span>
             </Link>
           </Button>
 
@@ -188,7 +198,9 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
             >
               <Link href={urls.graph}>
                 <VectorSquare />
-                <span className="hidden sm:inline">Knowledge Graph</span>
+                <span className="hidden sm:inline">
+                  {page_graph('metadata.title')}
+                </span>
               </Link>
             </Button>
           )}
@@ -201,7 +213,9 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
           >
             <Link href={urls.search}>
               <FolderSearch />
-              <span className="hidden sm:inline">Search Effect</span>
+              <span className="hidden sm:inline">
+                {page_search('metadata.title')}
+              </span>
             </Link>
           </Button>
 
@@ -212,7 +226,10 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
             variant="ghost"
           >
             <Link href={urls.settings}>
-              <Settings /> <span className="hidden sm:inline">Settings</span>
+              <Settings />{' '}
+              <span className="hidden sm:inline">
+                {page_collections('settings')}
+              </span>
             </Link>
           </Button>
         </div>

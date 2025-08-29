@@ -1,0 +1,24 @@
+{
+  "site": {
+    "metadata": {
+      "applicationName": "ApeRAG",
+      "authors": {
+        "url": "https://github.com/apecloud/ApeRAG",
+        "name": "ApeCloud"
+      },
+      "title": "ApeCloud",
+      "description": "Production-Ready RAG Platform with Graph, Vector & Full-Text Search."
+    }
+  },
+  "action": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Contunue"
+  },
+  "tips": {
+    "confirm": "Are you absolutely sure?",
+    "update_success": "update successfully.",
+    "create_success": "create successfully.",
+    "delete_success": "Delete successfully!"
+  }
+}

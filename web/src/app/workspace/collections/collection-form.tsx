@@ -36,13 +36,13 @@ import { apiClient } from '@/lib/api/client';
 import { cn, objectKeys } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import _ from 'lodash';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
-import { CollectionConfigIndexTypes } from './tools';
 
 const collectionModelSchema = z
   .object({
@@ -133,6 +133,38 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
   const [completionModels, setCompletionModels] = useState<ProviderModel[]>();
   const [embeddingModels, setEmbeddingModels] = useState<ProviderModel[]>();
 
+  const common_tips = useTranslations('common.tips');
+  const common_action = useTranslations('common.action');
+  const page_collections = useTranslations('page_collections');
+
+  const CollectionConfigIndexTypes = {
+    'config.enable_vector': {
+      disabled: true,
+      title: page_collections('index_type_VECTOR.title'),
+      description: page_collections('index_type_VECTOR.description'),
+    },
+    'config.enable_fulltext': {
+      disabled: true,
+      title: page_collections('index_type_FULLTEXT.title'),
+      description: page_collections('index_type_FULLTEXT.description'),
+    },
+    'config.enable_knowledge_graph': {
+      disabled: false,
+      title: page_collections('index_type_GRAPH.title'),
+      description: page_collections('index_type_GRAPH.description'),
+    },
+    'config.enable_summary': {
+      disabled: false,
+      title: page_collections('index_type_SUMMARY.title'),
+      description: page_collections('index_type_SUMMARY.description'),
+    },
+    'config.enable_vision': {
+      disabled: false,
+      title: page_collections('index_type_VISION.title'),
+      description: page_collections('index_type_VISION.description'),
+    },
+  };
+
   const form = useForm<FormValueType>({
     resolver: zodResolver(collectionSchema),
     defaultValues:
@@ -179,7 +211,7 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
           collectionUpdate: values,
         });
         if (res.data.id) {
-          toast.success('update successfully.');
+          toast.success(common_tips('update_success'));
           loadCollection();
         }
       }
@@ -188,12 +220,12 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
           collectionCreate: values,
         });
         if (res.data.id) {
-          toast.success('create successfully.');
+          toast.success(common_tips('create_success'));
           router.push('/workspace/collections');
         }
       }
     },
-    [action, collection.id, loadCollection, router],
+    [action, collection.id, common_tips, loadCollection, router],
   );
 
   /**
@@ -295,7 +327,7 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
         >
           <Card>
             <CardHeader>
-              <CardTitle>General</CardTitle>
+              <CardTitle>{page_collections('general')}</CardTitle>
               <CardDescription></CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
@@ -304,11 +336,11 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{page_collections('name')}</FormLabel>
                     <FormControl>
                       <Input
                         className="md:w-6/12"
-                        placeholder="Collection display name."
+                        placeholder={page_collections('name_placeholder')}
                         {...field}
                         value={field.value || ''}
                       />
@@ -321,11 +353,13 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{page_collections('description')}</FormLabel>
                     <FormControl>
                       <Textarea
                         className="h-25"
-                        placeholder="Please describe the general meaning of a collection."
+                        placeholder={page_collections(
+                          'description_placeholder',
+                        )}
                         {...field}
                         value={field.value || ''}
                       />
@@ -338,10 +372,9 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Index Types</CardTitle>
+              <CardTitle>{page_collections('index_types')}</CardTitle>
               <CardDescription>
-                Select the AI capabilities you need, we will build corresponding
-                indexes for your documents
+                {page_collections('index_types_description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -365,21 +398,13 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                           <div className="grid gap-2">
                             <div className="flex items-center gap-2 leading-none font-medium">
                               {item.title}
-                              {item.disabled && <Badge>Required</Badge>}
+                              {item.disabled && (
+                                <Badge>{page_collections('required')}</Badge>
+                              )}
                             </div>
                             <p className="text-muted-foreground text-sm font-medium">
                               {item.description}
                             </p>
-                            <div className="text-muted-foreground text-xs">
-                              {item.required_models.length ? (
-                                <Badge variant="secondary">
-                                  Requires {item.required_models.join(',')}{' '}
-                                  model
-                                </Badge>
-                              ) : (
-                                ''
-                              )}
-                            </div>
                           </div>
                           <FormControl className="ml-auto">
                             <Switch
@@ -399,10 +424,9 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Model Settings</CardTitle>
+              <CardTitle>{page_collections('model_settings')}</CardTitle>
               <CardDescription>
-                Select AI models for document processing. Different index types
-                require different model support
+                {page_collections('model_settings_description')}
               </CardDescription>
             </CardHeader>
 
@@ -412,7 +436,7 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                 name="config.embedding.model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Embedding Model</FormLabel>
+                    <FormLabel>{page_collections('embedding_model')}</FormLabel>
                     <FormControl className="ml-auto">
                       <Select
                         {...field}
@@ -446,8 +470,7 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                       </Select>
                     </FormControl>
                     <FormDescription>
-                      An embedding model translates data into numerical vectors
-                      that capture their semantic meaning and relationships.
+                      {page_collections('embedding_model_description')}
                     </FormDescription>
                   </FormItem>
                 )}
@@ -460,7 +483,9 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                 name="config.completion.model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Completion Model</FormLabel>
+                    <FormLabel>
+                      {page_collections('completion_model')}
+                    </FormLabel>
                     <FormControl className="ml-auto">
                       <Select
                         {...field}
@@ -494,9 +519,7 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
                       </Select>
                     </FormControl>
                     <FormDescription>
-                      A completion model is an AI that generates new content by
-                      predicting the most likely subsequent text based on a
-                      given input.
+                      {page_collections('completion_model_description')}
                     </FormDescription>
                   </FormItem>
                 )}
@@ -507,11 +530,15 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
           <div className="flex justify-end gap-4">
             {action === 'add' && (
               <Button variant="outline" asChild>
-                <Link href="/workspace/collections">Cancel</Link>
+                <Link href="/workspace/collections">
+                  {common_action('cancel')}
+                </Link>
               </Button>
             )}
             <Button type="submit" className="cursor-pointer px-6">
-              {action === 'add' ? 'Create Collection' : 'Update Collection'}
+              {action === 'add'
+                ? page_collections('create_collection')
+                : page_collections('update_collection')}
             </Button>
           </div>
         </form>

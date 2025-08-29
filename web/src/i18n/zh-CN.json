@@ -1,1 +1,252 @@
-{}
+{
+  "common": {
+    "site": {
+      "metadata": {
+        "applicationName": "ApeRAG",
+        "authors": {
+          "url": "https://github.com/apecloud/ApeRAG",
+          "name": "ApeCloud"
+        },
+        "title": "云猿生数据",
+        "description": ""
+      }
+    },
+    "action": {
+      "save": "保存",
+      "cancel": "取消",
+      "continue": "继续"
+    },
+    "tips": {
+      "confirm": "请确认操作",
+      "update_success": "更新成功.",
+      "create_success": "创建成功.",
+      "delete_success": "删除成功."
+    }
+  },
+  "components": {
+    "dmermaid": {
+      "graph": "拓扑结构",
+      "data": "数据"
+    },
+    "copy_to_clipboard": {
+      "copied": "复制成功"
+    }
+  },
+  "page_auth": {
+    "account": "我的账号",
+    "administrator": "系统设置",
+    "username": "用户名",
+    "username_placeholder": "用户名",
+    "password": "密码",
+    "password_placeholder": "密码",
+    "email": "邮箱",
+    "email_placeholder": "邮箱",
+    "signin": "登录",
+    "login_in_with_a_third_party_account": "使用第三方账号登录",
+    "login_with_google": "Google账号",
+    "login_with_github": "GitHub账号",
+    "or_continue_with": "或者",
+    "welcome_back": "欢迎回来",
+    "forgot_your_password": "忘记密码",
+    "do_not_have_an_account": "没有账号？ ",
+    "signup": "注册",
+    "register_an_account": "注册账号",
+    "already_hava_an_account": "已有账号？ ",
+    "signout": "退出",
+    "processing_oauth_login": "处理OAuth登录中...",
+    "oauth_successful": "OAuth认证成功",
+    "the_system_will_automatically_redirect": "系统将自动跳转，请稍后...",
+    "authentication": "身份验证",
+    "go_back_home": "返回首页",
+    "retry": "重试",
+    "oauth_verification_failed": "OAuth验证失败",
+    "an_unexpected_error_occurred": "发生未预期的错误"
+  },
+  "page_chat": {
+    "metadata": {
+      "title": "会话"
+    },
+    "hello_world": "Hi, I'm ApeRAG.",
+    "rag_description": "ApeRAG是一个结合图检索、向量搜索和全文搜索技术，提供混合检索、知识管理和企业AI应用解决方案。",
+    "mention_a_collection": "输入@关联相关知识库...",
+    "display_empty_title": "新会话",
+    "no_collection_was_found": "未找到相关知识库",
+    "web_search": "网络检索",
+    "web_search_is_enabled": "网络检索已启用",
+    "web_search_is_disabled": "网络检索已禁用",
+    "references": "参考文献",
+    "feedback": {
+      "title": "反馈意见",
+      "choose_a_category": "请选择反馈类别",
+      "Harmful": {
+        "title": "有害内容",
+        "description": "宣扬危险、暴力或歧视性行为"
+      },
+      "Unsafe": {
+        "title": "安全隐患",
+        "description": "包含风险或人身危险信息"
+      },
+      "Fake": {
+        "title": "虚假信息",
+        "description": "故意虚假、欺骗性或误导性内容"
+      },
+      "Unhelpful": {
+        "title": "内容不佳",
+        "description": "无关、解释不清或未能解答问题"
+      },
+      "Other": {
+        "title": "其他问题",
+        "description": "上述类别未涵盖的其他问题"
+      },
+      "share_your_feedback": "分享您的反馈",
+      "share_your_feedback_placeholder": "请提供反馈意见，帮助我们持续改进体验"
+    }
+  },
+  "page_collection_new": {
+    "metadata": {
+      "title": "添加知识库",
+      "description": "通过导入并系统化整理数据源至结构化数据集中，可显著提升大语言模型（LLMs）的上下文理解能力和响应准确性。"
+    }
+  },
+  "page_collections": {
+    "metadata": {
+      "title": "我的知识库",
+      "description": "通过导入并系统化整理数据源至结构化知识库中，可显著提升大语言模型（LLMs）的上下文理解能力和响应准确性"
+    },
+    "search": "搜索我的知识库",
+    "no_collections_found": "未找到知识库",
+    "general": "常规设置",
+    "settings": "设置",
+    "private": "私有",
+    "public": "公开",
+    "mine": "我的",
+    "subscribed": "已订阅",
+    "subscribe": "订阅",
+    "unsubscribe": "取消订阅",
+    "no_description_available": "没有可用的描述",
+    "create_collection": "创建知识库",
+    "update_collection": "更新知识库",
+    "delete_collection": "删除知识库",
+    "delete_collection_confirm": "此操作不可撤销。系统将永久删除该知识库，并从我们的服务器中移除所有相关文档。",
+    "publish_collection": "发布至市场",
+    "publish_collection_description": "允许用户发现并订阅您的知识库",
+    "unpublish_collection": "从市场下架",
+    "unpublish_collection_description": "将此知识库从市场中移除，转为私有状态",
+    "published_success": "已发布到市场",
+    "unpublished_success": "已从市场下架",
+    "name": "名称",
+    "name_placeholder": "知识库显示名称",
+    "description": "描述",
+    "description_placeholder": "请简要描述该知识库的整体内容",
+    "index_types": "索引类型",
+    "index_types_description": "选择所需的AI索引能力，我们将为您的文档构建相应索引",
+    "index_type_VECTOR": {
+      "title": "向量索引",
+      "description": "将数据（文本、图像等）表示为高维向量，支持基于相似度的检索"
+    },
+    "index_type_FULLTEXT": {
+      "title": "全文索引",
+      "description": "使用倒排索引等技术对文本中的关键词建立索引，支持精确或模糊匹配"
+    },
+    "index_type_GRAPH": {
+      "title": "图索引",
+      "description": "以节点（实体）和边（关系）的形式存储数据，支持复杂关系查询"
+    },
+    "index_type_SUMMARY": {
+      "title": "摘要索引",
+      "description": "为长文档建立摘要或元数据索引而非原始内容，实现更快速的检索"
+    },
+    "index_type_VISION": {
+      "title": "视觉索引",
+      "description": "将视觉内容（图像/视频）编码为特征向量，支持基于内容的检索"
+    },
+    "required": "必选",
+    "model_settings": "模型设置",
+    "model_settings_description": "选择用于文档处理的AI模型。不同索引类型需要不同的模型支持",
+    "embedding_model": "嵌入模型（Embedding Model）",
+    "embedding_model_description": "嵌入模型能够将数据转换为数值向量，这些向量能够捕捉数据的语义信息及其相互关系。",
+    "completion_model": "补全模型（Completion Model）",
+    "completion_model_description": "补全模型能根据给定输入预测最可能的下文内容，从而生成新的文本。"
+  },
+  "page_marketplace": {
+    "metadata": {
+      "title": "市场",
+      "description": "探索并订阅社区分享的优质知识合集，拓展你的知识边界。"
+    },
+    "no_collections_found": "未找到相关知识库",
+    "no_description_available": "没有可用的描述",
+    "search": "搜索社区知识库"
+  },
+  "sidebar_workspace": {
+    "repositories": "知识库",
+    "marketplace": "市场",
+    "collections": "我的知识库",
+    "chats": "会话",
+    "chats_new": "新建会话",
+    "display_empty_title": "新会话",
+    "more": "更多",
+    "question_evaluation": "问题评估",
+    "evaluations": "评估历史",
+    "question_sets": "问题集",
+    "settings": "设置",
+    "models": "模型",
+    "api_keys": "API密钥",
+    "audit_logs": "审计日志",
+    "quotas": "配额"
+  },
+  "page_documents": {
+    "metadata": {
+      "title": "文档"
+    },
+    "add_documents": "添加文档",
+    "index_rebuild": "重建索引",
+    "index_rebuild_tips": "您可以在“设置”中配置索引类型。",
+    "index_rebuild_with": "已启动以下索引类型的重建：{types}",
+    "delete_document": "删除文档",
+    "delete_document_confirm": "此操作不可撤销。文件将被永久删除，相关数据将从我们的服务器中彻底移除。",
+    "search_document": "搜索文档",
+    "upload": "上传",
+    "browse_files": "选择文件",
+    "save_to_collection": "添加到知识库",
+    "drag_drop_files_here": "拖拽文件至此处",
+    "or_click_to_browse_files": "或点击浏览（单个文件最大10MB）",
+    "last_updated": "最近更新",
+    "file": "文件",
+    "filename": "文件名",
+    "file_type": "文件类型",
+    "upload_progress": "进度",
+    "remove_file": "移除",
+    "clear_files": "清空"
+  },
+  "page_graph": {
+    "metadata": {
+      "title": "知识图谱"
+    },
+    "node_group": "节点分组",
+    "no_nodes_found": "未找到相关节点",
+    "merge_infomation": "有 {count} 个节点节点合并建议.",
+    "merge_suggestions": "节点合并",
+    "merge_accept": "接受",
+    "merge_reject": "拒绝",
+    "merge_accepted": "已接受",
+    "merge_rejected": "已拒绝",
+    "merge_pending": "待处理"
+  },
+  "page_search": {
+    "metadata": {
+      "title": "检索测试"
+    },
+    "search": "搜索",
+    "test": "测试",
+    "questions": "问题",
+    "questions_placeholder": "描述您的问题...",
+    "creation_time": "创建时间",
+    "search_result": "检索结果",
+    "delete": "删除",
+    "delete_confirm": "此操作不可撤销。搜索结果将被永久删除。",
+    "vector_search": "向量检索",
+    "fulltext_search": "全文检索",
+    "graph_search": "图检索",
+    "summary_search": "摘要检索"
+  }
+}
