@@ -229,9 +229,36 @@ async def create_documents_view(
 
 @router.get("/collections/{collection_id}/documents", tags=["documents"])
 async def list_documents_view(
-    request: Request, collection_id: str, user: User = Depends(current_user)
-) -> view_models.DocumentList:
-    return await document_service.list_documents(str(user.id), collection_id)
+    request: Request,
+    collection_id: str,
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    sort_by: str = Query("created", description="Field to sort by"),
+    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
+    search: str = Query(None, description="Search documents by name"),
+    user: User = Depends(current_user),
+):
+    """List documents with pagination, sorting and search capabilities"""
+
+    result = await document_service.list_documents(
+        user=str(user.id),
+        collection_id=collection_id,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        search=search,
+    )
+
+    return {
+        "items": result.items,
+        "total": result.total,
+        "page": result.page,
+        "page_size": result.page_size,
+        "total_pages": result.total_pages,
+        "has_next": result.has_next,
+        "has_prev": result.has_prev,
+    }
 
 
 @router.get("/collections/{collection_id}/documents/{document_id}", tags=["documents"])
@@ -327,6 +354,31 @@ async def get_graph_labels_view(
         raise HTTPException(status_code=404, detail="Collection not found")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# New upload-related endpoints
+@router.post("/collections/{collection_id}/documents/upload", tags=["documents"])
+@audit(resource_type="document", api_name="UploadDocument")
+async def upload_document_view(
+    request: Request,
+    collection_id: str,
+    file: UploadFile = File(...),
+    user: User = Depends(current_user),
+) -> view_models.UploadDocumentResponse:
+    """Upload a single document file to temporary storage"""
+    return await document_service.upload_document(str(user.id), collection_id, file)
+
+
+@router.post("/collections/{collection_id}/documents/confirm", tags=["documents"])
+@audit(resource_type="document", api_name="ConfirmDocuments")
+async def confirm_documents_view(
+    request: Request,
+    collection_id: str,
+    confirm_request: view_models.ConfirmDocumentsRequest,
+    user: User = Depends(current_user),
+) -> view_models.ConfirmDocumentsResponse:
+    """Confirm uploaded documents and add them to the collection"""
+    return await document_service.confirm_documents(str(user.id), collection_id, confirm_request.document_ids)
 
 
 @router.get("/collections/{collection_id}/graphs", tags=["graph"])

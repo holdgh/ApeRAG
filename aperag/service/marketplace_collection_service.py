@@ -24,6 +24,7 @@ from aperag.exceptions import (
     CollectionNotPublishedError,
 )
 from aperag.schema import view_models
+from aperag.schema.utils import convertToSharedCollectionConfig, parseCollectionConfig
 
 
 class MarketplaceCollectionService:
@@ -63,7 +64,7 @@ class MarketplaceCollectionService:
             raise CollectionNotPublishedError(collection_id)
 
         # Get collection info
-        collection = await self.db_ops.query_collection_without_user(collection_id)
+        collection = await self.db_ops.query_collection_by_id(collection_id)
         if collection is None:
             raise CollectionNotFoundException(collection_id)
 
@@ -79,6 +80,7 @@ class MarketplaceCollectionService:
             "collection_id": collection.id,
             "collection_title": collection.title,
             "collection_description": collection.description,
+            "collection_config": collection.config,
             "owner_user_id": collection.user,
             "owner_username": owner.username,
             "subscription_id": subscription.id if subscription else None,
@@ -92,6 +94,10 @@ class MarketplaceCollectionService:
         # Call _check_marketplace_access to verify permissions (all logged-in users can view)
         marketplace_info = await self._check_marketplace_access(user_id, collection_id)
 
+        # Parse collection config and convert to SharedCollectionConfig
+        collection_config = parseCollectionConfig(marketplace_info["collection_config"])
+        shared_config = convertToSharedCollectionConfig(collection_config)
+
         # Return SharedCollection data with subscription status
         return view_models.SharedCollection(
             id=marketplace_info["collection_id"],
@@ -101,6 +107,7 @@ class MarketplaceCollectionService:
             owner_username=marketplace_info["owner_username"],
             subscription_id=marketplace_info["subscription_id"],
             gmt_subscribed=marketplace_info["gmt_subscribed"],
+            config=shared_config,
         )
 
     async def list_marketplace_collection_documents(
@@ -117,7 +124,7 @@ class MarketplaceCollectionService:
         await self._check_marketplace_access(user_id, collection_id)
 
         # Get the actual collection object for document queries
-        collection = await self.db_ops.query_collection_without_user(collection_id)
+        collection = await self.db_ops.query_collection_by_id(collection_id)
         if collection is None:
             raise CollectionNotFoundException(collection_id)
 
@@ -178,7 +185,7 @@ class MarketplaceCollectionService:
         await self._check_marketplace_access(user_id, collection_id)
 
         # Get collection object for graph queries
-        collection = await self.db_ops.query_collection_without_user(collection_id)
+        collection = await self.db_ops.query_collection_by_id(collection_id)
         if collection is None:
             raise CollectionNotFoundException(collection_id)
 

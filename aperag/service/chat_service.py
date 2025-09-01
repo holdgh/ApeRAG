@@ -28,7 +28,7 @@ from aperag.exceptions import ChatNotFoundException, ResourceNotFoundException
 from aperag.flow.engine import FlowEngine
 from aperag.flow.parser import FlowParser
 from aperag.schema import view_models
-from aperag.schema.view_models import Chat, ChatDetails, ChatList
+from aperag.schema.view_models import Chat, ChatDetails
 from aperag.utils.constant import DOC_QA_REFERENCES, DOCUMENT_URLS
 from aperag.utils.history import (
     RedisChatMessageHistory,
@@ -141,12 +141,61 @@ class ChatService:
 
         return self.build_chat_response(chat)
 
-    async def list_chats(self, user: str, bot_id: str) -> view_models.ChatList:
-        chats = await self.db_ops.query_chats(user, bot_id)
-        response = []
-        for chat in chats:
-            response.append(self.build_chat_response(chat))
-        return ChatList(items=response)
+    async def list_chats(
+        self,
+        user: str,
+        bot_id: str,
+        page: int = 1,
+        page_size: int = 50,
+    ):
+        """List chats with pagination, sorting and search capabilities."""
+
+        # Define sort field mapping
+        sort_mapping = {
+            "created": db_models.Chat.gmt_created,
+        }
+
+        # Define search fields mapping
+        search_fields = {"title": db_models.Chat.title}
+
+        async def _execute_paginated_query(session):
+            from sqlalchemy import and_, desc, select
+
+            # Build base query
+            query = select(db_models.Chat).where(
+                and_(
+                    db_models.Chat.user == user,
+                    db_models.Chat.bot_id == bot_id,
+                    db_models.Chat.status != db_models.ChatStatus.DELETED,
+                )
+            )
+
+            # Build query parameters
+            from aperag.utils.pagination import ListParams, PaginationHelper, PaginationParams, SortParams
+
+            params = ListParams(
+                pagination=PaginationParams(page=page, page_size=page_size),
+                sort=SortParams(sort_by="created", sort_order="desc"),
+            )
+
+            # Use pagination helper
+            items, total = await PaginationHelper.paginate_query(
+                query=query,
+                session=session,
+                params=params,
+                sort_mapping=sort_mapping,
+                search_fields=search_fields,
+                default_sort=desc(db_models.Chat.gmt_created),
+            )
+
+            # Build chat responses
+            chat_responses = []
+            for chat in items:
+                chat_responses.append(self.build_chat_response(chat))
+
+            return PaginationHelper.build_response(items=chat_responses, total=total, page=page, page_size=page_size)
+
+        return await self.db_ops._execute_query(_execute_paginated_query)
 
     async def get_chat(self, user: str, bot_id: str, chat_id: str) -> view_models.ChatDetails:
         # Import here to avoid circular imports
@@ -201,6 +250,44 @@ class ChatService:
 
         return None
 
+    async def associate_documents_with_message(
+        self, chat_id: str, message_id: str, files: List[str], user: str
+    ) -> List[Dict[str, Any]]:
+        """Handle file metadata retrieval and document association for chat messages.
+        
+        Args:
+            chat_id: The chat ID
+            message_id: The message ID to associate documents with
+            files: List of document IDs
+            user: User ID
+            
+        Returns:
+            List of file metadata dictionaries
+        """
+        if not files:
+            return []
+
+        result = []
+        try:
+            from aperag.service.chat_document_service import chat_document_service
+            # Get document metadata for storing in the message
+            result = await chat_document_service.get_documents_metadata(
+                chat_id=chat_id,
+                document_ids=files,
+                user_id=user
+            )
+            # Associate documents with message
+            await chat_document_service.associate_documents_with_message(
+                chat_id=chat_id,
+                message_id=message_id,
+                document_ids=files,
+                user_id=user
+            )
+        except Exception as e:
+            logger.warning(f"Failed to associate documents with message {message_id}: {e}")
+        
+        return result
+
     def stream_frontend_sse_response(
         self, generator: AsyncGenerator[Any, Any], formatter: FrontendFormatter, msg_id: str
     ):
@@ -215,9 +302,17 @@ class ChatService:
         return event_stream()
 
     async def frontend_chat_completions(
-        self, user: str, message: str, stream: bool, bot_id: str, chat_id: str, msg_id: str
+        self, user: str, message: str, stream: bool, bot_id: str, chat_id: str, msg_id: str, upload_files: List[str] = None
     ) -> Any:
         """Frontend chat completions with special error handling for UI responses"""
+
+        # Get document metadata and associate documents with message if files are provided
+        files = await self.associate_documents_with_message(
+            chat_id=chat_id,
+            message_id=msg_id,
+            files=upload_files or [],
+            user=user
+        )
 
         # Validate bot_id - return formatted error for frontend
         if not bot_id:
@@ -258,7 +353,13 @@ class ChatService:
                 "query": message,
                 "user": user,
                 "message_id": msg_id or str(uuid.uuid4()),
+                "chat_id": chat_id,
             }
+
+            # Save user message to history with file metadata
+            from aperag.utils.history import RedisChatMessageHistory, get_async_redis_client
+            history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
+            await history.add_user_message(message, msg_id, files=files)
 
             # Execute flow
             _, system_outputs = await engine.execute_flow(flow, initial_data)
@@ -308,18 +409,20 @@ class ChatService:
         """Handle message feedback for chat messages"""
         # Get message from Redis history to validate it exists and get context
         history = RedisChatMessageHistory(chat_id, redis_client=get_async_redis_client())
-        msg = None
+        ai_msg = None
+        human_msg = None
         for message in await history.messages:
-            item = json.loads(message.content)
-            if item["id"] != message_id:
+            if message.message_id != message_id:
                 continue
-            if message.additional_kwargs.get("role", "") != "ai":
-                continue
-            msg = item
-            break
+            if message.role == "ai":
+                ai_msg = message
+            if message.role == "human":
+                human_msg = message
 
-        if msg is None:
-            raise ResourceNotFoundException("Message", message_id)
+        if not ai_msg:
+            raise ResourceNotFoundException("AI Message", message_id)
+        if not human_msg:
+            raise ResourceNotFoundException("Human Message", message_id)
 
         # Handle feedback state change based on UX design principles
         if feedback_type is None:
@@ -335,9 +438,8 @@ class ChatService:
                 feedback_type=feedback_type,
                 feedback_tag=feedback_tag,
                 feedback_message=feedback_message,
-                question=msg.get("query"),
-                original_answer=msg.get("response", ""),
-                collection_id=msg.get("collection_id"),
+                question=human_msg.get_main_content(),
+                original_answer=ai_msg.get_main_content(),
             )
             result = {"action": "upserted", "feedback": feedback}
         return result
@@ -379,6 +481,17 @@ class ChatService:
                 # Generate message ID
                 message_id = str(uuid.uuid4())
 
+                # Get document metadata and associate documents with message if files are provided
+                files = await self.associate_documents_with_message(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    files=data.get("files", []),
+                    user=user
+                )
+
+                # Add user message to history with file metadata
+                await history.add_user_message(message_content, message_id, files=files)
+
                 try:
                     # Get or create chat session
                     try:
@@ -403,6 +516,7 @@ class ChatService:
                         "user": user,
                         "message_id": message_id,
                         "history": history,
+                        "chat_id": chat_id,
                     }
 
                     # Send start message

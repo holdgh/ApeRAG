@@ -1,6 +1,7 @@
 import { apiKeys } from './zh-CN/apiKeys';
 import { bot } from './zh-CN/bots';
 import { collection } from './zh-CN/collection';
+import { evaluation } from './zh-CN/evaluation';
 import { model, model_provider, model_configuration } from './zh-CN/models';
 import { settings } from './zh-CN/settings';
 import { user, users } from './zh-CN/users';
@@ -15,6 +16,7 @@ export default {
   ...collection,
   ...apiKeys,
   ...settings,
+  ...evaluation,
 
   // Audit logs
   'audit.logs.title': '操作日志',
@@ -46,6 +48,12 @@ export default {
 
   // Common
   'common.search': '搜索',
+  'common.sort.by': '排序',
+  'common.sort.field': '排序字段',
+  'common.sort.asc': '升序',
+  'common.sort.desc': '降序',
+  'common.pagination.total': '共 {total} 条，显示第 {start} - {end} 条',
+  'common.load.more': '加载更多',
   'common.search.placeholder': '搜索知识库...',
   'common.search.no.results': '没有找到匹配的结果',
   'common.search.try.different.keywords': '请尝试使用不同的关键词',
@@ -89,6 +97,8 @@ export default {
   'text.description': '描述',
   'text.trial': '免费试用',
   'text.outputs': '输出',
+  'text.total': '共',
+  'text.items': '项',
 
   action: '----------------------',
   'action.name': '操作',
@@ -228,6 +238,20 @@ export default {
 
   document: '--------------------------',
   'document.upload': '上传文档',
+  'document.upload.selectFiles': '选择文件',
+  'document.upload.selectFolder': '选择文件夹',
+  'document.upload.dragTip': '拖拽文件到此处，或点击下方按钮选择文件',
+  'document.upload.scanning': '正在扫描文件...',
+  'document.upload.fileCount': '已选择 {count} / {total} 个文件，总大小: {size}',
+  'document.upload.noFilesSelected': '请至少选择一个文件',
+  'document.upload.start': '开始上传',
+  'document.upload.next': '下一步',
+  'document.upload.confirm': '确认添加',
+  'document.upload.step.select': '选择文件',
+  'document.upload.step.upload': '上传文件',
+  'document.upload.step.confirm': '确认上传',
+  'document.path': '路径',
+  'document.type': '类型',
   'document.delete.confirm': '文档 "{name}" 将会被删除，确定此操作吗？',
   'document.name': '文件名',
   'document.size': '文件大小',
@@ -475,4 +499,50 @@ export default {
   'document.summary.copy': '复制摘要',
   'document.summary.copy.success': '摘要已复制到剪贴板',
   'document.summary.copy.failed': '复制摘要失败',
+  
+  // Document upload result messages
+  'document.upload.result.success': '成功添加 {count} 个文档到知识库',
+  'document.upload.result.partialFailed': '{count} 个文档添加失败',
+  'document.upload.result.allSuccess': '所有文档已成功添加到知识库，系统正在后台建立索引',
+  'document.upload.result.backToList': '返回文档列表',
+  'document.upload.result.failedDetails': '失败文档详情',
+  
+  // Document error messages
+  'document.unknown': '未知文档',
+  'document.error.reason': '失败原因',
+  'document.error.expired': '文档已过期，请重新上传。可能是因为停留时间过长，临时文件已被清理',
+  'document.error.notUploaded': '文档状态异常，请重新上传',
+  'document.error.notFound': '文档不存在或已被删除',
+  'document.error.confirmationFailed': '文档确认失败，请重试',
+  
+  // Document upload progress messages
+  'document.upload.progress.totalFiles': '总文件数',
+  'document.upload.progress.uploading': '上传中',
+  'document.upload.progress.completed': '已完成',
+  'document.upload.progress.failed': '失败',
+  'document.upload.progress.tab.all': '全部({count})',
+  'document.upload.progress.tab.uploading': '上传中({count})',
+  'document.upload.progress.tab.completed': '已完成({count})',
+  'document.upload.progress.tab.failed': '上传失败({count})',
+  'document.upload.progress.retryFailed': '重试失败',
+  'document.upload.status.success': '上传成功',
+  'document.upload.status.failed': '上传失败',
+  'document.upload.status.pending': '等待上传',
+  'document.upload.action.retry': '重试',
+  
+  // Document upload error messages
+  'document.upload.error.parseResponse': '解析响应失败',
+  'document.upload.error.httpError': '上传失败: HTTP {status}',
+  'document.upload.error.unsupportedFileType': '不支持的文件类型 {fileType}',
+  'document.upload.error.fileSizeTooLarge': '文件大小超过限制',
+  'document.upload.error.collectionNotFound': '知识库不存在',
+  'document.upload.error.noPermission': '没有权限',
+  'document.upload.error.authFailed': '认证失败，请重新登录',
+  'document.upload.error.networkError': '网络错误',
+  'document.upload.error.uploadFailed': '上传失败',
+  'document.upload.error.noDocumentsToConfirm': '没有可确认的文档',
+  'document.upload.error.confirmFailed': '确认失败',
+  'document.upload.error.unknown': '未知错误',
+  'document.upload.stopped': '上传已停止',
+  'document.upload.summary.withErrors': '上传完成: {success} 个成功, {failed} 个失败 (共 {total} 个)',
 };

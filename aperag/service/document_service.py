@@ -30,6 +30,7 @@ from aperag.db.ops import AsyncDatabaseOps, async_db_ops
 from aperag.docparser.doc_parser import DocParser
 from aperag.exceptions import (
     CollectionInactiveException,
+    DocumentNameConflictException,
     DocumentNotFoundException,
     QuotaExceededException,
     ResourceNotFoundException,
@@ -39,8 +40,16 @@ from aperag.index.manager import document_index_manager
 from aperag.objectstore.base import get_async_object_store
 from aperag.schema import view_models
 from aperag.schema.view_models import Chunk, DocumentList, DocumentPreview, VisionChunk
+from aperag.utils.pagination import (
+    ListParams,
+    PaginatedResponse,
+    PaginationHelper,
+    PaginationParams,
+    SearchParams,
+    SortParams,
+)
 from aperag.utils.uncompress import SUPPORTED_COMPRESSED_EXTENSIONS
-from aperag.utils.utils import generate_vector_db_collection_name, utc_now
+from aperag.utils.utils import calculate_file_hash, generate_vector_db_collection_name, utc_now
 from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 
 logger = logging.getLogger(__name__)
@@ -78,6 +87,166 @@ class DocumentService:
         else:
             self.db_ops = AsyncDatabaseOps(session)  # Create custom instance for transaction control
 
+    async def _validate_collection(self, user: str, collection_id: str) -> db_models.Collection:
+        """
+        Validate that collection exists and is active.
+        Returns the collection if valid, raises exception otherwise.
+        """
+        collection = await self.db_ops.query_collection(user, collection_id)
+        if collection is None:
+            raise ResourceNotFoundException("Collection", collection_id)
+        if collection.status != db_models.CollectionStatus.ACTIVE:
+            raise CollectionInactiveException(collection_id)
+        return collection
+
+    def _validate_file(self, filename: str, size: int) -> str:
+        """
+        Validate file extension and size.
+        Returns the file suffix if valid, raises exception otherwise.
+        """
+        supported_file_extensions = DocParser().supported_extensions()
+        supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
+
+        file_suffix = os.path.splitext(filename)[1].lower()
+        if file_suffix not in supported_file_extensions:
+            raise invalid_param("file_type", f"unsupported file type {file_suffix}")
+        if size > settings.max_document_size:
+            raise invalid_param("file_size", "file size is too large")
+
+        return file_suffix
+
+    async def _check_duplicate_document(
+        self, user: str, collection_id: str, filename: str, file_hash: str
+    ) -> db_models.Document | None:
+        """
+        Check if a document with the same name exists in the collection.
+        Returns the existing document if found, None otherwise.
+
+        Raises DocumentNameConflictException if same name but different file hash.
+        """
+        # Use repository to query for existing document
+        existing_doc = await self.db_ops.query_document_by_name_and_collection(user, collection_id, filename)
+
+        if existing_doc:
+            # If existing document has no hash (legacy document), skip hash check
+            if existing_doc.content_hash is None:
+                # Could calculate hash for legacy document here if needed
+                logger.warning(f"Existing document {existing_doc.id} has no file hash, skipping hash comparison")
+                return existing_doc
+
+            # If file hashes match, it's a true duplicate (same file)
+            if existing_doc.content_hash == file_hash:
+                return existing_doc
+            else:
+                # Same name but different file content - conflict
+                raise DocumentNameConflictException(filename, collection_id)
+
+        return None
+
+    async def _check_document_quotas(self, session: AsyncSession, user: str, collection_id: str, count: int):
+        """
+        Check and consume document quotas.
+        Raises QuotaExceededException if quota would be exceeded.
+        """
+        from sqlalchemy import func, select
+
+        from aperag.service.quota_service import quota_service
+
+        # Check and consume user quota
+        await quota_service.check_and_consume_quota(user, "max_document_count", count, session)
+
+        # Check per-collection quota
+        stmt = (
+            select(func.count())
+            .select_from(db_models.Document)
+            .where(
+                db_models.Document.collection_id == collection_id,
+                db_models.Document.status != db_models.DocumentStatus.DELETED,
+                db_models.Document.status != db_models.DocumentStatus.UPLOADED,  # Don't count temporary uploads
+            )
+        )
+        existing_doc_count = await session.scalar(stmt)
+
+        # Get per-collection quota limit
+        from aperag.db.models import UserQuota
+
+        stmt = select(UserQuota).where(UserQuota.user == user, UserQuota.key == "max_document_count_per_collection")
+        result = await session.execute(stmt)
+        per_collection_quota = result.scalars().first()
+
+        if per_collection_quota and (existing_doc_count + count) > per_collection_quota.quota_limit:
+            raise QuotaExceededException(
+                "max_document_count_per_collection", per_collection_quota.quota_limit, existing_doc_count
+            )
+
+    def _get_index_types_for_collection(self, collection_config: dict) -> list:
+        """
+        Get the list of index types to create based on collection configuration.
+        """
+        index_types = [
+            db_models.DocumentIndexType.VECTOR,
+            db_models.DocumentIndexType.FULLTEXT,
+        ]
+
+        if collection_config.get("enable_knowledge_graph", False):
+            index_types.append(db_models.DocumentIndexType.GRAPH)
+        if collection_config.get("enable_summary", False):
+            index_types.append(db_models.DocumentIndexType.SUMMARY)
+        if collection_config.get("enable_vision", False):
+            index_types.append(db_models.DocumentIndexType.VISION)
+
+        return index_types
+
+    async def _create_document_record(
+        self,
+        session: AsyncSession,
+        user: str,
+        collection_id: str,
+        filename: str,
+        size: int,
+        status: db_models.DocumentStatus,
+        file_suffix: str,
+        file_content: bytes,
+        custom_metadata: dict = None,
+        content_hash: str = None,
+    ) -> db_models.Document:
+        """
+        Create a document record in database and upload file to object store.
+        Returns the created document instance.
+        """
+        # Calculate file hash if not provided
+        if content_hash is None:
+            content_hash = calculate_file_hash(file_content)
+
+        # Create document in database
+        document_instance = db_models.Document(
+            user=user,
+            name=filename,
+            status=status,
+            size=size,
+            collection_id=collection_id,
+            content_hash=content_hash,
+        )
+        session.add(document_instance)
+        await session.flush()
+        await session.refresh(document_instance)
+
+        # Upload to object store
+        async_obj_store = get_async_object_store()
+        upload_path = f"{document_instance.object_store_base_path()}/original{file_suffix}"
+        await async_obj_store.put(upload_path, file_content)
+
+        # Update document with object path and custom metadata
+        metadata = {"object_path": upload_path}
+        if custom_metadata:
+            metadata.update(custom_metadata)
+        document_instance.doc_metadata = json.dumps(metadata)
+        session.add(document_instance)
+        await session.flush()
+        await session.refresh(document_instance)
+
+        return document_instance
+
     async def _query_documents_with_indexes(
         self, user: str, collection_id: str, document_id: str = None
     ) -> List[db_models.Document]:
@@ -113,6 +282,10 @@ class DocumentService:
                         db_models.Document.user == user,
                         db_models.Document.collection_id == collection_id,
                         db_models.Document.status != db_models.DocumentStatus.DELETED,
+                        db_models.Document.status
+                        != db_models.DocumentStatus.UPLOADED,  # Filter out temporary uploaded documents
+                        db_models.Document.status
+                        != db_models.DocumentStatus.EXPIRED,  # Filter out temporary uploaded documents
                     )
                 )
                 .order_by(db_models.Document.gmt_created.desc())
@@ -194,137 +367,85 @@ class DocumentService:
         )
 
     async def create_documents(
-        self, user: str, collection_id: str, files: List[UploadFile]
+        self, user: str, collection_id: str, files: List[UploadFile], custom_metadata: dict = None
     ) -> view_models.DocumentList:
         if len(files) > 50:
             raise invalid_param("file_count", "documents are too many, add document failed")
 
-        # Check collection exists and is active
-        collection = await self.db_ops.query_collection(user, collection_id)
-        if collection is None:
-            raise ResourceNotFoundException("Collection", collection_id)
-        if collection.status != db_models.CollectionStatus.ACTIVE:
-            raise CollectionInactiveException(collection_id)
-
-        # Quota checks will be done within the transaction
-
-        supported_file_extensions = DocParser().supported_extensions()
-        supported_file_extensions += SUPPORTED_COMPRESSED_EXTENSIONS
-
-        response = []
+        # Validate collection
+        collection = await self._validate_collection(user, collection_id)
 
         # Prepare file data and validate all files before starting any database operations
         file_data = []
         for item in files:
-            file_suffix = os.path.splitext(item.filename)[1].lower()
-            if file_suffix not in supported_file_extensions:
-                raise invalid_param("file_type", f"unsupported file type {file_suffix}")
-            if item.size > settings.max_document_size:
-                raise invalid_param("file_size", "file size is too large")
+            file_suffix = self._validate_file(item.filename, item.size)
 
             # Read file content from UploadFile
             file_content = await item.read()
             # Reset file pointer for potential future use
             await item.seek(0)
 
+            # Calculate original file hash for duplicate detection
+            file_hash = calculate_file_hash(file_content)
+
             file_data.append(
-                {"filename": item.filename, "size": item.size, "suffix": file_suffix, "content": file_content}
+                {
+                    "filename": item.filename,
+                    "size": item.size,
+                    "suffix": file_suffix,
+                    "content": file_content,
+                    "file_hash": file_hash,
+                }
             )
 
         # Process all files in a single transaction for atomicity
         async def _create_documents_atomically(session):
-            from aperag.db.models import Document, DocumentStatus
-            from aperag.service.quota_service import quota_service
-
-            # Check and consume quotas first within the transaction
-            await quota_service.check_and_consume_quota(user, "max_document_count", len(files), session)
-
-            # Check per-collection quota by counting existing documents in this collection
-            from sqlalchemy import func, select
-
-            stmt = (
-                select(func.count())
-                .select_from(Document)
-                .where(Document.collection_id == collection_id, Document.status != DocumentStatus.DELETED)
-            )
-            existing_doc_count = await session.scalar(stmt)
-
-            # Get per-collection quota limit
-            from aperag.db.models import UserQuota
-
-            stmt = select(UserQuota).where(UserQuota.user == user, UserQuota.key == "max_document_count_per_collection")
-            result = await session.execute(stmt)
-            per_collection_quota = result.scalars().first()
-
-            if per_collection_quota and (existing_doc_count + len(files)) > per_collection_quota.quota_limit:
-                raise QuotaExceededException(
-                    "max_document_count_per_collection", per_collection_quota.quota_limit, existing_doc_count
-                )
+            # Check quotas
+            await self._check_document_quotas(session, user, collection_id, len(files))
 
             documents_created = []
-            async_obj_store = get_async_object_store()
-            uploaded_files = []  # Track uploaded files for cleanup
+            collection_config = json.loads(collection.config)
+            index_types = self._get_index_types_for_collection(collection_config)
 
-            try:
-                for file_info in file_data:
-                    # Create document in database directly using session
-                    document_instance = Document(
-                        user=user,
-                        name=file_info["filename"],
-                        status=DocumentStatus.PENDING,
-                        size=file_info["size"],
-                        collection_id=collection.id,
+            for file_info in file_data:
+                # Check for duplicate document (same name and hash)
+                existing_doc = await self._check_duplicate_document(
+                    user, collection.id, file_info["filename"], file_info["file_hash"]
+                )
+
+                if existing_doc:
+                    # Return existing document info (idempotent behavior)
+                    logger.info(
+                        f"Document '{file_info['filename']}' already exists with same content, returning existing document {existing_doc.id}"
                     )
-                    session.add(document_instance)
-                    await session.flush()
-                    await session.refresh(document_instance)
-
-                    # Upload to object store
-                    upload_path = f"{document_instance.object_store_base_path()}/original{file_info['suffix']}"
-                    await async_obj_store.put(upload_path, file_info["content"])
-                    uploaded_files.append(upload_path)
-
-                    # Update document with object path
-                    metadata = json.dumps({"object_path": upload_path})
-                    document_instance.doc_metadata = metadata
-                    session.add(document_instance)
-                    await session.flush()
-                    await session.refresh(document_instance)
-
-                    # Create index specs for the new document
-                    index_types = [
-                        db_models.DocumentIndexType.VECTOR,
-                        db_models.DocumentIndexType.FULLTEXT,
-                    ]
-                    collection_config = json.loads(collection.config)
-                    if collection_config.get("enable_knowledge_graph", False):
-                        index_types.append(db_models.DocumentIndexType.GRAPH)
-
-                    if collection_config.get("enable_summary", False):
-                        index_types.append(db_models.DocumentIndexType.SUMMARY)
-
-                    if collection_config.get("enable_vision", False):
-                        index_types.append(db_models.DocumentIndexType.VISION)
-
-                    # Use index manager to create indexes with new status model
-                    await document_index_manager.create_or_update_document_indexes(
-                        document_id=document_instance.id, index_types=index_types, session=session
-                    )
-
-                    # Build response object
-                    doc_response = await self._build_document_response(document_instance)
+                    doc_response = await self._build_document_response(existing_doc)
                     documents_created.append(doc_response)
+                    continue
 
-                return documents_created
+                # Create new document and upload file
+                document_instance = await self._create_document_record(
+                    session=session,
+                    user=user,
+                    collection_id=collection.id,
+                    filename=file_info["filename"],
+                    size=file_info["size"],
+                    status=db_models.DocumentStatus.PENDING,
+                    file_suffix=file_info["suffix"],
+                    file_content=file_info["content"],
+                    custom_metadata=custom_metadata,
+                    content_hash=file_info["file_hash"],
+                )
 
-            except Exception as e:
-                # Clean up uploaded files on database transaction failure
-                for upload_path in uploaded_files:
-                    try:
-                        await async_obj_store.delete_objects_by_prefix(upload_path)
-                    except Exception as cleanup_error:
-                        logger.warning(f"Failed to cleanup uploaded file during rollback: {cleanup_error}")
-                raise e
+                # Create indexes
+                await document_index_manager.create_or_update_document_indexes(
+                    document_id=document_instance.id, index_types=index_types, session=session
+                )
+
+                # Build response object
+                doc_response = await self._build_document_response(document_instance)
+                documents_created.append(doc_response)
+
+            return documents_created
 
         response = await self.db_ops.execute_with_transaction(_create_documents_atomically)
 
@@ -333,15 +454,111 @@ class DocumentService:
 
         return DocumentList(items=response)
 
-    async def list_documents(self, user: str, collection_id: str) -> view_models.DocumentList:
-        """List all documents for a user in a collection."""
-        documents = await self._query_documents_with_indexes(user, collection_id)
+    async def list_documents(
+        self,
+        user: str,
+        collection_id: str,
+        page: int = 1,
+        page_size: int = 10,
+        sort_by: str = None,
+        sort_order: str = "desc",
+        search: str = None,
+    ) -> PaginatedResponse[view_models.Document]:
+        """List documents with pagination, sorting and search capabilities."""
 
-        response = []
-        for document in documents:
-            response.append(await self._build_document_response(document))
+        # Define sort field mapping
+        sort_mapping = {
+            "name": db_models.Document.name,
+            "created": db_models.Document.gmt_created,
+            "updated": db_models.Document.gmt_updated,
+            "size": db_models.Document.size,
+            "status": db_models.Document.status,
+        }
 
-        return view_models.DocumentList(items=response)
+        # Define search fields mapping
+        search_fields = {"name": db_models.Document.name}
+
+        async def _execute_paginated_query(session):
+            from sqlalchemy import and_, desc, select
+
+            # Step 1: Build base document query for pagination (without indexes)
+            base_query = select(db_models.Document).where(
+                and_(
+                    db_models.Document.user == user,
+                    db_models.Document.collection_id == collection_id,
+                    db_models.Document.status != db_models.DocumentStatus.DELETED,
+                    db_models.Document.status != db_models.DocumentStatus.UPLOADED,
+                    db_models.Document.status != db_models.DocumentStatus.EXPIRED,
+                )
+            )
+
+            # Apply search filter
+            if search:
+                search_term = f"%{search}%"
+                base_query = base_query.where(db_models.Document.name.ilike(search_term))
+
+            # Build query parameters for documents
+            params = ListParams(
+                pagination=PaginationParams(page=page, page_size=page_size),
+                sort=SortParams(sort_by=sort_by, sort_order=sort_order) if sort_by else None,
+                search=SearchParams(search=search, search_fields=["name"]) if search else None,
+            )
+
+            # Use pagination helper for documents
+            documents, total = await PaginationHelper.paginate_query(
+                query=base_query,
+                session=session,
+                params=params,
+                sort_mapping=sort_mapping,
+                search_fields=search_fields,
+                default_sort=desc(db_models.Document.gmt_created),
+            )
+
+            # Step 2: Batch load index information for the paginated documents
+            if documents:
+                document_ids = [doc.id for doc in documents]
+
+                # Query all indexes for the paginated documents in one go
+                index_query = select(db_models.DocumentIndex).where(
+                    db_models.DocumentIndex.document_id.in_(document_ids)
+                )
+                index_result = await session.execute(index_query)
+                indexes_data = index_result.scalars().all()
+
+                # Group indexes by document_id
+                indexes_by_doc = {}
+                for index in indexes_data:
+                    if index.document_id not in indexes_by_doc:
+                        indexes_by_doc[index.document_id] = {}
+                    indexes_by_doc[index.document_id][index.index_type] = {
+                        "index_type": index.index_type,
+                        "status": index.status,
+                        "created_at": index.gmt_created,
+                        "updated_at": index.gmt_updated,
+                        "error_message": index.error_message,
+                        "index_data": index.index_data,
+                    }
+
+                # Attach index information to documents
+                for doc in documents:
+                    # Initialize index information for all types
+                    doc.indexes = {"VECTOR": None, "FULLTEXT": None, "GRAPH": None, "SUMMARY": None, "VISION": None}
+
+                    # Add actual index data if exists
+                    if doc.id in indexes_by_doc:
+                        doc.indexes.update(indexes_by_doc[doc.id])
+
+            # Step 3: Build document responses
+            document_responses = []
+            for doc in documents:
+                doc_response = await self._build_document_response(doc)
+                document_responses.append(doc_response)
+
+            return PaginationHelper.build_response(
+                items=document_responses, total=total, page=page, page_size=page_size
+            )
+
+        return await self.db_ops._execute_query(_execute_paginated_query)
 
     async def get_document(self, user: str, collection_id: str, document_id: str) -> view_models.Document:
         """Get a specific document by ID."""
@@ -646,7 +863,7 @@ class DocumentService:
         """
 
         # Use database operations with proper session management
-        async def _get_document_preview(session):
+        async def _get_document_preview(session: AsyncSession):
             # 1. Get document and vector index in one go
             doc_stmt = select(db_models.Document).filter(
                 db_models.Document.id == document_id,
@@ -783,6 +1000,148 @@ class DocumentService:
 
         # Execute query with proper session management
         return await self.db_ops._execute_query(_get_document_object)
+
+    async def upload_document(
+        self, user_id: str, collection_id: str, file: UploadFile
+    ) -> view_models.UploadDocumentResponse:
+        """Upload a single document file to temporary storage with duplicate detection"""
+        # Validate collection
+        collection = await self._validate_collection(user_id, collection_id)
+
+        # Validate file
+        file_suffix = self._validate_file(file.filename, file.size)
+
+        # Read file content
+        file_content = await file.read()
+        await file.seek(0)
+
+        # Calculate original file hash for duplicate detection
+        file_hash = calculate_file_hash(file_content)
+
+        async def _upload_document_atomically(session):
+            # Check for duplicate document (same name and hash)
+            existing_doc = await self._check_duplicate_document(user_id, collection.id, file.filename, file_hash)
+
+            if existing_doc:
+                # Return existing document info (idempotent behavior)
+                logger.info(
+                    f"Document '{file.filename}' already exists with same content, returning existing document {existing_doc.id}"
+                )
+                return view_models.UploadDocumentResponse(
+                    document_id=existing_doc.id,
+                    filename=existing_doc.name,
+                    size=existing_doc.size,
+                    status=existing_doc.status,
+                )
+
+            # Create new document with UPLOADED status (temporary)
+            document_instance = await self._create_document_record(
+                session=session,
+                user=user_id,
+                collection_id=collection.id,
+                filename=file.filename,
+                size=file.size,
+                status=db_models.DocumentStatus.UPLOADED,  # Temporary status
+                file_suffix=file_suffix,
+                file_content=file_content,
+                content_hash=file_hash,
+            )
+
+            return view_models.UploadDocumentResponse(
+                document_id=document_instance.id, filename=file.filename, size=file.size, status="UPLOADED"
+            )
+
+        return await self.db_ops.execute_with_transaction(_upload_document_atomically)
+
+    async def confirm_documents(
+        self, user_id: str, collection_id: str, document_ids: list[str]
+    ) -> view_models.ConfirmDocumentsResponse:
+        """Confirm uploaded documents and add them to the collection"""
+        confirmed_count = 0
+        failed_count = 0
+        failed_documents = []
+
+        async def _confirm_documents_atomically(session):
+            nonlocal confirmed_count, failed_count, failed_documents
+
+            # Check quotas
+            await self._check_document_quotas(session, user_id, collection_id, len(document_ids))
+
+            # Get collection config
+            collection = await self.db_ops.query_collection(user_id, collection_id)
+            collection_config = json.loads(collection.config)
+            index_types = self._get_index_types_for_collection(collection_config)
+
+            for document_id in document_ids:
+                try:
+                    # Get document (single query without status filter)
+                    stmt = select(db_models.Document).where(
+                        db_models.Document.id == document_id,
+                        db_models.Document.user == user_id,
+                        db_models.Document.collection_id == collection_id,
+                    )
+                    result = await session.execute(stmt)
+                    document = result.scalars().first()
+
+                    if not document:
+                        # Document not found at all
+                        failed_documents.append(
+                            view_models.FailedDocument(document_id=document_id, name=None, error="DOCUMENT_NOT_FOUND")
+                        )
+                        failed_count += 1
+                        continue
+
+                    # Check document status
+                    if document.status != db_models.DocumentStatus.UPLOADED:
+                        # Document exists but not in correct status
+                        if document.status == db_models.DocumentStatus.EXPIRED:
+                            error_code = "DOCUMENT_EXPIRED"
+                        else:
+                            error_code = "DOCUMENT_NOT_UPLOADED"
+
+                        failed_documents.append(
+                            view_models.FailedDocument(document_id=document_id, name=document.name, error=error_code)
+                        )
+                        failed_count += 1
+                        continue
+
+                    # Change status to PENDING
+                    document.status = db_models.DocumentStatus.PENDING
+                    session.add(document)
+
+                    # Create indexes
+                    await document_index_manager.create_or_update_document_indexes(
+                        document_id=document.id, index_types=index_types, session=session
+                    )
+
+                    confirmed_count += 1
+
+                except Exception as e:
+                    logger.error(f"Failed to confirm document {document_id}: {e}")
+                    # Try to get document name for better error reporting
+                    document_name = None
+                    try:
+                        stmt_name = select(db_models.Document.name).where(db_models.Document.id == document_id)
+                        result_name = await session.execute(stmt_name)
+                        document_name = result_name.scalar()
+                    except Exception:
+                        pass
+
+                    failed_documents.append(
+                        view_models.FailedDocument(
+                            document_id=document_id, name=document_name, error="CONFIRMATION_FAILED"
+                        )
+                    )
+                    failed_count += 1
+
+        await self.db_ops.execute_with_transaction(_confirm_documents_atomically)
+
+        # Trigger index reconciliation
+        _trigger_index_reconciliation()
+
+        return view_models.ConfirmDocumentsResponse(
+            confirmed_count=confirmed_count, failed_count=failed_count, failed_documents=failed_documents
+        )
 
 
 # Create a global service instance for easy access

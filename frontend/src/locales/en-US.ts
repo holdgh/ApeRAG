@@ -1,6 +1,7 @@
 import { apiKeys } from './en-US/apiKeys';
 import { bot } from './en-US/bots';
 import { collection } from './en-US/collection';
+import { evaluation } from './en-US/evaluation';
 import { model, model_provider } from './en-US/models';
 import { settings } from './en-US/settings';
 import { user, users } from './en-US/users';
@@ -14,6 +15,7 @@ export default {
   ...collection,
   ...apiKeys,
   ...settings,
+  ...evaluation,
 
   // Audit logs
   'audit.logs.title': 'Audit Logs',
@@ -45,6 +47,12 @@ export default {
 
   // Common
   'common.search': 'Search',
+  'common.sort.by': 'Sort',
+  'common.sort.field': 'Sort Field',
+  'common.sort.asc': 'Ascending',
+  'common.sort.desc': 'Descending',
+  'common.pagination.total': 'Total {total} items, showing {start} - {end}',
+  'common.load.more': 'Load More',
   'common.search.placeholder': 'Search collections...',
   'common.search.no.results': 'No matching results found',
   'common.search.try.different.keywords': 'Please try different keywords',
@@ -62,6 +70,8 @@ export default {
   'common.not_configured': 'Not Configured',
   'common.edit': 'Edit',
   'common.delete': 'Delete',
+  'common.ok': 'OK',
+  'common.cancel': 'Cancel',
   'common.pagination.total': 'Showing {start}-{end} of {total} records',
 
   'text.welcome': 'Welcome to ApeRAG',
@@ -89,6 +99,8 @@ export default {
   'text.description': 'Description',
   'text.trial': 'Free Trial',
   'text.outputs': 'Outputs',
+  'text.total': 'Total',
+  'text.items': 'items',
 
   action: '----------------------',
   'action.name': 'Actions',
@@ -227,7 +239,21 @@ export default {
   'git.path.required': 'Path is required',
 
   document: '--------------------------',
-  'document.upload': 'Upload',
+  'document.upload': 'Upload Documents',
+  'document.upload.selectFiles': 'Select Files',
+  'document.upload.selectFolder': 'Select Folder',
+  'document.upload.dragTip': 'Drag files here, or click the buttons below to select files',
+  'document.upload.scanning': 'Scanning files...',
+  'document.upload.fileCount': 'Selected {count} / {total} files, total size: {size}',
+  'document.upload.noFilesSelected': 'Please select at least one file',
+  'document.upload.start': 'Start Upload',
+  'document.upload.next': 'Next',
+  'document.upload.confirm': 'Confirm Add',
+  'document.upload.step.select': 'Select Files',
+  'document.upload.step.upload': 'Upload Files',
+  'document.upload.step.confirm': 'Confirm Upload',
+  'document.path': 'Path',
+  'document.type': 'Type',
   'document.delete.confirm':
     'The document "{name}" will be deleted, confirm the current operation.',
   'document.name': 'Name',
@@ -472,4 +498,48 @@ export default {
   'document.summary.copy': 'Copy Summary',
   'document.summary.copy.success': 'Summary copied to clipboard',
   'document.summary.copy.failed': 'Failed to copy summary',
+  
+  // Document upload result messages
+  'document.upload.result.success': 'Successfully added {count} documents to collection',
+  'document.upload.result.partialFailed': '{count} documents failed to add',
+  'document.upload.result.allSuccess': 'All documents have been successfully added to the collection, system is building indexes in the background',
+  'document.upload.result.backToList': 'Back to Document List',
+  'document.upload.result.failedDetails': 'Failed Document Details',
+  
+  // Document error messages
+  'document.unknown': 'Unknown Document',
+  'document.error.reason': 'Failure Reason',
+  'document.error.expired': 'Document has expired, please re-upload. This may be due to staying too long and temporary files have been cleaned up',
+  'document.error.notUploaded': 'Document status is abnormal, please re-upload',
+  'document.error.notFound': 'Document does not exist or has been deleted',
+  'document.error.confirmationFailed': 'Document confirmation failed, please retry',
+  
+  // Document upload progress messages
+  'document.upload.progress.totalFiles': 'Total Files',
+  'document.upload.progress.uploading': 'Uploading',
+  'document.upload.progress.completed': 'Completed',
+  'document.upload.progress.failed': 'Failed',
+  'document.upload.progress.tab.all': 'All ({count})',
+  'document.upload.progress.tab.uploading': 'Uploading ({count})',
+  'document.upload.progress.tab.completed': 'Completed ({count})',
+  'document.upload.progress.tab.failed': 'Failed ({count})',
+  'document.upload.progress.retryFailed': 'Retry Failed',
+  'document.upload.status.success': 'Upload Success',
+  'document.upload.status.failed': 'Upload Failed',
+  'document.upload.status.pending': 'Pending Upload',
+  'document.upload.action.retry': 'Retry',
+  
+  // Document upload error messages
+  'document.upload.error.parseResponse': 'Failed to parse response',
+  'document.upload.error.httpError': 'Upload failed: HTTP {status}',
+  'document.upload.error.unsupportedFileType': 'Unsupported file type',
+  'document.upload.error.fileSizeTooLarge': 'File size exceeds limit',
+  'document.upload.error.collectionNotFound': 'Collection not found',
+  'document.upload.error.noPermission': 'No permission',
+  'document.upload.error.authFailed': 'Authentication failed, please login again',
+  'document.upload.error.networkError': 'Network error',
+  'document.upload.error.uploadFailed': 'Upload failed',
+  'document.upload.error.noDocumentsToConfirm': 'No documents to confirm',
+  'document.upload.error.confirmFailed': 'Confirmation failed',
+  'document.upload.error.unknown': 'Unknown error',
 };

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -250,7 +251,7 @@ class FulltextIndexer(BaseIndexer):
         }
         self.es.index(index=index, id=chunk_id, document=doc)
 
-    async def search_document(self, index: str, keywords: List[str], topk=3) -> List[DocumentWithScore]:
+    async def search_document(self, index: str, keywords: List[str], topk=3, chat_id: str = None) -> List[DocumentWithScore]:
         try:
             resp = await self.async_es.indices.exists(index=index)
             if not resp.body:
@@ -267,6 +268,12 @@ class FulltextIndexer(BaseIndexer):
                     "minimum_should_match": "80%",
                 },
             }
+
+            # Add chat_id filter if provided
+            if chat_id:
+                query["bool"]["filter"] = [
+                    {"term": {"metadata.chat_id": chat_id}}
+                ]
             sort = [{"_score": {"order": "desc"}}]
             resp = await self.async_es.search(index=index, query=query, sort=sort, size=topk)
             hits = resp.body["hits"]

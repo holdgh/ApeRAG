@@ -3,7 +3,7 @@ VERSION ?= nightly
 VERSION_FILE ?= aperag/version/__init__.py
 BUILDX_PLATFORM ?= linux/amd64,linux/arm64
 BUILDX_ARGS ?= --sbom=false --provenance=false
-REGISTRY ?= registry.cn-hangzhou.aliyuncs.com
+REGISTRY ?=  apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
 
 # Image names
 APERAG_IMAGE = apecloud/aperag
@@ -126,7 +126,7 @@ ifeq ($(REMOVE_VOLUMES),1)
 endif
 
 .PHONY: compose-up compose-down compose-logs compose-infra
-# Full application startup 
+# Full application startup
 compose-up:
 	$(_EXTRA_ENVS) docker-compose $(_PROFILES_TO_ACTIVATE) -f docker-compose.yml up -d
 
@@ -162,8 +162,7 @@ run-flower:
 	celery -A config.celery flower --conf/flowerconfig.py
 
 run-frontend:
-	cp ./frontend/deploy/env.local.template ./frontend/.env
-	cd ./frontend && yarn dev
+	cd ./web && yarn dev
 
 ##################################################
 # Code Quality & Testing
@@ -228,11 +227,12 @@ generate-models: merge-openapi
 		--target-python-version 3.11 \
 		--use-standard-collections \
 		--use-schema-description \
-		--enum-field-as-literal all
+		--enum-field-as-literal all \
+		--output-model-type pydantic_v2.BaseModel
 	@rm aperag/api/openapi.merged.yaml
 
 generate-frontend-sdk:
-	cd ./frontend && yarn api:build
+	cd ./web && yarn api:build
 
 # LLM configuration generation
 .PHONY: llm_provider
@@ -266,8 +266,7 @@ clean-builder:
 	fi
 
 build-aperag-frontend-assets:
-	cp frontend/deploy/env.local.template frontend/.env
-	cd frontend && yarn install && yarn build
+	cd web && yarn install && yarn build
 
 # Production builds (multi-platform with registry push)
 .PHONY: build build-aperag build-aperag-frontend
@@ -279,7 +278,7 @@ build-aperag: setup-builder version
 		-f ./Dockerfile .
 
 build-aperag-frontend: setup-builder build-aperag-frontend-assets
-	cd frontend && docker buildx build \
+	cd web && docker buildx build \
 		--platform=$(BUILDX_PLATFORM) -f Dockerfile --push \
 		-t $(REGISTRY)/$(APERAG_FRONTEND_IMG):$(VERSION) .
 
@@ -293,7 +292,7 @@ build-aperag-local: setup-builder version
 		-f ./Dockerfile .
 
 build-aperag-frontend-local: setup-builder build-aperag-frontend-assets
-	cd frontend && docker buildx build \
+	cd web && docker buildx build \
 		--platform=$(LOCAL_PLATFORM) -f Dockerfile --load \
 		-t $(APERAG_FRONTEND_IMG):$(VERSION) .
 

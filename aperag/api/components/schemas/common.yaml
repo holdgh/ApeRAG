@@ -10,8 +10,40 @@ failResponse:
       description: Error message
       example: "Invalid request"
 
+paginatedResponse:
+  type: object
+  properties:
+    total:
+      type: integer
+      minimum: 0
+      description: Total number of items
+      example: 100
+    page:
+      type: integer
+      minimum: 1
+      description: Current page number
+      example: 1
+    page_size:
+      type: integer
+      minimum: 1
+      description: Number of items per page
+      example: 10
+    total_pages:
+      type: integer
+      minimum: 1
+      description: Total number of pages
+      example: 10
+    has_next:
+      type: boolean
+      description: Whether there is a next page
+      example: true
+    has_prev:
+      type: boolean
+      description: Whether there is a previous page
+      example: false
+
 pageResult:
-  description: PageResult info
+  description: PageResult info (deprecated, use paginatedResponse instead)
   properties:
     page_number:
       type: integer

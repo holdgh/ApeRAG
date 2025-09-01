@@ -82,6 +82,7 @@ class CollectionSummaryStatus(str, Enum):
 
 class CollectionType(str, Enum):
     DOCUMENT = "document"
+    CHAT = "CHAT"
 
 
 class CollectionMarketplaceStatusEnum(str, Enum):
@@ -92,6 +93,8 @@ class CollectionMarketplaceStatusEnum(str, Enum):
 
 
 class DocumentStatus(str, Enum):
+    UPLOADED = "UPLOADED"  # 新增：已上传但未确认添加到collection
+    EXPIRED = "EXPIRED"  # 新增：已过期的临时上传文档
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     COMPLETE = "COMPLETE"
@@ -186,6 +189,33 @@ class APIType(str, Enum):
     COMPLETION = "completion"
     EMBEDDING = "embedding"
     RERANK = "rerank"
+
+
+class QuestionType(str, Enum):
+    """Question type enumeration"""
+
+    FACTUAL = "FACTUAL"
+    INFERENTIAL = "INFERENTIAL"
+    USER_DEFINED = "USER_DEFINED"
+
+
+class EvaluationStatus(str, Enum):
+    """Evaluation task lifecycle status"""
+
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class EvaluationItemStatus(str, Enum):
+    """Evaluation item lifecycle status"""
+
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 # Models
@@ -320,6 +350,9 @@ class Document(Base):
     collection_id = Column(String(24), nullable=True, index=True)  # Add index for collection queries
     status = Column(EnumColumn(DocumentStatus), nullable=False, index=True)  # Add index for status queries
     size = Column(BigInteger, nullable=False)  # Support larger files (up to 9 exabytes)
+    content_hash = Column(
+        String(64), nullable=True, index=True
+    )  # SHA-256 hash of original file content for duplicate detection
     object_path = Column(Text, nullable=True)
     doc_metadata = Column(Text, nullable=True)  # Store document metadata as JSON string
     gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
@@ -480,7 +513,6 @@ class MessageFeedback(Base):
     )
 
     user = Column(String(256), nullable=False, index=True)  # Add index for user queries
-    collection_id = Column(String(24), nullable=True, index=True)  # Add index for collection queries
     chat_id = Column(String(24), primary_key=True)
     message_id = Column(String(256), primary_key=True)
     type = Column(EnumColumn(MessageFeedbackType), nullable=True)
@@ -493,17 +525,6 @@ class MessageFeedback(Base):
     gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     gmt_updated = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     gmt_deleted = Column(DateTime(timezone=True), nullable=True, index=True)  # Add index for soft delete queries
-
-    async def get_collection(self, session):
-        """Get the associated collection object"""
-        return await session.get(Collection, self.collection_id)
-
-    async def set_collection(self, collection):
-        """Set the collection_id by Collection object or id"""
-        if hasattr(collection, "id"):
-            self.collection_id = collection.id
-        elif isinstance(collection, str):
-            self.collection_id = collection
 
     async def get_chat(self, session):
         """Get the associated chat object"""
@@ -655,6 +676,7 @@ class User(Base):
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=True, nullable=False)  # fastapi-users requires is_verified
     is_staff = Column(Boolean, default=False, nullable=False)
+    chat_collection_id = Column(String(24), nullable=True, index=True)  # Chat collection for user
     date_joined = Column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )  # Unified naming with other time fields
@@ -1046,6 +1068,87 @@ class MergeSuggestionHistory(Base):
         return (
             f"<MergeSuggestionHistory(id={self.id}, original_id={self.original_suggestion_id}, status={self.status})>"
         )
+
+
+class QuestionSet(Base):
+    __tablename__ = "question_sets"
+    __table_args__ = (Index("idx_question_sets_user_id", "user_id"),)
+
+    id = Column(String(24), primary_key=True, default=lambda: "qs_" + random_id()[:16])
+    user_id = Column(String(24), nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_updated = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_deleted = Column(DateTime(timezone=True), nullable=True)
+
+    def __repr__(self):
+        return f"<QuestionSet(id={self.id}, name={self.name}, user_id={self.user_id})>"
+
+
+class Question(Base):
+    __tablename__ = "questions"
+    __table_args__ = (Index("idx_questions_question_set_id", "question_set_id"),)
+
+    id = Column(String(24), primary_key=True, default=lambda: "q_" + random_id()[:16])
+    question_set_id = Column(String(24), nullable=False)
+    question_type = Column(EnumColumn(QuestionType), nullable=True)
+    question_text = Column(Text, nullable=False)
+    ground_truth = Column(Text, nullable=False)
+    gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_updated = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_deleted = Column(DateTime(timezone=True), nullable=True)
+
+    def __repr__(self):
+        return f"<Question(id={self.id}, qs_id={self.question_set_id})>"
+
+
+class Evaluation(Base):
+    __tablename__ = "evaluations"
+    __table_args__ = (
+        Index("idx_evaluations_user_id", "user_id"),
+        Index("idx_evaluations_status", "status"),
+    )
+
+    id = Column(String(24), primary_key=True, default=lambda: "eval_" + random_id()[:16])
+    user_id = Column(String(24), nullable=False)
+    name = Column(String(255), nullable=False)
+    collection_id = Column(String(24), nullable=False)
+    question_set_id = Column(String(24), nullable=False)
+    agent_llm_config = Column(JSON, nullable=False)
+    judge_llm_config = Column(JSON, nullable=False)
+    status = Column(EnumColumn(EvaluationStatus), nullable=False, default=EvaluationStatus.PENDING)
+    error_message = Column(Text, nullable=True)
+    total_questions = Column(Integer, nullable=False, default=0)
+    completed_questions = Column(Integer, nullable=False, default=0)
+    average_score = Column(Numeric(3, 2), nullable=True)
+    gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_updated = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_deleted = Column(DateTime(timezone=True), nullable=True)
+
+    def __repr__(self):
+        return f"<Evaluation(id={self.id}, name={self.name}, status={self.status})>"
+
+
+class EvaluationItem(Base):
+    __tablename__ = "evaluation_items"
+    __table_args__ = (Index("idx_evaluation_items_evaluation_id", "evaluation_id"),)
+
+    id = Column(String(24), primary_key=True, default=lambda: "item_" + random_id()[:16])
+    evaluation_id = Column(String(24), nullable=False)
+    question_id = Column(String(24), nullable=True)
+    status = Column(EnumColumn(EvaluationItemStatus), nullable=False, default=EvaluationItemStatus.PENDING, index=True)
+    question_text = Column(Text, nullable=False)
+    ground_truth = Column(Text, nullable=False)
+    rag_answer = Column(Text, nullable=True)
+    rag_answer_details = Column(JSON, nullable=True)
+    llm_judge_score = Column(Integer, nullable=True)
+    llm_judge_reasoning = Column(Text, nullable=True)
+    gmt_created = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    gmt_updated = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    def __repr__(self):
+        return f"<EvaluationItem(id={self.id}, eval_id={self.evaluation_id}, q_id={self.question_id})>"
 
 
 class Setting(Base):

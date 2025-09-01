@@ -164,7 +164,7 @@ summary_generate:
 documents:
   get:
     summary: List documents
-    description: Get a list of documents
+    description: Get a paginated list of documents with sorting and search capabilities
     security:
       - BearerAuth: []
     parameters:
@@ -177,15 +177,38 @@ documents:
         in: query
         schema:
           type: integer
+          minimum: 1
           default: 1
+        description: Page number (1-based)
       - name: page_size
         in: query
         schema:
           type: integer
+          minimum: 1
+          maximum: 100
           default: 10
+        description: Number of items per page
+      - name: sort_by
+        in: query
+        schema:
+          type: string
+          enum: ["name", "created", "updated", "size", "status"]
+        description: Field to sort by
+      - name: sort_order
+        in: query
+        schema:
+          type: string
+          enum: ["asc", "desc"]
+          default: "desc"
+        description: Sort order
+      - name: search
+        in: query
+        schema:
+          type: string
+        description: Search documents by name
     responses:
       '200':
-        description: List of documents
+        description: Paginated list of documents
         content:
           application/json:
             schema:
@@ -409,6 +432,101 @@ rebuild_indexes:
               $ref: '../components/schemas/common.yaml#/failResponse'
       '404':
         description: Document not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+upload_document:
+  post:
+    summary: Upload a single document
+    description: Upload a single document file to temporary storage (UPLOADED status)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: collection_id
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              file:
+                type: string
+                format: binary
+                description: Document file to upload
+            required:
+              - file
+    responses:
+      '200':
+        description: Document uploaded successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/document.yaml#/uploadDocumentResponse'
+      '400':
+        description: Bad request - invalid file or file too large
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '404':
+        description: Collection not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+
+confirm_documents:
+  post:
+    summary: Confirm documents to collection
+    description: Confirm uploaded documents and add them to the collection (change status from UPLOADED to PENDING)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: collection_id
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/document.yaml#/confirmDocumentsRequest'
+    responses:
+      '200':
+        description: Documents confirmed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/document.yaml#/confirmDocumentsResponse'
+      '400':
+        description: Bad request - invalid document IDs or quota exceeded
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/failResponse'
+      '404':
+        description: Collection not found
         content:
           application/json:
             schema:

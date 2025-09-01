@@ -29,6 +29,7 @@ class StoredChatMessagePart(BaseModel):
     urls: List[str] = Field(default_factory=list, description="URL references")
     feedback: Optional[Dict[str, Any]] = Field(None, description="User feedback data")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    files: List[Dict[str, Any]] = Field(default_factory=list, description="Associated document files")
 
 
 class StoredChatMessage(BaseModel):
@@ -51,6 +52,11 @@ class StoredChatMessage(BaseModel):
     def timestamp(self) -> Optional[float]:
         """Get timestamp from first part (convenience property)"""
         return self.parts[0].timestamp if self.parts else None
+
+    @property
+    def role(self) -> Optional[float]:
+        """Get timestamp from first part (convenience property)"""
+        return self.parts[0].role if self.parts else None
 
     def to_frontend_format(self) -> List[ChatMessage]:
         """Convert parts to frontend ChatMessage format"""
@@ -117,6 +123,7 @@ def create_user_message(
     message_id: str = None,
     trace_id: Optional[str] = None,
     metadata: Optional[Dict] = None,
+    files: List[Dict[str, Any]] = None,
 ) -> StoredChatMessage:
     """Create a user message"""
     if not message_id:
@@ -130,6 +137,7 @@ def create_user_message(
         role="human",
         content=content,
         metadata=metadata,
+        files=files or [],
     )
 
     return StoredChatMessage(parts=[part])
