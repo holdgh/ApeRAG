@@ -35,6 +35,14 @@ reference:
       type: object
       additionalProperties: true
 
+file:
+  type: object
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+
 chatMessage:
   type: object
   properties:
@@ -62,6 +70,11 @@ chatMessage:
         type: string
     feedback:
       $ref: './feedback.yaml#/feedback'
+    files:
+      type: array
+      items:
+        $ref: '#/file'
+          
 
 chatDetails:
   type: object
