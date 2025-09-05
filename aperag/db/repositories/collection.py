@@ -101,11 +101,6 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
             instance = result.scalars().first()
 
             if instance:
-                # Check if collection has related bots
-                collection_bots = await instance.bots(session, only_ids=True)
-                if len(collection_bots) > 0:
-                    raise ValueError(f"Collection has related to bots {','.join(collection_bots)}, can not be deleted")
-
                 instance.status = CollectionStatus.DELETED
                 instance.gmt_deleted = utc_now()
                 session.add(instance)
