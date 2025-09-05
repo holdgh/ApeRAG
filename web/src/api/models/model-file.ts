@@ -17,19 +17,19 @@
 /**
  * 
  * @export
- * @interface AgentMessageFilesInner
+ * @interface ModelFile
  */
-export interface AgentMessageFilesInner {
+export interface ModelFile {
     /**
-     * File ID
+     * 
      * @type {string}
-     * @memberof AgentMessageFilesInner
+     * @memberof ModelFile
      */
     'id'?: string;
     /**
-     * File name
+     * 
      * @type {string}
-     * @memberof AgentMessageFilesInner
+     * @memberof ModelFile
      */
     'name'?: string;
 }

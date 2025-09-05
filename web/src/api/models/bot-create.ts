@@ -13,6 +13,9 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { BotConfig } from './bot-config';
 
 /**
  * 
@@ -33,23 +36,17 @@ export interface BotCreate {
      */
     'description'?: string;
     /**
-     * 
+     * The type of bot
      * @type {string}
      * @memberof BotCreate
      */
     'type'?: BotCreateTypeEnum;
     /**
      * 
-     * @type {string}
+     * @type {BotConfig}
      * @memberof BotCreate
      */
-    'config'?: string;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof BotCreate
-     */
-    'collection_ids'?: Array<string>;
+    'config'?: BotConfig;
 }
 
 export const BotCreateTypeEnum = {
