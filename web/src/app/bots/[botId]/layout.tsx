@@ -2,6 +2,7 @@ import { Chat } from '@/api';
 
 import { SideBarMenuChats } from '@/components/chat/sidebar-menu-chats';
 import { BotProvider } from '@/components/providers/bot-provider';
+import { Button } from '@/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +12,8 @@ import {
 } from '@/components/ui/sidebar';
 import { getServerApi } from '@/lib/api/server';
 import { toJson } from '@/lib/utils';
-import { Bot } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export default async function ChatLayout({
@@ -54,7 +56,11 @@ export default async function ChatLayout({
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader className="flex h-16 flex-row items-center gap-2 px-2 align-middle">
-            <Bot />
+            <Button variant="secondary" asChild>
+              <Link href="/bots">
+                <ArrowLeft />
+              </Link>
+            </Button>
             <div className="flex-1 truncate text-sm font-bold">{bot.title}</div>
           </SidebarHeader>
           <SidebarContent className="gap-0">

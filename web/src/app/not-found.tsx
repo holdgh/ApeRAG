@@ -27,9 +27,6 @@ export default function NotFoundPage() {
             <div className="flex flex-col gap-4 self-center text-center">
               <div className="text-7xl font-bold">404</div>
               <div className="text-4xl">Page Not Found</div>
-              <Button asChild className="mt-12">
-                <Link href="/">Go back home</Link>
-              </Button>
             </div>
           </div>
           <div

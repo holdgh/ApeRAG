@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { apiClient } from '@/lib/api/client';
 import {
+  ArrowLeft,
   Calendar,
   EllipsisVertical,
   Files,
@@ -91,7 +92,14 @@ export const CollectionHeader = ({ className }: { className?: string }) => {
     <PageContent className={cn('flex flex-col gap-4 pb-0', className)}>
       <Card className="gap-0 p-0">
         <CardHeader className="p-4">
+          <div className='flex flex-row gap-2 items-center'>
+            <Button variant="ghost" asChild>
+              <Link href="/workspace/collections">
+                <ArrowLeft />
+              </Link>
+            </Button>
           <CardTitle className="text-2xl">{collection.title}</CardTitle>
+          </div>
           <CardDescription className="flex flex-row items-center gap-6">
             <div>
               {collection.created && (
