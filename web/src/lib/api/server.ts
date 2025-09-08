@@ -11,6 +11,7 @@ import {
 } from '@/api';
 import { getLocale } from '@/services/cookies';
 import axios from 'axios';
+import _ from 'lodash';
 import { cookies } from 'next/headers';
 
 const configuration = new Configuration();
@@ -21,6 +22,20 @@ const request = axios.create({
     (process.env.API_SERVER_BASE_PATH || '/api/v1'),
   timeout: 1000 * 5,
 });
+
+request.interceptors.request.use(async function(config) {
+
+  const allCookies = (await cookies());
+
+  const abt = allCookies.get('abt');
+
+  if(abt) {
+    _.set(config, 'headers.Authorization', `Bearer ${abt.value}`);
+  }
+
+  console.log(config)
+  return config;
+})
 
 request.interceptors.request.use(
   async (config) => {
