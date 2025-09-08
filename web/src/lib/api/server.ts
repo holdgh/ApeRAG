@@ -33,7 +33,6 @@ request.interceptors.request.use(async function(config) {
     _.set(config, 'headers.Authorization', `Bearer ${abt.value}`);
   }
 
-  console.log(config)
   return config;
 })
 
