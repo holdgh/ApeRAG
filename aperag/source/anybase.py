@@ -45,15 +45,15 @@ class AnybaseSource(ObjectStorageSource):
             raise CustomSourceInitializationError("ANYBASE_ACCESS_KEY environment variable is required")
         if not settings.anybase_config.secret_key:
             raise CustomSourceInitializationError("ANYBASE_SECRET_KEY environment variable is required")
-        if not settings.anybase_config.bucket:
-            raise CustomSourceInitializationError("ANYBASE_BUCKET environment variable is required")
+        # if not settings.anybase_config.bucket:
+        #     raise CustomSourceInitializationError("ANYBASE_BUCKET environment variable is required")
         
         # Create object_storage config from environment variables and user input
         object_storage_config = ObjectStorage(
             endpoint=settings.anybase_config.endpoint,
             access_key=settings.anybase_config.access_key,
             secret_key=settings.anybase_config.secret_key,
-            bucket=settings.anybase_config.bucket,
+            bucket=ctx.anybase.bucket,
             region=settings.anybase_config.region,
             enable_path_style=settings.anybase_config.use_path_style,
             object_prefix=ctx.anybase.object_prefix or "",
