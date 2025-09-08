@@ -2,6 +2,7 @@
 
 import {
   AuditApi,
+  ChatDocumentsApi,
   Configuration,
   DefaultApi,
   EvaluationApi,
@@ -16,8 +17,8 @@ const configuration = new Configuration();
 
 const request = axios.create({
   baseURL:
-    (process.env.NEXT_PUBLIC_API_SERVER_ENDPOINT || 'http://localhost:8000') +
-    (process.env.NEXT_PUBLIC_API_SERVER_BASE_PATH || '/api/v1'),
+    (process.env.API_SERVER_ENDPOINT || 'http://localhost:8000') +
+    (process.env.API_SERVER_BASE_PATH || '/api/v1'),
   timeout: 1000 * 5,
 });
 
@@ -45,6 +46,7 @@ const api = {
   quotasApi: new QuotasApi(configuration, undefined, request),
   auditApi: new AuditApi(configuration, undefined, request),
   evaluationApi: new EvaluationApi(configuration, undefined, request),
+  chatDocumentsApi: new ChatDocumentsApi(configuration, undefined, request),
 };
 
 export const getServerApi = async () => {

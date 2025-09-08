@@ -56,6 +56,12 @@ export interface AgentMessage {
      * @memberof AgentMessage
      */
     'language'?: AgentMessageLanguageEnum;
+    /**
+     * 
+     * @type {Array<any>}
+     * @memberof AgentMessage
+     */
+    'files'?: Array<any>;
 }
 
 export const AgentMessageLanguageEnum = {

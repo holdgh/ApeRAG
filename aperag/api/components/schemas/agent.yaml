@@ -42,6 +42,10 @@ AgentMessage:
         - it-IT
         - pt-BR
         - ru-RU
+    files:
+      type: array
+      items:
+        $ref: './chat.yaml#/file'
   required:
     - query
     - collections

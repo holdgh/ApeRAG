@@ -14,7 +14,7 @@
     "action": {
       "save": "Save",
       "cancel": "Cancel",
-      "continue": "Contunue",
+      "continue": "Continue",
       "update": "Update"
     },
     "tips": {
@@ -46,6 +46,33 @@
       "page_info": "Page {page} of {total}"
     }
   },
+  "page_api_keys": {
+    "metadata": {
+      "title": "API keys",
+      "description": "This section allows you to securely store, update, and manage API keys for different AI services (such as OpenAI, Anthropic, Gemini, etc.). Connecting your keys enables personalized AI interactions while keeping your credentials protected."
+    },
+    "description": "Description",
+    "search_api_keys": "Search",
+    "creation_time": "Creation time",
+    "last_used_time": "Last used time",
+    "api_keys": "API Keys",
+    "api_key_placeholder": "Please describe the purpose of an Api Key.",
+    "api_key_description": "API keys must be kept confidential (e.g., stored in environment variables) to avoid exploitation or unexpected charges.",
+    "add_api_keys": "Create Api Key",
+    "edit_api_keys": "Edit",
+    "delete_api_key": "Delete Api Key",
+    "delete_api_key_confirm": "Confirm deletion of the API key?"
+  },
+  "page_audit_logs": {
+    "metadata": {
+      "title": "Audit Logs",
+      "description": "Track and review all critical system activities with Audit Logs—a detailed record of user actions, API calls, and administrative changes. Ensure transparency, security, and compliance by monitoring who did what, when, and from where."
+    },
+    "search_placeholder": "Search by API Name",
+    "status": "Status",
+    "duration": "Duration",
+    "start_time": "Start Time"
+  },
   "page_auth": {
     "account": "Account",
     "administrator": "Administrator",
@@ -76,6 +103,37 @@
     "retry": "Retry",
     "oauth_verification_failed": "oauth_verification_failed",
     "an_unexpected_error_occurred": "An unexpected error occurred"
+  },
+  "page_bot": {
+    "metadata": {
+      "title": "Applications",
+      "description": "ApeRAG is a new chatbot based on local datasets and utilizes multiple large language models."
+    },
+    "search": "Search application",
+    "new_bot": "Create application",
+    "bot_settings": "Application settings",
+    "delete_bot": "Delete",
+    "delete_bot_confirm": "Deleting the application will remove all sessions under this app. Please confirm the operation!",
+    "no_bots_found": "No application found",
+    "no_description_available": "No description available",
+    "general": "General",
+    "model_config": "Model Settings",
+    "title": "Title",
+    "title_placeholder": "Application title",
+    "description": "Description",
+    "description_placeholder": "Please briefly introduce the purpose of the application.",
+    "collection": "Collection",
+    "collection_placeholder": "Select a collection",
+    "no_collection_found": "No Collection found.",
+    "model": "Model",
+    "model_description": "Setting the default model will serve as the default model for all new sessions.",
+    "system_prompt_template": "System Prompt Template",
+    "system_prompt_template_placeholder": "System Prompt Template",
+    "system_prompt_template_description": "System Prompt defines the AI's role and behavioral rules, setting the overall context for the interaction.",
+    "query_prompt_template": "Query Prompt Template",
+    "query_prompt_template_placeholder": "Query Prompt Template",
+    "query_prompt_template_description": "Query Prompt represents the user's specific input or question, which the AI processes and responds to within the framework set by the System Prompt.",
+    "restore_to_default": "Restore to default"
   },
   "page_chat": {
     "metadata": {
@@ -137,7 +195,6 @@
     "mine": "Mine",
     "subscribed": "Subscribed",
     "subscribe": "Subscribe",
-    "unsubscribe": "Unsubscribe",
     "no_description_available": "No description available",
     "create_collection": "Create Collection",
     "update_collection": "Update Collection",
@@ -183,12 +240,21 @@
     "completion_model": "Completion Model",
     "completion_model_description": "A completion model is an AI that generates new content by predicting the most likely subsequent text based on a given input."
   },
+  "page_docs": {
+    "metadata": {
+      "title": "Documents"
+    }
+  },
   "page_documents": {
     "metadata": {
       "title": "Documents"
     },
     "add_documents": "Add Documents",
-    "index_rebuild": "Index Rebuild",
+    "index_rebuild": "Rebuild Index",
+    "index_rebuild_should_select_index_type": "You have to select at least one item.",
+    "index_rebuild_failed": "Rebuild Failed Index",
+    "index_rebuild_failed_success": "Rebuild successfully.",
+    "index_rebuild_failed_confirm": "Are you sure you want to rebuild all failed indexes?",
     "index_rebuild_tips": "You can configure the index types in Settings.",
     "index_rebuild_with": "Index rebuild initiated for types: {types}",
     "delete_document": "Delete document",
@@ -209,10 +275,9 @@
   },
   "page_evaluation": {
     "metadata": {
-      "title": "Evaluation",
-      "description": "Efficiently track, manage, and review the historical performance of your Retrieval-Augmented Generation (RAG) evaluations all in one place."
+      "title": "Evaluations"
     },
-    "search": "Search",
+    "search": "Search history",
     "add_evaluation": "Add evaluation",
     "delete_evaluation": "Delete evaluation",
     "delete_evaluation_confirm": "This action cannot be undone. This will permanently delete evaluation and remove your evaluation from our servers.",
@@ -220,13 +285,11 @@
     "retry_all_evaluation_confirm": "Are you sure you want to re-evaluate all questions?",
     "retry_failed_evaluation": "Retry Failed",
     "retry_failed_evaluation_confirm": "Are you sure you want to re-evaluate these failed questions?",
+    "evaluation_history": "Evaluation history",
     "questions": "Question",
     "avg_score": "Avg. Score",
     "evaluation_name": "Evaluation name",
     "evaluation_name_placeholder": "Enter the evaluation name",
-    "collection": "Collection",
-    "collection_placeholder": "Select a collection",
-    "add_collection": "Add Collection",
     "question_set": "Question Set",
     "question_set_placeholder": "Select a question set",
     "add_question_set": "Add Question Set",
@@ -244,13 +307,22 @@
     },
     "node_group": "Node Group",
     "no_nodes_found": "No node information found",
-    "merge_infomation": "There are {count} node merge suggestions.",
+    "merge_infomation": "{count} suggestions",
     "merge_suggestions": "Merge suggestions",
     "merge_accept": "Accept",
     "merge_reject": "Reject",
     "merge_accepted": "Accepted",
     "merge_rejected": "Rejected",
-    "merge_pending": "Pending"
+    "merge_pending": "Pending",
+    "entity_person": "Person",
+    "entity_category": "Category",
+    "entity_date": "Date",
+    "entity_product": "Product",
+    "entity_organization": "Organization",
+    "entity_technology": "Technology",
+    "entity_geo": "GEO",
+    "entity_event": "Event",
+    "entity_UNKNOWN": "UNKNOWN"
   },
   "page_marketplace": {
     "metadata": {
@@ -260,129 +332,6 @@
     "no_collections_found": "No collections found",
     "no_description_available": "No description available",
     "search": "Search"
-  },
-  "page_question_set": {
-    "metadata": {
-      "title": "Question Sets",
-      "description": "An Evaluation Question Set is a focused collection of questions designed to systematically assess the effectiveness, impact."
-    },
-    "search": "Search",
-    "add_question_set": "Add Question Set",
-    "update_question_set": "Update Question Set",
-    "delete_question_set": "Delete Question Set",
-    "delete_question_set_confirm": "This action cannot be undone. This will permanently delete question set and remove your question set from our servers.",
-    "question_set_name": "Question set name",
-    "question_set_name_placeholder": "Enter your question set name.",
-    "question_set_description": "description",
-    "question_set_description_placeholder": "Enter your question set description.",
-    "add_question": "Add Question",
-    "add_question_manual": "Manual",
-    "add_question_generator": "Generate from collection",
-    "add_question_import": "Import from File",
-    "update_question": "Update Question",
-    "delete_question": "Delete Question",
-    "delete_question_confirm": "This action cannot be undone. This will permanently delete question.",
-    "question_content": "Question",
-    "question_content_placeholder": "Enter your question...",
-    "ground_truth": "Ground Truth",
-    "ground_truth_placeholder": "Enter the ground truth...",
-    "no_question_found": "No question found",
-    "collection": "Collection",
-    "collection_placeholder": "Select a collection",
-    "question_count": "Question Count",
-    "question_count_placeholder": "Enter the question count",
-    "question_llm": "LLM model",
-    "question_llm_placeholder": "Select a model",
-    "prompt_template": "Prompt Template",
-    "prompt_template_placeholder": "Enter your prompt...",
-    "prompt_template_tips": "The following variables will be replaced by the system:",
-    "prompt_template_document_content": "The content of the document from the collection.",
-    "prompt_template_number_of_question": "The number of questions to be generated."
-  },
-  "page_search": {
-    "metadata": {
-      "title": "Search Test"
-    },
-    "search": "Search",
-    "test": "Test",
-    "questions": "Questions",
-    "questions_placeholder": "Enter your question.",
-    "creation_time": "Creation time",
-    "search_result": "Search Result",
-    "delete": "Delete",
-    "delete_confirm": "This action cannot be undone. This will permanently delete search result.",
-    "vector_search": "Vector",
-    "fulltext_search": "Fulltext",
-    "graph_search": "Graph",
-    "summary_search": "Summary"
-  },
-  "sidebar_workspace": {
-    "repositories": "Repositories",
-    "marketplace": "Marketplace",
-    "collections": "Collections",
-    "chats": "Chats",
-    "chats_new": "Create chat",
-    "display_empty_title": "New chat",
-    "more": "More",
-    "question_evaluation": "Question Evaluation",
-    "evaluations": "Evaluations",
-    "question_sets": "Question Sets",
-    "settings": "Settings",
-    "models": "Models",
-    "api_keys": "API Keys",
-    "audit_logs": "Audit Logs",
-    "quotas": "Quotas"
-  },
-  "page_quota": {
-    "metadata": {
-      "title": "Quotas",
-      "description": "Manage your usage limits for AI models, API calls, and other resources in this section. Quotas help you control costs, prevent overuse, and optimize your experience."
-    },
-    "limit": "Limit",
-    "usage": "Usage",
-    "bot_count": {
-      "title": "Bot Count",
-      "description": "The upper limit for active bots in a system, preventing resource overuse and ensuring stability."
-    },
-    "collection_count": {
-      "title": "Collection Count",
-      "description": "The maximum allowed collections in a database, controlling data structure complexity."
-    },
-    "document_count": {
-      "title": "Documents Overall",
-      "description": "Caps the total documents across all collections, managing overall storage capacity."
-    },
-    "documents_per_collection": {
-      "title": "Documents per Collection",
-      "description": "Limits documents per collection, optimizing query performance and data balance."
-    }
-  },
-  "page_audit_logs": {
-    "metadata": {
-      "title": "Audit Logs",
-      "description": "Track and review all critical system activities with Audit Logs—a detailed record of user actions, API calls, and administrative changes. Ensure transparency, security, and compliance by monitoring who did what, when, and from where."
-    },
-    "search_placeholder": "Search by API Name",
-    "status": "Status",
-    "duration": "Duration",
-    "start_time": "Start Time"
-  },
-  "page_api_keys": {
-    "metadata": {
-      "title": "API keys",
-      "description": "This section allows you to securely store, update, and manage API keys for different AI services (such as OpenAI, Anthropic, Gemini, etc.). Connecting your keys enables personalized AI interactions while keeping your credentials protected."
-    },
-    "description": "Description",
-    "search_api_keys": "Search",
-    "creation_time": "Creation time",
-    "last_used_time": "Last used time",
-    "api_keys": "API Keys",
-    "api_key_placeholder": "Please describe the purpose of an Api Key.",
-    "api_key_description": "API keys must be kept confidential (e.g., stored in environment variables) to avoid exploitation or unexpected charges.",
-    "add_api_keys": "Create Api Key",
-    "edit_api_keys": "Edit",
-    "delete_api_key": "Delete Api Key",
-    "delete_api_key_confirm": "Confirm deletion of the API key?"
   },
   "page_models": {
     "metadata": {
@@ -430,5 +379,96 @@
       "delete": "Delete",
       "delete_confirm": "Confirm deletion of the model?"
     }
+  },
+  "page_question_set": {
+    "metadata": {
+      "title": "Question Sets"
+    },
+    "search": "Search",
+    "add_question_set": "Add Question Set",
+    "update_question_set": "Update Question Set",
+    "delete_question_set": "Delete Question Set",
+    "delete_question_set_confirm": "This action cannot be undone. This will permanently delete question set and remove your question set from our servers.",
+    "question_set_name": "Question set name",
+    "question_set_name_placeholder": "Enter your question set name.",
+    "question_set_description": "description",
+    "question_set_description_placeholder": "Enter your question set description.",
+    "add_question": "Add Question",
+    "add_question_manual": "Manual",
+    "add_question_generator": "Generate from collection",
+    "add_question_import": "Import from File",
+    "update_question": "Update Question",
+    "delete_question": "Delete Question",
+    "delete_question_confirm": "This action cannot be undone. This will permanently delete question.",
+    "question_content": "Question",
+    "question_content_placeholder": "Enter your question...",
+    "ground_truth": "Ground Truth",
+    "ground_truth_placeholder": "Enter the ground truth...",
+    "no_question_found": "No question found",
+    "question_count": "Question Count",
+    "question_count_placeholder": "Enter the question count",
+    "question_llm": "LLM model",
+    "question_llm_placeholder": "Select a model",
+    "prompt_template": "Prompt Template",
+    "prompt_template_placeholder": "Enter your prompt...",
+    "prompt_template_tips": "The following variables will be replaced by the system:",
+    "prompt_template_document_content": "The content of the document from the collection.",
+    "prompt_template_number_of_question": "The number of questions to be generated."
+  },
+  "page_quota": {
+    "metadata": {
+      "title": "Quotas",
+      "description": "Manage your usage limits for AI models, API calls, and other resources in this section. Quotas help you control costs, prevent overuse, and optimize your experience."
+    },
+    "limit": "Limit",
+    "usage": "Usage",
+    "bot_count": {
+      "title": "Bot Count",
+      "description": "The upper limit for active bots in a system, preventing resource overuse and ensuring stability."
+    },
+    "collection_count": {
+      "title": "Collection Count",
+      "description": "The maximum allowed collections in a database, controlling data structure complexity."
+    },
+    "document_count": {
+      "title": "Documents Overall",
+      "description": "Caps the total documents across all collections, managing overall storage capacity."
+    },
+    "documents_per_collection": {
+      "title": "Documents per Collection",
+      "description": "Limits documents per collection, optimizing query performance and data balance."
+    }
+  },
+  "page_search": {
+    "metadata": {
+      "title": "Search Test"
+    },
+    "search": "Search",
+    "test": "Test",
+    "questions": "Questions",
+    "questions_placeholder": "Enter your question.",
+    "creation_time": "Creation time",
+    "search_result": "Search Result",
+    "delete": "Delete",
+    "delete_confirm": "This action cannot be undone. This will permanently delete search result.",
+    "vector_search": "Vector",
+    "fulltext_search": "Fulltext",
+    "graph_search": "Graph",
+    "summary_search": "Summary"
+  },
+  "sidebar_workspace": {
+    "repositories": "Repositories",
+    "marketplace": "Marketplace",
+    "collections": "Collections",
+    "bots": "Bots",
+    "chats": "Chats",
+    "chats_new": "Create chat",
+    "display_empty_title": "New chat",
+    "more": "More",
+    "settings": "Settings",
+    "models": "Models",
+    "api_keys": "API Keys",
+    "audit_logs": "Audit Logs",
+    "quotas": "Quotas"
   }
 }

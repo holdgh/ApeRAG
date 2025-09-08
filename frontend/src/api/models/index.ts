@@ -28,6 +28,7 @@ export * from './collection-update';
 export * from './collection-view';
 export * from './collection-view-list';
 export * from './collections-collection-id-graphs-export-kg-eval-get200-response';
+export * from './collections-collection-id-rebuild-failed-indexes-post200-response';
 export * from './collections-collection-id-summary-generate-post200-response';
 export * from './collections-collection-id-sync-post200-response';
 export * from './collections-collection-id-sync-post200-response-stats';

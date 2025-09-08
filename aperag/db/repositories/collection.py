@@ -101,11 +101,6 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
             instance = result.scalars().first()
 
             if instance:
-                # Check if collection has related bots
-                collection_bots = await instance.bots(session, only_ids=True)
-                if len(collection_bots) > 0:
-                    raise ValueError(f"Collection has related to bots {','.join(collection_bots)}, can not be deleted")
-
                 instance.status = CollectionStatus.DELETED
                 instance.gmt_deleted = utc_now()
                 session.add(instance)
@@ -131,9 +126,9 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
             stmt = (
                 select(Collection)
                 .where(
-                    Collection.user.in_(users), 
+                    Collection.user.in_(users),
                     Collection.status != CollectionStatus.DELETED,
-                    Collection.type != CollectionType.CHAT # Exclude chat collections from regular list
+                    Collection.type != CollectionType.CHAT,  # Exclude chat collections from regular list
                 )
                 .order_by(desc(Collection.gmt_created))
             )
@@ -171,9 +166,9 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
                     ),
                 )
                 .where(
-                    Collection.user == user_id, 
+                    Collection.user == user_id,
                     Collection.status != CollectionStatus.DELETED,
-                    Collection.type != CollectionType.CHAT  # Exclude chat collections from regular list
+                    Collection.type != CollectionType.CHAT,  # Exclude chat collections from regular list
                 )
                 .order_by(desc(Collection.gmt_created))
             )
@@ -188,9 +183,9 @@ class AsyncCollectionRepositoryMixin(AsyncRepositoryProtocol):
                 select(func.count())
                 .select_from(Collection)
                 .where(
-                    Collection.user == user, 
+                    Collection.user == user,
                     Collection.status != CollectionStatus.DELETED,
-                    Collection.type != CollectionType.CHAT  # Exclude chat collections from regular count
+                    Collection.type != CollectionType.CHAT,  # Exclude chat collections from regular count
                 )
             )
             return await session.scalar(stmt)

@@ -40,6 +40,7 @@ from aperag.index.manager import document_index_manager
 from aperag.objectstore.base import get_async_object_store
 from aperag.schema import view_models
 from aperag.schema.view_models import Chunk, DocumentList, DocumentPreview, VisionChunk
+from aperag.service.marketplace_service import marketplace_service
 from aperag.utils.pagination import (
     ListParams,
     PaginatedResponse,
@@ -367,7 +368,7 @@ class DocumentService:
         )
 
     async def create_documents(
-        self, user: str, collection_id: str, files: List[UploadFile], custom_metadata: dict = None
+        self, user: str, collection_id: str, files: List[UploadFile], custom_metadata: dict = None, ignore_duplicate: bool = False
     ) -> view_models.DocumentList:
         if len(files) > 50:
             raise invalid_param("file_count", "documents are too many, add document failed")
@@ -413,7 +414,7 @@ class DocumentService:
                     user, collection.id, file_info["filename"], file_info["file_hash"]
                 )
 
-                if existing_doc:
+                if existing_doc and not ignore_duplicate:
                     # Return existing document info (idempotent behavior)
                     logger.info(
                         f"Document '{file_info['filename']}' already exists with same content, returning existing document {existing_doc.id}"
@@ -466,6 +467,9 @@ class DocumentService:
     ) -> PaginatedResponse[view_models.Document]:
         """List documents with pagination, sorting and search capabilities."""
 
+        if not user:
+            await marketplace_service.validate_marketplace_collection(collection_id)
+
         # Define sort field mapping
         sort_mapping = {
             "name": db_models.Document.name,
@@ -483,14 +487,14 @@ class DocumentService:
 
             # Step 1: Build base document query for pagination (without indexes)
             base_query = select(db_models.Document).where(
-                and_(
-                    db_models.Document.user == user,
-                    db_models.Document.collection_id == collection_id,
-                    db_models.Document.status != db_models.DocumentStatus.DELETED,
-                    db_models.Document.status != db_models.DocumentStatus.UPLOADED,
-                    db_models.Document.status != db_models.DocumentStatus.EXPIRED,
+                    and_(
+                        db_models.Document.user == user,
+                        db_models.Document.collection_id == collection_id,
+                        db_models.Document.status != db_models.DocumentStatus.DELETED,
+                        db_models.Document.status != db_models.DocumentStatus.UPLOADED,
+                        db_models.Document.status != db_models.DocumentStatus.EXPIRED,
+                    )
                 )
-            )
 
             # Apply search filter
             if search:
@@ -562,6 +566,9 @@ class DocumentService:
 
     async def get_document(self, user: str, collection_id: str, document_id: str) -> view_models.Document:
         """Get a specific document by ID."""
+        if not user:
+            await marketplace_service.validate_marketplace_collection(collection_id)
+
         documents = await self._query_documents_with_indexes(user, collection_id, document_id)
 
         if not documents:
@@ -693,6 +700,60 @@ class DocumentService:
             return {"code": "200", "message": f"Index rebuild initiated for types: {', '.join(index_types)}"}
 
         result = await self.db_ops.execute_with_transaction(_rebuild_document_indexes_atomically)
+        _trigger_index_reconciliation()
+        return result
+
+    async def rebuild_failed_indexes(self, user_id: str, collection_id: str) -> dict:
+        """
+        Rebuild all failed indexes for all documents in a collection
+        Args:
+            user_id: User ID
+            collection_id: Collection ID
+        Returns:
+            dict: Success response with affected documents count
+        """
+        logger.info(f"Rebuilding failed indexes for collection {collection_id}")
+
+        from aperag.db.models import DocumentIndexType
+
+        async def _rebuild_failed_indexes_atomically(session):
+            # First verify collection access
+            collection = await self.db_ops.query_collection(user_id, collection_id)
+            if not collection or collection.user != user_id:
+                raise ResourceNotFoundException(f"Collection {collection_id} not found or access denied")
+
+            # Get collection config to check graph indexing
+            collection_config = json.loads(collection.config)
+            enable_knowledge_graph = collection_config.get("enable_knowledge_graph", False)
+
+            # Query documents with failed indexes (no type filter)
+            failed_docs = await self.db_ops.query_documents_with_failed_indexes(user_id, collection_id, None)
+
+            if not failed_docs:
+                return {"code": "200", "message": "No failed indexes found to rebuild", "affected_documents": 0}
+
+            # Process each document with failed indexes
+            affected_documents = 0
+            for document_id, failed_index_types in failed_docs:
+                # Filter out GRAPH type if not enabled in collection config
+                rebuild_types = failed_index_types
+                if not enable_knowledge_graph:
+                    rebuild_types = [t for t in failed_index_types if t != DocumentIndexType.GRAPH]
+
+                if rebuild_types:
+                    await document_index_manager.create_or_update_document_indexes(session, document_id, rebuild_types)
+                    affected_documents += 1
+                    logger.info(
+                        f"Triggered rebuild for document {document_id} indexes: {[t.value for t in rebuild_types]}"
+                    )
+
+            return {
+                "code": "200",
+                "message": f"Failed indexes rebuild initiated for {affected_documents} documents",
+                "affected_documents": affected_documents,
+            }
+
+        result = await self.db_ops.execute_with_transaction(_rebuild_failed_indexes_atomically)
         _trigger_index_reconciliation()
         return result
 
@@ -861,6 +922,9 @@ class DocumentService:
         """
         Get all preview-related information for a document.
         """
+
+        if not user_id:
+            await marketplace_service.validate_marketplace_collection(collection_id)
 
         # Use database operations with proper session management
         async def _get_document_preview(session: AsyncSession):

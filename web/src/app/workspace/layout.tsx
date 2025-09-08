@@ -9,10 +9,10 @@ import {
 } from '@/components/ui/sidebar';
 import { getServerApi } from '@/lib/api/server';
 import { toJson } from '@/lib/utils';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
-import { WorkspaceProvider } from '@/components/providers/workspace-provider';
-import { MenuChats } from './menu-chats';
+import { SideBarMenuChats } from '@/components/chat/sidebar-menu-chats';
+import { BotProvider } from '@/components/providers/bot-provider';
 import { MenuFooter } from './menu-footer';
 import { MenuMain } from './menu-main';
 
@@ -38,10 +38,6 @@ export default async function Layout({
   const bot = botsRes.data.items?.find((item) => item.type === 'agent');
   let chats: Chat[] = [];
 
-  if (!bot) {
-    notFound();
-  }
-
   if (bot?.id) {
     const chatsRes = await apiServer.defaultApi.botsBotIdChatsGet({
       botId: bot.id,
@@ -53,7 +49,11 @@ export default async function Layout({
   }
 
   return (
-    <WorkspaceProvider bot={toJson(bot)} chats={toJson(chats)}>
+    <BotProvider
+      workspace={true}
+      bot={bot ? toJson(bot) : undefined}
+      chats={toJson(chats)}
+    >
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader className="h-16 flex-row items-center gap-4 px-4 align-middle">
@@ -61,13 +61,13 @@ export default async function Layout({
           </SidebarHeader>
           <SidebarContent className="gap-0">
             <MenuMain />
-            {bot && <MenuChats />}
+            <SideBarMenuChats />
           </SidebarContent>
 
           <MenuFooter />
         </Sidebar>
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
-    </WorkspaceProvider>
+    </BotProvider>
   );
 }

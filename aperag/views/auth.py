@@ -353,12 +353,8 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
         return None
 
 
-# Authentication dependency, writes to request.state.user_id
-async def current_user(
-    request: Request, 
-    response: Response,
-    session: AsyncSessionDep, 
-    user: User = Depends(fastapi_users.current_user(optional=True))
+async def optional_user(
+    request: Request, session: AsyncSessionDep, user: User = Depends(fastapi_users.current_user(optional=True))
 ) -> Optional[User]:
     """Get current user from JWT/Cookie, Anybase token, or API Key and write to request.state.user_id"""
     # First try JWT/Cookie authentication
@@ -402,25 +398,15 @@ async def current_user(
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
-async def get_current_active_user(
-    request: Request, 
-    response: Response,
-    session: AsyncSessionDep, 
-    user: Optional[User] = Depends(current_user)
-) -> User:
-    """Get current active user, raise 401 if not authenticated"""
+async def required_user(user: Optional[User] = Depends(optional_user)) -> User:
+    """Get current active user, raise 401 if not authenticated."""
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return user
 
 
-async def get_current_admin(
-    request: Request,
-    response: Response, 
-    session: AsyncSessionDep, 
-    user: User = Depends(get_current_active_user)
-) -> User:
-    """Get current admin user"""
+async def get_current_admin(user: User = Depends(required_user)) -> User:
+    """Get current admin user."""
     if user.role != Role.ADMIN:
         raise HTTPException(status_code=403, detail="Only admin members can perform this action")
     return user
@@ -497,15 +483,10 @@ async def create_invitation_view(
 
 @router.get("/invitations", tags=["invitations"])
 async def list_invitations_view(
-    request: Request,
-    response: Response,
-    session: AsyncSessionDep, 
-    user: User = Depends(current_user)
+    session: AsyncSessionDep, user: User = Depends(required_user)
 ) -> view_models.InvitationList:
     from sqlalchemy import select
 
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
     if user.role != Role.ADMIN:
         result = await session.execute(select(Invitation).where(Invitation.created_by == str(user.id)))
     else:
@@ -659,13 +640,8 @@ async def logout_view(response: Response):
 
 
 @router.get("/user", tags=["users"])
-async def get_user_view(
-    request: Request, 
-    response: Response,
-    session: AsyncSessionDep, 
-    user: Optional[User] = Depends(current_user)
-):
-    """Get user info with Anybase auto-login support, return 401 if not authenticated"""
+async def get_user_view(request: Request, session: AsyncSessionDep, user: Optional[User] = Depends(required_user)):
+    """Get user info, return 401 if not authenticated"""
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
@@ -695,10 +671,7 @@ async def get_user_view(
 
 @router.get("/users", tags=["users"])
 async def list_users_view(
-    request: Request,
-    response: Response,
-    session: AsyncSessionDep, 
-    user: Optional[User] = Depends(current_user)
+    session: AsyncSessionDep, user: Optional[User] = Depends(required_user)
 ) -> view_models.UserList:
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload

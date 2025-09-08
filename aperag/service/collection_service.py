@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +33,7 @@ from aperag.schema.view_models import (
 )
 from aperag.service.collection_summary_service import collection_summary_service
 from aperag.service.marketplace_collection_service import marketplace_collection_service
+from aperag.service.marketplace_service import marketplace_service
 from aperag.utils.constant import QuotaType
 from aperag.views.utils import validate_source_connect_config
 from config.celery_tasks import collection_delete_task, collection_init_task, collection_sync_object_storage_task
@@ -207,7 +208,12 @@ class CollectionService:
     async def get_collection(self, user: str, collection_id: str) -> view_models.Collection:
         from aperag.exceptions import CollectionNotFoundException
 
-        collection = await self.db_ops.query_collection(user, collection_id)
+        if not user:
+            await marketplace_service.validate_marketplace_collection(collection_id)
+            collection = await self.db_ops.query_collection_by_id(collection_id)
+        else:
+            collection = await self.db_ops.query_collection(user, collection_id)
+
         if collection is None:
             raise CollectionNotFoundException(collection_id)
         return await self.build_collection_response(collection)
@@ -311,7 +317,7 @@ class CollectionService:
     ) -> Tuple[List[SearchResultItem], str]:
         """
         Execute search flow and return search result items and rerank node ID.
-        
+
         Args:
             data: Search request data
             collection_id: Target collection ID for search
@@ -319,7 +325,7 @@ class CollectionService:
             chat_id: Optional chat ID for filtering in chat searches
             flow_name: Name of the flow instance
             flow_title: Title of the flow instance
-            
+
         Returns:
             Tuple of (search result items, rerank node id)
         """
@@ -346,7 +352,7 @@ class CollectionService:
             # Add chat_id for filtering if provided
             if chat_id:
                 input_values["chat_id"] = chat_id
-                
+
             nodes[node_id] = NodeInstance(
                 id=node_id,
                 type="vector_search",
@@ -366,7 +372,7 @@ class CollectionService:
             # Add chat_id for filtering if provided
             if chat_id:
                 input_values["chat_id"] = chat_id
-                
+
             nodes[node_id] = NodeInstance(
                 id=node_id,
                 type="fulltext_search",
@@ -384,7 +390,7 @@ class CollectionService:
             # Add chat_id for filtering if provided
             if chat_id:
                 input_values["chat_id"] = chat_id
-                
+
             nodes["graph_search"] = NodeInstance(
                 id="graph_search",
                 type="graph_search",
@@ -404,7 +410,7 @@ class CollectionService:
             # Add chat_id for filtering if provided
             if chat_id:
                 input_values["chat_id"] = chat_id
-                
+
             nodes[node_id] = NodeInstance(
                 id=node_id,
                 type="summary_search",

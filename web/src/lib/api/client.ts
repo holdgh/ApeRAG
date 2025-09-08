@@ -2,6 +2,7 @@
 
 import {
   AuditApi,
+  ChatDocumentsApi,
   Configuration,
   DefaultApi,
   EvaluationApi,
@@ -15,7 +16,7 @@ import { toast } from 'sonner';
 const configuration = new Configuration();
 
 const request = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}${process.env.NEXT_PUBLIC_API_SERVER_BASE_PATH}`,
+  baseURL: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1`,
   timeout: 1000 * 5,
 });
 
@@ -50,4 +51,5 @@ export const apiClient = {
   quotasApi: new QuotasApi(configuration, undefined, request),
   auditApi: new AuditApi(configuration, undefined, request),
   evaluationApi: new EvaluationApi(configuration, undefined, request),
+  chatDocumentsApi: new ChatDocumentsApi(configuration, undefined, request),
 };
