@@ -151,7 +151,7 @@ def get_jwt_strategy() -> JWTStrategy:
 
 # Transport methods
 cookie_transport = CookieTransport(
-    cookie_name="session",
+    cookie_name="aperag_session",
     cookie_max_age=COOKIE_MAX_AGE,
     cookie_secure=False,  # Set to False for HTTP development environment
     cookie_httponly=True,
@@ -206,7 +206,7 @@ async def authenticate_websocket_user(websocket: WebSocket, user_manager: UserMa
         session_token = None
         for cookie in cookies_header.split(";"):
             cookie = cookie.strip()
-            if cookie.startswith("session="):
+            if cookie.startswith("aperag_session="):
                 session_token = cookie.split("=", 1)[1]
                 break
         if not session_token:
@@ -290,7 +290,7 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
                 logger.debug(f"Anybase token verification failed with status {response.status_code}")
                 return None
                 
-            anybase_user_data = response.json()
+            anybase_user_data = response.json()['data']
             logger.debug(f"Anybase user data: {anybase_user_data}")
             
     except Exception as e:
@@ -328,7 +328,7 @@ async def authenticate_anybase_token(request: Request, session: AsyncSessionDep)
             username=anybase_user_id,  # Use anybase user_id as username
             email=anybase_email or f"{anybase_user_id}@anybase.local",  # Use email or generate one
             hashed_password=user_manager.password_helper.hash(secrets.token_urlsafe(32)),  # Random password
-            role=Role.ADMIN if anybase_user_role == "admin" else Role.RO,
+            role=Role.ADMIN if "admin" in anybase_user_role else Role.RO,
             is_active=True,
             is_verified=True,
             date_joined=utc_now(),
@@ -373,7 +373,7 @@ async def optional_user(
         try:
             strategy = get_jwt_strategy()
             token = await strategy.write_token(anybase_user)
-            response.set_cookie(key="session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
+            response.set_cookie(key="aperag_session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
             logger.info(f"Set ApeRAG session cookie for Anybase user {anybase_user.username}")
         except Exception as e:
             logger.error(f"Failed to set ApeRAG session cookie for Anybase user {anybase_user.username}: {e}")
@@ -620,7 +620,7 @@ async def login_view(
     token = await strategy.write_token(user)
 
     # Set cookie
-    response.set_cookie(key="session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
+    response.set_cookie(key="aperag_session", value=token, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
 
     return view_models.User(
         id=str(user.id),
@@ -635,7 +635,7 @@ async def login_view(
 @router.post("/logout", tags=["auth"])
 async def logout_view(response: Response):
     # Clear authentication cookie
-    response.delete_cookie(key="session")
+    response.delete_cookie(key="aperag_session")
     return {"success": True}
 
 
