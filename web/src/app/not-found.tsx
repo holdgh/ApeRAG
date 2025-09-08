@@ -2,8 +2,6 @@
 
 import { AppTopbar } from '@/components/app-topbar';
 import { PageContainer } from '@/components/page-container';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 export default function NotFoundPage() {
   return (

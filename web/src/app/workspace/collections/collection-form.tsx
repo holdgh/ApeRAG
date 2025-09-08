@@ -102,7 +102,7 @@ const defaultValues: FormValueType = {
   description: '',
   type: 'document',
   config: {
-    source: 'system',
+    source: 'anybase',
     enable_fulltext: true,
     enable_knowledge_graph: true,
     enable_vector: true,

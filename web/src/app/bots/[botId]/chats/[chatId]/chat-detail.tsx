@@ -4,7 +4,6 @@ import { ChatMessages } from '@/components/chat/chat-messages';
 import {
   PageContainer,
   PageContent,
-  PageHeader,
 } from '@/components/page-container';
 import { useBotContext } from '@/components/providers/bot-provider';
 import { Button } from '@/components/ui/button';
