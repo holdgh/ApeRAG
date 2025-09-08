@@ -58,7 +58,7 @@ const collectionSchema = z
     description: z.string(),
     type: z.enum(['document']),
     config: z.object({
-      source: z.enum(['system']),
+      source: z.enum(['anybase']),
       enable_fulltext: z.boolean(),
       enable_knowledge_graph: z.boolean(),
       enable_summary: z.boolean(),
@@ -204,11 +204,24 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
    */
   const handleCreateOrUpdate = useCallback(
     async (values: FormValueType) => {
+      const anybaseInfo = JSON.parse(localStorage.getItem('anybase_info') || '{}');
+
       if (action === 'edit') {
         if (!collection?.id) return;
         const res = await apiClient.defaultApi.collectionsCollectionIdPut({
           collectionId: collection.id,
-          collectionUpdate: values,
+          collectionUpdate: {
+            ...values,
+            config: {
+              ...values.config,
+              source: 'anybase',
+              // @ts-expect-error error
+              anybase: {
+                object_prefix: "nonono",
+                bucket: anybaseInfo.bucket,
+              }
+            }
+          },
         });
         if (res.data.id) {
           toast.success(common_tips('update_success'));
@@ -217,7 +230,18 @@ export const CollectionForm = ({ action }: { action: 'add' | 'edit' }) => {
       }
       if (action === 'add') {
         const res = await apiClient.defaultApi.collectionsPost({
-          collectionCreate: values,
+          collectionCreate: {
+            ...values,
+            config: {
+              ...values.config,
+              source: 'anybase',
+              // @ts-expect-error error
+              anybase: {
+                object_prefix: "nonono",
+                bucket: anybaseInfo.bucket,
+              }
+            }
+          },
         });
         if (res.data.id) {
           toast.success(common_tips('create_success'));

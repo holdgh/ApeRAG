@@ -38,7 +38,6 @@ import {
   Columns3,
   EllipsisVertical,
   FolderSync,
-  Plus,
   Trash,
 } from 'lucide-react';
 
@@ -318,7 +317,7 @@ export function DocumentsTable({
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild className="cursor-pointer">
+          {/* <Button asChild className="cursor-pointer">
             <Link
               href={`/workspace/collections/${collection.id}/documents/upload`}
             >
@@ -327,7 +326,7 @@ export function DocumentsTable({
                 {page_documents('add_documents')}
               </span>
             </Link>
-          </Button>
+          </Button> */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
