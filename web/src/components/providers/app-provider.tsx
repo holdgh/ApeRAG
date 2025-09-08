@@ -5,9 +5,22 @@ import { toast } from 'sonner';
 import { User } from '@/api';
 import { apiClient } from '@/lib/api/client';
 import { useRouter } from 'next/navigation';
-import { createContext, useCallback, useContext, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
 import * as z from 'zod';
+
+function setCookie(cname: string, cvalue: string, exdays: number) {
+  const d = new Date();
+  d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+  const expires = 'expires=' + d.toUTCString();
+  document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
+}
 
 type SignInOptions = {
   type?: 'local' | 'google' | 'github';
@@ -133,6 +146,14 @@ export const AppProvider = ({
       setTimeout(router.refresh, 300);
     }
   }, [router]);
+
+  useEffect(() => {
+    const isAnyBase = localStorage.getItem('anybase_info') !== null;
+    const token = localStorage.getItem('token');
+    if (isAnyBase && token) {
+      setCookie('abt', token, 30);
+    }
+  }, []);
 
   return (
     <AppContext.Provider

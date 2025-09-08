@@ -7,6 +7,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import React, { useMemo } from 'react';
@@ -17,7 +18,7 @@ import {
   AppThemeDropdownMenu,
 } from './app-topbar';
 import { Separator } from './ui/separator';
-import { SidebarTrigger, useSidebar } from './ui/sidebar';
+import { SidebarTrigger } from './ui/sidebar';
 
 export type AppTopbarBreadcrumbItem = {
   title: string;
@@ -33,7 +34,7 @@ export const PageHeader = ({
   breadcrumbs?: AppTopbarBreadcrumbItem[];
   extra?: React.ReactNode;
 }) => {
-  const { open, isMobile } = useSidebar();
+  const isMobile = useIsMobile();
 
   const cls = useMemo(() => {
     const defaultCls = cn(
@@ -44,10 +45,12 @@ export const PageHeader = ({
       ? cn(
           defaultCls,
           'fixed right-0 top-0 z-10',
-          !open || isMobile ? 'left-0' : 'left-[var(--sidebar-width)]',
+          isMobile ? 'left-0' : 'left-[var(--sidebar-width)]',
         )
       : defaultCls;
-  }, [fixed, open, isMobile]);
+  }, [fixed, isMobile]);
+
+  return;
 
   return (
     <>
