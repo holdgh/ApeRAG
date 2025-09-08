@@ -190,6 +190,9 @@ collectionConfig:
       type: object
       description: Anybase object storage source configuration. Endpoint, access_key, secret_key, bucket, and enable_path_style are configured via environment variables.
       properties:
+        bucket:
+          type: string
+          description: Dynamic bucket.
         object_prefix:
           type: string
           description: Prefix for object keys to be included in the collection. Only objects with keys matching this prefix will be considered.
