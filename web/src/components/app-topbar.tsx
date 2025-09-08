@@ -67,8 +67,6 @@ export const AppUserDropdownMenu = () => {
   const locale = useLocale();
   const page_auth = useTranslations('page_auth');
 
-  return;
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -236,6 +234,8 @@ export const AppGithub = () => (
 );
 
 export const AppTopbar = ({ className }: React.ComponentProps<'div'>) => {
+  return;
+  
   return (
     <>
       <header
