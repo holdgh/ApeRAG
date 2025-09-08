@@ -2,12 +2,12 @@ import { Chat } from '@/api';
 import {
   PageContainer,
   PageContent,
-  PageHeader,
 } from '@/components/page-container';
 import { getServerApi } from '@/lib/api/server';
 import _ from 'lodash';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import { BotHeader } from './bot-header';
 
 export default async function Page({
   params,
@@ -42,7 +42,7 @@ export default async function Page({
 
   return (
     <PageContainer>
-      <PageHeader
+      <BotHeader
         breadcrumbs={[{ title: page_bot('metadata.title'), href: `/bots` }]}
         extra=""
       />
