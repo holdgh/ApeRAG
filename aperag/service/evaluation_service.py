@@ -23,7 +23,7 @@ import redis.asyncio as async_redis
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
-from aperag.config import get_async_session
+from aperag.aperag_config import get_async_session
 from aperag.db.models import (
     Evaluation,
     EvaluationItem,

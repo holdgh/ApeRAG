@@ -90,6 +90,11 @@ readme = "README.md"
 # index-url = "https://mirrors.aliyun.com/pypi/simple/"
 prerelease = "allow"
 
+[[tool.poetry.source]]
+name = "mirrors"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+priority = "primary"
+
 [project.optional-dependencies]
 all = [
 ]

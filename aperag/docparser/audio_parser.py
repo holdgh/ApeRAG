@@ -17,7 +17,7 @@ from typing import Any
 
 import requests
 
-from aperag.config import settings
+from aperag.aperag_config import settings
 from aperag.docparser.base import BaseParser, FallbackError, Part, TextPart
 
 SUPPORTED_EXTENSIONS = [

@@ -17,7 +17,7 @@ from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
-from aperag.config import settings
+from aperag.aperag_config import settings
 from aperag.db.models import Collection
 from aperag.db.ops import async_db_ops
 from aperag.flow.base.models import BaseNodeRunner, SystemInput, register_node_runner

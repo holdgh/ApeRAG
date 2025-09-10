@@ -21,7 +21,7 @@ from typing import Any, Dict, Optional
 
 from sqlalchemy import and_, desc, select
 
-from aperag.config import get_async_session
+from aperag.aperag_config import get_async_session
 from aperag.db.models import AuditLog, AuditResource
 
 logger = logging.getLogger(__name__)

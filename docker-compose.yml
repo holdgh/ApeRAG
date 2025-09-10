@@ -58,7 +58,7 @@ services:
       - API_SERVER_ENDPOINT=http://localhost:8000
       - API_SERVER_BASE_PATH=/api/v1
     ports:
-      - "3000:3000"
+      - "8082:3000"
 
   celeryworker:
     image: ${REGISTRY:-docker.io}/apecloud/aperag:${VERSION:-v0.0.0-nightly}

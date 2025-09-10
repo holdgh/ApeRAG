@@ -17,7 +17,7 @@
 import logging
 from threading import Lock
 
-from aperag.config import settings
+from aperag.aperag_config import settings
 from aperag.db.models import APIType
 from aperag.db.ops import db_ops
 from aperag.llm.embed.embedding_service import EmbeddingService

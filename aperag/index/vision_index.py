@@ -21,7 +21,7 @@ from typing import Any, List
 from llama_index.core.schema import TextNode
 from sqlalchemy import and_, select
 
-from aperag.config import get_vector_db_connector
+from aperag.aperag_config import get_vector_db_connector
 from aperag.db.models import Collection
 from aperag.index.base import BaseIndexer, IndexResult, IndexType
 from aperag.llm.completion.base_completion import get_collection_completion_service_sync
@@ -258,7 +258,7 @@ class VisionIndexer(BaseIndexer):
 
         try:
             # Get existing vector index data from DocumentIndex
-            from aperag.config import get_sync_session
+            from aperag.aperag_config import get_sync_session
             from aperag.db.models import DocumentIndex, DocumentIndexType
 
             ctx_ids = []

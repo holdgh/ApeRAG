@@ -102,7 +102,7 @@ def is_google_oauth_enabled() -> bool:
     Returns:
         bool: True if Google OAuth is enabled, False otherwise
     """
-    from aperag.config import settings
+    from aperag.aperag_config import settings
 
     return bool(settings.google_oauth_client_id and settings.google_oauth_client_secret)
 
@@ -114,7 +114,7 @@ def is_github_oauth_enabled() -> bool:
     Returns:
         bool: True if GitHub OAuth is enabled, False otherwise
     """
-    from aperag.config import settings
+    from aperag.aperag_config import settings
 
     return bool(settings.github_oauth_client_id and settings.github_oauth_client_secret)
 

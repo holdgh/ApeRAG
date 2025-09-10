@@ -20,7 +20,7 @@ from asgiref.sync import Dict, async_to_sync
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from aperag.config import get_vector_db_connector
+from aperag.aperag_config import get_vector_db_connector
 from aperag.db import models as db_models
 from aperag.db.models import CollectionStatus
 from aperag.db.ops import db_ops

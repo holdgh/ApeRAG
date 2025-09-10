@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from aperag.config import get_async_session, get_sync_session
+from aperag.aperag_config import get_async_session, get_sync_session
 from aperag.db.models import (
     Collection,
     CollectionSummary,

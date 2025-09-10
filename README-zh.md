@@ -34,7 +34,7 @@ ApeRAG 是你构建自己的知识图谱、进行上下文工程以及部署能�
 git clone https://github.com/apecloud/ApeRAG.git
 cd ApeRAG
 cp envs/env.template .env
-docker-compose up -d --pull always
+docker compose up -d --pull always
 ```
 
 运行后，您可以在浏览器中访问 ApeRAG：

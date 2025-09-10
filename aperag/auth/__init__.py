@@ -14,7 +14,7 @@
 
 from auth0.authentication.token_verifier import AsymmetricSignatureVerifier, TokenVerifier
 
-from aperag.config import settings
+from aperag.aperag_config import settings
 
 # https://aperag.jp.auth0.com/.well-known/jwks.json
 """

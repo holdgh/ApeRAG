@@ -12,9 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import os
 
-from aperag.config import settings
+# 打印 config 目录的绝对路径（确认存在）
+config_dir = os.path.join("D:\\project\\AI\\ApeRAG", "config")
+print(f"config 目录是否存在：{os.path.isdir(config_dir)}")
+print(f"config/__init__.py 是否存在：{os.path.isfile(os.path.join(config_dir, '__init__.py'))}")
+
+# 尝试直接导入 config 包
+try:
+    import config
+    print(f"成功导入 config 包，类型：{type(config)}")  # 正常应为 <class 'module'>
+    print(f"config 包的路径：{config.__file__}")  # 应指向 config/__init__.py
+except Exception as e:
+    print(f"导入 config 包失败：{e}")
+import uvicorn
+
+from aperag.aperag_config import settings
 
 # Initialize OpenTelemetry FIRST - before any other imports
 from aperag.trace import init_tracing
@@ -37,7 +52,7 @@ from aperag.agent.agent_event_listener import agent_event_listener  # noqa: E402
 from aperag.agent.agent_session_manager_lifecycle import agent_session_manager_lifespan  # noqa: E402
 from aperag.exception_handlers import register_exception_handlers
 from aperag.llm.litellm_track import register_custom_llm_track
-from aperag.mcp import mcp_server
+from aperag.mcp_self import mcp_server
 from aperag.views.api_key import router as api_key_router
 from aperag.views.audit import router as audit_router
 from aperag.views.auth import router as auth_router
@@ -120,3 +135,6 @@ if os.environ.get("DEPLOYMENT_MODE") == "dev":
 
 # Mount the MCP server at /mcp path
 app.mount("/mcp", mcp_app)
+
+if __name__ == '__main__':
+    uvicorn.run(app='aperag.app:app', host="0.0.0.0", log_config=r'D:\project\AI\ApeRAG\scripts\uvicorn-log-config.yaml')

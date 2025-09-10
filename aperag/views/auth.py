@@ -29,7 +29,7 @@ from fastapi_users.router.oauth import get_oauth_router
 from httpx_oauth.clients.github import GitHubOAuth2
 from httpx_oauth.clients.google import GoogleOAuth2
 
-from aperag.config import AsyncSessionDep, settings
+from aperag.aperag_config import AsyncSessionDep, settings
 from aperag.db.models import ApiKey, ApiKeyStatus, Invitation, OAuthAccount, Role, User
 from aperag.db.ops import async_db_ops
 from aperag.schema import view_models

@@ -18,7 +18,7 @@ from typing import Any, List
 
 from sqlalchemy import and_, select
 
-from aperag.config import get_vector_db_connector, settings
+from aperag.aperag_config import get_vector_db_connector, settings
 from aperag.index.base import BaseIndexer, IndexResult, IndexType
 from aperag.llm.embed.base_embedding import get_collection_embedding_service_sync
 from aperag.llm.embed.embedding_utils import create_embeddings_and_store
@@ -114,7 +114,7 @@ class VectorIndexer(BaseIndexer):
         """
         try:
             # Get existing vector index data from DocumentIndex
-            from aperag.config import get_sync_session
+            from aperag.aperag_config import get_sync_session
             from aperag.db.models import DocumentIndex, DocumentIndexType
 
             old_ctx_ids = []
@@ -191,7 +191,7 @@ class VectorIndexer(BaseIndexer):
         """
         try:
             # Get existing vector index data from DocumentIndex
-            from aperag.config import get_sync_session
+            from aperag.aperag_config import get_sync_session
             from aperag.db.models import DocumentIndex, DocumentIndexType
 
             ctx_ids = []

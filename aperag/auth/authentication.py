@@ -23,7 +23,7 @@ from ninja.security import APIKeyCookie, HttpBearer
 from ninja.security.http import HttpAuthBase
 
 from aperag.auth import tv
-from aperag.config import settings
+from aperag.aperag_config import settings
 from aperag.db.ops import get_api_key_by_key
 from aperag.utils.constant import KEY_USER_ID, KEY_WEBSOCKET_PROTOCOL
 

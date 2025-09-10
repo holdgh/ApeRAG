@@ -126,7 +126,7 @@ def _validate_task_relevance(document_id: str, index_type: str, target_version: 
     otherwise returns None.
     """
     from aperag.db.models import DocumentIndex, DocumentIndexType, Document, DocumentStatus
-    from aperag.config import get_sync_session
+    from aperag.aperag_config import get_sync_session
     from sqlalchemy import select, and_
 
     for session in get_sync_session():
@@ -245,7 +245,7 @@ def create_index_task(self, document_id: str, index_type: str, parsed_data_dict:
         Serialized IndexTaskResult
     """
     from aperag.db.models import DocumentIndex, DocumentIndexType, DocumentIndexStatus
-    from aperag.config import get_sync_session
+    from aperag.aperag_config import get_sync_session
     from sqlalchemy import select, and_
 
     # Extract target version from context
@@ -302,7 +302,7 @@ def delete_index_task(self, document_id: str, index_type: str) -> dict:
         Serialized IndexTaskResult
     """
     from aperag.db.models import DocumentIndex, DocumentIndexType, DocumentIndexStatus
-    from aperag.config import get_sync_session
+    from aperag.aperag_config import get_sync_session
     from sqlalchemy import select, and_
 
     try:
@@ -371,7 +371,7 @@ def update_index_task(self, document_id: str, index_type: str, parsed_data_dict:
         Serialized IndexTaskResult
     """
     from aperag.db.models import DocumentIndex, DocumentIndexType, DocumentIndexStatus
-    from aperag.config import get_sync_session
+    from aperag.aperag_config import get_sync_session
     from sqlalchemy import select, and_
 
     # Extract target version from context
@@ -852,7 +852,7 @@ def cleanup_expired_documents_task():
 # Therefore, using a dedicated AsyncEngine to avoid issues from connection reuse.
 @asynccontextmanager
 async def _new_async_engine():
-    from aperag.config import new_async_engine
+    from aperag.aperag_config import new_async_engine
 
     engine = new_async_engine()
     try:

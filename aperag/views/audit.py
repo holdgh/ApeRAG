@@ -18,7 +18,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 
-from aperag.config import get_async_session
+from aperag.aperag_config import get_async_session
 from aperag.db.models import AuditLog, AuditResource, Role, User
 from aperag.schema import view_models
 from aperag.service.audit_service import audit_service

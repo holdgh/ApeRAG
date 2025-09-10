@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from elasticsearch import AsyncElasticsearch, Elasticsearch
 
-from aperag.config import settings
+from aperag.aperag_config import settings
 from aperag.db.ops import db_ops
 from aperag.docparser.chunking import rechunk
 from aperag.index.base import BaseIndexer, IndexResult, IndexType

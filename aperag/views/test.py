@@ -18,7 +18,7 @@ import os
 from fastapi import APIRouter, HTTPException, Request
 from fastapi_users import BaseUserManager
 
-from aperag.config import AsyncSessionDep
+from aperag.aperag_config import AsyncSessionDep
 from aperag.db.models import Role, User
 from aperag.schema import view_models
 from aperag.utils.utils import utc_now

@@ -47,7 +47,7 @@ _cache_stats = {
 def setup_litellm_cache(default_type=LiteLLMCacheType.DISK):
     from litellm.caching.caching import CacheMode
 
-    from aperag.config import settings
+    from aperag.aperag_config import settings
 
     if not settings.cache_enabled:
         return

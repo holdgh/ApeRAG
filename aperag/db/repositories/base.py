@@ -17,7 +17,7 @@ from typing import Optional, Protocol
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, sessionmaker
 
-from aperag.config import async_engine, get_async_session, get_sync_session, sync_engine
+from aperag.aperag_config import async_engine, get_async_session, get_sync_session, sync_engine
 
 
 class SyncRepositoryProtocol(Protocol):

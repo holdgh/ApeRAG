@@ -16,7 +16,7 @@
 from abc import ABC, abstractmethod
 from typing import IO, AsyncIterator, Tuple
 
-from aperag.config import settings
+from aperag.aperag_config import settings
 
 
 class ObjectStore(ABC):

@@ -18,7 +18,7 @@ from typing import List, Optional
 from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session
 
-from aperag.config import get_sync_session
+from aperag.aperag_config import get_sync_session
 from aperag.db.models import (
     Collection,
     CollectionStatus,

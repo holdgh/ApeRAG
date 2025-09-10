@@ -16,7 +16,7 @@ from logging.config import dictConfig
 
 from celery import Celery
 from celery.signals import worker_process_init, worker_process_shutdown
-from aperag.config import settings
+from aperag.aperag_config import settings
 
 # Create celery app instance
 app = Celery("aperag")

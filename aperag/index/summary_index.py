@@ -16,7 +16,7 @@ import json
 import logging
 from typing import Any, List
 
-from aperag.config import get_vector_db_connector
+from aperag.aperag_config import get_vector_db_connector
 from aperag.db.ops import db_ops
 from aperag.docparser.base import TextPart
 from aperag.index.base import BaseIndexer, IndexResult, IndexType
@@ -164,7 +164,7 @@ class SummaryIndexer(BaseIndexer):
             # Get existing summary index data from DocumentIndex to find old vector IDs
             from sqlalchemy import and_, select
 
-            from aperag.config import get_sync_session
+            from aperag.aperag_config import get_sync_session
             from aperag.db.models import DocumentIndex, DocumentIndexType
 
             old_summary_ctx_ids = []
@@ -223,7 +223,7 @@ class SummaryIndexer(BaseIndexer):
             # Get existing summary index data from DocumentIndex to find vector IDs
             from sqlalchemy import and_, select
 
-            from aperag.config import get_sync_session
+            from aperag.aperag_config import get_sync_session
             from aperag.db.models import DocumentIndex, DocumentIndexType
 
             summary_ctx_ids = []
@@ -419,7 +419,7 @@ Final summary:"""
         try:
             from sqlalchemy import and_, select
 
-            from aperag.config import get_sync_session
+            from aperag.aperag_config import get_sync_session
             from aperag.db.models import DocumentIndex, DocumentIndexType
 
             for session in get_sync_session():

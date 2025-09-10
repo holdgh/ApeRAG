@@ -18,7 +18,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from aperag.config import settings as app_config
+from aperag.aperag_config import settings as app_config
 from pgvector.sqlalchemy import Vector
 
 # this is the Alembic Config object, which provides

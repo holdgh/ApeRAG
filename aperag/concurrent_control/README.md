@@ -441,13 +441,16 @@ lock = get_or_create_lock("task_coordination", "redis", key="celery:task")
 ```
 
 **2. Redis connection errors**
+
 ```python
 # Check configuration
-from aperag.config import settings
+from aperag.aperag_config import settings
+
 print(f"Redis URL: {settings.memory_redis_url}")
 
 # Check connection
 from aperag.db.redis_manager import RedisConnectionManager
+
 client = await RedisConnectionManager.get_client()
 await client.ping()
 ```

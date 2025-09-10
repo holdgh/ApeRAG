@@ -166,7 +166,7 @@ class RedisConnectionManager:
     def _get_redis_url(cls) -> str:
         """Get Redis URL from configuration."""
         # Import here to avoid circular imports
-        from aperag.config import settings
+        from aperag.aperag_config import settings
 
         return settings.memory_redis_url
 

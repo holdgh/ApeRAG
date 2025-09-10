@@ -82,7 +82,7 @@ def register_custom_llm_track():
 def register_opik_llm_track():
     from litellm.integrations.opik.opik import OpikLogger
 
-    from aperag.config import settings
+    from aperag.aperag_config import settings
 
     if settings.opik_api_key and settings.opik_workspace:
         litellm.callbacks = [OpikLogger()]
