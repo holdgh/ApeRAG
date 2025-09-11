@@ -43,7 +43,7 @@ class S3Config(BaseSettings):
     use_path_style: bool = Field(True, alias="OBJECT_STORE_S3_USE_PATH_STYLE")
 
 
-class LocalObjectStoreConfig(BaseSettings):
+class LocalObjectStoreConfig(BaseSettings):  # 本地存储根目录配置
     root_dir: str = Field(".objects", alias="OBJECT_STORE_LOCAL_ROOT_DIR")
 
 
@@ -124,7 +124,7 @@ class Config(BaseSettings):
     )
 
     # Object store
-    object_store_type: str = Field("local", alias="OBJECT_STORE_TYPE")
+    object_store_type: str = Field("local", alias="OBJECT_STORE_TYPE")  # 默认采取本地存储
     object_store_local_config: Optional[LocalObjectStoreConfig] = None
     object_store_s3_config: Optional[S3Config] = None
 

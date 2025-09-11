@@ -1,0 +1,21 @@
+celery_app:
+
+Failed to update FULLTEXT index for document doc92c42a6dd42fd893: Failed to update FULLTEXT index: Fulltext index update failed: Connection error caused by: ConnectionErro
+r(Connection error caused by: NewConnectionError(<urllib3.connection.HTTPConnection object at 0x000001ABE92BBAD0>: Failed to establish a new connection: [WinError 10061] 由于目标计算
+机积极拒绝，无法连接。))
+
+[2025-09-11 17:21:08,704: INFO/MainProcess] elastic_transport.node_pool - Resurrected node <Urllib3HttpNode(http://localhost:9200)> (force=False)
+[2025-09-11 17:21:12,798: INFO/MainProcess] elastic_transport.transport - HEAD http://localhost:9200/col4fbd73f0fb52e131 [status:N/A duration:4.094s]
+[2025-09-11 17:21:12,799: WARNING/MainProcess] elastic_transport.node_pool - Node <Urllib3HttpNode(http://localhost:9200)> has failed for 48 times in a row, putting on 30 second time
+out
+
+
+Exception: Failed to update GRAPH index for document doc92c42a6dd42fd893: Failed to update GRAPH index: Failed to create LightRAG instance: Storage implementation 'None' not found in
+ available storages
+[2025-09-11 17:19:01,840: ERROR/MainProcess] aperag.tasks.reconciler - GRAPH index operation failed for document doc92c42a6dd42fd893: Failed to update GRAPH index for document doc92c
+42a6dd42fd893: Failed to update GRAPH index for document doc92c42a6dd42fd893: Failed to update GRAPH index: Failed to create LightRAG instance: Storage implementation 'None' not foun
+d in available storages
+[2025-09-11 17:19:01,842: INFO/MainProcess] root - Index failure callback executed for ['GRAPH'] indexes of document doc92c42a6dd42fd893
+[2025-09-11 17:19:01,847: ERROR/MainProcess] celery.app.trace - Task config.celery_tasks.update_index_task[a063e4f0-5927-4403-a3d0-09b855e5cfa5] raised unexpected: Exception("Failed
+to update GRAPH index for document doc92c42a6dd42fd893: Failed to update GRAPH index: Failed to create LightRAG instance: Storage implementation 'None' not found in available storage
+s")

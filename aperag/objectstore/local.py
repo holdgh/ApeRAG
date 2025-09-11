@@ -111,7 +111,13 @@ class Local(ObjectStore):
         self.cfg = cfg
 
         # Resolve root_dir to an absolute, canonical path (handles '..', symlinks)
-        self._base_storage_path = Path(self.cfg.root_dir).resolve()
+
+        logger.info(f"本地存储配置的相对根路径为：{self.cfg.root_dir}")
+        # 由于不在同一个工作区，api和celery服务是分别启动的，相应的本地存储的根目录会因不同工作区而不一致，此处做固化处理
+        self._base_storage_path = Path(os.path.join(r'D:\project\AI\ApeRAG\aperag', self.cfg.root_dir))
+
+        # self._base_storage_path = Path(self.cfg.root_dir).resolve()
+        logger.info(f"本地存储根路径为：{self._base_storage_path}")
 
         try:
             self._base_storage_path.mkdir(parents=True, exist_ok=True)
@@ -169,9 +175,10 @@ class Local(ObjectStore):
             # Re-raise to signal failure, potentially wrapping or adding context
             raise IOError(f"Failed to write object to {full_path}") from e
 
-    def get(self, path: str) -> IO[bytes] | None:
+    def get(self, path: str) -> IO[bytes] | None:  # 从本地存储获取文件
         try:
             full_path = self._resolve_object_path(path)
+            logger.info(f'异步任务获取文件路径为：{full_path}')
             if full_path.is_file():
                 return full_path.open("rb")
             return None

@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import logging
 from abc import ABC, abstractmethod
 from typing import IO, AsyncIterator, Tuple
 
@@ -208,7 +207,7 @@ class AsyncObjectStore(ABC):
         """
         ...
 
-
+logger = logging.getLogger()
 def get_object_store() -> ObjectStore:
     """
     Factory function to get a synchronous ObjectStore instance based on settings.
@@ -221,12 +220,14 @@ def get_object_store() -> ObjectStore:
             local_config_dict = (
                 settings.object_store_local_config.model_dump() if settings.object_store_local_config else {}
             )
+            logger.info("获取本地存储器实例")
             return Local(LocalConfig(**local_config_dict))
         case "s3":
             from aperag.objectstore.s3 import S3, S3Config
 
             # Convert pydantic model to dict for unpacking
             s3_config_dict = settings.object_store_s3_config.model_dump() if settings.object_store_s3_config else {}
+            logger.info("获取S3存储器实例")
             return S3(S3Config(**s3_config_dict))
 
 
