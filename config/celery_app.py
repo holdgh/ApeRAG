@@ -133,4 +133,5 @@ def shutdown_worker(**kwargs):
     pass
 
 if __name__ == "__main__":
+    # 可用的启动命令，在终端运行：python -m celery -A config.celery_app worker -l INFO --pool=threads --concurrency=16
     app.start()
