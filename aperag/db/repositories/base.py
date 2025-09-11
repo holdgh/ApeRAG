@@ -110,7 +110,7 @@ class AsyncBaseRepository(AsyncRepositoryProtocol):
             async with async_session() as session:
                 return await query_func(session)
 
-    async def execute_with_transaction(self, operation):
+    async def execute_with_transaction(self, operation):  # 数据库事务运行机制
         """Execute multiple database operations in a single transaction
 
         This method is used when you need to perform multiple database operations

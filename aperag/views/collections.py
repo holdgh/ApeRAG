@@ -332,7 +332,7 @@ async def rebuild_document_indexes_view(
     """Rebuild specified indexes for a document"""
     return await document_service.rebuild_document_indexes(
         str(user.id), collection_id, document_id, rebuild_request.index_types
-    )
+    )  # {"index_types":["VECTOR","FULLTEXT","GRAPH","SUMMARY","VISION"]}
 
 
 @router.post("/collections/{collection_id}/rebuild_failed_indexes", tags=["documents"])

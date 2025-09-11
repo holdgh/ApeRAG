@@ -34,7 +34,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 class S3Config(BaseSettings):
-    endpoint: str = Field("http://127.0.0.1:9000", alias="OBJECT_STORE_S3_ENDPOINT")
+    endpoint: str = Field("http://localhost:9000", alias="OBJECT_STORE_S3_ENDPOINT")
     access_key: str = Field("minioadmin", alias="OBJECT_STORE_S3_ACCESS_KEY")
     secret_key: str = Field("minioadmin", alias="OBJECT_STORE_S3_SECRET_KEY")
     bucket: str = Field("aperag", alias="OBJECT_STORE_S3_BUCKET")
@@ -52,20 +52,22 @@ class Config(BaseSettings):
     debug: bool = Field(False, alias="DEBUG")
 
     # Postgres atomic fields
-    postgres_host: str = Field("127.0.0.1", alias="POSTGRES_HOST")
+    postgres_host: str = Field("localhost", alias="POSTGRES_HOST")
     postgres_port: int = Field(5432, alias="POSTGRES_PORT")
     postgres_db: str = Field("postgres", alias="POSTGRES_DB")
     postgres_user: str = Field("postgres", alias="POSTGRES_USER")
     postgres_password: str = Field("postgres", alias="POSTGRES_PASSWORD")
 
     # Redis atomic fields
-    redis_host: str = Field("127.0.0.1", alias="REDIS_HOST")
+    redis_host: str = Field("localhost", alias="REDIS_HOST")
     redis_port: int = Field(6379, alias="REDIS_PORT")
-    redis_user: str = Field("default", alias="REDIS_USER")
-    redis_password: str = Field("password", alias="REDIS_PASSWORD")
+    # redis_user: str = Field("default", alias="REDIS_USER")
+    redis_user: str = Field("", alias="REDIS_USER")
+    # redis_password: str = Field("password", alias="REDIS_PASSWORD")
+    redis_password: str = Field("", alias="REDIS_PASSWORD")
 
     # Elasticsearch atomic fields
-    es_host_name: str = Field("127.0.0.1", alias="ES_HOST_NAME")
+    es_host_name: str = Field("localhost", alias="ES_HOST_NAME")
     es_port: int = Field(9200, alias="ES_PORT")
     es_user: str = Field("", alias="ES_USER")
     es_password: str = Field("", alias="ES_PASSWORD")

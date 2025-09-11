@@ -159,7 +159,7 @@ class CeleryTaskScheduler(TaskScheduler):
         try:
             from celery.result import AsyncResult
 
-            from config.celery import app
+            from config.celery_app import app
 
             # Get AsyncResult without calling .get()
             workflow_result = AsyncResult(task_id, app=app)

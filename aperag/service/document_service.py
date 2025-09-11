@@ -56,7 +56,7 @@ from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 logger = logging.getLogger(__name__)
 
 
-def _trigger_index_reconciliation():
+def _trigger_index_reconciliation():  # 异步出发索引任务
     """
     Trigger index reconciliation task asynchronously for better real-time responsiveness.
 
@@ -687,7 +687,8 @@ class DocumentService:
                 raise invalid_param("index_type", f"Invalid index type: {index_type}")
 
         async def _rebuild_document_indexes_atomically(session):
-            document = await self.db_ops.query_document(user_id, collection_id, document_id)
+            document = await self.db_ops.query_document(user_id, collection_id, document_id)  # 查询文档信息
+            # -- 文档信息鉴权
             if not document:
                 raise DocumentNotFoundException(f"Document {document_id} not found")
             if document.collection_id != collection_id:
@@ -695,11 +696,13 @@ class DocumentService:
             collection = await self.db_ops.query_collection(user_id, collection_id)
             if not collection or collection.user != user_id:
                 raise ResourceNotFoundException(f"Collection {collection_id} not found or access denied")
+            # -- 文档图索引与知识库配置中的知识图谱配置项一致性校验
             collection_config = json.loads(collection.config)
             if not collection_config.get("enable_knowledge_graph", False):
                 if db_models.DocumentIndexType.GRAPH in index_type_enums:
                     index_type_enums.remove(db_models.DocumentIndexType.GRAPH)
             # 支持 SUMMARY 类型的重建
+            # -- 【幂等操作】创建或更新文档索引
             await document_index_manager.create_or_update_document_indexes(session, document_id, index_type_enums)
             logger.info(f"Successfully triggered rebuild for document {document_id} indexes: {index_types}")
             return {"code": "200", "message": f"Index rebuild initiated for types: {', '.join(index_types)}"}

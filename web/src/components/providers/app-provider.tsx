@@ -83,6 +83,8 @@ export const AppProvider = ({
           }
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
+          // 打印详细错误信息（在控制台查看）
+          console.error('登录请求失败详情：', err);
           toast.error('Invalid credentials');
         }
       }
@@ -120,6 +122,8 @@ export const AppProvider = ({
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
+        // 打印详细错误信息（在控制台查看）
+        console.error('登录请求失败详情：', err);
         toast.error('Invalid credentials');
       }
     },

@@ -36,7 +36,7 @@ class DocumentIndexManager:
 
     async def create_or_update_document_indexes(
         self, session: AsyncSession, document_id: str, index_types: Optional[List[DocumentIndexType]] = None
-    ):
+    ):  # 仅是关于文档各类索引数据库记录的保存或更新操作
         """
         Create or update index records for a document (called when document is created or index isupdated)
 
@@ -56,7 +56,7 @@ class DocumentIndexManager:
             result = await session.execute(stmt)
             existing_index = result.scalar_one_or_none()
 
-            if existing_index:
+            if existing_index:  # 【乐观锁操作】更新已存在的索引状态
                 # Update existing index to pending and increment version
                 existing_index.status = DocumentIndexStatus.PENDING
                 existing_index.update_version()

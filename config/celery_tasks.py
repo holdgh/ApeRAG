@@ -114,7 +114,7 @@ from aperag.tasks.models import (
 )
 from aperag.tasks.utils import TaskConfig
 from aperag.utils.constant import IndexAction
-from config.celery import app
+from config.celery_app import app
 
 logger = logging.getLogger()
 
@@ -704,7 +704,7 @@ def update_document_indexes_workflow(document_id: str, index_types: List[str], c
 
 # ========== Collection Tasks ==========
 
-@current_app.task
+@current_app.task  # current_app：获取当前 Celery 应用实例（需提前初始化 Celery 应用，通常在项目中通过 Celery() 创建）。
 def reconcile_indexes_task():
     """Periodic task to reconcile index specs with statuses"""
     try:
