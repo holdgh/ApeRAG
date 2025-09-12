@@ -69,9 +69,10 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:
         llm_func = await _gen_llm_func(collection)
 
         # Get storage configuration from environment
-        kv_storage = os.environ.get("GRAPH_INDEX_KV_STORAGE")
-        vector_storage = os.environ.get("GRAPH_INDEX_VECTOR_STORAGE")
-        graph_storage = os.environ.get("GRAPH_INDEX_GRAPH_STORAGE")
+        # -- 由于Windows环境不便设置环境变量，此处采用默认值设置
+        kv_storage = os.environ.get("GRAPH_INDEX_KV_STORAGE", default='PGOpsSyncKVStorage')
+        vector_storage = os.environ.get("GRAPH_INDEX_VECTOR_STORAGE", default='PGOpsSyncVectorStorage')
+        graph_storage = os.environ.get("GRAPH_INDEX_GRAPH_STORAGE", default='PGOpsSyncGraphStorage')
 
         # Configure storage backends
         await _configure_storage_backends(kv_storage, vector_storage, graph_storage)
@@ -320,6 +321,11 @@ async def _configure_storage_backends(kv_storage, vector_storage, graph_storage)
 
 def _configure_postgresql():
     """Configure PostgreSQL environment variables"""
+    # -- 手动设置postgresql的环境变量
+    os.environ["POSTGRES_HOST"] = "pg-cluster-postgresql-postgresql"
+    os.environ["POSTGRES_USER"] = "postgres"
+    os.environ["POSTGRES_PASSWORD"] = "postgres"
+    os.environ["POSTGRES_DB"] = "postgres"
     required_vars = ["POSTGRES_HOST", "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB"]
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
 

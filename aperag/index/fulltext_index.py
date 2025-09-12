@@ -147,25 +147,26 @@ class FulltextIndexer(BaseIndexer):
                 success=False, index_type=self.index_type, error=f"Fulltext index creation failed: {str(e)}"
             )
 
-    def update_index(self, document_id: int, content: str, doc_parts: List[Any], collection, **kwargs) -> IndexResult:
+    def update_index(self, document_id: int, content: str, doc_parts: List[Any], collection, **kwargs) -> IndexResult:  # 更新全文索引操作
         """Update fulltext index for document chunks"""
         try:
+            # -- 查询文档信息
             document = db_ops.query_document_by_id(document_id)
             if not document:
                 raise Exception(f"Document {document_id} not found")
-
+            # -- 基于知识库id生成全文索引的索引名称
             index_name = generate_fulltext_index_name(collection.id)
-
+            # -- 清除旧的索引数据 TODO 【异常处理逻辑仅打印了警告日志，若清理旧数据失败，仍会执行后续逻辑。存在旧数据仍然存在，又插入新数据的可能性】
             # Remove old chunks for this document
             try:
                 self._remove_document_chunks(index_name, document_id)
                 logger.debug(f"Removed old fulltext chunks for document {document_id}")
             except Exception as e:
                 logger.warning(f"Failed to remove old fulltext chunks for document {document_id}: {str(e)}")
-
-            # Filter out non-text parts
+            # -- 过滤出文本内容
+            # Filter out text parts
             doc_parts = [part for part in doc_parts if hasattr(part, "content") and part.content]
-
+            # -- 对文本内容进行全文索引操作【新增和更新都会调用self._process_chunks】
             # Create new chunks if there are doc_parts
             if doc_parts:
                 chunk_count, total_content_length = self._process_chunks(
@@ -175,7 +176,7 @@ class FulltextIndexer(BaseIndexer):
                 return self._create_success_result(
                     index_name, document.name, chunk_count, total_content_length, "updated"
                 )
-            else:
+            else:  # 没有文本内容时，直接返回提示“没有文本进行索引”
                 return IndexResult(
                     success=True,
                     index_type=self.index_type,
@@ -235,7 +236,7 @@ class FulltextIndexer(BaseIndexer):
         content: str,
         title_text: str = "",
         metadata: Dict[str, Any] = None,
-    ):
+    ):  # 插入全文索引到es存储
         """Insert a document chunk into the fulltext index"""
         if not self.es.indices.exists(index=index).body:
             logger.warning("index %s not exists", index)

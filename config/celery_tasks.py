@@ -390,7 +390,7 @@ def update_index_task(self, document_id: str, index_type: str, parsed_data_dict:
         parsed_data = ParsedDocumentData.from_dict(parsed_data_dict)
 
         # Execute index update
-        result = document_index_task.update_index(document_id, index_type, parsed_data)
+        result = document_index_task.update_index(document_id, index_type, parsed_data)  # 更新index_type类型的索引
 
         # Check if the operation failed and raise exception to trigger retry
         if not result.success:

@@ -68,10 +68,15 @@ class Config(BaseSettings):
 
     # Elasticsearch atomic fields
     es_host_name: str = Field("localhost", alias="ES_HOST_NAME")
-    es_port: int = Field(9200, alias="ES_PORT")
-    es_user: str = Field("", alias="ES_USER")
-    es_password: str = Field("", alias="ES_PASSWORD")
+    # -- 调整为本地es服务的端口、账号、密码、协议
+    # es_port: int = Field(9200, alias="ES_PORT")
+    es_port: int = Field(9221, alias="ES_PORT")
+    # es_user: str = Field("", alias="ES_USER")
+    es_user: str = Field("elastic", alias="ES_USER")
+    # es_password: str = Field("", alias="ES_PASSWORD")
+    es_password: str = Field("mBb_50XpL3qRa", alias="ES_PASSWORD")
     es_protocol: str = Field("http", alias="ES_PROTOCOL")
+    # es_protocol: str = Field("https", alias="ES_PROTOCOL")  # 在本地es服务配置文件中禁用ssl，以防止python包es对ssl证书的严格校验
 
     # Database
     database_url: Optional[str] = Field(None, alias="DATABASE_URL")

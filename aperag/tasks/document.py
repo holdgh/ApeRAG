@@ -257,12 +257,12 @@ class DocumentIndexTask:
             IndexTaskResult containing operation result
         """
         logger.info(f"Updating {index_type} index for document {document_id}")
-
+        # -- 查询知识库
         # Get collection
         from aperag.tasks.utils import get_document_and_collection
 
         _, collection = get_document_and_collection(document_id)
-
+        # -- 基于index_type进行相应类型的索引更新
         try:
             if index_type == DocumentIndexType.VECTOR.value:
                 from aperag.index.vector_index import vector_indexer
@@ -294,7 +294,7 @@ class DocumentIndexTask:
 
             elif index_type == DocumentIndexType.GRAPH.value:
                 from aperag.index.graph_index import graph_indexer
-
+                # -- 校验知识库是否开启了图索引功能
                 if not graph_indexer.is_enabled(collection):
                     logger.info(f"Graph indexing disabled for document {document_id}")
                     result_data = {"success": True, "message": "Graph indexing disabled"}
