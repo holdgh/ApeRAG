@@ -56,7 +56,7 @@ from aperag.vectorstore.connector import VectorStoreConnectorAdaptor
 logger = logging.getLogger(__name__)
 
 
-def _trigger_index_reconciliation():  # 异步出发索引任务
+def _trigger_index_reconciliation():  # 异步触发索引任务
     """
     Trigger index reconciliation task asynchronously for better real-time responsiveness.
 
@@ -69,8 +69,58 @@ def _trigger_index_reconciliation():  # 异步出发索引任务
         # Import here to avoid circular dependencies and handle missing celery gracefully
         from config.celery_tasks import reconcile_indexes_task
 
-        # Trigger the reconciliation task asynchronously
+        """
+`reconcile_indexes_task.delay()` 的执行**强依赖 Celery 服务的正常启动**，具体分析如下：
+
+### 1. `delay()` 方法的本质：依赖 Celery 服务
+`reconcile_indexes_task.delay()` 是 Celery 异步任务的典型调用方式，其执行逻辑是：
+- 将任务序列化后发送到消息队列（如 Redis、RabbitMQ）；
+- 等待 Celery Worker 进程从队列中取出任务并执行；
+- 整个过程是“**异步非阻塞**”的，调用方（你的 Python 服务）无需等待任务完成即可返回。
+
+**若 Celery 服务未启动**：
+- 消息队列可能无法接收任务（或任务堆积在队列中）；
+- 即使任务成功发送到队列，也没有 Worker 进程处理，任务会一直处于“Pending”状态；
+- 极端情况下（如未配置消息队列），调用 `delay()` 会直接报错（如连接超时）。
+
+
+### 2. 改为 `reconcile_indexes_task()`：同步执行，脱离 Celery 依赖
+若直接调用 `reconcile_indexes_task()`（去掉 `.delay()`），任务会：
+- 在当前 Python 服务进程中**同步执行**（阻塞接口请求，直到任务完成）；
+- 完全不依赖 Celery 服务、消息队列等组件；
+- 失去异步优势：若 `reconcile_indexes_task` 执行耗时较长（如处理大量索引），会导致前端接口超时、服务响应变慢。
+
+
+### 3. 折中方案：保留异步优势，降低对 Celery 的强依赖
+若想避免“Celery 未启动导致任务失效”，可在代码中增加**降级处理逻辑**，例如：
+```python
+def _trigger_index_reconciliation():
+    try:
+        from config.celery_tasks import reconcile_indexes_task
+        
+        # 尝试异步调用（依赖 Celery）
         reconcile_indexes_task.delay()
+    except Exception as e:
+        # 若 Celery 相关组件不可用（如未启动、连接失败），降级为同步执行
+        print(f"Celery 异步调用失败，降级为同步执行: {str(e)}")
+        reconcile_indexes_task()
+```
+
+**适用场景**：
+- 优先保证任务执行（即使牺牲部分响应速度）；
+- 允许在 Celery 服务临时故障时，通过同步执行避免任务丢失。
+
+
+### 总结
+| 调用方式                  | 是否依赖 Celery 服务 | 执行机制       | 优势                          | 劣势                          |
+|---------------------------|----------------------|----------------|-------------------------------|-------------------------------|
+| `reconcile_indexes_task.delay()` | 是                   | 异步非阻塞     | 不阻塞接口，响应速度快        | 依赖 Celery 服务和消息队列    |
+| `reconcile_indexes_task()`       | 否                   | 同步阻塞       | 不依赖外部服务，任务必执行    | 阻塞接口，可能导致超时        |
+
+根据你的业务优先级选择：若“实时响应”比“任务必达”更重要，保留 `delay()` 并确保 Celery 服务稳定；若“任务必达”优先，可采用上述降级方案。
+        """
+        # Trigger the reconciliation task asynchronously
+        reconcile_indexes_task.delay()  # 异步执行文档索引任务，由于此处采用delay操作，需要启动celery服务
         logger.debug("Index reconciliation task triggered for real-time processing")
     except ImportError:
         logger.warning("Celery not available, skipping index reconciliation trigger")

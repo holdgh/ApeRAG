@@ -241,7 +241,7 @@ class LightRAG:
     lightrag_logger: LightRAGLogger = field(default=create_lightrag_logger(workspace=workspace))
 
     def __post_init__(self):  # lightRag实例初始化后处理操作
-        # -- 验证存储容量和环境变量
+        # -- 验证存储类型及存储实现类是否合法
         # Verify storage implementation compatibility and environment variables
         storage_configs = [
             ("KV_STORAGE", self.kv_storage),

@@ -24,8 +24,8 @@ app = Celery("aperag")
 # Configure celery
 app.conf.update(
     task_acks_late=True,
-    broker_url=settings.celery_broker_url,
-    result_backend=settings.celery_result_backend,
+    broker_url=settings.celery_broker_url,  # 消息队列
+    result_backend=settings.celery_result_backend,  # 结果后端
     task_serializer='json',
     accept_content=['json'],
     result_serializer='json',
@@ -35,14 +35,14 @@ app.conf.update(
     task_send_sent_event=settings.celery_task_send_sent_event,
     task_track_started=settings.celery_task_track_started,
     # Auto-discover tasks in the aperag.tasks package
-    include=['config.celery_tasks'],
+    include=['config.celery_tasks'],  # 指定 Celery 自动发现任务的 模块路径，即 Worker 启动时会加载该模块下所有用 @app.task 装饰的函数。
     # Enable detailed logging for celery workers - let our custom config handle formatting
     worker_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(name)s - %(message)s',
     worker_task_log_format='[%(asctime)s: %(levelname)s/%(processName)s] %(name)s - %(message)s',
     # Let our custom logging configuration handle the root logger
     worker_hijack_root_logger=True,
 )
-
+# 定时任务配置
 app.conf.beat_schedule = {
     'reconcile-indexes': {
         'task': 'config.celery_tasks.reconcile_indexes_task',
@@ -66,7 +66,7 @@ app.conf.beat_schedule = {
 if settings.local_queue_name:
     app.conf.task_routes = {
         "aperag.tasks.index.add_index_for_local_document": {"queue": f"{settings.local_queue_name}"},
-    }
+    }  # 基于队列的任务路由配置
 
 
 # Simple logging configuration for Celery workers

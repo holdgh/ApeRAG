@@ -38,7 +38,7 @@ from aperag.utils.utils import utc_now
 logger = logging.getLogger(__name__)
 
 
-class DocumentIndexReconciler:
+class DocumentIndexReconciler:  # 文档索引协调器
     """Reconciler for document indexes using single status model"""
 
     def __init__(self, task_scheduler: Optional[TaskScheduler] = None, scheduler_type: str = "celery"):
@@ -50,8 +50,17 @@ class DocumentIndexReconciler:
         Groups operations by document and index type for atomic processing
         """
         # Get all indexes that need reconciliation
-        for session in get_sync_session():
+        """
+        因为 get_sync_session() 是生成器（yield 返回值），生成器需要通过迭代（for 循环）获取值。
+        这里的循环只会执行一次（生成器只产生一个会话对象），本质是借助迭代触发生成器的上下文管理逻辑（确保会话正确释放）。
+        
+        # 等效逻辑（更易理解）
+        with get_sync_session() as session:
             operations = self._get_indexes_needing_reconciliation(session)
+
+        """
+        for session in get_sync_session():  # 获取数据库连接池中的连接【会话】
+            operations = self._get_indexes_needing_reconciliation(session)  # 从数据库获取需要处理的索引操作
 
         logger.info(f"Found {len(operations)} documents need to be reconciled")
 
@@ -69,39 +78,39 @@ class DocumentIndexReconciler:
 
         logger.info(f"Reconciliation completed: {successful_docs} successful, {failed_docs} failed")
 
-    def _get_indexes_needing_reconciliation(self, session: Session) -> List[DocumentIndex]:
+    def _get_indexes_needing_reconciliation(self, session: Session) -> List[DocumentIndex]:  # 从数据库查询待处理的索引操作
         """
         Get all indexes that need reconciliation without modifying their state.
         State modifications will happen in individual document transactions.
         """
         from collections import defaultdict
 
-        operations = defaultdict(lambda: {IndexAction.CREATE: [], IndexAction.UPDATE: [], IndexAction.DELETE: []})
+        operations = defaultdict(lambda: {IndexAction.CREATE: [], IndexAction.UPDATE: [], IndexAction.DELETE: []})  # 初始索引操作任务集合，三类操作：创建、更新、删除
 
         conditions = {
             IndexAction.CREATE: and_(
                 DocumentIndex.status == DocumentIndexStatus.PENDING,
-                DocumentIndex.observed_version < DocumentIndex.version,
-                DocumentIndex.version == 1,
+                DocumentIndex.observed_version < DocumentIndex.version,  # TODO 至此~
+                DocumentIndex.version == 1,  # 版本号初始为1，标识首次创建索引
             ),
             IndexAction.UPDATE: and_(
                 DocumentIndex.status == DocumentIndexStatus.PENDING,
                 DocumentIndex.observed_version < DocumentIndex.version,
-                DocumentIndex.version > 1,
+                DocumentIndex.version > 1,  # 版本号大于1，标识更新索引操作
             ),
             IndexAction.DELETE: and_(
                 DocumentIndex.status == DocumentIndexStatus.DELETING,
             ),
-        }
+        }  # 三类待处理索引操作的条件表达式定义
 
         for action, condition in conditions.items():
             stmt = select(DocumentIndex).where(condition)
-            result = session.execute(stmt)
+            result = session.execute(stmt)  # 利用数据库连接会话执行查询待处理索引数据
             indexes = result.scalars().all()
             for index in indexes:
                 operations[index.document_id][action].append(index)
 
-        return operations
+        return operations  # 字典类型，三类待处理的索引数据集合
 
     def _reconcile_single_document(self, document_id: str, operations: dict):
         """
@@ -650,7 +659,7 @@ class CollectionGCReconciler:
 
 
 # Global instances
-index_reconciler = DocumentIndexReconciler()
+index_reconciler = DocumentIndexReconciler()  # 文档索引协调器全局实例
 index_task_callbacks = IndexTaskCallbacks()
 collection_summary_reconciler = CollectionSummaryReconciler()
 collection_summary_callbacks = CollectionSummaryCallbacks()

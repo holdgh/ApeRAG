@@ -201,12 +201,14 @@ class Config(BaseSettings):
                 f"postgresql://{self.postgres_user}:{self.postgres_password}"
                 f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
             )
+        # celery服务配置
+        # 消息队列url配置
         # CELERY_BROKER_URL
         if not self.celery_broker_url:
             self.celery_broker_url = (
                 f"redis://{self.redis_user}:{self.redis_password}@{self.redis_host}:{self.redis_port}/0"
             )
-
+        # 结果后端配置，若无显式配置，则与消息队列共用
         # CELERY_RESULT_BACKEND
         if not self.celery_result_backend:
             self.celery_result_backend = self.celery_broker_url
@@ -235,8 +237,11 @@ class Config(BaseSettings):
             )
 
 
-def get_sync_database_url(url: str):
+def get_sync_database_url(url: str):  # 将异步数据库URL转换为celery的同步版本
     """Convert async database URL to sync version for celery"""
+    """
+    同步 URL 是 postgresql://user:pass@localhost/db
+    """
     if url.startswith("postgresql+asyncpg://"):
         return url.replace("postgresql+asyncpg://", "postgresql://")
     if url.startswith("postgres+asyncpg://"):
@@ -246,8 +251,11 @@ def get_sync_database_url(url: str):
     return url
 
 
-def get_async_database_url(url: str):
+def get_async_database_url(url: str):  # 创建一个 异步数据库引擎（AsyncEngine），用于支持异步代码（如 async/await）操作数据库（通常配合 asyncpg 等异步数据库驱动）
     """Convert sync database URL to async version"""
+    """
+    异步 URL 可能是 postgresql+asyncpg://user:pass@localhost/db（+asyncpg 表示使用异步驱动）
+    """
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://")
     if url.startswith("postgres://"):
@@ -269,23 +277,23 @@ def new_async_engine():
     )
 
 
-def new_sync_engine():
+def new_sync_engine():  # 创建同步数据库引擎
     return create_engine(
-        get_sync_database_url(settings.database_url),
-        echo=settings.debug,
-        pool_size=settings.db_pool_size,
-        max_overflow=settings.db_max_overflow,
-        pool_timeout=settings.db_pool_timeout,
-        pool_recycle=settings.db_pool_recycle,
-        pool_pre_ping=settings.db_pool_pre_ping,
-    )
+        get_sync_database_url(settings.database_url),  # 获取同步数据库url
+        echo=settings.debug,  # 当 settings.debug 为 True 时，引擎会在控制台打印执行的 SQL 语句及参数（方便开发调试），生产环境通常设为 False 以减少日志冗余。
+        pool_size=settings.db_pool_size,  # 连接池默认保持的活跃连接数（如 5，根据并发量调整）。
+        max_overflow=settings.db_max_overflow,  # 连接池 “溢出” 时允许临时创建的额外连接数（如 10，超过 pool_size 时启用，用完后销毁）。
+        pool_timeout=settings.db_pool_timeout,  # 从连接池获取连接的超时时间（如 30 秒，超时未获取到连接会抛异常）。
+        pool_recycle=settings.db_pool_recycle,  # 连接的最大存活时间（如 3600 秒，避免数据库主动关闭长时间闲置的连接导致报错）。
+        pool_pre_ping=settings.db_pool_pre_ping,  # 获取连接前是否发送 “心跳检测”（如 SELECT 1），确保连接有效（防止连接已被数据库关闭但连接池未感知的问题）
+    )  # 基于数据库url和连接池参数创建数据库连接池引擎实例
 
 
 settings = Config()
 
 # Database connection pool settings from configuration
 async_engine = new_async_engine()
-sync_engine = new_sync_engine()
+sync_engine = new_sync_engine()  # 获取同步数据库引擎，全局的，避免频繁创建引擎（引擎是重量级对象，全局单例即可）
 
 
 async def get_async_session(engine=None) -> AsyncGenerator[AsyncSession, None]:
@@ -296,12 +304,22 @@ async def get_async_session(engine=None) -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-def get_sync_session(engine=None) -> Generator[Session, None, None]:
+def get_sync_session(engine=None) -> Generator[Session, None, None]:  # 生成同步数据库会话
+    """
+    提供一个 安全的同步数据库会话（Session），封装了数据库连接的获取、使用和释放逻辑，
+    是 SQLAlchemy 中操作数据库的 “入口”（通过 Session 执行增删改查）。
+    """
     if engine is None:
-        engine = sync_engine
-    sync_session = sessionmaker(engine)
-    with sync_session() as session:
-        yield session
+        engine = sync_engine  # 默认使用全局同步数据库引擎
+    sync_session = sessionmaker(engine)  # 创建会话工厂
+    """
+    使用上下文管理器（with 语句）管理会话生命周期：
+        进入 with 块时：创建会话并建立数据库连接；
+        退出 with 块时：自动提交事务（若操作成功）或回滚（若抛出异常），并关闭会话释放连接（回归连接池）。
+    这是 SQLAlchemy 推荐的用法，可避免 “连接泄露”（忘记关闭连接导致连接池耗尽）。
+    """
+    with sync_session() as session:  # 上下文管理器自动管理会话生命周期
+        yield session  # 生成会话对象，供外部使用【外部通过迭代器获取会话（如 for session in get_sync_session()），使用完成后自动触发上下文管理器的退出逻辑（释放资源）。】
 
 
 def with_sync_session(func):
