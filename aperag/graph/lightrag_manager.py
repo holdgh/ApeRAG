@@ -56,7 +56,7 @@ class LightRAGError(Exception):
     pass
 
 
-async def create_lightrag_instance(collection: Collection) -> LightRAG:
+async def create_lightrag_instance(collection: Collection) -> LightRAG:  # 基于知识库信息创建lightRag实例
     """
     Create a new LightRAG instance for the given collection.
     Since LightRAG is now stateless, we create a fresh instance each time.
@@ -64,12 +64,13 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:
     collection_id = str(collection.id)
 
     try:
+        # 获取embedding和llm操作实例
         # Generate embedding and LLM functions
         embed_func, embed_dim = await _gen_embed_func(collection)
         llm_func = await _gen_llm_func(collection)
 
         # Get storage configuration from environment
-        # -- 由于Windows环境不便设置环境变量，此处采用默认值设置
+        # -- 从环境变量获取图谱相关存储参数【由于Windows环境不便设置环境变量，此处采用默认值设置】
         kv_storage = os.environ.get("GRAPH_INDEX_KV_STORAGE", default='PGOpsSyncKVStorage')
         vector_storage = os.environ.get("GRAPH_INDEX_VECTOR_STORAGE", default='PGOpsSyncVectorStorage')
         graph_storage = os.environ.get("GRAPH_INDEX_GRAPH_STORAGE", default='PGOpsSyncGraphStorage')
@@ -79,15 +80,19 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:
 
         # Create LightRAG instance
         rag = LightRAG(
-            workspace=collection_id,
+            workspace=collection_id,  # 知识库id【工作空间】
+            # -- lightRag分段参数
             chunk_token_size=LightRAGConfig.CHUNK_TOKEN_SIZE,
             chunk_overlap_token_size=LightRAGConfig.CHUNK_OVERLAP_TOKEN_SIZE,
+            # -- llm和embedding操作
             llm_model_func=llm_func,
             embedding_func=EmbeddingFunc(
                 embedding_dim=embed_dim,
                 max_token_size=LightRAGConfig.EMBEDDING_MAX_TOKEN_SIZE,
                 func=embed_func,
             ),
+            # -- lightRag检索参数
+            # 余弦相似度阈值、【进行embedding操作的最大批次】最大批次、llm异步最大批次、实体提取参数【从文本提取实体的最大数量】、摘要最大token参数、摘要范围分段数量参数、语言参数
             cosine_better_than_threshold=LightRAGConfig.COSINE_BETTER_THAN_THRESHOLD,
             max_batch_size=LightRAGConfig.MAX_BATCH_SIZE,
             llm_model_max_async=LightRAGConfig.LLM_MODEL_MAX_ASYNC,
@@ -95,10 +100,11 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:
             summary_to_max_tokens=LightRAGConfig.SUMMARY_TO_MAX_TOKENS,
             force_llm_summary_on_merge=LightRAGConfig.FORCE_LLM_SUMMARY_ON_MERGE,
             addon_params={"language": LightRAGConfig.DEFAULT_LANGUAGE},
+            # -- 图谱相关存储
             kv_storage=kv_storage,
             vector_storage=vector_storage,
             graph_storage=graph_storage,
-        )
+        )  # 创建lightRag实例
 
         await rag.initialize_storages()
         return rag

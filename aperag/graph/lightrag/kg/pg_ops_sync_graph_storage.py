@@ -282,7 +282,7 @@ class PGOpsSyncGraphStorage(BaseGraphStorage):
 
         return await asyncio.to_thread(_sync_get_all_labels)
 
-    async def get_knowledge_graph(self, node_label: str, max_depth: int = 3, max_nodes: int = 1000) -> KnowledgeGraph:
+    async def get_knowledge_graph(self, node_label: str, max_depth: int = 3, max_nodes: int = 1000) -> KnowledgeGraph:  # 基于节点标签获取连接好的子图
         """
         Get a connected subgraph of nodes matching the specified label.
 
@@ -299,8 +299,8 @@ class PGOpsSyncGraphStorage(BaseGraphStorage):
             MAX_GRAPH_NODES = max_nodes
 
             # Get all labels first
-            all_labels = db_ops.get_all_graph_labels(self.workspace)
-
+            all_labels = db_ops.get_all_graph_labels(self.workspace)  # 获取当前知识库【工作空间】所有的节点标签
+            # -- 基于传入的节点标签类型过滤全量的节点标签
             # Filter based on node_label pattern
             if node_label == "*":
                 # Get all nodes (limited by max_nodes)
@@ -310,12 +310,12 @@ class PGOpsSyncGraphStorage(BaseGraphStorage):
                 matching_labels = [label for label in all_labels if node_label in label]
                 if len(matching_labels) > MAX_GRAPH_NODES:
                     matching_labels = matching_labels[:MAX_GRAPH_NODES]
-
+            # -- 基于标签获取节点信息
             # Get node details for each matching label using batch operation
             if matching_labels:
-                nodes_data = db_ops.get_graph_nodes_batch(self.workspace, matching_labels)
+                nodes_data = db_ops.get_graph_nodes_batch(self.workspace, matching_labels)  # 基于过滤后的节点标签获取当前知识库的节点信息
 
-                for entity_id, node_data in nodes_data.items():
+                for entity_id, node_data in nodes_data.items():  # 遍历节点信息【实体id、节点数据【实体id、实体类型、实体描述、来源于哪个分段id、文件路径】】
                     # Assemble properties from individual fields
                     properties = {
                         "entity_id": node_data["entity_id"],
@@ -325,7 +325,7 @@ class PGOpsSyncGraphStorage(BaseGraphStorage):
                         "file_path": node_data.get("file_path"),
                     }
                     # Only include entity_name if it's different from entity_id and not None
-                    if "entity_name" in node_data and node_data["entity_name"] != entity_id:
+                    if "entity_name" in node_data and node_data["entity_name"] != entity_id:  # 节点数据中含有实体名称，且实体名称与实体id不一致时，则增设实体名称属性
                         properties["entity_name"] = node_data["entity_name"]
 
                     # Remove None values for cleaner output
@@ -337,37 +337,37 @@ class PGOpsSyncGraphStorage(BaseGraphStorage):
                             labels=[node_data.get("entity_type", entity_id)],
                             properties=properties,
                         )
-                    )
-
+                    )  # 基于当前节点信息构造知识图谱节点实例，并收集到result的节点集合中
+                # -- 基于节点信息获取以其作为起始节点的边信息
                 # Get edges between the selected nodes using batch operation
                 node_names = [node.id for node in result.nodes]
                 if node_names:
-                    nodes_edges = db_ops.get_graph_nodes_edges_batch(self.workspace, node_names)
+                    nodes_edges = db_ops.get_graph_nodes_edges_batch(self.workspace, node_names)  # 基于实体id集合获取当前知识库的边集合
 
                     # Collect unique edge pairs that connect nodes in our result set
                     edge_pairs_to_query = set()
-                    for source_node in node_names:
+                    for source_node in node_names:  # 遍历符合条件的节点集合，获取以其作为起始节点的边集
                         edges = nodes_edges.get(source_node, [])
-                        for source_entity_id, target_entity_id in edges:
+                        for source_entity_id, target_entity_id in edges:  # 遍历当前节点作为源节点的边集【边看起来是（源节点id，目标节点id）的元组】
                             # Only include edges between selected nodes
-                            if source_entity_id in node_names and target_entity_id in node_names:
+                            if source_entity_id in node_names and target_entity_id in node_names:  # 当且仅当边的起止节点都在符合条件的节点集合中时，则收集（源节点id，目标节点id）
                                 edge_pairs_to_query.add((source_entity_id, target_entity_id))
 
                     # Get edge details in batch
                     if edge_pairs_to_query:
-                        edges_data = db_ops.get_graph_edges_batch(self.workspace, list(edge_pairs_to_query))
+                        edges_data = db_ops.get_graph_edges_batch(self.workspace, list(edge_pairs_to_query))  # 依据边集【（源节点id，目标节点id）集合】信息获取边数据
 
-                        for (source_entity_id, target_entity_id), edge_data in edges_data.items():
-                            edge_id = f"{source_entity_id}-{target_entity_id}"
+                        for (source_entity_id, target_entity_id), edge_data in edges_data.items():  # 遍历处理边数据
+                            edge_id = f"{source_entity_id}-{target_entity_id}"  # 边id格式：“起始节点id-目标节点id”
 
                             # Assemble edge properties from individual fields
                             edge_properties = {
-                                "weight": edge_data.get("weight", 0.0),
-                                "keywords": edge_data.get("keywords"),
-                                "description": edge_data.get("description"),
-                                "source_id": edge_data.get("source_id"),
-                                "file_path": edge_data.get("file_path"),
-                            }
+                                "weight": edge_data.get("weight", 0.0),  # 权重
+                                "keywords": edge_data.get("keywords"),  # 关键词
+                                "description": edge_data.get("description"),  # 边描述
+                                "source_id": edge_data.get("source_id"),  # 来源于哪个分段id
+                                "file_path": edge_data.get("file_path"),  # 文件路径
+                            }  # 依据边数据构造边属性
                             # Remove None values for cleaner output
                             edge_properties = {k: v for k, v in edge_properties.items() if v is not None}
 
@@ -379,11 +379,11 @@ class PGOpsSyncGraphStorage(BaseGraphStorage):
                                     target=target_entity_id,
                                     properties=edge_properties,
                                 )
-                            )
+                            )  # 构造知识图谱边实例，并收集到result的边集合中
 
             return result
 
-        result = await asyncio.to_thread(_sync_get_knowledge_graph)
+        result = await asyncio.to_thread(_sync_get_knowledge_graph)  # 采用其他线程执行操作
         logger.info(f"Subgraph query successful | Node count: {len(result.nodes)} | Edge count: {len(result.edges)}")
         return result
 

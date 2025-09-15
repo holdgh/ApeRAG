@@ -124,7 +124,7 @@ class LightRAG:
     chunk_overlap_token_size: int = field(default=100)
     """Number of overlapping tokens between consecutive text chunks to preserve context."""
 
-    tokenizer: Optional[Tokenizer] = field(default=None)
+    tokenizer: Optional[Tokenizer] = field(default=None)  # 分词器实例，默认TiktokenTokenizer
     """
     A function that returns a Tokenizer instance.
     If None, and a `tiktoken_model_name` is provided, a TiktokenTokenizer will be created.
@@ -144,7 +144,7 @@ class LightRAG:
             int,
         ],
         List[Dict[str, Any]],
-    ] = field(default_factory=lambda: chunking_by_token_size)
+    ] = field(default_factory=lambda: chunking_by_token_size)  # 分段操作，默认为chunking_by_token_size
     """
     Custom chunking function for splitting text into chunks before processing.
 
@@ -240,7 +240,8 @@ class LightRAG:
 
     lightrag_logger: LightRAGLogger = field(default=create_lightrag_logger(workspace=workspace))
 
-    def __post_init__(self):
+    def __post_init__(self):  # lightRag实例初始化后处理操作
+        # -- 验证存储容量和环境变量
         # Verify storage implementation compatibility and environment variables
         storage_configs = [
             ("KV_STORAGE", self.kv_storage),
@@ -251,7 +252,7 @@ class LightRAG:
         for storage_type, storage_name in storage_configs:
             # Verify storage implementation compatibility
             verify_storage_implementation(storage_type, storage_name)
-
+        # -- 初始化分词器
         # Init Tokenizer
         # Post-initialization hook to handle backward compatabile tokenizer initialization based on provided parameters
         if self.tokenizer is None:
@@ -261,6 +262,7 @@ class LightRAG:
                 self.tokenizer = TiktokenTokenizer()
 
         # Initialize all storages
+        # 初始化存储实例
         self.key_string_value_json_storage_cls: type[BaseKVStorage] = self._get_storage_class(self.kv_storage)  # type: ignore
         self.vector_db_storage_cls: type[BaseVectorStorage] = self._get_storage_class(self.vector_storage)  # type: ignore
         self.graph_storage_cls: type[BaseGraphStorage] = self._get_storage_class(self.graph_storage)  # type: ignore
@@ -273,7 +275,6 @@ class LightRAG:
         self.graph_storage_cls = partial(  # type: ignore
             self.graph_storage_cls
         )
-
         # TODO: deprecating, text_chunks is redundant with chunks_vdb
         self.text_chunks: BaseKVStorage = self.key_string_value_json_storage_cls(  # type: ignore
             namespace=NameSpace.KV_STORE_TEXT_CHUNKS,
@@ -310,7 +311,7 @@ class LightRAG:
             _max_batch_size=self.max_batch_size,
             meta_fields={"full_doc_id", "content", "file_path"},
         )
-
+        # -- 初始化存储状态和日志实例
         self._storages_status = StoragesStatus.CREATED
         self.lightrag_logger = create_lightrag_logger(workspace=self.workspace)
 
@@ -363,7 +364,7 @@ class LightRAG:
         node_label: str,
         max_depth: int = 3,
         max_nodes: int = 1000,
-    ) -> KnowledgeGraph:
+    ) -> KnowledgeGraph:  # 基于给定标签获取知识图谱
         """Get knowledge graph for a given label
 
         Args:
@@ -376,7 +377,7 @@ class LightRAG:
         """
 
         kg = await self.chunk_entity_relation_graph.get_knowledge_graph(node_label, max_depth, max_nodes)
-
+        # -- 节点和边描述信息的格式处理【将分隔符标签替换为双换行符】
         # Clean up descriptions in nodes by replacing GRAPH_FIELD_SEP with double newlines
         if kg.nodes and len(kg.nodes) > 0:
             for node in kg.nodes:

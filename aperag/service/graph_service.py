@@ -80,10 +80,11 @@ class GraphService:
         max_nodes: int = 1000,
     ) -> Dict[str, Any]:
         """Get knowledge graph with overview or subgraph mode"""
-        db_collection = await self._get_and_validate_collection(user_id, collection_id)
+        db_collection = await self._get_and_validate_collection(user_id, collection_id)  # 获取知识库并验证该知识库是否支持知识图谱
 
-        rag = await lightrag_manager.create_lightrag_instance(db_collection)
+        rag = await lightrag_manager.create_lightrag_instance(db_collection)  # 基于知识库信息创建lightrag实例
         try:
+            # -- 设置知识谱图查询参数
             # Determine query parameters
             if not label or label == "*":
                 node_label, query_max_nodes = "*", max_nodes * 2
@@ -91,14 +92,14 @@ class GraphService:
             else:
                 node_label, query_max_nodes = label, max_nodes
                 mode_description = f"subgraph from '{label}'"
-
+            # -- 依据知识图谱查询参数获取图谱
             # Get knowledge graph
             kg: KnowledgeGraph = await rag.get_knowledge_graph(
                 node_label=node_label,
                 max_depth=max_depth,
                 max_nodes=query_max_nodes,
             )
-
+            # -- 基于知识图谱查询参数优化查询到的知识图谱
             # Optimize if needed
             if (not label or label == "*") and len(kg.nodes) > max_nodes:
                 optimized_nodes, optimized_edges = self._optimize_graph_for_visualization(kg.nodes, kg.edges, max_nodes)
@@ -412,7 +413,7 @@ class GraphService:
         finally:
             await rag.finalize_storages()
 
-    async def _get_and_validate_collection(self, user_id: str, collection_id: str):
+    async def _get_and_validate_collection(self, user_id: str, collection_id: str):  # 获取知识库并验证当前知识库是否支持知识图谱
         """Get collection and validate knowledge graph is enabled"""
         try:
             view_collection = await self.collection_service.get_collection(user_id, collection_id)

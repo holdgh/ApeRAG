@@ -225,7 +225,7 @@ async def authenticate_websocket_user(websocket: WebSocket, user_manager: UserMa
 
 
 # --- API Key Authentication ---
-async def authenticate_api_key(request: Request, session: AsyncSessionDep) -> Optional[User]:
+async def authenticate_api_key(request: Request, session: AsyncSessionDep) -> Optional[User]:  # 验证接口token并获取当前登录用户信息
     """Authenticate using API Key from Authorization header"""
     from sqlalchemy import select
 
@@ -266,7 +266,7 @@ async def optional_user(
         request.state.user_id = user.id
         request.state.username = user.username
         return user
-    api_user = await authenticate_api_key(request, session)
+    api_user = await authenticate_api_key(request, session)  # 验证接口token并获取当前用户信息
     if api_user:
         request.state.user_id = api_user.id
         request.state.username = api_user.username

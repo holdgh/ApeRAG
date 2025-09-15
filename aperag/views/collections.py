@@ -393,15 +393,15 @@ async def confirm_documents_view(
 @router.get("/collections/{collection_id}/graphs", tags=["graph"])
 async def get_knowledge_graph_view(
     request: Request,
-    collection_id: str,
+    collection_id: str,  # 知识库id【路径参数】
     label: str = "*",
-    max_nodes: int = 1000,
-    max_depth: int = 3,
-    user: User = Depends(required_user),
-):
+    max_nodes: int = 1000,  # 最大节点数
+    max_depth: int = 3,  # 最大深度
+    user: User = Depends(required_user),  # 验证接口token并获取当前用户信息
+):  # 查看知识库的知识图谱视图
     """Get knowledge graph - overview mode or subgraph mode"""
     from aperag.service.graph_service import graph_service
-
+    # -- 最大节点数不超过10000，最大深度不超过10
     # Validate parameters
     if not (1 <= max_nodes <= 10000):
         raise HTTPException(status_code=400, detail="max_nodes must be between 1 and 10000")
@@ -409,6 +409,7 @@ async def get_knowledge_graph_view(
         raise HTTPException(status_code=400, detail="max_depth must be between 1 and 10")
 
     try:
+        # -- 基于用户、知识库等参数获取相应知识图谱
         result = await graph_service.get_knowledge_graph(str(user.id), collection_id, label, max_depth, max_nodes)
         return result
     except CollectionNotFoundException:
