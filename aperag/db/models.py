@@ -342,7 +342,7 @@ class Document(Base):
     gmt_updated = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     gmt_deleted = Column(DateTime(timezone=True), nullable=True, index=True)  # Add index for soft delete queries
 
-    def get_document_indexes(self, session):
+    def get_document_indexes(self, session):  # 查询当前文档对应的所有索引任务
         """Get document indexes from the merged table"""
 
         stmt = select(DocumentIndex).where(DocumentIndex.document_id == self.id)
@@ -351,20 +351,20 @@ class Document(Base):
 
     def get_overall_index_status(self, session) -> "DocumentStatus":
         """Calculate overall status based on document indexes"""
-        document_indexes = self.get_document_indexes(session)
+        document_indexes = self.get_document_indexes(session)  # 查询当前文档对应的所有索引任务
 
-        if not document_indexes:
+        if not document_indexes:  # 如果当前文档没有索引任务，则返回文档状态PENDING
             return DocumentStatus.PENDING
 
-        statuses = [idx.status for idx in document_indexes]
+        statuses = [idx.status for idx in document_indexes]  # 收集当前文档的所有索引任务状态列表
 
-        if any(status == DocumentIndexStatus.FAILED for status in statuses):
+        if any(status == DocumentIndexStatus.FAILED for status in statuses):  # 只要有一个索引任务为失败状态，则返回文档状态FAILED
             return DocumentStatus.FAILED
         elif any(
             status in [DocumentIndexStatus.CREATING, DocumentIndexStatus.DELETION_IN_PROGRESS] for status in statuses
-        ):
+        ):  # 只要一个索引任务为处理中状态，则返回文档状态RUNNING
             return DocumentStatus.RUNNING
-        elif all(status == DocumentIndexStatus.ACTIVE for status in statuses):
+        elif all(status == DocumentIndexStatus.ACTIVE for status in statuses):  # 仅当所有索引任务为已完成状态，则返回文档状态COMPLETE
             return DocumentStatus.COMPLETE
         else:
             return DocumentStatus.PENDING
@@ -763,8 +763,9 @@ class DocumentIndex(Base):
     index_type = Column(EnumColumn(DocumentIndexType), nullable=False, index=True)
 
     status = Column(EnumColumn(DocumentIndexStatus), nullable=False, default=DocumentIndexStatus.PENDING, index=True)
-    version = Column(Integer, nullable=False, default=1)  # Incremented on each spec change
-    observed_version = Column(Integer, nullable=False, default=0)  # Last processed spec version
+    # 索引任务完成后，会有version==observed_version。创建索引任务时，version初始化为1，observed_version初始化为0，表示索引任务已创建但未处理【observed_version小于version】
+    version = Column(Integer, nullable=False, default=1)  # Incremented on each spec change 每次更新后的版本号，初始值为1，数据的 “当前真实版本号”
+    observed_version = Column(Integer, nullable=False, default=0)  # Last processed spec version 最近处理过的版本号，初始值为0，“已处理过的版本号”（处理完成后，会将 observed_version 同步为当前的 version）
 
     # Index data and task tracking
     index_data = Column(Text, nullable=True)  # JSON string for index-specific data

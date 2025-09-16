@@ -167,23 +167,23 @@ def _validate_task_relevance(document_id: str, index_type: str, target_version: 
 
         return None  # Task is still relevant
 
-class BaseIndexTask(Task):
+class BaseIndexTask(Task):  # 对于所有索引任务的基类定义
     """
     Base class for all index tasks
     """
 
     abstract = True
 
-    def _handle_index_success(self, document_id: str, index_type: str, target_version: int, index_data: dict = None):
+    def _handle_index_success(self, document_id: str, index_type: str, target_version: int, index_data: dict = None):  # 处理新增/修改索引任务成功时的回调操作
         try:
             from aperag.tasks.reconciler import index_task_callbacks
             index_data_json = json.dumps(index_data) if index_data else None
-            index_task_callbacks.on_index_created(document_id, index_type, target_version, index_data_json)
+            index_task_callbacks.on_index_created(document_id, index_type, target_version, index_data_json)  # 更新索引任务状态，然后根据索引任务状态更新文档状态
             logger.info(f"Index success callback executed for {index_type} index of document {document_id} (v{target_version})")
         except Exception as e:
             logger.warning(f"Failed to execute index success callback for {index_type} of {document_id} v{target_version}: {e}", exc_info=True)
 
-    def _handle_index_deletion_success(self, document_id: str, index_type: str):
+    def _handle_index_deletion_success(self, document_id: str, index_type: str):  # 处理删除索引任务成功时的回调操作
         try:
             from aperag.tasks.reconciler import index_task_callbacks
             index_task_callbacks.on_index_deleted(document_id, index_type)
@@ -191,7 +191,7 @@ class BaseIndexTask(Task):
         except Exception as e:
             logger.warning(f"Failed to execute index deletion callback for {index_type} of {document_id}: {e}", exc_info=True)
 
-    def _handle_index_failure(self, document_id: str, index_types: List[str], error_msg: str):
+    def _handle_index_failure(self, document_id: str, index_types: List[str], error_msg: str):  # 索引任务处理失败的回调操作
         try:
             from aperag.tasks.reconciler import index_task_callbacks
 
@@ -204,7 +204,7 @@ class BaseIndexTask(Task):
 # ========== Core Document Processing Tasks ==========
 
 @current_app.task(bind=True, base=BaseIndexTask, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
-def parse_document_task(self, document_id: str, index_types: List[str]) -> dict:
+def parse_document_task(self, document_id: str, index_types: List[str]) -> dict:  # 解析文档，最大重试次数为3次，
     """
     Parse document content task
 
@@ -218,7 +218,7 @@ def parse_document_task(self, document_id: str, index_types: List[str]) -> dict:
         logger.info(f"Starting to parse document {document_id}")
         parsed_data = document_index_task.parse_document(document_id)
         logger.info(f"Successfully parsed document {document_id}")
-        return parsed_data.to_dict()
+        return parsed_data.to_dict()  # 将文档解析数据转化为字典
     except Exception as e:
         error_msg = f"Failed to parse document {document_id}: {str(e)}"
         logger.error(error_msg, exc_info=True)
@@ -621,7 +621,7 @@ def notify_workflow_complete(self, index_results: List[dict], document_id: str, 
 
 # ========== Workflow Entry Point Functions ==========
 
-def create_document_indexes_workflow(document_id: str, index_types: List[str], context: dict = None):
+def create_document_indexes_workflow(document_id: str, index_types: List[str], context: dict = None):  # 对于单个文档，处理创建类索引任务工作流
     """
     Create indexes for a document using dynamic workflow orchestration.
 
@@ -638,6 +638,7 @@ def create_document_indexes_workflow(document_id: str, index_types: List[str], c
         AsyncResult for the workflow chain
     """
     logger.info(f"Starting create indexes workflow for document {document_id} with types: {index_types}")
+    # -- 创建类索引任务的处理步骤：解析文档-->索引操作
     # Create the workflow chain: parse -> dynamic trigger
     workflow_chain = chain(
         parse_document_task.s(document_id, index_types),
@@ -645,7 +646,7 @@ def create_document_indexes_workflow(document_id: str, index_types: List[str], c
     )
 
     # Submit the workflow
-    workflow_result = workflow_chain.delay()
+    workflow_result = workflow_chain.delay()  # 异步执行上述定义的工作流
     logger.info(f"Create indexes workflow submitted for document {document_id}, workflow ID: {workflow_result.id}")
 
     return workflow_result

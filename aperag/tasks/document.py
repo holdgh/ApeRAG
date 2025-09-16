@@ -26,7 +26,7 @@ class DocumentIndexTask:
     Document index task orchestrator
     """
 
-    def parse_document(self, document_id: str) -> ParsedDocumentData:
+    def parse_document(self, document_id: str) -> ParsedDocumentData:  # TODO 至此~ 解析文档内容
         """
         Parse document content
 
@@ -366,4 +366,4 @@ class DocumentIndexTask:
             return IndexTaskResult.failed_result(index_type=index_type, document_id=document_id, error=error_msg)
 
 
-document_index_task = DocumentIndexTask()
+document_index_task = DocumentIndexTask()  # 文档索引任务处理实例，全局共享
