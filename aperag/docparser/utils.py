@@ -22,10 +22,22 @@ from aperag.docparser.base import AssetBinPart
 
 
 def get_soffice_cmd() -> str | None:
-    return shutil.which("soffice")
+    """
+    1、shutil.which() 函数
+    这是 Python 标准库 shutil 中的一个工具函数，作用是在系统的环境变量 PATH 所指定的目录中，查找指定程序（这里是 soffice）的可执行文件路径。
+        如果找到该程序，返回其完整路径（例如 '/usr/bin/soffice' 或 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'）；
+        如果找不到，返回 None。
+
+    2、"soffice" 是什么
+    soffice 是 LibreOffice 或 OpenOffice 办公套件的命令行启动程序名称。通过它可以在命令行中操作 Office 文档（如转换格式、批量处理等）。
+
+    3、实际用途
+    这段代码通常用于检查系统是否安装了 LibreOffice/OpenOffice，以便后续通过命令行调用其功能（例如在 Python 中自动转换文档格式）。
+    """
+    return shutil.which("soffice")  # 查找系统中是否安装了 soffice 程序及其可执行文件路径
 
 
-def convert_office_doc(input_path: Path, output_dir: Path, target_format: str) -> Path:
+def convert_office_doc(input_path: Path, output_dir: Path, target_format: str) -> Path:  # 采用soffice程序将doc、ppt文件转化为docx、pptx文件
     soffice_cmd = get_soffice_cmd()
     if soffice_cmd is None:
         raise RuntimeError("soffice command not found")
@@ -45,7 +57,7 @@ def convert_office_doc(input_path: Path, output_dir: Path, target_format: str) -
         str(output_dir),
         str(input_path),
     ]
-
+    # subprocess.run() 会创建一个新的子进程来执行 cmd 命令，但主进程会阻塞等待该子进程执行完毕后才继续运行，属于同步执行。
     process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if process.returncode != 0:
         raise RuntimeError(

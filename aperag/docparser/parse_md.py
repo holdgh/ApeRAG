@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 DATA_URI_PATTERN: Pattern = re.compile(r"!\[.*?\]\(\s*(data:.+?;base64,.+?)(?:\s+\"(.*?)\")?\)")
 
 
-def parse_md(input_md: str, metadata: dict[str, Any]) -> list[Part]:
+def parse_md(input_md: str, metadata: dict[str, Any]) -> list[Part]:  # 基于原始文件元数据，对markdown文件进行分段解析 TODO 至此~
     input_md, asset_bin_parts = extract_data_uri(input_md, metadata)
     md_part = MarkdownPart(markdown=input_md, metadata=metadata)
 

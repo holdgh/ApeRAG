@@ -71,7 +71,7 @@ class DocumentParser:
         if not parser.accept(filepath_obj.suffix):  # 检验当前文件扩展名是否支持解析
             raise ValueError(f"unsupported file type: {filepath_obj.suffix}")
 
-        parts = parser.parse_file(filepath_obj, file_metadata)  # TODO 至此~
+        parts = parser.parse_file(filepath_obj, file_metadata)  # 基于文件元数据对文件进行解析分段处理
 
         # If there are no PdfPart in parts and the doc is a pdf, then add the doc itself as a PdfPart
         if filepath_obj.suffix.lower() == ".pdf":

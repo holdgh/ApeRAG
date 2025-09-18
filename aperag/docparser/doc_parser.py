@@ -103,18 +103,18 @@ class DocParser(BaseParser):  # 文档解析器入口类定义，内置了支持
                 logger.warning(f'Parser "{cfg.name}" not found. Skipping.')
                 continue
             if cfg.supported_extensions_override is not None:
-                self.ext_override[cfg.name] = cfg.supported_extensions_override  # 收集支持解析的文件扩展名
+                self.ext_override[cfg.name] = cfg.supported_extensions_override  # 收集支持解析的文件扩展名【采用默认配置时，该属性为none】
             parser = parser_class(**(cfg.settings or {}))  # 初始化相应类型的解析器实例
             self.parsing_order.append(cfg.name)  # 收集解析器名称
             self.parsers[cfg.name] = parser  # 收集解析器实例
 
-    def _get_parser_supported_extensions(self, parser_name: str) -> list[str]:
+    def _get_parser_supported_extensions(self, parser_name: str) -> list[str]:  # 获取相应解析器支持的文件扩展名列表
         if self.parsers.get(parser_name) is None:
             return []
         base = self.parsers[parser_name].supported_extensions()
-        if self.ext_override.get(parser_name) is None:
+        if self.ext_override.get(parser_name) is None:  # self.config中的解析器配置supported_extensions_override为none时，则采用相应解析器类实例的supported_extensions方法获取其支持的文件扩展名列表
             return base
-        return [ext for ext in base if ext in self.ext_override[parser_name]]
+        return [ext for ext in base if ext in self.ext_override[parser_name]]  # 采用self.config中的解析器配置中相应解析器支持的文件扩展名
 
     def _parser_accept(self, parser_name: str, extension: str) -> bool:
         supported = self._get_parser_supported_extensions(parser_name)
@@ -130,14 +130,14 @@ class DocParser(BaseParser):  # 文档解析器入口类定义，内置了支持
         return self.supported
 
     def parse_file(self, path: Path, metadata: dict[str, Any] = {}, **kwargs) -> list[Part]:
-        extension = path.suffix
+        extension = path.suffix  # 获取文件扩展名
         last_err = None
         for parser_name in self.parsing_order:
             parser = self.parsers[parser_name]
-            if not self._parser_accept(parser_name, extension):
+            if not self._parser_accept(parser_name, extension):  # 过滤掉不合适的解析器
                 continue
             try:
-                return parser.parse_file(path, metadata, **kwargs)
+                return parser.parse_file(path, metadata, **kwargs)  # 采用合适的解析器对文件进行解析分段
             except FallbackError as e:
                 last_err = e
         raise ValueError(f'No parser can handle file with extension "{extension}"') from last_err

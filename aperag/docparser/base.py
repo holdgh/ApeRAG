@@ -19,7 +19,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
-class FallbackError(Exception):
+class FallbackError(Exception):  # 自定义回调异常，用以处理依赖服务【比如docrag文件解析服务】不可用的异常处理
     pass
 
 
