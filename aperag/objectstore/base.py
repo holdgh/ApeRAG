@@ -208,7 +208,7 @@ class AsyncObjectStore(ABC):
         ...
 
 logger = logging.getLogger()
-def get_object_store() -> ObjectStore:
+def get_object_store() -> ObjectStore:  # 基于配置信息中的对象存储类型，获取当前对象存储实例
     """
     Factory function to get a synchronous ObjectStore instance based on settings.
     """

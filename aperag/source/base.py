@@ -78,7 +78,7 @@ class Source(ABC):
         raise NotImplementedError
 
 
-def get_source(collectionConfig: CollectionConfig) -> Source:
+def get_source(collectionConfig: CollectionConfig) -> Source:  # 根据知识库配置信息中的source字段获取文件source实例
     source = None
     match collectionConfig.source:
         case "system":

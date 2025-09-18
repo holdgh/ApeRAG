@@ -39,13 +39,13 @@ ALL_PARSERS = [
 PARSER_MAP = {cls.name: cls for cls in ALL_PARSERS}
 
 
-def get_default_config() -> list["ParserConfig"]:
+def get_default_config() -> list["ParserConfig"]:  # 默认解析配置
     return [
-        ParserConfig(name=MinerUParser.name, enabled=False),
-        ParserConfig(name=DocRayParser.name, enabled=True),
-        ParserConfig(name=ImageParser.name, enabled=True),
-        ParserConfig(name=AudioParser.name, enabled=True),
-        ParserConfig(name=MarkItDownParser.name, enabled=True),
+        ParserConfig(name=MinerUParser.name, enabled=False),  # mineru
+        ParserConfig(name=DocRayParser.name, enabled=True),  # docray
+        ParserConfig(name=ImageParser.name, enabled=True),  # image
+        ParserConfig(name=AudioParser.name, enabled=True),  # audio
+        ParserConfig(name=MarkItDownParser.name, enabled=True),  # markitdown
     ]
 
 
@@ -67,25 +67,25 @@ class ParserConfig(BaseModel):
     settings: Optional[dict[str, Any]] = Field(None, description="Other settings for the parser, e.g., API key.")
 
 
-class DocParser(BaseParser):
+class DocParser(BaseParser):  # 文档解析器入口类定义，内置了支持的各种类型【mineru, docray, image, audio, markitdown】文档解析配置
     def __init__(self, parser_config: Optional[dict] = None, full_config: list[ParserConfig] = None):
-        self.config = full_config or get_default_config()
+        self.config = full_config or get_default_config()  # 可选的解析配置有：mineru, docray, image, audio, markitdown
         self.supported = None
         self.parsing_order: list[str] = []
         self.parsers: dict[str, BaseParser] = {}
         self.ext_override = {}
 
         parser_config = parser_config or {}
-
         # Dynamically update parser configs based on collection settings
+        # -- 检查mineru服务接口是否可用
         for cfg in self.config:
             if cfg.name == MinerUParser.name:
-                use_mineru = parser_config.get("use_mineru", False) or os.getenv("USE_MINERU_API", False)
+                use_mineru = parser_config.get("use_mineru", False) or os.getenv("USE_MINERU_API", False)  # 检查mineru是否可用
                 if not use_mineru:
                     cfg.enabled = False
                     continue
 
-                token = parser_config.get("mineru_api_token") or os.getenv("MINERU_API_TOKEN")
+                token = parser_config.get("mineru_api_token") or os.getenv("MINERU_API_TOKEN")  # 检查mineru服务token是否已配置
                 if token:
                     cfg.enabled = True
                     if cfg.settings is None:
@@ -93,20 +93,20 @@ class DocParser(BaseParser):
                     cfg.settings["api_token"] = token
                 else:
                     cfg.enabled = False
-
+        # -- 过滤不可用的解析器，对于可用的解析器，收集其支持的文件扩展名、初始化其解析器实例
         for cfg in self.config:
-            if not cfg.enabled:
+            if not cfg.enabled:  # 过滤不可用的解析配置
                 continue
-            parser_class = PARSER_MAP.get(cfg.name)
+            parser_class = PARSER_MAP.get(cfg.name)  # 校验可用的解析器类定义是否合法
             if parser_class is None:
                 # Parser not found
                 logger.warning(f'Parser "{cfg.name}" not found. Skipping.')
                 continue
             if cfg.supported_extensions_override is not None:
-                self.ext_override[cfg.name] = cfg.supported_extensions_override
-            parser = parser_class(**(cfg.settings or {}))
-            self.parsing_order.append(cfg.name)
-            self.parsers[cfg.name] = parser
+                self.ext_override[cfg.name] = cfg.supported_extensions_override  # 收集支持解析的文件扩展名
+            parser = parser_class(**(cfg.settings or {}))  # 初始化相应类型的解析器实例
+            self.parsing_order.append(cfg.name)  # 收集解析器名称
+            self.parsers[cfg.name] = parser  # 收集解析器实例
 
     def _get_parser_supported_extensions(self, parser_name: str) -> list[str]:
         if self.parsers.get(parser_name) is None:
@@ -120,7 +120,7 @@ class DocParser(BaseParser):
         supported = self._get_parser_supported_extensions(parser_name)
         return extension in supported
 
-    def supported_extensions(self) -> list[str]:
+    def supported_extensions(self) -> list[str]:  # 获取当前支持解析的文件扩展名【当前可用的所有解析器的支持的文件扩展名集合】
         if self.supported is not None:
             return self.supported
         supported = []

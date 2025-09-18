@@ -17,7 +17,57 @@ import json
 from aperag.schema.view_models import CollectionConfig, SharedCollectionConfig
 
 
-def parseCollectionConfig(config: str) -> CollectionConfig:
+def parseCollectionConfig(config: str) -> CollectionConfig:  # 将json格式配置信息转化为python类实例
+    """
+    知识库配置信息形如：
+    {
+  "source":"system",
+  "enable_vector":true,
+  "enable_fulltext":true,
+  "enable_knowledge_graph":true,
+  "enable_summary":true,
+  "enable_vision":true,
+  "embedding":{
+    "model":"text-embedding-v4",
+    "model_service_provider":"alibabacloud",
+    "custom_llm_provider":"openai",
+    "temperature":0.1,
+    "max_tokens":null,
+    "max_completion_tokens":null,
+    "timeout":null,
+    "top_n":null,
+    "tags":[ ]
+  },
+  "completion":{
+    "model":"qwen-plus",
+    "model_service_provider":"alibabacloud",
+    "custom_llm_provider":"openai",
+    "temperature":0.1,
+    "max_tokens":null,
+    "max_completion_tokens":null,
+    "timeout":null,
+    "top_n":null,
+    "tags":[ ]
+  },
+  "path":null,
+  "host":null,
+  "username":null,
+  "password":null,
+  "region":null,
+  "access_key_id":null,
+  "secret_access_key":null,
+  "bucket":null,
+  "dir":null,
+  "email_source":null,
+  "pop_server":null,
+  "port":null,
+  "email_address":null,
+  "email_password":null,
+  "app_id":null,
+  "app_secret":null,
+  "space_id":null
+}
+    """
     try:
         config_dict = json.loads(config)
         collection_config = CollectionConfig.model_validate(config_dict)

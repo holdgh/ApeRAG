@@ -37,10 +37,11 @@ class DocumentIndexTask:
             ParsedDocumentData containing all parsed information
         """
         logger.info(f"Parsing document {document_id}")
-
+        # -- 查询文档及知识库信息
         from aperag.tasks.utils import get_document_and_collection
 
         document, collection = get_document_and_collection(document_id)
+        # -- 根据知识库配置解析文档
         content, doc_parts, local_doc = parse_document_content(document, collection)
 
         local_doc_info = LocalDocumentInfo(path=local_doc.path, is_temp=getattr(local_doc, "is_temp", False))

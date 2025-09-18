@@ -106,7 +106,7 @@ class RangedFileStream(IO[bytes]):
         return self._handle.seekable()
 
 
-class Local(ObjectStore):
+class Local(ObjectStore):  # 本地对象存储定义
     def __init__(self, cfg: LocalConfig):
         self.cfg = cfg
 

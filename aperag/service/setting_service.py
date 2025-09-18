@@ -55,7 +55,7 @@ class SettingService:
         settings = await self.db_ops.query_all_settings()
         return {s.key: json.loads(s.value) for s in settings}
 
-    def get_all_settings_sync(self) -> dict:
+    def get_all_settings_sync(self) -> dict:  # 获取setting表全量信息
         settings = db_ops.query_all_settings()
         return {s.key: json.loads(s.value) for s in settings}
 

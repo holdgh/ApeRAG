@@ -68,7 +68,7 @@ class AssetBinPart(Part):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class BaseParser(ABC):
+class BaseParser(ABC):  # 抽象类型文件解析器定义
     def __init__(self, **kwargs):
         pass
 

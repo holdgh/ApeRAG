@@ -369,10 +369,10 @@ class Document(Base):
         else:
             return DocumentStatus.PENDING
 
-    def object_store_base_path(self) -> str:
+    def object_store_base_path(self) -> str:  # 为当前文档信息实例生成对象存储基本路径
         """Generate the base path for object store"""
         user = self.user.replace("|", "-")
-        return f"user-{user}/{self.collection_id}/{self.id}"
+        return f"user-{user}/{self.collection_id}/{self.id}"  # 基本路径规则：“user-{用户id}/{知识库id}/{文档信息id}”
 
     async def get_collection(self, session):
         """Get the associated collection object"""

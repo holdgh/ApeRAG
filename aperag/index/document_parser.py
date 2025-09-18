@@ -49,14 +49,14 @@ class DocumentParser:
 
     def parse_document(
         self, filepath: str, file_metadata: Dict[str, Any], parser_config: Optional[Dict[str, Any]] = None
-    ) -> List[Any]:
+    ) -> List[Any]:  # 对文件进行解析分段
         """
         Parse document into parts using DocParser.
 
         Args:
             filepath: Path to the document file
             file_metadata: Metadata associated with the document
-            parser_config: Configuration for the parser
+            parser_config: Configuration for the parser  全局配置信息，见setting表【空】
 
         Returns:
             List of document parts (MarkdownPart, AssetBinPart, etc.)
@@ -65,13 +65,13 @@ class DocumentParser:
             ValueError: If the file type is unsupported
         """
         file_metadata = file_metadata or {}
-        parser = DocParser(parser_config=parser_config)
+        parser = DocParser(parser_config=parser_config)  # 初始化解析器入口实例【凝聚了当前可用的所有解析器】
         filepath_obj = Path(filepath)
 
-        if not parser.accept(filepath_obj.suffix):
+        if not parser.accept(filepath_obj.suffix):  # 检验当前文件扩展名是否支持解析
             raise ValueError(f"unsupported file type: {filepath_obj.suffix}")
 
-        parts = parser.parse_file(filepath_obj, file_metadata)
+        parts = parser.parse_file(filepath_obj, file_metadata)  # TODO 至此~
 
         # If there are no PdfPart in parts and the doc is a pdf, then add the doc itself as a PdfPart
         if filepath_obj.suffix.lower() == ".pdf":
@@ -144,13 +144,13 @@ class DocumentParser:
                 pdf.save(buffer, linearize=True)
                 return buffer.getvalue()
 
-    def save_processed_content_and_assets(self, doc_parts: List[Any], object_store_base_path: Optional[str]) -> str:
+    def save_processed_content_and_assets(self, doc_parts: List[Any], object_store_base_path: Optional[str]) -> str:  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中
         """
         Save processed content and assets to object storage.
 
         Args:
             doc_parts: List of document parts from DocParser
-            object_store_base_path: Base path for object storage, if None, skip saving
+            object_store_base_path: Base path for object storage, if None, skip saving  基本路径规则：“user-{用户id}/{知识库id}/{文档信息id}”
 
         Returns:
             Full markdown content of the document
@@ -160,54 +160,54 @@ class DocumentParser:
         """
 
         content = ""
-
+        # -- 处理分段中的markdown类型的第一个和pdf类型的第一个元素 TODO 这里处理的目的是什么呢？【推测：要想明确这里的保存逻辑，需要知道此前的文档解析分段逻辑，猜测是将文档解析为一个markdown格式，一个pdf格式和asserts【猜测是具体的文本分段】】
         # Extract full markdown content if available
-        md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)
+        md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)  # 从doc_parts列表中查找第一个MarkdownPart类型的元素，并将其赋值给md_part；如果找不到，则md_part为None。
         if md_part is not None:
             content = md_part.markdown
-            doc_parts.remove(md_part)
+            doc_parts.remove(md_part)  # 这里删除的目的是已经处理当前分段，后续不在进行判断处理
 
-        pdf_part = next((part for part in doc_parts if isinstance(part, PdfPart)), None)
+        pdf_part = next((part for part in doc_parts if isinstance(part, PdfPart)), None)  # 从doc_parts列表中查找第一个PdfPart类型的元素，并将其赋值给pdf_part；如果找不到，则pdf_part为None。
         if pdf_part is not None:
-            doc_parts.remove(pdf_part)
-
+            doc_parts.remove(pdf_part)  # 这里删除的目的是什么呢？
+        # 基本路径非空时，保存至对象存储
         # Save to object storage if base path is provided
         if object_store_base_path is not None:
             base_path = object_store_base_path
-            obj_store = get_object_store()
-
+            obj_store = get_object_store()  # 获取对象存储实例【aperag.objectstore.local.Local】
+            # -- 保存分段中的第一个markdown内容到“{对象存储根路径}/user-{用户id}/{知识库id}/{文档信息id}/parsed.md”
             # Save markdown content
             md_upload_path = f"{base_path}/parsed.md"
             md_data = content.encode("utf-8")
-            obj_store.put(md_upload_path, md_data)
+            obj_store.put(md_upload_path, md_data)  # 文件路径，文件内容
             logger.info(f"uploaded markdown content to {md_upload_path}, size: {len(md_data)}")
-
+            # -- 保存分段中的第一个pdf到“{对象存储根路径}/user-{用户id}/{知识库id}/{文档信息id}/converted.pdf”
             if pdf_part is not None:
                 converted_pdf_upload_path = f"{base_path}/converted.pdf"
                 linearized_pdf_data = self.linearize_pdf(pdf_part.data)
-                obj_store.put(converted_pdf_upload_path, linearized_pdf_data)
+                obj_store.put(converted_pdf_upload_path, linearized_pdf_data)  # 文件路径，文件内容
                 logger.info(f"uploaded converted pdf to {converted_pdf_upload_path}, size: {len(linearized_pdf_data)}")
-
+            # -- 保存数据资产？
             # Save assets
             to_be_deleted = []
             asset_count = 0
             for part in doc_parts:
-                if not isinstance(part, AssetBinPart):
+                if not isinstance(part, AssetBinPart):  # 过滤掉非资产
                     continue
-                if not part.metadata.get("vision_index"):
+                if not part.metadata.get("vision_index"):  # 收集视觉数据到to_be_deleted
                     to_be_deleted.append(part)
 
                 asset_upload_path = f"{base_path}/assets/{part.asset_id}"
-                obj_store.put(asset_upload_path, part.data)
+                obj_store.put(asset_upload_path, part.data)  # 保存数据资产到“{对象存储根路径}/user-{用户id}/{知识库id}/{文档信息id}/assets/{part.asset_id}”
                 asset_count += 1
                 logger.info(f"uploaded asset to {asset_upload_path}, size: {len(part.data)}")
-
+            # 删除视觉数据？
             if to_be_deleted:
                 for part in to_be_deleted:
                     doc_parts.remove(part)
 
             logger.info(f"Saved {asset_count} assets to object storage")
-
+        # 返回markdown内容
         return content
 
     def extract_content_from_parts(self, doc_parts: List[Any]) -> str:
@@ -240,8 +240,8 @@ class DocumentParser:
         filepath: str,
         file_metadata: Dict[str, Any],
         object_store_base_path: Optional[str] = None,
-        parser_config: Optional[Dict[str, Any]] = None,
-    ) -> DocumentParsingResult:
+        parser_config: Optional[Dict[str, Any]] = None,  # 全局配置信息，见setting表【空】
+    ) -> DocumentParsingResult:  # 文件解析和分段处理
         """
         Complete document parsing workflow
 
@@ -255,11 +255,12 @@ class DocumentParser:
             DocumentParsingResult containing parsed parts and content
         """
         try:
+            # -- 将文件解析为分段
             # Parse document into parts
             doc_parts = self.parse_document(filepath, file_metadata, parser_config)
-
+            # -- 将文件分段保存至对象存储
             # Save processed content and assets to object storage
-            content = self.save_processed_content_and_assets(doc_parts, object_store_base_path)
+            content = self.save_processed_content_and_assets(doc_parts, object_store_base_path)  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中
 
             return DocumentParsingResult(doc_parts=doc_parts, content=content, metadata={"parts_count": len(doc_parts)})
 

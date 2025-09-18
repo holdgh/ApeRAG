@@ -20,7 +20,7 @@ from aperag.db.repositories.base import AsyncRepositoryProtocol, SyncRepositoryP
 
 
 class SettingRepositoryMixin(SyncRepositoryProtocol):
-    def query_all_settings(self) -> list[db_models.Setting]:
+    def query_all_settings(self) -> list[db_models.Setting]:  # 查询setting表全量信息
         def _query(session):
             stmt = select(db_models.Setting)
             result = session.execute(stmt)

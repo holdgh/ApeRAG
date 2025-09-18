@@ -52,7 +52,7 @@ class ModelSpec(BaseModel):
     )
 
 
-class CollectionConfig(BaseModel):
+class CollectionConfig(BaseModel):  # pydantic.main.BaseModel 是 Pydantic 库的核心基类，主要作用是定义数据模型并提供自动数据验证、类型转换和序列化功能。它在 Python 项目中（尤其是 API 开发、数据处理场景）被广泛用于确保数据的合法性和一致性，简化数据校验逻辑。
     source: Optional[str] = Field(
         None, description='Source system identifier', examples=['system']
     )

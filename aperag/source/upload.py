@@ -29,13 +29,15 @@ class UploadSource(Source):
         return iter([])
 
     def prepare_document(self, name: str, metadata: Dict[str, Any]) -> LocalDocument:
+        # -- 基于对象存储实例获取文件对象
         obj_path = metadata.get("object_path", "")
         if not obj_path:
             raise Exception("empty object path")
-        obj_store = get_object_store()
-        obj = obj_store.get(obj_path)
+        obj_store = get_object_store()  # 获取对象存储实例【本地对象存储实例aperag.objectstore.local.Local】
+        obj = obj_store.get(obj_path)  # 根据文件元数据中的对象路径，使用对象存储实例获取文件对象
         if obj is None:
             raise Exception(f"object '{obj_path}' is not found")
+        # -- 将文件对象拷贝至临时文件，返回基于临时文件的LocalDocument实例
         with gen_temporary_file(name) as temp_file, obj:
             shutil.copyfileobj(obj, temp_file)
             filepath = temp_file.name
