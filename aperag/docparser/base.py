@@ -23,7 +23,7 @@ class FallbackError(Exception):  # 自定义回调异常，用以处理依赖服
     pass
 
 
-class Part(BaseModel):
+class Part(BaseModel):  # 文件基类定义
     content: str | None = Field(
         default=None,
         description="The parsed content. If None, it means that information extraction has not been performed on this node yet.",
@@ -31,7 +31,7 @@ class Part(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class MarkdownPart(Part):
+class MarkdownPart(Part):  # markdown文件定义
     markdown: str
 
 
