@@ -47,7 +47,7 @@ class MarkItDownParser(BaseParser):  # 常见文档解析器
     def supported_extensions(self) -> list[str]:
         return SUPPORTED_EXTENSIONS
 
-    def parse_file(self, path: Path, metadata: dict[str, Any] = {}, **kwargs) -> list[Part]:  # 【对于doc和ppt进行office文件格式转化】解析文件
+    def parse_file(self, path: Path, metadata: dict[str, Any] = {}, **kwargs) -> list[Part]:  # 【对于doc和ppt进行office文件格式转化】解析文件，得到：markdown文件、图片资源列表、结构化文件实例列表【标题、段落、表格等】
         extension = path.suffix.lower()  # 获取当前文件的扩展名
         target_format = None
         if extension == ".doc":
@@ -78,5 +78,5 @@ class MarkItDownParser(BaseParser):  # 常见文档解析器
         # -- 将文件转为markdown格式
         mid = MarkItDown()  # 第三方依赖库MarkItDown
         result = mid.convert_local(path, keep_data_uris=True)
-        # -- 对markdown文件进行解析分段
-        return parse_md(result.markdown, metadata)
+        # -- 对markdown文件进行解析
+        return parse_md(result.markdown, metadata)  # 得到：markdown文件、图片资源列表、结构化文件实例列表【标题、段落、表格等】

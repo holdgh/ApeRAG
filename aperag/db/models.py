@@ -102,7 +102,7 @@ class DocumentStatus(str, Enum):
     DELETED = "DELETED"
 
 
-class DocumentIndexType(str, Enum):
+class DocumentIndexType(str, Enum):  # 文档索引任务类型
     """Document index type enumeration"""
 
     VECTOR = "VECTOR"

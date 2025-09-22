@@ -26,7 +26,7 @@ class DocumentIndexTask:
     Document index task orchestrator
     """
 
-    def parse_document(self, document_id: str) -> ParsedDocumentData:  # TODO 至此~ 解析文档内容
+    def parse_document(self, document_id: str) -> ParsedDocumentData:  # 解析文档内容
         """
         Parse document content
 
@@ -41,21 +41,24 @@ class DocumentIndexTask:
         from aperag.tasks.utils import get_document_and_collection
 
         document, collection = get_document_and_collection(document_id)
-        # -- 根据知识库配置解析文档
+        # -- 根据知识库配置解析文档，得到：markdown文件内容、非视觉资源实例列表、原始文件LocalDocument实例
         content, doc_parts, local_doc = parse_document_content(document, collection)
-
+        # -- 构造文件解析结果数据：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】
         local_doc_info = LocalDocumentInfo(path=local_doc.path, is_temp=getattr(local_doc, "is_temp", False))
 
         return ParsedDocumentData(
+            # 知识库及文件信息
             document_id=document_id,
             collection_id=collection.id,
+            # 文件解析结果：markdown文件内容、非视觉资源实例列表
             content=content,
             doc_parts=doc_parts,
+            # 本地原始文件信息：本地路径、是否为临时文件
             file_path=local_doc.path,
             local_doc_info=local_doc_info,
         )
 
-    def create_index(self, document_id: str, index_type: str, parsed_data: ParsedDocumentData) -> IndexTaskResult:
+    def create_index(self, document_id: str, index_type: str, parsed_data: ParsedDocumentData) -> IndexTaskResult:  # 对单个文档，基于其文档解析结果，创建相应类型的索引
         """
         Create a single index for a document using parsed data
 
@@ -68,12 +71,12 @@ class DocumentIndexTask:
             IndexTaskResult containing operation result
         """
         logger.info(f"Creating {index_type} index for document {document_id}")
-
+        # -- 查询知识库信息
         # Get collection
         from aperag.tasks.utils import get_document_and_collection
 
         _, collection = get_document_and_collection(document_id)
-
+        # -- 分索引类型，采用相应的索引操作工具，创建索引
         try:
             if index_type == DocumentIndexType.VECTOR.value:
                 from aperag.index.vector_index import vector_indexer
@@ -103,21 +106,22 @@ class DocumentIndexTask:
                     raise Exception(result.error)
                 result_data = result.data or {"success": True}
 
-            elif index_type == DocumentIndexType.GRAPH.value:
+            elif index_type == DocumentIndexType.GRAPH.value:  # 图谱类索引
                 from aperag.index.graph_index import graph_indexer
-
+                # -- 验证当前知识库是否开启知识图谱【前期已进行过验证，但是知识库的是否开启知识图谱属性可由web页面编辑，此处再做校验】
                 if not graph_indexer.is_enabled(collection):
                     logger.info(f"Graph indexing disabled for document {document_id}")
                     result_data = {"success": True, "message": "Graph indexing disabled"}
                 else:
+                    # -- 采用light_rag进行知识图谱的构建
                     from aperag.graph.lightrag_manager import process_document_for_celery
 
                     result = process_document_for_celery(
-                        collection=collection,
-                        content=parsed_data.content,
-                        doc_id=document_id,
-                        file_path=parsed_data.file_path,
-                    )
+                        collection=collection,  # 知识库信息
+                        content=parsed_data.content,  # 文档解析结果中的markdown文本内容
+                        doc_id=document_id,  # 文档id
+                        file_path=parsed_data.file_path,  # 原始文档的【本地】存储路径
+                    )  # 为单个文档构建知识图谱
                     if result.get("status") != "success":
                         error_msg = result.get("message", "Unknown error")
                         raise Exception(f"Graph indexing failed: {error_msg}")

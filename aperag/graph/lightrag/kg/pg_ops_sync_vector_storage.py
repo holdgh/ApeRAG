@@ -164,9 +164,20 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
             raise ValueError(f"{self.namespace} is not supported")
 
     async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
+        """
+        data形如：
+        {"分段1_id": {
+                    "tokens": min(max_token_size, len(tokens) - start),  # 分段1的长度
+                    "content": chunk_content.strip(),  # 分段1的文本内容
+                    "chunk_order_index": index,  # 分段1的索引【相对整个文档的content而言】
+                    "full_doc_id": doc_id,  # 原始文档id
+                    "file_path": file_path,  # 原始文档路径
+                }
+        }
+        """
         """Insert or update vector data"""
         logger.debug(f"Inserting {len(data)} to {self.namespace}")
-        if not data:
+        if not data:  # TODO 至此~
             return
 
         # Get current time with UTC timezone

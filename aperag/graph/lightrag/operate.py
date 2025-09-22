@@ -76,10 +76,10 @@ def chunking_by_token_size(
     split_by_character_only: bool = False,
     overlap_token_size: int = 128,
     max_token_size: int = 1024,
-) -> list[dict[str, Any]]:
-    tokens = tokenizer.encode(content)
+) -> list[dict[str, Any]]:  # 按照长度【和分隔符】分段操作
+    tokens = tokenizer.encode(content)  # 分词器编码
     results: list[dict[str, Any]] = []
-    if split_by_character:
+    if split_by_character:  # None
         raw_chunks = content.split(split_by_character)
         new_chunks = []
         if split_by_character_only:
@@ -103,14 +103,14 @@ def chunking_by_token_size(
                     "chunk_order_index": index,
                 }
             )
-    else:
+    else:  # 分隔符为None时
         for index, start in enumerate(range(0, len(tokens), max_token_size - overlap_token_size)):
-            chunk_content = tokenizer.decode(tokens[start : start + max_token_size])
+            chunk_content = tokenizer.decode(tokens[start : start + max_token_size])  # 按照长度分段
             results.append(
                 {
-                    "tokens": min(max_token_size, len(tokens) - start),
-                    "content": chunk_content.strip(),
-                    "chunk_order_index": index,
+                    "tokens": min(max_token_size, len(tokens) - start),  # 分段长度
+                    "content": chunk_content.strip(),  # 分段内容
+                    "chunk_order_index": index,  # 分段的索引【相对整个文档的content而言】
                 }
             )
     return results

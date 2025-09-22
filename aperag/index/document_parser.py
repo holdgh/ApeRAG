@@ -49,7 +49,7 @@ class DocumentParser:
 
     def parse_document(
         self, filepath: str, file_metadata: Dict[str, Any], parser_config: Optional[Dict[str, Any]] = None
-    ) -> List[Any]:  # 对文件进行解析分段
+    ) -> List[Any]:  # 对文件进行解析，得到：markdown文件、图片资源列表【pdf实例也转化为图片资源、当前文件为图片时也转化为图片资源，这两种情况AssetBinPart的元数据视觉标记为True】、结构化文件实例列表【标题、段落、表格等】
         """
         Parse document into parts using DocParser.
 
@@ -70,15 +70,15 @@ class DocumentParser:
 
         if not parser.accept(filepath_obj.suffix):  # 检验当前文件扩展名是否支持解析
             raise ValueError(f"unsupported file type: {filepath_obj.suffix}")
-
-        parts = parser.parse_file(filepath_obj, file_metadata)  # 基于文件元数据对文件进行解析分段处理
-
+        # -- 基于可用的解析器和当前文件扩展名匹配合适的解析器，对文件进行解析
+        parts = parser.parse_file(filepath_obj, file_metadata)  # 基于文件元数据对文件进行解析处理，得到：markdown文件、图片资源列表、结构化文件实例列表【标题、段落、表格等】
+        # -- 如果解析结果中没有pdf文件实例【关于pdf实例的说明：由于当前docray和mineru服务不可用，其他解析器并不会产生pdf实例。】，且当前文件为pdf文件，则将当前文件作为pdf实例，加入到解析结果中
         # If there are no PdfPart in parts and the doc is a pdf, then add the doc itself as a PdfPart
         if filepath_obj.suffix.lower() == ".pdf":
             if not any(isinstance(p, PdfPart) for p in parts):
                 with open(filepath_obj, "rb") as f:
                     parts.append(PdfPart(data=f.read()))
-
+        # -- 如果当前文件为图片，则将其转化为图片资源实例，追加到解析结果中；反之，将解析结果中的所有pdf实例转化为图片资源实例，追加到解析结果中
         if is_image_file(filepath_obj.suffix):
             # Convert the image file to an asset
             with open(filepath_obj, "rb") as f:
@@ -146,6 +146,10 @@ class DocumentParser:
 
     def save_processed_content_and_assets(self, doc_parts: List[Any], object_store_base_path: Optional[str]) -> str:  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中
         """
+        将解析后的文件实例列表保存至对象存储中。保存的文件实例有：markdown文件实例、pdf文件实例、AssetBinPart实例列表
+        最终返回的是markdown文件实例内容
+        """
+        """
         Save processed content and assets to object storage.
 
         Args:
@@ -160,16 +164,17 @@ class DocumentParser:
         """
 
         content = ""
-        # -- 处理分段中的markdown类型的第一个和pdf类型的第一个元素 TODO 这里处理的目的是什么呢？【推测：要想明确这里的保存逻辑，需要知道此前的文档解析分段逻辑，猜测是将文档解析为一个markdown格式，一个pdf格式和asserts【猜测是具体的文本分段】】
+        # 前置解析结果说明--得到：markdown文件、图片资源列表【pdf实例也转化为图片资源、当前文件为图片时也转化为图片资源】、结构化文件实例列表【标题、段落、表格等】
+        # -- 处理分段中的markdown类型的第一个和pdf类型的第一个元素 TODO 这里处理的目的是什么呢？【推测：要想明确这里的保存逻辑，需要知道此前的文档解析逻辑，猜测是将文档解析为一个markdown格式，一个pdf格式和asserts【图片资源列表、各种类型的文件实例列表】】
         # Extract full markdown content if available
         md_part = next((part for part in doc_parts if isinstance(part, MarkdownPart)), None)  # 从doc_parts列表中查找第一个MarkdownPart类型的元素，并将其赋值给md_part；如果找不到，则md_part为None。
         if md_part is not None:
             content = md_part.markdown
-            doc_parts.remove(md_part)  # 这里删除的目的是已经处理当前分段，后续不在进行判断处理
+            doc_parts.remove(md_part)  # 这里删除的目的是已经用content收集过markdown内容，后续不在进行保存处理
 
         pdf_part = next((part for part in doc_parts if isinstance(part, PdfPart)), None)  # 从doc_parts列表中查找第一个PdfPart类型的元素，并将其赋值给pdf_part；如果找不到，则pdf_part为None。
         if pdf_part is not None:
-            doc_parts.remove(pdf_part)  # 这里删除的目的是什么呢？
+            doc_parts.remove(pdf_part)  # 这里删除的目的是：后续单独保存pdf文件，
         # 基本路径非空时，保存至对象存储
         # Save to object storage if base path is provided
         if object_store_base_path is not None:
@@ -187,12 +192,12 @@ class DocumentParser:
                 linearized_pdf_data = self.linearize_pdf(pdf_part.data)
                 obj_store.put(converted_pdf_upload_path, linearized_pdf_data)  # 文件路径，文件内容
                 logger.info(f"uploaded converted pdf to {converted_pdf_upload_path}, size: {len(linearized_pdf_data)}")
-            # -- 保存数据资产？
+            # -- 保存数据资产AssetBinPart实例
             # Save assets
             to_be_deleted = []
             asset_count = 0
             for part in doc_parts:
-                if not isinstance(part, AssetBinPart):  # 过滤掉非资产
+                if not isinstance(part, AssetBinPart):  # 过滤掉非图片资产
                     continue
                 if not part.metadata.get("vision_index"):  # 收集视觉数据到to_be_deleted
                     to_be_deleted.append(part)
@@ -201,7 +206,7 @@ class DocumentParser:
                 obj_store.put(asset_upload_path, part.data)  # 保存数据资产到“{对象存储根路径}/user-{用户id}/{知识库id}/{文档信息id}/assets/{part.asset_id}”
                 asset_count += 1
                 logger.info(f"uploaded asset to {asset_upload_path}, size: {len(part.data)}")
-            # 删除视觉数据？
+            # 删除视觉数据？doc_parts在当前方法此时已无用处了。TODO 这里删除与否，有什么区别吗？回答：有影响，在当前操作调用处之后，有根据len(doc_parts)构造DocumentParsingResult(doc_parts=doc_parts, content=content, metadata={"parts_count": len(doc_parts)})
             if to_be_deleted:
                 for part in to_be_deleted:
                     doc_parts.remove(part)
@@ -255,13 +260,13 @@ class DocumentParser:
             DocumentParsingResult containing parsed parts and content
         """
         try:
-            # -- 将文件解析为分段
+            # -- 将文件解析为分段，得到：markdown文件、图片资源列表【pdf实例也转化为图片资源、当前文件为图片时也转化为图片资源】、结构化文件实例列表【标题、段落、表格等】
             # Parse document into parts
             doc_parts = self.parse_document(filepath, file_metadata, parser_config)
-            # -- 将文件分段保存至对象存储
+            # -- 将文件分段保存至对象存储，并清除掉doc_parts中的markdown实例、pdf实例和【pdf实例也转化为图片资源、当前文件为图片时也转化为图片资源，这两种情况AssetBinPart的元数据视觉标记为True】视觉资源实例，返回markdown文件内容
             # Save processed content and assets to object storage
-            content = self.save_processed_content_and_assets(doc_parts, object_store_base_path)  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中
-
+            content = self.save_processed_content_and_assets(doc_parts, object_store_base_path)  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中，并清除掉doc_parts中的markdown实例、pdf实例和视觉资源实例
+            # -- 构造并返回文件解析结果【非视觉资源实例【原始文件通过MarkItDown转为markdown文件后，markdown文件中的图片；通过MarkdownIt工具对markdown文件提取的token流格式化文本】、markdown文件内容、非视觉资源实例数量元数据】
             return DocumentParsingResult(doc_parts=doc_parts, content=content, metadata={"parts_count": len(doc_parts)})
 
         except Exception as e:

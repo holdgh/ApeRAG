@@ -49,7 +49,7 @@ def parse_document_content(document, collection) -> Tuple[str, List[Any], Any]: 
             local_doc.metadata,
             document.object_store_base_path(),  # 为当前文档信息实例生成对象存储基本路径，基本路径规则：“user-{用户id}/{知识库id}/{文档信息id}”
             global_settings,
-        )
+        )  # 文件解析结果【非视觉资源实例列表doc_parts【原始文件通过MarkItDown转为markdown文件后，markdown文件中的图片；通过MarkdownIt工具对markdown文件提取的token流格式化文本】、markdown文件内容、非视觉资源实例数量元数据】
         # -- 如果文件是在对话过程中上传的，则为每个分段设置元数据【对话id和文件id】
         # Add chat metadata to all document parts if this is a chat upload
         doc_parts = parsing_result.doc_parts
@@ -71,10 +71,10 @@ def parse_document_content(document, collection) -> Tuple[str, List[Any], Any]: 
             except json.JSONDecodeError:
                 pass
 
-        return parsing_result.content, doc_parts, local_doc
+        return parsing_result.content, doc_parts, local_doc  # markdown文件内容、非视觉资源实例列表、原始文件LocalDocument实例
     except Exception as e:
         # Cleanup on error
-        source.cleanup_document(local_doc.path)
+        source.cleanup_document(local_doc.path)  # 清除本地原始文件
         raise e
 
 

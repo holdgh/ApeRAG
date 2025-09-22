@@ -122,7 +122,7 @@ def process_document_for_celery(collection: Collection, content: str, doc_id: st
     Process a document in a synchronous context (for Celery).
     Creates a new event loop and LightRAG instance for each call.
     """
-    return _run_in_new_loop(_process_document_async(collection, content, doc_id, file_path))
+    return _run_in_new_loop(_process_document_async(collection, content, doc_id, file_path))  # 为单个文档，异步构建知识图谱
 
 
 def delete_document_for_celery(collection: Collection, doc_id: str) -> Dict[str, Any]:
@@ -138,14 +138,14 @@ async def _process_document_async(
     content: str,
     doc_id: str,
     file_path: str,
-) -> Dict[str, Any]:
+) -> Dict[str, Any]:  # 为单个文档，定义异步构建知识图谱操作
     """Process document using LightRAG's stateless interfaces"""
-    rag = await create_lightrag_instance(collection)
+    rag = await create_lightrag_instance(collection)  # 基于知识库信息创建light_rag实例
 
     try:
         logger.info(f"Processing document {doc_id}")
 
-        if not content:
+        if not content:  # 如果文档解析结果中的markdown内容为空，则直接返回
             # The parser couldn't extract any text content from the document;
             # it might be a purely image-based document.
             return {
@@ -157,10 +157,11 @@ async def _process_document_async(
             }
 
         # Insert and chunk document
+        # -- 分段、保存分段、返回分段结果
         chunk_result = await rag.ainsert_and_chunk_document(
             documents=[content], doc_ids=[doc_id], file_paths=[file_path]
         )
-
+        # -- 获取分段列表，为空则直接返回；非空，则逐个对分段进行构建知识图谱处理
         results = chunk_result.get("results", [])
         if not results:
             return {

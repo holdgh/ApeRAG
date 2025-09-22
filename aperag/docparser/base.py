@@ -35,7 +35,7 @@ class MarkdownPart(Part):  # markdown文件定义
     markdown: str
 
 
-class PdfPart(Part):
+class PdfPart(Part):  # 仅支持docray\mineru，但目前docray\mineru服务不可用，因此文档解析不会主动产生pdf文件实例
     data: bytes
 
 
@@ -61,11 +61,11 @@ class ImagePart(MediaPart):
     title: str | None = None
 
 
-class AssetBinPart(Part):
+class AssetBinPart(Part):  # 由于当前mineru服务不可用，当前可形成AssetBinPart实例的地方主要在aperag.docparser.parse_md.extract_data_uri【由图片资源创建资产实例】和aperag.index.document_parser.DocumentParser.parse_document【将图片文件和pdf文件【每页】转化为资产实例】
     asset_id: str
     data: bytes
     mime_type: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)  # pdf实例也转化为图片资源、当前文件为图片时也转化为图片资源，这两种情况AssetBinPart的元数据视觉标记为True
 
 
 class BaseParser(ABC):  # 抽象类型文件解析器定义

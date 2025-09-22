@@ -36,7 +36,7 @@ from __future__ import annotations
 from typing import Iterable
 
 
-class NameSpace:
+class NameSpace:  # 存储介质的不同数据存储的命名空间定义
     KV_STORE_TEXT_CHUNKS = "text_chunks"
 
     VECTOR_STORE_ENTITIES = "entities"

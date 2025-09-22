@@ -137,7 +137,7 @@ class DocParser(BaseParser):  # 文档解析器入口类定义，内置了支持
             if not self._parser_accept(parser_name, extension):  # 过滤掉不合适的解析器
                 continue
             try:
-                return parser.parse_file(path, metadata, **kwargs)  # 采用合适的解析器对文件进行解析分段
+                return parser.parse_file(path, metadata, **kwargs)  # 采用合适的解析器对文件进行解析，当前得到：markdown文件、图片资源列表、结构化文件实例列表【标题、段落、表格等】
             except FallbackError as e:
                 last_err = e
         raise ValueError(f'No parser can handle file with extension "{extension}"') from last_err

@@ -386,7 +386,7 @@ class IndexTaskCallbacks:  # 索引任务完成时的回调操作
                     )
                 )
                 .values(
-                    status=DocumentIndexStatus.FAILED,
+                    status=DocumentIndexStatus.FAILED,  # 索引任务失败时，标记其状态为FAILED
                     error_message=error_message,
                     gmt_updated=utc_now(),
                     gmt_last_reconciled=utc_now(),

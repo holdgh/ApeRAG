@@ -277,10 +277,10 @@ class LightRAG:
         )
         # TODO: deprecating, text_chunks is redundant with chunks_vdb
         self.text_chunks: BaseKVStorage = self.key_string_value_json_storage_cls(  # type: ignore
-            namespace=NameSpace.KV_STORE_TEXT_CHUNKS,
-            workspace=self.workspace,
+            namespace=NameSpace.KV_STORE_TEXT_CHUNKS,  # text_chunks
+            workspace=self.workspace,  # 知识库id
             embedding_func=self.embedding_func,
-        )
+        )  # 见aperag.graph.lightrag.kg.pg_ops_sync_kv_storage.PGOpsSyncKVStorage
         self.chunk_entity_relation_graph: BaseGraphStorage = self.graph_storage_cls(  # type: ignore
             namespace=NameSpace.GRAPH_STORE_CHUNK_ENTITY_RELATION,
             workspace=self.workspace,
@@ -304,13 +304,13 @@ class LightRAG:
             meta_fields={"src_id", "tgt_id", "source_id", "content", "file_path"},
         )
         self.chunks_vdb: BaseVectorStorage = self.vector_db_storage_cls(  # type: ignore
-            namespace=NameSpace.VECTOR_STORE_CHUNKS,
-            workspace=self.workspace,
+            namespace=NameSpace.VECTOR_STORE_CHUNKS,  # chunks
+            workspace=self.workspace,  # 知识库id
             embedding_func=self.embedding_func,
             cosine_better_than_threshold=self.cosine_better_than_threshold,
             _max_batch_size=self.max_batch_size,
             meta_fields={"full_doc_id", "content", "file_path"},
-        )
+        )  # 见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
         # -- 初始化存储状态和日志实例
         self._storages_status = StoragesStatus.CREATED
         self.lightrag_logger = create_lightrag_logger(workspace=self.workspace)
@@ -612,7 +612,7 @@ class LightRAG:
         file_paths: list[str] | None = None,
         split_by_character: str | None = None,
         split_by_character_only: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any]:  # 分段、保存分段、返回分段结果
         """
         Stateless document insertion and chunking - inserts documents and performs chunking in one step.
 
@@ -626,6 +626,7 @@ class LightRAG:
         Returns:
             Dict with document metadata and chunks
         """
+        # -- 列表化
         # Ensure lists
         if isinstance(documents, str):
             documents = [documents]
@@ -633,13 +634,13 @@ class LightRAG:
             doc_ids = [doc_ids]
         if isinstance(file_paths, str):
             file_paths = [file_paths]
-
+        # -- 文档参数长度一致性验证
         # Validate inputs
         if file_paths and len(file_paths) != len(documents):
             raise ValueError("Number of file paths must match number of documents")
         if doc_ids and len(doc_ids) != len(documents):
             raise ValueError("Number of doc IDs must match number of documents")
-
+        # -- 文档路径为空或者文档id为空时的自动生成操作
         # Use default file paths if not provided
         if not file_paths:
             file_paths = ["unknown_source"] * len(documents)
@@ -651,32 +652,42 @@ class LightRAG:
             # Check uniqueness
             if len(doc_ids) != len(set(doc_ids)):
                 raise ValueError("Document IDs must be unique")
-
+        # -- 分段处理
         results = []
 
         for doc_id, content, file_path in zip(doc_ids, documents, file_paths):
-            cleaned_content = clean_text(content)
+            cleaned_content = clean_text(content)  # 删除文本两侧的空格和文本中的空字节（0x00）
 
-            if not cleaned_content.strip():
+            if not cleaned_content.strip():  # 文本非空校验
                 raise ValueError(f"Document {doc_id} content is empty after cleaning")
 
             # Perform chunking
+            """
+            分段列表结果形如：
+            [
+                {
+                    "tokens": min(max_token_size, len(tokens) - start),  # 分段长度
+                    "content": chunk_content.strip(),  # 分段内容
+                    "chunk_order_index": index,  # 分段的索引【相对整个文档的content而言】
+                }
+            ]
+            """
             chunk_list = self.chunking_func(
-                self.tokenizer,
-                cleaned_content,
-                split_by_character,
-                split_by_character_only,
-                self.chunk_overlap_token_size,
-                self.chunk_token_size,
-            )
-
+                self.tokenizer,  # 分词器
+                cleaned_content,  # 文本内容
+                split_by_character,  # 分隔符，这里为None
+                split_by_character_only,  # False
+                self.chunk_overlap_token_size,  # 分段间重叠token数量，100
+                self.chunk_token_size,  # 分段token数量，1200
+            )  # 基于分词器、分段参数进行分段处理
+            # -- 验证分段列表结果格式并构造分段字典
             # Validate chunk_list format
-            if not chunk_list:
+            if not chunk_list:  # 非空校验
                 raise ValueError(f"Chunking returned empty list for document {doc_id}")
 
             # Create chunk data with IDs and validate each chunk
             chunks = {}
-            for i, chunk_data in enumerate(chunk_list):
+            for i, chunk_data in enumerate(chunk_list):  # 逐个分段数据校验，校验通过时，基于分段内容生成相应分段id，并【分段id：分段数据【字典形式】】收集到分段字典中
                 # Validate chunk_data format
                 if not isinstance(chunk_data, dict):
                     raise ValueError(f"Chunk {i} is not a dictionary: {type(chunk_data)}")
@@ -695,13 +706,13 @@ class LightRAG:
 
             if not chunks:
                 raise ValueError(f"No valid chunks created for document {doc_id}")
-
+            # -- 保存分段字典
             # Write to storage (avoid concurrent operations on same connection)
             self.lightrag_logger.debug(f"LightRAG: About to upsert {len(chunks)} chunks to storages")
             self.lightrag_logger.debug(f"LightRAG: Calling chunks_vdb.upsert with {len(chunks)} chunks")
-            await self.chunks_vdb.upsert(chunks)
+            await self.chunks_vdb.upsert(chunks)  # 存储实例见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
             self.lightrag_logger.debug(f"LightRAG: Calling text_chunks.upsert with {len(chunks)} chunks")
-            await self.text_chunks.upsert(chunks)
+            await self.text_chunks.upsert(chunks)  # 存储实例见aperag.graph.lightrag.kg.pg_ops_sync_kv_storage.PGOpsSyncKVStorage
             self.lightrag_logger.debug(f"LightRAG: Completed all upsert operations for {doc_id}")
 
             self.lightrag_logger.debug(f"Inserted and chunked document {doc_id}: {len(chunks)} chunks")

@@ -106,7 +106,7 @@ def create_task_scheduler(scheduler_type: str):
 class CeleryTaskScheduler(TaskScheduler):
     """Celery implementation of TaskScheduler - Direct workflow execution"""
 
-    def schedule_create_index(self, document_id: str, index_types: List[str], context: dict = None, **kwargs) -> str:  # 批量处理单个文档的创建类索引任务
+    def schedule_create_index(self, document_id: str, index_types: List[str], context: dict = None, **kwargs) -> str:  # 批量处理单个文档的创建类索引任务，注意context为当前文档索引任务记录的最新版本号，形如“context[f"{index_type}_version"] = target_version”
         """Schedule index creation workflow"""
         from config.celery_tasks import create_document_indexes_workflow
 

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 DATA_URI_PATTERN: Pattern = re.compile(r"!\[.*?\]\(\s*(data:.+?;base64,.+?)(?:\s+\"(.*?)\")?\)")  # 用以匹配 Markdown 格式的图片语法中内嵌的 Base64 编码图片
 
 
-def parse_md(input_md: str, metadata: dict[str, Any]) -> list[Part]:  # 基于原始文件元数据，对markdown文件进行分段解析
+def parse_md(input_md: str, metadata: dict[str, Any]) -> list[Part]:  # 基于原始文件元数据，对markdown文件进行解析
     # -- 提取markdown内容中base64字符串形式的图片为资源记录，并将其替换为资源url，返回处理后的markdown文本和资源记录列表
     input_md, asset_bin_parts = extract_data_uri(input_md, metadata)
     # -- 构建markdown文件实例
@@ -196,9 +196,9 @@ def parse_md(input_md: str, metadata: dict[str, Any]) -> list[Part]:  # 基于�
     md = MarkdownIt("gfm-like", options_update={"inline_definitions": True})  # MarkdownIt是将markdown文本→结构化数据→目标格式的转换器
     tokens = md.parse(input_md)  # 解析【Markdown 文本 → 令牌流】【注意后续没有继续使用markdownit将令牌流渲染为特定格式】
     converter = PartConverter()
-    parts = converter.convert_all(tokens, metadata)  # 将令牌流转化为**
+    parts = converter.convert_all(tokens, metadata)  # 将令牌流基于其type属性转化为相应的文件实例列表
 
-    return [md_part] + asset_bin_parts + parts
+    return [md_part] + asset_bin_parts + parts  # markdown文件、图片资源列表、结构化文件实例列表【标题、段落、表格等】
 
 
 def extract_data_uri(text: str, metadata: dict[str, Any]) -> tuple[str, list[Part]]:  # 提取markdown内容中base64字符串形式的图片为资源记录，并将其替换为资源url
@@ -352,8 +352,12 @@ class PartConverter:
         }  # 返回对象的所有方法按名称排序的（name, value）对。
 
     def convert(self, ctx: Context, tokens: list[Token], idx: int, metadata: dict[str, Any]) -> tuple[list[Part], int]:
+        """
+          逐个token处理【将其转化相应的文件组成形式、比如：标题、段落、表格等，详情见aperag.docparser.base.Part及其子类定义】，并返回tokens的下一个待处理索引
+        """
         if idx >= len(tokens):
             return [], idx
+        # -- 基于token的类型获取相应的转换处理方法，进行转换处理操作
         token = tokens[idx]
         """
         支持下述token.type
@@ -376,16 +380,17 @@ class PartConverter:
         th_open
         td_open
         """
-        handler = self.handlers.get(token.type)
-        if handler:  # TODO 至此~
+        handler = self.handlers.get(token.type)  # 基于当前token的type属性获取对应的转换处理方法
+        if handler:  # 转换处理操作非空时，执行转换处理
             return handler(ctx, tokens, idx, metadata.copy())
+        # -- 遇到当前不支持的token类型时，将其转换为文本文件
         logger.warning(f"Unhandled token type: {token}")
         if token.content:
             meta = metadata.copy()
             if token.map:
                 meta["md_source_map"] = token.map
             return [TextPart(content=token.content, metadata=meta)], idx + 1
-        return [], idx + 1
+        return [], idx + 1  # 索引加1，递进到下一个
 
     def convert_all(self, tokens: list[Token], metadata: dict[str, Any]) -> list[Part]:
         """

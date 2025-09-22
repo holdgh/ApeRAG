@@ -606,7 +606,7 @@ def _apply_smart_title_case(name: str) -> str:
     return " ".join(normalized_words)
 
 
-def clean_text(text: str) -> str:
+def clean_text(text: str) -> str:  # 清理文本【删除文本两侧的空格和文本中的空字节（0x00）】
     """Clean text by removing null bytes (0x00) and whitespace
 
     Args:

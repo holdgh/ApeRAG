@@ -118,7 +118,7 @@ from config.celery_app import app
 
 logger = logging.getLogger()
 
-def _validate_task_relevance(document_id: str, index_type: str, target_version: int, expected_status: "DocumentIndexStatus"):
+def _validate_task_relevance(document_id: str, index_type: str, target_version: int, expected_status: "DocumentIndexStatus"):  # 对于新增/更新类索引任务，校验其任务有效性
     """
     Double-check the database to ensure the task is still valid.
 
@@ -130,6 +130,7 @@ def _validate_task_relevance(document_id: str, index_type: str, target_version: 
     from sqlalchemy import select, and_
 
     for session in get_sync_session():
+        # -- 基于文档id和索引类型查询文档索引任务记录
         # Check document index status
         stmt = select(DocumentIndex).where(
             and_(
@@ -139,32 +140,32 @@ def _validate_task_relevance(document_id: str, index_type: str, target_version: 
         )
         result = session.execute(stmt)
         db_index = result.scalar_one_or_none()
-
-        if not db_index:
+        # -- 基于查询的文档索引任务记录进行第一次有效性验证
+        if not db_index:  # 索引任务不存在
             logger.info(f"Index record not found for {document_id}:{index_type}, skipping task.")
             return {"status": "skipped", "reason": "index_record_not_found"}
 
-        if db_index.status != expected_status:
+        if db_index.status != expected_status:  # 索引任务状态与预期【新增/更新类索引任务--DocumentIndexStatus.CREATING】不符
             logger.info(f"Index status for {document_id}:{index_type} changed to {db_index.status} (expected {expected_status}), skipping task.")
             return {"status": "skipped", "reason": f"status_changed_to_{db_index.status}"}
 
-        if target_version and db_index.version != target_version:
+        if target_version and db_index.version != target_version:  # 索引任务最新版本号与当前异步任务处理上下文中的版本号【这个参数也是从数据库查询的，但是整个异步任务处理逻辑执行到此会经历一段时间【可能有其他操作更新了索引任务，版本号也随即更新了，乐观锁的逻辑】，这里做状态一致性核验】不符
             logger.info(f"Version mismatch for {document_id}:{index_type}, expected: {target_version}, current: {db_index.version}, skipping task.")
             return {"status": "skipped", "reason": f"version_mismatch_expected_{target_version}_current_{db_index.version}"}
-
+        # -- 基于文档id查询文档记录
         # Check document status - if document is UPLOADED or EXPIRED, task should be skipped
         doc_stmt = select(Document).where(Document.id == document_id)
         doc_result = session.execute(doc_stmt)
         document = doc_result.scalar_one_or_none()
-
-        if not document:
+        # -- 基于查询的文档记录进行第二次有效性验证
+        if not document:  # 文档不存在
             logger.info(f"Document {document_id} not found, skipping task.")
             return {"status": "skipped", "reason": "document_not_found"}
 
-        if document.status in [DocumentStatus.UPLOADED, DocumentStatus.EXPIRED]:
+        if document.status in [DocumentStatus.UPLOADED, DocumentStatus.EXPIRED]:  # 文档状态为DocumentStatus.UPLOADED或DocumentStatus.EXPIRED
             logger.info(f"Document {document_id} status is {document.status}, skipping task.")
             return {"status": "skipped", "reason": f"document_status_{document.status}"}
-
+        # 上述双重核验通过，当前索引任务可执行
         return None  # Task is still relevant
 
 class BaseIndexTask(Task):  # 对于所有索引任务的基类定义
@@ -174,7 +175,7 @@ class BaseIndexTask(Task):  # 对于所有索引任务的基类定义
 
     abstract = True
 
-    def _handle_index_success(self, document_id: str, index_type: str, target_version: int, index_data: dict = None):  # 处理新增/修改索引任务成功时的回调操作
+    def _handle_index_success(self, document_id: str, index_type: str, target_version: int, index_data: dict = None):  # 处理新增/修改索引任务成功时的回调操作【标记索引任务为ACTIVE，并更新原始文件状态】
         try:
             from aperag.tasks.reconciler import index_task_callbacks
             index_data_json = json.dumps(index_data) if index_data else None
@@ -191,7 +192,7 @@ class BaseIndexTask(Task):  # 对于所有索引任务的基类定义
         except Exception as e:
             logger.warning(f"Failed to execute index deletion callback for {index_type} of {document_id}: {e}", exc_info=True)
 
-    def _handle_index_failure(self, document_id: str, index_types: List[str], error_msg: str):  # 索引任务处理失败的回调操作
+    def _handle_index_failure(self, document_id: str, index_types: List[str], error_msg: str):  # 索引任务处理失败的回调操作【标记索引任务为FAILED，并更新原始文件状态】
         try:
             from aperag.tasks.reconciler import index_task_callbacks
 
@@ -204,7 +205,7 @@ class BaseIndexTask(Task):  # 对于所有索引任务的基类定义
 # ========== Core Document Processing Tasks ==========
 
 @current_app.task(bind=True, base=BaseIndexTask, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
-def parse_document_task(self, document_id: str, index_types: List[str]) -> dict:  # 解析文档，最大重试次数为3次，
+def parse_document_task(self, document_id: str, index_types: List[str]) -> dict:  # 解析文档【字典形式返回：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】】，最大重试次数为3次，
     """
     Parse document content task
 
@@ -218,28 +219,28 @@ def parse_document_task(self, document_id: str, index_types: List[str]) -> dict:
         logger.info(f"Starting to parse document {document_id}")
         parsed_data = document_index_task.parse_document(document_id)
         logger.info(f"Successfully parsed document {document_id}")
-        return parsed_data.to_dict()  # 将文档解析数据转化为字典
+        return parsed_data.to_dict()  # 将文档解析数据转化为字典，包括：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】
     except Exception as e:
         error_msg = f"Failed to parse document {document_id}: {str(e)}"
         logger.error(error_msg, exc_info=True)
 
         # Only mark as failed if all retries are exhausted
         if self.request.retries >= self.max_retries:
-            self._handle_index_failure(document_id, index_types, error_msg)
+            self._handle_index_failure(document_id, index_types, error_msg)  # 索引任务失败回调
 
         raise
 
 
 @current_app.task(bind=True, base=BaseIndexTask, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
-def create_index_task(self, document_id: str, index_type: str, parsed_data_dict: dict, context: dict = None) -> dict:
+def create_index_task(self, document_id: str, index_type: str, parsed_data_dict: dict, context: dict = None) -> dict:  # 对于单个文档的特定索引类型，基于文档解析结果，执行创建索引操作
     """
     Create a single index for a document with distributed locking
 
     Args:
         document_id: Document ID to process
         index_type: Type of index to create ('vector', 'fulltext', 'graph')
-        parsed_data_dict: Serialized ParsedDocumentData from parse_document_task
-        context: Task context including index version
+        parsed_data_dict: Serialized ParsedDocumentData from parse_document_task【字典形式：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】】
+        context: Task context including index version  当前文档索引任务记录的最新版本号，形如“context[f"{index_type}_version"] = target_version”
 
     Returns:
         Serialized IndexTaskResult
@@ -247,22 +248,22 @@ def create_index_task(self, document_id: str, index_type: str, parsed_data_dict:
     from aperag.db.models import DocumentIndex, DocumentIndexType, DocumentIndexStatus
     from aperag.aperag_config import get_sync_session
     from sqlalchemy import select, and_
-
+    # -- 获取入参中的当前文档索引任务记录的最新版本号
     # Extract target version from context
     context = context or {}
-    target_version = context.get(f'{index_type}_version')
+    target_version = context.get(f'{index_type}_version')  # 获取当前文档索引任务记录的最新版本号
 
     try:
         logger.info(f"Starting to create {index_type} index for document {document_id} (v{target_version})")
-
+        # -- 验证当前任务是否有效【双重验证：基于文档索引任务记录和文档记录的有效性验证】
         # Double-check: verify task is still valid
         skip_reason = _validate_task_relevance(document_id, index_type, target_version, DocumentIndexStatus.CREATING)
-        if skip_reason:
+        if skip_reason:  # 无效原因非空，则直接返回无效原因
             return skip_reason
-
+        # -- 将文档解析结果字典形式转化为ParsedDocumentData实例
         # Convert dict back to structured data
         parsed_data = ParsedDocumentData.from_dict(parsed_data_dict)
-
+        # -- 基于文档解析结果和索引类型，执行创建索引任务
         # Execute index creation
         result = document_index_task.create_index(document_id, index_type, parsed_data)
 
@@ -418,7 +419,12 @@ def update_index_task(self, document_id: str, index_type: str, parsed_data_dict:
 # ========== Dynamic Workflow Orchestration Tasks ==========
 
 @current_app.task(bind=True)
-def trigger_create_indexes_workflow(self, parsed_data_dict: dict, document_id: str, index_types: List[str], context: dict = None) -> Any:
+def trigger_create_indexes_workflow(self, parsed_data_dict: dict, document_id: str, index_types: List[str], context: dict = None) -> Any:  # 触发创建索引工作流。
+    """
+    参数说明：
+    parsed_data_dict参数是解析文档结果，见aperag.tasks.document.DocumentIndexTask.parse_document和aperag.tasks.models.ParsedDocumentData.to_dict
+    context参数为文档索引任务记录的最新版本号，形如“context[f"{index_type}_version"] = target_version”
+    """
     """
     Dynamic orchestration task for index creation workflow.
 
@@ -426,7 +432,7 @@ def trigger_create_indexes_workflow(self, parsed_data_dict: dict, document_id: s
     creating parallel index creation tasks based on the actual parsed content.
 
     Args:
-        parsed_data_dict: Serialized ParsedDocumentData from parse_document_task
+        parsed_data_dict: Serialized ParsedDocumentData from parse_document_task 解析结果包含：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】
         document_id: Document ID to process
         index_types: List of index types to create
 
@@ -435,23 +441,102 @@ def trigger_create_indexes_workflow(self, parsed_data_dict: dict, document_id: s
     """
     try:
         logger.info(f"Triggering parallel index creation for document {document_id} with types: {index_types}")
-
-        # Dynamically create parallel index creation tasks
+        """
+        group和chord代码的核心逻辑是 **“基于组索引类型创建并行任务，并在所有任务完成后触发通知”**，利用 Celery 的 `group` 和 `chord` 实现了“并行执行 + 完成回调”的工作流。下面分步骤详细解析：
+        
+        
+        ### 1. 核心组件说明
+        在分析代码前，先明确两个关键工具（均为 Celery 提供的任务编排工具）：
+        - **`group`**：用于创建**并行任务组**，可以将多个任务同时提交执行，提高效率；
+        - **`chord`**：用于创建**“并行任务组 + 回调任务”** 的组合，确保所有并行任务完成后，自动执行一个“收尾”的回调任务。
+        
+        
+        ### 2. 代码逻辑拆解
+        
+        #### 步骤1：创建并行索引任务组（`parallel_index_tasks`）
+        ```python
         parallel_index_tasks = group([
             create_index_task.s(document_id, index_type, parsed_data_dict, context)
             for index_type in index_types
         ])
+        ```
+        - **作用**：根据传入的 `index_types`（索引类型列表，如 `["fulltext", "vector", "keyword"]`），为每种索引类型创建一个 `create_index_task` 任务，并将这些任务组合成一个**并行执行的任务组**。
+        - **细节**：
+          - `create_index_task.s(...)` 是任务签名（`signature`），表示“准备执行 `create_index_task` 任务，参数为 `document_id, index_type, parsed_data_dict, context`”；
+          - 列表推导式 `for index_type in index_types` 会遍历所有索引类型，为每个类型生成一个独立的任务；
+          - `group(...)` 将这些任务打包，形成一个“并行任务组”，执行时所有任务会同时启动（而非串行等待）。
+        
+        
+        #### 步骤2：创建带回调的任务链（`workflow_chord`）
+        ```python
+        workflow_chord = chord(
+            parallel_index_tasks,  # 并行任务组（第一个参数）
+            notify_workflow_complete.s(document_id, IndexAction.CREATE, index_types)  # 回调任务（第二个参数）
+        )
+        ```
+        - **作用**：定义一个“先并行执行任务组，再执行回调任务”的工作流。
+        - **细节**：
+          - 第一个参数 `parallel_index_tasks` 是步骤1创建的并行任务组，会先执行；
+          - 第二个参数 `notify_workflow_complete.s(...)` 是回调任务签名，表示“当所有并行任务完成后，执行 `notify_workflow_complete` 任务”；
+          - 回调任务的参数为 `document_id, IndexAction.CREATE, index_types`，用于通知“文档ID为 `document_id` 的索引创建操作（`CREATE`）已完成，涉及的索引类型是 `index_types`”。
+        
+        
+        #### 步骤3：执行工作流并返回结果
+        ```python
+        workflow_chord.apply_async()  # 异步执行整个工作流
+        return workflow_chord  # 返回工作流对象（可用于跟踪状态）
+        ```
+        - **`apply_async()`**：触发整个工作流的异步执行（非阻塞，立即返回），所有并行任务会被提交到 Celery  worker 执行；
+        - **返回 `workflow_chord`**：调用方可以通过这个对象跟踪工作流状态（如是否完成、是否失败）。
+        
+        
+        ### 3. 执行流程时序图
+        整个工作流的执行顺序如下：
+        ```
+        开始
+          │
+          ├─ 对 index_types 中的每个类型，并行执行 create_index_task：
+          │  ├─ create_index_task(document_id, "类型1", parsed_data_dict, context)
+          │  ├─ create_index_task(document_id, "类型2", parsed_data_dict, context)
+          │  └─ ...（更多类型）
+          │
+          ├─ 等待所有并行任务完成（成功或失败）
+          │
+          └─ 执行回调任务：
+             └─ notify_workflow_complete(document_id, IndexAction.CREATE, index_types)
+        结束
+        ```
+        
+        
+        ### 4. 核心价值
+        这段代码通过 `group` 和 `chord` 实现了两个关键能力：
+        1. **并行效率**：不同类型的索引创建任务同时执行，减少总体耗时（例如，创建全文索引和向量索引可以并行，无需等待一个完成再开始另一个）；
+        2. **状态闭环**：确保所有索引任务完成后，通过 `notify_workflow_complete` 发送通知（如更新文档状态、通知用户等），避免“任务执行后无反馈”的问题。
+        
+        
+        ### 总结
+        这段代码是一个典型的“并行任务 + 回调”工作流实现：
+        - 用 `group` 将同类型的索引创建任务并行化，提高处理效率；
+        - 用 `chord` 确保所有并行任务完成后触发回调，实现工作流的闭环；
+        - 整体逻辑清晰，适合“多任务并行处理，最后统一收尾”的场景（如批量创建不同类型的索引、批量处理文件后通知结果等）。
+        """
+        # -- 基于索引类型列表，创建并行索引任务组【对于单个文档的特定索引类型，基于文档解析结果【字典形式：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】】，执行创建索引】
+        # Dynamically create parallel index creation tasks
+        parallel_index_tasks = group([
+            create_index_task.s(document_id, index_type, parsed_data_dict, context)
+            for index_type in index_types
+        ])  # 形成一个“并行任务组”，执行时所有任务会同时启动（而非串行等待）
 
         # Create a chord that executes the completion notification after all create tasks are done
         workflow_chord = chord(
-            parallel_index_tasks,
-            notify_workflow_complete.s(document_id, IndexAction.CREATE, index_types)
-        )
+            parallel_index_tasks,  # 并行任务组（第一个参数）
+            notify_workflow_complete.s(document_id, IndexAction.CREATE, index_types)  # 回调任务（第二个参数）
+        )  # 先并行执行任务组，再执行回调任务。触发整个工作流的异步执行（非阻塞，立即返回），所有并行任务会被提交到 Celery  worker 执行；
 
         # Execute the chord
-        workflow_chord.apply_async()
+        workflow_chord.apply_async()  # 异步执行整个工作流
 
-        return workflow_chord
+        return workflow_chord  # 调用方可以通过这个对象跟踪工作流状态（如是否完成、是否失败）。
 
     except Exception as e:
         error_msg = f"Failed to trigger create indexes workflow: {str(e)}"
@@ -621,7 +706,7 @@ def notify_workflow_complete(self, index_results: List[dict], document_id: str, 
 
 # ========== Workflow Entry Point Functions ==========
 
-def create_document_indexes_workflow(document_id: str, index_types: List[str], context: dict = None):  # 对于单个文档，处理创建类索引任务工作流
+def create_document_indexes_workflow(document_id: str, index_types: List[str], context: dict = None):  # 对于单个文档，处理创建类索引任务工作流，注意context为文档索引任务记录的最新版本号，形如“context[f"{index_type}_version"] = target_version”
     """
     Create indexes for a document using dynamic workflow orchestration.
 
@@ -640,9 +725,66 @@ def create_document_indexes_workflow(document_id: str, index_types: List[str], c
     logger.info(f"Starting create indexes workflow for document {document_id} with types: {index_types}")
     # -- 创建类索引任务的处理步骤：解析文档-->索引操作
     # Create the workflow chain: parse -> dynamic trigger
+    """
+    在下述定义的 `workflow_chain` 工作流中，**第一步 `parse_document_task` 的返回结果（字典，含 `content` 字段）会自动作为第二步 `trigger_create_indexes_workflow` 的第一个额外参数被引用**。这是 Celery 中 `chain`（任务链）的核心特性——**前一个任务的返回值会自动传递给后一个任务**，实现任务间的“数据流转”。
+        
+        ### 具体逻辑拆解
+        要理解这一过程，需要结合 Celery `chain` 的工作机制和任务定义（`s()` 是 `signature` 的简写，用于创建任务签名）：
+        
+        #### 1. 第一步任务：`parse_document_task.s(document_id, index_types)`
+        - 任务接收两个显式参数：`document_id`（文档ID）、`index_types`（索引类型）；
+        - 执行完成后，返回一个 **字典**（含 `content` 字段，以及知识库信息、文件解析结果等）——这个字典就是“任务返回值”，会被 `chain` 自动暂存。
+        
+        
+        #### 2. 第二步任务：`trigger_create_indexes_workflow.s(document_id, index_types, context)`
+        - 任务显式定义了三个参数：`document_id`、`index_types`、`context`；
+        - 但在 `chain` 中，**前一个任务（第一步）的返回值会被自动插入到第二步任务的“参数列表最前面”**。  
+          也就是说，第二步实际接收的参数顺序是：  
+          `(第一步返回的字典, document_id, index_types, context)`。
+        
+        
+        #### 3. 数据引用的关键：第二步任务如何接收第一步结果
+        假设 `trigger_create_indexes_workflow` 的函数定义如下（符合 Celery 任务规范）：
+        ```python
+            @app.task(base=BaseTask)  # 假设继承了基础任务类
+            def trigger_create_indexes_workflow(parse_result, document_id, index_types, context):
+                # parse_result：就是第一步返回的字典（含 content 字段）
+                markdown_content = parse_result.get("content")  # 直接引用第一步的 content 字段
+                # 后续逻辑：用 markdown_content 触发索引创建...
+                return "索引创建工作流触发成功"
+        ```
+        可以看到：
+        - 第二步任务的 **第一个参数 `parse_result`**，本质就是第一步 `parse_document_task` 返回的字典；
+        - 通过 `parse_result["content"]` 或 `parse_result.get("content")`，就能直接引用第一步的 `content` 字段，实现“第一步结果被第二步使用”。
+        
+        
+        ### 为什么会自动传递？—— Celery `chain` 的设计逻辑
+        `chain` 是 Celery 为“串行任务”设计的工具，核心目标是**简化任务间的数据依赖**。它的底层逻辑是：
+            - 每个任务执行完成后，将返回值存入 Celery 的“结果后端”（如 Redis、RabbitMQ）；
+            - 执行下一个任务时，`chain` 会从结果后端读取前一个任务的返回值，自动拼接到下一个任务的参数列表最前面；
+            - 最终，下一个任务能通过参数直接拿到前一个任务的结果，无需手动传递或存储。
+        
+        
+        ### 验证：如何确认第一步结果被引用
+        如果需要调试或确认数据流转，可在第二步任务中打印参数：
+        ```python
+        @app.task(base=BaseTask)
+        def trigger_create_indexes_workflow(parse_result, document_id, index_types, context):
+            print("第一步任务返回的字典：", parse_result)  # 打印第一步结果
+            print("第一步的 content 字段：", parse_result.get("content"))  # 打印 content
+            # 后续业务逻辑...
+        ```
+        执行工作流后，通过 Celery 日志（如 `celery -A proj worker --loglevel=info`）可看到第一步返回的字典及 `content` 字段，证明数据已被成功引用。
+        
+        
+        ### 总结
+        - **结论**：第一步的返回结果（含 `content` 的字典）会被第二步自动引用，作为第二步的第一个参数传入；
+        - **关键**：Celery `chain` 会自动实现“前任务返回值 → 后任务参数”的传递，无需手动处理数据传递逻辑；
+        - **使用**：第二步任务只需在函数定义中，将“接收第一步结果的参数”放在参数列表最前面，即可直接使用第一步的 `content` 等字段。
+    """
     workflow_chain = chain(
-        parse_document_task.s(document_id, index_types),
-        trigger_create_indexes_workflow.s(document_id, index_types, context)
+        parse_document_task.s(document_id, index_types),  # 解析文档【字典形式返回：知识库及文件信息、文件解析结果【markdown文件内容、非视觉资源实例列表】、本地原始文件信息【本地路径、是否为临时文件】】
+        trigger_create_indexes_workflow.s(document_id, index_types, context)  # 触发创建索引工作流。执行及参数传递说明：第一步解析文档执行完成后，会触发创建索引工作流，并且第一步的结果会作为trigger_create_indexes_workflow的第一个参数
     )
 
     # Submit the workflow
