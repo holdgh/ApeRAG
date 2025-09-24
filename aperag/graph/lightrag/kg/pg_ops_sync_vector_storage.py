@@ -163,7 +163,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
         else:
             raise ValueError(f"{self.namespace} is not supported")
 
-    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
+    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:  # 将分段数据保存至数据库
         """
         data形如：
         {"分段1_id": {
@@ -176,27 +176,29 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
         }
         """
         """Insert or update vector data"""
+        # -- 校验分段数据非空
         logger.debug(f"Inserting {len(data)} to {self.namespace}")
-        if not data:  # TODO 至此~
+        if not data:
             return
 
         # Get current time with UTC timezone
         current_time = datetime.datetime.now(timezone.utc)
+        # -- 构造分段数据记录
         list_data = [
             {
                 "__id__": k,
                 **{k1: v1 for k1, v1 in v.items()},
             }
             for k, v in data.items()
-        ]
-
+        ]  # 构造分段数据记录列表
+        # -- 分批对分段文本进行embedding处理
         # Compute embeddings first (async)
-        contents = [v["content"] for v in data.values()]
-        batches = [contents[i : i + self._max_batch_size] for i in range(0, len(contents), self._max_batch_size)]
+        contents = [v["content"] for v in data.values()]  # 获取当前所有分段文本
+        batches = [contents[i : i + self._max_batch_size] for i in range(0, len(contents), self._max_batch_size)]  # 分批【默认每批32个分段文本】
 
-        embedding_tasks = [self.embedding_func(batch) for batch in batches]
-        embeddings_list = await asyncio.gather(*embedding_tasks)
-        embeddings = np.concatenate(embeddings_list)
+        embedding_tasks = [self.embedding_func(batch) for batch in batches]  # 分批创建embedding任务
+        embeddings_list = await asyncio.gather(*embedding_tasks)  # 异步执行，获取各批次embedding结果
+        embeddings = np.concatenate(embeddings_list)  # TODO 至此~
 
         for i, d in enumerate(list_data):
             d["__vector__"] = embeddings[i]

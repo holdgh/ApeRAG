@@ -176,7 +176,7 @@ class StorageNameSpace(ABC):
 class BaseVectorStorage(StorageNameSpace, ABC):
     embedding_func: EmbeddingFunc
     cosine_better_than_threshold: float = field(default=0.2)
-    _max_batch_size: int = field(default=32)
+    _max_batch_size: int = field(default=32)  # 批量embedding处理的批量尺寸
     meta_fields: set[str] = field(default_factory=set)
 
     @abstractmethod
