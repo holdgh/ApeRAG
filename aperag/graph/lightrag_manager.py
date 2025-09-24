@@ -66,7 +66,7 @@ async def create_lightrag_instance(collection: Collection) -> LightRAG:  # 基�
     try:
         # 获取embedding和llm操作实例
         # Generate embedding and LLM functions
-        embed_func, embed_dim = await _gen_embed_func(collection)
+        embed_func, embed_dim = await _gen_embed_func(collection)  # 返回embedding批处理操作定义和embedding向量维度
         llm_func = await _gen_llm_func(collection)
 
         # Get storage configuration from environment
@@ -241,16 +241,17 @@ def _run_in_new_loop(coro: Awaitable) -> Any:
 
 async def _gen_embed_func(
     collection: Collection,
-) -> Tuple[Callable[[list[str]], Awaitable[numpy.ndarray]], int]:
+) -> Tuple[Callable[[list[str]], Awaitable[numpy.ndarray]], int]:  # 依据知识库信息获取相应的embedding批处理定义和embedding向量维度
     """Generate embedding function for LightRAG"""
     try:
+        # -- 基于知识库信息获取其embedding模型服务实例和embedding向量维度
         embedding_svc, dim = get_collection_embedding_service_sync(collection)
 
         async def embed_func(texts: list[str]) -> numpy.ndarray:
-            embeddings = await embedding_svc.aembed_documents(texts)
-            return numpy.array(embeddings)
+            embeddings = await embedding_svc.aembed_documents(texts)  # 对分段文本列表进行embedding处理
+            return numpy.array(embeddings)  # 将embedding结果【单批次结果为列表形式】列表转化为numpy数组
 
-        return embed_func, dim
+        return embed_func, dim  # 返回embedding批处理操作定义和embedding向量维度
     except (ProviderNotFoundError, EmbeddingError) as e:
         # Configuration or embedding-specific errors
         logger.error(f"Failed to create embedding function - configuration error: {str(e)}")

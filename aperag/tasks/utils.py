@@ -40,7 +40,7 @@ def parse_document_content(document, collection) -> Tuple[str, List[Any], Any]: 
     local_doc = source.prepare_document(name=document.name, metadata=metadata)
 
     try:
-        # -- 基于全局配置信息，对文件进行解析和分段
+        # -- 基于全局配置信息，对文件进行解析
         global_settings = setting_service.get_all_settings_sync()  # 查询setting表全量信息
 
         # Parse document to get content and parts
@@ -50,7 +50,7 @@ def parse_document_content(document, collection) -> Tuple[str, List[Any], Any]: 
             document.object_store_base_path(),  # 为当前文档信息实例生成对象存储基本路径，基本路径规则：“user-{用户id}/{知识库id}/{文档信息id}”
             global_settings,
         )  # 文件解析结果【非视觉资源实例列表doc_parts【原始文件通过MarkItDown转为markdown文件后，markdown文件中的图片；通过MarkdownIt工具对markdown文件提取的token流格式化文本】、markdown文件内容、非视觉资源实例数量元数据】
-        # -- 如果文件是在对话过程中上传的，则为每个分段设置元数据【对话id和文件id】
+        # -- 如果文件是在对话过程中上传的，则为每个文件实例设置元数据【对话id和文件id】
         # Add chat metadata to all document parts if this is a chat upload
         doc_parts = parsing_result.doc_parts
         if document.doc_metadata:

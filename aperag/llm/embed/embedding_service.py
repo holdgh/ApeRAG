@@ -31,7 +31,7 @@ from aperag.llm.llm_error_types import (
 logger = logging.getLogger(__name__)
 
 
-class EmbeddingService:
+class EmbeddingService:  # embedding模型服务定义
     def __init__(
         self,
         embedding_provider: str,
@@ -51,7 +51,7 @@ class EmbeddingService:
         self.multimodal = multimodal
         self.caching = caching
 
-    def embed_documents(self, contents: List[str]) -> List[List[float]]:
+    def embed_documents(self, contents: List[str]) -> List[List[float]]:  # 对分段内容列表批量embedding处理，返回结果为embedding向量列表，一个分段对应一个embedding向量
         """
         Embed multiple documents in parallel batches.
 
@@ -61,6 +61,7 @@ class EmbeddingService:
         Returns:
             List of embedding vectors in the same order as input contents
         """
+        # -- 分段文本列表非空校验
         # Validate inputs
         if not contents:
             raise EmptyTextError(0)
@@ -73,8 +74,10 @@ class EmbeddingService:
                 raise EmptyTextError(len(empty_indices))
 
         try:
+            # -- 分段文本清洗【将换行符替换为空格】
             # Clean contents by replacing newlines with spaces
             clean_contents = [t.replace("\n", " ") if t and t.strip() else " " for t in contents]
+            # -- 批量embedding处理【多线程方式】
             # Determine batch size (use max_chunks or process all at once if not set)
             batch_size = self.max_chunks or len(clean_contents)
 
@@ -88,7 +91,7 @@ class EmbeddingService:
                 for start in range(0, len(clean_contents), batch_size):
                     batch = clean_contents[start : start + batch_size]
                     # Pass both the batch and starting index to track position
-                    future = pool.submit(self._embed_batch_with_indices, batch, start)
+                    future = pool.submit(self._embed_batch_with_indices, batch, start)  # 真正的对文本列表进行embedding处理，结果中包含相应文本在原始文本列表中的序号
                     futures.append(future)
 
                 # Process completed futures and store results by index
@@ -98,7 +101,7 @@ class EmbeddingService:
                         # Get results with their original indices
                         batch_results = future.result()
                         for idx, embedding in batch_results:
-                            results_dict[idx] = embedding
+                            results_dict[idx] = embedding  # 构造embedding结果字典：{序号：embedding向量}
                     except Exception as e:
                         failed_batches.append(str(e))
                         logger.error(f"Batch processing failed: {e}")
@@ -111,7 +114,7 @@ class EmbeddingService:
                     )
 
             # Reconstruct the result list in the original order
-            results = [results_dict[i] for i in range(len(clean_contents))]
+            results = [results_dict[i] for i in range(len(clean_contents))]  # 列表化重构。保留原始顺序，也即分段文本与embedding向量的对应顺序
             return results
         except (EmptyTextError, BatchProcessingError, EmbeddingError):
             # Re-raise our custom embedding errors
@@ -151,18 +154,18 @@ class EmbeddingService:
     def is_multimodal(self) -> bool:
         return self.multimodal
 
-    def _embed_batch_with_indices(self, batch: Sequence[str], start_idx: int) -> List[Tuple[int, List[float]]]:
+    def _embed_batch_with_indices(self, batch: Sequence[str], start_idx: int) -> List[Tuple[int, List[float]]]:  # 对文本列表进行embedding处理
         """Process a batch of texts and return embeddings with their original indices."""
         try:
             embeddings = self._embed_batch(batch)
             # Return each embedding with its corresponding index in the original list
-            return [(start_idx + i, embedding) for i, embedding in enumerate(embeddings)]
+            return [(start_idx + i, embedding) for i, embedding in enumerate(embeddings)]  # 结果中含有相应文本在原始文本列表中的序号“start_idx + i”
         except Exception as e:
             logger.error(f"Batch embedding with indices failed: {str(e)}")
             # Convert litellm errors for batch processing
             raise wrap_litellm_error(e, "embedding", self.embedding_provider, self.model) from e
 
-    def _embed_batch(self, batch: Sequence[str]) -> List[List[float]]:
+    def _embed_batch(self, batch: Sequence[str]) -> List[List[float]]:  # 基于litellm工具包调用远程embedding模型服务，对文本列表进行批量embedding处理
         """
         Embed a batch of contents using litellm.
 
@@ -175,7 +178,14 @@ class EmbeddingService:
         Raises:
             EmbeddingError: If embedding fails
         """
-
+        """
+        litellm 是一个轻量级的 Python 库，主要作用是统一不同大语言模型（LLM）的 API 调用接口，
+        让开发者可以用相同的代码逻辑调用不同厂商的模型（如 OpenAI、Anthropic、Google、国内的智谱、讯飞等）。
+        
+        litellm 本身不运行模型，而是作为 “中间层” 转发请求：
+            当你调用 litellm.completion() 时，它会根据 model 参数识别目标厂商，将统一格式的请求转换为该厂商的 API 格式，
+            再通过 HTTP 等协议远程调用其 API 接口，最后将返回结果转换为统一格式返回给你。
+        """
         try:
             response = litellm.embedding(
                 custom_llm_provider=self.embedding_provider,

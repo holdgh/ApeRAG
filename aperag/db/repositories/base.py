@@ -46,7 +46,7 @@ class SyncBaseRepository(SyncRepositoryProtocol):
             with sync_session() as session:
                 return session
 
-    def _execute_query(self, query_func):
+    def _execute_query(self, query_func):  # 执行数据库查询操作【入参query_func为查询某数据的方法定义】
         if self._session:
             return query_func(self._session)
         else:

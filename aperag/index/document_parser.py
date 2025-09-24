@@ -144,7 +144,7 @@ class DocumentParser:
                 pdf.save(buffer, linearize=True)
                 return buffer.getvalue()
 
-    def save_processed_content_and_assets(self, doc_parts: List[Any], object_store_base_path: Optional[str]) -> str:  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中
+    def save_processed_content_and_assets(self, doc_parts: List[Any], object_store_base_path: Optional[str]) -> str:  # 将解析后的文件实例，基于对象存储基本路径存入对象存储中
         """
         将解析后的文件实例列表保存至对象存储中。保存的文件实例有：markdown文件实例、pdf文件实例、AssetBinPart实例列表
         最终返回的是markdown文件实例内容
@@ -246,7 +246,7 @@ class DocumentParser:
         file_metadata: Dict[str, Any],
         object_store_base_path: Optional[str] = None,
         parser_config: Optional[Dict[str, Any]] = None,  # 全局配置信息，见setting表【空】
-    ) -> DocumentParsingResult:  # 文件解析和分段处理
+    ) -> DocumentParsingResult:  # 文件解析处理
         """
         Complete document parsing workflow
 
@@ -265,7 +265,7 @@ class DocumentParser:
             doc_parts = self.parse_document(filepath, file_metadata, parser_config)
             # -- 将文件分段保存至对象存储，并清除掉doc_parts中的markdown实例、pdf实例和【pdf实例也转化为图片资源、当前文件为图片时也转化为图片资源，这两种情况AssetBinPart的元数据视觉标记为True】视觉资源实例，返回markdown文件内容
             # Save processed content and assets to object storage
-            content = self.save_processed_content_and_assets(doc_parts, object_store_base_path)  # 将解析后的文本分段，基于对象存储基本路径存入对象存储中，并清除掉doc_parts中的markdown实例、pdf实例和视觉资源实例
+            content = self.save_processed_content_and_assets(doc_parts, object_store_base_path)  # 将解析后的文件实例【markdown、pdf、AssetBinPart】，基于对象存储基本路径存入对象存储中，并清除掉doc_parts中的markdown实例、pdf实例和视觉资源实例
             # -- 构造并返回文件解析结果【非视觉资源实例【原始文件通过MarkItDown转为markdown文件后，markdown文件中的图片；通过MarkdownIt工具对markdown文件提取的token流格式化文本】、markdown文件内容、非视觉资源实例数量元数据】
             return DocumentParsingResult(doc_parts=doc_parts, content=content, metadata={"parts_count": len(doc_parts)})
 

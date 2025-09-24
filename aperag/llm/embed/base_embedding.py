@@ -42,7 +42,7 @@ def synchronized(func):
     return wrapper
 
 
-_dimension_cache: dict[tuple[str, str], int] = {}
+_dimension_cache: dict[tuple[str, str], int] = {}  # 内存缓存
 
 
 def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_provider: str, embedding_model) -> int:
@@ -50,9 +50,9 @@ def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_provider
     Get embedding dimension by probing the embedding service.
 
     Args:
-        embedding_svc: The embedding service instance
-        embedding_provider: Provider name for caching
-        embedding_model: Model name for caching
+        embedding_svc: The embedding service instance  embedding模型服务实例
+        embedding_provider: Provider name for caching  模型服务提供商
+        embedding_model: Model name for caching  embedding模型名称
 
     Returns:
         int: The embedding dimension
@@ -60,10 +60,11 @@ def _get_embedding_dimension(embedding_svc: EmbeddingService, embedding_provider
     Raises:
         EmbeddingError: If dimension probing fails
     """
+    # -- 基于模型服务提供商名称和embedding模型名称构造缓存key，并直接从缓存中取相应embedding模型的输出维度数据
     cache_key = (embedding_provider, embedding_model)
     if cache_key in _dimension_cache:
         return _dimension_cache[cache_key]
-
+    # -- 缓存中不存在时，用embedding服务实例对文本“dimension_probe”执行embedding操作，从其embedding结果中获取维度信息，并存入缓存
     try:
         vec = embedding_svc.embed_query("dimension_probe")
         if not vec:
@@ -92,7 +93,7 @@ def _get_embedding_model(
     embedding_service_api_key: str,
     embedding_max_chunks_in_batch: int = settings.embedding_max_chunks_in_batch,
     multimodal: bool = False,
-) -> tuple[EmbeddingService | None, int]:
+) -> tuple[EmbeddingService | None, int]:  # 创建并配置一个embedding模型服务实例【可直接调用的】
     """
     Create and configure an embedding model instance.
 
@@ -117,9 +118,9 @@ def _get_embedding_model(
             embedding_service_api_key,
             embedding_max_chunks_in_batch,
             multimodal=multimodal,
-        )
-        embedding_dim = _get_embedding_dimension(embedding_svc, embedding_provider, embedding_model)
-        return embedding_svc, embedding_dim
+        )  # 创建embedding模型服务实例
+        embedding_dim = _get_embedding_dimension(embedding_svc, embedding_provider, embedding_model)  # 获取embedding模型输出维度
+        return embedding_svc, embedding_dim  # 返回embedding模型服务实例和embedding模型输出维度
     except EmbeddingError:
         # Re-raise embedding errors
         raise
@@ -131,7 +132,7 @@ def _get_embedding_model(
         ) from e
 
 
-def get_collection_embedding_service_sync(collection) -> tuple[EmbeddingService, int]:
+def get_collection_embedding_service_sync(collection) -> tuple[EmbeddingService, int]:  # 基于知识库信息获取其embedding服务实例和embedding向量维度
     """
     Get embedding service for a collection synchronously.
 
@@ -147,20 +148,21 @@ def get_collection_embedding_service_sync(collection) -> tuple[EmbeddingService,
         InvalidConfigurationError: If configuration is invalid
         EmbeddingError: If embedding service creation fails
     """
+    # -- 解析知识库配置信息，获取embedding相关配置【服务提供商、embedding模型名称、api接口风格】
     try:
-        config = parseCollectionConfig(collection.config)
+        config = parseCollectionConfig(collection.config)  # 将知识库配置信息解析为知识库配置实例【json--python类实例】
     except Exception as e:
         logger.error(f"Failed to parse collection config: {str(e)}")
         raise InvalidConfigurationError(
             "collection.config", collection.config, f"Invalid collection configuration: {str(e)}"
         ) from e
 
-    embedding_msp = config.embedding.model_service_provider
-    embedding_model_name = config.embedding.model
-    custom_llm_provider = config.embedding.custom_llm_provider
+    embedding_msp = config.embedding.model_service_provider  # embedding模型服务提供商
+    embedding_model_name = config.embedding.model  # embedding模型名称
+    custom_llm_provider = config.embedding.custom_llm_provider  # embedding服务客户端提供商，例如openai
 
     logger.info("get_collection_embedding_model_sync %s %s", embedding_msp, embedding_model_name)
-
+    # -- 校验embedding配置项的合法性
     # Validate configuration fields
     if not embedding_msp:
         raise InvalidConfigurationError(
@@ -174,11 +176,11 @@ def get_collection_embedding_service_sync(collection) -> tuple[EmbeddingService,
         raise InvalidConfigurationError(
             "embedding.custom_llm_provider", custom_llm_provider, "Custom LLM provider cannot be empty"
         )
-
+    # -- 基于模型服务提供商和知识库所属用户获取调用模型服务所需的api_key
     embedding_service_api_key = db_ops.query_provider_api_key(embedding_msp, collection.user)
     if not embedding_service_api_key:
         raise InvalidConfigurationError("api_key", None, f"API KEY not found for LLM Provider: {embedding_msp}")
-
+    # -- 基于模型服务提供商查询llm模型服务提供商记录【为了获取相应的base_url】
     try:
         llm_provider = db_ops.query_llm_provider_by_name(embedding_msp)
         if not llm_provider:
@@ -187,12 +189,12 @@ def get_collection_embedding_service_sync(collection) -> tuple[EmbeddingService,
     except Exception as e:
         logger.error(f"Failed to query LLM provider '{embedding_msp}': {str(e)}")
         raise ProviderNotFoundError(embedding_msp, "Embedding") from e
-
+    # -- 基于模型服务提供商和embedding模型标识及当前知识库配置的embedding模型名称查询相应模型信息【判断当前模型是否支持多模态】
     try:
         multimodal = False
         model = db_ops.query_llm_provider_model(embedding_msp, APIType.EMBEDDING.value, embedding_model_name)
         if model:
-            multimodal = model.has_tag("multimodal")
+            multimodal = model.has_tag("multimodal")  # 支持多模态的判断条件
     except Exception:
         logger.error(f"Failed to query embedding model '{embedding_msp}/{embedding_model_name}'", exc_info=True)
         raise
@@ -203,7 +205,7 @@ def get_collection_embedding_service_sync(collection) -> tuple[EmbeddingService,
         )
 
     logger.info("get_collection_embedding_model %s", embedding_service_url)
-
+    # -- 构造并返回embedding模型服务实例和embedding向量维度
     try:
         return _get_embedding_model(
             embedding_provider=custom_llm_provider,

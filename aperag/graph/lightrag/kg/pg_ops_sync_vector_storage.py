@@ -195,15 +195,16 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
         # Compute embeddings first (async)
         contents = [v["content"] for v in data.values()]  # 获取当前所有分段文本
         batches = [contents[i : i + self._max_batch_size] for i in range(0, len(contents), self._max_batch_size)]  # 分批【默认每批32个分段文本】
-
+        # 单一批次的分段文本对应一个embedding结果，而一个embedding结果是对应批次尺寸个embedding向量【合理，一个分段文本对应一个embedding向量】
         embedding_tasks = [self.embedding_func(batch) for batch in batches]  # 分批创建embedding任务
         embeddings_list = await asyncio.gather(*embedding_tasks)  # 异步执行，获取各批次embedding结果
-        embeddings = np.concatenate(embeddings_list)  # TODO 至此~
-
+        # np.concatenate() 是 numpy 库的函数，用于将多个数组沿着指定轴（默认是第 0 轴，即行方向）连接起来，形成一个更大的数组。
+        embeddings = np.concatenate(embeddings_list)  # 将各批次的embedding结果列表合并为embedding“矩阵”
+        # -- 为上述分段记录列表中的每一个分段记录添加embedding向量字段
         for i, d in enumerate(list_data):
-            d["__vector__"] = embeddings[i]
+            d["__vector__"] = embeddings[i]  # 此处表明：上述单批次的embedding结果也是一个“【批次大小】*【embedding向量维度】的矩阵”
 
-        def _sync_upsert_with_vectors():
+        def _sync_upsert_with_vectors():  # TODO 至此~
             # Import here to avoid circular imports
             from aperag.db.ops import db_ops
             from aperag.graph.lightrag.namespace import NameSpace, is_namespace

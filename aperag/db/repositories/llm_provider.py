@@ -30,7 +30,7 @@ from aperag.utils.utils import utc_now
 
 
 class LlmProviderRepositoryMixin(SyncRepositoryProtocol):
-    def query_llm_provider_by_name(self, name: str, user_id: str = None) -> LLMProvider:
+    def query_llm_provider_by_name(self, name: str, user_id: str = None) -> LLMProvider:  # 基于模型服务提供商查询llm模型服务提供商记录
         def _query(session):
             stmt = select(LLMProvider).where(LLMProvider.name == name, LLMProvider.gmt_deleted.is_(None))
             if user_id:
@@ -41,7 +41,7 @@ class LlmProviderRepositoryMixin(SyncRepositoryProtocol):
 
         return self._execute_query(_query)
 
-    def query_provider_api_key(self, provider_name: str, user_id: str = None, need_public: bool = True) -> str:
+    def query_provider_api_key(self, provider_name: str, user_id: str = None, need_public: bool = True) -> str:  # 基于模型服务提供商和知识库所属用户获取调用模型服务所需的api_key
         """Query provider API key with user access control using single SQL JOIN (sync version)
 
         Args:
@@ -58,7 +58,7 @@ class LlmProviderRepositoryMixin(SyncRepositoryProtocol):
             from sqlalchemy import join
 
             stmt = (
-                select(ModelServiceProvider.api_key)
+                select(ModelServiceProvider.api_key)  # 定义要查询的字段【模型服务提供商的api_key】
                 .select_from(join(LLMProvider, ModelServiceProvider, LLMProvider.name == ModelServiceProvider.name))
                 .where(
                     LLMProvider.name == provider_name,
@@ -66,19 +66,19 @@ class LlmProviderRepositoryMixin(SyncRepositoryProtocol):
                     ModelServiceProvider.status != ModelServiceProviderStatus.DELETED,
                     ModelServiceProvider.gmt_deleted.is_(None),
                 )
-            )
-
+            )  # 基于服务提供商名称查询模型服务提供商记录
+            # 追加用户访问控制查询条件
             # Add user access control conditions
             conditions = []
             if need_public:
-                conditions.append(LLMProvider.user_id == "public")
+                conditions.append(LLMProvider.user_id == "public")  # 共享
             if user_id:
-                conditions.append(LLMProvider.user_id == user_id)
+                conditions.append(LLMProvider.user_id == user_id)  # 特定用户
 
             if conditions:
-                if len(conditions) == 1:
+                if len(conditions) == 1:  # 当 conditions 只有一个条件时（len(conditions) == 1），直接将该条件添加到查询语句中
                     stmt = stmt.where(conditions[0])
-                else:
+                else:  # 当 conditions 有多个条件时（len(conditions) > 1），使用 or_ 函数将所有条件组合为 “或关系” 后添加到查询中
                     from sqlalchemy import or_
 
                     stmt = stmt.where(or_(*conditions))
