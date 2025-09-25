@@ -164,7 +164,7 @@ class PGOpsSyncKVStorage(BaseKVStorage):
 
         return await asyncio.to_thread(_sync_filter_keys)
 
-    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
+    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:  # 直接将分段数据【不含embedding处理】保存至数据库
         """Insert or update data"""
 
         def _sync_upsert():
@@ -176,8 +176,9 @@ class PGOpsSyncKVStorage(BaseKVStorage):
             from aperag.db.ops import db_ops
             from aperag.graph.lightrag.namespace import NameSpace, is_namespace
 
-            if is_namespace(self.namespace, NameSpace.KV_STORE_TEXT_CHUNKS):
+            if is_namespace(self.namespace, NameSpace.KV_STORE_TEXT_CHUNKS):  # text_chunks
                 # Use data directly for chunks
+                # TODO 在aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage.upsert中已经保存过了，为什么这里还要再执行一遍呢
                 db_ops.upsert_lightrag_doc_chunks(self.workspace, data)
             else:
                 logger.error(f"Unknown namespace for upsert: {self.namespace}")

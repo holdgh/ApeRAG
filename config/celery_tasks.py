@@ -263,7 +263,7 @@ def create_index_task(self, document_id: str, index_type: str, parsed_data_dict:
         # -- 将文档解析结果字典形式转化为ParsedDocumentData实例
         # Convert dict back to structured data
         parsed_data = ParsedDocumentData.from_dict(parsed_data_dict)
-        # -- 基于文档解析结果和索引类型，执行创建索引任务
+        # -- 基于文档解析结果和索引类型，执行创建索引
         # Execute index creation
         result = document_index_task.create_index(document_id, index_type, parsed_data)
 

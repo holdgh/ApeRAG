@@ -77,7 +77,20 @@ class LightragRepositoryMixin(SyncRepositoryProtocol):
 
     def upsert_lightrag_doc_chunks(self, workspace: str, chunks_data: dict):
         """Upsert LightRAG document chunks records using PostgreSQL UPSERT"""
-
+        """
+        分段数据chunks_data形如：{
+            "分段id": {
+                "tokens": 当前分段内容的长度
+                "chunk_order_index": 当前分段内容在原始文档解析结果markdown文本中的索引顺序
+                "full_doc_id": 原始文档id
+                "content": 分段内容
+                "content_vector": embedding向量
+                "file_path": 原始文件路径
+            }
+        }
+        
+        """
+        # 执行保存或更新分段数据操作【逐条保存或更新，一次性commit】【保存或更新的规则： (workspace, id) 组合是否已存在，若存在则更新【embedding结果特殊处理：新纪录非空则更新，否则不更新】；不存在则插入。】
         def _operation(session):
             for chunk_id, chunk_data in chunks_data.items():
                 # Prepare vector data - convert from JSON string if needed
@@ -88,6 +101,11 @@ class LightragRepositoryMixin(SyncRepositoryProtocol):
                     vector_data = json.loads(vector_data)
 
                 # Use raw SQL UPSERT to avoid race conditions
+                """
+                下述SQL语句的逻辑：“有则更新，无则插入” 的原子操作。
+                    当 (workspace, id) 组合在表中不存在时，插入一条包含所有字段的新记录；
+                    当 (workspace, id) 组合已存在时，用新数据更新除 create_time（创建时间，不更新）外的大部分字段，且对 content_vector 做特殊判断（非空才更新）
+                """
                 sql = """
                 INSERT INTO lightrag_doc_chunks (workspace, id, tokens, chunk_order_index, full_doc_id, content, content_vector, file_path, create_time, update_time)
                 VALUES (:workspace, :id, :tokens, :chunk_order_index, :full_doc_id, :content, :content_vector, :file_path, :create_time, :update_time)
@@ -109,7 +127,7 @@ class LightragRepositoryMixin(SyncRepositoryProtocol):
                 session.execute(
                     text(sql),
                     {
-                        "workspace": workspace,
+                        "workspace": workspace,  # 知识库id
                         "id": chunk_id,
                         "tokens": chunk_data.get("tokens"),
                         "chunk_order_index": chunk_data.get("chunk_order_index"),

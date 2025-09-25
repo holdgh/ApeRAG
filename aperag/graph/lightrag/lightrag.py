@@ -106,7 +106,7 @@ class LightRAG:
     # Entity extraction
     # ---
 
-    entity_extract_max_gleaning: int = field(default=1)
+    entity_extract_max_gleaning: int = field(default=1)  # 对不明确的内容尝试提取实体的最大次数【当前lightrag中默认0次】
     """Maximum number of entity extraction attempts for ambiguous content."""
 
     summary_to_max_tokens: int = field(default=get_env_value("MAX_TOKEN_SUMMARY", DEFAULT_MAX_TOKEN_SUMMARY, int))
@@ -211,7 +211,7 @@ class LightRAG:
     llm_model_max_token_size: int = field(default=32768)
     """Maximum number of tokens allowed per LLM response."""
 
-    llm_model_max_async: int = field(default=8)
+    llm_model_max_async: int = field(default=8)  # llm操作最大并发调用数
     """Maximum number of concurrent LLM calls."""
 
     llm_model_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -231,7 +231,7 @@ class LightRAG:
 
     addon_params: dict[str, Any] = field(
         default_factory=lambda: {"language": get_env_value("SUMMARY_LANGUAGE", "English", str)}
-    )
+    )  # 额外参数【语言参数：当前lightrag默认“The same language like input text”】
 
     # Storages Management
     # ---
@@ -612,7 +612,7 @@ class LightRAG:
         file_paths: list[str] | None = None,
         split_by_character: str | None = None,
         split_by_character_only: bool = False,
-    ) -> dict[str, Any]:  # 分段、保存分段、返回分段结果
+    ) -> dict[str, Any]:  # 分段、保存分段【进行了embedding处理】、返回分段结果【内含：分段id，分段内容，分段长度，分段在整个markdown文本中的索引顺序】
         """
         Stateless document insertion and chunking - inserts documents and performs chunking in one step.
 
@@ -706,12 +706,14 @@ class LightRAG:
 
             if not chunks:
                 raise ValueError(f"No valid chunks created for document {doc_id}")
-            # -- 保存分段字典
+            # -- 保存分段数据【同一张表lightrag_doc_chunks，执行了两次保存或更新操作】
             # Write to storage (avoid concurrent operations on same connection)
             self.lightrag_logger.debug(f"LightRAG: About to upsert {len(chunks)} chunks to storages")
             self.lightrag_logger.debug(f"LightRAG: Calling chunks_vdb.upsert with {len(chunks)} chunks")
+            # 将分段数据分批embedding处理后，连同embedding结果保存或更新至数据库
             await self.chunks_vdb.upsert(chunks)  # 存储实例见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
             self.lightrag_logger.debug(f"LightRAG: Calling text_chunks.upsert with {len(chunks)} chunks")
+            # 直接保存或更新分段数据【不含embedding处理】
             await self.text_chunks.upsert(chunks)  # 存储实例见aperag.graph.lightrag.kg.pg_ops_sync_kv_storage.PGOpsSyncKVStorage
             self.lightrag_logger.debug(f"LightRAG: Completed all upsert operations for {doc_id}")
 
@@ -719,10 +721,10 @@ class LightRAG:
 
             results.append(
                 {
-                    "doc_id": doc_id,
-                    "chunks": list(chunks.keys()),
-                    "chunk_count": len(chunks),
-                    "chunks_data": chunks,
+                    "doc_id": doc_id,  # 原始文档id
+                    "chunks": list(chunks.keys()),  # 分段id列表
+                    "chunk_count": len(chunks),  # 分段数量
+                    "chunks_data": chunks,  # 分段数据详情【内含：分段id，分段内容，分段长度，分段在整个markdown文本中的索引顺序】
                     "status": "processed",
                 }
             )
@@ -738,7 +740,7 @@ class LightRAG:
         self,
         chunks: dict[str, Any],
         collection_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any]:  # 对单个文档的分段数据，构建知识图谱
         """
         Stateless graph indexing - extracts entities/relations and builds graph index.
 
@@ -751,29 +753,30 @@ class LightRAG:
         """
 
         try:
+            # -- 分段数据非空及合法性校验
             # Validate chunks input
             if not chunks:
                 raise ValueError("No chunks provided for graph indexing")
 
             # Validate each chunk has required fields
-            for chunk_id, chunk_data in chunks.items():
-                if not isinstance(chunk_data, dict):
+            for chunk_id, chunk_data in chunks.items():  # 任一个分段数据不合法，都会触发异常
+                if not isinstance(chunk_data, dict):  # 单个分段数据详情必为字典
                     raise ValueError(f"Chunk {chunk_id} is not a dictionary")
-                if "content" not in chunk_data:
+                if "content" not in chunk_data:  # 单个分段数据详情必为含有content字段【分段内容】
                     raise ValueError(f"Chunk {chunk_id} missing 'content' key")
-                if not chunk_data["content"]:
+                if not chunk_data["content"]:  # 分段内容非空
                     raise ValueError(f"Chunk {chunk_id} has empty content")
 
             self.lightrag_logger.debug(f"Starting graph indexing for {len(chunks)} chunks")
-
+            # -- 对分段数据提取实体和关系
             # 1. Extract entities and relations from chunks (completely parallel, no lock)
             chunk_results = await extract_entities(
-                chunks,
-                use_llm_func=self.llm_model_func,
-                entity_extract_max_gleaning=self.entity_extract_max_gleaning,
-                addon_params=self.addon_params,
-                llm_model_max_async=self.llm_model_max_async,
-                lightrag_logger=self.lightrag_logger,
+                chunks,  # 单个文档的分段数据详情
+                use_llm_func=self.llm_model_func,  # llm操作定义
+                entity_extract_max_gleaning=self.entity_extract_max_gleaning,  # 对不明确的内容尝试提取实体的最大次数【当前lightrag中默认0次】
+                addon_params=self.addon_params,  # 额外参数【语言参数：当前lightrag默认“The same language like input text”】
+                llm_model_max_async=self.llm_model_max_async,  # llm操作最大并发调用数
+                lightrag_logger=self.lightrag_logger,  # lightrag日志实例
             )
 
             # 2. Process each component group with its own lock scope

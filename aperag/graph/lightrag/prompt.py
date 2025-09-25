@@ -234,7 +234,7 @@ It appears some entities may have still been missed.
 ---Output---
 
 Answer ONLY by `YES` OR `NO` if there are still entities that need to be added.
-""".strip()
+""".strip()  # 判断是否再次提取【是否存在未提取的实体】
 
 PROMPTS["fail_response"] = "Sorry, I'm not able to provide an answer to that question.[no-context]"
 

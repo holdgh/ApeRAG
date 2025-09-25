@@ -120,20 +120,20 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
 
         return await asyncio.to_thread(_sync_get_all)
 
-    def _prepare_vector_data(self, item: dict[str, Any], current_time: datetime.datetime) -> dict[str, Any]:
+    def _prepare_vector_data(self, item: dict[str, Any], current_time: datetime.datetime) -> dict[str, Any]:  # 基于分段内容和embedding结果构造vector_data
         """Prepare vector data based on namespace."""
         from aperag.graph.lightrag.namespace import NameSpace, is_namespace
-
+        # chunk对应的namespace属性为NameSpace.VECTOR_STORE_CHUNKS【chunks】，见aperag.graph.lightrag.lightrag.LightRAG.__post_init__中对于chunks_vdb的初始化
         if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
             return {
-                "tokens": item["tokens"],
-                "chunk_order_index": item["chunk_order_index"],
+                "tokens": item["tokens"],  # 当前分段内容的长度
+                "chunk_order_index": item["chunk_order_index"],  # 当前分段内容在原始文档解析结果markdown文本中的索引顺序
                 "full_doc_id": item["full_doc_id"],
-                "content": item["content"],
+                "content": item["content"],  # 分段内容
                 "content_vector": item["__vector__"].tolist()
                 if hasattr(item["__vector__"], "tolist")
-                else item["__vector__"],
-                "file_path": item.get("file_path"),
+                else item["__vector__"],  # embedding向量
+                "file_path": item.get("file_path"),  # 原始文件路径
             }
         elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
             source_id = item["source_id"]
@@ -163,7 +163,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
         else:
             raise ValueError(f"{self.namespace} is not supported")
 
-    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:  # 将分段数据保存至数据库
+    async def upsert(self, data: dict[str, dict[str, Any]]) -> None:  # 将分段数据【分批embedding处理后】保存至数据库【被多处调用，有：关系relation、实体entity、分段chunk】
         """
         data形如：
         {"分段1_id": {
@@ -208,7 +208,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
             # Import here to avoid circular imports
             from aperag.db.ops import db_ops
             from aperag.graph.lightrag.namespace import NameSpace, is_namespace
-
+            # -- 对分段数据进一步封装处理【对应数据表记录的字典】
             # Prepare data for each item
             vector_data = {}
             for item in list_data:
@@ -217,11 +217,11 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
                 vector_data[item_id] = prepared_data
 
             # Use appropriate DatabaseOps method based on namespace
-            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):  # 保存或更新分段数据【基于(知识库id,分段id)是否已存在】
                 db_ops.upsert_lightrag_doc_chunks(self.workspace, vector_data)
-            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):  # 保存或更新实体数据
                 db_ops.upsert_lightrag_vdb_entity(self.workspace, vector_data)
-            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):  # 保存或更新关系数据【边】
                 db_ops.upsert_lightrag_vdb_relation(self.workspace, vector_data)
             else:
                 raise ValueError(f"{self.namespace} is not supported")

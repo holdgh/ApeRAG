@@ -157,7 +157,7 @@ async def _process_document_async(
             }
 
         # Insert and chunk document
-        # -- 分段、保存分段、返回分段结果
+        # -- 分段、保存分段、返回分段结果【内含：分段id，分段内容，分段长度，分段在整个markdown文本中的索引顺序，原始文档id，原始文档路径】
         chunk_result = await rag.ainsert_and_chunk_document(
             documents=[content], doc_ids=[doc_id], file_paths=[file_path]
         )
@@ -172,18 +172,18 @@ async def _process_document_async(
                 "entities_extracted": 0,
                 "relations_extracted": 0,
             }
-
+        # -- 基于分段结果进行知识图谱处理
         # Process results
         total_stats = {"chunks_created": 0, "entities_extracted": 0, "relations_extracted": 0, "documents": []}
 
-        for doc_result in results:
-            doc_result_id = doc_result.get("doc_id")
-            chunks_data = doc_result.get("chunks_data", {})
-            chunk_count = doc_result.get("chunk_count", 0)
+        for doc_result in results:  # 逐个文档处理【其实这里总是只有一个文档】
+            doc_result_id = doc_result.get("doc_id")  # 原始文档id
+            chunks_data = doc_result.get("chunks_data", {})  # 分段数据详情【内含：分段id，分段内容，分段长度，分段在整个markdown文本中的索引顺序，原始文档id】
+            chunk_count = doc_result.get("chunk_count", 0)  # 分段数量
 
             if chunks_data:
                 # Build graph index
-                graph_result = await rag.aprocess_graph_indexing(chunks=chunks_data, collection_id=str(collection.id))
+                graph_result = await rag.aprocess_graph_indexing(chunks=chunks_data, collection_id=str(collection.id))  # 对单个文档的分段数据构建知识图谱
 
                 total_stats["chunks_created"] += chunk_count
                 total_stats["entities_extracted"] += graph_result.get("entities_extracted", 0)

@@ -647,44 +647,46 @@ async def extract_entities(
     addon_params: dict,
     llm_model_max_async: int,
     lightrag_logger: LightRAGLogger,
-) -> list:
-    ordered_chunks = list(chunks.items())
+) -> list:  # 对分段数据【多个分段，字典形式{分段id：单个分段数据详情}】提取实体和关系
+    # -- 重构分段数据为元组列表，每个元组(分段id, 单个分段数据详情)对应单个分段数据
+    ordered_chunks = list(chunks.items())  # 将键值对“分段id：单个分段数据详情”转化为元组(分段id, 单个分段数据详情)，构成元组列表
+    # -- 获取实体提取所需参数【语言、实体类型、示例】
     # add language and example number params to prompt
-    language = addon_params.get("language", PROMPTS["DEFAULT_LANGUAGE"])
-    entity_types = addon_params.get("entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"])
-    example_number = addon_params.get("example_number", None)
+    language = addon_params.get("language", PROMPTS["DEFAULT_LANGUAGE"])  # 语言，对于当前lightrag，该值为“The same language like input text”
+    entity_types = addon_params.get("entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"])  # 实体类型，采用默认设置：organization/person/geo/event/product/technology/date/category
+    example_number = addon_params.get("example_number", None)  # 示例个数，对于当前lightrag，该值为none
     if example_number and example_number < len(PROMPTS["entity_extraction_examples"]):
         examples = "\n".join(PROMPTS["entity_extraction_examples"][: int(example_number)])
-    else:
+    else:  # 对于当前lightrag，采用所有示例
         examples = "\n".join(PROMPTS["entity_extraction_examples"])
-
+    # -- 收集示例中的占位符相关配置信息，以完善示例内容。观察aperag/graph/lightrag/prompt.py中关于示例的配置可知，其中存在各种占位符【{tuple_delimiter}、{record_delimiter}、{completion_delimiter}】
     example_context_base = dict(
-        tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
-        record_delimiter=PROMPTS["DEFAULT_RECORD_DELIMITER"],
-        completion_delimiter=PROMPTS["DEFAULT_COMPLETION_DELIMITER"],
-        entity_types=", ".join(entity_types),
-        language=language,
+        tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],  # 元组分隔符"<|>"
+        record_delimiter=PROMPTS["DEFAULT_RECORD_DELIMITER"],  # 记录分隔符"##"
+        completion_delimiter=PROMPTS["DEFAULT_COMPLETION_DELIMITER"],  # 完成分隔符"<|COMPLETE|>"
+        entity_types=", ".join(entity_types),  # 实体类型"organization, person, geo, event, product, technology, date, category"【用于实体提取】
+        language=language,  # 语言"The same language like input text"【用于实体提取和实体摘要描述】
     )
     # add example's format
-    examples = examples.format(**example_context_base)
-
+    examples = examples.format(**example_context_base)  # 将示例内容中的占位符替换为相应配置内容
+    # -- 收集实体提取prompt中的占位符相关配置信息，以完善实体提取prompt、继续进行实体提取prompt。
     entity_extract_prompt = PROMPTS["entity_extraction"]
     context_base = dict(
         tuple_delimiter=PROMPTS["DEFAULT_TUPLE_DELIMITER"],
         record_delimiter=PROMPTS["DEFAULT_RECORD_DELIMITER"],
         completion_delimiter=PROMPTS["DEFAULT_COMPLETION_DELIMITER"],
         entity_types=",".join(entity_types),
-        examples=examples,
+        examples=examples,  # 示例内容作为实体提取prompt的一部分
         language=language,
     )
 
     continue_prompt = PROMPTS["entity_continue_extraction"].format(**context_base)
-    if_loop_prompt = PROMPTS["entity_if_loop_extraction"]
+    if_loop_prompt = PROMPTS["entity_if_loop_extraction"]  # 判断是否需要循环提取实体【也即判断是否存在尚未提取的实体】
 
     processed_chunks = 0
     total_chunks = len(ordered_chunks)
 
-    async def _process_extraction_result(result: str, chunk_key: str, file_path: str = "unknown_source"):
+    async def _process_extraction_result(result: str, chunk_key: str, file_path: str = "unknown_source"):  # TODO 至此~
         """Process a single extraction result (either initial or gleaning)
         Args:
             result (str): The extraction result to process
@@ -719,7 +721,7 @@ async def extract_entities(
 
         return maybe_nodes, maybe_edges
 
-    async def _process_single_content(chunk_key_dp: tuple[str, TextChunkSchema]):
+    async def _process_single_content(chunk_key_dp: tuple[str, TextChunkSchema]):  # 对单个分段进行实体和关系提取
         """Process a single chunk
         Args:
             chunk_key_dp (tuple[str, TextChunkSchema]):
@@ -727,31 +729,41 @@ async def extract_entities(
         Returns:
             tuple: (maybe_nodes, maybe_edges) containing extracted entities and relationships
         """
-        nonlocal processed_chunks
-        chunk_key = chunk_key_dp[0]
-        chunk_dp = chunk_key_dp[1]
-        content = chunk_dp["content"]
+        nonlocal processed_chunks  # 声明非局部变量，记录已经处理过的分段数量
+        chunk_key = chunk_key_dp[0]  # 分段id
+        chunk_dp = chunk_key_dp[1]  # 分段数据详情【分段内容，分段长度，分段在整个markdown文本中的索引顺序，原始文档id，原始文档路径】
+        content = chunk_dp["content"]  # 分段内容
         # Get file path from chunk data or use default
-        file_path = chunk_dp.get("file_path", "unknown_source")
+        file_path = chunk_dp.get("file_path", "unknown_source")  # 原始文档路径
 
         # Get initial extraction
-        hint_prompt = entity_extract_prompt.format(**{**context_base, "input_text": content})
-
-        final_result = await use_llm_func(hint_prompt)
-        history = pack_user_ass_to_openai_messages(hint_prompt, final_result)
+        hint_prompt = entity_extract_prompt.format(**{**context_base, "input_text": content})  # 基于分段内容和context_base填充实体提取prompt
+        """
+        模型输出形如：
+        ("entity"<|>"Alex"<|>"person"<|>"Alex is a character who experiences frustration and is observant of the dynamics among other characters.")##
+        ("relationship"<|>"Alex"<|>"Taylor"<|>"Alex is affected by Taylor's authoritarian certainty and observes changes in Taylor's attitude towards the device."<|>"power dynamics, perspective shift"<|>7)##
+        """
+        final_result = await use_llm_func(hint_prompt)  # 大模型处理
+        """
+        history形如：[
+            {"role": user, "content": 输入提示词},
+            {"role": assistant, "content": 模型输出}
+        ]
+        """
+        history = pack_user_ass_to_openai_messages(hint_prompt, final_result)  # 基于输入提示词和模型输出构造openai格式的消息列表
 
         # Process initial extraction with file path
-        maybe_nodes, maybe_edges = await _process_extraction_result(final_result, chunk_key, file_path)
+        maybe_nodes, maybe_edges = await _process_extraction_result(final_result, chunk_key, file_path)  # 解析模型处理结果，获取可能的实体【节点】和关系【边】
 
         # Process additional gleaning results
-        for now_glean_index in range(entity_extract_max_gleaning):
-            glean_result = await use_llm_func(continue_prompt, history_messages=history)
+        for now_glean_index in range(entity_extract_max_gleaning):  # 对不明确的内容尝试提取实体的最大次数【当前lightrag中默认0次】，因此这里不执行
+            glean_result = await use_llm_func(continue_prompt, history_messages=history)  # 基于对话历史【已含有分段信息和已经输出的实体及关系信息，因此这里不需要再设置分段信息】和继续提取实体提示词，尝试再次提取遗漏的实体或关系
 
             history += pack_user_ass_to_openai_messages(continue_prompt, glean_result)
 
             # Process gleaning result separately with file path
             glean_nodes, glean_edges = await _process_extraction_result(glean_result, chunk_key, file_path)
-
+            # 将继续提取的实体和关系结果合并到第一次提取的实体和关系结果中
             # Merge results - only add entities and edges with new names
             for entity_name, entities in glean_nodes.items():
                 if entity_name not in maybe_nodes:  # Only accetp entities with new name in gleaning stage
@@ -760,22 +772,22 @@ async def extract_entities(
                 if edge_key not in maybe_edges:  # Only accetp edges with new name in gleaning stage
                     maybe_edges[edge_key].extend(edges)
 
-            if now_glean_index == entity_extract_max_gleaning - 1:
+            if now_glean_index == entity_extract_max_gleaning - 1:  # 对不明确的内容尝试提取实体的最大次数已经用完了，直接跳出
                 break
 
-            if_loop_result: str = await use_llm_func(if_loop_prompt, history_messages=history)
+            if_loop_result: str = await use_llm_func(if_loop_prompt, history_messages=history)  # 基于当前最新对话历史，让大模型判断是否还存在继续提取的可能性，也即是否还需要继续提取
             if_loop_result = if_loop_result.strip().strip('"').strip("'").lower()
-            if if_loop_result != "yes":
+            if if_loop_result != "yes":  # 如果大模型认为不需要继续提取，则直接跳出
                 break
 
-        processed_chunks += 1
+        processed_chunks += 1  # 已处理的分段数量加1
         entities_count = len(maybe_nodes)
         relations_count = len(maybe_edges)
 
-        lightrag_logger.log_extraction_progress(processed_chunks, total_chunks, entities_count, relations_count)
+        lightrag_logger.log_extraction_progress(processed_chunks, total_chunks, entities_count, relations_count)  # 打印实体和关系提取情况
 
         # Return the extracted nodes and edges for centralized processing
-        return maybe_nodes, maybe_edges
+        return maybe_nodes, maybe_edges  # 返回实体【节点】和关系【边】
 
     # Get max async tasks limit
     semaphore = asyncio.Semaphore(llm_model_max_async)
@@ -812,7 +824,7 @@ async def extract_entities(
     chunk_results = [task.result() for task in tasks]
 
     # Return the chunk_results for later processing in merge_nodes_and_edges
-    return chunk_results
+    return chunk_results  # 实体和关系
 
 
 async def build_query_context(
