@@ -151,13 +151,14 @@ async def _handle_entity_relation_summary(
 
 
 async def _handle_single_entity_extraction(
-    record_attributes: list[str],
-    chunk_key: str,
-    file_path: str = "unknown_source",
+    record_attributes: list[str],  # 大模型输出的实体记录，组成模式：[实体标识【entity】，实体名称， 实体类型，实体描述]
+    chunk_key: str,  # 分段id
+    file_path: str = "unknown_source",  # 原始文档路径
 ):
+    # -- 非实体信息过滤
     if len(record_attributes) < 4 or '"entity"' not in record_attributes[0]:
         return None
-
+    # -- 实体名称清理
     # Clean and validate entity name
     entity_name = clean_str(record_attributes[1]).strip()
     if not entity_name:
@@ -165,14 +166,14 @@ async def _handle_single_entity_extraction(
         return None
 
     # Normalize entity name
-    entity_name = normalize_extracted_info(entity_name, is_entity=True)
-
+    entity_name = normalize_extracted_info(entity_name, is_entity=True)  # 实体名称规范化处理
+    # -- 实体类型清理
     # Clean and validate entity type
     entity_type = clean_str(record_attributes[2]).strip('"')
     if not entity_type.strip() or entity_type.startswith('("'):
         logger.warning(f"Entity extraction error: invalid entity type in: {record_attributes}")
         return None
-
+    # -- 实体描述清理
     # Clean and validate description
     entity_description = clean_str(record_attributes[3])
     entity_description = normalize_extracted_info(entity_description)
@@ -180,23 +181,25 @@ async def _handle_single_entity_extraction(
     if not entity_description.strip():
         logger.warning(f"Entity extraction error: empty description for entity '{entity_name}' of type '{entity_type}'")
         return None
-
+    # -- 构造实体信息字典
     return dict(
-        entity_name=entity_name,
-        entity_type=entity_type,
-        description=entity_description,
-        source_id=chunk_key,
-        file_path=file_path,
+        entity_name=entity_name,  # 实体名称
+        entity_type=entity_type,  # 实体类型
+        description=entity_description,  # 实体描述
+        source_id=chunk_key,  # 分段id
+        file_path=file_path,  # 原始文档路径
     )
 
 
 async def _handle_single_relationship_extraction(
-    record_attributes: list[str],
-    chunk_key: str,
-    file_path: str = "unknown_source",
+    record_attributes: list[str],  # 大模型输出的边记录，组成模式：[关系标识【relationship】，源实体名称，目标实体名称，关系描述，关系关键词，权重]
+    chunk_key: str,  # 分段id
+    file_path: str = "unknown_source",  # 原始文档路径
 ):
-    if len(record_attributes) < 5 or '"relationship"' not in record_attributes[0]:
+    # -- 非关系信息过滤
+    if len(record_attributes) < 5 or '"relationship"' not in record_attributes[0]:  # TODO 这里长度是否应该改为6
         return None
+    # -- 起止实体名称清理
     # add this record as edge
     source = clean_str(record_attributes[1])
     target = clean_str(record_attributes[2])
@@ -204,30 +207,31 @@ async def _handle_single_relationship_extraction(
     # Normalize source and target entity names
     source = normalize_extracted_info(source, is_entity=True)
     target = normalize_extracted_info(target, is_entity=True)
-    if source == target:
+    if source == target:  # 起止实体相同时，直接返回none，也即关系无效
         logger.debug(f"Relationship source and target are the same in: {record_attributes}")
         return None
-
+    # -- 关系描述清理
     edge_description = clean_str(record_attributes[3])
     edge_description = normalize_extracted_info(edge_description)
-
+    # -- 关系关键词清理
     edge_keywords = normalize_extracted_info(clean_str(record_attributes[4]), is_entity=True)
     edge_keywords = edge_keywords.replace("，", ",")
 
     edge_source_id = chunk_key
+    # -- 获取权重【默认权重为1】
     weight = (
         float(record_attributes[-1].strip('"').strip("'"))
         if is_float_regex(record_attributes[-1].strip('"').strip("'"))
         else 1.0
     )
     return dict(
-        src_id=source,
-        tgt_id=target,
-        weight=weight,
-        description=edge_description,
-        keywords=edge_keywords,
-        source_id=edge_source_id,
-        file_path=file_path,
+        src_id=source,  # 源节点id【源实体名称】
+        tgt_id=target,  # 目标节点id【目标实体名称】
+        weight=weight,  # 权重
+        description=edge_description,  # 边描述【关系描述】
+        keywords=edge_keywords,  # 边关键词【关系关键词】
+        source_id=edge_source_id,  # 来源id【分段id】
+        file_path=file_path,  # 原始文档路径
     )
 
 
@@ -647,7 +651,7 @@ async def extract_entities(
     addon_params: dict,
     llm_model_max_async: int,
     lightrag_logger: LightRAGLogger,
-) -> list:  # 对分段数据【多个分段，字典形式{分段id：单个分段数据详情}】提取实体和关系
+) -> list:  # 对分段数据【多个分段，字典形式{分段id：单个分段数据详情}】提取实体和关系，结果形如：[分段1的实体关系信息【形如：{实体名称1：实体名称1的实体信息列表}， {(源实体名称1，目标实体名称1)：相应起止实体名称的边信息列表}】]
     # -- 重构分段数据为元组列表，每个元组(分段id, 单个分段数据详情)对应单个分段数据
     ordered_chunks = list(chunks.items())  # 将键值对“分段id：单个分段数据详情”转化为元组(分段id, 单个分段数据详情)，构成元组列表
     # -- 获取实体提取所需参数【语言、实体类型、示例】
@@ -682,42 +686,55 @@ async def extract_entities(
 
     continue_prompt = PROMPTS["entity_continue_extraction"].format(**context_base)
     if_loop_prompt = PROMPTS["entity_if_loop_extraction"]  # 判断是否需要循环提取实体【也即判断是否存在尚未提取的实体】
-
+    # -- 进行实体和关系提取操作，并记录已处理的分段数量
     processed_chunks = 0
     total_chunks = len(ordered_chunks)
 
-    async def _process_extraction_result(result: str, chunk_key: str, file_path: str = "unknown_source"):  # TODO 至此~
+    async def _process_extraction_result(result: str, chunk_key: str, file_path: str = "unknown_source"):  # 解析大模型的实体关系提取结果【实体和关系】
         """Process a single extraction result (either initial or gleaning)
         Args:
-            result (str): The extraction result to process
-            chunk_key (str): The chunk key for source tracking
-            file_path (str): The file path for citation
+            result (str): The extraction result to process  大模型输出结果【分段中的实体和关系信息】
+            chunk_key (str): The chunk key for source tracking  分段id
+            file_path (str): The file path for citation  原始文档路径
         Returns:
             tuple: (nodes_dict, edges_dict) containing the extracted entities and relationships
         """
-        maybe_nodes = defaultdict(list)
-        maybe_edges = defaultdict(list)
-
+        maybe_nodes = defaultdict(list)  # 一个实体名称，可能对应多种实体类型及相应的实体描述
+        maybe_edges = defaultdict(list)  # 一条边，可能对应多种关系描述
+        """
+        单个record形如：
+        ("entity"<|>"Alex"<|>"person"<|>"Alex is a character who experiences frustration and is observant of the dynamics among other characters.")
+        或者
+        ("relationship"<|>"Alex"<|>"Taylor"<|>"Alex is affected by Taylor's authoritarian certainty and observes changes in Taylor's attitude towards the device."<|>"power dynamics, perspective shift"<|>7)
+        """
         records = split_string_by_multi_markers(
             result,
             [context_base["record_delimiter"], context_base["completion_delimiter"]],
-        )
+        )  # 基于记录分隔符和完成分隔符将大模型输出结果分割，得到非空文本段列表
 
         for record in records:
-            record = re.search(r"\((.*)\)", record)
+            record = re.search(r"\((.*)\)", record)  # 匹配英文小括号里面的内容，形如“(abc)”--“abc”
             if record is None:
                 continue
-            record = record.group(1)
-            record_attributes = split_string_by_multi_markers(record, [context_base["tuple_delimiter"]])
+            record = record.group(1)  # 获取匹配中的文本，也即“(abc)”--“abc”中的abc
+            """
+            基于元组分隔符分割后的结果形如：
+            ["entity", "Alex", "person", "Alex is a character who experiences frustration and is observant of the dynamics among other characters."]
+            实体信息组成模式：[实体标识【entity】，实体名称，实体类型，实体描述]
+            或者
+            ["relationship", "Alex", "Taylor", "Alex is affected by Taylor's authoritarian certainty and observes changes in Taylor's attitude towards the device.", "power dynamics, perspective shift", 7]
+            关系信息组成模式：[关系标识【relationship】，源实体名称，目标实体名称，关系描述，关系关键词，权重]
+            """
+            record_attributes = split_string_by_multi_markers(record, [context_base["tuple_delimiter"]])  # 基于元组分隔符进行分割，得到非空文本段列表
 
-            if_entities = await _handle_single_entity_extraction(record_attributes, chunk_key, file_path)
+            if_entities = await _handle_single_entity_extraction(record_attributes, chunk_key, file_path)  # 提取实体，字典形式【内含：实体名称、实体类型、实体描述、分段id和原始文档路径】
             if if_entities is not None:
-                maybe_nodes[if_entities["entity_name"]].append(if_entities)
+                maybe_nodes[if_entities["entity_name"]].append(if_entities)  # 收集实体信息，键值对形式，形如“实体名称：[当前实体信息]”
                 continue
 
-            if_relation = await _handle_single_relationship_extraction(record_attributes, chunk_key, file_path)
+            if_relation = await _handle_single_relationship_extraction(record_attributes, chunk_key, file_path)  # 提取关系，字典形式【内含：源节点id【源实体名称】、目标节点id【目标实体名称】、权重、边描述【关系描述】、边关键词【关系关键词】、来源id【分段id】、原始文档路径】
             if if_relation is not None:
-                maybe_edges[(if_relation["src_id"], if_relation["tgt_id"])].append(if_relation)
+                maybe_edges[(if_relation["src_id"], if_relation["tgt_id"])].append(if_relation)  # 收集实体信息，键值对形式，形如“(源实体名称，目标实体名称)：[当前边信息]”
 
         return maybe_nodes, maybe_edges
 
@@ -756,7 +773,7 @@ async def extract_entities(
         maybe_nodes, maybe_edges = await _process_extraction_result(final_result, chunk_key, file_path)  # 解析模型处理结果，获取可能的实体【节点】和关系【边】
 
         # Process additional gleaning results
-        for now_glean_index in range(entity_extract_max_gleaning):  # 对不明确的内容尝试提取实体的最大次数【当前lightrag中默认0次】，因此这里不执行
+        for now_glean_index in range(entity_extract_max_gleaning):  # 对不明确的内容尝试提取实体的最大次数【当前lightrag中默认0次，因此这里不执行】
             glean_result = await use_llm_func(continue_prompt, history_messages=history)  # 基于对话历史【已含有分段信息和已经输出的实体及关系信息，因此这里不需要再设置分段信息】和继续提取实体提示词，尝试再次提取遗漏的实体或关系
 
             history += pack_user_ass_to_openai_messages(continue_prompt, glean_result)
@@ -788,38 +805,71 @@ async def extract_entities(
 
         # Return the extracted nodes and edges for centralized processing
         return maybe_nodes, maybe_edges  # 返回实体【节点】和关系【边】
-
+    # ---- TODO 异步I/O密集型任务[这里指远程调用大模型实现提取实体关系]的并发控制实现。核心逻辑是控制异步任务的最大并发数，确保任务有序执行并妥善处理可能的异常。
     # Get max async tasks limit
-    semaphore = asyncio.Semaphore(llm_model_max_async)
+    """
+    信号量作用：Semaphore(n) 表示最多允许 n 个任务同时执行。当调用 async with semaphore 时，任务会尝试获取 “许可证”：
+        若当前并发数 < llm_model_max_async，直接执行；
+        若已达上限，任务会阻塞等待，直到其他任务完成并释放 “许可证”。
+        
+    目的：防止并发任务过多导致的资源耗尽（如 API 调用频率超限、内存占用过高等）。
+    """
+    semaphore = asyncio.Semaphore(llm_model_max_async)  # 初始化信号量【类似“并发许可证”】，限制最大并发任务数为 llm_model_max_async
 
     async def _process_with_semaphore(chunk):
-        async with semaphore:
-            return await _process_single_content(chunk)
-
+        async with semaphore:  # 进入上下文时获取“许可证”，超出限制则等待
+            return await _process_single_content(chunk)  # 执行实际处理
+    # ---- 创建并发任务列表
+    """
+    遍历 ordered_chunks 中的每个元素 c，为其创建一个异步任务。
+    所有任务会被添加到 tasks 列表中，等待统一调度。
+    注意：create_task 会立即将任务加入事件循环，但实际执行会受信号量【并发许可证】限制（不会立即全部执行，受最大并发数制约）。
+    """
     tasks = []
-    for c in ordered_chunks:
-        task = asyncio.create_task(_process_with_semaphore(c))
+    for c in ordered_chunks:  # 逐个分段提取实体和关系
+        task = asyncio.create_task(_process_with_semaphore(c))  # 为每个 chunk 创建异步任务，任务函数是 _process_with_semaphore
         tasks.append(task)
+    # ---- 等待任务执行：优先处理第一个异常
+    """
+    等待任务完成，当出现第一个异常时立即返回（不再等待其他任务）
+    
+    asyncio.wait 用于等待多个任务的结果，return_when=asyncio.FIRST_EXCEPTION 是关键参数：
+        - 正常情况下【未设置return_when=asyncio.FIRST_EXCEPTION】，等待所有任务完成，返回 done（已完成的任务）和 pending（未完成的任务）。
+        - 当前设置：若任何一个任务抛出异常，会立即返回，此时 done 包含已完成（或抛出异常）的任务，pending 包含未完成的任务。
+    
+    目的：快速响应异常，避免无效等待（一旦有任务失败，后续任务无需继续执行）。
 
+    """
     # Wait for tasks to complete or for the first exception to occur
     # This allows us to cancel remaining tasks if any task fails
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
-
+    # ---- 异常处理：终止所有任务并传播异常
+    """    
+    核心逻辑：一旦发现任何任务失败（抛出异常），立即终止所有未完成的任务，并将异常向上传播。
+    
+    为什么要取消 pending 任务？
+    避免资源浪费：既然整个流程因某个任务失败而需要终止，剩余任务的执行已无意义，及时取消可释放资源（如网络连接、内存等）。
+    """
     # Check if any task raised an exception
     for task in done:
-        if task.exception():
+        if task.exception():  # 检查已完成的任务是否有异常，若有异常
             # If a task failed, cancel all pending tasks
             # This prevents unnecessary processing since the parent function will abort anyway
-            for pending_task in pending:
+            for pending_task in pending:  # 取消所有未完成的任务（避免继续消耗资源）
                 pending_task.cancel()
 
             # Wait for cancellation to complete
+            # 等待所有被取消的任务彻底终止
             if pending:
                 await asyncio.wait(pending)
-
+            # # 重新抛出异常，让调用方知道任务失败
             # Re-raise the exception to notify the caller
             raise task.exception()
-
+    # ---- 收集结果：所有任务成功时汇总结果
+    """
+    当 done 中的所有任务都无异常时，说明全部处理完成。
+    通过 task.result() 获取每个任务的返回值，组合成 chunk_results 列表返回。
+    """
     # If all tasks completed successfully, collect results
     chunk_results = [task.result() for task in tasks]
 

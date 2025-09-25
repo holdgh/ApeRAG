@@ -228,7 +228,7 @@ class LightRAG:
 
     # Extensions
     # ---
-
+    # TODO 在lightrag实例的addon_params属性中可以自定义：实体类型【根据业务定义】、实体关系提取示例数量【默认全量，3个】。见aperag.graph.lightrag.operate.extract_entities中对于addon_params的使用
     addon_params: dict[str, Any] = field(
         default_factory=lambda: {"language": get_env_value("SUMMARY_LANGUAGE", "English", str)}
     )  # 额外参数【语言参数：当前lightrag默认“The same language like input text”】
@@ -285,7 +285,7 @@ class LightRAG:
             namespace=NameSpace.GRAPH_STORE_CHUNK_ENTITY_RELATION,
             workspace=self.workspace,
             embedding_func=self.embedding_func,
-        )
+        )  # 见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
 
         self.entities_vdb: BaseVectorStorage = self.vector_db_storage_cls(  # type: ignore
             namespace=NameSpace.VECTOR_STORE_ENTITIES,
@@ -400,27 +400,110 @@ class LightRAG:
         return storage_class
 
     # ============= New Stateless Interfaces =============
+    # TODO 为什么使用广度优先遍历获取单个文档知识图谱的所有连通分量，而不采用深度优先遍历
+    """
+    在图论中，**深度优先搜索（DFS）和广度优先搜索（BFS）都是计算连通分量的有效算法**，两者在正确性上没有本质区别，选择哪种算法更多取决于具体场景的需求（如性能、内存、结果顺序等）。上述代码采用BFS而非DFS，核心原因是**BFS在“实体关系图”这类场景下更契合实际需求，且在内存占用、结果可读性上有隐性优势**，具体可从以下角度分析：
 
-    def _find_connected_components(self, chunk_results: List[tuple[dict, dict]]) -> List[List[str]]:
+    
+    ### 一、先明确前提：DFS和BFS计算连通分量的“本质等价性”
+    无论用DFS还是BFS，最终得到的连通分量结果**完全一致**——两者的核心逻辑都是“从一个未访问节点出发，遍历所有可达节点，形成一个连通分量”，区别仅在于“遍历节点的顺序”：
+    - **DFS**：“深度优先”，优先遍历当前节点的“深层邻接节点”（比如从A→B→C，先走到最深处再回溯）；
+    - **BFS**：“广度优先”，优先遍历当前节点的“所有直接邻接节点”（比如从A出发，先访问A的所有邻居，再访问邻居的邻居）。
+    
+    对于“计算连通分量”这一目标，两种算法的时间复杂度均为 **O(V+E)**（V是节点数，E是边数），效率在同一量级，不存在“谁更优”的绝对结论。
+    
+    
+    ### 二、代码选择BFS的核心原因
+    上述代码处理的是“实体关系图”（节点是实体，边是实体间的关联），这类场景的特点是“节点数通常适中、边的密度较低”，BFS在以下方面更契合需求：
+    
+    
+    #### 1. 内存占用更可控（避免DFS的“递归栈溢出”风险）
+    DFS的实现有两种方式：
+    - **递归实现**：代码简洁，但依赖编程语言的“递归调用栈”——若实体关系图存在“深层链式结构”（如A→B→C→D→...→Z，共1000个节点），递归深度会达到1000，远超Python默认的递归栈深度（默认约1000，但实际业务中可能因其他调用占用栈空间，导致栈溢出）。
+    - **迭代实现（用栈模拟）**：可避免栈溢出，但代码复杂度高于BFS（需手动维护栈的入栈/出栈顺序）。
+    
+    而BFS基于**队列（Queue）** 实现，队列的“先进先出”特性天然适合“逐层遍历”，且队列的内存占用与“当前层的节点数”相关（而非深度）。对于实体关系图，“同一层的节点数”通常远小于“图的最大深度”，内存占用更稳定，也无需担心栈溢出问题。
+    
+    **示例**：若实体图是一条1000节点的链式结构（A-B-C-...-Z）：
+    - 递归DFS会因深度1000触发`RecursionError`；
+    - BFS的队列最大长度始终为1（每层只有1个节点），内存占用极低。
+    
+    
+    #### 2. 结果顺序更符合“实体关联的直观逻辑”
+    在实体关系场景中，BFS的“逐层遍历”会优先将“直接关联的实体”归为一组，结果顺序更贴近人类对“关联关系”的直观理解。
+    
+    **示例**：实体关系为“用户A→订单B→商品C→品牌D”：
+    - **BFS结果**：`[A, B, C, D]`（先A，再A的直接关联B，再B的直接关联C，最后C的直接关联D），顺序与“关联链路”一致，可读性高；
+    - **DFS结果**：`[A, B, C, D]`（递归深度优先）或 `[A, B, D, C]`（迭代DFS，取决于栈的处理顺序），可能出现“跳层”，可读性稍差。
+    
+    对于后续的“实体聚类分析”“知识图谱展示”等场景，BFS的结果顺序更便于理解实体间的关联层级。
+    
+    #### 3. 代码实现更简洁（基于Python的列表模拟队列）
+    在Python中，用列表的`append()`（入队）和`pop(0)`（出队，模拟队列的先进先出）可快速实现BFS，代码逻辑直观且不易出错：
+    ```python
+    queue = [node]  # 初始化队列
+    while queue:
+        current = queue.pop(0)  # 出队（队首）
+        for neighbor in adjacency[current]:
+            if neighbor not in visited:
+                queue.append(neighbor)  # 入队（队尾）
+    ```
+    
+    而DFS的迭代实现需要用列表模拟“栈”（`append()`入栈，`pop()`出栈，后进先出），代码逻辑虽不复杂，但需要额外注意“栈的处理顺序”，且容易与BFS的队列实现混淆（尤其是对不熟悉两种算法的开发者）。
+    
+    对于工具类代码（如上述`_find_connected_components`），“简洁性”和“可维护性”是重要考量，BFS的实现更符合这一需求。
+        
+    #### 4. 对“无向图”的适配性完全一致
+    连通分量的计算通常基于**无向图**（实体关系是双向的，如“A关联B”等价于“B关联A”）。DFS和BFS对无向图的适配性没有差异，但BFS的“双向关联处理”更直接——无需担心“回溯时重复访问父节点”（因为`visited`集合会标记已访问节点，无论BFS还是DFS都能避免重复）。
+        
+    ### 三、什么时候会优先选择DFS？
+    虽然上述代码选择了BFS，但在以下场景中，DFS可能更合适：
+    1. **图的深度较小，但宽度极大**（如“一个中心节点关联1000个叶子节点”）：DFS的栈占用（最大深度2）远小于BFS的队列占用（最大宽度1000）；
+    2. **需要快速找到“任意一条路径”**（如判断两个实体是否连通）：DFS通常能更快找到一条路径（无需遍历所有同层节点）；
+    3. **递归实现更简洁且图深度可控**（如小规模实体图，深度不超过100）：DFS的递归代码（几行即可实现）比BFS更简洁。
+    
+    但这些场景在“实体关系图”中并不常见——实体关系图通常不会出现“单个节点关联上千个邻居”的极端情况，且深度可能较大（如“用户→订单→商品→品牌→厂商”的多层级关联），因此BFS是更稳妥的选择。
+    
+    ### 总结
+    上述代码选择BFS而非DFS，并非因为DFS“不正确”或“效率低”，而是基于**实体关系图的场景特性**和**工程实现的实用性**：
+    - 避免递归栈溢出，内存占用更可控；
+    - 结果顺序更符合实体关联的直观逻辑；
+    - 代码实现简洁，可维护性高。
+    
+    本质上，这是“算法选择适配具体场景”的典型案例——两种算法在理论上等价，但在工程实践中需结合数据结构特点、语言特性和业务需求做取舍。
+    """
+    def _find_connected_components(self, chunk_results: List[tuple[dict, dict]]) -> List[List[str]]:  # 通过图论中的 “广度优先搜索（BFS）” 算法，将相互关联的实体归类为一组，实现实体的 “聚类分组”
+        """
+        当前方法的本质是实体关系的 “聚类” 工具，其价值在于：
+            - 将分散在不同文档分段中的实体，通过关系关联起来，形成 “语义闭环” 的实体组（例如 “人物 A - 公司 B - 产品 C” 因存在雇佣、生产关系而被归为一组）。
+            - 为后续的知识图谱构建、实体关联分析、问答系统等提供基础（例如回答 “与 A 相关的所有实体有哪些” 时，可直接返回其所在连通组件的实体）。
+        """
         """
         Find connected components in the extracted entities and relationships.
 
         Args:
             chunk_results: List of (nodes_dict, edges_dict) tuples from entity extraction
+            实体关系提取结果形如：[分段1的实体关系信息【形如：{实体名称1：实体名称1的实体信息列表}， {(源实体名称1，目标实体名称1)：相应起止实体名称的边信息列表}】]
+            实体信息：【内含：实体名称、实体类型、实体描述、分段id和原始文档路径】
+            关系信息：【内含：源节点id【源实体名称】、目标节点id【目标实体名称】、权重、边描述【关系描述】、边关键词【关系关键词】、来源id【分段id】、原始文档路径】
 
         Returns:
             List of entity groups, where each group is a list of connected entity names
         """
+        # -- 基于实体和关系构造图【单个文档】【邻接字典方式】【注意所有实体都在其keys中】
+        # 初始化邻接字典【图的表示方式】
         # Build adjacency list
         adjacency: Dict[str, set[str]] = {}
-
-        for nodes, edges in chunk_results:
+        # 将所有实体和所有边的起止实体添加到邻接字典的keys中，相应key的值为“以该key【实体/节点】为起点的边的终点实体/节点”集合
+        for nodes, edges in chunk_results:  # 逐个分段处理其实体关系数据
             # Add all nodes to adjacency list
+            # 将所有实体添加到邻接字典中
             for entity_name in nodes.keys():
                 if entity_name not in adjacency:
                     adjacency[entity_name] = set()
 
             # Add edges to create connections
+            # 将所有关系的起止实体添加到邻接字典中
             for src, tgt in edges.keys():
                 if src not in adjacency:
                     adjacency[src] = set()
@@ -428,38 +511,58 @@ class LightRAG:
                     adjacency[tgt] = set()
                 adjacency[src].add(tgt)
                 adjacency[tgt].add(src)
+        # -- 基于广度优先算法寻找所有“相互关联的”实体连通组件【与图的连通分量概念一致】 TODO 【在知识图谱场景中，每个连通组件可对应一个 “子知识图谱”，便于聚焦分析某一主题的相关实体】
+        """
+        连通分量的概念：  
+            图的一个节点子集合，满足两个条件：
+                - 子集合内的任意两个节点（顶点）之间，都存在至少一条路径（通过边连接）；
+                - 子集合外的任何节点，都无法通过边与子集合内的节点连通。
+        
+        简单来说：“连通分量” 是图中 “相互可达的节点集群”，集群内部节点彼此连通，集群之间完全孤立。
+        """
+        """
+                功能示例：
+                若邻接字典为 {"A": {"B"}, "B": {"A", "C"}, "C": {"B"}, "D": {}}，则 BFS 过程为：
 
+                    从 “A” 开始：访问 A → 发现邻接 B → 访问 B → 发现邻接 C → 访问 C → 无新实体，组件为 ["A", "B", "C"]。
+                    从 “D” 开始：D 无邻接实体，组件为 ["D"]。
+                    最终 components = [["A", "B", "C"], ["D"]]。
+                """
         # Find connected components using BFS
-        visited = set()
-        components = []
-
+        visited = set()  # 记录已访问过的实体（避免重复处理）
+        components = []  # 初始化实体组列表，用以存储所有连通组件
+        # 遍历图中所有实体
         for node in adjacency:
-            if node not in visited:
+            if node not in visited:  # 若当前实体未被访问过，说明它是新连通组件的起点
                 # Start BFS from this node
-                component = []
-                queue = [node]
-                visited.add(node)
-
+                component = []  # 初始化当前实体组，用以存储当前连通组件的实体
+                queue = [node]  # BFS队列，初始包含起点实体
+                visited.add(node)  # 标记为当前实体已访问
+                # 执行BFS：逐层访问所有关联的实体
                 while queue:
-                    current = queue.pop(0)
-                    component.append(current)
-
+                    current = queue.pop(0)  # 取出队列中的第一个实体
+                    component.append(current)  # 将当前实体加入组件
+                    # 遍历当前实体的所有邻接实体【“邻居”的含义对应BFS中的广度优先遍历的“层”的概念】
                     # Visit all neighbors
                     for neighbor in adjacency.get(current, set()):
-                        if neighbor not in visited:
-                            visited.add(neighbor)
-                            queue.append(neighbor)
-
-                components.append(component)
+                        if neighbor not in visited:  # 若邻接实体未被访问
+                            visited.add(neighbor)  # 将当前邻接实体标记为已访问
+                            queue.append(neighbor)  # 将当前邻接实体加入队列，等待后续访问
+                # 当BFS结束时，component中就是一个完整的连通组件
+                components.append(component)  # 收集当前连通组件
 
         self.lightrag_logger.debug(f"Found {len(components)} connected components from {len(adjacency)} entities")
         return components
 
     async def _grouping_process_chunk_results(
         self,
-        chunk_results: List[tuple[dict, dict]],
-        collection_id: str | None = None,
+        chunk_results: List[tuple[dict, dict]],  # 实体关系提取结果形如：[分段1的实体关系信息【形如：{实体名称1：实体名称1的实体信息列表}， {(源实体名称1，目标实体名称1)：相应起止实体名称的边信息列表}】]
+        collection_id: str | None = None,  # 知识库id
     ) -> dict[str, Any]:
+        """
+        实体信息：【内含：实体名称、实体类型、实体描述、分段id和原始文档路径】
+        关系信息：【内含：源节点id【源实体名称】、目标节点id【目标实体名称】、权重、边描述【关系描述】、边关键词【关系关键词】、来源id【分段id】、原始文档路径】
+        """
         """
         Process entities and relationships in groups based on connected components.
 
@@ -470,28 +573,29 @@ class LightRAG:
         Returns:
             Dict with processing results
         """
-        components = self._find_connected_components(chunk_results)
+        # -- 基于广度优先遍历算法获取单个文档知识图谱的所有连通分量
+        components = self._find_connected_components(chunk_results)  # 获取单个文档知识图谱的所有连通分量
 
         # Handle case where no entities were extracted
-        if not components:
+        if not components:  # 如果连通组件列表为空，说明所有实体相互独立，则知识图谱无效，返回0实体-0关系-0连通分量
             self.lightrag_logger.info("No entities or relationships extracted - returning success with zero counts")
             return {
-                "groups_processed": 0,
+                "groups_processed": 0,  # 连通分量个数
                 "total_entities": 0,
                 "total_relations": 0,
                 "collection_id": collection_id,
             }
-
+        # -- 整理所有连通组件任务参数，形成任务参数列表
         # Prepare component data for parallel processing
-        component_tasks = []
+        component_tasks = []  # 初始化连通组件任务参数列表
 
         for i, component in enumerate(components):
             # Create a set for quick lookup
-            component_entities = set(component)
+            component_entities = set(component)  # 对当前连通组件进行实体去重
 
             # Filter chunk results for this component
-            component_chunk_results = []
-
+            component_chunk_results = []  # 元组列表，当前连通组件对应的实体关系数据列表，形如[(分段1的属于当前连通组件的实体数据【字典，形如：{实体1：实体1数据}】，分段1的属于当前连通组件的关系数据【字典，形如：{(起始实体1，目标实体1)：对应边数据}】)]
+            # 从全量实体和关系数据中提取属于当前连通组件的实体和关系
             for nodes, edges in chunk_results:
                 # Filter nodes belonging to this component
                 filtered_nodes = {
@@ -507,26 +611,36 @@ class LightRAG:
                     if src in component_entities and tgt in component_entities
                 }
 
-                if filtered_nodes or filtered_edges:
+                if filtered_nodes or filtered_edges:  # 实体或关系非空时，才会收集
                     component_chunk_results.append((filtered_nodes, filtered_edges))
-
+            # 当前连通组件对应的实体关系为空时，跳过
             if not component_chunk_results:
                 continue
-
+            # 将当前连通组件及其实体关系作为任务参数，放入连通组件任务参数列表中
             # Add task data for this component
             component_tasks.append(
                 {
                     "index": i,
-                    "component": component,
-                    "component_chunk_results": component_chunk_results,
-                    "total_components": len(components),
+                    "component": component,  # 当前连通组件中包含的实体列表
+                    "component_chunk_results": component_chunk_results,  # 元组列表，当前连通组件对应的实体关系数据列表，形如[(分段1的属于当前连通组件的实体数据【字典，形如：{实体1：实体1数据}】，分段1的属于当前连通组件的关系数据【字典，形如：{(起始实体1，目标实体1)：对应边数据}】)]
+                    "total_components": len(components),  # 连通组件总量【单个文档】
                 }
             )
-
+        # -- 异步处理连通组件任务
+        # ---- 基于信号量控制并发执行异步任务数上限为1
         # Process components concurrently with semaphore
         semaphore = asyncio.Semaphore(1)
 
-        async def _process_component_with_semaphore(task_data):
+        async def _process_component_with_semaphore(task_data):  # 处理单个连通组件任务 TODO 【持久化操作？】
+            """
+            task_data形如：
+            {
+                    "index": i,
+                    "component": component,  # 当前连通组件中包含的实体列表
+                    "component_chunk_results": component_chunk_results,  # 元组列表，当前连通组件对应的实体关系数据列表，形如[(分段1的属于当前连通组件的实体数据【字典，形如：{实体1：实体1数据}】，分段1的属于当前连通组件的关系数据【字典，形如：{(起始实体1，目标实体1)：对应边数据}】)]
+                    "total_components": len(components),  # 连通组件总量【单个文档】
+                }
+            """
             async with semaphore:
                 self.lightrag_logger.debug(
                     f"Processing component {task_data['index'] + 1}/{task_data['total_components']} "
@@ -535,20 +649,20 @@ class LightRAG:
 
                 # Call merge_nodes_and_edges with component information
                 result = await merge_nodes_and_edges(
-                    chunk_results=task_data["component_chunk_results"],
-                    component=task_data["component"],
-                    workspace=self.workspace,
-                    knowledge_graph_inst=self.chunk_entity_relation_graph,
-                    entity_vdb=self.entities_vdb,
-                    relationships_vdb=self.relationships_vdb,
-                    llm_model_func=self.llm_model_func,
-                    tokenizer=self.tokenizer,
+                    chunk_results=task_data["component_chunk_results"],  # 元组列表，当前连通组件对应的实体关系数据列表，形如[(分段1的属于当前连通组件的实体数据【字典，形如：{实体1：实体1数据}】，分段1的属于当前连通组件的关系数据【字典，形如：{(起始实体1，目标实体1)：对应边数据}】)]
+                    component=task_data["component"],  # 当前连通组件中包含的实体列表
+                    workspace=self.workspace,  # 知识库id
+                    knowledge_graph_inst=self.chunk_entity_relation_graph,  # 知识图谱存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
+                    entity_vdb=self.entities_vdb,  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
+                    relationships_vdb=self.relationships_vdb,  # 关系存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
+                    llm_model_func=self.llm_model_func,  # llm操作定义
+                    tokenizer=self.tokenizer,  # 分词器
                     llm_model_max_token_size=self.llm_model_max_token_size,
                     summary_to_max_tokens=self.summary_to_max_tokens,
                     addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
                     force_llm_summary_on_merge=self.force_llm_summary_on_merge,
                     lightrag_logger=self.lightrag_logger,
-                )
+                )  # TODO 至此~
 
                 self.lightrag_logger.debug(
                     f"Completed component {task_data['index'] + 1}: "
@@ -556,7 +670,7 @@ class LightRAG:
                 )
 
                 return result
-
+        # ---- 创建连通组件任务列表
         # Create tasks for concurrent processing
         tasks = []
         for task_data in component_tasks:
@@ -564,7 +678,7 @@ class LightRAG:
             tasks.append(task)
 
         # Handle case where no valid component tasks were created
-        if not tasks:
+        if not tasks:  # 连通组件任务列表为空，直接返回0实体-0关系-0连通分量
             self.lightrag_logger.info("No valid component tasks created - returning success with zero counts")
             return {
                 "groups_processed": 0,
@@ -572,10 +686,10 @@ class LightRAG:
                 "total_relations": 0,
                 "collection_id": collection_id,
             }
-
+        # ---- 等待任务执行：优先处理第一个异常
         # Wait for all tasks to complete or for the first exception
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
-
+        # ---- 异常处理：终止所有任务并传播异常
         # Check if any task raised an exception
         for task in done:
             if task.exception():
@@ -589,7 +703,7 @@ class LightRAG:
 
                 # Re-raise the exception
                 raise task.exception()
-
+        # ---- 收集结果：所有任务成功时汇总结果
         # Collect results from all tasks
         results = [task.result() for task in tasks]
 
@@ -599,10 +713,10 @@ class LightRAG:
         processed_groups = len(results)
 
         return {
-            "groups_processed": processed_groups,
-            "total_entities": total_entities,
-            "total_relations": total_relations,
-            "collection_id": collection_id,
+            "groups_processed": processed_groups,  # 成功处理的连通组件个数
+            "total_entities": total_entities,  # 实体总量
+            "total_relations": total_relations,  # 关系总量
+            "collection_id": collection_id,  # 知识库id
         }
 
     async def ainsert_and_chunk_document(
@@ -768,7 +882,7 @@ class LightRAG:
                     raise ValueError(f"Chunk {chunk_id} has empty content")
 
             self.lightrag_logger.debug(f"Starting graph indexing for {len(chunks)} chunks")
-            # -- 对分段数据提取实体和关系
+            # -- 对分段数据提取实体和关系【采用了：异步并发执行、基于信号量的最大并发数控制、异步任务首次异常处理】
             # 1. Extract entities and relations from chunks (completely parallel, no lock)
             chunk_results = await extract_entities(
                 chunks,  # 单个文档的分段数据详情
@@ -777,27 +891,27 @@ class LightRAG:
                 addon_params=self.addon_params,  # 额外参数【语言参数：当前lightrag默认“The same language like input text”】
                 llm_model_max_async=self.llm_model_max_async,  # llm操作最大并发调用数
                 lightrag_logger=self.lightrag_logger,  # lightrag日志实例
-            )
-
+            )  # 实体关系结果形如：[分段1的实体关系信息【形如：{实体名称1：实体名称1的实体信息列表}， {(源实体名称1，目标实体名称1)：相应起止实体名称的边信息列表}】]
+            # -- 基于提取的实体关系数据，基于广度优先算法提取所有连通组件，【基于连通组件进行图谱有效性校验，若所有实体相互独立，则说明没必要构建知识图谱了】，异步处理连通组件任务
             # 2. Process each component group with its own lock scope
             result = await self._grouping_process_chunk_results(chunk_results, collection_id)
-
+            # -- 汇总知识图谱构建结果
             # Count total results
-            entity_count = sum(len(nodes) for nodes, _ in chunk_results)
-            relation_count = sum(len(edges) for _, edges in chunk_results)
+            entity_count = sum(len(nodes) for nodes, _ in chunk_results)  # 实体总量
+            relation_count = sum(len(edges) for _, edges in chunk_results)  # 关系总量
 
             self.lightrag_logger.info(
                 f"Graph indexing completed: {entity_count} entities, {relation_count} relations "
                 f"in {result['groups_processed']} groups"
-            )
+            )  # lightrag日志打印
 
             return {
-                "status": "success",
-                "chunks_processed": len(chunks),
-                "entities_extracted": entity_count,
-                "relations_extracted": relation_count,
-                "groups_processed": result["groups_processed"],
-                "collection_id": collection_id,
+                "status": "success",  # 知识图谱构建成功
+                "chunks_processed": len(chunks),  # 已处理的分段数量
+                "entities_extracted": entity_count,  # 提取的实体总量
+                "relations_extracted": relation_count,  # 提取的关系总量
+                "groups_processed": result["groups_processed"],  #
+                "collection_id": collection_id,  # 知识库id
             }
 
         except Exception as e:

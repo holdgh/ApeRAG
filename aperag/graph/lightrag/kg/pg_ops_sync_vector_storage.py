@@ -204,7 +204,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
         for i, d in enumerate(list_data):
             d["__vector__"] = embeddings[i]  # 此处表明：上述单批次的embedding结果也是一个“【批次大小】*【embedding向量维度】的矩阵”
 
-        def _sync_upsert_with_vectors():  # TODO 至此~
+        def _sync_upsert_with_vectors():  # 批量保存或更新分段数据
             # Import here to avoid circular imports
             from aperag.db.ops import db_ops
             from aperag.graph.lightrag.namespace import NameSpace, is_namespace
@@ -226,7 +226,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
             else:
                 raise ValueError(f"{self.namespace} is not supported")
 
-        await asyncio.to_thread(_sync_upsert_with_vectors)
+        await asyncio.to_thread(_sync_upsert_with_vectors)  # 批量保存或更新分段数据
 
     async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:
         """Query vectors by similarity"""

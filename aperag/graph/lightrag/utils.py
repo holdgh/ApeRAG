@@ -223,18 +223,26 @@ def pack_user_ass_to_openai_messages(*args: str):
     return [{"role": roles[i % 2], "content": content} for i, content in enumerate(args)]
 
 
-def split_string_by_multi_markers(content: str, markers: list[str]) -> list[str]:
+def split_string_by_multi_markers(content: str, markers: list[str]) -> list[str]:  # 通过多个分隔符将字符串分割为字符串列表
     """Split a string by multiple markers"""
     if not markers:
         return [content]
     content = content if content is not None else ""
-    results = re.split("|".join(re.escape(marker) for marker in markers), content)
-    return [r.strip() for r in results if r.strip()]
+    """
+    利用正则实现基于多个分隔符的字符串分割操作，例子如下：
+    >>> import re
+    >>> pattern = r'a|b'
+    >>> str = 'acbdaebf'
+    >>> re.split(pattern, str)
+    ['', 'c', 'd', 'e', 'f']
+    """
+    results = re.split("|".join(re.escape(marker) for marker in markers), content)  # 根据一组标记符（markers）分割文本内容
+    return [r.strip() for r in results if r.strip()]  # 过滤掉空字符串和仅含空白字符的结果，最终返回一个干净的非空文本片段列表
 
 
 # Refer the utils functions of the official GraphRAG implementation:
 # https://github.com/microsoft/graphrag
-def clean_str(input: Any) -> str:
+def clean_str(input: Any) -> str:  # 通过删除HTML转义、控制字符和其他不需要的字符来清理输入字符串。
     """Clean an input string by removing HTML escapes, control characters, and other unwanted characters."""
     # If we get non-string input, just give it back
     if not isinstance(input, str):
@@ -415,6 +423,20 @@ def get_content_summary(content: str, max_length: int = 250) -> str:
 
 
 def normalize_extracted_info(name: str, is_entity=False) -> str:
+    """
+    使用优化的处理顺序规范实体/关系名称和描述。
+    处理步骤:
+        1. 输入验证和清理
+        2. 汉语标点符号规范化
+        3. 报价删除和清理
+        4. 中文/英文之间的空间规范化
+        5. 特定实体的处理（标题案例等）
+    参数:
+        name：要规范化的实体名称
+        is_entity：是否为实体名称（影响标题大小写的规范化）
+    返回:
+        规范化实体名称
+    """
     """Normalize entity/relation names and description with optimized processing order.
 
     Processing steps:
