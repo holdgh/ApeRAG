@@ -140,7 +140,7 @@ class GraphRepositoryMixin:
 
         return self._execute_query(_has_edge)
 
-    def get_graph_node(self, workspace: str, node_id: str) -> Optional[Dict[str, Any]]:
+    def get_graph_node(self, workspace: str, node_id: str) -> Optional[Dict[str, Any]]:  # 查询特定知识库特定实体信息
         """Get a graph node by ID"""
 
         def _get_node(session):

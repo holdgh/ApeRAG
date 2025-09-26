@@ -126,7 +126,7 @@ async def _handle_entity_relation_summary(
     summary_to_max_tokens: int,
     language: str,
     lightrag_logger: LightRAGLogger,
-) -> str:
+) -> str:  # 基于llm对同一实体名称的多个实体描述做摘要总结  TODO 至此~
     """Handle entity relation summary
     For each entity or relation, input is the combined description of already existing description and new description.
     If too long, use LLM to summarize.
@@ -247,7 +247,33 @@ async def _merge_nodes_then_upsert(
     force_llm_summary_on_merge: int,
     lightrag_logger: LightRAGLogger | None = None,
     workspace: str = "",
-):
+):  # 对同一实体名称的实体信息列表做合并去重【摘要】，得到为唯一的实体信息，并保存或更新到数据库
+    """
+    功能：合并多个名称相同的实体节点，并将结果放入知识图谱中。
+
+    此函数通过以下方式处理实体重复数据删除：
+    1. 从知识图中检索现有实体数据
+    2. 将现有数据与新的实体数据合并
+    3. 通过聚合确定最终的实体属性
+    4. 可选地使用LLM来总结冗长的描述
+    5. 将合并后的实体放回知识图谱
+
+    参数:
+        entity_name：要合并的实体名称
+        nodes_data：要合并的新实体数据字典列表
+        knowledge_graph_inst：知识图存储实例
+        llm_model_func：用于描述汇总的LLM函数
+        tokenizer：文本处理的tokenizer
+        llm_model_max_token_size: LLM输出的最大令牌大小
+        summary_to_max_tokens：摘要输出的最大令牌数
+        language：法学硕士总结语言
+        force_llm_summary_on_merge：触发LLM摘要操作的阈值
+        lightrag_logger：可选的记录器实例
+        workspace：用于创建锁的工作区标识符
+
+    返回:
+        dict：合并后最终保存到数据库的节点数据
+    """
     """
     Merge multiple entity nodes with the same name and upsert the result to knowledge graph.
 
@@ -274,28 +300,29 @@ async def _merge_nodes_then_upsert(
     Returns:
         dict: The merged node data that was upserted
     """
-
+    # -- 初始化各种已存在数据的变量
     # 1. Initialize containers for collecting existing entity data
-    already_entity_types = []
-    already_source_ids = []
-    already_description = []
-    already_file_paths = []
-
+    already_entity_types = []  # 已存在的实体类型
+    already_source_ids = []  # 已存在的分段id
+    already_description = []  # 已存在的实体描述
+    already_file_paths = []  # 已存在的原始文档路径【这里对于多个文档的相同实体名称，会对其实体数据做摘要处理】 TODO 关键逻辑【解决知识库图谱的范围问题，并不是针对单个文档构建知识图谱】
+    # -- 基于当前实体名称检索属于当前实体的所有已存在实体数据 TODO 关键逻辑【跨文档、跨分段】
     # 2. Retrieve existing entity from knowledge graph if it exists
-    already_node = await knowledge_graph_inst.get_node(entity_name)
+    already_node = await knowledge_graph_inst.get_node(entity_name)  # 仅基于实体名称检索已存在的实体信息【由于知识图谱存储实例是知识库维度的，则表明aperag构建的知识图谱也是知识库维度的，也即一个知识库对应一个知识图谱】
     if already_node:
         # 2.1. Collect existing entity type
-        already_entity_types.append(already_node["entity_type"])
+        already_entity_types.append(already_node["entity_type"])  # 由此可见，实体类型是唯一的
 
         # 2.2. Split and collect existing source IDs (multiple IDs separated by GRAPH_FIELD_SEP)
-        already_source_ids.extend(split_string_by_multi_markers(already_node["source_id"], [GRAPH_FIELD_SEP]))
+        already_source_ids.extend(split_string_by_multi_markers(already_node["source_id"], [GRAPH_FIELD_SEP]))  # 由此可见，实体来源分段是不唯一的，采用分隔符<SEP>隔开
 
         # 2.3. Split and collect existing file paths (multiple paths separated by GRAPH_FIELD_SEP)
-        already_file_paths.extend(split_string_by_multi_markers(already_node["file_path"], [GRAPH_FIELD_SEP]))
+        already_file_paths.extend(split_string_by_multi_markers(already_node["file_path"], [GRAPH_FIELD_SEP]))  # 由此可见，实体对应的原始文档路径是不唯一的，采用分隔符<SEP>隔开
 
         # 2.4. Collect existing description
-        already_description.append(already_node["description"])
+        already_description.append(already_node["description"])  # 由此可见，实体描述是唯一的，这也是摘要处理后的结果所在
 
+    # -- 合并处理【详细规则见注释】，得到最终的实体信息
     # 3. Merge and determine final entity properties
 
     # 3.1. Determine entity type by frequency count (most common type wins)
@@ -303,43 +330,43 @@ async def _merge_nodes_then_upsert(
         Counter([dp["entity_type"] for dp in nodes_data] + already_entity_types).items(),
         key=lambda x: x[1],
         reverse=True,
-    )[0][0]
+    )[0][0]  # 如果存在多个实体类型，则以出现次数多次为主
 
     # 3.2. Merge descriptions with field separator, sorted and deduplicated
-    description = GRAPH_FIELD_SEP.join(sorted(set([dp["description"] for dp in nodes_data] + already_description)))
+    description = GRAPH_FIELD_SEP.join(sorted(set([dp["description"] for dp in nodes_data] + already_description)))  # 将所有实体描述用分隔符<SEP>拼接
 
     # 3.3. Merge source IDs, deduplicated
-    source_id = GRAPH_FIELD_SEP.join(set([dp["source_id"] for dp in nodes_data] + already_source_ids))
+    source_id = GRAPH_FIELD_SEP.join(set([dp["source_id"] for dp in nodes_data] + already_source_ids))  # 将所有来源分段id用分隔符<SEP>拼接
 
     # 3.4. Merge file paths, deduplicated
-    file_path = GRAPH_FIELD_SEP.join(set([dp["file_path"] for dp in nodes_data] + already_file_paths))
-
+    file_path = GRAPH_FIELD_SEP.join(set([dp["file_path"] for dp in nodes_data] + already_file_paths))  # 将所有来源原始文档路径用分隔符<SEP>拼接
+    # -- 计算实体描述的数量【分隔符数量+1】、新实体描述去重后的数量
     # 4. Calculate description fragment counts for summarization decision
     num_fragment = description.count(GRAPH_FIELD_SEP) + 1  # Total description fragments
     num_new_fragment = len(set([dp["description"] for dp in nodes_data]))  # New unique descriptions
-
+    # -- 如果存在多个实体描述，则基于llm进行摘要汇总操作
     # 5. Handle description summarization if there are multiple fragments
     if num_fragment > 1:
         # 5.1. Check if LLM summarization threshold is met
-        if num_fragment >= force_llm_summary_on_merge:
+        if num_fragment >= force_llm_summary_on_merge:  # 实体描述数量超过【触发LLM摘要操作的阈值，默认10】阈值时，则基于llm进行摘要操作
             # 5.1.1. Log LLM summarization decision
             lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=True)
 
             # 5.1.2. Use LLM to summarize lengthy descriptions
             description = await _handle_entity_relation_summary(
-                entity_name,
-                description,
-                llm_model_func,
-                tokenizer,
-                llm_model_max_token_size,
-                summary_to_max_tokens,
-                language,
-                lightrag_logger,
-            )
+                entity_name,  # 实体名称
+                description,  # 实体描述【10个以上的实体描述】
+                llm_model_func,  # llm操作
+                tokenizer,  # 分词器
+                llm_model_max_token_size,  # LLM输出的最大token数量
+                summary_to_max_tokens,  # 摘要结果的最大token数量
+                language,  # 语言
+                lightrag_logger,  # lightrag日志实例
+            )  # 基于llm对同一实体名称的多个实体描述做摘要总结
         else:
             # 5.2. Simple merge without LLM summarization (fragment count below threshold)
             lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=False)
-
+    # -- 创建最终实体数据
     # 6. Create final node data structure
     node_data = dict(
         entity_id=entity_name,
@@ -349,13 +376,13 @@ async def _merge_nodes_then_upsert(
         file_path=file_path,
         created_at=int(time.time()),
     )
-
+    # -- 基于实体名称保存或更新实体数据
     # 7. Upsert the merged entity to knowledge graph
     await knowledge_graph_inst.upsert_node(
         entity_name,
         node_data=node_data,
     )
-
+    # -- 补充实体名称字段并返回最终实体数据
     # 8. Add entity_name to returned data and return the final merged entity
     node_data["entity_name"] = entity_name
     return node_data
@@ -508,7 +535,7 @@ async def merge_nodes_and_edges(
     addon_params,
     force_llm_summary_on_merge,
     lightrag_logger: LightRAGLogger,
-) -> dict[str, int]:  # 合并实体关系？
+) -> dict[str, int]:  # 对单个文档的单个连通组件，合并实体关系？
     # Now using fine-grained locking inside _merge_nodes_and_edges_impl
     return await _merge_nodes_and_edges_impl(
         chunk_results,
@@ -537,18 +564,18 @@ async def _merge_nodes_and_edges_impl(
     llm_model_max_token_size,  # 大模型输出token的数量
     summary_to_max_tokens,  # 生成摘要的最大token数量，默认500
     addon_params,  # lightrag附加参数：{"language": "The same language like input text"}
-    force_llm_summary_on_merge,  # 合并摘要时默认的摘要数量，默认10个
+    force_llm_summary_on_merge,  # 触发LLM摘要的阈值，默认10个
     lightrag_logger: LightRAGLogger,  # lightrag日志实例
-) -> dict[str, int]:  # 合并实体关系
+) -> dict[str, int]:  # 合并实体关系【单个文档的单个连通组件】
     """Internal implementation of merge_nodes_and_edges with fine-grained locking"""
 
     # Extract language from addon_params
     language = addon_params.get("language", "English")  # 获取语言参数
 
     # Collect all nodes and edges from all chunks
-    all_nodes = defaultdict(list)  # TODO 至此~
-    all_edges = defaultdict(list)
-
+    all_nodes = defaultdict(list)  # 初始化【最终】实体信息【字典，形如：{实体名称：实体信息列表}】
+    all_edges = defaultdict(list)  # 初始化【最终】关系信息【字典，形如：{有向元组（起始实体，终止实体）：关系信息列表}】
+    # -- 初始收集实体和关系【基于排序，统一关系的表示形式，例如a->b与b->a，统一用a->b表示】
     for maybe_nodes, maybe_edges in chunk_results:
         # Collect nodes
         for entity_name, entities in maybe_nodes.items():
@@ -556,31 +583,31 @@ async def _merge_nodes_and_edges_impl(
 
         # Collect edges with sorted keys for undirected graph
         for edge_key, edges in maybe_edges.items():
-            sorted_edge_key = tuple(sorted(edge_key))
+            sorted_edge_key = tuple(sorted(edge_key))  # 有向元组？对于无向图，用以统一边的表示形式，消除顺序差异带来的影响
             all_edges[sorted_edge_key].extend(edges)
-
+    # -- 基于细粒度锁处理实体信息
     # Process entities with fine-grained locking
     entity_count = 0
 
     for entity_name, entities in all_nodes.items():
         # Create lock for this specific entity
-        entity_lock = get_or_create_lock(f"entity:{entity_name}:{workspace}")
+        entity_lock = get_or_create_lock(f"entity:{entity_name}:{workspace}")  # 为当前实体名称，创建锁
 
-        async with entity_lock:
+        async with entity_lock:  # 锁保证了实体的逐个处理
             # Process and update entity in graph db
             entity_data = await _merge_nodes_then_upsert(
-                entity_name,
-                entities,
-                knowledge_graph_inst,
-                llm_model_func,
-                tokenizer,
-                llm_model_max_token_size,
-                summary_to_max_tokens,
-                language,  # Pass language instead of addon_params
-                force_llm_summary_on_merge,
-                lightrag_logger,
-                workspace,
-            )
+                entity_name,  # 实体名称
+                entities,  # 当前实体名称对应的实体信息列表
+                knowledge_graph_inst,  # 知识图谱存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
+                llm_model_func,  # llm操作，用于对实体信息列表做合并去重
+                tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
+                llm_model_max_token_size,  # 大模型输出token的数量
+                summary_to_max_tokens,  # 生成摘要【合并总结】的最大token数量，默认500
+                language,  # Pass language instead of addon_params  lightrag附加参数：{"language": "The same language like input text"}
+                force_llm_summary_on_merge,  # 触发LLM摘要的阈值，默认10个
+                lightrag_logger,  # lightrag日志实例
+                workspace,  # 知识库id
+            )  # 对同一实体名称的实体信息列表做合并去重【摘要】，并保存或更新到数据库
 
             # Update entity in vector db immediately under the same lock
             if entity_vdb is not None and entity_data:
@@ -593,7 +620,8 @@ async def _merge_nodes_and_edges_impl(
                         "file_path": entity_data.get("file_path", "unknown_source"),
                     }
                 }
-                await entity_vdb.upsert(vdb_data)
+                # 保存或更新向量库中的实体信息
+                await entity_vdb.upsert(vdb_data)  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
 
             entity_count += 1
 

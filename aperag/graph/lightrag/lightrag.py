@@ -113,7 +113,7 @@ class LightRAG:
 
     force_llm_summary_on_merge: int = field(
         default=get_env_value("FORCE_LLM_SUMMARY_ON_MERGE", DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE, int)
-    )  # 合并摘要时默认的摘要数量，默认10个
+    )  # 触发LLM进行摘要操作的阈值，默认10个
 
     # Text chunking
     # ---
@@ -589,7 +589,7 @@ class LightRAG:
         # Prepare component data for parallel processing
         component_tasks = []  # 初始化连通组件任务参数列表
 
-        for i, component in enumerate(components):
+        for i, component in enumerate(components):  # 逐个处理连通组件，构建相应组件任务，收集到component_tasks中
             # Create a set for quick lookup
             component_entities = set(component)  # 对当前连通组件进行实体去重
 
@@ -660,9 +660,9 @@ class LightRAG:
                     llm_model_max_token_size=self.llm_model_max_token_size,  # 大模型输出token的数量
                     summary_to_max_tokens=self.summary_to_max_tokens,  # 生成摘要的最大token数量，默认500
                     addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],  # lightrag附加参数：{"language": "The same language like input text"}
-                    force_llm_summary_on_merge=self.force_llm_summary_on_merge,  # 合并摘要时默认的摘要数量，默认10个
+                    force_llm_summary_on_merge=self.force_llm_summary_on_merge,  # 触发LLM进行摘要的阈值，默认10个
                     lightrag_logger=self.lightrag_logger,  # lightrag日志实例
-                )
+                )  # 针对单个文档的单个连通组件，TODO 处理**任务
 
                 self.lightrag_logger.debug(
                     f"Completed component {task_data['index'] + 1}: "
