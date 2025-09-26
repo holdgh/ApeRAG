@@ -109,11 +109,11 @@ class LightRAG:
     entity_extract_max_gleaning: int = field(default=1)  # 对不明确的内容尝试提取实体的最大次数【当前lightrag中默认0次】
     """Maximum number of entity extraction attempts for ambiguous content."""
 
-    summary_to_max_tokens: int = field(default=get_env_value("MAX_TOKEN_SUMMARY", DEFAULT_MAX_TOKEN_SUMMARY, int))
+    summary_to_max_tokens: int = field(default=get_env_value("MAX_TOKEN_SUMMARY", DEFAULT_MAX_TOKEN_SUMMARY, int))  # 生成摘要的最大token数量，默认500
 
     force_llm_summary_on_merge: int = field(
         default=get_env_value("FORCE_LLM_SUMMARY_ON_MERGE", DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE, int)
-    )
+    )  # 合并摘要时默认的摘要数量，默认10个
 
     # Text chunking
     # ---
@@ -656,13 +656,13 @@ class LightRAG:
                     entity_vdb=self.entities_vdb,  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
                     relationships_vdb=self.relationships_vdb,  # 关系存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
                     llm_model_func=self.llm_model_func,  # llm操作定义
-                    tokenizer=self.tokenizer,  # 分词器
-                    llm_model_max_token_size=self.llm_model_max_token_size,
-                    summary_to_max_tokens=self.summary_to_max_tokens,
-                    addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],
-                    force_llm_summary_on_merge=self.force_llm_summary_on_merge,
-                    lightrag_logger=self.lightrag_logger,
-                )  # TODO 至此~
+                    tokenizer=self.tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
+                    llm_model_max_token_size=self.llm_model_max_token_size,  # 大模型输出token的数量
+                    summary_to_max_tokens=self.summary_to_max_tokens,  # 生成摘要的最大token数量，默认500
+                    addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],  # lightrag附加参数：{"language": "The same language like input text"}
+                    force_llm_summary_on_merge=self.force_llm_summary_on_merge,  # 合并摘要时默认的摘要数量，默认10个
+                    lightrag_logger=self.lightrag_logger,  # lightrag日志实例
+                )
 
                 self.lightrag_logger.debug(
                     f"Completed component {task_data['index'] + 1}: "

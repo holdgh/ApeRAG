@@ -508,7 +508,7 @@ async def merge_nodes_and_edges(
     addon_params,
     force_llm_summary_on_merge,
     lightrag_logger: LightRAGLogger,
-) -> dict[str, int]:
+) -> dict[str, int]:  # 合并实体关系？
     # Now using fine-grained locking inside _merge_nodes_and_edges_impl
     return await _merge_nodes_and_edges_impl(
         chunk_results,
@@ -527,26 +527,26 @@ async def merge_nodes_and_edges(
 
 
 async def _merge_nodes_and_edges_impl(
-    chunk_results: list,
-    workspace: str,
-    knowledge_graph_inst: BaseGraphStorage,
-    entity_vdb: BaseVectorStorage,
-    relationships_vdb: BaseVectorStorage,
-    llm_model_func,
-    tokenizer,
-    llm_model_max_token_size,
-    summary_to_max_tokens,
-    addon_params,
-    force_llm_summary_on_merge,
-    lightrag_logger: LightRAGLogger,
-) -> dict[str, int]:
+    chunk_results: list,  # 元组列表，当前连通组件对应的实体关系数据列表，形如[(分段1的属于当前连通组件的实体数据【字典，形如：{实体1：实体1数据}】，分段1的属于当前连通组件的关系数据【字典，形如：{(起始实体1，目标实体1)：对应边数据}】)]
+    workspace: str,  # 知识库id
+    knowledge_graph_inst: BaseGraphStorage,  # 知识图谱存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
+    entity_vdb: BaseVectorStorage,  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
+    relationships_vdb: BaseVectorStorage,  # 关系存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
+    llm_model_func,  # llm操作定义
+    tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
+    llm_model_max_token_size,  # 大模型输出token的数量
+    summary_to_max_tokens,  # 生成摘要的最大token数量，默认500
+    addon_params,  # lightrag附加参数：{"language": "The same language like input text"}
+    force_llm_summary_on_merge,  # 合并摘要时默认的摘要数量，默认10个
+    lightrag_logger: LightRAGLogger,  # lightrag日志实例
+) -> dict[str, int]:  # 合并实体关系
     """Internal implementation of merge_nodes_and_edges with fine-grained locking"""
 
     # Extract language from addon_params
-    language = addon_params.get("language", "English")
+    language = addon_params.get("language", "English")  # 获取语言参数
 
     # Collect all nodes and edges from all chunks
-    all_nodes = defaultdict(list)
+    all_nodes = defaultdict(list)  # TODO 至此~
     all_edges = defaultdict(list)
 
     for maybe_nodes, maybe_edges in chunk_results:

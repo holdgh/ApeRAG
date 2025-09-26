@@ -40,6 +40,6 @@ consistency and makes maintenance easier.
 """
 
 # Default values for environment variables
-DEFAULT_MAX_TOKEN_SUMMARY = 500
-DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE = 10
+DEFAULT_MAX_TOKEN_SUMMARY = 500  # 默认摘要操作最大token数量
+DEFAULT_FORCE_LLM_SUMMARY_ON_MERGE = 10  # 合并摘要时默认的摘要数量
 DEFAULT_TIMEOUT = 150
