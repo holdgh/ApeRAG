@@ -51,7 +51,7 @@ class GraphRepositoryMixin:
 
             # ON CONFLICT DO UPDATE
             stmt = stmt.on_conflict_do_update(
-                index_elements=["workspace", "entity_id"],
+                index_elements=["workspace", "entity_id"],  # 更新的根据：知识库id和实体名称组合作为唯一标识
                 set_=dict(
                     entity_name=stmt.excluded.entity_name,
                     entity_type=stmt.excluded.entity_type,

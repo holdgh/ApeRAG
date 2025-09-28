@@ -208,7 +208,7 @@ class LightRAG:
     llm_model_name: str = field(default="gpt-4o-mini")
     """Name of the LLM model used for generating responses."""
 
-    llm_model_max_token_size: int = field(default=32768)
+    llm_model_max_token_size: int = field(default=32768)  # 大模型输入token的最大数量
     """Maximum number of tokens allowed per LLM response."""
 
     llm_model_max_async: int = field(default=8)  # llm操作最大并发调用数
@@ -657,7 +657,7 @@ class LightRAG:
                     relationships_vdb=self.relationships_vdb,  # 关系存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
                     llm_model_func=self.llm_model_func,  # llm操作定义
                     tokenizer=self.tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
-                    llm_model_max_token_size=self.llm_model_max_token_size,  # 大模型输出token的数量
+                    llm_model_max_token_size=self.llm_model_max_token_size,  # 大模型输入token的数量
                     summary_to_max_tokens=self.summary_to_max_tokens,  # 生成摘要的最大token数量，默认500
                     addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],  # lightrag附加参数：{"language": "The same language like input text"}
                     force_llm_summary_on_merge=self.force_llm_summary_on_merge,  # 触发LLM进行摘要的阈值，默认10个

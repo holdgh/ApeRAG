@@ -118,35 +118,54 @@ def chunking_by_token_size(
 
 @timing_wrapper("_handle_entity_relation_summary")
 async def _handle_entity_relation_summary(
-    entity_or_relation_name: str,
-    description: str,
+    entity_or_relation_name: str,  # 实体或关系名称
+    description: str,  # 实体或关系描述【分隔符拼接的10个以上的实体或关系描述字符串】
     llm_model_func: callable,
     tokenizer: Tokenizer,
     llm_model_max_token_size: int,
     summary_to_max_tokens: int,
     language: str,
     lightrag_logger: LightRAGLogger,
-) -> str:  # 基于llm对同一实体名称的多个实体描述做摘要总结  TODO 至此~
+) -> str:  # 基于llm对同一实体/关系名称的多个实体/关系描述做摘要总结
     """Handle entity relation summary
     For each entity or relation, input is the combined description of already existing description and new description.
     If too long, use LLM to summarize.
     """
-    use_llm_func: callable = llm_model_func
+    """
+    1. 类型注解（: callable）
+        - : callable 是 Python 的类型注解（type hint），用于指定变量 use_llm_func 的类型为 “可调用对象”。
+        - 可调用对象（callable） 指任何可以像函数一样被调用的对象，包括函数、类、带 __call__ 方法的实例等。例如：普通函数、lambda 表达式、类的构造方法等。
+        - 这里的类型注解主要起提示作用，告诉开发者（或 IDE）：use_llm_func 应该是一个可以被调用的对象（如函数），后续可能会以 use_llm_func(...) 的形式使用。
 
-    tokens = tokenizer.encode(description)
+    2. 变量赋值（= llm_model_func）
+        - 等号 = 表示将变量 use_llm_func 指向 llm_model_func 这个对象。
+        - 结合类型注解 callable 可知，llm_model_func 应该是一个函数（或其他可调用对象），通常用于与大语言模型（LLM）交互（例如调用模型生成文本、处理提示词等）。
+    
+    3. 典型场景与作用
+    这种写法常见于需要 “灵活替换函数” 的场景，例如：
+        - llm_model_func 可能是一个默认的 LLM 调用函数（如调用 GPT-3.5），而 use_llm_func 作为 “实际使用的函数”，后续可以根据需求替换为其他函数（如调用 Claude、Llama 等模型）。
+        - 通过统一变量名 use_llm_func 来调用函数，避免直接硬编码 llm_model_func，提高代码的可维护性和灵活性。
+    """
+    """
+    定义一个名为 use_llm_func 的变量，指定它是可调用对象，并将其初始化为 llm_model_func。
+    目的是通过统一的变量名来使用 LLM 相关功能，同时通过类型注解明确其用途，提升代码的可读性和可扩展性。
+    """
+    use_llm_func: callable = llm_model_func  # llm操作，可调用对象
+
+    tokens = tokenizer.encode(description)  # 对实体或关系描述进行分词编码
 
     prompt_template = PROMPTS["summarize_entity_descriptions"]
-    use_description = tokenizer.decode(tokens[:llm_model_max_token_size])
+    use_description = tokenizer.decode(tokens[:llm_model_max_token_size])  # 基于lightrag配置的llm输入token最大限制对实体描述进行截取
     context_base = dict(
-        entity_name=entity_or_relation_name,
-        description_list=use_description.split(GRAPH_FIELD_SEP),
-        language=language,
-    )
-    use_prompt = prompt_template.format(**context_base)
+        entity_name=entity_or_relation_name,  # 实体或关系名称
+        description_list=use_description.split(GRAPH_FIELD_SEP),  # 基于分隔符将描述内容还原为字符串列表
+        language=language,  # 语言参数 "The same language like input text"
+    )  # 构造实体或关系描述上下文信息
+    use_prompt = prompt_template.format(**context_base)  # 基于提示词模板和上下文信息完善最终提示词
 
     lightrag_logger.debug(f"Trigger summary: {entity_or_relation_name}")
 
-    summary = await use_llm_func(use_prompt, max_tokens=summary_to_max_tokens)
+    summary = await use_llm_func(use_prompt, max_tokens=summary_to_max_tokens)  # 利用大模型对实体或关系描述进行摘要总结
     return summary
 
 
@@ -247,7 +266,7 @@ async def _merge_nodes_then_upsert(
     force_llm_summary_on_merge: int,
     lightrag_logger: LightRAGLogger | None = None,
     workspace: str = "",
-):  # 对同一实体名称的实体信息列表做合并去重【摘要】，得到为唯一的实体信息，并保存或更新到数据库
+):  # 对同一实体名称的实体信息列表做合并去重【摘要】，得到为唯一的实体信息，并保存或更新到数据库，返回实体结构化信息
     """
     功能：合并多个名称相同的实体节点，并将结果放入知识图谱中。
 
@@ -264,9 +283,9 @@ async def _merge_nodes_then_upsert(
         knowledge_graph_inst：知识图存储实例
         llm_model_func：用于描述汇总的LLM函数
         tokenizer：文本处理的tokenizer
-        llm_model_max_token_size: LLM输出的最大令牌大小
+        llm_model_max_token_size: LLM输入token的最大数量
         summary_to_max_tokens：摘要输出的最大令牌数
-        language：法学硕士总结语言
+        language：llm输出摘要的语言
         force_llm_summary_on_merge：触发LLM摘要操作的阈值
         lightrag_logger：可选的记录器实例
         workspace：用于创建锁的工作区标识符
@@ -358,7 +377,7 @@ async def _merge_nodes_then_upsert(
                 description,  # 实体描述【10个以上的实体描述】
                 llm_model_func,  # llm操作
                 tokenizer,  # 分词器
-                llm_model_max_token_size,  # LLM输出的最大token数量
+                llm_model_max_token_size,  # LLM输入的最大token数量
                 summary_to_max_tokens,  # 摘要结果的最大token数量
                 language,  # 语言
                 lightrag_logger,  # lightrag日志实例
@@ -561,7 +580,7 @@ async def _merge_nodes_and_edges_impl(
     relationships_vdb: BaseVectorStorage,  # 关系存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
     llm_model_func,  # llm操作定义
     tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
-    llm_model_max_token_size,  # 大模型输出token的数量
+    llm_model_max_token_size,  # 大模型输入token的数量
     summary_to_max_tokens,  # 生成摘要的最大token数量，默认500
     addon_params,  # lightrag附加参数：{"language": "The same language like input text"}
     force_llm_summary_on_merge,  # 触发LLM摘要的阈值，默认10个
@@ -585,7 +604,7 @@ async def _merge_nodes_and_edges_impl(
         for edge_key, edges in maybe_edges.items():
             sorted_edge_key = tuple(sorted(edge_key))  # 有向元组？对于无向图，用以统一边的表示形式，消除顺序差异带来的影响
             all_edges[sorted_edge_key].extend(edges)
-    # -- 基于细粒度锁处理实体信息
+    # -- 基于细粒度锁处理实体信息【针对同一实体名称的多个实体信息及数据库中已存在的实体信息做摘要总结，保存或更新，并对实体内容【实体名称\n最终实体描述】做embedding处理并保存或更新】
     # Process entities with fine-grained locking
     entity_count = 0
 
@@ -601,13 +620,13 @@ async def _merge_nodes_and_edges_impl(
                 knowledge_graph_inst,  # 知识图谱存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
                 llm_model_func,  # llm操作，用于对实体信息列表做合并去重
                 tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
-                llm_model_max_token_size,  # 大模型输出token的数量
+                llm_model_max_token_size,  # 大模型输入token的最大数量
                 summary_to_max_tokens,  # 生成摘要【合并总结】的最大token数量，默认500
                 language,  # Pass language instead of addon_params  lightrag附加参数：{"language": "The same language like input text"}
                 force_llm_summary_on_merge,  # 触发LLM摘要的阈值，默认10个
                 lightrag_logger,  # lightrag日志实例
                 workspace,  # 知识库id
-            )  # 对同一实体名称的实体信息列表做合并去重【摘要】，并保存或更新到数据库
+            )  # 对同一实体名称的实体信息列表做合并去重【摘要】，并保存或更新到数据库【表名：lightrag_graph_nodes】，返回实体结构化信息
 
             # Update entity in vector db immediately under the same lock
             if entity_vdb is not None and entity_data:
@@ -620,11 +639,11 @@ async def _merge_nodes_and_edges_impl(
                         "file_path": entity_data.get("file_path", "unknown_source"),
                     }
                 }
-                # 保存或更新向量库中的实体信息
+                # 保存或更新向量库中的实体信息【将实体数据【分批embedding处理后，这里是单个实体】保存或更新至数据库【表名：lightrag_vdb_entity】】
                 await entity_vdb.upsert(vdb_data)  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
 
-            entity_count += 1
-
+            entity_count += 1  # 最终实体数量加1
+    # -- 基于细粒度锁处理关系信息 TODO 至此~
     # Process relationships with fine-grained locking
     relation_count = 0
 
