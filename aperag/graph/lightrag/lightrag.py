@@ -558,7 +558,7 @@ class LightRAG:
         self,
         chunk_results: List[tuple[dict, dict]],  # 实体关系提取结果形如：[分段1的实体关系信息【形如：{实体名称1：实体名称1的实体信息列表}， {(源实体名称1，目标实体名称1)：相应起止实体名称的边信息列表}】]
         collection_id: str | None = None,  # 知识库id
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any]:  # 对llm实体关系提取结果，构建邻接图，基于广度优先遍历算法获取单个文档知识图谱的所有连通分量，对每个连通分量，进行实体关系汇总处理【文字描述摘要处理】和持久化操作【节点表、边表、实体向量表、关系向量表】
         """
         实体信息：【内含：实体名称、实体类型、实体描述、分段id和原始文档路径】
         关系信息：【内含：源节点id【源实体名称】、目标节点id【目标实体名称】、权重、边描述【关系描述】、边关键词【关系关键词】、来源id【分段id】、原始文档路径】
@@ -631,7 +631,7 @@ class LightRAG:
         # Process components concurrently with semaphore
         semaphore = asyncio.Semaphore(1)
 
-        async def _process_component_with_semaphore(task_data):  # 处理单个连通组件任务 TODO 【持久化操作？】
+        async def _process_component_with_semaphore(task_data):  # 处理单个连通组件任务，合并实体关系【单个文档的单个连通组件】，返回最终保存的实体数量和关系数量【保存形式：节点表、边表、实体向量表、关系向量表】
             """
             task_data形如：
             {
@@ -662,7 +662,7 @@ class LightRAG:
                     addon_params=self.addon_params or PROMPTS["DEFAULT_LANGUAGE"],  # lightrag附加参数：{"language": "The same language like input text"}
                     force_llm_summary_on_merge=self.force_llm_summary_on_merge,  # 触发LLM进行摘要的阈值，默认10个
                     lightrag_logger=self.lightrag_logger,  # lightrag日志实例
-                )  # 针对单个文档的单个连通组件，TODO 处理**任务
+                )  # 针对单个文档的单个连通组件，合并实体关系【单个文档的单个连通组件】，返回最终保存的实体数量和关系数量【保存形式：节点表、边表、实体向量表、关系向量表】
 
                 self.lightrag_logger.debug(
                     f"Completed component {task_data['index'] + 1}: "
@@ -708,9 +708,9 @@ class LightRAG:
         results = [task.result() for task in tasks]
 
         # Calculate totals
-        total_entities = sum(r["entity_count"] for r in results)
-        total_relations = sum(r["relation_count"] for r in results)
-        processed_groups = len(results)
+        total_entities = sum(r["entity_count"] for r in results)  # 单个文档，处理保存成功的实体数量
+        total_relations = sum(r["relation_count"] for r in results)  # 单个文档，处理保存成功的关系数量
+        processed_groups = len(results)  # 成功处理的连通组件个数
 
         return {
             "groups_processed": processed_groups,  # 成功处理的连通组件个数
@@ -854,7 +854,7 @@ class LightRAG:
         self,
         chunks: dict[str, Any],
         collection_id: str | None = None,
-    ) -> dict[str, Any]:  # 对单个文档的分段数据，构建知识图谱
+    ) -> dict[str, Any]:  # 对单个文档的分段数据，构建知识图谱【llm实体关系提取--llm实体关系摘要汇总--实体关系信息存储和向量存储】
         """
         Stateless graph indexing - extracts entities/relations and builds graph index.
 
@@ -892,10 +892,10 @@ class LightRAG:
                 llm_model_max_async=self.llm_model_max_async,  # llm操作最大并发调用数
                 lightrag_logger=self.lightrag_logger,  # lightrag日志实例
             )  # 实体关系结果形如：[分段1的实体关系信息【形如：{实体名称1：实体名称1的实体信息列表}， {(源实体名称1，目标实体名称1)：相应起止实体名称的边信息列表}】]
-            # -- 基于提取的实体关系数据，基于广度优先算法提取所有连通组件，【基于连通组件进行图谱有效性校验，若所有实体相互独立，则说明没必要构建知识图谱了】，异步处理连通组件任务
+            # -- 基于提取的实体关系数据，基于广度优先算法提取所有连通组件，【基于连通组件进行图谱有效性校验，若所有实体相互独立，则说明没必要构建知识图谱了】，异步处理连通组件任务【对每个连通分量，进行实体关系汇总处理【文字描述摘要处理】和持久化操作【节点表、边表、实体向量表、关系向量表】】
             # 2. Process each component group with its own lock scope
             result = await self._grouping_process_chunk_results(chunk_results, collection_id)
-            # -- 汇总知识图谱构建结果
+            # -- 汇总知识图谱构建结果【成功保存的实体数和关系数】
             # Count total results
             entity_count = sum(len(nodes) for nodes, _ in chunk_results)  # 实体总量
             relation_count = sum(len(edges) for _, edges in chunk_results)  # 关系总量

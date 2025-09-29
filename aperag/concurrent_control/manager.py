@@ -80,13 +80,14 @@ class LockManager:
 
         Args:
             lock_id: Unique identifier for the lock
-            lock_type: Type of lock ('threading' or 'redis')
+            lock_type: Type of lock ('threading' or 'redis')  支持创建线程锁和redis锁
             **kwargs: Additional arguments for lock creation
 
         Returns:
             Lock instance
         """
         with self._lock:  # Thread-safe check-and-set operation
+            # -- 基于锁id检查锁是否已存在于锁缓存中，存在则直接返回，不存在则根据锁类型创建锁
             # Check if lock already exists
             if lock_id in self._locks:
                 return self._locks[lock_id]
@@ -100,9 +101,10 @@ class LockManager:
                 lock = self.create_redis_lock(key=key, **{k: v for k, v in kwargs.items() if k != "key"})
             else:
                 raise ValueError(f"Unknown lock type: {lock_type}")
-
+            # -- 创建锁后，将锁实例存入锁缓存
             # Store the new lock
             self._locks[lock_id] = lock
+            # -- 返回与锁id对应的锁实例
             return lock
 
     def remove_lock(self, lock_id: str) -> bool:

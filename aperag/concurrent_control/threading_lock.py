@@ -32,7 +32,7 @@ from .utils import LockAcquisitionError
 logger = logging.getLogger(__name__)
 
 
-class ThreadingLock(LockProtocol):
+class ThreadingLock(LockProtocol):  # 线程锁管理【初始化创建、获取、释放】
     """
     Threading-based lock implementation using asyncio.to_thread wrapper.
 

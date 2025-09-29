@@ -183,6 +183,7 @@ async def _process_document_async(
 
             if chunks_data:
                 # Build graph index
+                # 对单个文档的分段数据，构建知识图谱【llm实体关系提取--llm实体关系摘要汇总--实体关系信息存储和向量存储】
                 graph_result = await rag.aprocess_graph_indexing(chunks=chunks_data, collection_id=str(collection.id))  # 对单个文档的分段数据构建知识图谱
 
                 total_stats["chunks_created"] += chunk_count

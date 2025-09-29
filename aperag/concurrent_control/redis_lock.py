@@ -34,7 +34,7 @@ from .utils import LockAcquisitionError
 logger = logging.getLogger(__name__)
 
 
-class RedisLock(LockProtocol):
+class RedisLock(LockProtocol):  # 基于redis的分布式锁管理【初始化创建、获取、释放】
     """
     Redis-based distributed lock implementation.
 

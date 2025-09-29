@@ -121,7 +121,7 @@ async def generate_chat_title_view(
         raise HTTPException(status_code=400, detail={"error_code": be.error_code.name, "message": str(be)})
 
 
-@router.post("/chat/completions/frontend", tags=["chats"])
+@router.post("/chat/completions/frontend", tags=["chats"])  # TODO 对话接口?
 async def frontend_chat_completions_view(request: Request, user: User = Depends(required_user)):
     body = await request.body()
 

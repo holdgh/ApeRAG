@@ -266,7 +266,7 @@ async def _merge_nodes_then_upsert(
     force_llm_summary_on_merge: int,
     lightrag_logger: LightRAGLogger | None = None,
     workspace: str = "",
-):  # 对同一实体名称的实体信息列表做合并去重【摘要】，得到为唯一的实体信息，并保存或更新到数据库，返回实体结构化信息
+):  # 对同一实体名称的实体信息列表做合并【摘要】，得到为唯一的实体信息，并保存或更新到数据库，返回实体结构化信息
     """
     功能：合并多个名称相同的实体节点，并将结果放入知识图谱中。
 
@@ -382,7 +382,7 @@ async def _merge_nodes_then_upsert(
                 language,  # 语言
                 lightrag_logger,  # lightrag日志实例
             )  # 基于llm对同一实体名称的多个实体描述做摘要总结
-        else:
+        else:  # 对于实体描述少于force_llm_summary_on_merge【10】个，不进行摘要总结【基于分隔符连接多个实体描述】
             # 5.2. Simple merge without LLM summarization (fragment count below threshold)
             lightrag_logger.log_entity_merge(entity_name, num_fragment, num_new_fragment, is_llm_summary=False)
     # -- 创建最终实体数据
@@ -420,45 +420,45 @@ async def _merge_edges_then_upsert(
     force_llm_summary_on_merge: int,
     lightrag_logger: LightRAGLogger,
     workspace: str = "",
-):
+):  # 对同一起止实体的关系信息列表做合并【摘要】，得到为唯一的关系信息，并保存或更新到数据库，返回关系结构化信息
     if src_id == tgt_id:
         return None
-
-    already_weights = []
-    already_source_ids = []
-    already_description = []
-    already_keywords = []
-    already_file_paths = []
-
+    # -- 初始化各种已存在数据的变量
+    already_weights = []  # 权重
+    already_source_ids = []  # 关系来源分段id
+    already_description = []  # 关系描述
+    already_keywords = []  # 关系中的关键词
+    already_file_paths = []  # 原始文档路径【这里对于多个文档的相同起止实体关系，会对其关系数据做合并摘要处理】【再次印证知识图谱是知识库维度的】
+    # -- 基于当前起止实体名称检索属于当前关系的所有已存在关系数据 TODO 关键逻辑【跨文档、跨分段】
     if await knowledge_graph_inst.has_edge(src_id, tgt_id):
-        already_edge = await knowledge_graph_inst.get_edge(src_id, tgt_id)
+        already_edge = await knowledge_graph_inst.get_edge(src_id, tgt_id)  # 检索当前关系在数据库中已存在的关系数据
         # Handle the case where get_edge returns None or missing fields
         if already_edge:
             # Get weight with default 0.0 if missing
-            already_weights.append(already_edge.get("weight", 0.0))
+            already_weights.append(already_edge.get("weight", 0.0))  # 由此可见，关系权重是唯一的
 
             # Get source_id with empty string default if missing or None
             if already_edge.get("source_id") is not None:
-                already_source_ids.extend(split_string_by_multi_markers(already_edge["source_id"], [GRAPH_FIELD_SEP]))
+                already_source_ids.extend(split_string_by_multi_markers(already_edge["source_id"], [GRAPH_FIELD_SEP]))  # 由此可见，关系来源分段id是不唯一的，采用分隔符<SEP>连接多个分段id
 
             # Get file_path with empty string default if missing or None
             if already_edge.get("file_path") is not None:
-                already_file_paths.extend(split_string_by_multi_markers(already_edge["file_path"], [GRAPH_FIELD_SEP]))
+                already_file_paths.extend(split_string_by_multi_markers(already_edge["file_path"], [GRAPH_FIELD_SEP]))  # 由此可见，关系来源的原始文档路径是不唯一的，采用分隔符<SEP>连接多个原始文档路径
 
             # Get description with empty string default if missing or None
             if already_edge.get("description") is not None:
-                already_description.append(already_edge["description"])
+                already_description.append(already_edge["description"])  # 由此可见，关系描述是唯一的【通过llm摘要总结的结果】
 
             # Get keywords with empty string default if missing or None
             if already_edge.get("keywords") is not None:
-                already_keywords.extend(split_string_by_multi_markers(already_edge["keywords"], [GRAPH_FIELD_SEP]))
-
+                already_keywords.extend(split_string_by_multi_markers(already_edge["keywords"], [GRAPH_FIELD_SEP]))  # 由此可见，关系的关键字是不唯一的，采用采用分隔符<SEP>连接多个关键词
+    # -- 汇总关系各种属性数据
     # Process edges_data with None checks
-    weight = sum([dp["weight"] for dp in edges_data] + already_weights)
+    weight = sum([dp["weight"] for dp in edges_data] + already_weights)  # 对于关系权重的更新采用累加规则
     description = GRAPH_FIELD_SEP.join(
         sorted(set([dp["description"] for dp in edges_data if dp.get("description")] + already_description))
-    )
-
+    )  # 汇总关系描述【综合数据库已存在的关系描述和当前入参关系信息列表中的关系描述】，用分隔符<SEP>连接
+    # 汇总关系关键词【去重收集数据库已存在的关系关键词和当前入参关系信息列表中的关系关键词】
     # Split all existing and new keywords into individual terms, then combine and deduplicate
     all_keywords = set()
     # Process already_keywords (which are comma-separated)
@@ -474,11 +474,11 @@ async def _merge_edges_then_upsert(
 
     source_id = GRAPH_FIELD_SEP.join(
         set([dp["source_id"] for dp in edges_data if dp.get("source_id")] + already_source_ids)
-    )
+    )  # 汇总关系来源分段id
     file_path = GRAPH_FIELD_SEP.join(
         set([dp["file_path"] for dp in edges_data if dp.get("file_path")] + already_file_paths)
-    )
-
+    )  # 汇总关系来源原始文件路径
+    # -- 如果关系的起止实体不在数据库，则执行插入相应实体操作【实体描述，这里采用了关系的汇总描述】
     for need_insert_id in [src_id, tgt_id]:
         if not (await knowledge_graph_inst.has_node(need_insert_id)):
             await knowledge_graph_inst.upsert_node(
@@ -492,12 +492,12 @@ async def _merge_edges_then_upsert(
                     "created_at": int(time.time()),
                 },
             )
-
+    # -- 对关系的所有描述进行摘要处理
     num_fragment = description.count(GRAPH_FIELD_SEP) + 1
     num_new_fragment = len(set([dp["description"] for dp in edges_data if dp.get("description")]))
 
     if num_fragment > 1:
-        if num_fragment >= force_llm_summary_on_merge:
+        if num_fragment >= force_llm_summary_on_merge:  # 摘要处理的前提：当前关系的描述不少于force_llm_summary_on_merge【10】个
             lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=True)
 
             description = await _handle_entity_relation_summary(
@@ -509,10 +509,10 @@ async def _merge_edges_then_upsert(
                 summary_to_max_tokens,
                 language,
                 lightrag_logger,
-            )
-        else:
+            )  # 基于llm对同一关系的多个关系描述做摘要总结
+        else:  # 对于少于force_llm_summary_on_merge【10】个的关系描述，不进行摘要总结【基于分隔符连接多个关系描述】
             lightrag_logger.log_relation_merge(src_id, tgt_id, num_fragment, num_new_fragment, is_llm_summary=False)
-
+    # -- 创建最终关系数据，并保存或更新到数据库
     await knowledge_graph_inst.upsert_edge(
         src_id,
         tgt_id,
@@ -525,7 +525,7 @@ async def _merge_edges_then_upsert(
             created_at=int(time.time()),
         ),
     )
-
+    # -- 构造并返回最终实体数据
     edge_data = dict(
         src_id=src_id,
         tgt_id=tgt_id,
@@ -554,7 +554,7 @@ async def merge_nodes_and_edges(
     addon_params,
     force_llm_summary_on_merge,
     lightrag_logger: LightRAGLogger,
-) -> dict[str, int]:  # 对单个文档的单个连通组件，合并实体关系？
+) -> dict[str, int]:  # 对单个文档的单个连通组件，合并实体关系，返回最终保存的实体数量和关系数量【保存形式：节点表、边表、实体向量表、关系向量表】
     # Now using fine-grained locking inside _merge_nodes_and_edges_impl
     return await _merge_nodes_and_edges_impl(
         chunk_results,
@@ -585,7 +585,7 @@ async def _merge_nodes_and_edges_impl(
     addon_params,  # lightrag附加参数：{"language": "The same language like input text"}
     force_llm_summary_on_merge,  # 触发LLM摘要的阈值，默认10个
     lightrag_logger: LightRAGLogger,  # lightrag日志实例
-) -> dict[str, int]:  # 合并实体关系【单个文档的单个连通组件】
+) -> dict[str, int]:  # 合并实体关系【单个文档的单个连通组件】，返回最终保存的实体数量和关系数量【保存形式：节点表、边表、实体向量表、关系向量表】
     """Internal implementation of merge_nodes_and_edges with fine-grained locking"""
 
     # Extract language from addon_params
@@ -604,13 +604,13 @@ async def _merge_nodes_and_edges_impl(
         for edge_key, edges in maybe_edges.items():
             sorted_edge_key = tuple(sorted(edge_key))  # 有向元组？对于无向图，用以统一边的表示形式，消除顺序差异带来的影响
             all_edges[sorted_edge_key].extend(edges)
-    # -- 基于细粒度锁处理实体信息【针对同一实体名称的多个实体信息及数据库中已存在的实体信息做摘要总结，保存或更新，并对实体内容【实体名称\n最终实体描述】做embedding处理并保存或更新】
+    # -- 基于细粒度锁【线程锁】处理实体信息【针对同一实体名称的多个实体信息及数据库中已存在的实体信息做摘要总结，保存或更新，并对实体内容【实体名称\n最终实体描述】做embedding处理并保存或更新】
     # Process entities with fine-grained locking
     entity_count = 0
 
     for entity_name, entities in all_nodes.items():
         # Create lock for this specific entity
-        entity_lock = get_or_create_lock(f"entity:{entity_name}:{workspace}")  # 为当前实体名称，创建锁
+        entity_lock = get_or_create_lock(f"entity:{entity_name}:{workspace}")  # 基于当前实体名称和知识库id，创建锁
 
         async with entity_lock:  # 锁保证了实体的逐个处理
             # Process and update entity in graph db
@@ -618,7 +618,7 @@ async def _merge_nodes_and_edges_impl(
                 entity_name,  # 实体名称
                 entities,  # 当前实体名称对应的实体信息列表
                 knowledge_graph_inst,  # 知识图谱存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
-                llm_model_func,  # llm操作，用于对实体信息列表做合并去重
+                llm_model_func,  # llm操作，用于对实体信息列表做合并摘要
                 tokenizer,  # 分词器实例【TiktokenTokenizer(gpt-4o-mini)】
                 llm_model_max_token_size,  # 大模型输入token的最大数量
                 summary_to_max_tokens,  # 生成摘要【合并总结】的最大token数量，默认500
@@ -626,7 +626,7 @@ async def _merge_nodes_and_edges_impl(
                 force_llm_summary_on_merge,  # 触发LLM摘要的阈值，默认10个
                 lightrag_logger,  # lightrag日志实例
                 workspace,  # 知识库id
-            )  # 对同一实体名称的实体信息列表做合并去重【摘要】，并保存或更新到数据库【表名：lightrag_graph_nodes】，返回实体结构化信息
+            )  # 对同一实体名称的实体信息列表做合并【摘要】，并保存或更新到数据库【表名：lightrag_graph_nodes】，返回实体结构化信息
 
             # Update entity in vector db immediately under the same lock
             if entity_vdb is not None and entity_data:
@@ -643,23 +643,23 @@ async def _merge_nodes_and_edges_impl(
                 await entity_vdb.upsert(vdb_data)  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
 
             entity_count += 1  # 最终实体数量加1
-    # -- 基于细粒度锁处理关系信息 TODO 至此~
+    # -- 基于细粒度锁【线程锁】处理关系信息【针对同一起止实体的多个关系信息及数据库中已存在的关系信息做摘要总结，保存或更新，并对关系内容【起止实体名称\n最终关系描述】做embedding处理并保存或更新】
     # Process relationships with fine-grained locking
     relation_count = 0
 
     for edge_key, edges in all_edges.items():
         # Create lock for this specific relationship
         # Sort edge key to ensure consistent lock naming
-        sorted_edge_key = tuple(sorted(edge_key))
-        relationship_lock = get_or_create_lock(f"relationship:{sorted_edge_key[0]}:{sorted_edge_key[1]}:{workspace}")
+        sorted_edge_key = tuple(sorted(edge_key))  # 前面在收集all_edges的过程中，已经对起止实体元组排序过了，以消除两个实体因顺序导致的差异【认为两个实体的关系不因其顺序不同而不同】
+        relationship_lock = get_or_create_lock(f"relationship:{sorted_edge_key[0]}:{sorted_edge_key[1]}:{workspace}")  # 基于当前关系的起止实体名称和知识库id，创建锁
 
         async with relationship_lock:
             # Process and update relationship in graph db
             edge_data = await _merge_edges_then_upsert(
-                edge_key[0],
-                edge_key[1],
-                edges,
-                knowledge_graph_inst,
+                edge_key[0],  # 起始实体名称
+                edge_key[1],  # 目标实体名称
+                edges,  # 当前起止实体对应的关系信息列表
+                knowledge_graph_inst,  # 知识图谱存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_graph_storage.PGOpsSyncGraphStorage
                 llm_model_func,
                 tokenizer,
                 llm_model_max_token_size,
@@ -668,7 +668,7 @@ async def _merge_nodes_and_edges_impl(
                 force_llm_summary_on_merge,
                 lightrag_logger,
                 workspace,
-            )
+            )  # 对同一起止实体的关系信息列表做合并【摘要】，并保存或更新到数据库【表名：lightrag_graph_edges】，返回关系结构化信息
 
             # Update relationship in vector db immediately under the same lock
             if relationships_vdb is not None and edge_data is not None:
@@ -682,12 +682,13 @@ async def _merge_nodes_and_edges_impl(
                         "file_path": edge_data.get("file_path", "unknown_source"),
                     }
                 }
-                await relationships_vdb.upsert(vdb_data)
+                # 保存或更新向量库中的关系信息【将关系数据【分批embedding处理后，这里是单个关系】保存或更新至数据库【表名：lightrag_vdb_relation】】
+                await relationships_vdb.upsert(vdb_data)  # 实体存储实例，见aperag.graph.lightrag.kg.pg_ops_sync_vector_storage.PGOpsSyncVectorStorage
 
             if edge_data is not None:
-                relation_count += 1
+                relation_count += 1  # 最终关系数量加1
 
-    return {"entity_count": entity_count, "relation_count": relation_count}
+    return {"entity_count": entity_count, "relation_count": relation_count}  # 返回最终保存的实体数量和关系数量
 
 
 @timing_wrapper("extract_entities")
