@@ -93,11 +93,11 @@ async def websocket_chat_endpoint(
     Supports cookie-based authentication to get user_id
     """
     # Authenticate user from WebSocket cookies
-    user_id = await authenticate_websocket_user(websocket, user_manager)
+    user_id = await authenticate_websocket_user(websocket, user_manager)  # 用户认证
     if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    await chat_service_global.handle_websocket_chat(websocket, user_id, bot_id, chat_id)
+    await chat_service_global.handle_websocket_chat(websocket, user_id, bot_id, chat_id)  # 回答逻辑
 
 
 @router.post("/bots/{bot_id}/chats/{chat_id}/title")
@@ -121,14 +121,14 @@ async def generate_chat_title_view(
         raise HTTPException(status_code=400, detail={"error_code": be.error_code.name, "message": str(be)})
 
 
-@router.post("/chat/completions/frontend", tags=["chats"])  # TODO 对话接口?
+@router.post("/chat/completions/frontend", tags=["chats"])  # TODO 对话接口？
 async def frontend_chat_completions_view(request: Request, user: User = Depends(required_user)):
     body = await request.body()
 
     # Try to parse JSON first, fallback to text for backward compatibility
     try:
         data = json.loads(body.decode("utf-8"))
-        message = data.get("message", "")
+        message = data.get("message", "")  # 用户问题？
         files = data.get("files", [])
     except (json.JSONDecodeError, UnicodeDecodeError):
         # Fallback to text message for backward compatibility
@@ -136,10 +136,10 @@ async def frontend_chat_completions_view(request: Request, user: User = Depends(
         files = []
 
     query_params = dict(request.query_params)
-    stream = query_params.get("stream", "false").lower() == "true"
-    bot_id = query_params.get("bot_id", "")
-    chat_id = query_params.get("chat_id", "")
-    msg_id = request.headers.get("msg_id", "")
+    stream = query_params.get("stream", "false").lower() == "true"  # 流式输出标识
+    bot_id = query_params.get("bot_id", "")  # 机器人id
+    chat_id = query_params.get("chat_id", "")  # 对话窗口id
+    msg_id = request.headers.get("msg_id", "")  # 对话记录id
 
     return await chat_service_global.frontend_chat_completions(
         str(user.id), message, stream, bot_id, chat_id, msg_id, files

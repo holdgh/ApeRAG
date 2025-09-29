@@ -38,7 +38,7 @@ export const ChatMessages = ({ chat }: { chat: ChatDetails }) => {
       };
     }
   }, []);
-
+  // 基于websocket进行对话通信
   const { sendMessage, readyState, disconnect, connect } = useWebSocket(
     `${protocol}${host}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/bots/${botId}/chats/${chatId}/connect`,
     {

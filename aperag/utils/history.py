@@ -118,7 +118,33 @@ async def message_from_dict(message: dict) -> BaseMessage:
         raise ValueError(f"Got unexpected message type: {_type}")
 
 
-class RedisChatMessageHistory:
+class RedisChatMessageHistory:  # TODO aperag的对话历史数据是存入redis的
+    """
+    机器人对话相关数据及存储结构：
+    问答机器人--bot数据表
+    对话窗口--chat数据表
+    同一对话窗口的对话历史记录--redis中键为“message_store:对话窗口id”的json列表数据。每个对话历史数据形如：
+    {
+      "parts": [
+        {
+          "chat_id":  "chat406e52cb8400b15a",  # 对话窗口id
+           "message_id":  "08987aab-08e3-473d-9184-59e41e7998e7",  # 对话记录id
+           "part_id":  "d76062d0-d9fb-49cc-be96-707eb45da515",  # 【推测】与对话工作流有关的标识
+           "trace_id":  "c765fe561a14f52aafd451ae4bd7fe1e",  # 【推测】与对话工作流有关的标识
+           "timestamp":  1757582419.6573322,
+           "type":  "message",
+           "role":  "human",  # 对话来源标识 人类或ai机器
+           "content":  "@col4fbd73f0fb52e131 如何维护塔架的螺栓",  # 具体对话内容，Unicode 编码格式
+           "references":  [],
+           "urls":  [],
+           "feedback":  null,
+           "metadata":  null
+        }
+      ],
+       "files":  []
+    }
+    更多数据详情请参考：D:\project\AI\ApeRAG\redis中的一次对话数据_rag回答.json和D:\project\AI\ApeRAG\redis中的一次对话数据_用户问题.json
+    """
     """Chat message history stored in a Redis database using ApeRAG StoredChatMessage format."""
 
     def __init__(

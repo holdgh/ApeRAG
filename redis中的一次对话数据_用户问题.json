@@ -1,0 +1,19 @@
+{
+    "parts": [
+        {
+            "chat_id": "chat406e52cb8400b15a",
+            "message_id": "6a8f0a1f-ba94-497c-a810-382390e70fb8",
+            "part_id": "6508f6a9-714f-4a25-9c5a-a369c56c38de",
+            "trace_id": "80cda45968c35b93c7a6d20e6554f44b",
+            "timestamp": 1757665990.120011,
+            "type": "message",
+            "role": "human",
+            "content": "@col4fbd73f0fb52e131 如何维护塔架的螺栓",
+            "references": [],
+            "urls": [],
+            "feedback": null,
+            "metadata": null
+        }
+    ],
+    "files": []
+}
