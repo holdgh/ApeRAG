@@ -83,8 +83,8 @@ class DocumentIndexTask:
 
                 result = vector_indexer.create_index(
                     document_id=document_id,
-                    content=parsed_data.content,
-                    doc_parts=parsed_data.doc_parts,
+                    content=parsed_data.content,  # markdown文本，并未使用
+                    doc_parts=parsed_data.doc_parts,  # 非视觉资源实例列表【仅处理这部分中的文本内容：rechunk--embedding--QDRANT持久化】
                     collection=collection,
                     file_path=parsed_data.file_path,
                 )
@@ -97,11 +97,11 @@ class DocumentIndexTask:
 
                 result = fulltext_indexer.create_index(
                     document_id=document_id,
-                    content=parsed_data.content,
-                    doc_parts=parsed_data.doc_parts,
+                    content=parsed_data.content,  # markdown文本，并未使用
+                    doc_parts=parsed_data.doc_parts,  # 非视觉资源实例列表【仅处理这部分中的文本内容：rechunk--ES持久化】
                     collection=collection,
                     file_path=parsed_data.file_path,
-                )
+                )  # 采用es数据库
                 if not result.success:
                     raise Exception(result.error)
                 result_data = result.data or {"success": True}
@@ -121,7 +121,7 @@ class DocumentIndexTask:
                         content=parsed_data.content,  # 文档解析结果中的markdown文本内容
                         doc_id=document_id,  # 文档id
                         file_path=parsed_data.file_path,  # 原始文档的【本地】存储路径
-                    )  # 为单个文档构建知识图谱
+                    )  # 为单个文档构建知识图谱【采用postgresql数据库】
                     if result.get("status") != "success":
                         error_msg = result.get("message", "Unknown error")
                         raise Exception(f"Graph indexing failed: {error_msg}")
@@ -139,11 +139,11 @@ class DocumentIndexTask:
                 else:
                     result = summary_indexer.create_index(
                         document_id=document_id,
-                        content=parsed_data.content,
-                        doc_parts=parsed_data.doc_parts,
+                        content=parsed_data.content,  # markdown文本
+                        doc_parts=parsed_data.doc_parts,  # 非视觉资源实例列表【仅处理这部分中的文本内容】
                         collection=collection,
                         file_path=parsed_data.file_path,
-                    )
+                    )  # 对content和doc_parts采用map-reduce策略生成文本摘要，然后对文本摘要进行vector_indexer【同样采用qdrant数据库】
                     if not result.success:
                         raise Exception(result.error)
                     result_data = result.data or {"success": True}
@@ -157,8 +157,8 @@ class DocumentIndexTask:
                 else:
                     result = vision_indexer.create_index(
                         document_id=document_id,
-                        content=parsed_data.content,
-                        doc_parts=parsed_data.doc_parts,
+                        content=parsed_data.content,  # markdown文本，并未使用
+                        doc_parts=parsed_data.doc_parts,  # 非视觉资源实例列表【仅处理这部分中的图片内容，两种方式：1、多模态embedding；2、图片转文本--文本embedding】【同样采用qdrant数据库】
                         collection=collection,
                         file_path=parsed_data.file_path,
                     )

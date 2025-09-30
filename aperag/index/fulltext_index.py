@@ -236,7 +236,7 @@ class FulltextIndexer(BaseIndexer):
         content: str,
         title_text: str = "",
         metadata: Dict[str, Any] = None,
-    ):  # 插入全文索引到es存储
+    ):  # TODO 插入全文索引到es存储
         """Insert a document chunk into the fulltext index"""
         if not self.es.indices.exists(index=index).body:
             logger.warning("index %s not exists", index)

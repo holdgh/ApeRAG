@@ -436,8 +436,8 @@ class ChatService:
                 # Use AgentChatService for agent-type bots
                 from aperag.service.agent_chat_service import AgentChatService
 
-                agent_service = AgentChatService()  # TODO 至此~
-                await agent_service.handle_websocket_agent_chat(websocket, user, bot_id, chat_id)
+                agent_service = AgentChatService()  # 初始化agent对话服务
+                await agent_service.handle_websocket_agent_chat(websocket, user, bot_id, chat_id)  # agent对话逻辑
                 return
             # 若为“知识库机器人”或“普通机器人”，走后续通用流程
             # Continue with existing flow for knowledge and common bots

@@ -388,9 +388,16 @@ class Agent(BaseModel):
     collections: Optional[list[Collection]] = None
 
 
+"""
+关于父类BaseModel的功能说明：详情见D:\project\AI\ApeRAG\pydantic中BaseModel的作用.md
+    pydantic.main.BaseModel 是 Python 第三方库 Pydantic 的核心基类，其核心作用是为数据提供“类型定义、数据验证、数据解析与序列化”的一站式解决方案
+    BaseModel 是 Pydantic 为开发者提供的“模板”，开发者只需基于这个模板定义数据的“结构和类型”，剩下的验证、解析工作都由 Pydantic 自动完成。
+"""
+
+
 class BotConfig(BaseModel):
-    agent: Optional[Agent] = None
-    flow: Optional[WorkflowDefinition] = None
+    agent: Optional[Agent] = None  # 可选字段
+    flow: Optional[WorkflowDefinition] = None  # 可选字段
 
 
 class Bot(BaseModel):
@@ -2506,7 +2513,7 @@ class AgentMessage(BaseModel):
 
     query: str = Field(
         ..., description='User query', examples=['Tell me about ApeRAG features']
-    )
+    )  # 必填项，用户问题
     collections: list[Collection] = Field(
         ...,
         description='List of collection objects to search in',
@@ -2516,14 +2523,14 @@ class AgentMessage(BaseModel):
                 {'id': 'col_456', 'title': 'Another Collection'},
             ]
         ],
-    )
+    )  # 必填项，用户选择的知识库列表
     completion: Optional[ModelSpec] = Field(
         None,
         description='Model specification for completion including provider and model details',
-    )
+    )  # 可选项，模型信息
     web_search_enabled: Optional[bool] = Field(
         False, description='Whether to enable web search', examples=[True]
-    )
+    )  # 可选项，是否开启联网搜索
     language: Optional[
         Literal[
             'en-US',
@@ -2540,5 +2547,5 @@ class AgentMessage(BaseModel):
         ]
     ] = Field(
         'en-US', description='Language preference for the response', examples=['en-US']
-    )
-    files: Optional[list[File]] = None
+    )  # 可选项，语言
+    files: Optional[list[File]] = None  # 可选项，附件列表

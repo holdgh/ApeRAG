@@ -126,7 +126,7 @@ class Config(BaseSettings):
     vector_db_type: str = Field("qdrant", alias="VECTOR_DB_TYPE")
     vector_db_context: str = Field(
         '{"url":"http://localhost", "port":6333, "distance":"Cosine"}', alias="VECTOR_DB_CONTEXT"
-    )
+    )  # 向量索引存储，qdrant
 
     # Object store
     object_store_type: str = Field("local", alias="OBJECT_STORE_TYPE")  # 默认采取本地存储

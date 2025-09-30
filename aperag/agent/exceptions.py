@@ -264,7 +264,7 @@ class AgentTimeoutError(AgentError):
 # Utility functions for error handling and retry logic
 
 
-def safe_json_parse(content: str, context: str = "unknown") -> Dict[str, Any]:
+def safe_json_parse(content: str, context: str = "unknown") -> Dict[str, Any]:  # 使用增强的错误处理安全地解析JSON内容。
     """
     Safely parse JSON content with enhanced error handling.
 

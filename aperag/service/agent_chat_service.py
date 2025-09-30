@@ -100,7 +100,7 @@ class AgentChatService:
         self.memory_manager = AgentMemoryManager()
         self.history_manager = AgentHistoryManager()
 
-    async def _convert_db_collections_to_pydantic(self, db_collections) -> List[view_models.Collection]:
+    async def _convert_db_collections_to_pydantic(self, db_collections) -> List[view_models.Collection]:  # 将机器人配置中的知识库信息列表转换为view_models.Collection实例列表
         """Convert SQLAlchemy Collection models to Pydantic Collection models"""
         from aperag.schema.utils import parseCollectionConfig
 
@@ -121,7 +121,7 @@ class AgentChatService:
 
     def _parse_websocket_message(
         self, raw_data: str
-    ) -> Tuple[Optional[view_models.AgentMessage], Optional[AgentErrorResponse]]:
+    ) -> Tuple[Optional[view_models.AgentMessage], Optional[AgentErrorResponse]]:  # 使用go风格的错误处理解析WebSocket消息。返回view_models.AgentMessage实例
         """
         Parse WebSocket message using Go-style error handling.
 
@@ -135,10 +135,10 @@ class AgentChatService:
         """
         try:
             # Step 1: Safe JSON parsing using agent module utilities
-            message_data = safe_json_parse(raw_data, "websocket_message")
+            message_data = safe_json_parse(raw_data, "websocket_message")  # 将前端消息解析为json数据
 
             # Step 2: Validate required query field early
-            query = message_data.get("query", "").strip()
+            query = message_data.get("query", "").strip()  # 获取并校验前端消息中的query字段【必填校验】
             if not query:
                 from aperag.agent.exceptions import agent_config_invalid
 
@@ -147,7 +147,7 @@ class AgentChatService:
                 return None, error_response
 
             # Step 3: Parse and validate AgentMessage using Pydantic
-            agent_message = view_models.AgentMessage(**message_data)
+            agent_message = view_models.AgentMessage(**message_data)  # 将前端消息封装为view_models.AgentMessage实例
             return agent_message, None
 
         except (JSONParsingError, AgentConfigurationError) as e:
@@ -162,30 +162,31 @@ class AgentChatService:
             return None, error_response
 
     @handle_agent_error("websocket_agent_chat", reraise=False)
-    async def handle_websocket_agent_chat(self, websocket: WebSocket, user: str, bot_id: str, chat_id: str):
+    async def handle_websocket_agent_chat(self, websocket: WebSocket, user: str, bot_id: str, chat_id: str):  # 基于websocket数据传输的agent对话逻辑
         """Handle WebSocket connections for agent-type bot chats with message queue architecture"""
+        # -- 前置校验：获取机器人信息
         # Get bot configuration once at the beginning for performance
         bot = await self.db_ops.query_bot(user, bot_id)
         if not bot:
             error_response = format_processing_error("Bot not found", "en-US")
             await websocket.send_text(json.dumps(error_response))
             return
-
+        # -- 解析机器人的配置信息
         # Parse bot configuration and get default collections once
         bot_config = None
         default_collections = []
         custom_system_prompt = None
         custom_query_prompt = None
-
+        # 解析机器人的流程配置
         if bot.config:
             try:
                 config_dict = json.loads(bot.config)
                 if config_dict:
-                    bot_config = view_models.BotConfig(**config_dict)
+                    bot_config = view_models.BotConfig(**config_dict)  # 将bot.config转化为BotConfig实例【内含agent和flow属性】
             except (json.JSONDecodeError, ValueError):
                 bot_config = None
 
-        if bot_config and bot_config.agent:
+        if bot_config and bot_config.agent:  # 如果bot配置中的agent配置项非空，则获取其中的提示词、知识库信息
             # Get custom prompts from bot config
             custom_system_prompt = bot_config.agent.system_prompt_template
             custom_query_prompt = bot_config.agent.query_prompt_template
@@ -195,30 +196,31 @@ class AgentChatService:
                 collection_ids = [collection.id for collection in bot_config.agent.collections]
                 db_collections = await self.db_ops.query_collections_by_ids(user, collection_ids)
                 # Convert SQLAlchemy models to Pydantic models
-                default_collections = await self._convert_db_collections_to_pydantic(db_collections)
-
+                default_collections = await self._convert_db_collections_to_pydantic(db_collections)  # 知识库信息的格式封装【转换为view_models.Collection实例】
+        # -- 核心循环：持续接收前端消息并处理
         while True:
             # Receive message from WebSocket
-            data = await websocket.receive_text()
+            data = await websocket.receive_text()  # 接收前端消息
 
             # Parse WebSocket message using Go-style error handling
-            agent_message, error_response = self._parse_websocket_message(data)
-            if error_response:
+            agent_message, error_response = self._parse_websocket_message(data)  # 将前端消息转化为view_models.AgentMessage实例
+            if error_response:  # 解析前端消息时触发异常，直接通过websocket返回前端异常信息
                 await websocket.send_text(json.dumps(error_response))
                 continue
 
             # Process each message in a new trace context
             await self._handle_single_message(
-                websocket,
-                agent_message,
+                websocket,  # websocket连接，用以适时推送消息
+                agent_message,  # 前端数据的格式化封装【view_models.AgentMessage实例】
                 user,
-                bot,
-                chat_id,
-                bot_config=bot_config,
-                default_collections=default_collections,
+                bot,  # 机器人信息
+                chat_id,  # 对话窗口id
+                bot_config=bot_config,  # 机器人配置信息
+                default_collections=default_collections,  # 机器人配置中的知识库信息列表
+                # 机器人配置中的提示词
                 custom_system_prompt=custom_system_prompt,
                 custom_query_prompt=custom_query_prompt,
-            )
+            )  # 处理单个消息的回答
 
     @trace_async_function("name=handle_single_websocket_message", new_trace=True)
     async def _handle_single_message(
@@ -232,7 +234,7 @@ class AgentChatService:
         default_collections=None,
         custom_system_prompt=None,
         custom_query_prompt=None,
-    ):
+    ):  # 处理单个WebSocket消息的回答【根据其历史对话记录回答当前问题，基于chat_id从redis中获取】  TODO 至此~
         """Handle a single WebSocket message with its own trace"""
         trace_id = None
         try:

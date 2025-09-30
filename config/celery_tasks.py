@@ -266,7 +266,7 @@ def create_index_task(self, document_id: str, index_type: str, parsed_data_dict:
         # -- 基于文档解析结果和索引类型，执行创建索引
         # Execute index creation
         result = document_index_task.create_index(document_id, index_type, parsed_data)
-
+        # -- 检查创建索引是否成功【失败则触发重试机制【3次，见方法头部注解】】
         # Check if the operation failed and raise exception to trigger retry
         if not result.success:
             error_msg = f"Failed to create {index_type} index for document {document_id}: {result.error}"
@@ -275,7 +275,7 @@ def create_index_task(self, document_id: str, index_type: str, parsed_data_dict:
 
         # Handle success callback with version validation
         logger.info(f"Successfully created {index_type} index for document {document_id} (v{target_version})")
-        self._handle_index_success(document_id, index_type, target_version, result.data)
+        self._handle_index_success(document_id, index_type, target_version, result.data)  # 标记索引任务为ACTIVE，并更新原始文件状态
 
         return result.to_dict()
 
@@ -621,7 +621,7 @@ def trigger_update_indexes_workflow(self, parsed_data_dict: dict, document_id: s
 
 
 @current_app.task(bind=True, base=BaseIndexTask)
-def notify_workflow_complete(self, index_results: List[dict], document_id: str, operation: str, index_types: List[str]) -> dict:
+def notify_workflow_complete(self, index_results: List[dict], document_id: str, operation: str, index_types: List[str]) -> dict:  # 在所有并行索引任务执行完毕后，汇总结果
     """
     Workflow completion notification task.
 
@@ -640,7 +640,7 @@ def notify_workflow_complete(self, index_results: List[dict], document_id: str, 
     try:
         logger.info(f"Workflow {operation} completed for document {document_id}")
         logger.info(f"Index results: {index_results}")
-
+        # 收集索引任务是否执行成功
         # Analyze results
         successful_tasks = []
         failed_tasks = []
@@ -654,7 +654,7 @@ def notify_workflow_complete(self, index_results: List[dict], document_id: str, 
                     failed_tasks.append(f"{result.index_type}: {result.error}")
             except Exception as e:
                 failed_tasks.append(f"unknown: {str(e)}")
-
+        # 打印索引任务执行情况【哪个文档的哪类任务执行成功/失败】
         # Determine overall status
         if not failed_tasks:
             status = TaskStatus.SUCCESS
@@ -668,18 +668,18 @@ def notify_workflow_complete(self, index_results: List[dict], document_id: str, 
             status = TaskStatus.FAILED
             status_message = f"Document {document_id} {operation} FAILED. All tasks failed: {'; '.join(failed_tasks)}"
             logger.error(status_message)
-
+        # 汇总索引结果
         # Create workflow result
         workflow_result = WorkflowResult(
-            workflow_id=f"{document_id}_{operation}",
+            workflow_id=f"{document_id}_{operation}",  # 工作流标识【文档id_索引任务类型】
             document_id=document_id,
-            operation=operation,
-            status=status,
-            message=status_message,
-            successful_indexes=successful_tasks,
-            failed_indexes=[f.split(':')[0] for f in failed_tasks],
-            total_indexes=len(index_types),
-            index_results=[IndexTaskResult.from_dict(r) for r in index_results]
+            operation=operation,  # 索引任务类型【创建、更新、删除】
+            status=status,  # 当前类索引任务的所有索引类型任务执行状态【全部成功、部分成功、全部失败】
+            message=status_message,  # 当前类索引任务的所有索引类型任务执行细节【哪些索引类型成功、哪些索引类型失败】
+            successful_indexes=successful_tasks,  # 执行成功的索引类型
+            failed_indexes=[f.split(':')[0] for f in failed_tasks], # 执行失败的索引类型
+            total_indexes=len(index_types),  # 全量索引类型
+            index_results=[IndexTaskResult.from_dict(r) for r in index_results]  # 全量索引任务执行结果明细列表
         )
 
         return workflow_result.to_dict()

@@ -38,7 +38,7 @@ class VectorIndexer(BaseIndexer):
         """Vector indexing is always enabled"""
         return True
 
-    def create_index(self, document_id: str, content: str, doc_parts: List[Any], collection, **kwargs) -> IndexResult:
+    def create_index(self, document_id: str, content: str, doc_parts: List[Any], collection, **kwargs) -> IndexResult:  # TODO 注意并未处理content【文档解析结果中的markdown文本】
         """
         Create vector index for document
 
@@ -57,10 +57,10 @@ class VectorIndexer(BaseIndexer):
             embedding_model, vector_size = get_collection_embedding_service_sync(collection)
             vector_store_adaptor = get_vector_db_connector(
                 collection=generate_vector_db_collection_name(collection_id=collection.id)
-            )
+            )  # TODO 向量索引存储采用qdrant数据库
 
             # Filter out non-text parts
-            doc_parts = [part for part in doc_parts if hasattr(part, "content") and part.content]
+            doc_parts = [part for part in doc_parts if hasattr(part, "content") and part.content]  # 过滤掉非文本【文档解析结果中的非视觉资源实例列表】
 
             # Add indexer metadata to parts for proper identification
             for part in doc_parts:

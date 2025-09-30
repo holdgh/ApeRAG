@@ -67,7 +67,7 @@ def create_embeddings_and_store(
 
     # 1. Rechunk the document parts (resulting in text parts)
     # After rechunk(), parts only contains TextPart
-    chunked_parts = rechunk(parts, chunk_size, chunk_overlap, tokenizer)
+    chunked_parts = rechunk(parts, chunk_size, chunk_overlap, tokenizer)  # TODO rechunk操作
 
     # 2. Process each text chunk
     for part in chunked_parts:
@@ -115,4 +115,4 @@ def create_embeddings_and_store(
 
     logger.info(f"processed document with {len(parts)} parts and {len(vectors)} chunks")
     # 5. Add nodes to vector store and return results
-    return vector_store_adaptor.connector.store.add(nodes)
+    return vector_store_adaptor.connector.store.add(nodes)  # 每个node含有text【分段文本】\metadata【分段元数据】\embedding数据【分段embedding向量】

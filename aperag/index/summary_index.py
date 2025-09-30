@@ -270,6 +270,9 @@ class SummaryIndexer(BaseIndexer):
 
     def _generate_document_summary(self, content: str, doc_parts: List[Any], collection) -> str:
         """
+        通过 “Map（拆分与处理）” 将长文本拆解为可独立处理的子单元，再通过 “Reduce（聚合与融合）” 将子单元的局部结果整合为连贯、全面的最终摘要
+        """
+        """
         Generate document summary using map-reduce strategy
 
         Args:
