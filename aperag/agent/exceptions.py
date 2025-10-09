@@ -403,6 +403,16 @@ def handle_agent_error(
     reraise: bool = True,
 ):
     """
+    用于处理具有一致日志记录和可选默认返回的代理错误的装饰器。兼容异步和同步操作。
+    参数:
+        operation：操作的描述信息
+        default_return：发生错误时返回的默认值，并且reraise=False
+        log_level：错误消息的日志级别
+        reraise：日志记录后是否重新引发异常
+    返回:
+        装饰功能
+    """
+    """
     Decorator for handling agent errors with consistent logging and optional default returns.
 
     Args:

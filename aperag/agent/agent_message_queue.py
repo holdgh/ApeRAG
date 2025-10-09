@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 class AgentMessageQueue:
     """
+    用于代理聊天通信的异步消息队列。
+    就像Go频道一样——生产者发送信息，消费者接收信息。
+    支持优雅的关闭和流结束信令。
+    """
+    """
     Async message queue for agent chat communication.
 
     Acts like Go channels - producers put messages, consumers get messages.
@@ -33,7 +38,7 @@ class AgentMessageQueue:
         self.queue = asyncio.Queue()
         self._closed = False
 
-    async def put(self, message: Dict[str, Any]) -> None:
+    async def put(self, message: Dict[str, Any]) -> None:  # 将消息放入队列
         """Put a message into the queue"""
         if self._closed:
             logger.warning(f"Attempted to put message into closed queue, message: {message}")
@@ -42,7 +47,7 @@ class AgentMessageQueue:
         await self.queue.put(message)
         logger.debug(f"Message queued: {message.get('type', 'unknown')}")
 
-    async def get(self) -> Optional[Dict[str, Any]]:
+    async def get(self) -> Optional[Dict[str, Any]]:  # 从队列中获取消息。当队列关闭且为空时返回None。
         """Get a message from the queue. Returns None when queue is closed and empty."""
         try:
             return await self.queue.get()
@@ -53,7 +58,7 @@ class AgentMessageQueue:
         """Close the queue and signal end of stream"""
         self._closed = True
         # Put a sentinel value to signal end of stream
-        await self.queue.put(None)
+        await self.queue.put(None)  # 设置一个哨兵值来表示流的结束
         logger.debug("Message queue closed")
 
     def is_closed(self) -> bool:

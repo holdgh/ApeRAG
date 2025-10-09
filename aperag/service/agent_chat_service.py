@@ -161,6 +161,11 @@ class AgentChatService:
             error_response = format_websocket_error(config_error, raw_data)
             return None, error_response
 
+    """
+    装饰器 @handle_agent_error：
+    这是一个 “异常处理装饰器”，作用是捕获函数内部抛出的异常，避免因单个错误导致 WebSocket 连接直接中断。
+    参数 reraise=False 表示 “捕获异常后不向上传播”，而是由装饰器内部处理（如记录日志、返回统一格式的错误消息给前端），保证服务稳定性。
+    """
     @handle_agent_error("websocket_agent_chat", reraise=False)
     async def handle_websocket_agent_chat(self, websocket: WebSocket, user: str, bot_id: str, chat_id: str):  # 基于websocket数据传输的agent对话逻辑
         """Handle WebSocket connections for agent-type bot chats with message queue architecture"""
@@ -180,7 +185,7 @@ class AgentChatService:
         # 解析机器人的流程配置
         if bot.config:
             try:
-                config_dict = json.loads(bot.config)
+                config_dict = json.loads(bot.config)  # bot.config 是数据库中存储的 JSON 字符串，包含 Agent 专属配置
                 if config_dict:
                     bot_config = view_models.BotConfig(**config_dict)  # 将bot.config转化为BotConfig实例【内含agent和flow属性】
             except (json.JSONDecodeError, ValueError):
@@ -197,7 +202,7 @@ class AgentChatService:
                 db_collections = await self.db_ops.query_collections_by_ids(user, collection_ids)
                 # Convert SQLAlchemy models to Pydantic models
                 default_collections = await self._convert_db_collections_to_pydantic(db_collections)  # 知识库信息的格式封装【转换为view_models.Collection实例】
-        # -- 核心循环：持续接收前端消息并处理
+        # -- 核心循环：持续接收前端消息并处理【在此之前的逻辑主要用于获取当前机器人的配置上下文】
         while True:
             # Receive message from WebSocket
             data = await websocket.receive_text()  # 接收前端消息
@@ -222,11 +227,15 @@ class AgentChatService:
                 custom_query_prompt=custom_query_prompt,
             )  # 处理单个消息的回答
 
+    """
+    @trace_async_function 装饰器：用于 “链路追踪”，为每个消息处理创建独立的追踪 ID（trace_id），便于日志记录和问题排查（如追踪一个用户提问从接收→处理→推送的完整链路）。
+    new_trace=True 表示每个消息都启用新的追踪上下文。
+    """
     @trace_async_function("name=handle_single_websocket_message", new_trace=True)
     async def _handle_single_message(
         self,
         websocket: WebSocket,
-        agent_message: view_models.AgentMessage,
+        agent_message: view_models.AgentMessage,  # 前端数据的格式化封装【view_models.AgentMessage实例】
         user: str,
         bot: any,
         chat_id: str,
@@ -234,21 +243,40 @@ class AgentChatService:
         default_collections=None,
         custom_system_prompt=None,
         custom_query_prompt=None,
-    ):  # 处理单个WebSocket消息的回答【根据其历史对话记录回答当前问题，基于chat_id从redis中获取】  TODO 至此~
+    ):  # 处理单个WebSocket消息的回答【根据其历史对话记录回答当前问题，基于chat_id从redis中获取】
+        """
+        核心设计思想：生产者-消费者模型
+            - 解耦处理与推送：Agent 处理逻辑（可能耗时，如调用多个工具）和前端推送逻辑分离，避免处理耗时阻塞实时推送。
+            - 支持流式反馈：Agent 生成的中间结果（如 “正在调用工具”“部分回答”）可通过队列实时推送给前端，用户体验更流畅。
+            - 容错性提升：单个任务失败（如推送失败）不影响另一个任务（如处理仍可完成），便于单独重试或修复。
+        """
+        """
+        完整流程：
+            - 初始化消息 ID 和队列，注册链路追踪；
+            - 关联用户上传的文件（若有）；
+            - 启动并行任务：
+                - 生产者（process_task）：处理提问，生成回答和中间结果，放入队列；
+                - 消费者（consumer_task）：从队列取结果，实时推送给前端；
+            - 处理任务异常，推送错误提示（若失败）；
+            - 保存对话历史（若成功）；
+            - 清理资源，注销监听器。
+
+        """
+        """处理单个用户提问（通过 WebSocket 接收的 agent_message），协调 “消息处理” 和 “结果推送” 两个异步任务，最终完成回答生成、历史保存等闭环操作。"""
         """Handle a single WebSocket message with its own trace"""
         trace_id = None
         try:
-            message_id = str(uuid.uuid4())
-            message_queue = AgentMessageQueue()
-            trace_id = await self.register_message_queue(agent_message.language, chat_id, message_id, message_queue)
+            message_id = str(uuid.uuid4())  # 生成当前消息的唯一标识
+            message_queue = AgentMessageQueue()  # 初始化异步消息队列【用于代理聊天通信的异步消息队列。Agent内部通信的载体】
+            trace_id = await self.register_message_queue(agent_message.language, chat_id, message_id, message_queue)  # 注册消息队列，返回追踪ID（用于关联整个消息处理链路）
 
             # Get document metadata and associate documents with message if files are provided
             from aperag.service.chat_document_service import chat_document_service
-
+            # 将用户上传的文件与当前消息绑定（文件ID列表来自agent_message.files）【将文件 ID 与当前 message_id 绑定，后续处理时可直接获取这些文件的内容（如作为 Agent 调用工具的输入）】
             files = await chat_document_service.associate_documents_with_message(
                 chat_id=chat_id, message_id=message_id, files=[file.id for file in agent_message.files], user=user
             )
-
+            # 生产者任务：处理消息（调用Agent逻辑生成回答、工具调用等）
             # Message Producer: Start background task to process agent generation message
             process_task = asyncio.create_task(
                 self.process_agent_message(
@@ -257,19 +285,25 @@ class AgentChatService:
                     bot,
                     chat_id,
                     message_id,
-                    message_queue,
+                    message_queue,  # 消息队列（用于向消费者推送中间结果）
                     bot_config=bot_config,
                     default_collections=default_collections,
                     custom_system_prompt=custom_system_prompt,
                     custom_query_prompt=custom_query_prompt,
                 )
-            )
+            )  # 调用 Agent 处理用户提问（如解析问题、调用工具、生成回答），将中间结果（如 “正在调用搜索工具”“回答片段”）放入 message_queue。
+
+            # 消费者任务：从消息队列取数据，实时推送给前端
             # Message Consumer
             consumer_task = asyncio.create_task(
-                self._consume_messages_from_queue(chat_id, message_id, trace_id, message_queue, websocket)
-            )
+                self._consume_messages_from_queue(chat_id, message_id, trace_id,
+                                                  message_queue,   # 消息队列（从这里获取生产者的输出）
+                                                  websocket)
+            )  # 持续监听 message_queue，一旦有新数据（如 Agent 生成的回答片段、工具调用状态），立即通过 WebSocket 推送给前端，实现 “实时反馈”（如显示 “Agent 正在调用计算器”“回答片段”）。
+            # 等待两个任务完成（支持异常捕获）【两个任务并行执行，提高效率；return_exceptions=True 确保单个任务出错时，另一个任务的结果仍能被捕获，便于统一处理错误。】
             process_result, consumer_result = await asyncio.gather(process_task, consumer_task, return_exceptions=True)
-
+            # 异常处理确保单个任务失败不会导致整个 WebSocket 连接崩溃，符合 “健壮性设计”。
+            # 处理生产者任务异常【若生产者（process_task）失败（如 Agent 调用工具出错），生成错误响应并通过 WebSocket 推送给前端，告知用户 “处理失败”。】
             # Handle process_task exceptions with unified error formatting
             if isinstance(process_result, Exception):
                 logger.error(f"Process task failed: {process_result}")
@@ -278,22 +312,25 @@ class AgentChatService:
                 )
                 await websocket.send_text(json.dumps(error_response))
                 return
-
+            # 处理消费者任务异常【若消费者（consumer_task）失败（如推送消息时连接中断），同样记录错误并推送提示。】
             # Handle consumer_task exceptions
             if isinstance(consumer_result, Exception):
                 logger.error(f"Consumer task failed: {consumer_result}")
                 error_response = format_processing_error(str(consumer_result), agent_message.language or "en-US")
                 await websocket.send_text(json.dumps(error_response))
                 return
-
+            # 从生产者结果中提取关键信息
             # Handle history saving at WebSocket layer (better separation of concerns)
             # process_result now contains {query, content, references} on success
             query = process_result.get("query", "")
-            ai_response = process_result.get("content", "")
-            references = process_result.get("references", "")
-            tool_use_list = consumer_result
+            ai_response = process_result.get("content", "")  # Agent最终回答
+            references = process_result.get("references", "")  # 参考资料
+            tool_use_list = consumer_result  # 消费者返回的工具调用记录
+            # 保存对话历史到数据库/Redis
             await self._save_conversation_history(
-                chat_id, message_id, trace_id, query, ai_response, files, tool_use_list, references
+                chat_id, message_id, trace_id,
+                query, ai_response, files,  # 用户提问、AI回答、关联文件
+                tool_use_list, references  # 工具调用记录、参考资料
             )
 
         except Exception as e:
@@ -303,14 +340,15 @@ class AgentChatService:
             await websocket.send_text(json.dumps(error_response))
         finally:
             if trace_id:
+                # 注销该trace_id的监听器（释放资源）【无论处理成功或失败，最终都会注销 trace_id 对应的监听器，避免资源泄露（如持续占用内存监听已完成的任务）。】
                 await agent_event_listener.unregister_listener(str(trace_id))
 
     async def register_message_queue(self, language, chat_id, message_id, message_queue):
         # Get the trace_id from the current span
         from aperag.trace.mcp_integration import get_current_trace_info
 
-        trace_id, _ = get_current_trace_info()
-        if not trace_id:
+        trace_id, _ = get_current_trace_info()  # 从当前追踪上下文获取trace_id（链路唯一标识）
+        if not trace_id:  # 若获取不到trace_id，记录错误（可能影响后续事件追踪）
             logger.error("Could not get trace_id from current span, event dispatching will fail.")
         else:
             # Register a listener for this request with the global proxy.
@@ -320,7 +358,7 @@ class AgentChatService:
                 message_id=message_id,
                 queue=message_queue,
                 language=language,
-            )
+            )   # 将trace_id与当前对话、消息、队列绑定，注册到全局监听器。【实现 “链路标识” 与 “业务数据” 的关联】
         return trace_id
 
     async def _stream_message_content(

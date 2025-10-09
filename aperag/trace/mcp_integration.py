@@ -13,6 +13,10 @@
 # limitations under the License.
 
 """
+MCP Agent opentelementetry Integration
+简化版本，为mcp-agent事件提供自动trace_id注入。
+"""
+"""
 MCP Agent OpenTelemetry Integration
 
 Simplified version that provides automatic trace_id injection for mcp-agent events.
@@ -35,7 +39,19 @@ except ImportError:
 _mcp_tracing_enabled = False
 
 
-def get_current_trace_info() -> Tuple[Optional[str], Optional[str]]:
+def get_current_trace_info() -> Tuple[Optional[str], Optional[str]]:  # TODO 至此~
+    """
+    从当前OpenTelemetry上下文中提取trace_id和span_id。
+返回:
+（trace_id, span_id）为十六进制字符串的元组，如果不可用，则为（None, None）
+    """
+    """
+    核心逻辑：
+        - 依赖 OpenTelemetry（分布式追踪标准库），从当前执行上下文（current_span）中提取 trace_id 和 span_id；
+        - trace_id：全局唯一，标识一个完整的请求链路（如 “用户提问→Agent 处理→工具调用→回答生成” 的全流程）；
+        - span_id：标识链路中的一个具体操作节点（如 “Agent 调用工具”“生成回答片段” 等单个步骤）；
+        - 格式化后返回标准的十六进制字符串（符合分布式追踪的行业规范）。
+    """
     """
     Extract trace_id and span_id from current OpenTelemetry context.
 

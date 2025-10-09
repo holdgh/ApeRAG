@@ -64,6 +64,9 @@ class AgentEventListener(EventListener):
         language,
     ):
         """
+        安全地为一个特定的请求创建并注册一个agentteventprocessor，由它的trace_id指定。
+        """
+        """
         Safely creates and registers a AgentEventProcessor for a specific request,
         keyed by its trace_id.
         """
@@ -74,7 +77,7 @@ class AgentEventListener(EventListener):
             message_id=message_id,
             language=language,
         )
-        async with self._lock:
+        async with self._lock:  # 加锁，确保线程安全
             self._request_listeners[trace_id] = listener
             logger.debug(f"Registered temporary listener for trace_id: {trace_id}")
 

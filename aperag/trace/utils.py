@@ -145,6 +145,12 @@ def trace_function(name: Optional[str] = None):
 
 def trace_async_function(name: Optional[str] = None, new_trace: bool = False):
     """
+    装饰器来自动跟踪异步函数。
+    参数:
+    name：自定义跨度名称（默认为函数名）
+    new_trace：如果为True，则创建一个新的trace （new trace_id）而不是子span
+    """
+    """
     Decorator to automatically trace an async function.
 
     Args:
