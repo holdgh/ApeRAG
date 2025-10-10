@@ -58,23 +58,24 @@ def get_current_trace_info() -> Tuple[Optional[str], Optional[str]]:  # TODO 至
     Returns:
         Tuple of (trace_id, span_id) as hex strings, or (None, None) if unavailable
     """
-    if not OPENTELEMETRY_AVAILABLE:
-        return None, None
+    if not OPENTELEMETRY_AVAILABLE:  # 是否正常执行from opentelemetry import trace
+        return None, None  # 若未启用OpenTelemetry，返回空
 
     try:
-        current_span = trace.get_current_span()
+        current_span = trace.get_current_span()  #获取当前span（链路中的一个操作节点）
         if not current_span or not current_span.is_recording():
             return None, None
-
+        # 从span中获取上下文（包含trace_id和span_id）
         span_context = current_span.get_span_context()
         if not span_context or not span_context.is_valid:
             return None, None
-
+        # 将trace_id和span_id格式化为十六进制字符串（标准追踪格式）
         trace_id = format(span_context.trace_id, "032x")
         span_id = format(span_context.span_id, "016x")
         return trace_id, span_id
 
     except Exception:
+        # 异常时返回空，避免影响主流程
         # Fail gracefully to avoid breaking normal operation
         return None, None
 

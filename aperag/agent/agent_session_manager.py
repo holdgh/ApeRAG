@@ -135,7 +135,7 @@ class ChatSession:
 
 
 # Simple global state - no complex singleton patterns
-_chat_sessions: Dict[str, ChatSession] = {}
+_chat_sessions: Dict[str, ChatSession] = {}  # 聊天会话缓存
 _cleanup_task: Optional[asyncio.Task] = None
 
 
@@ -146,12 +146,17 @@ def generate_session_key(user_id: str, chat_id: str, provider_name: str) -> str:
 
 async def get_or_create_session(config: AgentConfig) -> ChatSession:
     """
+    使用AgentConfig获取或创建聊天会话。超级简单-没有复杂的锁定。
+    为了简单起见，我们接受一些次要的竞争条件。最糟糕的情况:
+    我们创建一个额外的会话，稍后进行清理。
+    """
+    """
     Get or create chat session using AgentConfig. Super simple - no complex locking.
 
     We accept some minor race conditions for simplicity. Worst case:
     we create an extra session that gets cleaned up later.
     """
-    session_key = config.get_session_key()
+    session_key = config.get_session_key()  # 基于agent配置获取聊天会话key【会话key组成规则：“用户id:对话窗口id:模型提供商名称”】
 
     # Quick check if session exists and is ready
     session = _chat_sessions.get(session_key)

@@ -50,4 +50,4 @@ class AgentConfig:
 
     def get_session_key(self) -> str:
         """Generate session key based on user, chat, and provider."""
-        return f"{self.user_id}:{self.chat_id}:{self.provider_name}"
+        return f"{self.user_id}:{self.chat_id}:{self.provider_name}"  # 会话key组成规则：“用户id:对话窗口id:模型提供商名称”

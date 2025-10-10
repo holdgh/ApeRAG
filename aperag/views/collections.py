@@ -193,7 +193,7 @@ async def create_search_view(
     data: view_models.SearchRequest,
     user: User = Depends(required_user),
 ) -> view_models.SearchResult:
-    return await collection_service.create_search(str(user.id), collection_id, data)
+    return await collection_service.create_search(str(user.id), collection_id, data)  # 知识库检索功能 TODO 至此~
 
 
 @router.delete("/collections/{collection_id}/searches/{search_id}", tags=["search"], name="DeleteSearch")

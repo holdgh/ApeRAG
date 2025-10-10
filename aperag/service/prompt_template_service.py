@@ -264,6 +264,15 @@ DEFAULT_AGENT_QUERY_PROMPT_EN = """{% set collection_list = [] %}
 Please provide a thorough, well-researched answer that leverages all appropriate search tools based on the context above."""
 
 # Default Agent Query Prompt Templates - Chinese Version
+"""
+这份提示词不是 “直接让 LLM 生成回答”，而是 “让 LLM 扮演 Agent，规划回答流程”—— 例如：
+
+    LLM 读取提示词后，判断 “用户提问需要产品文档库的信息”；
+    决策 “调用知识库检索工具，传入产品文档库 ID 和查询关键词”；
+    等待工具返回结果后，再判断 “是否需要补充网络搜索”；
+    最终整合所有信息，生成符合格式要求的回答。
+
+"""
 DEFAULT_AGENT_QUERY_PROMPT_ZH = """{% set collection_list = [] %}
 {% if collections %}
 {% for c in collections %}
@@ -299,7 +308,7 @@ DEFAULT_AGENT_QUERY_PROMPT_ZH = """{% set collection_list = [] %}
 8. 在回应中区分用户指定和额外的来源
 9. **重要**：引用知识库时，使用知识库名称而非ID
 
-请提供一个彻底、经过充分研究的答案，基于以上上下文充分利用所有适当的搜索工具。"""
+请提供一个彻底、经过充分研究的答案，基于以上上下文充分利用所有适当的搜索工具。"""  # TODO 这个提示词的作用是什么？
 
 
 def get_agent_system_prompt(language: str = "en-US") -> str:
@@ -390,12 +399,13 @@ def build_agent_query_prompt(
         - chat_id: Chat ID string (may be None)
         - language: Language code
     """
+    # -- 获取提示词模板【若不提供，则采用默认】
     # Use custom template if provided, otherwise use default template
     if custom_template:
         template_str = custom_template
     else:
         template_str = get_default_agent_query_prompt_template(agent_message.language)
-
+    # -- 填充提示词模板
     # Create Jinja2 template
     template = Template(template_str)
 

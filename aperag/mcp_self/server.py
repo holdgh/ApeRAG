@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 mcp_server = FastMCP("ApeRAG")
 
 # Base URL for internal API calls
-API_BASE_URL = "http://localhost:8000"
+API_BASE_URL = "http://localhost:8000"  # MCP本地服务封装，用以机器人agent问答使用
 
 
 @mcp_server.tool

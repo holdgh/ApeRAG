@@ -40,7 +40,20 @@ class AgentMemoryManager:
     @handle_agent_error("memory_creation_from_history", reraise=True)
     async def create_memory_from_history(
         self, history: RedisChatMessageHistory, context_limit: int = 4
-    ) -> SimpleMemory:
+    ) -> SimpleMemory:  # 基于对话历史【根据context_limit截断】创建llm风格的对话历史消息内存
+        """
+        从聊天记录创建LLM内存。
+        这个方法:
+            1. 从历史记录中检索最近的消息
+            2. 应用上下文窗口限制（默认：最近4个回合）
+            3. 转换为具有适当消息类型的simplemmemory格式
+            4. 返回准备好供LLM使用的内存
+        参数:
+            history：聊天记录实例
+            context_limit：包含的最近对话次数【对话历史上下文长度，默认4个】
+        返回:
+            simplemmemory：用最近的对话上下文填充的内存
+        """
         """
         Create LLM memory from chat history (pure function).
 

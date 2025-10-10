@@ -54,7 +54,7 @@ def format_i18n_error(error_key: str, language: str = "en-US", **kwargs) -> Agen
 
 
 # Backward compatibility functions
-def format_stream_start(msg_id: str) -> AgentStartResponse:
+def format_stream_start(msg_id: str) -> AgentStartResponse:  # 开始消息，标识事件的开始
     """Format stream start event - backward compatibility"""
     return AgentStartResponse(
         type="start",
