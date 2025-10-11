@@ -531,7 +531,7 @@ class AgentChatService:
         # Determine system prompt: use custom if provided, otherwise use default
         system_prompt = (
             custom_system_prompt if custom_system_prompt else get_agent_system_prompt(language=agent_message.language)
-        )
+        )  # 默认机器人配置中没有任何数据，也就没有custom_system_prompt，这里采用了get_agent_system_prompt(language=agent_message.language)获取系统提示词
         # -- 基于用户、对话窗口id、模型信息【提供商、api_key、base_url、模型名称】、语言参数、系统提示词、用户的aperag_api_key【用以调用本地mcp服务】、本地mcp服务接口等初始化agent配置
         # Create AgentConfig with all needed parameters including chat_id
         config = AgentConfig(
@@ -542,8 +542,8 @@ class AgentChatService:
             base_url=provider_info.base_url,
             default_model=agent_message.completion.model,
             language=agent_message.language if agent_message.language else "en-US",
-            instruction=system_prompt,
-            server_names=["aperag"],
+            instruction=system_prompt,  # 系统提示词
+            server_names=["aperag"],  # mcp服务名称
             aperag_api_key=aperag_api_key,
             aperag_mcp_url=os.getenv("APERAG_MCP_URL", "http://localhost:8000/mcp/"),
             temperature=0.7,
@@ -644,6 +644,37 @@ class AgentChatService:
                 5、最终生成回答：
                     当 LLM 判断信息足够时，生成符合提示词要求的自然语言回答（包含来源标注、区分用户指定 / 额外来源）。
             """
+            """
+            1、能力注入 —— 提示词告知 LLM “如何使用 MCP 工具”
+            LLM 之所以知道 “何时调用 MCP 工具、调用哪个工具”，核心是 提示词中包含了 “工具使用指南”，
+            这些指南通过 custom_system_prompt（系统提示词）和 comprehensive_prompt（综合提示词）传递给 LLM，完成 “能力注入”。
+            
+            2、当 LLM 根据提示词决定调用工具时，不会直接与 MCP 交互，而是通过 Agent 作为 “中间翻译官”，完成 “LLM 自然语言指令 → Agent 结构化指令 → MCP 工具调用” 的转化：
+            具体流程（隐式逻辑，基于代码推导）：
+            - LLM 生成工具调用意图：
+            LLM 解析综合提示词后，生成包含 “工具调用意图” 的文本，例如：
+                “我需要调用知识库检索工具，查询用户指定的‘产品文档库’（ID: col123），关键词是‘如何配置 RAG 知识库’。”
+            - Agent 解析意图为结构化指令：
+            Agent内置 “工具调用解析逻辑”，将 LLM 的自然语言意图转化为 MCP 能理解的结构化指令（如 JSON）：
+                {"tool": "knowledge_search", "params": {"collection_ids": ["col123"], "query": "如何配置 RAG 知识库", "session_id": "chat456"}}
+                其中 session_id 来自self._get_agent_session生成的会话，确保 MCP 能将结果返回给当前会话。
+            - Agent 向 MCP 发送指令：
+                Agent 通过 session.mcp_running_app（会话session运行中的 MCP 实例，见aperag.agent.agent_session_manager.ChatSession.initialize和aperag.agent.mcp_app_factory.MCPAppFactory.create_mcp_app）提供的接口，将结构化指令发送给对应的 MCP 工具：
+                    MCP 收到指令后，找到名为 knowledge_search 的工具；
+                    执行工具内部逻辑（如查询向量数据库、过滤相关文档、提取关键片段）；
+                    生成工具调用结果（如包含 “RAG 配置步骤” 的文档片段列表）。
+
+            3、结果反馈 ——MCP 工具结果通过 Agent 回传给 LLM
+            Agent 拿到 MCP 的原始结果后，会按照提示词要求（如 “标注来源”“区分用户指定知识库”）进行初步格式化，然后将其写入 LLM 的 history（上下文内存）：
+                # 伪代码：Agent 将 MCP 结果注入 LLM 上下文
+                formatted_tool_result = f"【知识库来源：产品文档库（ID: col123）】\n检索结果：{mcp_tool_result['fragments'][0]['content']}"
+                # 写入 LLM 的 history，供后续决策使用
+                self.llm.history.add_message(role="system", content=formatted_tool_result)
+            此时 LLM 能从 history 中读取到工具结果，进而判断 “是否需要继续调用其他工具” 或 “可以生成最终回答”。
+
+            4、总结：ChatSession 中 LLM 与 MCP 工具的联系，本质是 “提示词驱动决策，Agent 协调交互，MCP 执行操作” 的分工协作模式：
+            """
+            # 系统提示词
             response = await llm.generate_str(comprehensive_prompt, request_params)
             full_content = response if response else "No response generated"
 

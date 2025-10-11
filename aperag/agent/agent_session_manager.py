@@ -59,25 +59,35 @@ class ChatSession:
 
         try:
             logger.info(f"Initializing provider session {self.config.get_session_key()}")
+            """
+            MCP 是一套 “工具管理与执行框架”，负责将 Agent 所需的能力（如知识库检索、网络搜索、文件解析）封装为标准化的 “可调用模块”，并提供统一的调用接口。
+            LLM 本身不具备 “检索数据库”“调用外部 API” 的能力，必须通过 MCP 工具才能将 “决策” 转化为 “实际操作”。
+            
+            绑定逻辑解读：
+                MCP 是 “工具容器”：self.mcp_running_app 是启动后的 MCP 实例，内部已加载所有配置好的工具（如知识库检索工具 knowledge_search、网络搜索工具 web_search），且通过 session_id 与当前对话绑定，避免工具调用结果混淆；
+                Agent 是 “翻译官”：Agent 初始化时传入了 instruction（系统提示词），提示词中包含 “如何使用工具” 的规则（如 “用户指定知识库后必须调用检索工具”）；同时 Agent 通过 server_names 知道要调用 MCP 中的哪些工具服务；
+                LLM 是 “决策者”：通过 agent.attach_llm 方法，LLM 被 “挂载” 到 Agent 上 —— 此时 LLM 并非直接与 MCP 交互，而是通过 Agent 获得 “调用工具的接口”，Agent 会将 LLM 的 “自然语言决策” 转化为 MCP 能理解的 “工具调用指令”。
 
+            """
+            # -- 基于AgentConfig创建MCP应用（工具执行环境）
             # Create MCP app for this provider using config
             self.mcp_app = MCPAppFactory.create_mcp_app_from_config(self.config)
-
+            # -- 启动MCP应用，获取运行中的实例（_aenter__是异步上下文管理器，启动服务）
             # Start MCP app
             self.mcp_app_context_manager = self.mcp_app.run()
             self.mcp_running_app = await self.mcp_app_context_manager.__aenter__()
-
+            # -- 给MCP应用绑定当前会话ID（确保工具调用结果能关联到当前对话）
             self.mcp_running_app.context.session_id = self.config.chat_id
-
+            # -- 创建Agent实例（中间协调者），传入系统提示词（关键：提示词包含工具使用规则）
             # Create reusable agent for this chat session
             self.agent = Agent(
                 name=f"aperag_agent_{self.config.user_id}_{self.config.chat_id}_{self.config.provider_name}",
-                instruction=self.config.instruction,
-                server_names=self.config.server_names,
+                instruction=self.config.instruction,  # 系统提示词（如“优先检索用户指定知识库”）
+                server_names=self.config.server_names,  # 可访问的MCP服务名称列表（指定要调用的工具组）【根据 server_names 中的值，在 “已注册的 MCP 服务列表” 中筛选出可调用的服务】
             )
 
-            await self.agent.__aenter__()
-
+            await self.agent.__aenter__()  # 启动Agent，建立与MCP的通信
+            # -- 将LLM附加到Agent上（核心：LLM通过Agent获得调用MCP工具的能力）
             # Create and cache LLM instance for this chat session
             self.llm = await self.agent.attach_llm(OpenAIAugmentedLLM)
             from mcp_agent.logging.logger import get_logger

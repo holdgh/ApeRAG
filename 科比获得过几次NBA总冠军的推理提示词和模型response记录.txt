@@ -1,0 +1,23 @@
+推理提示词：
+**User Query**: @col4fbd73f0fb52e131 科比获得过几次NBA总冠军
+
+**Session Context**:
+- **User-Specified Collections**: - 上海电气风电 (ID: col4fbd73f0fb52e131) (PRIORITY: Search these user-specified collections first)
+- **Web Search**: enabled (Use web search strategically for current information, verification, or gap-filling)
+- **Chat Files**: Chat ID: chat74784ba4e2aa8d05 (Use search_chat_files tool to search files uploaded in this chat)
+
+**Research Instructions**:
+1. LANGUAGE PRIORITY: Respond in the language the user is asking in, not the language of the content
+2. If user specified collections (@mentions), search those first (REQUIRED)
+3. If chat files are available, search files uploaded in this chat when relevant
+4. Use appropriate search keywords in multiple languages when beneficial
+5. Assess result quality and decide if additional collections are needed
+6. Use web search strategically if enabled and relevant
+7. Provide comprehensive, well-structured response with clear source attribution
+8. Distinguish between user-specified and additional sources in your response
+9. **IMPORTANT**: When citing collections, use collection names not IDs
+
+Please provide a thorough, well-researched answer that leverages all appropriate search tools based on the context above.
+
+模型response：
+[ChatCompletionMessage(content='', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=[ChatCompletionMessageFunctionToolCall(id='call_fcf7091c32db48489eadd3', function=Function(arguments='{\n    "collection_id": "col4fbd73f0fb52e131",\n    "query": "科比 NBA总冠军 次数"\n  }\n', name='aperag_search_collection'), type='function')]), ChatCompletionMessage(content='', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=[ChatCompletionMessageFunctionToolCall(id='call_fb67b18a76814895b23397', function=Function(arguments='{}', name='aperag_list_collections'), type='function')]), ChatCompletionMessage(content='', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=[ChatCompletionMessageFunctionToolCall(id='call_b27bdeb0680445f1947a62', function=Function(arguments='{\n    "query": "科比 NBA总冠军 次数"\n  }\n', name='aperag_web_search'), type='function')]), ChatCompletionMessage(content='', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=[ChatCompletionMessageFunctionToolCall(id='call_ca1ba32e956246c7987b08', function=Function(arguments='{\n    "url_list": [\n      "https://zh.wikipedia.org/wiki/%E7%A7%91%E6%AF%94%C2%B7%E5%B8%83%E8%8E%B1%E6%81%A9%E7%89%B9",\n      "https://baike.baidu.com/item/%E7%A7%91%E6%AF%94%C2%B7%E5%B8%83%E8%8E%B1%E6%81%A9%E7%89%B9/318773"\n    ]\n  }\n', name='aperag_web_read'), type='function')])]

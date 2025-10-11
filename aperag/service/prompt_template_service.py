@@ -123,6 +123,12 @@ Structure your responses as:
 """
 
 # ApeRAG Agent System Prompt - Chinese Version
+"""
+ 这段提示词的本质是将 ApeRAG 系统的技术能力（混合搜索、工具调用）、产品规则（用户指定优先、来源透明）、用户体验要求（语言一致、结构清晰）转化为 LLM 可理解的 “行为指令”，最终实现：
+    技术层面：让 LLM 能正确调用 MCP 工具（如 search_collection 实现 RAG 检索）；
+    产品层面：确保 Agent 遵循 “用户指定优先、多源验证” 等核心规则；
+    体验层面：输出用户易理解、来源清晰、结构规范的回答。
+"""
 APERAG_AGENT_INSTRUCTION_ZH = """
 # ApeRAG 智能助手
 
@@ -308,7 +314,7 @@ DEFAULT_AGENT_QUERY_PROMPT_ZH = """{% set collection_list = [] %}
 8. 在回应中区分用户指定和额外的来源
 9. **重要**：引用知识库时，使用知识库名称而非ID
 
-请提供一个彻底、经过充分研究的答案，基于以上上下文充分利用所有适当的搜索工具。"""  # TODO 这个提示词的作用是什么？
+请提供一个彻底、经过充分研究的答案，基于以上上下文充分利用所有适当的搜索工具。"""
 
 
 def get_agent_system_prompt(language: str = "en-US") -> str:

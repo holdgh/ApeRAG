@@ -37,7 +37,7 @@ class MCPAppFactory:
         # Configurable LLM parameters
         temperature: float = 0.7,
         max_tokens: int = 60000,
-    ) -> MCPApp:
+    ) -> MCPApp:  # 创建mcp应用实例，融合了本地mcp服务和大模型，使得大模型可以根据提示词自主规划路线并选择调用相应的本地mcp服务工具进行对话操作
         """Create MCPApp instance with the specified parameters."""
         # Validate required parameters
         required_params = {
