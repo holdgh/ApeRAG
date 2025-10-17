@@ -125,7 +125,7 @@ class FlowEngine:
                     node_type=None,
                     data={"flow_name": flow.name},
                 )
-            )
+            )  # 发起流程开始事件
 
             # Initialize global variables
             if initial_data:
@@ -133,11 +133,17 @@ class FlowEngine:
                     self.context.set_global(var_name, var_value)
 
             # Build dependency graph and perform topological sort
-            sorted_nodes = self._topological_sort(flow)
+            sorted_nodes = self._topological_sort(flow)  # 对流程实例进行拓扑排序【检测流程图是否含有循环结构，有则触发异常】
 
+            """
+            以单个知识库的混合检索流程为例，并行组依次为：
+            [向量检索节点、全文检索节点、图谱检索节点、摘要检索节点、视觉信息检索节点]
+            [合并节点]
+            [重排节点]【可选】
+            """
             # Execute nodes
-            for node_group in self._find_parallel_groups(flow, sorted_nodes):
-                await self._execute_node_group(flow, node_group)
+            for node_group in self._find_parallel_groups(flow, sorted_nodes):  # 查找可以并行执行的节点组（逐级执行），采用协程异步方式结合await实现“组内并行执行，组间串行等待”
+                await self._execute_node_group(flow, node_group)  # 阻塞当前循环，等待当前组内所有节点并行执行完毕后，再进入下一次迭代（执行下一组）
 
             # Emit flow end event
             await self.emit_event(
@@ -148,7 +154,7 @@ class FlowEngine:
                     node_type=None,
                     data={"flow_name": flow.name},
                 )
-            )
+            )  # 发起流程结束事件
 
             logger.info(f"Completed flow execution {self.execution_id}", extra={"execution_id": self.execution_id})
             return self.context.outputs, self.context.system_outputs
@@ -166,7 +172,7 @@ class FlowEngine:
             )
             raise e
 
-    def _topological_sort(self, flow: FlowInstance) -> List[str]:
+    def _topological_sort(self, flow: FlowInstance) -> List[str]:  # 对流程实例进行拓扑排序，得到排序后的节点【执行拓扑排序检测循环】
         """Perform topological sort to detect cycles
 
         Args:
@@ -178,35 +184,54 @@ class FlowEngine:
         Raises:
             CycleError: If the flow contains cycles
         """
+        """
+        单个知识库的混合检索流程：
+        第一阶段：并行检索节点【各节点入度皆为0】
+        
+            向量检索节点、全文检索节点、图谱检索节点、摘要检索节点、视觉信息检索节点
+        
+        第二阶段：合并节点【入度为5】
+        
+            向量检索节点、全文检索节点、图谱检索节点、摘要检索节点、视觉信息检索节点 全部完成后，共同进入合并节点
+        
+        第三阶段：重排节点【可选】【入度为1】
+        
+            合并节点 完成后，进入重排节点，流程结束
+        """
         # Build dependency graph from edges
-        in_degree = {node_id: 0 for node_id in flow.nodes}
-        for edge in flow.edges:
+        in_degree = {node_id: 0 for node_id in flow.nodes}  # 初始化各节点入度为0
+        for edge in flow.edges:  # 提取各节点入度
             in_degree[edge.target] += 1
 
         # Start with nodes that have no dependencies
-        queue = deque([node_id for node_id, degree in in_degree.items() if degree == 0])
-        if len(queue) == 0:
+        queue = deque([node_id for node_id, degree in in_degree.items() if degree == 0])  # 收集入度为0的节点，形成节点列表，构建队列
+        if len(queue) == 0:  # 如果所有节点入度非0，则说明流程存在循环【抛出异常】
             raise CycleError("Flow contains cycles")
 
         sorted_nodes = []
 
-        while queue:
+        while queue:  # 遍历入度为0的节点
             node_id = queue.popleft()
             sorted_nodes.append(node_id)
 
             # Update in-degree of successor nodes
             for edge in flow.edges:
-                if edge.source == node_id:
-                    in_degree[edge.target] -= 1
-                    if in_degree[edge.target] == 0:
+                if edge.source == node_id:  # 处理以当前节点为起点的终点节点
+                    in_degree[edge.target] -= 1  # 终点节点入度减1更新
+                    if in_degree[edge.target] == 0:  # 将新的入度为0的节点，从右侧插入队列
                         queue.append(edge.target)
-
+        """
+        以单个知识库的混合检索流程为例，最终得到sorted_nodes：
+        [向量检索节点、全文检索节点、图谱检索节点、摘要检索节点、视觉信息检索节点、合并节点、重排节点【可选】]
+            说明1：前5个检索节点的顺序可随机排布，并无固定的先后顺序。
+            说明2：拓扑排序的直观理解是按照流程图的先后顺序进行排序的
+        """
         if len(sorted_nodes) != len(flow.nodes):
             raise CycleError("Flow contains cycles")
 
         return sorted_nodes
 
-    def _find_parallel_groups(self, flow: FlowInstance, sorted_nodes: List[str]) -> List[Set[str]]:
+    def _find_parallel_groups(self, flow: FlowInstance, sorted_nodes: List[str]) -> List[Set[str]]:  # 查找可以并行执行的节点组（逐级执行）
         """Find groups of nodes that can be executed in parallel (level by level)
 
         Args:
@@ -217,24 +242,25 @@ class FlowEngine:
             List of node groups, where each group can be executed in parallel
         """
         # Build in-degree map
-        in_degree = {node_id: 0 for node_id in flow.nodes}
-        for edge in flow.edges:
+        in_degree = {node_id: 0 for node_id in flow.nodes}  # 初始化各节点入度为0
+        for edge in flow.edges:  # 提取各节点入度
             in_degree[edge.target] += 1
 
         # Track processed nodes
         processed = set()
         groups = []
 
-        while len(processed) < len(sorted_nodes):
+        while len(processed) < len(sorted_nodes):  # 存在未处理节点
             # Find all nodes with in-degree 0 and not processed
             current_group = set(
                 node_id for node_id in sorted_nodes if in_degree[node_id] == 0 and node_id not in processed
-            )
+            )  # 将当前入度为0且未处理的节点归为一组
             if not current_group:
                 break  # Should not happen if topological sort is correct
-            groups.append(current_group)
+            groups.append(current_group)  # 收集当前组
             # Mark nodes as processed and update in-degree for successors
-            for node_id in current_group:
+            # 其实这里和拓扑排序的逻辑一样，可以理解为“按照不同批次入度为0的规则进行分组，每一组的节点是同一批次入度为0的节点集合，可并行执行”
+            for node_id in current_group:  # 对于当前组中的节点，将其放入已处理节点集合，并对以其为起点的终点节点做入度减1操作
                 processed.add(node_id)
                 for edge in flow.edges:
                     if edge.source == node_id:
@@ -248,12 +274,17 @@ class FlowEngine:
             node_id = next(iter(node_group))
             node = flow.nodes[node_id]
             await self._execute_node(node)
-        else:
+        else:  # 并行节点组内含有多个节点
             tasks = []
             for node_id in node_group:
                 node = flow.nodes[node_id]
                 tasks.append(self._execute_node(node))
-            await asyncio.gather(*tasks)
+            """
+            asyncio.gather 是 Python 异步编程中用于并发执行多个协程并收集结果的核心函数，
+            其底层实现依赖于 asyncio 事件循环（Event Loop）的调度机制，
+            核心原理可以概括为：“统一管理多个协程的生命周期，通过事件循环调度它们并发执行，并在所有协程完成后聚合结果”。
+            """
+            await asyncio.gather(*tasks)  # 使用gather并发执行多个协程任务并收集结果
 
     def _resolve_variable(self, expr: str, nodes_ctx: dict):
         """
@@ -384,7 +415,7 @@ class FlowEngine:
         sys_input = SystemInput(**self.context.global_variables)
         return user_input, sys_input
 
-    async def _execute_node(self, node: NodeInstance) -> None:
+    async def _execute_node(self, node: NodeInstance) -> None:  # 执行流程图中的单个节点 TODO 至此~
         """
         Execute a single node using the provided context, using runner_info from registry.
         """

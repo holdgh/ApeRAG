@@ -296,7 +296,30 @@ class CollectionService:
         chat_id: Optional[str] = None,
         flow_name: str = "search",
         flow_title: str = "Search",
-    ) -> Tuple[List[SearchResultItem], str]:
+    ) -> Tuple[List[SearchResultItem], str]:  # 对特定知识库执行检索逻辑
+        """
+        参数说明：
+            search_user_id：当前用户信息【进行检索操作的人】
+            collection_id：知识库id
+            data：检索参数
+                query: 用户问题
+                vector_search: 向量检索
+                    top_k：取前top_k个分段
+                    similarity：相似度阈值
+                fulltext_search: 全文检索
+                    top_k：取前top_k个分段
+                    keywords：从用户问题提取到的关键词？【用于关键词检索】
+                graph_search: 知识图谱检索
+                    top_k：取前top_k个结果
+                summary_search: 摘要检索
+                    top_k：取前top_k个分段
+                    similarity：相似度阈值
+                vision_search: 视觉信息检索
+                    top_k：取前top_k个分段
+                    similarity：相似度阈值
+                save_to_history: 是否持久化检索结果
+                rerank: 是否使用重排
+        """
         """
         Execute search flow and return search result items and rerank node ID.
 
@@ -312,18 +335,18 @@ class CollectionService:
             Tuple of (search result items, rerank node id)
         """
         from aperag.service.default_model_service import default_model_service
-
+        # -- 创建检索流程
         # Build flow for search execution
         nodes = {}
         edges = []
-        merge_node_id = "merge"
+        merge_node_id = "merge"  # 每一步索引检索的目标节点--merge
         merge_node_values = {
             "merge_strategy": "union",
             "deduplicate": True,
         }
-        query = data.query
+        query = data.query  # 用户问题
         # Configure search nodes based on request
-        if data.vector_search:
+        if data.vector_search:  # 向量检索
             node_id = "vector_search"
             input_values = {
                 "query": query,
@@ -339,11 +362,11 @@ class CollectionService:
                 id=node_id,
                 type="vector_search",
                 input_values=input_values,
-            )
-            merge_node_values["vector_search_docs"] = "{{ nodes.vector_search.output.docs }}"
-            edges.append(Edge(source=node_id, target=merge_node_id))
+            )  # 收集向量检索节点
+            merge_node_values["vector_search_docs"] = "{{ nodes.vector_search.output.docs }}"  # 对于向量检索结果，merge节点的处理变量路径
+            edges.append(Edge(source=node_id, target=merge_node_id))  # 设置流程关系【起始节点：向量检索，目标节点：merge】
 
-        if data.fulltext_search:
+        if data.fulltext_search:  # 全文检索
             node_id = "fulltext_search"
             input_values = {
                 "query": query,
@@ -359,11 +382,11 @@ class CollectionService:
                 id=node_id,
                 type="fulltext_search",
                 input_values=input_values,
-            )
-            merge_node_values["fulltext_search_docs"] = "{{ nodes.fulltext_search.output.docs }}"
-            edges.append(Edge(source=node_id, target=merge_node_id))
+            )  # 收集全文检索节点
+            merge_node_values["fulltext_search_docs"] = "{{ nodes.fulltext_search.output.docs }}"  # 对于全文检索结果，merge节点的处理变量路径
+            edges.append(Edge(source=node_id, target=merge_node_id))  # 设置流程关系【起始节点：全文检索，目标节点：merge】
 
-        if data.graph_search:
+        if data.graph_search:  # 知识图谱检索
             input_values = {
                 "query": query,
                 "top_k": data.graph_search.topk if data.graph_search else 5,
@@ -377,11 +400,11 @@ class CollectionService:
                 id="graph_search",
                 type="graph_search",
                 input_values=input_values,
-            )
-            merge_node_values["graph_search_docs"] = "{{ nodes.graph_search.output.docs }}"
-            edges.append(Edge(source="graph_search", target=merge_node_id))
+            )  # 收集知识图谱检索节点
+            merge_node_values["graph_search_docs"] = "{{ nodes.graph_search.output.docs }}"  # 对于知识图谱检索结果，merge节点的处理变量路径
+            edges.append(Edge(source="graph_search", target=merge_node_id))  # 设置流程关系【起始节点：知识图谱检索，目标节点：merge】
 
-        if data.summary_search:
+        if data.summary_search:  # 摘要检索
             node_id = "summary_search"
             input_values = {
                 "query": query,
@@ -397,11 +420,11 @@ class CollectionService:
                 id=node_id,
                 type="summary_search",
                 input_values=input_values,
-            )
-            merge_node_values["summary_search_docs"] = "{{ nodes.summary_search.output.docs }}"
-            edges.append(Edge(source=node_id, target=merge_node_id))
+            )  # 收集摘要检索节点
+            merge_node_values["summary_search_docs"] = "{{ nodes.summary_search.output.docs }}"  # 对于摘要检索结果，merge节点的处理变量路径
+            edges.append(Edge(source=node_id, target=merge_node_id))  # 设置流程关系【起始节点：摘要检索，目标节点：merge】
 
-        if data.vision_search:
+        if data.vision_search:  # 视觉信息检索
             node_id = "vision_search"
             input_values = {
                 "query": query,
@@ -417,18 +440,18 @@ class CollectionService:
                 id=node_id,
                 type="vision_search",
                 input_values=input_values,
-            )
-            merge_node_values["vision_search_docs"] = "{{ nodes.vision_search.output.docs }}"
-            edges.append(Edge(source=node_id, target=merge_node_id))
+            )  # 收集视觉信息检索节点
+            merge_node_values["vision_search_docs"] = "{{ nodes.vision_search.output.docs }}"  # 对于视觉信息检索结果，merge节点的处理变量路径
+            edges.append(Edge(source=node_id, target=merge_node_id))  # 设置流程关系【起始节点：视觉信息检索，目标节点：merge】
 
         nodes[merge_node_id] = NodeInstance(
             id=merge_node_id,
             type="merge",
             input_values=merge_node_values,
-        )
-
+        )  # 收集merge节点
+        # 基于重排标识和重排模型配置情况，设置重排服务可用标识use_rerank_service
         # Add rerank node to flow
-        if data.rerank:
+        if data.rerank:  # 重排操作
             model, model_service_provider, custom_llm_provider = await default_model_service.get_default_rerank_config(
                 search_user_id
             )
@@ -448,27 +471,27 @@ class CollectionService:
                 "custom_llm_provider": custom_llm_provider,
                 "docs": "{{ nodes.merge.output.docs }}",
             },
-        )
+        )  # 收集重排节点
         # Add edge from merge to rerank
-        edges.append(Edge(source=merge_node_id, target=rerank_node_id))
-
+        edges.append(Edge(source=merge_node_id, target=rerank_node_id))  # 设置流程关系【起始节点：merge，目标节点：重排节点】
+        # -- 执行检索流程
         # Execute search flow
         flow = FlowInstance(
             name=flow_name,
             title=flow_title,
-            nodes=nodes,
-            edges=edges,
-        )
-        engine = FlowEngine()
+            nodes=nodes,  # 见aperag.flow.base.models.NodeInstance
+            edges=edges,  # 见aperag.flow.base.models.Edge
+        )  # 基于节点集合和关系集合创建工作流【见aperag.flow.base.models.FlowInstance】
+        engine = FlowEngine()  # 初始化流程引擎
         # Build initial data with chat_id if provided
-        initial_data = {"query": query, "user": search_user_id}
+        initial_data = {"query": query, "user": search_user_id}  # 初始化流程入参
         if chat_id:
             initial_data["chat_id"] = chat_id
-        result, _ = await engine.execute_flow(flow, initial_data)
+        result, _ = await engine.execute_flow(flow, initial_data)  # 执行流程【见aperag.flow.engine.FlowEngine.execute_flow】 TODO 至此~
 
         if not result:
             raise Exception("Failed to execute flow")
-
+        # -- 解析检索流程执行结果
         # Process search results from rerank node
         docs = result.get(rerank_node_id, {}).docs
         items = []
@@ -488,9 +511,32 @@ class CollectionService:
 
     async def create_search(
         self, user: str, collection_id: str, data: view_models.SearchRequest
-    ) -> view_models.SearchResult:
+    ) -> view_models.SearchResult:  # 对单个知识库的混合检索操作
+        """
+        参数说明：
+            user：当前用户信息
+            collection_id：知识库id
+            data：检索参数
+                query: 用户问题
+                vector_search: 向量检索
+                    top_k：取前top_k个分段
+                    similarity：相似度阈值
+                fulltext_search: 全文检索
+                    top_k：取前top_k个分段
+                    keywords：从用户问题提取到的关键词？【用于关键词检索】
+                graph_search: 知识图谱检索
+                    top_k：取前top_k个结果
+                summary_search: 摘要检索
+                    top_k：取前top_k个分段
+                    similarity：相似度阈值
+                vision_search: 视觉信息检索
+                    top_k：取前top_k个分段
+                    similarity：相似度阈值
+                save_to_history: 是否持久化检索结果
+                rerank: 是否使用重排
+        """
         from aperag.exceptions import CollectionNotFoundException
-
+        # -- 校验当前知识库是否对于当前用户可用【不可用，则抛出CollectionNotFoundException】
         # Try to find collection as owner first
         collection = await self.db_ops.query_collection(user, collection_id)
         search_user_id = user  # Default to current user for search operations
@@ -507,7 +553,7 @@ class CollectionService:
             except Exception:
                 # If marketplace access also fails, raise original not found error
                 raise CollectionNotFoundException(collection_id)
-
+        # -- 执行检索逻辑
         # Execute search flow using helper method
         items, _ = await self.execute_search_flow(
             data=data,
@@ -517,7 +563,7 @@ class CollectionService:
             flow_name="search",
             flow_title="Search",
         )
-
+        # -- 根据save_to_history决定是否持久化检索数据【用户、用户问题、知识库id、各类索引检索参数详情、检索结果】。封装检索结果并返回
         # Save to database only if save_to_history is True
         if data.save_to_history:
             record = await self.db_ops.create_search(

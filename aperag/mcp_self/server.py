@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 mcp_server = FastMCP("ApeRAG")
 
 # Base URL for internal API calls
-API_BASE_URL = "http://localhost:8000"  # MCP本地服务封装，用以机器人agent问答使用
+API_BASE_URL = "http://localhost:8000"  # 本地http服务接口，用以支持当前mcp服务工具的具体逻辑实现
 """
 当前mcp服务的名称见aperag/service/prompt_template_service.py:APERAG_AGENT_INSTRUCTION_ZH提示词中对于mcp工具的说明，具体内容如下：
     '''
@@ -61,17 +61,17 @@ async def list_collections() -> Dict[str, Any]:  # 获取当前用户所有可�
         sensitive and unnecessary information.
     """
     try:
-        api_key = get_api_key()
+        api_key = get_api_key()  # 获取访问本地http服务的访问凭据
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 f"{API_BASE_URL}/api/v1/collections", headers={"Authorization": f"Bearer {api_key}"}
-            )
+            )  # 调用知识库列表接口
             if response.status_code == 200:
                 try:
                     # Parse response using view model for type safety
-                    collection_list = CollectionViewList.model_validate(response.json())
+                    collection_list = CollectionViewList.model_validate(response.json())  # 解析接口响应为知识库列表实例
                     # Return the modified object using model_dump()
-                    return collection_list.model_dump()
+                    return collection_list.model_dump()  # 将object转化为字典表示
                 except Exception as e:
                     logger.error(f"Failed to parse collections response: {e}")
                     return {"error": "Failed to parse collections response", "details": str(e)}
@@ -93,7 +93,7 @@ async def search_collection(
     rerank: bool = True,
     topk: int = 5,
     query_keywords: list[str] = None,
-) -> Dict[str, Any]:  # 基于query进行相应知识库的混合检索
+) -> Dict[str, Any]:  # 基于query进行相应知识库的混合检索【单个知识库】
     """Search for knowledge in a specific collection using vector, full-text, graph, and/or summary search.
 
     Args:
@@ -166,11 +166,11 @@ async def search_collection(
         The `asset_url` uses a special `asset://` scheme instead of `http/https`. This helps the front-end parse and handle it. It uses `asset_id` as the path and passes `document_id`, `collection_id`, and `mimetype` as query parameters. Note that `asset_id`, `document_id`, and `collection_id` are required to display the image and must not be omitted.
     """
     try:
-        api_key = get_api_key()
+        api_key = get_api_key()  # 获取本地接口访问凭据
 
         # Build search request based on enabled search types
-        search_data = {"query": query, "rerank": rerank}
-
+        search_data = {"query": query, "rerank": rerank}  # 初始化知识库检索参数
+        # 设置各种索引类型的检索参数
         # Add search configurations for enabled types
         if use_vector_index:
             search_data["vector_search"] = {"topk": topk, "similarity": 0.2}
@@ -188,7 +188,7 @@ async def search_collection(
             search_data["vision_search"] = {"topk": topk, "similarity": 0.2}
 
         # Ensure at least one search type is enabled
-        if not any([use_vector_index, use_fulltext_index, use_graph_index, use_summary_index]):
+        if not any([use_vector_index, use_fulltext_index, use_graph_index, use_summary_index]):  # 至少有一种索引类型可用
             return {"error": "At least one search type must be enabled"}
 
         # Use longer timeout for search operations (graph search can be time-consuming)
@@ -197,22 +197,22 @@ async def search_collection(
                 f"{API_BASE_URL}/api/v1/collections/{collection_id}/searches",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json=search_data,
-            )
+            )  # 调用知识库检索接口
             if response.status_code == 200 or response.status_code == 201:
                 try:
                     # Parse response using view model for type safety
-                    search_result = SearchResult.model_validate(response.json())
+                    search_result = SearchResult.model_validate(response.json())  # 解析接口响应为检索结果实例
 
                     # Ensure returned results don't exceed topk limit
                     # This provides additional protection in case HTTP API doesn't apply global limit
-                    if search_result.items and len(search_result.items) > topk:
+                    if search_result.items and len(search_result.items) > topk:  # 检索结果top_k过滤
                         search_result.items = search_result.items[:topk]
                         # Update ranks if they exist
                         for i, item in enumerate(search_result.items):
                             if item.rank is not None:
                                 item.rank = i + 1
 
-                    return search_result.model_dump()
+                    return search_result.model_dump()  # 将object转化为字典表示
                 except Exception as e:
                     logger.error(f"Failed to parse search response: {e}")
                     return {"error": "Failed to parse search response", "details": str(e)}
@@ -264,11 +264,11 @@ async def search_chat_files(
         - Use asset:// URLs for displaying images in markdown
     """
     try:
-        api_key = get_api_key()
+        api_key = get_api_key()  # 获取本地接口访问凭据
 
         # Build search request based on enabled search types
-        search_data = {"query": query, "rerank": rerank}
-
+        search_data = {"query": query, "rerank": rerank}  # 初始化检索参数
+        # 设置向量索引和全文索引的检索参数
         # Add search configurations for enabled types
         if use_vector_index:
             search_data["vector_search"] = {"topk": topk, "similarity": 0.2}
@@ -277,7 +277,7 @@ async def search_chat_files(
             search_data["fulltext_search"] = {"topk": topk}
 
         # Ensure at least one search type is enabled
-        if not any([use_vector_index, use_fulltext_index]):
+        if not any([use_vector_index, use_fulltext_index]):  # 至少有一种索引可用
             return {"error": "At least one search type must be enabled"}
 
         # Use longer timeout for search operations
@@ -286,22 +286,22 @@ async def search_chat_files(
                 f"{API_BASE_URL}/api/v1/chats/{chat_id}/search",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json=search_data,
-            )
+            )  # 调用特定聊天窗口的相关数据检索接口
             if response.status_code == 200 or response.status_code == 201:
                 try:
                     # Parse response using view model for type safety
-                    search_result = SearchResult.model_validate(response.json())
+                    search_result = SearchResult.model_validate(response.json())  # 将接口响应解析为检索结果实例
 
                     # Ensure returned results don't exceed topk limit
                     # This provides additional protection in case HTTP API doesn't apply global limit
-                    if search_result.items and len(search_result.items) > topk:
+                    if search_result.items and len(search_result.items) > topk:  # 对检索结果执行top_k过滤
                         search_result.items = search_result.items[:topk]
                         # Update ranks if they exist
                         for i, item in enumerate(search_result.items):
                             if item.rank is not None:
                                 item.rank = i + 1
 
-                    return search_result.model_dump()
+                    return search_result.model_dump()  # 将object转化为字典表示
                 except Exception as e:
                     logger.error(f"Failed to parse chat search response: {e}")
                     return {"error": "Failed to parse chat search response", "details": str(e)}
@@ -678,6 +678,16 @@ Ready to help you find the information you need!
 
 
 def get_api_key() -> str:
+    """
+    从HTTP头或环境变量中获取API密钥。
+    优先顺序:
+        1. 来自HTTP请求的授权头（使用FastMCP依赖）
+        2. APERAG_API_KEY环境变量
+    返回:
+        API密钥串
+    异常抛出:
+        ValueError：如果没有找到API密钥
+    """
     """Get API key from HTTP headers or environment variable.
 
     Priority order:

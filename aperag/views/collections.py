@@ -192,8 +192,8 @@ async def create_search_view(
     collection_id: str,
     data: view_models.SearchRequest,
     user: User = Depends(required_user),
-) -> view_models.SearchResult:
-    return await collection_service.create_search(str(user.id), collection_id, data)  # 知识库检索功能 TODO 至此~
+) -> view_models.SearchResult:  # 单个知识库的混合检索操作
+    return await collection_service.create_search(str(user.id), collection_id, data)  # 知识库检索功能
 
 
 @router.delete("/collections/{collection_id}/searches/{search_id}", tags=["search"], name="DeleteSearch")
