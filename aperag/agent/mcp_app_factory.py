@@ -52,7 +52,7 @@ class MCPAppFactory:
         for param_name, value in required_params.items():
             if not value:
                 raise agent_config_invalid(param_name, f"{param_name} is required")
-
+        # MCPApp 是整个应用的 “运行时容器”，其 settings 参数的作用是 聚合所有核心组件的配置信息，包括 MCP 服务（工具层）和 LLM（决策层）
         try:
             settings = Settings(
                 execution_engine="asyncio",
@@ -61,7 +61,7 @@ class MCPAppFactory:
                     servers={
                         "aperag": MCPServerSettings(
                             transport="streamable_http",
-                            url=aperag_mcp_url,
+                            url=aperag_mcp_url,  # mcp服务url配置在mcp服务级别，因此是与mcp服务绑定的
                             headers={
                                 "Authorization": f"Bearer {aperag_api_key}",
                                 "Content-Type": "application/json",
@@ -70,7 +70,7 @@ class MCPAppFactory:
                             read_timeout_seconds=120,
                             description="ApeRAG knowledge base server",
                         )
-                    }
+                    }  # 由该配置项可知，McpApp可以集成多个不同url不同服务名称的mcp服务
                 ),
                 openai=OpenAISettings(
                     api_key=api_key,

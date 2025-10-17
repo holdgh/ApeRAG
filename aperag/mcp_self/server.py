@@ -30,10 +30,26 @@ mcp_server = FastMCP("ApeRAG")
 
 # Base URL for internal API calls
 API_BASE_URL = "http://localhost:8000"  # MCP本地服务封装，用以机器人agent问答使用
+"""
+当前mcp服务的名称见aperag/service/prompt_template_service.py:APERAG_AGENT_INSTRUCTION_ZH提示词中对于mcp工具的说明，具体内容如下：
+    '''
+    ## 可用工具
+    
+    ### 知识管理
+    - `list_collections()`：发现可用知识源
+    - `search_collection(collection_id, query, ...)`：知识库内混合搜索
+    - `search_chat_files(chat_id, query, ...)`：搜索特定聊天会话中上传的文件
+    - `create_diagram(content)`：创建Mermaid图表进行知识图谱可视化
+    
+    ### 网络智能
+    - `web_search(query, ...)`：多引擎网络搜索，支持域名定向
+    - `web_read(url_list, ...)`：提取和分析网络内容
+    '''
+"""
 
 
 @mcp_server.tool
-async def list_collections() -> Dict[str, Any]:
+async def list_collections() -> Dict[str, Any]:  # 获取当前用户所有可用的知识库
     """List all collections available to the user.
 
     Returns:
@@ -77,7 +93,7 @@ async def search_collection(
     rerank: bool = True,
     topk: int = 5,
     query_keywords: list[str] = None,
-) -> Dict[str, Any]:
+) -> Dict[str, Any]:  # 基于query进行相应知识库的混合检索
     """Search for knowledge in a specific collection using vector, full-text, graph, and/or summary search.
 
     Args:
@@ -214,7 +230,7 @@ async def search_chat_files(
     use_fulltext_index: bool = True,
     rerank: bool = True,
     topk: int = 5,
-) -> Dict[str, Any]:
+) -> Dict[str, Any]:  # 搜索特定聊天对话中上传的文件
     """Search for knowledge in chat files using vector, full-text, graph, and/or summary search.
 
     Args:
@@ -303,7 +319,7 @@ async def web_search(
     locale: str = "en-US",
     source: str = "",
     search_llms_txt: str = "",
-) -> Dict[str, Any]:
+) -> Dict[str, Any]:  # 基于query进行网络搜索
     """Perform web search using various search engines with advanced domain targeting.
 
     Args:
@@ -371,7 +387,7 @@ async def web_read(
     timeout: int = 30,
     locale: str = "en-US",
     max_concurrent: int = 5,
-) -> Dict[str, Any]:
+) -> Dict[str, Any]:  # 对网络搜索的内容进行解析读取
     """Read and extract content from web pages.
 
     Args:
