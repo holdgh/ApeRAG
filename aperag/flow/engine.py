@@ -79,7 +79,7 @@ class FlowEngine:
         self._event_queue = asyncio.Queue()
         self.jinja_env = Environment(undefined=StrictUndefined)
 
-    async def emit_event(self, event: FlowEvent):
+    async def emit_event(self, event: FlowEvent):  # 事件驱动。通过 emit_event 方法在节点开始（NODE_START）、结束（NODE_END）、出错（NODE_ERROR）时发送事件，便于监控流程执行状态（如日志记录、前端展示）。
         """Emit an event to all consumers"""
         await self._event_queue.put(event)
         # Also log the event

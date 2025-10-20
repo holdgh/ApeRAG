@@ -45,11 +45,11 @@ class MergeOutput(BaseModel):
 
 @register_node_runner(
     "merge",
-    input_model=MergeInput,
-    output_model=MergeOutput,
+    input_model=MergeInput,  # 合并节点入参定义
+    output_model=MergeOutput,  # 合并节点出参定义
 )
-class MergeNodeRunner(BaseNodeRunner):
-    async def run(self, ui: MergeInput, si: SystemInput) -> Tuple[MergeOutput, dict]:
+class MergeNodeRunner(BaseNodeRunner):  # 知识库检索的合并节点【汇总合并多种索引检索的结果】
+    async def run(self, ui: MergeInput, si: SystemInput) -> Tuple[MergeOutput, dict]:  # 直接拼接【可基于分段内容去重】各种索引库的检索结果
         """
         Run merge node. ui: user input; si: system input (SystemInput).
         Returns (output, system_output)
@@ -65,8 +65,8 @@ class MergeNodeRunner(BaseNodeRunner):
         if merge_strategy not in ["union"]:
             raise ValidationError(f"Unknown merge strategy: {merge_strategy}")
 
-        all_docs = docs_a + docs_b + docs_c + docs_d + docs_e
-        if deduplicate:
+        all_docs = docs_a + docs_b + docs_c + docs_d + docs_e  # 直接拼接各种索引库的检索结果
+        if deduplicate:  # 基于分段内容去重
             seen = set()
             unique_docs = []
             for doc in all_docs:

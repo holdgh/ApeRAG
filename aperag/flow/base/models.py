@@ -118,7 +118,7 @@ class ExecutionContext:
         return self.system_outputs.get(node_id)
 
 
-NODE_RUNNER_REGISTRY = {}
+NODE_RUNNER_REGISTRY = {}  # 整个系统的节点库，在程序启动时，通过注册器将不同类型的具体节点运行信息【节点运行类定义、节点输入输出类定义】自动注册到该集合中。
 
 
 class BaseNodeRunner(ABC):
@@ -131,12 +131,12 @@ def register_node_runner(
     node_type: str,
     input_model,
     output_model,
-):
+):  # 注册器，实现多个不同类型的节点运行信息注册。【类装饰器】
     def decorator(cls):
         NODE_RUNNER_REGISTRY[node_type] = {
-            "runner": cls(),
-            "input_model": input_model,
-            "output_model": output_model,
+            "runner": cls(),  # 具体节点类定义
+            "input_model": input_model,  # 输入信息定义
+            "output_model": output_model,  # 输出信息定义
         }
         return cls
 

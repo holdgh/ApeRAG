@@ -55,29 +55,31 @@ class GraphSearchService:
 
     async def execute_graph_search(
         self, user, query: str, top_k: int, collection_ids: List[str]
-    ) -> List[DocumentWithScore]:
+    ) -> List[DocumentWithScore]:  # 知识图谱检索算法
         """Execute graph search with given parameters"""
+        # -- 获取当前用户可访问的知识库信息【单个】
         collection = None
         if collection_ids:
             collection = await self.repository.get_collection(user, collection_ids[0])
 
         if not collection:
             return []
-
+        # -- 校验知识库是否支持知识图谱
         config = parseCollectionConfig(collection.config)
         if not config.enable_knowledge_graph:
             logger.warning(f"Collection {collection.id} does not have knowledge graph enabled")
             return []
-
+        # -- 基于知识库信息创建lightRag实例
         # Import LightRAG and run as in _run_light_rag
         from aperag.graph import lightrag_manager
         from aperag.graph.lightrag import QueryParam
 
         rag = await lightrag_manager.create_lightrag_instance(collection)
+        # -- 构建知识图谱检索参数，利用lightRag实例进行知识图谱检索
         param: QueryParam = QueryParam(
-            mode="hybrid",
-            only_need_context=True,
-            top_k=top_k,
+            mode="hybrid",  # TODO 未知参数
+            only_need_context=True,  # 仅需内容
+            top_k=top_k,  # 检索参数 top_k
         )
         context = await rag.aquery_context(query=query, param=param)
         if not context:
@@ -104,6 +106,6 @@ class GraphSearchNodeRunner(BaseNodeRunner):
         """
         docs = await self.service.execute_graph_search(
             user=si.user, query=si.query, top_k=ui.top_k, collection_ids=ui.collection_ids or []
-        )
+        )  # 图谱检索
 
         return GraphSearchOutput(docs=docs), {}

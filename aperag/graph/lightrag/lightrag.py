@@ -925,22 +925,22 @@ class LightRAG:
 
     async def aquery_context(
         self,
-        query: str,
-        param: QueryParam = QueryParam(),
-    ):
+        query: str,  # 用户问题
+        param: QueryParam = QueryParam(),  # 检索参数：是否仅需内容、top_k、TODO 未知参数mode
+    ):  # 知识图谱检索逻辑
         param.original_query = query
         context_data = await build_query_context(
             query.strip(),
-            self.chunk_entity_relation_graph,
-            self.entities_vdb,
-            self.relationships_vdb,
-            self.text_chunks,
+            self.chunk_entity_relation_graph,  # 实体关系内容数据库存储实例
+            self.entities_vdb,  # 实体向量库存储实例
+            self.relationships_vdb,  # 关系向量库存储实例
+            self.text_chunks,  # 分段内容数据库存储实例
             param,
             self.tokenizer,
             self.llm_model_func,
             self.addon_params,
-            chunks_vdb=self.chunks_vdb,
-        )
+            chunks_vdb=self.chunks_vdb,  # 分段向量库存储实例
+        )  # 检索数据逻辑
 
         if context_data is None:
             return ""

@@ -121,8 +121,8 @@ class VectorSearchService:
 
 @register_node_runner(
     "vector_search",
-    input_model=VectorSearchInput,
-    output_model=VectorSearchOutput,
+    input_model=VectorSearchInput,  # 向量检索输入定义
+    output_model=VectorSearchOutput,  # 向量检索输出定义
 )
 class VectorSearchNodeRunner(BaseNodeRunner):
     def __init__(self):
@@ -134,9 +134,9 @@ class VectorSearchNodeRunner(BaseNodeRunner):
         Run vector search node. ui: user configurable params; si: system injected params (SystemInput).
         Returns (uo, so)
         """
-        chat_id = ui.chat_id or getattr(si, "chat_id", None)
+        chat_id = ui.chat_id or getattr(si, "chat_id", None)  # 获取对话窗口id
 
-        collection_ids = ui.collection_ids or getattr(si, "collection_ids", [])
+        collection_ids = ui.collection_ids or getattr(si, "collection_ids", [])  # 获取待检索知识库id列表【在agent的搜索流程中，为单个知识库检索】
 
         docs = await self.service.execute_vector_search(
             user=si.user,
@@ -145,5 +145,5 @@ class VectorSearchNodeRunner(BaseNodeRunner):
             similarity_threshold=ui.similarity_threshold,
             collection_ids=collection_ids,
             chat_id=chat_id,
-        )
+        )  # 执行向量检索
         return VectorSearchOutput(docs=docs), {}
