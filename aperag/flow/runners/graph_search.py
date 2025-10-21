@@ -55,7 +55,7 @@ class GraphSearchService:
 
     async def execute_graph_search(
         self, user, query: str, top_k: int, collection_ids: List[str]
-    ) -> List[DocumentWithScore]:  # 知识图谱检索算法
+    ) -> List[DocumentWithScore]:  # 知识图谱检索
         """Execute graph search with given parameters"""
         # -- 获取当前用户可访问的知识库信息【单个】
         collection = None
@@ -77,7 +77,7 @@ class GraphSearchService:
         rag = await lightrag_manager.create_lightrag_instance(collection)
         # -- 构建知识图谱检索参数，利用lightRag实例进行知识图谱检索
         param: QueryParam = QueryParam(
-            mode="hybrid",  # TODO 未知参数
+            mode="hybrid",  # 检索模式【决定如何检索知识图谱数据，详情见aperag.graph.lightrag.operate._build_query_context_from_keywords】
             only_need_context=True,  # 仅需内容
             top_k=top_k,  # 检索参数 top_k
         )

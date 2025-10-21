@@ -228,10 +228,10 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
 
         await asyncio.to_thread(_sync_upsert_with_vectors)  # 批量保存或更新分段数据
 
-    async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:
+    async def query(self, query: str, top_k: int, ids: list[str] | None = None) -> list[dict[str, Any]]:  # 对query【用户问题、高/低级别关键词】，基于embedding相似度机制检索数据
         """Query vectors by similarity"""
         # Compute embedding for query
-        embeddings = await self.embedding_func([query])
+        embeddings = await self.embedding_func([query])  # 对query【用户问题、高/低级别关键词】进行embedding
         embedding = embeddings[0]
 
         def _sync_query():
@@ -246,7 +246,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
                 embedding_list = list(embedding)
 
             # Use appropriate similarity search method based on namespace
-            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):
+            if is_namespace(self.namespace, NameSpace.VECTOR_STORE_CHUNKS):  # 分段内容
                 results = db_ops.query_lightrag_doc_chunks_similarity(
                     self.workspace, embedding_list, top_k, ids, self.cosine_better_than_threshold
                 )
@@ -272,7 +272,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
                     )
                 return formatted_results
 
-            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_ENTITIES):  # 实体
                 results = db_ops.query_lightrag_vdb_entity_similarity(
                     self.workspace, embedding_list, top_k, ids, self.cosine_better_than_threshold
                 )
@@ -293,7 +293,7 @@ class PGOpsSyncVectorStorage(BaseVectorStorage):
                     )
                 return formatted_results
 
-            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):
+            elif is_namespace(self.namespace, NameSpace.VECTOR_STORE_RELATIONSHIPS):  # 关系
                 results = db_ops.query_lightrag_vdb_relation_similarity(
                     self.workspace, embedding_list, top_k, ids, self.cosine_better_than_threshold
                 )

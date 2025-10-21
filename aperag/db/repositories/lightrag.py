@@ -324,7 +324,7 @@ class LightragRepositoryMixin(SyncRepositoryProtocol):
     # Add vector similarity search methods
     def query_lightrag_doc_chunks_similarity(
         self, workspace: str, embedding: list, top_k: int, doc_ids: list = None, threshold: float = 0.2
-    ):
+    ):  # 基于embedding相似度检索文档分段
         """Query similar document chunks using vector similarity"""
 
         def _query(session):
@@ -379,7 +379,7 @@ class LightragRepositoryMixin(SyncRepositoryProtocol):
 
     def query_lightrag_vdb_entity_similarity(
         self, workspace: str, embedding: list, top_k: int, doc_ids: list = None, threshold: float = 0.2
-    ):
+    ):  # embedding向量检索的sql逻辑实现
         """Query similar entities using vector similarity"""
 
         def _query(session):

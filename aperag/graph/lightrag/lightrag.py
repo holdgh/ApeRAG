@@ -926,7 +926,7 @@ class LightRAG:
     async def aquery_context(
         self,
         query: str,  # 用户问题
-        param: QueryParam = QueryParam(),  # 检索参数：是否仅需内容、top_k、TODO 未知参数mode
+        param: QueryParam = QueryParam(),  # 检索参数：是否仅需内容、top_k、检索模式
     ):  # 知识图谱检索逻辑
         param.original_query = query
         context_data = await build_query_context(

@@ -304,7 +304,7 @@ Current Query: {query}
 The `Output` should be human text, not unicode characters. Keep the same language as `Query`.
 Output:
 
-"""
+"""  # 提示词中对于高低级别关键词的定义：高级关键字侧重于总体概念或主题，而低级关键字侧重于特定实体、细节或具体术语
 
 PROMPTS["keywords_extraction_examples"] = [
     """Example 1:

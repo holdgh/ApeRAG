@@ -926,61 +926,63 @@ async def extract_entities(
 
 
 async def build_query_context(
-    query: str,
-    knowledge_graph_inst: BaseGraphStorage,
-    entities_vdb: BaseVectorStorage,
-    relationships_vdb: BaseVectorStorage,
-    text_chunks_db: BaseKVStorage,
-    query_param: QueryParam,
+    query: str,  # 用户问题
+    knowledge_graph_inst: BaseGraphStorage,  # 知识图谱存储实例
+    entities_vdb: BaseVectorStorage,  # 实体向量存储实例
+    relationships_vdb: BaseVectorStorage,  # 关系向量存储实例
+    text_chunks_db: BaseKVStorage,  # 分段内容存储实例
+    query_param: QueryParam,  # 检索参数：是否仅需内容、top_k、检索模式
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-    chunks_vdb: BaseVectorStorage = None,
-):  # TODO 至此~
+    chunks_vdb: BaseVectorStorage = None,  # 分段向量存储实例
+):  # 知识图谱检索算法
+    # -- llm选择
     if query_param.model_func:
         use_model_func = query_param.model_func
     else:
         use_model_func = llm_model_func
-
+    # -- 提取用户问题中的高低级别关键词
+    # 高级关键字侧重于总体概念或主题，而低级关键字侧重于特定实体、细节或具体术语
     hl_keywords, ll_keywords = await get_keywords_from_query(
         query, query_param, tokenizer, use_model_func, addon_params
-    )
+    )  # 对用户问题提取关键词【如果检索参数中存在关键词，则取之；反之，则使用llm从用户问题中提取关键词】
 
     logger.debug(f"High-level keywords: {hl_keywords}")
     logger.debug(f"Low-level  keywords: {ll_keywords}")
-
+    # 处理空关键词情况
     # Handle empty keywords
-    if hl_keywords == [] and ll_keywords == []:
+    if hl_keywords == [] and ll_keywords == []:  # 高低级别关键词皆为空，直接返回'fail_response'
         logger.warning("low_level_keywords and high_level_keywords is empty")
         return PROMPTS["fail_response"]
-    if ll_keywords == [] and query_param.mode in ["local", "hybrid"]:
+    if ll_keywords == [] and query_param.mode in ["local", "hybrid"]:  # 低级别关键词为空，且mode参数为local或hybrid，则设置mode为global
         logger.warning(
             "low_level_keywords is empty, switching from %s mode to global mode",
             query_param.mode,
         )
         query_param.mode = "global"
-    if hl_keywords == [] and query_param.mode in ["global", "hybrid"]:
+    if hl_keywords == [] and query_param.mode in ["global", "hybrid"]:  # 高级别关键词为空，且mode参数为global或hybrid，则设置mode为local
         logger.warning(
             "high_level_keywords is empty, switching from %s mode to local mode",
             query_param.mode,
         )
         query_param.mode = "local"
-
+    # 拼接关键词
     ll_keywords_str = ", ".join(ll_keywords) if ll_keywords else ""
     hl_keywords_str = ", ".join(hl_keywords) if hl_keywords else ""
 
     # Build context
     return await _build_query_context_from_keywords(
-        ll_keywords_str,
-        hl_keywords_str,
-        knowledge_graph_inst,
-        entities_vdb,
-        relationships_vdb,
-        text_chunks_db,
-        query_param,
-        tokenizer,
-        chunks_vdb,
-    )
+        ll_keywords_str,  # 低级别关键词
+        hl_keywords_str,  # 高级别关键词
+        knowledge_graph_inst,  # 知识图谱存储实例
+        entities_vdb,  # 实体向量存储实例
+        relationships_vdb,  # 关系向量存储实例
+        text_chunks_db,  # 分段内容存储实例
+        query_param,  # 检索参数
+        tokenizer,  # 分词器
+        chunks_vdb,  # 分段向量存储实例
+    )  # 知识图谱数据检索
 
 
 async def kg_query(
@@ -1086,12 +1088,15 @@ async def kg_query(
 
 
 async def get_keywords_from_query(
-    query: str,
-    query_param: QueryParam,
+    query: str,  # 用户问题
+    query_param: QueryParam,  # 检索参数
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str]]:  # 提取用户问题中的关键词【如果检索参数中存在关键词，则取之；反之，则使用llm从用户问题中提取关键词】
+    """
+    由PROMPTS["keywords_extraction"]中高低级别关键词的定义可知：高级关键字侧重于总体概念或主题，而低级关键字侧重于特定实体、细节或具体术语
+    """
     """
     Retrieves high-level and low-level keywords for RAG operations.
 
@@ -1116,7 +1121,7 @@ async def extract_keywords_only(
     tokenizer: Tokenizer,
     llm_model_func: callable,
     addon_params: dict,
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str]]:  # 使用llm从用户问题中提取关键词
     """
     Extract high-level and low-level keywords from the given 'text' using the LLM.
     This method does NOT build the final RAG context or provide a final answer.
@@ -1138,7 +1143,7 @@ async def extract_keywords_only(
     # 4. Build the keyword-extraction prompt
     kw_prompt = PROMPTS["keywords_extraction"].format(
         query=text, examples=examples, language=language, history=history_context
-    )
+    )  # 由提示词中对于高低级别关键词的定义可知：高级关键字侧重于总体概念或主题，而低级关键字侧重于特定实体、细节或具体术语
 
     len_of_prompts = len(tokenizer.encode(kw_prompt))
     logger.debug(f"[kg_query]Prompt Tokens: {len_of_prompts}")
@@ -1246,38 +1251,54 @@ async def _get_vector_context(
 
 
 async def _build_query_context_from_keywords(
-    ll_keywords: str,
-    hl_keywords: str,
-    knowledge_graph_inst: BaseGraphStorage,
-    entities_vdb: BaseVectorStorage,
-    relationships_vdb: BaseVectorStorage,
-    text_chunks_db: BaseKVStorage,
-    query_param: QueryParam,
-    tokenizer: Tokenizer,
-    chunks_vdb: BaseVectorStorage = None,  # Add chunks_vdb parameter for mix mode
-):
+    ll_keywords: str,  # 低级别关键词
+    hl_keywords: str,  # 高级别关键词
+    knowledge_graph_inst: BaseGraphStorage,  # 知识图谱存储实例
+    entities_vdb: BaseVectorStorage,  # 实体向量存储实例
+    relationships_vdb: BaseVectorStorage,  # 关系向量存储实例
+    text_chunks_db: BaseKVStorage,  # 分段内容存储实例
+    query_param: QueryParam,  # 检索参数
+    tokenizer: Tokenizer,  # 分词器
+    chunks_vdb: BaseVectorStorage = None,  # Add chunks_vdb parameter for mix mode 分段向量存储实例
+):  # 知识图谱数据检索逻辑
+    """
+    检索模式分为四种：
+        local：
+            对低级别关键词，基于embedding相似度机制检索节点数据
+        global：
+            对高级别关键词，基于embedding相似度机制检索边数据
+        hybrid：
+            对低级别关键词，基于embedding相似度机制检索节点数据
+            对高级别关键词，基于embedding相似度机制检索边数据
+            去重合并
+        mix：
+            对低级别关键词，基于embedding相似度机制检索节点数据
+            对高级别关键词，基于embedding相似度机制检索边数据
+            对用户原始问题，基于embedding相似度机制检索分段数据
+            去重合并
+    """
     logger.info(f"Process {os.getpid()} building query context...")
 
     # Handle local and global modes as before
     if query_param.mode == "local":
         entities_context, relations_context, text_units_context = await _get_node_data(
-            ll_keywords,
+            ll_keywords,  # 低级别关键词【非空】
             knowledge_graph_inst,
             entities_vdb,
             text_chunks_db,
             query_param,
             tokenizer,
-        )
+        )  # 检索节点数据
     elif query_param.mode == "global":
         entities_context, relations_context, text_units_context = await _get_edge_data(
-            hl_keywords,
+            hl_keywords,  # 高级别关键词【非空】
             knowledge_graph_inst,
             relationships_vdb,
             text_chunks_db,
             query_param,
             tokenizer,
-        )
-    else:  # hybrid or mix mode
+        )  # 检索边数据
+    else:  # hybrid or mix mode 混合检索模式，基于低级别关键词检索节点数据，基于高级别关键词检索边数据，若为mix模式则基于原始问题检索分段数据
         ll_data = await _get_node_data(
             ll_keywords,
             knowledge_graph_inst,
@@ -1313,7 +1334,7 @@ async def _build_query_context_from_keywords(
             [],
             [],
         )
-
+        #
         # Only get vector data if in mix mode
         if query_param.mode == "mix" and hasattr(query_param, "original_query"):
             # Get vector context in triple format
@@ -1322,7 +1343,7 @@ async def _build_query_context_from_keywords(
                 chunks_vdb,
                 query_param,
                 tokenizer,
-            )
+            )  # 用原始问题，基于embedding相似度检索分段数据
 
             # If vector_data is not None, unpack it
             if vector_data is not None:
@@ -1331,7 +1352,7 @@ async def _build_query_context_from_keywords(
                     vector_relations_context,
                     vector_text_units_context,
                 ) = vector_data
-
+        # 对节点检索、边检索、分段检索数据进行去重合并
         # Combine and deduplicate the entities, relationships, and sources
         entities_context = process_combine_contexts(hl_entities_context, ll_entities_context, vector_entities_context)
         relations_context = process_combine_contexts(
@@ -1348,7 +1369,7 @@ async def _build_query_context_from_keywords(
 
 
 async def _get_node_data(
-    query: str,
+    query: str,  # 低级别关键词【侧重于特定实体、细节或具体术语】
     knowledge_graph_inst: BaseGraphStorage,
     entities_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
@@ -1360,19 +1381,19 @@ async def _get_node_data(
         f"Query nodes: {query}, top_k: {query_param.top_k}, cosine: {entities_vdb.cosine_better_than_threshold}"
     )
 
-    results = await entities_vdb.query(query, top_k=query_param.top_k, ids=query_param.ids)
+    results = await entities_vdb.query(query, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索节点数据【表：lightrag_vdb_entity】
 
     if not len(results):
         return "", "", ""
 
     # Extract all entity IDs from your results list
-    node_ids = [r["entity_name"] for r in results]
+    node_ids = [r["entity_name"] for r in results]  # 提取embedding相似度检索结果中的节点id列表
 
     # Call the batch node retrieval and degree functions concurrently.
     nodes_dict, degrees_dict = await asyncio.gather(
-        knowledge_graph_inst.get_nodes_batch(node_ids),
-        knowledge_graph_inst.node_degrees_batch(node_ids),
-    )
+        knowledge_graph_inst.get_nodes_batch(node_ids),  # 基于节点id列表查询节点数据【表：lightrag_graph_nodes】
+        knowledge_graph_inst.node_degrees_batch(node_ids),  # 基于节点id列表查询相应节点的度【连接边的数量；解释：当前节点即可作为起点，也可作为终点】【表：lightrag_graph_edges】
+    )  #
 
     # Now, if you need the node data and degree in order:
     node_datas = [nodes_dict.get(nid) for nid in node_ids]
@@ -1398,7 +1419,7 @@ async def _get_node_data(
         text_chunks_db,
         knowledge_graph_inst,
         tokenizer,
-    )
+    )  # TODO 待分析~
     use_relations = await _find_most_related_edges_from_entities(
         node_datas,
         query_param,
@@ -1480,12 +1501,59 @@ async def _get_node_data(
 
 
 async def _find_most_related_text_unit_from_entities(
-    node_datas: list[dict],
-    query_param: QueryParam,
-    text_chunks_db: BaseKVStorage,
-    knowledge_graph_inst: BaseGraphStorage,
-    tokenizer: Tokenizer,
-):
+    node_datas: list[dict],  # 节点数据列表
+    query_param: QueryParam,  # 检索参数
+    text_chunks_db: BaseKVStorage,  # 分段数据存储实例
+    knowledge_graph_inst: BaseGraphStorage,  # 知识图谱数据存储实例
+    tokenizer: Tokenizer,  # 分词器
+):  # 寻找与实体列表最相关的文本块 TODO 至此~
+    """
+    这段代码的核心作用是：**从知识图谱的检索结果（节点数据）中，筛选、关联并排序出与查询最相关的文本块（text units）**，最终为后续的语义理解或回答生成提供高质量的文本素材。整体逻辑围绕“节点关联的文本块”和“节点间关系”展开，具体可拆解为5个关键步骤：
+
+
+    ### **1. 提取初始节点关联的文本块ID**
+    - **操作**：从输入的 `node_datas`（检索到的节点数据列表）中，提取每个节点的 `source_id` 字段，并用分隔符（`GRAPH_FIELD_SEP`）拆分得到“文本块ID列表”（`text_units`）。
+    - **目的**：每个节点可能关联多个原始文本片段（如文档中的某段话），`source_id` 记录了这些文本块的唯一标识，这里先解析出这些ID，用于后续获取具体文本内容。
+
+
+    ### **2. 收集节点的“一跳邻居”及关联文本**
+    - **步骤拆解**：
+      1. 从知识图谱中获取每个节点的直接关联边（`edges`），即“与该节点相连的其他节点”（一跳邻居）。
+      2. 汇总所有一跳邻居节点，形成 `all_one_hop_nodes` 集合（去重）。
+      3. 获取这些一跳邻居节点的详细数据（`all_one_hop_nodes_data`），并提取它们关联的文本块ID，存入 `all_one_hop_text_units_lookup`（键为邻居节点名，值为其关联的文本块ID集合）。
+    - **目的**：不仅考虑初始节点本身的文本，还纳入其邻居节点的关联文本，扩大相关文本的覆盖范围（利用知识图谱的关联性补充信息）。
+
+
+    ### **3. 批量获取文本块内容并建立关联映射**
+    - **步骤拆解**：
+      1. 整合初始节点和邻居节点的所有文本块ID，去重后存入 `all_text_units_lookup`（避免重复处理）。
+      2. 按批次（`batch_size=5`）从文本存储（`text_chunks_db`）中获取这些文本块的具体内容（`data`），避免单次请求压力过大。
+      3. 为每个文本块记录额外信息：
+         - `order`：文本块所属初始节点在 `node_datas` 中的索引（保留原始检索的优先级）。
+         - `relation_counts`：该文本块与初始节点的邻居节点的关联次数（关联越多，说明文本与图谱结构的相关性越强）。
+    - **目的**：将文本块内容与知识图谱的节点关系绑定，为后续排序提供依据。
+
+
+    ### **4. 筛选有效文本块并排序**
+    - **筛选**：过滤掉内容为空或无效的文本块（确保 `data` 存在且包含 `content` 字段）。
+    - **排序**：按两个维度对文本块排序：
+      1. 优先按 `order` 升序（保留初始节点的检索优先级，先检索到的节点关联文本更优先）。
+      2. 同 `order` 内按 `relation_counts` 降序（与邻居节点关联越多的文本块，权重越高）。
+    - **目的**：让与查询关联最紧密、结构相关性最强的文本块排在前面。
+
+
+    ### **5. 按token长度截断文本块列表**
+    - **操作**：使用 `truncate_list_by_token_size` 函数，根据 `query_param.max_token_for_text_unit` 限制，按文本内容的token长度（通过 `tokenizer` 计算）截断列表，确保总长度不超过阈值。
+    - **目的**：控制文本总量，避免后续处理（如大模型输入）因token超限而失败，同时保留最关键的文本。
+
+
+    ### **总结：代码的核心价值**
+    1. **关联知识图谱与文本**：将知识图谱的节点/边关系（结构信息）与原始文本块（内容信息）结合，避免仅依赖文本相似度的检索局限。
+    2. **优化文本排序**：通过“初始检索优先级”和“节点关联强度”双重维度排序，提升文本块的相关性。
+    3. **控制资源与格式**：批量处理+token截断，确保效率和兼容性。
+
+    最终输出的 `all_text_units` 是经过筛选、排序、截断后的高质量文本块列表，可直接用于后续的语义理解或回答生成。
+    """
     text_units = [
         split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
         for dp in node_datas
@@ -1637,7 +1705,7 @@ async def _find_most_related_edges_from_entities(
 
 
 async def _get_edge_data(
-    keywords,
+    keywords,  # 高级关键字【侧重于总体概念或主题】
     knowledge_graph_inst: BaseGraphStorage,
     relationships_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage,
@@ -1648,11 +1716,11 @@ async def _get_edge_data(
         f"Query edges: {keywords}, top_k: {query_param.top_k}, cosine: {relationships_vdb.cosine_better_than_threshold}"
     )
 
-    results = await relationships_vdb.query(keywords, top_k=query_param.top_k, ids=query_param.ids)
+    results = await relationships_vdb.query(keywords, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索边数据【表：lightrag_vdb_relation】
 
     if not len(results):
         return "", "", ""
-
+    # 提取embedding相似度检索结果中的节点id列表
     # Prepare edge pairs in two forms:
     # For the batch edge properties function, use dicts.
     edge_pairs_dicts = [{"src": r["src_id"], "tgt": r["tgt_id"]} for r in results]
@@ -1661,8 +1729,8 @@ async def _get_edge_data(
 
     # Call the batched functions concurrently.
     edge_data_dict, edge_degrees_dict = await asyncio.gather(
-        knowledge_graph_inst.get_edges_batch(edge_pairs_dicts),
-        knowledge_graph_inst.edge_degrees_batch(edge_pairs_tuples),
+        knowledge_graph_inst.get_edges_batch(edge_pairs_dicts),  # 基于边起止节点id元组列表查询边数据【表：lightrag_graph_edges】
+        knowledge_graph_inst.edge_degrees_batch(edge_pairs_tuples),  # 基于边起止节点id元组列表查询相应边的度【其源节点和目标节点的度数之和】【表：lightrag_graph_edges】
     )
 
     # Reconstruct edge_datas list in the same order as results.
