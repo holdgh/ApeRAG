@@ -1501,7 +1501,7 @@ async def _get_node_data(
 
 
 async def _find_most_related_text_unit_from_entities(
-    node_datas: list[dict],  # 节点数据列表
+    node_datas: list[dict],  # 节点数据列表【内含：节点名称、节点描述、节点来源分段id】
     query_param: QueryParam,  # 检索参数
     text_chunks_db: BaseKVStorage,  # 分段数据存储实例
     knowledge_graph_inst: BaseGraphStorage,  # 知识图谱数据存储实例
@@ -1558,21 +1558,21 @@ async def _find_most_related_text_unit_from_entities(
         split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
         for dp in node_datas
         if dp["source_id"] is not None
-    ]
+    ]  # 提取node_datas中的来源分段id列表
 
-    node_names = [dp["entity_name"] for dp in node_datas]
-    batch_edges_dict = await knowledge_graph_inst.get_nodes_edges_batch(node_names)
+    node_names = [dp["entity_name"] for dp in node_datas]  # 提取node_datas中的所有节点名称
+    batch_edges_dict = await knowledge_graph_inst.get_nodes_edges_batch(node_names)  # 提取node_datas中所有节点关联的边
     # Build the edges list in the same order as node_datas.
-    edges = [batch_edges_dict.get(name, []) for name in node_names]
+    edges = [batch_edges_dict.get(name, []) for name in node_names]  # 按照node_datas中节点名称的顺序，构造其关联的边列表【如果存在某节点没有边，则采用[]占位】
 
     all_one_hop_nodes = set()
     for this_edges in edges:
         if not this_edges:
             continue
-        all_one_hop_nodes.update([e[1] for e in this_edges])
+        all_one_hop_nodes.update([e[1] for e in this_edges])  # TODO 由于在获取节点关联的边时，该节点既可作为边的起点，又可作为边的终点。这里直接取边的终点作为一跳节点存在问题吧？
 
     all_one_hop_nodes = list(all_one_hop_nodes)
-
+    # 获取所有一跳节点的数据
     # Batch retrieve one-hop node data using get_nodes_batch
     all_one_hop_nodes_data_dict = await knowledge_graph_inst.get_nodes_batch(all_one_hop_nodes)
     all_one_hop_nodes_data = [all_one_hop_nodes_data_dict.get(e) for e in all_one_hop_nodes]
@@ -1582,7 +1582,7 @@ async def _find_most_related_text_unit_from_entities(
         k: set(split_string_by_multi_markers(v["source_id"], [GRAPH_FIELD_SEP]))
         for k, v in zip(all_one_hop_nodes, all_one_hop_nodes_data)
         if v is not None and "source_id" in v  # Add source_id check
-    }
+    }  # 获取所有一跳节点的来源分段id列表
 
     all_text_units_lookup = {}
     tasks = []
