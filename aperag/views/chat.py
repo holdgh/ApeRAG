@@ -88,6 +88,8 @@ async def feedback_message_view(
 async def websocket_chat_endpoint(
     websocket: WebSocket, bot_id: str, chat_id: str, user_manager: UserManager = Depends(get_user_manager)
 ):
+    # TODO 如何处理本地缺失大模型的问题？思路：在免费大模型能力期间，先做好知识库维护工作【这一阶段的大模型能力体现在文件解析、索引构建和知识库持久化】，接着对于问答，备份好以下内容：用户问题、问题向量化结果、问答阶段的大模型处理结果【索引、关键词提取、回答等】。
+    # TODO 核心思想：将代码中需要用到大模型【包括embedding】的地方，使用备份的数据替换代码中的模型能力调用
     """WebSocket endpoint for real-time chat with bots
 
     Supports cookie-based authentication to get user_id

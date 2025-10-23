@@ -269,7 +269,7 @@ def truncate_list_by_token_size(
     tokens = 0
     for i, data in enumerate(list_data):
         tokens += len(tokenizer.encode(key(data)))
-        if tokens > max_token_size:
+        if tokens > max_token_size:  # 由前往后拼接分段内容，当超过长度阈值时，丢弃当前分段i，直接返回前i个分段
             return list_data[:i]
     return list_data
 

@@ -1419,13 +1419,13 @@ async def _get_node_data(
         text_chunks_db,
         knowledge_graph_inst,
         tokenizer,
-    )  # TODO 待分析~
+    )  # 基于当前节点数据列表得到的与用户问题最相关的分段内容列表
     use_relations = await _find_most_related_edges_from_entities(
         node_datas,
         query_param,
         knowledge_graph_inst,
         tokenizer,
-    )
+    )  # TODO 至此~
 
     len_node_datas = len(node_datas)
     node_datas = truncate_list_by_token_size(
@@ -1506,54 +1506,55 @@ async def _find_most_related_text_unit_from_entities(
     text_chunks_db: BaseKVStorage,  # 分段数据存储实例
     knowledge_graph_inst: BaseGraphStorage,  # 知识图谱数据存储实例
     tokenizer: Tokenizer,  # 分词器
-):  # 寻找与实体列表最相关的文本块 TODO 至此~
+):  # 寻找与实体列表最相关的分段【基于当前节点数据列表得到的与用户问题最相关的分段内容列表】
     """
-    这段代码的核心作用是：**从知识图谱的检索结果（节点数据）中，筛选、关联并排序出与查询最相关的文本块（text units）**，最终为后续的语义理解或回答生成提供高质量的文本素材。整体逻辑围绕“节点关联的文本块”和“节点间关系”展开，具体可拆解为5个关键步骤：
+    这段代码的核心作用是：**从知识图谱的检索结果（节点数据）中，筛选、关联并排序出与查询最相关的分段（text units）**，最终为后续的语义理解或回答生成提供高质量的文本素材。整体逻辑围绕“节点关联的分段”和“节点间关系”展开，具体可拆解为5个关键步骤：
 
 
-    ### **1. 提取初始节点关联的文本块ID**
-    - **操作**：从输入的 `node_datas`（检索到的节点数据列表）中，提取每个节点的 `source_id` 字段，并用分隔符（`GRAPH_FIELD_SEP`）拆分得到“文本块ID列表”（`text_units`）。
-    - **目的**：每个节点可能关联多个原始文本片段（如文档中的某段话），`source_id` 记录了这些文本块的唯一标识，这里先解析出这些ID，用于后续获取具体文本内容。
+    ### **1. 提取初始节点关联的分段ID**
+    - **操作**：从输入的 `node_datas`（检索到的节点数据列表）中，提取每个节点的 `source_id` 字段，并用分隔符（`GRAPH_FIELD_SEP`）拆分得到“分段ID列表”（`text_units`）。
+    - **目的**：每个节点可能关联多个原始文本片段（如文档中的某段话），`source_id` 记录了这些分段的唯一标识，这里先解析出这些ID，用于后续获取具体文本内容。
 
 
     ### **2. 收集节点的“一跳邻居”及关联文本**
     - **步骤拆解**：
       1. 从知识图谱中获取每个节点的直接关联边（`edges`），即“与该节点相连的其他节点”（一跳邻居）。
       2. 汇总所有一跳邻居节点，形成 `all_one_hop_nodes` 集合（去重）。
-      3. 获取这些一跳邻居节点的详细数据（`all_one_hop_nodes_data`），并提取它们关联的文本块ID，存入 `all_one_hop_text_units_lookup`（键为邻居节点名，值为其关联的文本块ID集合）。
+      3. 获取这些一跳邻居节点的详细数据（`all_one_hop_nodes_data`），并提取它们关联的分段ID，存入 `all_one_hop_text_units_lookup`（键为邻居节点名，值为其关联的分段ID集合）。
     - **目的**：不仅考虑初始节点本身的文本，还纳入其邻居节点的关联文本，扩大相关文本的覆盖范围（利用知识图谱的关联性补充信息）。
 
 
-    ### **3. 批量获取文本块内容并建立关联映射**
+    ### **3. 批量获取分段内容并建立关联映射**
     - **步骤拆解**：
-      1. 整合初始节点和邻居节点的所有文本块ID，去重后存入 `all_text_units_lookup`（避免重复处理）。
-      2. 按批次（`batch_size=5`）从文本存储（`text_chunks_db`）中获取这些文本块的具体内容（`data`），避免单次请求压力过大。
-      3. 为每个文本块记录额外信息：
-         - `order`：文本块所属初始节点在 `node_datas` 中的索引（保留原始检索的优先级）。
-         - `relation_counts`：该文本块与初始节点的邻居节点的关联次数（关联越多，说明文本与图谱结构的相关性越强）。
-    - **目的**：将文本块内容与知识图谱的节点关系绑定，为后续排序提供依据。
+      1. 整合初始节点和邻居节点的所有分段ID，去重后存入 `all_text_units_lookup`（避免重复处理）。
+      2. 按批次（`batch_size=5`）从文本存储（`text_chunks_db`）中获取这些分段的具体内容（`data`），避免单次请求压力过大。
+      3. 为每个分段记录额外信息：
+         - `order`：分段所属初始节点在 `node_datas` 中的索引（保留原始检索的优先级）。
+         - `relation_counts`：该分段与初始节点的邻居节点的关联次数（关联越多，说明文本与图谱结构的相关性越强）。
+    - **目的**：将分段内容与知识图谱的节点关系绑定，为后续排序提供依据。
 
 
-    ### **4. 筛选有效文本块并排序**
-    - **筛选**：过滤掉内容为空或无效的文本块（确保 `data` 存在且包含 `content` 字段）。
-    - **排序**：按两个维度对文本块排序：
+    ### **4. 筛选有效分段并排序**
+    - **筛选**：过滤掉内容为空或无效的分段（确保 `data` 存在且包含 `content` 字段）。
+    - **排序**：按两个维度对分段排序：
       1. 优先按 `order` 升序（保留初始节点的检索优先级，先检索到的节点关联文本更优先）。
-      2. 同 `order` 内按 `relation_counts` 降序（与邻居节点关联越多的文本块，权重越高）。
-    - **目的**：让与查询关联最紧密、结构相关性最强的文本块排在前面。
+      2. 同 `order` 内按 `relation_counts` 降序（与邻居节点关联越多的分段，权重越高）。
+    - **目的**：让与查询关联最紧密、结构相关性最强的分段排在前面。
 
 
-    ### **5. 按token长度截断文本块列表**
+    ### **5. 按token长度截断分段列表**
     - **操作**：使用 `truncate_list_by_token_size` 函数，根据 `query_param.max_token_for_text_unit` 限制，按文本内容的token长度（通过 `tokenizer` 计算）截断列表，确保总长度不超过阈值。
     - **目的**：控制文本总量，避免后续处理（如大模型输入）因token超限而失败，同时保留最关键的文本。
 
 
     ### **总结：代码的核心价值**
-    1. **关联知识图谱与文本**：将知识图谱的节点/边关系（结构信息）与原始文本块（内容信息）结合，避免仅依赖文本相似度的检索局限。
-    2. **优化文本排序**：通过“初始检索优先级”和“节点关联强度”双重维度排序，提升文本块的相关性。
+    1. **关联知识图谱与文本**：将知识图谱的节点/边关系（结构信息）与原始分段（内容信息）结合，避免仅依赖文本相似度的检索局限。
+    2. **优化文本排序**：通过“初始检索优先级”和“节点关联强度”双重维度排序，提升分段的相关性。
     3. **控制资源与格式**：批量处理+token截断，确保效率和兼容性。
 
-    最终输出的 `all_text_units` 是经过筛选、排序、截断后的高质量文本块列表，可直接用于后续的语义理解或回答生成。
+    最终输出的 `all_text_units` 是经过筛选、排序、截断后的高质量分段列表，可直接用于后续的语义理解或回答生成。
     """
+    # 提取初始节点关联的分段ID、边
     text_units = [
         split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
         for dp in node_datas
@@ -1564,12 +1565,12 @@ async def _find_most_related_text_unit_from_entities(
     batch_edges_dict = await knowledge_graph_inst.get_nodes_edges_batch(node_names)  # 提取node_datas中所有节点关联的边
     # Build the edges list in the same order as node_datas.
     edges = [batch_edges_dict.get(name, []) for name in node_names]  # 按照node_datas中节点名称的顺序，构造其关联的边列表【如果存在某节点没有边，则采用[]占位】
-
+    # -- 收集节点的“一跳邻居”及关联文本
     all_one_hop_nodes = set()
     for this_edges in edges:
         if not this_edges:
             continue
-        all_one_hop_nodes.update([e[1] for e in this_edges])  # TODO 由于在获取节点关联的边时，该节点既可作为边的起点，又可作为边的终点。这里直接取边的终点作为一跳节点存在问题吧？
+        all_one_hop_nodes.update([e[1] for e in this_edges])  # TODO 由于在获取节点关联的边时，该节点既可作为边的起点，又可作为边的终点。这里直接取边的终点作为一跳节点存在问题吧？这里需要修改。
 
     all_one_hop_nodes = list(all_one_hop_nodes)
     # 获取所有一跳节点的数据
@@ -1584,48 +1585,57 @@ async def _find_most_related_text_unit_from_entities(
         if v is not None and "source_id" in v  # Add source_id check
     }  # 获取所有一跳节点的来源分段id列表
 
+    # -- 批量获取分段内容并建立关联映射，将分段内容与知识图谱的节点关系绑定，为后续排序提供依据。
     all_text_units_lookup = {}
     tasks = []
-
-    for index, (this_text_units, this_edges) in enumerate(zip(text_units, edges)):
+    # TODO 牛逼！！！
+    # 获取任务【在用户问题最相关意义下，收集每个来源分段与哪个节点、哪几条边【与“哪个节点”中的节点有直接关联】的关联关系】列表
+    for index, (this_text_units, this_edges) in enumerate(zip(text_units, edges)):  # 在节点列表顺序意义下，将节点来源分段id列表与节点关联边列表一一配对
         for c_id in this_text_units:
-            if c_id not in all_text_units_lookup:
+            if c_id not in all_text_units_lookup:  # TODO 牛逼之处：这里体现了优先级原则，注意在节点列表顺序意义下【与当前用户问题的相关程度依次降低】，对于来源分段，优先选择最与用户问题相关的节点及对应的边列表
                 all_text_units_lookup[c_id] = index
-                tasks.append((c_id, index, this_edges))
+                tasks.append((c_id, index, this_edges))  # 收集来源分段id、节点列表顺序意义下的节点索引、节点关联边列表
 
     # Process in batches tasks at a time to avoid overwhelming resources
+    # 分批处理任务，避免资源过载
     batch_size = 5
     results = []
-
+    # 查询来源分段内容，并将其收集到results中
     for i in range(0, len(tasks), batch_size):
-        batch_tasks = tasks[i : i + batch_size]
+        batch_tasks = tasks[i: i + batch_size]
         batch_results = await asyncio.gather(*[text_chunks_db.get_by_id(c_id) for c_id, _, _ in batch_tasks])
         results.extend(batch_results)
 
     for (c_id, index, this_edges), data in zip(tasks, results):
         all_text_units_lookup[c_id] = {
             "data": data,
-            "order": index,
-            "relation_counts": 0,
+            "order": index,  # 分段所属初始节点在 `node_datas` 中的索引（保留原始检索的优先级）。
+            "relation_counts": 0,  # 该分段与初始节点的邻居节点的关联次数（关联越多，说明文本与图谱结构的相关性越强）。
         }
 
-        if this_edges:
+        if this_edges:  # 根据当前分段关联的边列表设置relation_counts的值
             for e in this_edges:
-                if e[1] in all_one_hop_text_units_lookup and c_id in all_one_hop_text_units_lookup[e[1]]:
+                # 解释：一跳节点对于知识图谱而言，表示了与当前节点直接相关的节点，也即与用户问题相关的可能性比较大。因此将分段与一跳节点数据进行关系校验可以衡量当前分段与用户问题的相关性大小
+                if e[1] in all_one_hop_text_units_lookup and c_id in all_one_hop_text_units_lookup[e[1]]:  # 当前边的节点【TODO 其实可能是终点，也可能是起点，这里需要修改。】位于一跳节点集合且当前分段id位于一跳节点关联分段集合中时，relation_counts加1
                     all_text_units_lookup[c_id]["relation_counts"] += 1
-
+    # -- 筛选有效分段并排序【让与查询关联最紧密、结构相关性最强的分段排在前面】
     # Filter out None values and ensure data has content
     all_text_units = [
         {"id": k, **v}
         for k, v in all_text_units_lookup.items()
         if v is not None and v.get("data") is not None and "content" in v["data"]
-    ]
+    ]  # 过滤掉空分段
 
     if not all_text_units:
         logger.warning("No valid text units found")
         return []
-
+    """
+    排序规则：
+      1. 优先按 `order` 升序（保留初始节点的检索优先级，先检索到的节点关联文本更优先）。
+      2. 同 `order` 内按 `relation_counts` 降序（与邻居节点关联越多的分段，权重越高）。
+    """
     all_text_units = sorted(all_text_units, key=lambda x: (x["order"], -x["relation_counts"]))
+    # -- 按token长度截断分段列表【截断规则：由前往后拼接分段内容，当超过长度阈值时，丢弃当前分段i，直接返回前i个分段】
     all_text_units = truncate_list_by_token_size(
         all_text_units,
         key=lambda x: x["data"]["content"],
@@ -1637,7 +1647,7 @@ async def _find_most_related_text_unit_from_entities(
         f"Truncate chunks from {len(all_text_units_lookup)} to {len(all_text_units)} (max tokens:{query_param.max_token_for_text_unit})"
     )
 
-    all_text_units = [t["data"] for t in all_text_units]
+    all_text_units = [t["data"] for t in all_text_units]  # 收集基于当前节点数据列表得到的与用户问题最相关的分段内容列表
     return all_text_units
 
 
