@@ -1264,17 +1264,17 @@ async def _build_query_context_from_keywords(
     """
     检索模式分为四种：
         local：
-            对低级别关键词，基于embedding相似度机制检索节点数据
+            对低级别关键词，基于embedding相似度机制检索节点数据……
         global：
-            对高级别关键词，基于embedding相似度机制检索边数据
+            对高级别关键词，基于embedding相似度机制检索边数据……
         hybrid：
-            对低级别关键词，基于embedding相似度机制检索节点数据
-            对高级别关键词，基于embedding相似度机制检索边数据
+            对低级别关键词，基于embedding相似度机制检索节点数据……
+            对高级别关键词，基于embedding相似度机制检索边数据……
             去重合并
         mix：
-            对低级别关键词，基于embedding相似度机制检索节点数据
-            对高级别关键词，基于embedding相似度机制检索边数据
-            对用户原始问题，基于embedding相似度机制检索分段数据
+            对低级别关键词，基于embedding相似度机制检索节点数据……
+            对高级别关键词，基于embedding相似度机制检索边数据……
+            对用户原始问题，基于embedding相似度机制检索分段数据……
             去重合并
     """
     logger.info(f"Process {os.getpid()} building query context...")
@@ -1375,17 +1375,17 @@ async def _get_node_data(
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
     tokenizer: Tokenizer,
-):
+):  # 获取与低级别关键词相关的数据：节点数据列表、关系数据列表、分段数据列表
     # get similar entities
     logger.info(
         f"Query nodes: {query}, top_k: {query_param.top_k}, cosine: {entities_vdb.cosine_better_than_threshold}"
     )
-
-    results = await entities_vdb.query(query, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索节点数据【表：lightrag_vdb_entity】
+    # -- 基于embedding相似度机制检索与低级别关键词相关的节点数据
+    results = await entities_vdb.query(query, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索节点数据【表：lightrag_vdb_entity】，按照相关性从大到小排序
 
     if not len(results):
         return "", "", ""
-
+    # -- 批量获取节点属性和节点度数据
     # Extract all entity IDs from your results list
     node_ids = [r["entity_name"] for r in results]  # 提取embedding相似度检索结果中的节点id列表
 
@@ -1393,7 +1393,7 @@ async def _get_node_data(
     nodes_dict, degrees_dict = await asyncio.gather(
         knowledge_graph_inst.get_nodes_batch(node_ids),  # 基于节点id列表查询节点数据【表：lightrag_graph_nodes】
         knowledge_graph_inst.node_degrees_batch(node_ids),  # 基于节点id列表查询相应节点的度【连接边的数量；解释：当前节点即可作为起点，也可作为终点】【表：lightrag_graph_edges】
-    )  #
+    )  # 异步获取节点的属性和度信息
 
     # Now, if you need the node data and degree in order:
     node_datas = [nodes_dict.get(nid) for nid in node_ids]
@@ -1401,17 +1401,18 @@ async def _get_node_data(
 
     if not all([n is not None for n in node_datas]):
         logger.warning("Some nodes are missing, maybe the storage is damaged")
-
+    # -- 过滤空数据
     node_datas = [
         {
             **n,
             "entity_name": k["entity_name"],
-            "rank": d,
+            "rank": d,  # 将节点的度作为其排序依据之一
             "created_at": k.get("created_at"),
         }
         for k, n, d in zip(results, node_datas, node_degrees)
         if n is not None
     ]  # what is this text_chunks_db doing.  dont remember it in airvx.  check the diagram.
+    # -- 获取分段数据和直连边数据
     # get entitytext chunk
     use_text_units = await _find_most_related_text_unit_from_entities(
         node_datas,
@@ -1425,15 +1426,15 @@ async def _get_node_data(
         query_param,
         knowledge_graph_inst,
         tokenizer,
-    )  # TODO 至此~
-
+    )  # 基于当前节点数据列表得到的与用户问题最相关的边描述列表
+    # -- 按token长度上限截断节点列表
     len_node_datas = len(node_datas)
     node_datas = truncate_list_by_token_size(
         node_datas,
         key=lambda x: x["description"] if x["description"] is not None else "",
-        max_token_size=query_param.max_token_for_local_context,
+        max_token_size=query_param.max_token_for_local_context,  # 在本地检索中为实体描述分配的最大令牌数
         tokenizer=tokenizer,
-    )
+    )  # 按 token 长度截断节点描述的列表
     logger.debug(
         f"Truncate entities from {len_node_datas} to {len(node_datas)} (max tokens:{query_param.max_token_for_local_context})"
     )
@@ -1441,7 +1442,7 @@ async def _get_node_data(
     logger.info(
         f"Local query uses {len(node_datas)} entites, {len(use_relations)} relations, {len(use_text_units)} chunks"
     )
-
+    # -- 整合数据：节点数据、边数据、分段数据
     # build prompt
     entities_context = []
     for i, n in enumerate(node_datas):
@@ -1458,11 +1459,11 @@ async def _get_node_data(
                 "entity": n["entity_name"],
                 "type": n.get("entity_type", "UNKNOWN"),
                 "description": n.get("description", "UNKNOWN"),
-                "rank": n["rank"],
+                "rank": n["rank"],  # 节点的度【与当前节点直连的边的数量】
                 "created_at": created_at,
                 "file_path": file_path,
             }
-        )
+        )  # 收集整合后的节点数据
 
     relations_context = []
     for i, e in enumerate(use_relations):
@@ -1481,12 +1482,12 @@ async def _get_node_data(
                 "entity2": e["src_tgt"][1],
                 "description": e["description"],
                 "keywords": e["keywords"],
-                "weight": e["weight"],
-                "rank": e["rank"],
+                "weight": e["weight"],  # 边的权重，表示关系强度，由大模型提取实体关系信息时给出
+                "rank": e["rank"],  # 边的度【当前边的起止节点度数之和】
                 "created_at": created_at,
                 "file_path": file_path,
             }
-        )
+        )  # 收集整合后的边【关系】数据
 
     text_units_context = []
     for i, t in enumerate(use_text_units):
@@ -1496,7 +1497,7 @@ async def _get_node_data(
                 "content": t["content"],
                 "file_path": t.get("file_path", "unknown_source"),
             }
-        )
+        )  # 收集整合后的分段数据
     return entities_context, relations_context, text_units_context
 
 
@@ -1656,9 +1657,58 @@ async def _find_most_related_edges_from_entities(
     query_param: QueryParam,
     knowledge_graph_inst: BaseGraphStorage,
     tokenizer: Tokenizer,
-):
-    node_names = [dp["entity_name"] for dp in node_datas]
-    batch_edges_dict = await knowledge_graph_inst.get_nodes_edges_batch(node_names)
+):  # 基于当前节点数据列表得到的与用户问题最相关的分段内容列表
+    """
+    这段代码的核心作用是：**从知识图谱中提取与检索到的节点相关的边（关系）数据，经过去重、属性补充、排序和截断后，筛选出与用户问题最相关的边信息**，最终为后续的语义理解或回答生成提供结构化的关系上下文。整体逻辑围绕“节点间关系的提取、清洗和优先级排序”展开，具体可拆解为5个关键步骤：
+
+
+    ### **1. 提取节点关联的边并去重**
+    - **操作**：
+      1. 从输入的 `node_datas`（检索到的节点数据列表）中提取所有节点名称（`node_names`）。
+      2. 调用知识图谱接口（`get_nodes_edges_batch`）获取这些节点关联的所有边（`this_edges`，每条边以 `(源节点, 目标节点, 关系属性)` 形式存在）。
+      3. 对边进行去重：将每条边转换为“排序后的元组”（如 `(A, B)` 和 `(B, A)` 视为同一条边），通过 `seen` 集合过滤重复项，最终得到去重后的边列表 `all_edges`。
+    - **目的**：避免因节点关联的边重复（如双向边）导致后续处理冗余，保证关系数据的唯一性。
+
+
+    ### **2. 批量获取边的属性和度信息**
+    - **操作**：
+      1. 将去重后的边转换为两种格式：`edge_pairs_dicts`（字典形式，用于获取边的属性）和 `edge_pairs_tuples`（元组形式，用于获取边的度）。
+      2. 并发调用知识图谱接口：
+         - `get_edges_batch`：获取每条边的详细属性（如 `description` 关系描述、`weight` 权重等），存入 `edge_data_dict`。
+         - `edge_degrees_batch`：获取每条边的“度”（可理解为该关系在图谱中的重要性或出现频率），存入 `edge_degrees_dict`。
+    - **目的**：补充边的关键信息（属性和重要性指标），为后续排序提供依据。
+
+
+    ### **3. 整合边的信息并处理缺失值**
+    - **操作**：
+      1. 遍历去重后的边（`all_edges`），从 `edge_data_dict` 中提取对应的属性（`edge_props`）。
+      2. 处理缺失值：若边的属性中没有 `weight`（权重），则默认赋值为 `0.0`（避免后续排序出错）。
+      3. 整合为统一格式：每条边的信息包含 `src_tgt`（源节点-目标节点对）、`rank`（度，来自 `edge_degrees_dict`）、以及边的所有属性（如 `description`、`weight` 等），存入 `all_edges_data`。
+    - **目的**：标准化边的数据结构，确保关键字段（权重、度）完整，便于后续排序和使用。
+
+
+    ### **4. 按优先级排序边的信息**
+    - **操作**：按两个维度对 `all_edges_data` 排序（降序）：
+      1. 优先按 `rank`（边的度）排序：度越高的边（在图谱中更重要/高频）排在前面。
+      2. 同 `rank` 内按 `weight`（边的权重）排序：权重越高的边（关系强度越大）排在前面。
+    - **目的**：让对用户问题更重要、关系更强的边优先被保留，提升后续处理的相关性。
+
+
+    ### **5. 按token长度截断边的列表**
+    - **操作**：使用 `truncate_list_by_token_size` 函数，根据 `query_param.max_token_for_global_context` 限制，按边的 `description`（关系描述）的token长度（通过 `tokenizer` 计算）截断列表，确保总长度不超过阈值。
+    - **目的**：控制关系信息的总量，避免后续处理（如大模型输入）因token超限而失败，同时保留最关键的关系描述。
+
+
+    ### **总结：代码的核心价值**
+    1. **聚焦关键关系**：从知识图谱中提取与检索节点相关的边，通过去重和排序，筛选出最重要、最相关的关系信息。
+    2. **补充结构化上下文**：将边的属性（描述、权重）和重要性（度）整合，为用户问题提供“节点间如何关联”的结构化背景（区别于纯文本的内容信息）。
+    3. **适配后续处理**：通过token截断控制长度，确保关系数据能被大模型等下游组件有效利用。
+
+    最终输出的 `all_edges_data` 是经过清洗、排序、截断后的高质量关系列表，可与前文的文本块内容结合，为回答生成提供“内容+结构”的双重上下文支持。
+    """
+    # -- 提取节点关联的边并去重
+    node_names = [dp["entity_name"] for dp in node_datas]  # 提取node_datas中的所有节点名称
+    batch_edges_dict = await knowledge_graph_inst.get_nodes_edges_batch(node_names)  # 提取node_datas中所有节点关联的边
 
     all_edges = []
     seen = set()
@@ -1666,44 +1716,51 @@ async def _find_most_related_edges_from_entities(
     for node_name in node_names:
         this_edges = batch_edges_dict.get(node_name, [])
         for e in this_edges:
-            sorted_edge = tuple(sorted(e))
-            if sorted_edge not in seen:
+            sorted_edge = tuple(sorted(e))  # 这里排序是为了去重
+            if sorted_edge not in seen:  # 集合去重
                 seen.add(sorted_edge)
                 all_edges.append(sorted_edge)
-
+    # -- 批量获取边的属性【含有边的权重】和度【与其起止节点关联的边数总和】信息--【获取权重和度数用以对边数据进行排序，度数越高，权重越大，排序越靠前】
     # Prepare edge pairs in two forms:
     # For the batch edge properties function, use dicts.
-    edge_pairs_dicts = [{"src": e[0], "tgt": e[1]} for e in all_edges]
+    edge_pairs_dicts = [{"src": e[0], "tgt": e[1]} for e in all_edges]  # 字典列表，用以获取边的属性
     # For edge degrees, use tuples.
-    edge_pairs_tuples = list(all_edges)  # all_edges is already a list of tuples
+    edge_pairs_tuples = list(all_edges)  # all_edges is already a list of tuples  元组列表，用以获取边的度【其源节点和目标节点的度数之和；节点的度【连接边的数量；解释：当前节点即可作为起点，也可作为终点】】
 
     # Call the batched functions concurrently.
     edge_data_dict, edge_degrees_dict = await asyncio.gather(
         knowledge_graph_inst.get_edges_batch(edge_pairs_dicts),
         knowledge_graph_inst.edge_degrees_batch(edge_pairs_tuples),
-    )
-
+    )  # 异步获取边的属性和度信息
+    # -- 整合边的信息并处理缺失值
     # Reconstruct edge_datas list in the same order as the deduplicated results.
     all_edges_data = []
     for pair in all_edges:
-        edge_props = edge_data_dict.get(pair)
-        if edge_props is not None:
-            if "weight" not in edge_props:
+        edge_props = edge_data_dict.get(pair)  # 获取当前边的属性
+        if edge_props is not None:  # 过滤空值
+            if "weight" not in edge_props:  # 缺失权重时，将其权重视为0
                 logger.warning(f"Edge {pair} missing 'weight' attribute, using default value 0.0")
                 edge_props["weight"] = 0.0
 
             combined = {
                 "src_tgt": pair,
-                "rank": edge_degrees_dict.get(pair, 0),
+                "rank": edge_degrees_dict.get(pair, 0),  # 将边的度数作为排序依据
                 **edge_props,
-            }
-            all_edges_data.append(combined)
-
+            }  # 整合边数据
+            all_edges_data.append(combined)  # 收集整合的边数据
+    # -- 按优先级排序边的信息
+    """
+    按两个维度对 `all_edges_data` 排序（降序）：
+      1. 优先按 `rank`（边的度）排序：度越高的边（在图谱中更重要/高频）排在前面。
+      2. 同 `rank` 内按 `weight`（边的权重）排序：权重越高的边（关系强度越大）排在前面。
+    目的：让对用户问题更重要、关系更强的边优先被保留，提升后续处理的相关性。
+    """
     all_edges_data = sorted(all_edges_data, key=lambda x: (x["rank"], x["weight"]), reverse=True)
+    # -- 按token长度截断边的列表【截断规则：由前往后拼接边描述，当超过长度阈值时，丢弃当前边描述i，直接返回前i个边描述】
     all_edges_data = truncate_list_by_token_size(
         all_edges_data,
         key=lambda x: x["description"] if x["description"] is not None else "",
-        max_token_size=query_param.max_token_for_global_context,
+        max_token_size=query_param.max_token_for_global_context,  # 为全局检索中的关系描述分配的最大令牌数
         tokenizer=tokenizer,
     )
 
@@ -1721,12 +1778,12 @@ async def _get_edge_data(
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
     tokenizer: Tokenizer,
-):
+):  # 获取与高级别关键词相关的数据：节点数据列表、关系数据列表、分段数据列表
     logger.info(
         f"Query edges: {keywords}, top_k: {query_param.top_k}, cosine: {relationships_vdb.cosine_better_than_threshold}"
     )
 
-    results = await relationships_vdb.query(keywords, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索边数据【表：lightrag_vdb_relation】
+    results = await relationships_vdb.query(keywords, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索边数据【表：lightrag_vdb_relation】，按照相关性从大到小排序
 
     if not len(results):
         return "", "", ""
@@ -1741,7 +1798,7 @@ async def _get_edge_data(
     edge_data_dict, edge_degrees_dict = await asyncio.gather(
         knowledge_graph_inst.get_edges_batch(edge_pairs_dicts),  # 基于边起止节点id元组列表查询边数据【表：lightrag_graph_edges】
         knowledge_graph_inst.edge_degrees_batch(edge_pairs_tuples),  # 基于边起止节点id元组列表查询相应边的度【其源节点和目标节点的度数之和】【表：lightrag_graph_edges】
-    )
+    )  # TODO 至此~
 
     # Reconstruct edge_datas list in the same order as results.
     edge_datas = []
