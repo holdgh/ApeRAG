@@ -294,7 +294,7 @@ def process_combine_contexts(*context_lists):
         for item in context_list:
             content_dict = {k: v for k, v in item.items() if k != "id"}
             content_key = tuple(sorted(content_dict.items()))
-            if content_key not in seen_content:
+            if content_key not in seen_content:  # 按照文本内容进行去重合并
                 seen_content[content_key] = item
                 combined_data.append(item)
 

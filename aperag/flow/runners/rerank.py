@@ -50,7 +50,7 @@ class RerankOutput(BaseModel):
     output_model=RerankOutput,
 )
 class RerankNodeRunner(BaseNodeRunner):
-    async def run(self, ui: RerankInput, si: SystemInput) -> Tuple[RerankOutput, dict]:
+    async def run(self, ui: RerankInput, si: SystemInput) -> Tuple[RerankOutput, dict]:  # 如果rerank服务不可用或配置无效或出现异常，则将知识图谱检索结果在前，其他检索结果按照其score从大到小顺排；反之使用rerank服务进行重排
         """
         Smart rerank node:
         - use_rerank_service=False: directly use fallback strategy
@@ -61,21 +61,21 @@ class RerankNodeRunner(BaseNodeRunner):
         if not docs:
             logger.info("No documents to rerank, returning empty result")
             return RerankOutput(docs=[]), {}
-
+        # -- 没有可用的rerank服务，知识图谱检索结果在前，其他检索结果按照其score从大到小顺排
         # Strategy 1: If not using rerank service, directly use fallback strategy
         if not ui.use_rerank_service:
             logger.info("Rerank service disabled, using fallback strategy")
             result = self._apply_fallback_strategy(docs)
             return RerankOutput(docs=result), {}
-
+        # -- 使用rerank服务进行重排
         # Strategy 2: Try to use rerank service
         try:
             # Check configuration completeness
-            if not self._is_rerank_config_valid(ui):
+            if not self._is_rerank_config_valid(ui):  # rerank服务配置无效，知识图谱检索结果在前，其他检索结果按照其score从大到小顺排
                 logger.info("Rerank service configuration incomplete, using fallback strategy")
                 result = self._apply_fallback_strategy(docs)
                 return RerankOutput(docs=result), {}
-
+            # 使用rerank服务进行重排
             # Execute actual rerank
             result = await self._perform_actual_rerank(ui, si)
             logger.info(f"Successfully reranked {len(result)} documents using rerank service")
@@ -96,7 +96,7 @@ class RerankNodeRunner(BaseNodeRunner):
             result = self._apply_fallback_strategy(docs)
             return RerankOutput(docs=result), {}
 
-    def _is_rerank_config_valid(self, ui: RerankInput) -> bool:
+    def _is_rerank_config_valid(self, ui: RerankInput) -> bool:  # 检查rerank服务配置是否有效
         """Check if rerank service configuration is valid"""
         return (
             ui.model
@@ -164,7 +164,7 @@ class RerankNodeRunner(BaseNodeRunner):
 
         return await rerank_service.async_rerank(query, docs)
 
-    def _apply_fallback_strategy(self, docs: List[DocumentWithScore]) -> List[DocumentWithScore]:
+    def _apply_fallback_strategy(self, docs: List[DocumentWithScore]) -> List[DocumentWithScore]:  # 知识图谱检索结果在前，其他检索结果按照其score从大到小顺排
         """
         Apply fallback rerank strategy:
         1. Graph search results first (better quality, typically 1 result)
@@ -175,7 +175,7 @@ class RerankNodeRunner(BaseNodeRunner):
 
         graph_results = []
         other_results = []
-
+        # 对于知识图谱检索结果，直接收集；对于其他检索结果，收集以进行score从大到小排序
         for doc in docs:
             recall_type = doc.metadata.get("recall_type", "")
             if recall_type == "graph_search":
@@ -185,7 +185,7 @@ class RerankNodeRunner(BaseNodeRunner):
 
         # Sort other results by score in descending order
         other_results.sort(key=lambda x: x.score if x.score is not None else 0.0, reverse=True)
-
+        # 知识图谱检索结果在前，其他检索结果按照其score从大到小顺排
         result = graph_results + other_results
 
         logger.info(

@@ -134,7 +134,7 @@ def register_node_runner(
 ):  # 注册器，实现多个不同类型的节点运行信息注册。【类装饰器】
     def decorator(cls):
         NODE_RUNNER_REGISTRY[node_type] = {
-            "runner": cls(),  # 具体节点类定义
+            "runner": cls(),  # 具体节点类定义实例化
             "input_model": input_model,  # 输入信息定义
             "output_model": output_model,  # 输出信息定义
         }

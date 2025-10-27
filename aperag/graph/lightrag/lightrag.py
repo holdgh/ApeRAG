@@ -927,7 +927,7 @@ class LightRAG:
         self,
         query: str,  # 用户问题
         param: QueryParam = QueryParam(),  # 检索参数：是否仅需内容、top_k、检索模式
-    ):  # 知识图谱检索逻辑
+    ):  # 知识图谱检索逻辑【最终获得一个格式化的字符串，内含三种数据：节点数据、边数据和分段数据】
         param.original_query = query
         context_data = await build_query_context(
             query.strip(),
@@ -940,7 +940,7 @@ class LightRAG:
             self.llm_model_func,
             self.addon_params,
             chunks_vdb=self.chunks_vdb,  # 分段向量库存储实例
-        )  # 检索数据逻辑
+        )  # 检索数据逻辑【最终获得节点数据列表、边数据列表和分段数据列表】
 
         if context_data is None:
             return ""
@@ -948,7 +948,7 @@ class LightRAG:
         entities_context, relations_context, text_units_context = context_data
 
         # Remove file_path from all contexts before serialization
-        def remove_file_path_from_context(context_list):
+        def remove_file_path_from_context(context_list):  # 清除检索结果中的file_path字段
             """Remove file_path field from each item in the context list"""
             if not context_list:
                 return context_list
@@ -969,7 +969,7 @@ class LightRAG:
         text_units_context = remove_file_path_from_context(text_units_context)
 
         import json
-
+        # 将字典实例转为json字符串
         entities_str = json.dumps(entities_context, ensure_ascii=False)
         relations_str = json.dumps(relations_context, ensure_ascii=False)
         text_units_str = json.dumps(text_units_context, ensure_ascii=False)

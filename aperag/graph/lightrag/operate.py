@@ -936,7 +936,7 @@ async def build_query_context(
     llm_model_func: callable,
     addon_params: dict,
     chunks_vdb: BaseVectorStorage = None,  # 分段向量存储实例
-):  # 知识图谱检索算法
+):  # 知识图谱检索算法【最终获得节点数据列表、边数据列表和分段数据列表】
     # -- llm选择
     if query_param.model_func:
         use_model_func = query_param.model_func
@@ -1178,7 +1178,7 @@ async def _get_vector_context(
     chunks_vdb: BaseVectorStorage,
     query_param: QueryParam,
     tokenizer: Tokenizer,
-) -> tuple[list, list, list] | None:
+) -> tuple[list, list, list] | None:  # 对用户原始问题，基于embedding相似度机制检索分段数据
     """
     Retrieve vector context from the vector database.
 
@@ -1196,10 +1196,11 @@ async def _get_vector_context(
         compatible with _get_edge_data and _get_node_data format
     """
     try:
+        # -- 对用户原始问题，基于embedding相似度机制检索分段数据
         results = await chunks_vdb.query(query, top_k=query_param.top_k, ids=query_param.ids)
         if not results:
             return [], [], []
-
+        # -- 过滤掉空分段
         valid_chunks = []
         for result in results:
             if "content" in result:
@@ -1213,7 +1214,7 @@ async def _get_vector_context(
 
         if not valid_chunks:
             return [], [], []
-
+        # -- 按token长度上限对分段数据列表进行截断
         maybe_trun_chunks = truncate_list_by_token_size(
             valid_chunks,
             key=lambda x: x["content"],
@@ -1228,7 +1229,7 @@ async def _get_vector_context(
 
         if not maybe_trun_chunks:
             return [], [], []
-
+        # -- 封装结果数据【注意这里创建了空实体列表和空关系列表，用以方便在调用处统一处理【节点检索、关系检索和分段检索】各种检索结果】
         # Create empty entities and relations contexts
         entities_context = []
         relations_context = []
@@ -1260,7 +1261,7 @@ async def _build_query_context_from_keywords(
     query_param: QueryParam,  # 检索参数
     tokenizer: Tokenizer,  # 分词器
     chunks_vdb: BaseVectorStorage = None,  # Add chunks_vdb parameter for mix mode 分段向量存储实例
-):  # 知识图谱数据检索逻辑
+):  # 知识图谱数据检索逻辑【最终获得节点数据列表、边数据列表和分段数据列表】
     """
     检索模式分为四种：
         local：
@@ -1351,8 +1352,8 @@ async def _build_query_context_from_keywords(
                     vector_entities_context,
                     vector_relations_context,
                     vector_text_units_context,
-                ) = vector_data
-        # 对节点检索、边检索、分段检索数据进行去重合并
+                ) = vector_data  # 实体数据和关系数据都是空的，详情见aperag.graph.lightrag.operate._get_vector_context
+        # 对节点检索、边检索、分段检索数据进行去重合并【基于文本内容的去重】
         # Combine and deduplicate the entities, relationships, and sources
         entities_context = process_combine_contexts(hl_entities_context, ll_entities_context, vector_entities_context)
         relations_context = process_combine_contexts(
@@ -1778,15 +1779,16 @@ async def _get_edge_data(
     text_chunks_db: BaseKVStorage,
     query_param: QueryParam,
     tokenizer: Tokenizer,
-):  # 获取与高级别关键词相关的数据：节点数据列表、关系数据列表、分段数据列表
+):  # 获取与高级别关键词相关的数据：实体数据列表、关系数据列表、分段数据列表
     logger.info(
         f"Query edges: {keywords}, top_k: {query_param.top_k}, cosine: {relationships_vdb.cosine_better_than_threshold}"
     )
-
+    # -- 基于embedding相似度机制检索与高级别关键词相关的边数据
     results = await relationships_vdb.query(keywords, top_k=query_param.top_k, ids=query_param.ids)  # 基于embedding相似度机制检索边数据【表：lightrag_vdb_relation】，按照相关性从大到小排序
 
     if not len(results):
         return "", "", ""
+    # -- 获取边的属性和度信息
     # 提取embedding相似度检索结果中的节点id列表
     # Prepare edge pairs in two forms:
     # For the batch edge properties function, use dicts.
@@ -1798,15 +1800,15 @@ async def _get_edge_data(
     edge_data_dict, edge_degrees_dict = await asyncio.gather(
         knowledge_graph_inst.get_edges_batch(edge_pairs_dicts),  # 基于边起止节点id元组列表查询边数据【表：lightrag_graph_edges】
         knowledge_graph_inst.edge_degrees_batch(edge_pairs_tuples),  # 基于边起止节点id元组列表查询相应边的度【其源节点和目标节点的度数之和】【表：lightrag_graph_edges】
-    )  # TODO 至此~
-
+    )  # 查询边的属性和度信息
+    # -- 保持边关于高级别关键词相关性的先后顺序意义下，对边数据进行【权重缺失值处理】重构
     # Reconstruct edge_datas list in the same order as results.
     edge_datas = []
     for k in results:
         pair = (k["src_id"], k["tgt_id"])
-        edge_props = edge_data_dict.get(pair)
+        edge_props = edge_data_dict.get(pair)  # 获取当前边的属性
         if edge_props is not None:
-            if "weight" not in edge_props:
+            if "weight" not in edge_props:  # 对于缺失权重者，默认将权重设为0
                 logger.warning(f"Edge {pair} missing 'weight' attribute, using default value 0.0")
                 edge_props["weight"] = 0.0
 
@@ -1814,37 +1816,44 @@ async def _get_edge_data(
             combined = {
                 "src_id": k["src_id"],
                 "tgt_id": k["tgt_id"],
-                "rank": edge_degrees_dict.get(pair, k.get("rank", 0)),
+                "rank": edge_degrees_dict.get(pair, k.get("rank", 0)),  # 将边的度作为排序依据之一
                 "created_at": k.get("created_at", None),
                 **edge_props,
-            }
+            }  # 整合边数据
             edge_datas.append(combined)
-
-    edge_datas = sorted(edge_datas, key=lambda x: (x["rank"], x["weight"]), reverse=True)
+    # -- 对边数据列表排序
+    """
+    排序规则：
+        1、优先按照rank字段从大到小排序，也即度数越大的边，排序越靠前
+        2、同度数时，按照权重从大到小排序，也即同度数情况下，权重越大的边，排序越靠前
+    """
+    edge_datas = sorted(edge_datas, key=lambda x: (x["rank"], x["weight"]), reverse=True)  # 对边数据列表进行排序
+    # -- 按token长度上限对边数据列表进行截断处理
     edge_datas = truncate_list_by_token_size(
         edge_datas,
         key=lambda x: x["description"] if x["description"] is not None else "",
         max_token_size=query_param.max_token_for_global_context,
         tokenizer=tokenizer,
     )
+    # -- 依据边数据列表，获取与高级别关键词最相关的实体数据列表和分段数据列表
     use_entities, use_text_units = await asyncio.gather(
         _find_most_related_entities_from_relationships(
             edge_datas,
             query_param,
             knowledge_graph_inst,
             tokenizer,
-        ),
+        ),  # 根据边数据列表获取与高级别关键词最相关的实体数据列表
         _find_related_text_unit_from_relationships(
             edge_datas,
             query_param,
             text_chunks_db,
             tokenizer,
-        ),
+        ),  # 根据边数据列表获取与高级别关键词最相关的分段数据列表
     )
     logger.info(
         f"Global query uses {len(use_entities)} entites, {len(edge_datas)} relations, {len(use_text_units)} chunks"
     )
-
+    # -- 对上述得到的关系数据列表、实体数据列表和分段列表做格式化封装
     relations_context = []
     for i, e in enumerate(edge_datas):
         created_at = e.get("created_at", "UNKNOWN")
@@ -1908,7 +1917,8 @@ async def _find_most_related_entities_from_relationships(
     query_param: QueryParam,
     knowledge_graph_inst: BaseGraphStorage,
     tokenizer: Tokenizer,
-):
+):  # 根据边数据列表获取与高级别关键词相关的实体数据列表
+    # -- 去重收集边数据列表中所有的实体数据
     entity_names = []
     seen = set()
 
@@ -1919,25 +1929,25 @@ async def _find_most_related_entities_from_relationships(
         if e["tgt_id"] not in seen:
             entity_names.append(e["tgt_id"])
             seen.add(e["tgt_id"])
-
+    # -- 批量获取实体属性和实体度数据
     # Batch approach: Retrieve nodes and their degrees concurrently with one query each.
     nodes_dict, degrees_dict = await asyncio.gather(
         knowledge_graph_inst.get_nodes_batch(entity_names),
         knowledge_graph_inst.node_degrees_batch(entity_names),
     )
-
+    # -- 保持实体列表原有顺序的情况下，重构数据
     # Rebuild the list in the same order as entity_names
     node_datas = []
     for entity_name in entity_names:
         node = nodes_dict.get(entity_name)
-        degree = degrees_dict.get(entity_name, 0)
+        degree = degrees_dict.get(entity_name, 0)  # 实体的度，默认取0
         if node is None:
             logger.warning(f"Node '{entity_name}' not found in batch retrieval.")
             continue
         # Combine the node data with the entity name and computed degree (as rank)
-        combined = {**node, "entity_name": entity_name, "rank": degree}
+        combined = {**node, "entity_name": entity_name, "rank": degree}  # 将实体的度作为rank字段
         node_datas.append(combined)
-
+    # -- 按token长度上限截断实体数据列表
     len_node_datas = len(node_datas)
     node_datas = truncate_list_by_token_size(
         node_datas,
@@ -1957,15 +1967,16 @@ async def _find_related_text_unit_from_relationships(
     query_param: QueryParam,
     text_chunks_db: BaseKVStorage,
     tokenizer: Tokenizer,
-):
+):  # 根据边数据列表获取与高级别关键词最相关的分段数据列表
+    # -- 依据边数据列表，在保持对应边原始顺序的意义下，获取非空分段数据列表
     text_units = [
         split_string_by_multi_markers(dp["source_id"], [GRAPH_FIELD_SEP])
         for dp in edge_datas
         if dp["source_id"] is not None
-    ]
+    ]  # 获取边数据列表中的来源分段id列表
     all_text_units_lookup = {}
 
-    async def fetch_chunk_data(c_id, index):
+    async def fetch_chunk_data(c_id, index):  # 依据分段id检索非空分段数据，并设置order字段为index【对应边在边数据列表中的原始顺序】
         if c_id not in all_text_units_lookup:
             chunk_data = await text_chunks_db.get_by_id(c_id)
             # Only store valid data
@@ -1985,17 +1996,17 @@ async def _find_related_text_unit_from_relationships(
     if not all_text_units_lookup:
         logger.warning("No valid text chunks found")
         return []
-
+    # -- 将分段数据列表按照order字段从小到大排序，也即保持对应边的原始顺序
     all_text_units = [{"id": k, **v} for k, v in all_text_units_lookup.items()]
     all_text_units = sorted(all_text_units, key=lambda x: x["order"])
-
+    # -- 过滤内容为空的分段数据
     # Ensure all text chunks have content
     valid_text_units = [t for t in all_text_units if t["data"] is not None and "content" in t["data"]]
 
     if not valid_text_units:
         logger.warning("No valid text chunks after filtering")
         return []
-
+    # -- 按token长度上限对分段数据列表进行截断
     truncated_text_units = truncate_list_by_token_size(
         valid_text_units,
         key=lambda x: x["data"]["content"],

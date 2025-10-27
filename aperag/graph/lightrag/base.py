@@ -87,13 +87,13 @@ class QueryParam:
     top_k: int = int(os.getenv("TOP_K", "60"))
     """Number of top items to retrieve. Represents entities in 'local' mode and relationships in 'global' mode."""
 
-    max_token_for_text_unit: int = int(os.getenv("MAX_TOKEN_TEXT_CHUNK", "4000"))
+    max_token_for_text_unit: int = int(os.getenv("MAX_TOKEN_TEXT_CHUNK", "4000"))  # 分段数据列表的最大token长度，TODO 其设置依据是什么？
     """Maximum number of tokens allowed for each retrieved text chunk."""
 
-    max_token_for_global_context: int = int(os.getenv("MAX_TOKEN_RELATION_DESC", "4000"))
+    max_token_for_global_context: int = int(os.getenv("MAX_TOKEN_RELATION_DESC", "4000"))  # 关系数据列表的最大token长度，TODO 其设置依据是什么？
     """Maximum number of tokens allocated for relationship descriptions in global retrieval."""
 
-    max_token_for_local_context: int = int(os.getenv("MAX_TOKEN_ENTITY_DESC", "4000"))
+    max_token_for_local_context: int = int(os.getenv("MAX_TOKEN_ENTITY_DESC", "4000"))  # 实体数据列表的最大token长度，TODO 其设置依据是什么？
     """Maximum number of tokens allocated for entity descriptions in local retrieval."""
 
     hl_keywords: list[str] = field(default_factory=list)

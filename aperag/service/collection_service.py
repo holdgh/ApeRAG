@@ -296,7 +296,7 @@ class CollectionService:
         chat_id: Optional[str] = None,
         flow_name: str = "search",
         flow_title: str = "Search",
-    ) -> Tuple[List[SearchResultItem], str]:  # 对特定知识库执行检索逻辑
+    ) -> Tuple[List[SearchResultItem], str]:  # 对特定知识库执行检索逻辑，得到相关数据列表【序号、相关得分、文本内容、文本来源、元数据】和rerank节点id【“rerank”】
         """
         参数说明：
             search_user_id：当前用户信息【进行检索操作的人】
@@ -487,23 +487,23 @@ class CollectionService:
         initial_data = {"query": query, "user": search_user_id}  # 初始化流程入参
         if chat_id:
             initial_data["chat_id"] = chat_id
-        result, _ = await engine.execute_flow(flow, initial_data)  # 执行流程【见aperag.flow.engine.FlowEngine.execute_flow】 TODO 至此~
+        result, _ = await engine.execute_flow(flow, initial_data)  # 执行流程【见aperag.flow.engine.FlowEngine.execute_flow】
 
         if not result:
             raise Exception("Failed to execute flow")
-        # -- 解析检索流程执行结果
+        # -- 解析检索流程执行结果【检索流程的最后一个节点为重排节点，从节点运行结果中获取最终检索数据】
         # Process search results from rerank node
         docs = result.get(rerank_node_id, {}).docs
         items = []
         for idx, doc in enumerate(docs):
             items.append(
                 SearchResultItem(
-                    rank=idx + 1,
-                    score=doc.score,
-                    content=doc.text,
-                    source=doc.metadata.get("source", ""),
-                    recall_type=doc.metadata.get("recall_type", ""),
-                    metadata=doc.metadata,
+                    rank=idx + 1,  # 文本在检索结果列表中的序号
+                    score=doc.score,  # 相关性得分
+                    content=doc.text,  # 文本内容
+                    source=doc.metadata.get("source", ""),  # 文本来源
+                    recall_type=doc.metadata.get("recall_type", ""),  # 文本来源哪种索引方式【向量、全文、视觉信息、摘要、知识图谱】
+                    metadata=doc.metadata,  # 文本元数据
                 )
             )
 
@@ -553,7 +553,7 @@ class CollectionService:
             except Exception:
                 # If marketplace access also fails, raise original not found error
                 raise CollectionNotFoundException(collection_id)
-        # -- 执行检索逻辑
+        # -- 执行检索逻辑【多种索引数据检索并行，然后基于文本内容去重合并，最后执行重排逻辑】，获取相关数据列表【序号、相关得分、文本内容、文本来源、元数据】
         # Execute search flow using helper method
         items, _ = await self.execute_search_flow(
             data=data,

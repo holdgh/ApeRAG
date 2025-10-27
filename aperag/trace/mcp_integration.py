@@ -39,7 +39,7 @@ except ImportError:
 _mcp_tracing_enabled = False
 
 
-def get_current_trace_info() -> Tuple[Optional[str], Optional[str]]:  # TODO 至此~
+def get_current_trace_info() -> Tuple[Optional[str], Optional[str]]:  # TODO 待分析
     """
     从当前OpenTelemetry上下文中提取trace_id和span_id。
 返回:

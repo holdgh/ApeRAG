@@ -98,7 +98,7 @@ class FlowEngine:
         except asyncio.CancelledError:
             pass
 
-    async def execute_flow(self, flow: FlowInstance, initial_data: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def execute_flow(self, flow: FlowInstance, initial_data: Dict[str, Any] = None) -> Dict[str, Any]:  # 执行流程
         """Execute a flow instance with optional initial data
 
         Args:
@@ -139,7 +139,7 @@ class FlowEngine:
             以单个知识库的混合检索流程为例，并行组依次为：
             [向量检索节点、全文检索节点、图谱检索节点、摘要检索节点、视觉信息检索节点]
             [合并节点]
-            [重排节点]【可选】
+            [重排节点]
             """
             # Execute nodes
             for node_group in self._find_parallel_groups(flow, sorted_nodes):  # 查找可以并行执行的节点组（逐级执行），采用协程异步方式结合await实现“组内并行执行，组间串行等待”
@@ -194,7 +194,7 @@ class FlowEngine:
         
             向量检索节点、全文检索节点、图谱检索节点、摘要检索节点、视觉信息检索节点 全部完成后，共同进入合并节点
         
-        第三阶段：重排节点【可选】【入度为1】
+        第三阶段：重排节点【入度为1】
         
             合并节点 完成后，进入重排节点，流程结束
         """
@@ -415,16 +415,16 @@ class FlowEngine:
         sys_input = SystemInput(**self.context.global_variables)
         return user_input, sys_input
 
-    async def _execute_node(self, node: NodeInstance) -> None:  # 执行流程图中的单个节点 TODO 至此~
+    async def _execute_node(self, node: NodeInstance) -> None:  # 执行流程图中的单个节点
         """
         Execute a single node using the provided context, using runner_info from registry.
         """
-        runner_info = NODE_RUNNER_REGISTRY.get(node.type)
+        runner_info = NODE_RUNNER_REGISTRY.get(node.type)  # 从节点仓库依据节点类型获取节点运行信息【详情见aperag.flow.base.models.register_node_runner中对于节点运行信息的注册定义】
         if not runner_info:
             raise ValidationError(f"Unknown node type: {node.type}")
-        runner = runner_info["runner"]
+        runner = runner_info["runner"]  # 节点运行实例
         try:
-            user_input, sys_input = self._bind_node_inputs(node, runner_info)
+            user_input, sys_input = self._bind_node_inputs(node, runner_info)  # 构造节点输入数据
             await self.emit_event(
                 FlowEvent(
                     FlowEventType.NODE_START,
@@ -434,14 +434,16 @@ class FlowEngine:
                     {"node_type": node.type, "inputs": user_input.model_dump()},
                 )
             )
-            outputs = await runner.run(user_input, sys_input)
+            outputs = await runner.run(user_input, sys_input)  # 运行节点【执行具体节点定义类的run方法】，获取节点运行输出数据
             if isinstance(outputs, tuple) and len(outputs) == 2:
                 output_data, system_output = outputs
             else:
                 output_data, system_output = outputs, None
+            # TODO 关键步骤：将节点运行结果放入self.context中
             self.context.set_output(node.id, output_data)
             if system_output is not None:
                 self.context.set_system_output(node.id, system_output)
+
             await self.emit_event(
                 FlowEvent(
                     FlowEventType.NODE_END,

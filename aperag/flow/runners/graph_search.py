@@ -55,7 +55,7 @@ class GraphSearchService:
 
     async def execute_graph_search(
         self, user, query: str, top_k: int, collection_ids: List[str]
-    ) -> List[DocumentWithScore]:  # 知识图谱检索
+    ) -> List[DocumentWithScore]:  # 知识图谱检索知识图谱检索逻辑【text字段为一个格式化的字符串，内含三种数据：节点数据、边数据和分段数据】
         """Execute graph search with given parameters"""
         # -- 获取当前用户可访问的知识库信息【单个】
         collection = None
@@ -81,7 +81,7 @@ class GraphSearchService:
             only_need_context=True,  # 仅需内容
             top_k=top_k,  # 检索参数 top_k
         )
-        context = await rag.aquery_context(query=query, param=param)
+        context = await rag.aquery_context(query=query, param=param)  # 知识图谱检索逻辑【最终获得一个格式化的字符串，内含三种数据：节点数据、边数据和分段数据】
         if not context:
             return []
 
